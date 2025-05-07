@@ -5,6 +5,119 @@ GRenderedTables = [];
 
 var GEventData = new EventData({});
 
+var GFormContainers = [new FormContainer({})];
+GFormContainers = [];
+
+
+$(document).ready(function () {
+
+    $(document).off("change keyup paste", ".custom-form-item").on("change keyup paste", ".custom-form-item", function (e) {
+
+        var containterId = $(this).closest(".mainContainer").attr("id");
+        var container = CustomFormData(containterId);
+
+        if (!container) {
+
+            console.warn("Container not found for ID: " + containterId);
+            return
+        }
+        container.setContentValue($(this).attr("id"), $(this).val());
+
+        var content = container.getContent($(this).attr("id"));
+
+        if (content) {
+            var event = content.event;
+            if (event) {
+                eval(event);
+            }
+        }
+
+    });
+
+});
+
+
+
+
+function FormContainer(data) {
+
+    this.containerId = data.containerId || "";
+    this.spinnerId = data.spinnerId || "";
+    this.hasSpinner = data.hasSpinner || false;
+    this.customData = data.customData || "";
+    this.renderedHtml = data.renderedHtml || "";
+    this.sourceData = data.sourceData ? new FormSourceData(data.sourceData) : new FormSourceData({});
+    this.items = Array.isArray(data.items) ? Array.from(data.items) : [];
+}
+
+FormContainer.prototype.getContentValue = function (contentId) {
+
+    var content = this.items.find(function (item) {
+        return item.content.id == contentId;
+    });
+
+    if (content) {
+
+        return content.content.value;
+    }
+    return null;
+}
+
+FormContainer.prototype.setContentValue = function (contentId, value) {
+    var content = this.items.find(function (item) {
+        return item.content.id == contentId;
+    });
+
+    if (content) {
+        content.content.value = value;
+    }
+}
+
+FormContainer.prototype.getContent = function (contentId) {
+    var content = this.items.find(function (item) {
+        return item.content.id == contentId;
+    });
+
+    if (content) {
+        return content.content;
+    }
+    return null;
+}
+
+FormContainer.prototype.getSelectedOption = function (contentId) {
+
+    return $("#" + contentId).find("option:selected").text();
+}
+
+function FormSourceData(data) {
+    this.sourceTable = data.sourceTable || "";
+    this.sourceKey = data.sourceKey || "";
+}
+
+
+function FormItem(data) {
+    this.colSize = data.colSize || "1";
+    this.content = data.content ? new FormContent(data.content) : new FormContent({});
+}
+
+function FormContent(data) {
+
+    this.contentType = data.contentType || "";
+    this.id = data.id || generateUUID();
+    this.type = data.type || "";
+    this.classes = data.classes || "";
+    this.style = data.style || "";
+    this.selectCustomData = data.selectCustomData || "";
+    this.fieldToOption = data.fieldToOption || "";
+    this.fieldToValue = data.fieldToValue || "";
+    this.label = data.label || "";
+    this.selectData = data.selectData || "";
+    this.value = data.value || "";
+    this.event = data.event || "";
+}
+
+
+
 function TableHtml(data) {
     this.tableId = data.tableId || "";
     this.classes = data.classes || "";
@@ -19,8 +132,87 @@ function TableHtml(data) {
 function EventData(data) {
     this.row = data.row ? new FormTableRow(data.row) : new FormTableRow({});
     this.cell = data.cell ? new CellObject(data.cell) : new CellObject({});
-    this.renderedTable =data.renderedTable? new RenderedTable(data.renderedTable) : new RenderedTable({});
+    this.renderedTable = data.renderedTable ? new RenderedTable(data.renderedTable) : new RenderedTable({});
 }
+
+
+function GenerateCustomFormContainer(cont) {
+
+    var container = new FormContainer(cont);
+
+    var mainContainer = "<div data-sourcetable='" + container.sourceData.sourceTable + "' data-sourcekey='" + container.sourceData.sourceKey + "' id='" + container.containerId + "' class='row mainContainer'>";
+
+    var renderedItems = [new FormItem({})];
+    renderedItems = [];
+
+    container.items.forEach(function (item) {
+
+
+        var formItem = new FormItem(item);
+        formItem.content.classes = formItem.content.classes ? formItem.content.classes + " custom-form-item" : "custom-form-item";
+        mainContainer += GenerateCustomContainerCol(formItem)
+        renderedItems.push(formItem);
+
+    });
+
+    mainContainer += "</div>";
+
+    container.items = renderedItems;
+
+
+    if (container.hasSpinner) {
+
+        mainContainer += "<div id='" + container.spinnerId + "' class='overlay'>";
+        mainContainer += "    <div class='spinner'></div>"
+        mainContainer += "    <div class='w-100 d-flex justify-content-center align-items-center'>"
+        mainContainer += "    </div>"
+        mainContainer += "</div>"
+    }
+    container.renderedHtml = mainContainer;
+    GFormContainers.push(container);
+
+    return mainContainer
+}
+
+
+function GenerateCustomContainerCol(containerData) {
+    var containerHTML = '';
+
+    containerHTML += ' <div';
+    containerHTML += ' class=" custom-form-container-item col-md-' + containerData.colSize + (containerData.classes ? ' ' + containerData.classes : '') + '"';
+    containerHTML += containerData.customData ? ' ' + containerData.customData : '';
+    containerHTML += containerData.style ? " style='" + containerData.style + "'" : '';
+    containerHTML += '>';
+    containerHTML += HandlerCustomContainerContentGenerator(containerData.content);
+    containerHTML += '</div>';
+
+    return containerHTML;
+}
+
+
+function CustomFormData(containerId) {
+
+    var container = GFormContainers.find(function (container) {
+        return container.containerId == containerId;
+    });
+    return container
+}
+
+function HandlerCustomContainerContentGenerator(content) {
+
+    switch (content.contentType) {
+        case "input":
+            return generateInput(content);
+        case "textarea":
+            return generateTextarea(content);
+        case "select":
+            return generateSelect(content.selectData, content.classes, content.style, content.selectCustomData, content.fieldToOption, content.fieldToValue, content.label);
+        case "button":
+            return generateButton(content);
+    }
+}
+
+
 
 TableHtml.prototype.generateHtml = function () {
 
@@ -418,9 +610,9 @@ function CellObject(data) {
 }
 
 function setDefaultValue(data) {
-    var inputData = new FormTableInputData(data?data:{});
+    var inputData = new FormTableInputData(data ? data : {});
 
-    if(!inputData){
+    if (!inputData) {
 
         return ""
     }
@@ -533,7 +725,7 @@ function buildHtmlTable(data) {
     GRenderedTables.push(new RenderedTable({ tableName: data.tableName, tableKey: data.tableKey, htmlTable: TableData, columns: colsConfig, rows: [], cellObjects: [] }));
     TableData.setListeners();
     return TableData;
-} 
+}
 
 
 
