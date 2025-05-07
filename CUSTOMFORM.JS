@@ -4,12 +4,7 @@ var GRenderedTables = [new RenderedTable({})];
 GRenderedTables = [];
 
 var GEventData = new EventData({});
-console.log("INITIALIZANDO COM PURGE CUSTOMFORM.JS")
-var GClickedEventRow = new FormTableRow({});
 
-function testOpenForm(){
-    console.log("TESTANDO OPEN FORM")
-}
 function TableHtml(data) {
     this.tableId = data.tableId || "";
     this.classes = data.classes || "";
