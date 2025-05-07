@@ -4,7 +4,7 @@ var GRenderedTables = [new RenderedTable({})];
 GRenderedTables = [];
 
 var GEventData = new EventData({});
-
+console.log("INITIALIZANDO CUSTOMFORM.JS")
 var GClickedEventRow = new FormTableRow({});
 
 function TableHtml(data) {
