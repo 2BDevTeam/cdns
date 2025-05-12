@@ -6,7 +6,7 @@ GRenderedTables = [];
 var GEventData = new EventData({});
 
 var GFormContainers = [new FormContainer({})];
-GFormContainers = [];
+//GFormContainers = [];
 
 
 $(document).ready(function () {
@@ -142,6 +142,14 @@ function GenerateCustomFormContainer(cont) {
 
     var mainContainer = "<div data-sourcetable='" + container.sourceData.sourceTable + "' data-sourcekey='" + container.sourceData.sourceKey + "' id='" + container.containerId + "' class='row mainContainer'>";
 
+    if (container.hasSpinner) {
+
+        mainContainer += "<div id='" + container.spinnerId + "' class='overlay'>";
+        mainContainer += "    <div class='spinner'></div>"
+        mainContainer += "    <div class='w-100 d-flex justify-content-center align-items-center'>"
+        mainContainer += "    </div>"
+        mainContainer += "</div>"
+    }
     var renderedItems = [new FormItem({})];
     renderedItems = [];
 
@@ -160,14 +168,7 @@ function GenerateCustomFormContainer(cont) {
     container.items = renderedItems;
 
 
-    if (container.hasSpinner) {
 
-        mainContainer += "<div id='" + container.spinnerId + "' class='overlay'>";
-        mainContainer += "    <div class='spinner'></div>"
-        mainContainer += "    <div class='w-100 d-flex justify-content-center align-items-center'>"
-        mainContainer += "    </div>"
-        mainContainer += "</div>"
-    }
     container.renderedHtml = mainContainer;
     GFormContainers.push(container);
 

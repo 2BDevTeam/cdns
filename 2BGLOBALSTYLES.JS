@@ -2,16 +2,97 @@ $(document).ready(function () {
     // Add global styles
     var styles = [];
     getSpinnerStyle(styles);
-    
+    getCollapseStyle(styles);
+
     var globalStyle = ""
     styles.forEach(function (style) {
         globalStyle += style;
     });
     $('head').append('<style>' + globalStyle + '</style>');
+
+
+    $(document).on('click', '.home-collapse-header', function () {
+        $(this).find(".glyphicon").toggleClass("glyphicon-triangle-bottom");
+        //$(this).next("div").css("hidden");
+        $(this).next("div").toggleClass("hidden");
+
+    });
 });
 
 
 
+function getCollapseStyle(styles) {
+
+
+    var collapseStyle = ""
+    collapseStyle += ".pad {"
+    collapseStyle += "    padding-top: 12px;"
+    collapseStyle += "    padding-bottom: 12px;"
+    collapseStyle += "  }"
+    collapseStyle += ""
+    collapseStyle += "  .home-collapse {"
+    collapseStyle += "    background: transparent;"
+    collapseStyle += "    border: 1px solid rgba(182, 182, 182, 0.5);"
+    collapseStyle += "    display: flex;"
+    collapseStyle += "    flex-direction: column;"
+    collapseStyle += "    padding: 20px;"
+    collapseStyle += "    line-height: 25px;"
+    collapseStyle += "    border-radius: var(--border-radius);"
+    collapseStyle += "    margin-bottom: 5px;"
+    collapseStyle += "  }"
+    collapseStyle += ""
+    collapseStyle += "  .home-collapse-body {"
+    collapseStyle += "     padding: 30px 0;"
+    collapseStyle += "     display: flex;"
+    collapseStyle += "     flex-direction: column;"
+    collapseStyle += "     gap: 20px;"
+    collapseStyle += "     -moz-transition: height 0.5s;"
+    collapseStyle += "     -ms-transition: height 0.5s;"
+    collapseStyle += "     -o-transition: height 0.5s;"
+    collapseStyle += "     -webkit-transition: height 0.5s;"
+    collapseStyle += "     transition: height 0.5s;"
+    collapseStyle += "  }"
+    collapseStyle += ""
+
+    styles.push(collapseStyle);
+    // Add the collapse style to the head
+
+
+
+
+    /*$(document).on('input', 'input[data-type="digit"]', function () {
+        var cleave = new Cleave(this, {
+            numeral: true,
+            numeralThousandsGroupStyle: 'thousand', delimiter: " ",
+        });
+    });*/
+
+
+
+
+}
+
+
+function generateCollapseHTML(collapseData) {
+    // Start building up the collapse HTML string with the opening div
+    var collapseHTML = '<div class="home-collapse" id="' + collapseData.id + '">';
+
+    // Add the collapse header
+    collapseHTML += '<div class="home-collapse-header mainformcptitulo">';
+    collapseHTML += '<span class="glyphicon glyphicon-triangle-right"></span>';
+    collapseHTML += '<span class="collapse-title">' + collapseData.title + '</span>';
+    collapseHTML += '</div>';
+
+    // Add the collapse body with the provided content
+    collapseHTML += '<div class="home-collapse-body hidden">';
+    collapseHTML += '<p>' + collapseData.body + '</p>';
+    collapseHTML += '</div>';
+
+    // Close the collapse div
+    collapseHTML += '</div>';
+
+    return collapseHTML;
+}
 
 function getSpinnerStyle(styles) {
 
