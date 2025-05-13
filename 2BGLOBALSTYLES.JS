@@ -73,6 +73,29 @@ function getCollapseStyle(styles) {
 }
 
 
+
+
+function generateButton(button) {
+    var html = "<button";
+
+    // add button attributes
+    if (button.style) html += " style='" + button.style + "'";
+    if (button.buttonId) html += " id='" + button.buttonId + "'";
+    if (button.classes) html += " class='" + button.classes + "'";
+    if (button.customData) html += " " + button.customData;
+
+    // add onClick event
+    if (button.onClick) {
+        html += " onclick='" + button.onClick + "'";
+    }
+
+    html += ">" + button.label + "</button>";
+
+    return html;
+}
+
+
+
 function generateCollapseHTML(collapseData) {
     // Start building up the collapse HTML string with the opening div
     var collapseHTML = '<div class="home-collapse" id="' + collapseData.id + '">';
