@@ -80,7 +80,7 @@ function generateCollapseHTML(collapseData) {
     // Add the collapse header
     collapseHTML += '<div class="home-collapse-header mainformcptitulo">';
     collapseHTML += '<span class="glyphicon glyphicon-triangle-right">' + collapseData.title + '</span>';
-    collapseHTML += '<span class="collapse-title"></span>';
+    collapseHTML += '<div class="row"><span class="collapse-content">' + collapseData.headerContent + '</span></div>';
     collapseHTML += '</div>';
 
     // Add the collapse body with the provided content
