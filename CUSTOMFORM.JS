@@ -97,6 +97,9 @@ function FormSourceData(data) {
 
 function FormItem(data) {
     this.colSize = data.colSize || "1";
+    this.classes = data.classes || "";
+    this.customData = data.customData || "";
+    this.style = data.style || "";
     this.content = data.content ? new FormContent(data.content) : new FormContent({});
 }
 
