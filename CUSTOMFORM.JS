@@ -101,7 +101,7 @@ function FormItem(data) {
     this.customData = data.customData || "";
     this.style = data.style || "";
     this.content = data.content ? new FormContent(data.content) : new FormContent({});
-}
+} 
 
 function FormContent(data) {
 
