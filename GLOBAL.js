@@ -620,6 +620,7 @@ function setInputValueByType(type, value) {
 }
 
 function handleInputCustomData(type, value) {
+
     switch (type) {
         case "checkbox":
             return value ? " checked" : "";
@@ -644,8 +645,9 @@ function generateInput(inputData) {
     if (inputData.placeholder) inputHTML += " placeholder='" + inputData.placeholder + "'";
     if (inputData.style) inputHTML += " style='" + inputData.style + "'";
     if (inputData.classes) inputHTML += " class='" + inputData.classes + "'";
-    if (inputData.customData) inputHTML += " " + inputData.customData + handleInputCustomData(inputData.type, inputData.value);
+    if (inputData.customData) inputHTML += " " + inputData.customData ;
 
+    inputHTML+=handleInputCustomData(inputData.type, inputData.value)
     inputHTML += ">";
 
     return inputHTML;
