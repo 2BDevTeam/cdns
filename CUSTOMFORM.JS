@@ -110,6 +110,7 @@ function FormContent(data) {
     this.type = data.type || "";
     this.classes = data.classes || "";
     this.style = data.style || "";
+    this.customData = data.customData || "";
     this.selectCustomData = data.selectCustomData || "";
     this.fieldToOption = data.fieldToOption || "";
     this.fieldToValue = data.fieldToValue || "";

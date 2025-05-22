@@ -630,6 +630,7 @@ function handleInputCustomData(type, value) {
     }
 }
 function generateInput(inputData) {
+
     var inputHTML = "";
 
     if (inputData.label) {
@@ -649,7 +650,6 @@ function generateInput(inputData) {
 
     inputHTML+=handleInputCustomData(inputData.type, inputData.value)
     inputHTML += ">";
-
     return inputHTML;
 }
 
