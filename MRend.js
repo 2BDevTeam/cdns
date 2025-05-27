@@ -7,6 +7,8 @@ var GTableData = new TableHtml({})
 var GRows = []
 var GRenderedColunas = [new RenderedColuna({})]
 var GRenderedLinhas = [new RenderedLinha({})]
+
+var GContainerToRender = "#campos > .row:last"
 GRenderedLinhas = []
 GRenderedColunas = []
 var GBatchSize = 30;
@@ -16,6 +18,7 @@ var GCellObjectsConfig = [new CellObjectConfig({ cellid: "DEFAULTCELL" })];
 var GCellObjectsConfig = [];
 var TMPCellObjectCOnfig = []
 var GTmpListTableObject = [];
+var relatoriosNotReadonly = []
 var db
 var GDB
 var GNewRecords = [];
@@ -283,33 +286,33 @@ TableHtml.prototype.lazyLoadRendering = function () {
     $("#" + GTableData.tableId).before("<div class='col-md-12 pull-left' style='margin-bottom:0.5em'>" + filtroInput + "</div>")
 
 
-    navigator.locks.request("HanldeUiLockLazy", function (lock) {
-        var targetNode = document.body; // ou use um container mais específico
 
-        // Configuração do observer para escutar adições de nós filhos
-        var config = { childList: true, subtree: true };
+    var targetNode = document.body; // ou use um container mais específico
 
-        // Função callback executada quando uma mutação ocorre
-        var callback = function (mutationsList, observer) {
-            mutationsList.forEach(function (mutation) {
-                if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach(function (node) {
-                        if (node.nodeType === 1 && node.classList.contains('Singular-row')) {
+    // Configuração do observer para escutar adições de nós filhos
+    var config = { childList: true, subtree: true };
 
-                            //console.log('Nova linha adicionada:', node);
-                            applyCodeToSingularRow(node);
-                            initSelectForRow(node, true); // Inicializa os selects na nova linha
-                            modoEcraHandlerByRow(node);
+    // Função callback executada quando uma mutação ocorre
+    var callback = function (mutationsList, observer) {
+        mutationsList.forEach(function (mutation) {
+            if (mutation.type === 'childList') {
+                mutation.addedNodes.forEach(function (node) {
+                    if (node.nodeType === 1 && node.classList.contains('Singular-row')) {
 
-                            // Aqui você pode executar qualquer lógica extra com a linha
-                        }
-                    });
-                }
-            })
-        };
-        var observer = new MutationObserver(callback);
-        observer.observe(targetNode, config);
-    });
+                        //console.log('Nova linha adicionada:', node);
+                        applyCodeToSingularRow(node);
+                        initSelectForRow(node, true); // Inicializa os selects na nova linha
+                        modoEcraHandlerByRow(node);
+
+                        // Aqui você pode executar qualquer lógica extra com a linha
+                    }
+                });
+            }
+        })
+    };
+    var observer = new MutationObserver(callback);
+    observer.observe(targetNode, config);
+
 
 
     var rows = [];
@@ -450,32 +453,45 @@ TableHtml.prototype.generateTableButtons = function () {
     }
     if (GReportConfig.relatorio.adicionalinha) {
 
-        var botaoId = "btnAdd" + GReportConfig.relatorio.linhamodelo
-        var botaoAdLinha = {
-            style: "margin-left:0.4em",
-            buttonId: botaoId,
-            classes: "btn btn-primary btn-sm",
-            customData: " type='button' data-modelo='" + GReportConfig.relatorio.linhamodelo + "' data-tooltip='true' data-original-title='Adiciona linha' ",
-            label: "Adiciona linha <span style='color:white;'  class='glyphicon glyphicon-plus'></span>",
-            onClick: "",
-        };
-
+        var thisTable = this;
         var tableButtons = $("<div id='tableButtons' class='col-md-12 pull-left tableButtons'></div>");
-
         $("#" + this.tableId).after(tableButtons);
 
-        var buttonHtml = generateButton(botaoAdLinha);
-        $("#tableButtons").append(buttonHtml);
+        GReportConfig.relatorio.modelos.forEach(function (modelo) {
 
 
+            var botaoId = "btnAdd" + modelo;
+            var configuracaoLinha = GReportConfig.linhas.find(function (linha) {
+                return linha.codigo == modelo
 
-        var thisTable = this;
+            });
+            var descbtnModelo = "Adiciona linha";
 
-        $("#" + botaoId).on("click", function () {
+            if (configuracaoLinha) {
+                descbtnModelo = configuracaoLinha.descbtnModelo || "Adiciona linha";
+            }
+            var botaoAdLinha = {
+                style: "margin-left:0.4em",
+                buttonId: botaoId,
+                classes: "btn btn-primary btn-sm",
+                customData: " type='button' data-modelo='" + modelo + "' data-tooltip='true' data-original-title='" + descbtnModelo + "' ",
+                label: descbtnModelo + " <span style='color:white;'  class='glyphicon glyphicon-plus'></span>",
+                onClick: "",
+            };
 
-            thisTable.addLinhaByModelo(GReportConfig.relatorio.linhamodelo)
+            var buttonHtml = generateButton(botaoAdLinha);
+
+            $("#tableButtons").append(buttonHtml);
+            $("#" + botaoId).on("click", function () {
+
+                thisTable.addLinhaByModelo(modelo);
+            });
+
+            ///console.log("Confirma adicao da linha", $("#" + this.tableId))
+
 
         })
+
 
 
 
@@ -573,7 +589,7 @@ TableHtml.prototype.freezyHeaders = function () {
     $('thead th').css({
         'position': 'sticky',
         'top': '0',
-        "background-color": "#033076",
+        //"background-color": "#033076",
 
         'z-index': '10000000000000000'
     });
@@ -629,10 +645,13 @@ function Linha(data) {
     this.linkstamp = data.linkstamp || "";
     this.parentstamp = data.parentstamp || "";
     this.temcolunas = data.temcolunas || false;
+    this.addfilho = data.addfilho || false;
+    this.modelo = data.modelo || false;
     this.tipo = data.tipo || "";
     this.codigo = data.codigo || "";
     this.descricao = data.descricao || "";
     this.origem = data.origem || "";
+    this.descbtnModelo = data.descbtnModelo || "";
     this.expressao = data.expressao || "";
     this.campovalid = data.campovalid || "";
     this.sinalnegativo = data.sinalnegativo || false;
@@ -656,7 +675,7 @@ function Linha(data) {
     this.campovalor = data.campovalor || "";
     this.executachangesubgrupo = data.executachangesubgrupo || false;
     this.expressaochangejssubgrupo = data.expressaochangejssubgrupo || "";
-    this.bindData = new BindData(data.bindData ? data.bindData : {}) 
+    this.bindData = new BindData(data.bindData ? data.bindData : {});
 
 }
 
@@ -1288,6 +1307,8 @@ function getMaxRenderedLinha() {
 
     return isArray(GRenderedLinhas) ? GRenderedLinhas.length : 0;
 }
+
+
 function RenderedLinha(data) {
     this.index = getMaxRenderedLinha();
     this.linkid = data.linkid || "";
@@ -1297,6 +1318,16 @@ function RenderedLinha(data) {
     this.parentid = data.parentid || "";
     this.novoregisto = data.novoregisto
     this.config = new Linha(data.config || new Linha({}));
+
+}
+
+
+RenderedLinha.prototype.addFilho= function (filho) {
+    
+
+     var renderedLinha = new RenderedLinha({ novoregisto: true, rowid: generateUUID(), linkid: this.rowid, parentid: "", config: this.config });
+
+    GRenderedLinhas.push(renderedLinha);
 
 }
 
@@ -1614,6 +1645,7 @@ function Relatorio(data) {
     this.defdesccoluna = data.defdesccoluna || ""
     this.adicionalinha = data.adicionalinha || false
     this.linhamodelo = data.linhamodelo || ""
+    this.modelos = Array.isArray(data.modelos) ? Array.from(data.modelos) : [];
     this.codigo = data.codigo || ""
     this.nome = data.nome || ""
     this.categoria = data.categoria || ""
@@ -1712,10 +1744,24 @@ function GetConfig(url, args) {
 
 function MapConfig(mapConfigs, configData) {
 
-    var linhas = mapConfigComponentByDestiny("Linha", mapConfigs, configData, Linha);
     var celulas = mapConfigComponentByDestiny("Celula", mapConfigs, configData, Celula);
+    var linhas = mapConfigComponentByDestiny("Linha", mapConfigs, configData, Linha);
     var colunas = mapConfigComponentByDestiny("Coluna", mapConfigs, configData, Coluna);
     var relatorio = mapConfigComponentByDestiny("Relatorio", mapConfigs, configData, Relatorio)[0];
+
+    if (relatorio) {
+
+        if (relatorio.adicionalinha) {
+
+            var linhasModelo = linhas.filter(function (linha) {
+                return linha.modelo == true
+            }).map(function (linha) {
+                relatorio.modelos.push(linha.codigo);
+            });
+
+        }
+
+    }
 
     return new ReportConfig({ linhas: linhas, celulas: celulas, colunas: colunas, relatorio: relatorio });
 }
@@ -1853,7 +1899,7 @@ function setColunasRender(colunas, records) {
 function setCabecalhos(records) {
 
     var header = {
-        style: "background:#033076!important;text-align:right!important;",
+        style: "text-align:right!important;",
         rowId: "",
         classes: "defgridheader",
         customData: "",
@@ -1909,6 +1955,341 @@ function handleDefaultValueByDataType(dataType, valor) {
             return valor;
     }
 }
+
+
+
+function getDistinctWithKeys(records, key) {
+    return _.uniqBy(records, key);
+}
+
+function generateUUID() {
+    var d = new Date().getTime();
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = (d + Math.random() * 16) % 16 | 0;
+        d = Math.floor(d / 16);
+        return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+    return uuid.substring(0, 25);
+}
+
+function freezyColunas() {
+    $('.sourced-table th[data-fixacoluna=true]').each(function () {
+
+        addFreezyColumnByHeader($(this))
+        ////console.log("sss") 
+    })
+}
+
+function modoEcraHandler() {
+    if ($("#mainPage").data("state") == "consultar") {
+        $('.sourced-table').find('*').prop('disabled', true);
+        $('.sourced-table select').prop('disabled', true);
+        $(".source-table-options").hide()
+        $(".action-zone").hide()
+    }
+
+
+    addFreezyColumnByHeader($('.sourced-table th:nth-child(2)'))
+    freezyColunas()
+    addFreezingEvent()
+}
+
+function initSelect(component, changeStyle) {
+    $(component).select2({
+        width: "100%",
+        allowClear: false
+    })
+
+    /* if (changeStyle) {
+         $('.table .select2-selection.select2-selection--single, #maincontent .table input[type=text], #maincontent .table input[type="number"]').css({
+             'background-color': '#ffffff',
+             'border-radius': 'var(--border-radius-input)',
+             'border-bottom': '0'
+         });
+     }*/
+
+}
+
+
+function sourcedTableStyle() {
+    $(".sourced-table input").css("text-align", "right")
+    $(".sourced-table select").css("text-align", "right")
+    $(".sourced-table th").css("text-align", "right")
+    $(".sourced-table").css("text-align", "right")
+    $(".sourced-table span").css("text-align", "right")
+
+}
+
+function formatAllTablesDigitInputs() {
+
+
+
+
+    var elementsDate = document.querySelectorAll('input[data-type="date"]');
+
+    // Convert the NodeList to an array and apply Cleave to each input element
+    Array.from(elementsDate).forEach(function (element) {
+
+        var cleave = new Cleave(element, {
+            date: true,
+            delimiter: ".",
+            datePattern: ['d', 'm', 'Y']
+        });
+    })
+
+
+
+
+    var elements = document.querySelectorAll('input[data-type="digit"]');
+
+    // Convert the NodeList to an array and apply Cleave to each input element
+    Array.from(elements).forEach(function (element) {
+        var closestTdIndex = $(element).closest("td").index()
+        ////console.log("Closest td index", closestTdIndex)
+        var closestHeader = $(".sourced-table th").eq(closestTdIndex)
+        var proibenegativo = closestHeader.data("proibenegativo")
+        var decimais = closestHeader.data("decimais")
+        /*//console.log("Proibe negativo", proibenegativo)
+        //console.log("Decimais", decimais)
+        //console.log("Closest header", closestHeader)*/
+        if ($(element).data("decimais") != undefined) {
+            decimais = $(element).data("decimais")
+        }
+
+        if ($(element).data("proibenegativo") != undefined) {
+            proibenegativo = $(element).data("proibenegativo")
+        }
+
+        var mask = IMask(element, {
+            mask: Number,
+            min: (proibenegativo == true ? 0 : -10000000000000000000000000000000000000000000000000000000000000000),
+            scale: (isNaN(decimais) == true ? 2 : parseInt(decimais)),
+            radix: '.',
+            thousandsSeparator: ' ',
+
+        });
+
+
+
+        if ($(element).attr("sinalnegativo") == "true") {
+            // //console.log("NEED TO MASKKKKKKKK")
+            mask.on('accept', function () {
+                var value = mask.unmaskedValue;
+                if (value > 0) {
+                    mask.unmaskedValue = (-value).toString();
+                }
+            });
+        }
+
+    });
+    sourcedTableStyle()
+
+    if ($(".header-for-edit-col").length > 8) {
+
+        $(".sourced-table .select2-container").css("width", "220px")
+
+        $(".sourced-table input").css("width", "150px")
+    }
+
+    if ($(".sourced-table input").length < 8) {
+        $(".sourced-table input").css("width", "100%")
+    }
+
+    if ($(".header-for-edit-col").length < 2) {
+        // $(".sourced-table input").css("width", "100%")
+        $(".header-for-edit-col").css("width", "16%")
+        $(".sourced-table ").css("width", "67%")
+    }
+    // $(".sourced-table-date-field").datepicker()
+    $(".sourced-table-date-field").datepicker({
+        onSelect: function (dateText, date, inst) {
+
+            // $(inst.el).css("background-color","red")
+            $(inst.el).trigger('change');
+        }
+    });
+
+    // $("tr[data-gruporowid] input[readonly]").css("background-color", "#dee5eb");
+    $("tr[data-gruporowid] input[readonly]:not(.footer-row input)").css("background-color", "#dee5eb");
+
+
+
+    $('#master-content').css('overflow-x', 'hidden');
+
+
+}
+
+
+function generateToolTipsForSourcedTable() {
+
+    $('.sourced-table input, .sourced-table select').each(function () {
+        var value = $(this).val();
+        //  //console.log(value);
+
+        var toolTip = "<a href='#' data-toggle='tooltip' title='Hooray!'>Hover over me</a>"
+        $(this).attr("data-toggle", "tooltip");
+        //  $(this).attr("title", $(this).val());
+        $(this).attr("data-original-title", $(this).val());
+
+        // Perform any desired operations with the value here
+    });
+
+    $('[data-toggle="tooltip"]').tooltip();
+}
+
+
+function formatAllTablesDigitInputsMrend() {
+    /*$('table input[data-type="digit"]').each(function () {
+         var formattedValue = formatInputValue($(this).val());
+         $(this).val(formattedValue);
+     });*/
+
+    var elementsDate = document.querySelectorAll('input[data-type="date"]');
+
+    // Convert the NodeList to an array and apply Cleave to each input element
+    Array.from(elementsDate).forEach(function (element) {
+
+        var cleave = new Cleave(element, {
+            date: true,
+            delimiter: ".",
+            datePattern: ['d', 'm', 'Y']
+        });
+    })
+
+
+
+
+    var elements = document.querySelectorAll('input[data-type="digit"]');
+
+    // Convert the NodeList to an array and apply Cleave to each input element
+    Array.from(elements).forEach(function (element) {
+        var closestTdIndex = $(element).closest("td").index()
+        ////console.log("Closest td index", closestTdIndex)
+        var closestHeader = $(".sourced-table th").eq(closestTdIndex)
+        var proibenegativo = closestHeader.data("proibenegativo")
+        var decimais = closestHeader.data("decimais")
+        /*//console.log("Proibe negativo", proibenegativo)
+        //console.log("Decimais", decimais)
+        //console.log("Closest header", closestHeader)*/
+        if ($(element).data("decimais") != undefined) {
+            decimais = $(element).data("decimais")
+        }
+
+        if ($(element).data("proibenegativo") != undefined) {
+            proibenegativo = $(element).data("proibenegativo")
+        }
+
+        var mask = IMask(element, {
+            mask: Number,
+            min: (proibenegativo == true ? 0 : -10000000000000000000000000000000000000000000000000000000000000000),
+            scale: (isNaN(decimais) == true ? 2 : parseInt(decimais)),
+            radix: '.',
+            thousandsSeparator: ' ',
+
+        });
+
+
+        ////console.log($(element).attr("sinalnegativo"),"SINAL NEG")
+
+        if ($(element).attr("sinalnegativo") == "true") {
+            // //console.log("NEED TO MASKKKKKKKK")
+            mask.on('accept', function () {
+                var value = mask.unmaskedValue;
+                if (value > 0) {
+                    mask.unmaskedValue = (-value).toString();
+                }
+            });
+        }
+
+    });
+
+
+    $(".sourced-table input").css("text-align", "right")
+    $(".sourced-table select").css("text-align", "right")
+    // $(".sourced-table th").css("text-align", "right")
+    $(".sourced-table").css("text-align", "right")
+    $(".sourced-table span").css("text-align", "right")
+
+
+
+    if ($(".header-for-edit-col").length > 8) {
+
+        $(".sourced-table .select2-container").css("width", "220px")
+
+        $(".sourced-table input").css("width", "150px")
+    }
+
+    if ($(".sourced-table input").length < 8) {
+        $(".sourced-table input").css("width", "100%")
+    }
+
+    if ($(".header-for-edit-col").length < 2) {
+        // $(".sourced-table input").css("width", "100%")
+        $(".header-for-edit-col").css("width", "16%")
+        $(".sourced-table ").css("width", "67%")
+    }
+    // $(".sourced-table-date-field").datepicker()
+    $(".sourced-table-date-field").datepicker({
+        onSelect: function (dateText, date, inst) {
+
+            // $(inst.el).css("background-color","red")
+            $(inst.el).trigger('change');
+        }
+    });
+
+    // $("tr[data-gruporowid] input[readonly]").css("background-color", "#dee5eb");
+    $("tr[data-gruporowid] input[readonly]:not(.footer-row input)").css("background-color", "#dee5eb");
+
+
+    $('#master-content').css('overflow-x', 'hidden');
+
+
+}
+
+
+
+function addFreezingEvent() {
+    $(".sourceTabletableContainer table tbody td:nth-child(3)").css({
+        "position": "sticky",
+        "left": "0",
+        "z-index": "0"
+    });
+    $(".sourceTabletableContainer").off("scroll");
+    $(".sourceTabletableContainer").on("scroll", function () {
+        var scrollPos = $(this).scrollLeft();
+
+        if (scrollPos > 0) {
+            $('.freeze-header-first-element-item, .freeze-header-element-item, .freeze-first-element-item, .freeze-element-item')
+                .addClass("freeze-element")
+                .find('select, input').css({ 'z-index': 20, 'position': 'relative' });
+        }
+
+        if (scrollPos <= 78.18) {
+            $('.freeze-header-first-element-item, .freeze-header-element-item, .freeze-first-element-item, .freeze-element-item')
+                .removeClass("freeze-element")
+                .find('select, input').css({ 'z-index': '', 'position': '' }); // Remove estilos quando não for necessário
+        }
+    });
+}
+
+
+
+
+function addFreezyColumnByHeader(thElement) {
+
+    var index = thElement.index() + 1;
+
+    var classtoAddForHeader = (index <= 2) ? "freeze-header-first-element-item" : "freeze-header-element-item";
+    var classtoAddForBody = (index <= 2) ? "freeze-first-element-item" : "freeze-element-item";
+    $(thElement).addClass(classtoAddForHeader);
+    // $('.sourced-table td:nth-child(' + index + ')').addClass(classtoAddForBody);
+    // Adiciona z-index 20 para selects e inputs dentro das células congeladas
+    var $cells = $('.sourced-table td:nth-child(' + index + ')').addClass(classtoAddForBody);
+
+    $cells.find('select, input').css('z-index', 20);
+}
+
+
 
 
 function ConvertMrendObjectToTable(records) {
@@ -2002,7 +2383,7 @@ function initTableDataAndContainer() {
     GRenderedColunas = []
     GRenderedLinhas = []
 
-    $("#campos > .row:last").after("<div id='sourceTabletableContainer' style='margin-top:2.5em' class='row table-responsive  sourceTabletableContainer'></div>")
+    $(GContainerToRender).after("<div id='sourceTabletableContainer' style='margin-top:2.5em' class='row table-responsive  sourceTabletableContainer'></div>")
 }
 
 function RenderReport(renderData) {
@@ -2030,22 +2411,21 @@ function RenderReport(renderData) {
             var mapConfigs = renderData.reportConfig.mapping;
             GReportConfig = MapConfig(mapConfigs, configDataResult.data);
             GDB = initDBResult.db
-            db = initDBResult.db
+            db = initDBResult.db;
+            GContainerToRender = renderData.containerToRender;
 
 
             if (renderData.records.length > 0) {
                 var records = ConvertDbTableToMrendObject(renderData.records, renderData.dbTableToMrendObject);
-                //console.log("Records from renderData", records)
-                return navigator.locks.request("ViewRenderLock", function (lock) {
 
-                    deleteAllRecords(renderData.tableSourceName).then(function (deleteResult) {
+                deleteAllRecords(renderData.tableSourceName).then(function (deleteResult) {
 
-                        RenderHandler(records);
+                    RenderHandler(records);
 
-                    })
+                })
 
 
-                });
+
 
             }
             return fetchFromSource(renderData.table, renderData.recordData.coluna, renderData.recordData.stamp, initDBResult.db, renderData.dbTableToMrendObject).then(function (fetchResult) {
@@ -2065,27 +2445,28 @@ function RenderReport(renderData) {
                         mainSpinner("show")
                         if (result.exists) {
 
-                            navigator.locks.request("ViewRenderLock", function (lock) {
-
-                                RenderHandler(result.data);
 
 
-                            });
+                            RenderHandler(result.data);
+
+
+
 
 
                         } else {
 
-                            navigator.locks.request("ViewRenderLock", function (lock) {
 
-                                RenderHandler(fetchResult.records)
-                                storeStampRegisto(getRecordStamp())
-                                addBulkData(initDBResult.db, GRenderData.tableSourceName, fetchResult.records)
-                            });
+
+                            RenderHandler(fetchResult.records)
+                            //console.log(renderData.recordData.stamp)
+                            storeStampRegisto(renderData.recordData.stamp)
+                            addBulkData(initDBResult.db, GRenderData.tableSourceName, fetchResult.records)
+
 
                         }
                     })
                     .catch(function (error) {
-                        notasOrBreakDownMessageHandler()
+                        relatorioErrorMessageHandler()
                         console.error('An error occurred:', error);
                     });
 
@@ -2101,6 +2482,35 @@ function RenderReport(renderData) {
 
 
 
+}
+
+function buildAlert(alertClass, alertText) {
+    var alerta = ""
+    alerta += "<div  class='alert custom-alert " + alertClass + "'>"
+    alerta += "  <strong>Atenção!</strong> " + alertText
+    alerta += "</div>"
+
+    return alerta
+}
+function dbExists(dbName) {
+    return Dexie.exists(dbName);
+}
+
+function buildAlert(alertClass, alertText) {
+    var alerta = ""
+    alerta += "<div  class='alert custom-alert " + alertClass + "'>"
+    alerta += "  <strong>Atenção!</strong> " + alertText
+    alerta += "</div>"
+
+    return alerta
+}
+
+
+function relatorioErrorMessageHandler() {
+    var alertHtml = buildAlert("alert-danger", "Erro ao gerar grelha do relatório. Contacte o admnistrador do sistema")
+    $("#campos > .row:last").after("<div style='margin-top:2.5em' '>" + alertHtml + "</div>")
+
+    mainSpinner("hide")
 }
 
 
@@ -2178,7 +2588,14 @@ function colorHandler(component, color) {
     }
 }
 
+function inputToNumber(inputVal) {
 
+
+
+    var inputValTxt = (inputVal ? inputVal.replaceAll(" ", "").replaceAll(",", "") : "0")
+
+    return (isNaN(inputValTxt) ? 0 : Number(inputValTxt));
+}
 
 
 function generateHtmlObject(config) {
@@ -2329,10 +2746,13 @@ function setLinhaGrupoAndSubgrupo(linh, parentid, records) {
 
 
 
-
+    var customStyles = ""
+    if (linha.config.cor) {
+        customStyles = "background:" + setStyle("Color", linha.config.tipo, linha.config.cor) + "!important"
+    }
     var linhaHtml = {
         rowId: linhaId,
-        style: "background:" + setStyle("Color", linha.config.tipo, linha.config.cor) + "!important",
+        style: customStyles,
         classes: "" + linha.config.tipo + "-row",
         customData: "",
         cols: []
@@ -2453,10 +2873,14 @@ function setLinhaModeloOuSingular(linh, parentid, records) {
 
     var linhaId = linha.rowid;
 
+    var customStyles = ""
+    if (linha.config.cor) {
+        customStyles = "background:" + setStyle("Color", linha.config.tipo, linha.config.cor) + "!important"
+    }
 
     var linhaHtml = {
         rowId: linhaId,
-        style: "background:" + setStyle("Color", linha.config.tipo, linha.config.cor) + "!important",
+        style: customStyles,
         classes: "" + linha.config.tipo + "-row",
         customData: "",
         cols: []
@@ -2484,13 +2908,17 @@ function setLinhaModeloOuSingular(linh, parentid, records) {
 
     // cellActionZoneObjectConfig.setDefaultValue();
 
+
+    var addFilhoBtn = "<button data-modelo='" + linha.config.codigo + "' type='button' style='margin-left:0.3em;color:white!important;margin-right:0.3em' class='btn  btn-sm btn-primary addFilho'><span  class='glyphicon glyphicon glyphicon-plus'></span></button>"
+    var removeBtn = "<button type='button' style='color:white!important;background:#d9534f!important' class='btn btn-sm btn-danger removeTableRow'><span  class='glyphicon glyphicon glyphicon-trash'></span></button>"
+    
     linhaHtml.cols.push({
-        style: "",
+        style: "" + (linha.config.addfilho ? "width:7%" : ""),
         colId: "",
         classes: "action-zone",
-        content: "<button type='button' style='color:white!important;background:#d9534f!important' class='btn btn-sm btn-danger removeTableRow'><span  class='glyphicon glyphicon glyphicon-trash'></span></button>",
+        content: removeBtn + (linha.config.addfilho ? addFilhoBtn : ""),
         customData: "",
-    })
+    });
 
 
     if (linha.config.temcolunas) {
@@ -2562,10 +2990,14 @@ function setLinhaTotal(linh) {
 
     var linhaDefaultColumnHtmlObject = generateHtmlObject(cellObjectConfig);
 
+    var customStyles = ""
+    if (linha.config.cor) {
+        customStyles = "background:" + setStyle("Color", linha.config.tipo, linha.config.cor) + "!important"
+    }
 
     var linhaHtml = {
         rowId: linha.rowid,
-        style: "background:" + setStyle("Color", linha.config.tipo, linha.config.cor) + "!important",
+        style: customStyles,
         classes: "" + linha.config.tipo + "-row",
         customData: "",
         cols: [{
@@ -2841,6 +3273,281 @@ function buildDefaultCelula(linhaHtml, linh, colun, records) {
 }
 
 
+function InitDB(datasourceName, schemas) {
+
+    return new Promise(function (resolve, reject) {
+        db = new Dexie(datasourceName);
+        var promises = []; // Armazena todas as Promises do loop
+
+        return configureDataBase(db, schemas[0].tableSourceName, 1, Object.keys(schemas[0].tableSourceSchema)).then(function (result) {
+            db = result;
+            resolve({ inited: true, message: "Success", db: result }); // Resolve quando todas as promessas concluírem
+        });
+
+    });
+}
+
+
+function executeScriptOnPHC(url, args) {
+
+    return $.ajax({
+        type: "POST",
+        url: url,
+        data: {
+            '__EVENTARGUMENT': JSON.stringify([args ? args : {}]),
+        }
+    })
+
+}
+
+
+
+function fetchFromSource(tableName, coluna, registo, db, dbTableToMrendObject) {
+
+    return new Promise(function (resolve, reject) {
+
+        getDataFromPHC(tableName, coluna, registo)
+            .then(function (response) {
+
+                if (dbTableToMrendObject) {
+
+                    if (dbTableToMrendObject.convert == true) {
+
+                        var dbConverstion = ConvertDbTableToMrendObject(response.data, dbTableToMrendObject);
+                        console.log("dbConverstion", dbConverstion)
+
+                        response.data = dbConverstion
+                    }
+
+                }
+
+
+
+
+                if (response.cod != "0000") {
+                    reject(response)
+                }
+
+
+                if (getState() == "consultar") {
+
+                    if (response.data.length > 0) {
+                        deleteAllRecords(tableName).then(function (data) {
+                            console.log("add bulk data", response.data)
+                            addBulkData(db, tableName, response.data)
+                            resolve({ novoRegisto: false, response: response, records: response.data });
+                        })
+                    }
+                    else {
+                        resolve({ novoRegisto: true, response: response, records: response.data });
+                    }
+                }
+
+
+
+                if (getState() != "consultar") {
+
+                    if (registo != getSourceStamp()) {
+                        storeDataSourceStamp(registo)
+                        //  storeNota(getNotaData().nota)
+                        deleteAllRecords(tableName).then(function (data) {
+
+                            if (response.data.length > 0) {
+                                addBulkData(db, tableName, response.data)
+
+                                resolve({ novoRegisto: false, response: response, records: response.data });
+                            }
+
+                            else {
+                                resolve({ novoRegisto: true, response: response, records: [] });
+                            }
+                        })
+
+                    }
+
+                    else {
+                        resolve({ novoRegisto: false, response: null, records: response.data });
+                    }
+                }
+
+            })
+            .catch(function (error) {
+                reject(error);
+            });
+
+    });
+}
+
+
+function getState() {
+    return $("#mainPage").data("state")
+}
+
+function storeStampRegisto(stampregisto) {
+    window.localStorage.setItem("stampregisto", stampregisto)
+}
+function storeDataSourceStamp(sourceStamp) {
+
+    window.localStorage.setItem("sourcestamp", sourceStamp)
+}
+
+function clearStamps() {
+    window.localStorage.clear("sourcestamp")
+    window.localStorage.clear("stampregisto")
+}
+
+function getSourceStamp() {
+    return window.localStorage.getItem("sourcestamp")
+}
+
+
+
+function deleteAllRecords(tableName) {
+
+    return new Promise(function (resolve, reject) {
+
+        if (db['_allTables'][tableName]) {
+            return db[tableName].clear().then(function () {
+                // //console.log(`All records from ${tableName} have been deleted successfully.`);
+                resolve(true)
+            }).catch(function (error) {
+
+                reject(error)
+                // console.error(`Error deleting all records from ${tableName}:`, error);
+            });
+
+        }
+        else {
+            resolve(true)
+        }
+
+
+
+    });
+}
+
+
+
+function addData(db, tableName, data) {
+    try {
+        // db[tableName].add(data);
+        return db[tableName].add(data);
+        // //console.log('Data added with primary key:', primaryKey);
+    } catch (error) {
+        console.error('Error adding data:', error);
+    }
+}
+
+function deleteData(db, tableName, fieldName, filedValue) {
+    return db[tableName].where(fieldName).equals(filedValue).delete()
+}
+
+function addBulkData(db, tableName, dataArray) {
+
+    //console.log("tableName",tableName)
+    if (db['_allTables'][tableName]) {
+        return db[tableName].bulkPut(dataArray)
+    } else {
+        return db[tableName].bulkAdd(dataArray)
+    }
+
+}
+
+
+
+function getDataFromPHC(tabela, coluna, registo) {
+    ////console.log(tabela, opcaoEcraId, coluna, registo)
+    return new Promise(function (resolve, reject) {
+        $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=getdatafromphc",
+            data: {
+                //  '__EVENTTARGET': opcaoEcraId,
+                '__EVENTARGUMENT': JSON.stringify([{ tabela: tabela, coluna: coluna, registo: registo }]),
+            },
+            success: function (response) {
+                resolve(response);
+            },
+            error: function (error) {
+                reject(error);
+            }
+        });
+    });
+}
+
+function configureDataBase(db, tableName, version, indexes) {
+
+    //console.log(indexes)
+    return new Promise(function (resolve, reject) {
+
+        db.close()  //.then(function () {
+        var schemaConfig = {};
+
+        schemaConfig[tableName] = indexes.join(",");
+        db.version(version).stores(schemaConfig);
+
+        db.version(1).stores({
+            UI: '++id, GRenderedLinhas, GTableData, GDefaultConfig, GReportConfig, GRenderedData, GRenderData, GRenderedColunas, GCellObjectsConfig, GTmpListTableObject, TMPCellObjectCOnfig'
+        });
+
+        // Open the database
+        db.open().then(function () {
+            // Resolve the database instance
+            resolve(db);
+        }).catch(function (error) {
+            // Reject the promise if there's an error
+            reject(error);
+        });
+    })
+
+    //   });
+}
+
+
+function tablesHasRecords(db, tableName) {
+
+    return db[tableName].count()
+
+}
+
+function databaseAndTableHasRecords(db, tableName) {
+    return new Promise(function (resolve, reject) {
+        if (db['_allTables'][tableName]) {
+
+
+            db[tableName].count()
+                .then(function (count) {
+                    if (count > 0) {
+                        // If there are records, return all records
+                        return db[tableName].toArray();
+                    } else {
+                        // If no records, resolve with an object indicating that the data does not exist
+                        resolve({ exists: false, data: null });
+                        return null; // Return null to skip the next 'then' block
+                    }
+                })
+                .then(function (data) {
+                    if (data) {
+                        // If data is not null, resolve with an object indicating that the data exists and include the data
+                        resolve({ exists: true, data: data });
+                    }
+                })
+                .catch(function (error) {
+                    reject(new Error('Error while opening or checking record count: ' + error));
+                })
+                .finally(function () {
+                    // db.close();
+                });
+        } else {
+            resolve({ exists: false, data: null });
+        }
+    });
+}
+
+function isTableExist(db, tableName) {
+    return db.tables.has(tableName);
+}
+
 
 function buildCelulaSemImputacao(linhaHtml, linh, colun) {
 
@@ -3004,6 +3711,7 @@ function marcarOptionSelecionado(selectHtml, valorCelula) {
 function RenderSourceTable() {
 
 
+    console.log("RenderSourceTable", GTableData)
     addNewRecords()
 
     var lazyLoadThreshold = 1000; // Tamanho do limite para o carregamento lento
@@ -3456,41 +4164,41 @@ function registerMrendListeners() {
     $(document).off("change keyup  paste", ".source-bind-table-control").on("change keyup paste", ".source-bind-table-control", function (event) {
 
         var selfInp = $(this);
-        navigator.locks.request("changeLock", function (lock) {
-
-            var componentId = $(selfInp).attr("id");
-            var cellObjectConfig = getCellObjectConfigByCellId(componentId);
-
-            if (!cellObjectConfig) {
-                throw new Error("COMPONENTE " + componentId + " NÃO ENCONTRADO")
-            }
-
-            cellObjectConfig.updateOnDB($(selfInp)).then(function (data) {
-                var renderedHtml = $(selfInp).closest(".sourceTabletableContainer").html();
-
-                var cacheUI = new CachedUI({
-                    GRenderData: GRenderData,
-                    GRenderedData: GRenderedData,
-                    renderedHtml: renderedHtml,
-                    GDefaultConfig: GDefaultConfig,
-                    GReportConfig: GReportConfig,
-                    GTableData: GTableData,
-                    GRenderedLinhas: GRenderedLinhas,
-                    GRenderedColunas: GRenderedColunas,
-                    GCellObjectsConfig: GCellObjectsConfig,
-                    TMPCellObjectCOnfig: TMPCellObjectCOnfig
-                });
-
-                cacheUI.syncOnDb()
 
 
+        var componentId = $(selfInp).attr("id");
+        var cellObjectConfig = getCellObjectConfigByCellId(componentId);
+
+        if (!cellObjectConfig) {
+            throw new Error("COMPONENTE " + componentId + " NÃO ENCONTRADO")
+        }
+
+        cellObjectConfig.updateOnDB($(selfInp)).then(function (data) {
+            var renderedHtml = $(selfInp).closest(".sourceTabletableContainer").html();
+
+            var cacheUI = new CachedUI({
+                GRenderData: GRenderData,
+                GRenderedData: GRenderedData,
+                renderedHtml: renderedHtml,
+                GDefaultConfig: GDefaultConfig,
+                GReportConfig: GReportConfig,
+                GTableData: GTableData,
+                GRenderedLinhas: GRenderedLinhas,
+                GRenderedColunas: GRenderedColunas,
+                GCellObjectsConfig: GCellObjectsConfig,
+                TMPCellObjectCOnfig: TMPCellObjectCOnfig
             });
 
+            cacheUI.syncOnDb()
+
+
+        });
 
 
 
 
-        })
+
+
 
 
     });
@@ -3520,6 +4228,16 @@ function registerMrendListeners() {
             row.deleteRow();
         }
 
+
+    })
+
+    $(document).off("click",".addFilho").on("click", ".addFilho", function () {
+        var rowId = $(this).closest("tr").attr("id");
+        var row = GRenderedLinhas.find(function (linha) {
+            return linha.rowid == rowId
+        });
+
+      console.log("row", row)
 
     })
 }
