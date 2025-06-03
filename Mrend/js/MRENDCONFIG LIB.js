@@ -17,6 +17,7 @@ function LinhaMrenderConfig(data) {
     this.totkey = data.totkey || "";
     this.modelo = data.modelo || false;
     this.descbtnModelo = data.descbtnModelo || "Adicionar linha";
+    this.addfilho = data.addfilho || false;
     this.totfield = data.totfield || "";
     this.condicaovalidacao = data.condicaovalidacao || "";
     this.categoria = data.categoria || "";
@@ -99,10 +100,24 @@ function UIObjectFormConfig(data) {
 function getLinhaUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
         new UIObjectFormConfig({ campo: "temcolunas", tipo: "checkbox", titulo: "Tem Colunas", classes: "input-source-form" }),
-        new UIObjectFormConfig({ campo: "tipo", tipo: "text", titulo: "Tipo", classes: "form-control input-source-form  input-sm" }),
+        new UIObjectFormConfig({ campo: "addfilho", tipo: "checkbox", titulo: "Adiciona filho", classes: "input-source-form" }),
+        new UIObjectFormConfig({
+            campo: "tipo",
+            tipo: "select",
+            titulo: "Tipo",
+            fieldToOption: "option",
+            contentType: "select",
+            fieldToValue: "value",
+            classes: "form-control input-source-form  input-sm ",
+            selectValues: [
+                { option: "Grupo", value: "Grupo" },
+                { option: "Subgrupo", value: "Subgrupo" },
+                { option: "Singular", value: "Singular" }
+            ]
+        }),
         new UIObjectFormConfig({ campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ campo: "descricao", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form  input-sm" }),
-         new UIObjectFormConfig({ campo: "modelo", tipo: "checkbox", titulo: "É modelo", classes: "input-source-form" }),
+        new UIObjectFormConfig({ campo: "modelo", tipo: "checkbox", titulo: "É modelo", classes: "input-source-form" }),
         new UIObjectFormConfig({ campo: "descbtnModelo", tipo: "text", titulo: "Descrição Botão Modelo", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ campo: "origem", tipo: "text", titulo: "Origem", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ campo: "expressao", tipo: "text", titulo: "Expressão", classes: "form-control input-source-form  input-sm" }),
@@ -142,8 +157,8 @@ function getColunaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ campo: "codigocoluna", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
         new UIObjectFormConfig({ campo: "desccoluna", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
         new UIObjectFormConfig({ campo: "campo", tipo: "text", titulo: "Campo", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
-        , new UIObjectFormConfig({ campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
-        , new UIObjectFormConfig({ campo: "fixacoluna", tipo: "checkbox", titulo: "Fixa Coluna", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ campo: "fixacoluna", tipo: "checkbox", titulo: "Fixa Coluna", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "proibenegativo", tipo: "checkbox", titulo: "Proíbe Negativo", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "colfunc", tipo: "checkbox", titulo: "Coluna Função", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 8, campo: "expresscolfun", tipo: "textarea", titulo: "Expressão Coluna Função", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
@@ -433,7 +448,7 @@ function fetchConfigMrender(codigo) {
                 var config = response.data;
                 renderConfigMrender(config);
             } catch (error) {
-                console.log("Erro interno " + errorMessage, response)
+                console.log("Erro interno " + errorMessage, error)
             }
 
         }
@@ -461,124 +476,93 @@ function renderConfigMrender(config) {
     });
 
 
-    var grupoLinhas = linhas.filter(function (linha) {
-        return linha.tipo == "Grupo";
+    linhas.sort(function (a, b) {
+        if (a.tipo === "Grupo" && b.tipo !== "Grupo") return -1;
+        if (a.tipo !== "Grupo" && b.tipo === "Grupo") return 1;
+        return 0;
     });
+    linhas.forEach(function (linha) {
 
-    grupoLinhas.forEach(function (linha) {
-
-        var linhaUIObjectFormConfigResult = getLinhaUIObjectFormConfigAndSourceValues();
-        linhaUIObjectFormConfigResult.idField = "linhastamp";
-
-        var celulasLinha = [];
-
-        GMrendConfigColunas.forEach(function (coluna) {
-            var celulasFilt = celulas.filter(function (celula) {
-                return celula.linhastamp == linha.linhastamp && celula.colunastamp == coluna.colunastamp;
-            });
-            if (celulasFilt.length > 0) {
-
-                var celula = new CelulaMrenderConfig(celulasFilt[0]);
-                var celulaUIObjectFormConfigAndSourceValues = getCelulaUIObjectFormConfigAndSourceValues();
-                celula.objectsUIFormConfig = celulaUIObjectFormConfigAndSourceValues.objectsUIFormConfig;
-                celula.localsource = celulaUIObjectFormConfigAndSourceValues.localsource;
-                celula.idField = celulaUIObjectFormConfigAndSourceValues.idField;
-                celulasLinha.push(celula);
-
-            } else {
-                celulasLinha.push(new CelulaMrenderConfig({
-                    linhastamp: linha.linhastamp,
-                    colunastamp: coluna.colunastamp,
-                    codigocoluna: coluna.codigocoluna,
-                    celulastamp: generateUUID(),
-                    sinalnegativo: false,
-                    inactivo: false,
-                    desabilitado: false,
-                    usafnpren: false,
-                    atributo: "",
-                    fnpren: "",
-                    fx: "",
-                    temfx: false,
-                    idField: getCelulaUIObjectFormConfigAndSourceValues().idField,
-                    localsource: getCelulaUIObjectFormConfigAndSourceValues().localsource,
-                    objectsUIFormConfig: getCelulaUIObjectFormConfigAndSourceValues().objectsUIFormConfig
-                }));
-            }
-        })
-
-        var linhaMrender = new LinhaMrenderConfig(linha);
-
-        linhaMrender.objectsUIFormConfig = getLinhaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
-        linhaMrender.localSource = getLinhaUIObjectFormConfigAndSourceValues().localsource;
-        GMrendConfigCelulas = GMrendConfigCelulas.concat(celulasLinha);
-        GMrendConfigLinhas.push(linhaMrender);
-        setLinhasConfigMrender(linhaMrender, linhaUIObjectFormConfigResult, celulasLinha);
-
-        var subgrupos = linhas.filter(function (subgrupo) {
-            return subgrupo.linkstamp == linha.linhastamp;
+        setLinhasConfigMrender(linha, linhas, celulas);
+        var sublinhas = linhas.filter(function (sublinha) {
+            return sublinha.linkstamp == linha.linhastamp && sublinha.linkstamp;
         });
 
-        subgrupos.forEach(function (subgrupo) {
+        console.log("Sublinhas", linha.descricao, sublinhas)
 
-            var subgrupoUIObjectFormConfigResult = getLinhaUIObjectFormConfigAndSourceValues();
-            var celulasSubgrupo = [];
-            GMrendConfigColunas.forEach(function (coluna) {
-
-                var celulasFiltSub = celulas.filter(function (celula) {
-                    return celula.linhastamp == subgrupo.linhastamp && celula.colunastamp == coluna.colunastamp;
-                });
-
-
-                if (celulasFiltSub.length > 0) {
-
-                    var celula = new CelulaMrenderConfig(celulasFiltSub[0]);
-                    var celulaUIObjectFormConfigAndSourceValues = getCelulaUIObjectFormConfigAndSourceValues();
-                    celula.objectsUIFormConfig = celulaUIObjectFormConfigAndSourceValues.objectsUIFormConfig;
-                    celula.localsource = celulaUIObjectFormConfigAndSourceValues.localsource;
-                    celula.idField = celulaUIObjectFormConfigAndSourceValues.idField;
-                    celulasSubgrupo.push(celula);
-                } else {
-
-                    celulasSubgrupo.push(new CelulaMrenderConfig({
-                        linhastamp: subgrupo.linhastamp,
-                        colunastamp: coluna.colunastamp,
-                        codigocoluna: coluna.codigocoluna,
-                        celulastamp: generateUUID(),
-                        sinalnegativo: false,
-                        inactivo: false,
-                        desabilitado: false,
-                        usafnpren: false,
-                        atributo: "",
-                        fnpren: "",
-                        fx: "",
-                        temfx: false,
-                        idField: getCelulaUIObjectFormConfigAndSourceValues().idField,
-                        localsource: getCelulaUIObjectFormConfigAndSourceValues().localsource,
-                        objectsUIFormConfig: getCelulaUIObjectFormConfigAndSourceValues().objectsUIFormConfig
-                    }));
-                }
-
-            })
-
-            var subgrupoMrender = new LinhaMrenderConfig(subgrupo);
-            subgrupoMrender.objectsUIFormConfig = getLinhaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
-            subgrupoMrender.localSource = getLinhaUIObjectFormConfigAndSourceValues().localsource;
-            GMrendConfigLinhas.push(subgrupoMrender);
-            GMrendConfigCelulas = GMrendConfigCelulas.concat(celulasSubgrupo);
-            setLinhasConfigMrender(subgrupoMrender, subgrupoUIObjectFormConfigResult, celulasSubgrupo);
-
+        sublinhas.forEach(function (sublinha) {
+            setLinhasConfigMrender(sublinha, linhas, celulas);
         });
-
-        handleTableReactive();
     });
+
+    handleTableReactive();
+
 
 
 
 
 }
 
-function setLinhasConfigMrender(linha, linhaUIObjectFormConfigResult, celulasLinha) {
-    addLinhaMrenderConfig(linha.tipo, linha, linhaUIObjectFormConfigResult, celulasLinha);
+function setLinhasConfigMrender(linha, linhas, celulas) {
+
+    var linhaAdicionada = GMrendConfigLinhas.find(function (l) {
+        return l.linhastamp == linha.linhastamp;
+    });
+
+    if (linhaAdicionada) {
+        // Linha já existe, não adiciona novamente
+        return;
+    }
+    var linhaUIObjectFormConfigResult = getLinhaUIObjectFormConfigAndSourceValues();
+    linhaUIObjectFormConfigResult.idField = "linhastamp";
+
+    var celulasLinha = [];
+
+    GMrendConfigColunas.forEach(function (coluna) {
+        var celulasFilt = celulas.filter(function (celula) {
+            return celula.linhastamp == linha.linhastamp && celula.colunastamp == coluna.colunastamp;
+        });
+        if (celulasFilt.length > 0) {
+
+            var celula = new CelulaMrenderConfig(celulasFilt[0]);
+            var celulaUIObjectFormConfigAndSourceValues = getCelulaUIObjectFormConfigAndSourceValues();
+            celula.objectsUIFormConfig = celulaUIObjectFormConfigAndSourceValues.objectsUIFormConfig;
+            celula.localsource = celulaUIObjectFormConfigAndSourceValues.localsource;
+            celula.idField = celulaUIObjectFormConfigAndSourceValues.idField;
+            celulasLinha.push(celula);
+
+        } else {
+            celulasLinha.push(new CelulaMrenderConfig({
+                linhastamp: linha.linhastamp,
+                colunastamp: coluna.colunastamp,
+                codigocoluna: coluna.codigocoluna,
+                celulastamp: generateUUID(),
+                sinalnegativo: false,
+                inactivo: false,
+                desabilitado: false,
+                usafnpren: false,
+                atributo: "",
+                fnpren: "",
+                fx: "",
+                temfx: false,
+                idField: getCelulaUIObjectFormConfigAndSourceValues().idField,
+                localsource: getCelulaUIObjectFormConfigAndSourceValues().localsource,
+                objectsUIFormConfig: getCelulaUIObjectFormConfigAndSourceValues().objectsUIFormConfig
+            }));
+        }
+    })
+
+    var linhaMrender = new LinhaMrenderConfig(linha);
+
+    linhaMrender.objectsUIFormConfig = getLinhaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    linhaMrender.localSource = getLinhaUIObjectFormConfigAndSourceValues().localsource;
+    GMrendConfigCelulas = GMrendConfigCelulas.concat(celulasLinha);
+    GMrendConfigLinhas.push(linhaMrender);
+
+    addLinhaMrenderConfig(linhaMrender.tipo, linhaMrender, linhaUIObjectFormConfigResult, celulasLinha);
+
+
+
 
 }
 
@@ -593,18 +577,30 @@ function handleTableReactive() {
             var linha = this.GMrendConfigLinhas.find(function (l) {
                 return l.linhastamp == linhastamp;
             });
+            //console.log("getDescricaoByLinhaStamp", linha, linhastamp)
             if (linha) {
                 return linha.descricao;
             }
             return "";
         },
-        getColunaByColunaStamp: function (colunastamp) {
+        syncByColunaStamp: function (colunastamp) {
             var coluna = this.GMrendConfigColunas.find(function (c) {
                 return c.colunastamp == colunastamp;
             });
             if (coluna) {
+
+                this.GMrendConfigCelulas.filter(function (celula) {
+                    return celula.colunastamp == coluna.colunastamp;
+                }).map(function (celula) {
+
+                    celula.codigocoluna = coluna.codigocoluna;
+                    celula.desccoluna = coluna.desccoluna;
+                });
+
                 return coluna.desccoluna;
             }
+
+
             return "";
         }
 
@@ -626,7 +622,7 @@ function addColunaMrenderConfig(coluna, colunaUIObjectFormConfigResult) {
 
     var buttonHtml = generateButton(botaoRemoverColuna)
 
-    var contentColuna = "<div class='colunaHeader' >" + coluna.desccoluna + "</div>" + buttonHtml
+    var contentColuna = "<div class='colunaHeader' >" + " {{ syncByColunaStamp('" + coluna.colunastamp + "') }}" + "</div>" + buttonHtml
 
     GRendConfigTableHtml.header.row.cols.push({
         style: "",
@@ -678,7 +674,7 @@ function addColunaMrenderConfig(coluna, colunaUIObjectFormConfigResult) {
             value: coluna.desccoluna,
             classes: "form-control bind-table-control input-sm table-input-col cell-config-inpt ",
             style: "background:#eff0f1!important",
-            customData: ":value=getColunaByColunaStamp('" + celula.colunastamp + "')",
+            customData: ":value=syncByColunaStamp('" + celula.colunastamp + "')",
             placeholder: ""
         };
 
@@ -1011,7 +1007,7 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
             value: "",
             classes: "form-control bind-table-control input-sm table-input-col cell-config-inpt  ",
             style: "background:#eff0f1!important",
-            customData: ":value=getColunaByColunaStamp('" + celula.colunastamp + "')",
+            customData: ":value=syncByColunaStamp('" + celula.colunastamp + "')",
             placeholder: ""
         };
 
@@ -1047,7 +1043,7 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
     }
 
 
-    if (tipo == "Subgrupo") {
+    if (tipo == "Subgrupo" && linha.linkstamp) {
 
         var $rows = table.find("tbody tr[linkstamp='" + linha.linkstamp + "']");
         if ($rows.length > 0) {
@@ -1140,7 +1136,7 @@ function actualizarConfiguracaoMrender() {
         url: "../programs/gensel.aspx?cscript=actualizarmrendconfig",
 
         data: {
-            '__EVENTARGUMENT': JSON.stringify([{ config: configData }]),
+            '__EVENTARGUMENT': JSON.stringify([{ relatoriostamp: GRelatorioStamp, config: configData }]),
         },
         success: function (response) {
 

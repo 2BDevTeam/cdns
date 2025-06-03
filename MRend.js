@@ -29,6 +29,28 @@ function ColumnHtml(data) {
     this.classes = data.classes || "";
     this.content = data.content || "";
     this.customData = data.customData || "";
+    // this.cellObjectConfig = new CellObjectConfig(data.cellObjectConfig ? data.cellObjectConfig : {});
+}
+
+
+
+function HeaderHtml(data) {
+    this.rows = Array.isArray(data.rows) ? Array.from(data.rows.map(mapRowHtml)) : [];
+}
+
+function BodyHtml(data) {
+    this.customData = data.customData || "";
+    this.rows = Array.isArray(data.rows) ? Array.from(data.rows.map(mapColumnHtml)) : [];
+}
+
+function TableHtml(data) {
+    this.tableId = data.tableId || "";
+    this.lazyLoad = data.lazyLoad || false;
+    this.classes = data.classes || "";
+    this.customData = data.customData || "";
+    this.style = data.style || "";
+    this.header = new HeaderHtml(data.header || {});
+    this.body = new BodyHtml(data.body || {});
 }
 
 
@@ -56,6 +78,7 @@ CachedUI.prototype.toJson = function () {
 CachedUI.prototype.syncOnDb = function () {
     var thisCachedUI = this;
     /*
+    
         console.log("thisCachedUI",thisCachedUI)
         navigator.locks.request("SyncOnDbLock", function (lock) {
     
@@ -114,10 +137,16 @@ function MrendObject(data) {
     this.cellId = data.cellId || "";
     this.coluna = data.coluna || "";
     this.rowid = data.rowid || "";
+    this.sourceTable = data.sourceTable || "";
+    this.sourceKey = data.sourceKey || "";
+    this.sourceKeyValue = data.sourceKeyValue || "";
     this.valor = data.valor || "";
     this.campo = data.campo || "";
     this.linkId = data.linkId || "";
+    this.linkfield = data.linkfield || "";
     this.codigolinha = data.codigolinha || "";
+    this.ordemField = data.ordemField || "";
+    this.ordem = data.ordem || 0;
 
 }
 
@@ -150,25 +179,6 @@ RowHtml.prototype.generateHtml = function () {
 
     return generateRowAbove(this)
 
-}
-
-function HeaderHtml(data) {
-    this.rows = Array.isArray(data.rows) ? Array.from(data.rows.map(mapRowHtml)) : [];
-}
-
-function BodyHtml(data) {
-    this.customData = data.customData || "";
-    this.rows = Array.isArray(data.rows) ? Array.from(data.rows.map(mapColumnHtml)) : [];
-}
-
-function TableHtml(data) {
-    this.tableId = data.tableId || "";
-    this.lazyLoad = data.lazyLoad || false;
-    this.classes = data.classes || "";
-    this.customData = data.customData || "";
-    this.style = data.style || "";
-    this.header = new HeaderHtml(data.header || {});
-    this.body = new BodyHtml(data.body || {});
 }
 
 function applyCodeToSingularRow(row) {
@@ -255,7 +265,7 @@ function modoEcraHandlerByRow(rowElement) {
         if (!rowElement) {
         }
         $(".source-table-options").hide();
-        $(".action-zone").hide();
+        $(".action-zone button").hide();
     }
 }
 
@@ -429,11 +439,62 @@ TableHtml.prototype.loadMoreRows = function () {
 
 }
 
-TableHtml.prototype.handleUI = function () {
+
+
+
+
+function initAllSelects() {
+
+    GCellObjectsConfig.filter(function (cellObject) {
+        return cellObject.dataType == "table"
+    }).map(function (cellObjectMp) {
+
+        var selectElement = $("#" + cellObjectMp.cellid);
+        if (selectElement.length > 0) {
+
+            var colConfig = cellObjectMp.getColunaConfig();
+
+            cellObjectMp.setSelectedValue();
+
+            selectElement.select2({
+                width: "100%",
+                placeholder: 'Procurar...',
+                allowClear: false,
+                minimumInputLength: 0,  // Permite abrir sem digitar nada
+                ajax: {
+                    transport: function (params, success, failure) {
+                        var termo = params.data.term || '';
+                        var pagina = params.data.page || 1;
+
+                        var resultado = cellObjectMp.findLocalColData(termo, pagina, 200);
+
+
+                        success({
+                            results: resultado.resultados,
+                            pagination: { more: resultado.temMais }
+                        });
+                    },
+                    processResults: function (data) {
+                        return data;
+                    },
+                    delay: 250,
+                    cache: true
+                }
+            });
+            // selectElement.val(cellObjectMp.valor).trigger('change');
+
+        }
+
+
+    })
+
+}
+TableHtml.prototype.handleUI = function (options) {
 
     var thisTable = this;
 
     initSelect(".table-select", true);
+    initAllSelects()
 
     if (!this.lazyLoad) {
         thisTable.freezyHeaders();
@@ -443,7 +504,137 @@ TableHtml.prototype.handleUI = function () {
     formatAllTablesDigitInputsMrend();
     generateToolTipsForSourcedTable();
 
+
+
+
+
+
+    if (!options.notRefreshTree) {
+        var totalParents = GRenderedLinhas.filter(function (linha) {
+            return linha.isParent == true
+
+        });
+
+        if (totalParents) {
+
+            initTreeForTable('#' + thisTable.tableId);
+        }
+    }
+
+    this.setReactive();
+
+
+
+
 }
+
+function getCell(rowid, codigocoluna) {
+    return GCellObjectsConfig.find(function (cell) {
+        return cell.rowid == rowid && cell.codigocoluna == codigocoluna;
+    });
+}
+
+TableHtml.prototype.setReactive = function () {
+
+
+
+
+
+    var state = PetiteVue.reactive({
+        GRenderedLinhas: GRenderedLinhas,
+        GRenderedColunas: GRenderedColunas,
+        GCellObjectsConfig: GCellObjectsConfig,
+
+        getCell: function (rowid, codigocoluna) {
+
+            return this.GCellObjectsConfig.find(function (cell) {
+                return cell.rowid == rowid && cell.codigocoluna == codigocoluna;
+            });
+        },
+        extractCellValue: function (expression, rowid) {
+
+            var regex = /\{([^}]+)\}/g; // Encontra tudo entre { e }
+            var match;
+            var orgExpr = expression;
+
+            while ((match = regex.exec(expression)) !== null) {
+                var colName = match[1];
+
+                var celulaData = this.GCellObjectsConfig.find(function (obj) {
+                    return obj.codigocoluna == colName && obj.rowid == rowid;
+                });
+
+                var valor = celulaData.getValueOrDefault()
+
+                // Substituição manual para manter compatibilidade com ES5
+                var token = "{" + colName + "}";
+                while (orgExpr.indexOf(token) !== -1) {
+                    orgExpr = orgExpr.replace(token, valor);
+                }
+            }
+
+            return orgExpr;
+        },
+        applyFormatter: function (el, rowid, codigocoluna) {
+            if (el._imask) return;
+
+            var cell = this.GCellObjectsConfig.find(function (cell) {
+                return cell.rowid == rowid && cell.codigocoluna == codigocoluna;
+            });
+            var configColuna = cell.getColunaConfig();
+            var proibenegativo = configColuna.config.proibenegativo;
+            var decimais = configColuna.config.decimais;
+            var mask = IMask(el, {
+                mask: Number,
+                signed: false,
+                thousandsSeparator: ' ',
+                padFractionalZeros: true,
+                normalizeZeros: true,
+                radix: ' ',
+                mapToRadix: ['.'],
+                min: (proibenegativo == true ? 0 : -10000000000000000000000000000000000000000000000000000000000000000),
+                scale: (isNaN(decimais) == true ? 2 : parseInt(decimais)),
+            });
+
+            mask.on('accept', function () {
+                console.log(mask.unmaskedValue, "unmaskedValue");
+                cell.valor = (mask.unmaskedValue)
+            });
+
+            el._imask = mask;
+            //mask.value = customer.salaryMasked;
+
+        },
+        executeColFunc: function (expression, rowid, codigocoluna) {
+
+            try {
+                var self = this;
+
+                var cell = self.getCell(rowid, codigocoluna);
+
+                var exprFinal = this.extractCellValue(expression, rowid);
+                var exprResult = eval(exprFinal);
+                cell.valor = exprResult;
+                return exprResult;
+            } catch (e) {
+                console.warn("warn", e)
+                //console.error("Erro ao avaliar expressão:", e);
+                return exprFinal;
+            }
+        }
+    })
+
+    Object.assign(state, GRenderData.scopeFunctions);
+    window.appState = state;
+    PetiteVue.createApp(state).mount('#sourceTabletableContainer');
+
+
+
+
+
+}
+
+
 
 TableHtml.prototype.generateTableButtons = function () {
 
@@ -523,7 +714,7 @@ TableHtml.prototype.addLinhaByModelo = function (modelo) {
     }
 
     addNewRecords()
-    this.handleUI();
+    this.handleUI({ notRefreshTree: true });
 
 }
 
@@ -690,6 +881,8 @@ function Coluna(data) {
     this.atributo = data.atributo || "";
     this.campovalid = data.campovalid || "";
     this.condicaovalidacao = data.condicaovalidacao || "";
+    this.sourceTable = data.sourceTable || "";
+    this.sourceKey = data.sourceKey || "";
     this.validacoluna = data.validacoluna || false;
     this.expresscolfun = data.expresscolfun || "";
     this.colfunc = data.colfunc || false;
@@ -817,7 +1010,60 @@ function evaluateExpression(expression) {
     }
 }
 
+function formatInputValue(value, configData) {
+    // Cria um input temporário
+
+    var safeValue = (value !== undefined && value !== null) ? String(value) : "0";
+    var $tmpInput = $("<input style='display:none' class='imaskFormatterInputTmp' type='text' />").val(safeValue);
+    $("body").append($tmpInput);
+
+    var mask = IMask($tmpInput[0], {
+        mask: Number,
+        signed: false,
+        thousandsSeparator: ' ',
+        padFractionalZeros: true,
+        normalizeZeros: true,
+        radix: ' ',
+        mapToRadix: ['.'],
+        min: (configData.proibenegativo == true ? 0 : -10000000000000000000000000000000000000000000000000000000000000000),
+        scale: configData.decimais // ajuste conforme necessário
+    });
+
+    mask.value = safeValue;
+
+    var formattedValue = $tmpInput.val();
+    $tmpInput.remove();
+    return formattedValue;
+}
+
+function getColunaConfig(celulaConfig) {
+
+
+    return GRenderedColunas.find(function (coluna) {
+
+        return coluna.codigocoluna == celulaConfig.codigocoluna
+    })
+}
+function handleUIValue(cellObject, value) {
+
+    // console.log("handleUIValue", cellObject.codigocoluna, value)
+    var configColuna = getColunaConfig(cellObject);
+    if (!configColuna) {
+
+        return value;
+    }
+    var configData = configColuna.config;
+    switch (cellObject.dataType) {
+        case "digit":
+            return formatInputValue(value, configData);
+        default:
+            return value;
+    }
+}
+
+
 function CellObjectConfig(data) {
+    var _valor = isStringEmpty(data.valor) || isUndefinedOrNull(data.valor) || data.valor == 0 ? null : data.valor;
 
     this.readonly = data.readonly || false;
     this.atributo = data.atributo || "";
@@ -833,7 +1079,6 @@ function CellObjectConfig(data) {
     this.campooption = data.campooption || ""
     this.novoregisto = data.novoregisto || false;
     this.proibenegativo = data.proibenegativo || null;
-    this.valor = isStringEmpty(data.valor) || isUndefinedOrNull(data.valor) || data.valor == 0 ? null : data.valor;
     this.outrosValores = Array.isArray(data.outrosValores) ? Array.from(data.outrosValores) : [];
     this.renderedColuna = new RenderedColuna(data.renderedColuna ? data.renderedColuna : {});
     this.component = data.component || ""
@@ -854,7 +1099,124 @@ function CellObjectConfig(data) {
     this.jsonStringData = JSON.stringify(data);
     this.changedb = data.changedb || false;
     this.events = Array.isArray(data.events) ? Array.from(data.events) : [];
+    this._valorChanged = false;
 
+    Object.defineProperty(this, "valor", {
+        get: function () {
+            return _valor;
+        },
+        set: function (newValue) {
+            var formattedValue = handleDataType(this.dataType, newValue);
+
+            if (_valor !== formattedValue) {
+                this._valorChanged = true;
+
+                var self = this;
+                syncChangesToDB(this, formattedValue).then(function () {
+                    try {
+
+                    } catch (error) {
+                        console.log("Error focusing next input:", error);
+                    }
+
+                });
+
+            }
+            _valor = formattedValue;
+
+
+        },
+        enumerable: true,
+        configurable: true
+    });
+
+    this.valor = _valor;
+    this.valorUI = handleUIValue(this, _valor);
+
+}
+
+
+
+
+
+function syncChangesToDB(cellObject, valor) {
+
+    if (cellObject.changedb == false) {
+        console.log("syncChangesToDB - changedb is false, skipping DB update");
+        return
+    }
+    var htmlComponent = getCellHtmlComponent(cellObject.cellid);
+
+    var buildChangeResult = buildChangedObjectUpdateData(htmlComponent, cellObject, valor);
+
+    var table = GRenderData.tableSourceName;
+
+
+
+    return updateCellOnDB(buildChangeResult, table).then(function (updateResult) {
+
+
+    }).catch(function (err) {
+        console.log("ERR", err)
+    })
+
+
+}
+
+function getCellHtmlComponent(cellid) {
+
+    return $("#" + cellid);
+
+}
+
+CellObjectConfig.prototype.setSelectedValue = function () {
+
+    var configColuna = this.getColunaConfig();
+    var localData = configColuna.localData;
+
+    var valorExistente = this.valor ? this.valor.toString() : "";
+    var filtroValorExistente = localData.filter(function (item) {
+        return item[configColuna.config.valtb] == valorExistente;
+    });
+    if (filtroValorExistente.length > 0) {
+        var option = "<option value='" + filtroValorExistente[0][configColuna.config.valtb] + "' selected>" + filtroValorExistente[0][configColuna.config.nometb] + "</option>";
+        $("#" + this.cellid).append(option);
+    }
+
+}
+
+CellObjectConfig.prototype.findLocalColData = function (termo, pagina, tamanhoPagina) {
+
+    tamanhoPagina = tamanhoPagina || 20;
+
+    var termoLower = termo.toLowerCase();
+
+    var configColuna = this.getColunaConfig();
+
+    var localData = configColuna.localData;
+
+
+
+    var resultadosFiltrados = termoLower
+        ? localData.filter(function (item) { return item[configColuna.config.nometb].toLowerCase().includes(termoLower); })
+        : localData;
+
+    var inicio = (pagina - 1) * tamanhoPagina;
+    var fim = inicio + tamanhoPagina;
+
+
+
+    var paginaAtual = resultadosFiltrados.slice(inicio, fim);
+
+    return {
+        resultados: paginaAtual.map(function (item) {
+            return {
+                id: item[configColuna.config.valtb],
+                text: item[configColuna.config.nometb],
+            };
+        }),
+        temMais: fim < resultadosFiltrados.length
+    };
 }
 
 CellObjectConfig.prototype.getHtmlValueOrText = function (isText) {
@@ -871,7 +1233,6 @@ CellObjectConfig.prototype.getHtmlValueOrText = function (isText) {
             case "date":
                 return htmlComponent.val()
             case "table":
-                console.log("selected", htmlComponent.val())
                 return isText ? htmlComponent.find("option:selected").text() : htmlComponent.val();
             default:
                 return ""
@@ -903,7 +1264,6 @@ CellObjectConfig.prototype.fillTableData = function () {
             return linhaGrupo.tipo == tmpcomponentcategoria
         });
         GTmpListTableObject = linhaTipoFiltered
-        console.log("propreg", GTmpListTableObject)
         return
     }
 
@@ -1009,10 +1369,9 @@ CellObjectConfig.prototype.handleFx = function () {
 
 
 function handleDefaultValue(dataType, valor) {
-    switch (dataType) {
+    switch (dataType.trim()) {
         case "digit":
-
-            return isNaN(valor) || valor == null ? 0 : valor;
+            return isNaN(valor) || valor == null || valor == undefined || valor == "" ? 0 : valor;
 
         case "text":
 
@@ -1073,39 +1432,68 @@ function calcularSubtotais() {
 
 }
 
+
+CellObjectConfig.prototype.syncReactive = function (htmlComponent) {
+
+    var thisCellObjectConfig = this;
+
+    var valor = handleDataType(thisCellObjectConfig.dataType, htmlComponent.val());
+    if (window.appState) {
+
+        var cellObj = window.appState.GCellObjectsConfig.find(function (cell) {
+            return cell.cellid == thisCellObjectConfig.cellid;
+        });
+
+        if (cellObj) {
+
+            cellObj.valor = valor;
+        }
+    }
+
+}
+
 CellObjectConfig.prototype.updateOnDB = function (htmlComponent) {
 
 
-    var cellObject = this
-    if (cellObject.changedb == false) {
-
-        return
-    }
-
-    var updateDataResult = buildChangedObjectUpdateData(htmlComponent, this);
-
-    var table = GRenderData.tableSourceName;
-
-
-    return updateCellOnDB(updateDataResult, table).then(function (updateResult) {
-
-        cellObject.valor = handleDataType(cellObject.dataType, htmlComponent.val());
-
-        cellObject.handleFx();
-        cellObject.executeChangeEvents()
-        cellObject.calcularTotalLinha();
-        calcularSubtotais();
-
-        if (GReportConfig.relatorio.totalrelatorio) {
-
-            GTableData.calcularTotalRelatorio();
-        }
-    }).catch(function (err) {
-        console.log("ERR", err)
-    })
+    cellObject.valor = handleDataType(cellObject.dataType, htmlComponent.val());
 
 
 }
+
+CellObjectConfig.prototype.updateOnDBPassingVal = function (htmlComponent, valor) {
+    /*
+        var cellObject = this
+        if (cellObject.changedb == false) {
+    
+            return
+        }
+    
+        var buildChangeResult = buildChangedObjectUpdateData(htmlComponent, this, valor);
+    
+        var table = GRenderData.tableSourceName;
+    
+    
+        return updateCellOnDB(buildChangeResult, table).then(function (updateResult) {
+    
+            cellObject.valor = handleDataType(cellObject.dataType, htmlComponent.val());
+    
+            cellObject.handleFx();
+            cellObject.executeChangeEvents()
+            cellObject.calcularTotalLinha();
+            calcularSubtotais();
+    
+            if (GReportConfig.relatorio.totalrelatorio) {
+    
+                GTableData.calcularTotalRelatorio();
+            }
+        }).catch(function (err) {
+            console.log("ERR", err)
+        })
+            */
+
+
+}
+
 
 
 CellObjectConfig.prototype.executeChangeEvents = function (htmlComponent) {
@@ -1313,8 +1701,10 @@ function RenderedLinha(data) {
     this.index = getMaxRenderedLinha();
     this.linkid = data.linkid || "";
     this.rowid = data.rowid || "";
+    this.isParent = data.isParent || false;
     this.linkcodigo = data.linkcodigo || "";
     this.linkdescricao = data.linkdescricao || ""
+    this.ordem = getMaxRenderedLinha() * 1000 || 0;
     this.parentid = data.parentid || "";
     this.novoregisto = data.novoregisto
     this.config = new Linha(data.config || new Linha({}));
@@ -1322,12 +1712,24 @@ function RenderedLinha(data) {
 }
 
 
-RenderedLinha.prototype.addFilho= function (filho) {
-    
+RenderedLinha.prototype.addLinhaFilha = function () {
 
-     var renderedLinha = new RenderedLinha({ novoregisto: true, rowid: generateUUID(), linkid: this.rowid, parentid: "", config: this.config });
 
-    GRenderedLinhas.push(renderedLinha);
+    var renderedLinha = new RenderedLinha({ novoregisto: true, rowid: generateUUID(), linkid: this.rowid, parentid: "", config: this.config });
+
+    renderedLinha.addToLocalRenderedLinhasList([], "", {}, false);
+    var linha = new RowHtml(setLinha(renderedLinha, "", []));
+    var linhaHtml = linha.generateHtml();
+    this.isParent = true;
+    $("#" + this.rowid).attr("data-id", this.rowid);
+
+    console.log($("#" + this.rowid), "dasdsdsadsadas")
+    $("#" + GTableData.tableId).append(linhaHtml);
+    //GRenderedLinhas.push(renderedLinha);
+    addNewRecords()
+
+    GTableData.handleUI({});
+
 
 }
 
@@ -1557,6 +1959,7 @@ function RenderedColuna(data) {
     this.config = new Coluna(data.config || {});
     this.tipolistagem = data.tipolistagem || "";
     this.preGen = data.preGen || "";
+    this.localData = data.localData || [];
 }
 
 RenderedColuna.prototype.fillTableData = function () {
@@ -1599,8 +2002,9 @@ RenderedColuna.prototype.preGenHtml = function () {
         var campooption = this.config.nometb
         var campovalor = this.config.valtb
 
-        var selectHtml = generateSelect(GTmpListTableObject, "form-control source-bind-table-control  table-select", "", " id=" + "[selectId]" + " source-key='" + this.config.bindData.sourceKey + "' source-bind='" + this.config.bindData.sourceBind + "' ", campooption, campovalor)
+        var selectHtml = generateSelect([], "form-control source-bind-table-control  table-select", "", " id=" + "[selectId]" + " source-key='" + this.config.bindData.sourceKey + "' source-bind='" + this.config.bindData.sourceBind + "' ", campooption, campovalor)
 
+        this.localData = GTmpListTableObject;
         this.preGen = selectHtml;
     }
 
@@ -1787,7 +2191,7 @@ function setLinhaRender(linha, linkid, parentid, records) {
 
 
     //No futuro se por exemplo for dito que o utilizador poderá apagar as linhas dos grupos e subgrupos . Para garantir que ao ter records (records.length>0) se liste exactamente o numero de grupos e subgrupos uma vez que podem ser apagados.
-    //Deve se Filtrar o array que vai preencher os grupos e subgrupos se por acaso este não constar dos records ou seja : records.find(function (obj) return obj[mapConfig.mapData[config.bindData.sourceKey]] == config.codigo { if (linhaData) {}
+    //Deve se Filtrar o array que vai preencher os grupos e subgrupos se por acaso este não varar dos records ou seja : records.find(function (obj) return obj[mapConfig.mapData[config.bindData.sourceKey]] == config.codigo { if (linhaData) {}
     var config = new Linha(linha);
 
     var mapConfig = getMapConfigByComponent(GRenderData.renderConfig, config.tipo);
@@ -1985,7 +2389,7 @@ function modoEcraHandler() {
         $('.sourced-table').find('*').prop('disabled', true);
         $('.sourced-table select').prop('disabled', true);
         $(".source-table-options").hide()
-        $(".action-zone").hide()
+        $(".action-zone button").hide()
     }
 
 
@@ -1995,6 +2399,7 @@ function modoEcraHandler() {
 }
 
 function initSelect(component, changeStyle) {
+    return;
     $(component).select2({
         width: "100%",
         allowClear: false
@@ -2022,66 +2427,40 @@ function sourcedTableStyle() {
 
 function formatAllTablesDigitInputs() {
 
-
-
-
-    var elementsDate = document.querySelectorAll('input[data-type="date"]');
-
-    // Convert the NodeList to an array and apply Cleave to each input element
-    Array.from(elementsDate).forEach(function (element) {
-
-        var cleave = new Cleave(element, {
-            date: true,
-            delimiter: ".",
-            datePattern: ['d', 'm', 'Y']
-        });
-    })
-
-
-
-
-    var elements = document.querySelectorAll('input[data-type="digit"]');
-
-    // Convert the NodeList to an array and apply Cleave to each input element
-    Array.from(elements).forEach(function (element) {
-        var closestTdIndex = $(element).closest("td").index()
-        ////console.log("Closest td index", closestTdIndex)
-        var closestHeader = $(".sourced-table th").eq(closestTdIndex)
-        var proibenegativo = closestHeader.data("proibenegativo")
-        var decimais = closestHeader.data("decimais")
-        /*//console.log("Proibe negativo", proibenegativo)
-        //console.log("Decimais", decimais)
-        //console.log("Closest header", closestHeader)*/
-        if ($(element).data("decimais") != undefined) {
-            decimais = $(element).data("decimais")
-        }
-
-        if ($(element).data("proibenegativo") != undefined) {
-            proibenegativo = $(element).data("proibenegativo")
-        }
-
-        var mask = IMask(element, {
-            mask: Number,
-            min: (proibenegativo == true ? 0 : -10000000000000000000000000000000000000000000000000000000000000000),
-            scale: (isNaN(decimais) == true ? 2 : parseInt(decimais)),
-            radix: '.',
-            thousandsSeparator: ' ',
-
-        });
-
-
-
-        if ($(element).attr("sinalnegativo") == "true") {
-            // //console.log("NEED TO MASKKKKKKKK")
-            mask.on('accept', function () {
-                var value = mask.unmaskedValue;
-                if (value > 0) {
-                    mask.unmaskedValue = (-value).toString();
-                }
+    //var elements = document.querySelectorAll('input[data-type="digit"]');
+    /*
+        Array.from(elements).forEach(function (element) {
+    
+            if ($(element).data("decimais") != undefined) {
+                decimais = $(element).data("decimais")
+            }
+    
+            if ($(element).data("proibenegativo") != undefined) {
+                proibenegativo = $(element).data("proibenegativo")
+            }
+    
+            var mask = IMask(element, {
+                mask: Number,
+                min: (proibenegativo == true ? 0 : -10000000000000000000000000000000000000000000000000000000000000000),
+                scale: (isNaN(decimais) == true ? 2 : parseInt(decimais)),
+                radix: '.',
+                thousandsSeparator: ' ',
+    
             });
-        }
-
-    });
+    
+    
+    
+            if ($(element).attr("sinalnegativo") == "true") {
+                // //console.log("NEED TO MASKKKKKKKK")
+                mask.on('accept', function () {
+                    var value = mask.unmaskedValue;
+                    if (value > 0) {
+                        mask.unmaskedValue = (-value).toString();
+                    }
+                });
+            }
+    
+        });*/
     sourcedTableStyle()
 
     if ($(".header-for-edit-col").length > 8) {
@@ -2294,34 +2673,60 @@ function addFreezyColumnByHeader(thElement) {
 
 function ConvertMrendObjectToTable(records) {
 
-    var tableData = []
 
-    var distinctRows = getDistinctWithKeys(records, "rowid");
+    var distinctSources = getDistinctWithKeys(records, "sourceTable");
 
-    distinctRows.forEach(function (row) {
 
-        var tableRow = {}
-        var rowCells = records.filter(function (cell) {
-            return cell.rowid == row.rowid
-        })
 
-        rowCells.forEach(function (cell) {
-            var colunaConfig = GReportConfig.colunas.find(function (coluna) {
-                return coluna.codigocoluna == cell.coluna
-            });
+    var sources = []
 
-            tableRow[cell.campo] = handleDefaultValueByDataType(colunaConfig.tipo, cell[cell.campo])
+    distinctSources.forEach(function (source) {
+
+
+        var tableData = []
+        var sourceRecords = records.filter(function (record) {
+            return record.sourceTable == source.sourceTable;
         });
-        tableRow[GRenderData.dbTableToMrendObject.tableKey] = row.rowid
+
+        var distinctRows = getDistinctWithKeys(sourceRecords, "rowid");
+
+        distinctRows.forEach(function (row) {
+
+            var tableRow = {}
+            var rowCells = records.filter(function (cell) {
+                return cell.rowid == row.rowid
+            })
+
+            rowCells.forEach(function (cell) {
+                var colunaConfig = GReportConfig.colunas.find(function (coluna) {
+                    return coluna.codigocoluna == cell.coluna
+                });
+
+                tableRow[cell.campo] = handleDefaultValueByDataType(colunaConfig.tipo, cell[cell.campo])
+            });
+            tableRow[source.sourceKey] = row.sourceKeyValue
+            tableRow[source.linkfield] = row.linkid || "";
+            tableRow[source.ordemField] = row.ordem || 0;
 
 
-        tableData.push(tableRow)
+
+            tableData.push(tableRow)
+
+
+        });
+
+        sources.push({
+            sourceTable: source.sourceTable,
+            sourceKey: source.sourceKey,
+            records: tableData
+        });
+
 
 
     })
 
 
-    return tableData;
+    return sources;
 
 }
 
@@ -2332,7 +2737,9 @@ function ConvertDbTableToMrendObject(data, MrendConversionConfig) {
         return []
     }
     var keys = Object.keys(data[0]);
-    var MrendObjects = []
+    var mrendObjects = []
+
+
 
     data.forEach(function (record) {
         keys.forEach(function (key) {
@@ -2342,22 +2749,50 @@ function ConvertDbTableToMrendObject(data, MrendConversionConfig) {
             })
 
             if (MrendConversionConfig.tableKey != key && configCol) {
+
+
                 var rowid = record[MrendConversionConfig.tableKey]
-                var MrendObject = {}
-                MrendObject.campo = key;
-                MrendObject[configCol.campo] = record[key];
-                MrendObject.coluna = key;
-                MrendObject.rowid = rowid;
-                MrendObject.codigolinha = MrendConversionConfig.table;
-                MrendObject.cellId = key + "COLUNA___LINHA" + rowid.trim();
-                MrendObjects.push(MrendObject)
+                var mrendObject = new MrendObject({});
+                mrendObject.campo = key;
+                mrendObject[configCol.campo] = record[key];
+                mrendObject.coluna = key;
+                mrendObject.rowid = rowid;
+                mrendObject.codigolinha = MrendConversionConfig.table;
+                mrendObject.cellId = key + "COLUNA___LINHA" + rowid.trim();
+                mrendObject.ordemField = MrendConversionConfig.ordemField;
+
+                mrendObject.ordem = record[MrendConversionConfig.ordemField] || 0;
+
+                mrendObject.sourceTable = MrendConversionConfig.table
+                mrendObject.sourceKey = MrendConversionConfig.tableKey;
+                mrendObject.sourceKeyValue = record[MrendConversionConfig.tableKey];
+
+                if (configCol.sourceTable) {
+                    mrendObject.sourceTable = configCol.sourceTable;
+                    mrendObject.sourceKey = configCol.sourceKey;
+                    mrendObject.sourceKeyValue = record[configCol.sourceKey];
+                }
+
+
+
+
+                if (MrendConversionConfig.extras) {
+
+                    if (MrendConversionConfig.extras.linkfield) {
+
+                        mrendObject.linkid = record[MrendConversionConfig.extras.linkfield];
+                        mrendObject.linkfield = MrendConversionConfig.extras.linkfield;
+                    }
+                }
+
+                mrendObjects.push(mrendObject)
             }
 
         })
 
     })
 
-    return MrendObjects;
+    return mrendObjects;
 
 }
 
@@ -2428,11 +2863,10 @@ function RenderReport(renderData) {
 
 
             }
-            return fetchFromSource(renderData.table, renderData.recordData.coluna, renderData.recordData.stamp, initDBResult.db, renderData.dbTableToMrendObject).then(function (fetchResult) {
+            return fetchFromSource(renderData.table, renderData.codigo, renderData.recordData.stamp, initDBResult.db, renderData.dbTableToMrendObject).then(function (fetchResult) {
 
                 mainSpinner("show");
 
-                //  console.log("Fetch from source result", fetchResult)
                 $(".sourceTabletableContainer").remove()
                 if (fetchResult.novoRegisto == true && $("#mainPage").data("state") == "consultar") {
                     customReportMessageError("Sem resultados")
@@ -2446,15 +2880,10 @@ function RenderReport(renderData) {
                         if (result.exists) {
 
 
-
                             RenderHandler(result.data);
 
 
-
-
-
                         } else {
-
 
 
                             RenderHandler(fetchResult.records)
@@ -2598,6 +3027,32 @@ function inputToNumber(inputVal) {
 }
 
 
+function handleCustomDataForCellObject(cellObjectConfig) {
+
+    var customData = ""
+
+    var colunaConfig = cellObjectConfig.getColunaConfig();
+
+    if (colunaConfig.config.colfunc) {
+        customData += "v-model='executeColFunc(\"" + colunaConfig.config.expresscolfun + "\", \"" + cellObjectConfig.rowid + "\", \"" + cellObjectConfig.codigocoluna + "\")'"
+    }
+
+    return customData;
+
+
+}
+
+
+function handleReactiveClasses(cellObjectConfig) {
+
+    switch (cellObjectConfig.dataType) {
+        case "table":
+            return " reactive-select-mrend";
+        default:
+            return ""
+    }
+
+}
 function generateHtmlObject(config) {
 
 
@@ -2607,6 +3062,14 @@ function generateHtmlObject(config) {
     var localConfigStyles = cellObjectConfig.celula.desabilitado ? " background:transparent!important" : ""
     var localConfigAttr = cellObjectConfig.celula.desabilitado ? " disabled" : ""
 
+    var globalCustomData = ""
+    globalCustomData += handleCustomDataForCellObject(cellObjectConfig);
+    globalCustomData += "v-model='getCell(\"" + cellObjectConfig.rowid + "\",\"" + cellObjectConfig.codigocoluna + "\").valorUI'";
+    globalCustomData += ' @vue:mounted="applyFormatter($el, \'' + cellObjectConfig.rowid + '\', \'' + cellObjectConfig.codigocoluna + '\')"';
+
+
+    var reactiveClasses = " "
+    reactiveClasses += handleReactiveClasses(cellObjectConfig);
 
 
     if (cellObjectConfig.dataType == "digit") {
@@ -2619,7 +3082,7 @@ function generateHtmlObject(config) {
             value: valueNumber,
             classes: "form-control  input-sm table-input-col " + inputDigitClass + cellObjectConfig.customClasses,
             style: "background:#eff0f1!important;" + cellObjectConfig.customStyles + localConfigStyles,
-            customData: " id=" + cellObjectConfig.cellid + " " + cellObjectConfig.atributo + "  data-type='digit' " + cellObjectConfig.fxData + "  source-key='" + cellObjectConfig.bindData.sourceKey + "' source-bind='" + cellObjectConfig.bindData.sourceBind + "'" + localConfigAttr,
+            customData: " id=" + cellObjectConfig.cellid + " " + cellObjectConfig.atributo + "  data-type='digit' " + cellObjectConfig.fxData + "  source-key='" + cellObjectConfig.bindData.sourceKey + "' source-bind='" + cellObjectConfig.bindData.sourceBind + "'" + localConfigAttr + globalCustomData,
             placeholder: ""
         };
         return generateInput(digitInputData)
@@ -2635,9 +3098,9 @@ function generateHtmlObject(config) {
         var textInputData = {
             type: "text",
             value: cellObjectConfig.valor,
-            classes: "form-control source-bind-table-control input-sm table-input-col ",
+            classes: "form-control source-bind-table-control input-sm table-input-col " + reactiveClasses,
             style: "background:#eff0f1!important;" + cellObjectConfig.customStyles + localConfigStyles,
-            customData: "id=" + cellObjectConfig.cellid + " data-type='text' " + cellObjectConfig.fxData + " " + cellObjectConfig.atributo + " source-key='" + cellObjectConfig.bindData.sourceKey + "' source-bind='" + cellObjectConfig.bindData.sourceBind + "'" + localConfigAttr,
+            customData: "id=" + cellObjectConfig.cellid + " data-type='text' " + cellObjectConfig.fxData + " " + cellObjectConfig.atributo + " source-key='" + cellObjectConfig.bindData.sourceKey + "' source-bind='" + cellObjectConfig.bindData.sourceBind + "'" + localConfigAttr + globalCustomData,
             placeholder: ""
         };
         return generateInput(textInputData)
@@ -2648,9 +3111,9 @@ function generateHtmlObject(config) {
         var dateInputData = {
             type: "text",
             value: cellObjectConfig.valor,
-            classes: "form-control source-bind-table-control input-sm table-input-col sourced-table-date-field ",
+            classes: "form-control source-bind-table-control input-sm table-input-col sourced-table-date-field " + reactiveClasses,
             style: "background:#eff0f1!important;" + cellObjectConfig.customStyles + localConfigStyles,
-            customData: "id=" + cellObjectConfig.cellid + " data-language='pt' data-type='date' " + cellObjectConfig.fxData + " " + cellObjectConfig.atributo + " source-key='" + cellObjectConfig.bindData.sourceKey + "' source-bind='" + cellObjectConfig.bindData.sourceBind + "'" + localConfigAttr,
+            customData: "id=" + cellObjectConfig.cellid + " data-language='pt' data-type='date' " + cellObjectConfig.fxData + " " + cellObjectConfig.atributo + " source-key='" + cellObjectConfig.bindData.sourceKey + "' source-bind='" + cellObjectConfig.bindData.sourceBind + "'" + localConfigAttr + globalCustomData,
             placeholder: ""
         };
 
@@ -2682,7 +3145,7 @@ function generateHtmlObject(config) {
         var campovalor = cellObjectConfig.campovalor ? cellObjectConfig.campovalor : dadosColuna.config.valtb;
 
 
-        return generateSelectSettingSelectValue(GTmpListTableObject, "form-control source-bind-table-control  table-select", "", " id=" + cellObjectConfig.cellid + " source-key='" + cellObjectConfig.bindData.sourceKey + "' source-bind='" + cellObjectConfig.bindData.sourceBind + "' ", campooption, campovalor, cellObjectConfig.valor)
+        return generateSelectSettingSelectValue([], "form-control source-bind-table-control  table-select " + reactiveClasses, "", " id=" + cellObjectConfig.cellid + " source-key='" + cellObjectConfig.bindData.sourceKey + "' source-bind='" + cellObjectConfig.bindData.sourceBind + "' " + globalCustomData, campooption, campovalor, cellObjectConfig.valor)
 
 
     }
@@ -2692,9 +3155,9 @@ function generateHtmlObject(config) {
         var checkBoxInputData = {
             type: "checkbox",
             value: value,
-            classes: " source-bind-table-control table-input-col ",
+            classes: " source-bind-table-control table-input-col " + reactiveClasses,
             style: "" + cellObjectConfig.customStyles + localConfigStyles,
-            customData: " id=" + cellObjectConfig.cellid + " data-type='logic' " + cellObjectConfig.fxData + " " + cellObjectConfig.atributo + " source-key='" + sourceKey + "' source-bind='" + cellObjectConfig.sourceBind + "'" + (cellObjectConfig.valor == "on" ? " checked" : " ") + localConfigAttr,
+            customData: " id=" + cellObjectConfig.cellid + " data-type='logic' " + cellObjectConfig.fxData + " " + cellObjectConfig.atributo + " source-key='" + sourceKey + "' source-bind='" + cellObjectConfig.sourceBind + "'" + (cellObjectConfig.valor == "on" ? " checked" : " ") + localConfigAttr + globalCustomData,
             placeholder: ""
         };
 
@@ -2728,6 +3191,16 @@ function getDefaultColunaHtmlObject(linh, records) {
 
 }
 
+function evalOrDefault(expression) {
+    try {
+
+        return eval(expression)
+    } catch (e) {
+
+        console.warn("ev", e)
+        return expression
+    }
+}
 function getFilteredRecord(records, filters) {
 
     return records.find(function (record) {
@@ -2878,11 +3351,14 @@ function setLinhaModeloOuSingular(linh, parentid, records) {
         customStyles = "background:" + setStyle("Color", linha.config.tipo, linha.config.cor) + "!important"
     }
 
+
+    var customDataParent = linha.isParent ? " data-id='" + linhaId + "' " : "";
+    var customDataLink = linha.linkid ? " data-id='" + linhaId + "' data-parent-id='" + linha.linkid + "' " : "";
     var linhaHtml = {
         rowId: linhaId,
         style: customStyles,
         classes: "" + linha.config.tipo + "-row",
-        customData: "",
+        customData: customDataLink + customDataParent,
         cols: []
 
     }
@@ -2909,14 +3385,20 @@ function setLinhaModeloOuSingular(linh, parentid, records) {
     // cellActionZoneObjectConfig.setDefaultValue();
 
 
-    var addFilhoBtn = "<button data-modelo='" + linha.config.codigo + "' type='button' style='margin-left:0.3em;color:white!important;margin-right:0.3em' class='btn  btn-sm btn-primary addFilho'><span  class='glyphicon glyphicon glyphicon-plus'></span></button>"
-    var removeBtn = "<button type='button' style='color:white!important;background:#d9534f!important' class='btn btn-sm btn-danger removeTableRow'><span  class='glyphicon glyphicon glyphicon-trash'></span></button>"
-    
+    var addFilhoBtn = "<button data-modelo='" + linha.config.codigo + "' type='button' style='margin-left:0.3em;color:#0765b7!important;background:transparent;margin-right:0.3em' class='btn  btn-xs  addFilho'><span  class='glyphicon glyphicon glyphicon-plus'></span></button>"
+    var removeBtn = "<button type='button' style='color:#d9534f!important;background:transparent' class='btn btn-xs  removeTableRow'><span  class='glyphicon glyphicon glyphicon-trash'></span></button>"
+
+
+    var divContainerAcionsZone = "<div style='display:flex;flex-direction:row' class='container-action-zone'>"
+    divContainerAcionsZone += removeBtn;
+    divContainerAcionsZone += (linha.config.addfilho ? addFilhoBtn : "");
+    divContainerAcionsZone += "</div>"
+
     linhaHtml.cols.push({
-        style: "" + (linha.config.addfilho ? "width:7%" : ""),
+        style: "" + (linha.config.addfilho ? "" : ""),
         colId: "",
         classes: "action-zone",
-        content: removeBtn + (linha.config.addfilho ? addFilhoBtn : ""),
+        content: divContainerAcionsZone,
         customData: "",
     });
 
@@ -3254,6 +3736,21 @@ function buildDefaultCelula(linhaHtml, linh, colun, records) {
         if (GRenderData.dbTableToMrendObject.convert) {
 
             linhaRecord[getCampoMrend()] = coluna.config.campo;
+            linhaRecord.linkid = linha.linkid;
+            linhaRecord.linkfield = GRenderData.dbTableToMrendObject.extras.linkfield;
+            linhaRecord.sourceTable = GRenderData.dbTableToMrendObject.table;
+            linhaRecord.sourceKey = GRenderData.dbTableToMrendObject.tableKey;
+            linhaRecord.sourceKeyValue = linha.rowid;
+            linhaRecord.ordem = linha.ordem
+            linhaRecord.ordemField = GRenderData.dbTableToMrendObject.ordemField;
+
+            if (coluna.config.sourceTable) {
+
+                linhaRecord.sourceTable = coluna.config.sourceTable;
+                linhaRecord.sourceKey = coluna.config.sourceKey;
+                linhaRecord.sourceKeyValue = linha.rowid;
+            }
+
 
         }
 
@@ -3302,11 +3799,13 @@ function executeScriptOnPHC(url, args) {
 
 
 
-function fetchFromSource(tableName, coluna, registo, db, dbTableToMrendObject) {
+function fetchFromSource(tableName, codigo, registo, db, dbTableToMrendObject) {
+
+
 
     return new Promise(function (resolve, reject) {
 
-        getDataFromPHC(tableName, coluna, registo)
+        getDataFromPHC(codigo, registo)
             .then(function (response) {
 
                 if (dbTableToMrendObject) {
@@ -3314,26 +3813,20 @@ function fetchFromSource(tableName, coluna, registo, db, dbTableToMrendObject) {
                     if (dbTableToMrendObject.convert == true) {
 
                         var dbConverstion = ConvertDbTableToMrendObject(response.data, dbTableToMrendObject);
-                        console.log("dbConverstion", dbConverstion)
 
                         response.data = dbConverstion
                     }
 
                 }
 
-
-
-
                 if (response.cod != "0000") {
                     reject(response)
                 }
-
 
                 if (getState() == "consultar") {
 
                     if (response.data.length > 0) {
                         deleteAllRecords(tableName).then(function (data) {
-                            console.log("add bulk data", response.data)
                             addBulkData(db, tableName, response.data)
                             resolve({ novoRegisto: false, response: response, records: response.data });
                         })
@@ -3347,7 +3840,9 @@ function fetchFromSource(tableName, coluna, registo, db, dbTableToMrendObject) {
 
                 if (getState() != "consultar") {
 
-                    if (registo != getSourceStamp()) {
+
+                    if (registo.trim() != getSourceStamp().trim()) {
+
                         storeDataSourceStamp(registo)
                         //  storeNota(getNotaData().nota)
                         deleteAllRecords(tableName).then(function (data) {
@@ -3388,7 +3883,7 @@ function storeStampRegisto(stampregisto) {
 }
 function storeDataSourceStamp(sourceStamp) {
 
-    window.localStorage.setItem("sourcestamp", sourceStamp)
+    window.localStorage.setItem("sourcestamp", sourceStamp.trim())
 }
 
 function clearStamps() {
@@ -3403,7 +3898,6 @@ function getSourceStamp() {
 
 
 function deleteAllRecords(tableName) {
-
     return new Promise(function (resolve, reject) {
 
         if (db['_allTables'][tableName]) {
@@ -3455,17 +3949,19 @@ function addBulkData(db, tableName, dataArray) {
 
 
 
-function getDataFromPHC(tabela, coluna, registo) {
+function getDataFromPHC(codigo, filtroval) {
     ////console.log(tabela, opcaoEcraId, coluna, registo)
+
     return new Promise(function (resolve, reject) {
         $.ajax({
             type: "POST",
             url: "../programs/gensel.aspx?cscript=getdatafromphc",
             data: {
                 //  '__EVENTTARGET': opcaoEcraId,
-                '__EVENTARGUMENT': JSON.stringify([{ tabela: tabela, coluna: coluna, registo: registo }]),
+                '__EVENTARGUMENT': JSON.stringify([{ codigo: codigo, filtroval: filtroval }]),
             },
             success: function (response) {
+
                 resolve(response);
             },
             error: function (error) {
@@ -3711,7 +4207,6 @@ function marcarOptionSelecionado(selectHtml, valorCelula) {
 function RenderSourceTable() {
 
 
-    console.log("RenderSourceTable", GTableData)
     addNewRecords()
 
     var lazyLoadThreshold = 1000; // Tamanho do limite para o carregamento lento
@@ -3739,7 +4234,7 @@ function RenderSourceTable() {
 
     handleCellEvents()
     handleTotais();
-    GTableData.handleUI();
+    GTableData.handleUI({});
     GTableData.generateTableButtons();
     mainSpinner("hide")
     GCellObjectsConfig = GCellObjectsConfig.concat(TMPCellObjectCOnfig);
@@ -3883,22 +4378,29 @@ function getRenderedLinhas(records) {
 
             var distinctRowIds = _.uniqBy(linhaRecords, singularMap.mapData.rowid);
 
+            distinctRowIds.sort(function (a, b) {
+                return (a.ordem || 0) - (b.ordem || 0);
+            });
 
 
             distinctRowIds.forEach(function (distinctRow) {
 
-                var linha = new Linha(linhModelo);
-                var rendered = new RenderedLinha({ novoregisto: false, rowid: distinctRow[singularMap.mapData.rowid], linkid: "", parentid: "", config: linha })
-                renderedLinhas.push(rendered);
-
-                var recFlt = linhaRecords.filter(function (rec) {
-                    return rec[singularMap.mapData.rowid] == distinctRow[singularMap.mapData.rowid]
+                var linhasFilhas = linhaRecords.filter(function (rec) {
+                    return rec.linkid == distinctRow[singularMap.mapData.rowid]
                 }
                 );
 
-                rendered.addToLocalRenderedLinhasList(recFlt, distinctRow, singularMap, true);
+                setSingularLinha(distinctRow, linhaRecords, linhModelo, singularMap, renderedLinhas, linhasFilhas.length > 0);
 
-                contadorIteraccoes++;
+
+
+                var distinctRowFilhas = _.uniqBy(linhasFilhas, singularMap.mapData.rowid);
+
+                distinctRowFilhas.forEach(function (filha) {
+
+                    setSingularLinha(filha, linhaRecords, linhModelo, singularMap, renderedLinhas, false);
+                });
+
 
 
             });
@@ -4034,6 +4536,29 @@ function getRenderedLinhas(records) {
 }
 
 
+
+function setSingularLinha(distinctRow, linhaRecords, linhModelo, singularMap, renderedLinhas, isParent) {
+
+    var linhaAdicionada = GRenderedLinhas.find(function (linha) {
+        return linha.rowid == distinctRow[singularMap.mapData.rowid]
+    });
+
+    if (linhaAdicionada) {
+
+        return;
+    }
+
+    var linha = new Linha(linhModelo);
+    var rendered = new RenderedLinha({ novoregisto: false, isParent: isParent, rowid: distinctRow[singularMap.mapData.rowid], linkid: distinctRow.linkid, parentid: "", config: linha })
+    renderedLinhas.push(rendered);
+
+    var recFlt = linhaRecords.filter(function (rec) {
+        return rec[singularMap.mapData.rowid] == distinctRow[singularMap.mapData.rowid]
+    }
+    );
+    rendered.addToLocalRenderedLinhasList(recFlt, distinctRow, singularMap, true);
+}
+
 function RenderHandler(records) {
 
 
@@ -4119,23 +4644,23 @@ function handleDataType(dataType, value) {
     switch (dataType) {
         case "digit":
 
-            return inputToNumber(value)
+            return inputToNumber(value ? value.toString() : 0);
 
         default:
             return value
     }
 }
 
-function buildChangedObjectUpdateData(htmlComponent, cellObjectConfigPar) {
+function buildChangedObjectUpdateData(htmlComponent, cellObjectConfigPar, val) {
 
-    var cellObjectConfig = new CellObjectConfig(cellObjectConfigPar);
+    var cellObjectConfig = cellObjectConfigPar;
     var updateData = new UpdateData({});
 
 
     updateData.sourceKey = cellObjectConfig.bindData.sourceKey;
     updateData.sourceValue = cellObjectConfig.cellid;
 
-    updateData.changedData[cellObjectConfig.bindData.sourceBind] = handleDataType(cellObjectConfig.dataType, htmlComponent.val());
+    updateData.changedData[cellObjectConfig.bindData.sourceBind] = handleDataType(cellObjectConfig.dataType, val ? val : htmlComponent.val());
 
     cellObjectConfig.bindData.extras.forEach(function (extra) {
 
@@ -4163,6 +4688,22 @@ function registerMrendListeners() {
 
     $(document).off("change keyup  paste", ".source-bind-table-control").on("change keyup paste", ".source-bind-table-control", function (event) {
 
+        /*
+        var selfInp = $(this);
+
+
+        var componentId = $(selfInp).attr("id");
+        var cellObjectConfig = getCellObjectConfigByCellId(componentId);
+
+        if (!cellObjectConfig) {
+            throw new Error("COMPONENTE " + componentId + " NÃO ENCONTRADO")
+        }*/
+
+
+    });
+
+    $(document).off("change", ".reactive-select-mrend").on("change", ".reactive-select-mrend", function (event) {
+
         var selfInp = $(this);
 
 
@@ -4173,35 +4714,9 @@ function registerMrendListeners() {
             throw new Error("COMPONENTE " + componentId + " NÃO ENCONTRADO")
         }
 
-        cellObjectConfig.updateOnDB($(selfInp)).then(function (data) {
-            var renderedHtml = $(selfInp).closest(".sourceTabletableContainer").html();
+        cellObjectConfig.syncReactive(selfInp);
 
-            var cacheUI = new CachedUI({
-                GRenderData: GRenderData,
-                GRenderedData: GRenderedData,
-                renderedHtml: renderedHtml,
-                GDefaultConfig: GDefaultConfig,
-                GReportConfig: GReportConfig,
-                GTableData: GTableData,
-                GRenderedLinhas: GRenderedLinhas,
-                GRenderedColunas: GRenderedColunas,
-                GCellObjectsConfig: GCellObjectsConfig,
-                TMPCellObjectCOnfig: TMPCellObjectCOnfig
-            });
-
-            cacheUI.syncOnDb()
-
-
-        });
-
-
-
-
-
-
-
-
-    });
+    })
 
     $(document).on('keydown', '.sourced-table input', function (event) {
         if (event.key === 'Enter') {
@@ -4231,13 +4746,19 @@ function registerMrendListeners() {
 
     })
 
-    $(document).off("click",".addFilho").on("click", ".addFilho", function () {
+    $(document).off("click", ".addFilho").on("click", ".addFilho", function () {
         var rowId = $(this).closest("tr").attr("id");
-        var row = GRenderedLinhas.find(function (linha) {
+        var linha = GRenderedLinhas.find(function (linha) {
             return linha.rowid == rowId
         });
 
-      console.log("row", row)
+        if (linha) {
+
+            linha.addLinhaFilha();
+            $('#' + GTableData.tableId).simpleTreeTable();
+        }
+
+        //console.log("row", row)
 
     })
 }
@@ -4246,7 +4767,96 @@ function registerMrendListeners() {
 $(document).ready(function () {
 
     registerMrendListeners();
+
+
 })
+
+
+
+
+function initTreeForTable(tableSelector) {
+    var $table = $(tableSelector);
+
+    // Memoriza quais IDs estão expandidos
+    var expandedIds = new Set();
+    $table.find('.tree-toggle.fa-angle-down').each(function () {
+        var $row = $(this).closest('tr');
+        var id = $row.data('id');
+        if (id) expandedIds.add(id);
+    });
+
+    // Remove ícones antigos de expansão, mantendo o conteúdo
+    $table.find('.tree-toggle').remove();
+
+    // Prepara e oculta filhos
+    $table.find('tbody tr').each(function () {
+        var $tr = $(this);
+        var parentId = $tr.data('parent-id');
+        if (parentId) {
+            $tr.hide().addClass('child-row');
+        } else {
+            $tr.removeClass('child-row').show();
+        }
+
+        var hasChildren = $table.find('tr[data-parent-id="' + $tr.data("id") + '"]').length > 0;
+        var icon = hasChildren
+            ? '<i class="tree-toggle fa fa-angle-right" style="cursor: pointer;color:#626e78; font-size: 20px; font-weight: bold; margin-right: 8px;"></i>'
+            : '<span style="display: inline-block; width: 20px; margin-right: 8px;"></span>';
+
+        var $actionZone = $tr.find('.container-action-zone');
+        if ($actionZone.length > 0 && $actionZone.find('.tree-toggle, .empty-toggle').length === 0) {
+            $actionZone.prepend(icon);
+        }
+    });
+
+    // Calcula profundidade (indentação)
+    $table.find('tbody tr').each(function () {
+        var depth = 0;
+        var current = $(this);
+        while (current.data("parent-id")) {
+            depth++;
+            current = $table.find('tr[data-id="' + current.data("parent-id") + '"]');
+        }
+
+        // Aplica padding diretamente à action-zone ou linha
+        var $actionZone = $(this).find('.container-action-zone');
+        if ($actionZone.length > 0) {
+            $actionZone.css('padding-left', (depth * 32) + 'px');
+        } else {
+            $(this).css("padding-left", (depth * 32) + "px");
+        }
+    });
+
+    // Comportamento de expandir/colapsar
+    $table.find('.tree-toggle').off('click').on('click', function (e) {
+        e.stopPropagation();
+        var $icon = $(this);
+        var $row = $icon.closest('tr');
+        var id = $row.data('id');
+        var isExpanded = $icon.hasClass('fa-angle-down');
+
+        $icon.toggleClass('fa-angle-right fa-angle-down');
+        toggleChildren(id, !isExpanded, $table);
+    });
+
+    function toggleChildren(parentId, show, $table) {
+        $table.find('tr[data-parent-id="' + parentId + '"]').each(function () {
+            var $child = $(this);
+            $child.toggle(show);
+            if (!show) {
+                $child.find(".tree-toggle").removeClass("fa-angle-down").addClass("fa-angle-right");
+                toggleChildren($child.data("id"), false, $table);
+            }
+        });
+    }
+
+    // Restaura estado expandido
+    expandedIds.forEach(function (id) {
+        var $row = $table.find('tr[data-id="' + id + '"]');
+        $row.find(".tree-toggle").removeClass("fa-angle-right").addClass("fa-angle-down");
+        toggleChildren(id, true, $table);
+    });
+}
 
 
 
@@ -4259,7 +4869,7 @@ function registerClickGravar() {
         }, 1000)
 
         $(document).off("click", "#BUGRAVARBottom").on("click", "#BUGRAVARBottom", function () {
-
+            console.log("BUGRAVARBottom clicked")
             db[GRenderData.tableSourceName].toArray().then(function (records) {
 
                 var recordsToSave = [];
@@ -4267,6 +4877,9 @@ function registerClickGravar() {
 
 
                     recordsToSave = ConvertMrendObjectToTable(records)
+
+                    console.log("recordsToSave", recordsToSave)
+
                     $("#registoJson").val(JSON.stringify(recordsToSave))
                     $("#registoJson").trigger("change")
                     WebForm_DoPostBackWithOptions(new WebForm_PostBackOptions("ctl00$conteudo$options5$BUGRAVARBottom", "", true, "", "", false, true));
@@ -4284,7 +4897,9 @@ function registerClickGravar() {
                 }
 
 
-            })
+            }).catch(function (err) {
+                console.error("Error fetching records from database:", err);
+            });
 
         })
     }
