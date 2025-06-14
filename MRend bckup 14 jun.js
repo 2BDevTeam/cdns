@@ -134,7 +134,6 @@ CachedUI.prototype.fillAndRender = function () {
 
 function Mrend(options) {
 
-    var globalThis = this;
     this.datasourceName = options.datasourceName || "";
     this.schemas = Array.isArray(options.schemas) ? options.schemas.map(function (s) { return new MrendSchema(s); }) : [];
     this.containerToRender = options.containerToRender || "";
@@ -147,14 +146,9 @@ function Mrend(options) {
     this.scopeFunctions = options.scopeFunctions || {};
     this.reportConfig = options.reportConfig ? new ReportConfigWrapper(options.reportConfig) : {};
     this.remoteFetch = options.remoteFetch || false;
-    this.remoteFetchData = options.remoteFetchData ? new RemoteFetchData(options.remoteFetchData) : new RemoteFetchData({});
-
-
-
+    this.remoteFetchData = options.remoteFetchData ? new RemoteFetchData(options.remoteFetchData) :new RemoteFetchData({});
 
 }
-
-
 
 function RemoteFetchData(data) {
 
@@ -497,6 +491,378 @@ TableHtml.prototype.loadMoreRows = function () {
 
 
 
+
+
+function initAllSelects() {
+
+    GCellObjectsConfig.filter(function (cellObject) {
+        return cellObject.dataType == "table"
+    }).map(function (cellObjectMp) {
+
+        var selectElement = $("#" + cellObjectMp.cellid);
+        if (selectElement.length > 0) {
+
+            var colConfig = cellObjectMp.getColunaConfig();
+
+            cellObjectMp.setSelectedValue();
+
+            selectElement.select2({
+                width: "100%",
+                placeholder: 'Procurar...',
+                allowClear: false,
+                minimumInputLength: 0,  // Permite abrir sem digitar nada
+                ajax: {
+                    transport: function (params, success, failure) {
+                        var termo = params.data.term || '';
+                        var pagina = params.data.page || 1;
+
+                        var resultado = cellObjectMp.findLocalColData(termo, pagina, 200);
+
+
+                        success({
+                            results: resultado.resultados,
+                            pagination: { more: resultado.temMais }
+                        });
+                    },
+                    processResults: function (data) {
+                        return data;
+                    },
+                    delay: 250,
+                    cache: true
+                }
+            });
+            // selectElement.val(cellObjectMp.valor).trigger('change');
+
+        }
+
+
+    })
+
+}
+TableHtml.prototype.handleUI = function (options) {
+
+    var thisTable = this;
+
+    initSelect(".table-select", true);
+    initAllSelects()
+
+    if (!this.lazyLoad) {
+        thisTable.freezyHeaders();
+        thisTable.freezyTotalRow();
+    }
+
+    formatAllTablesDigitInputsMrend();
+    generateToolTipsForSourcedTable();
+
+
+
+
+
+
+    if (!options.notRefreshTree) {
+        var totalParents = GRenderedLinhas.filter(function (linha) {
+            return linha.isParent == true
+
+        });
+
+        if (totalParents) {
+
+            initTreeForTable('#' + thisTable.tableId);
+        }
+    }
+
+    this.setReactive();
+
+
+
+
+}
+
+function getCell(rowid, codigocoluna) {
+    return GCellObjectsConfig.find(function (cell) {
+        return cell.rowid == rowid && cell.codigocoluna == codigocoluna;
+    });
+}
+
+
+function formatToCleaveInput(value) {
+
+
+
+}
+
+TableHtml.prototype.setReactive = function () {
+
+
+    var state = PetiteVue.reactive({
+        GRenderedLinhas: GRenderedLinhas,
+        GRenderedColunas: GRenderedColunas,
+        GCellObjectsConfig: GCellObjectsConfig,
+
+        getCell: function (rowid, codigocoluna) {
+
+            return this.GCellObjectsConfig.find(function (cell) {
+                return cell.rowid == rowid && cell.codigocoluna == codigocoluna;
+            });
+        },
+        extractCellValue: function (expression, rowid) {
+
+            var regex = /\{([^}]+)\}/g; // Encontra tudo entre { e }
+            var match;
+            var orgExpr = expression;
+
+            while ((match = regex.exec(expression)) !== null) {
+                var colName = match[1];
+
+                var celulaData = this.GCellObjectsConfig.find(function (obj) {
+                    return obj.codigocoluna == colName && obj.rowid == rowid;
+                });
+
+                var valor = celulaData.getValueOrDefault()
+
+                // Substituição manual para manter compatibilidade com ES5
+                var token = "{" + colName + "}";
+                while (orgExpr.indexOf(token) !== -1) {
+                    var valor = valor == "Infinity" || valor == Infinity || isNaN(valor) ? 0 : valor
+                    orgExpr = orgExpr.replace(token, valor);
+                }
+            }
+
+            return orgExpr;
+        },
+
+        executeColFunc: function (expression, rowid, codigocoluna) {
+
+            try {
+                var self = this;
+
+                var cell = self.getCell(rowid, codigocoluna);
+
+                var exprFinal = this.extractCellValue(expression, rowid);
+                if (codigocoluna == "u_valvenda") {
+
+                    console.log("EXPRESS FINAL", exprFinal)
+                }
+                var exprResult = eval(exprFinal);
+                cell.valor = exprResult;
+
+
+                return handleUIValue(cell, exprResult);;
+            } catch (e) {
+                console.warn("warn", e)
+                //console.error("Erro ao avaliar expressão:", e);
+                return exprFinal;
+            }
+        },
+        applyFormatter: function ($el, rowid, codigocoluna) {
+            try {
+                var cleaveNumeral = new Cleave($el, {
+                    numeral: true,
+                    numeralThousandsGroupStyle: 'thousand',
+                    numeralDecimalScale: 2,
+                    numeralDecimalMark: '.',
+                    // numeralPositiveOnly: !configData.proibenegativo,
+                    delimiter: ' '
+                });
+                //  return handleUIValue(cell, exprResult);
+            } catch (e) {
+                console.warn("warn", e)
+                //console.error("Erro ao avaliar expressão:", e);
+                return exprFinal;
+            }
+        }
+    })
+
+    Object.assign(state, GRenderData.scopeFunctions);
+    window.appState = state;
+    PetiteVue.createApp(state).mount('#sourceTabletableContainer');
+
+
+
+
+
+}
+
+
+
+TableHtml.prototype.generateTableButtons = function () {
+
+    if (getState() == "consultar") {
+
+        return
+    }
+    if (GReportConfig.relatorio.adicionalinha) {
+
+        var thisTable = this;
+        var tableButtons = $("<div id='tableButtons' class='col-md-12 pull-left tableButtons'></div>");
+        $("#" + this.tableId).after(tableButtons);
+
+        GReportConfig.relatorio.modelos.forEach(function (modelo) {
+
+
+            var botaoId = "btnAdd" + modelo;
+            var configuracaoLinha = GReportConfig.linhas.find(function (linha) {
+                return linha.codigo == modelo
+
+            });
+            var descbtnModelo = "Adiciona linha";
+
+            if (configuracaoLinha) {
+                descbtnModelo = configuracaoLinha.descbtnModelo || "Adiciona linha";
+            }
+            var botaoAdLinha = {
+                style: "margin-left:0.4em",
+                buttonId: botaoId,
+                classes: "btn btn-primary btn-sm",
+                customData: " type='button' data-modelo='" + modelo + "' data-tooltip='true' data-original-title='" + descbtnModelo + "' ",
+                label: descbtnModelo + " <span style='color:white;'  class='glyphicon glyphicon-plus'></span>",
+                onClick: "",
+            };
+
+            var buttonHtml = generateButton(botaoAdLinha);
+
+            $("#tableButtons").append(buttonHtml);
+            $("#" + botaoId).on("click", function () {
+
+                thisTable.addLinhaByModelo(modelo);
+            });
+
+            ///console.log("Confirma adicao da linha", $("#" + this.tableId))
+
+
+        })
+
+
+
+
+    }
+
+
+}
+
+
+TableHtml.prototype.addLinhaByModelo = function (modelo) {
+
+    var linhaModelo = GReportConfig.linhas.find(function (linha) {
+
+        return linha.codigo == modelo
+    });
+
+    console.log("linhaModelo", linhaModelo)
+
+    if (linhaModelo) {
+
+
+        var renderedLinha = new RenderedLinha({ novoregisto: true, rowid: generateUUID(), linkid: "", parentid: "", config: linhaModelo })
+        renderedLinha.addToLocalRenderedLinhasList([], "", {}, false);
+
+        var linha = new RowHtml(setLinha(renderedLinha, "", []));
+        var linhaHtml = linha.generateHtml();
+
+        $("#" + this.tableId).append(linhaHtml)
+    }
+
+    addNewRecords()
+    this.handleUI({ notRefreshTree: true });
+
+}
+
+TableHtml.prototype.addLinhasByLazyLoad = function (modelo) {
+
+    /* for (var i = 0; i < batchSize && currentIndex < totalData; i++, currentIndex++) {
+ 
+         
+ 
+ 
+     }*/
+
+
+}
+
+TableHtml.prototype.calcularTotalRelatorio = function () {
+
+    var linhaTotalRelatorio = getLinhaById("TOTALRELATORIOROWID");
+
+    if (linhaTotalRelatorio) {
+
+        var celulasLinhaTotalRelatorio = linhaTotalRelatorio.getLinhaCellObjects()
+    }
+
+
+
+    GRenderedColunas.forEach(function (coluna) {
+
+
+        if (coluna.config.tipo == "digit") {
+
+            var totalColuna = getTotalCelulasByFiltro("cellObject.dataType == 'digit' && cellObject.codigocoluna=='" + coluna.codigocoluna + "' && cellObject.rowid!='" + linhaTotalRelatorio.rowid + "' && cellObject.unionkey!='TOTALRELATORIOROWID' && cellObject.unionkey.includes('SUBTOTAL')==false")
+
+            var colunaTotalRelatorio = celulasLinhaTotalRelatorio.find(function (celulaLinhaRelatorio) {
+
+                return celulaLinhaRelatorio.codigocoluna == coluna.codigocoluna
+            });
+
+            if (colunaTotalRelatorio) {
+                colunaTotalRelatorio.setValue(totalColuna, false)
+            }
+        }
+
+
+
+    })
+
+
+}
+
+
+TableHtml.prototype.freezyHeaders = function () {
+
+    $('.sourceTabletableContainer').css({
+        'max-height': '450px',
+        'overflow-y': 'auto',
+        'width': '100%'
+    });
+
+
+
+    // Apply styles to table header cells (thead th)
+    $('thead th').css({
+        'position': 'sticky',
+        'top': '0',
+        //"background-color": "#033076",
+
+        'z-index': '10000000000000000'
+    });
+
+
+
+
+}
+
+TableHtml.prototype.freezyTotalRow = function () {
+
+
+    $('#TOTALRELATORIOROWID').css({
+        'position': 'sticky',
+        'bottom': '0',
+        'background-color': '#033076',
+        'z-index': '10000000000000000'
+    });
+
+
+
+}
+
+// Funções nomeadas para mapeamento
+function mapColumnHtml(col) {
+    return new ColumnHtml(col);
+}
+
+function mapRowHtml(row) {
+    return new RowHtml(row);
+}
+
+
 function BindData(data) {
 
     this.sourceKey = data.sourceKey || "";
@@ -806,7 +1172,6 @@ function getCellHtmlComponent(cellid) {
 
 }
 
-
 CellObjectConfig.prototype.setSelectedValue = function () {
 
     var configColuna = this.getColunaConfig();
@@ -940,6 +1305,7 @@ CellObjectConfig.prototype.getCelulaConfig = function () {
 };
 
 
+
 CellObjectConfig.prototype.getColsRefered = function () {
 
     var celulaConfig = this;
@@ -954,6 +1320,8 @@ CellObjectConfig.prototype.getColsRefered = function () {
 
 
 };
+
+
 
 CellObjectConfig.prototype.getCelsRefered = function () {
 
@@ -1335,6 +1703,668 @@ function getMaxRenderedLinha() {
 }
 
 
+function RenderedLinha(data) {
+    this.index = getMaxRenderedLinha();
+    this.linkid = data.linkid || "";
+    this.rowid = data.rowid || "";
+    this.isParent = data.isParent || false;
+    this.linkcodigo = data.linkcodigo || "";
+    this.linkdescricao = data.linkdescricao || ""
+    this.ordem = getMaxRenderedLinha() * 1000 || 0;
+    this.parentid = data.parentid || "";
+    this.novoregisto = data.novoregisto
+    this.config = new Linha(data.config || new Linha({}));
+
+}
+
+
+RenderedLinha.prototype.addLinhaFilha = function () {
+
+
+    var renderedLinha = new RenderedLinha({ novoregisto: true, rowid: generateUUID(), linkid: this.rowid, parentid: "", config: this.config });
+
+    renderedLinha.addToLocalRenderedLinhasList([], "", {}, false);
+    var linha = new RowHtml(setLinha(renderedLinha, "", []));
+    var linhaHtml = linha.generateHtml();
+    this.isParent = true;
+    $("#" + this.rowid).attr("data-id", this.rowid);
+
+    console.log($("#" + this.rowid), "dasdsdsadsadas")
+    $("#" + GTableData.tableId).append(linhaHtml);
+    //GRenderedLinhas.push(renderedLinha);
+    addNewRecords()
+
+    GTableData.handleUI({});
+
+
+}
+
+
+RenderedLinha.prototype.deleteRow = function () {
+    var tableName = GRenderData.tableSourceName; // Nome da tabela no Dexie
+    var rowId = this.rowid; // ID da linha a ser removida
+    var thisRow = this;
+    var mapping = getMappingByKey("renderConfig");
+    var singularMap = mapping.find(function (smap) {
+        return smap.component == thisRow.config.tipo
+    });
+
+
+    return new Promise(function (resolve, reject) {
+        GDB[tableName]
+            .where(singularMap.mapData.rowid) // Filtra os registros pelo campo "rowid"
+            .equals(rowId) // Verifica se o valor de "rowid" é igual ao da linha atual
+            .delete() // Remove os registros correspondentes
+            .then(function () {
+                // Remove a linha da lista local de linhas renderizadas
+                GRenderedLinhas = GRenderedLinhas.filter(function (linha) {
+                    return linha.rowid !== rowId;
+                });
+
+                $("#" + rowId).remove();
+
+                resolve("Linha removida com sucesso.");
+            })
+            .catch(function (err) {
+                reject("Erro ao remover a linha: " + err);
+            });
+    });
+};
+
+
+RenderedLinha.prototype.addToLocalRenderedLinhasList = function (linhaRecords, distinctRow, linhaMapData, renderCelula) {
+
+
+
+    GRenderedLinhas.push(this);
+    if (renderCelula) {
+
+        var recFlt = linhaRecords.filter(function (rec) {
+            return rec[linhaMapData.mapData.rowid] == distinctRow[linhaMapData.mapData.rowid]
+        }
+        );
+
+        setLinha(this, "", recFlt);
+    }
+
+
+}
+
+var getLinhaById = function (id) {
+
+    return GRenderedLinhas.find(function (linha) {
+
+        return linha.rowid == id;
+    });
+
+
+}
+
+var getColunaByCodigo = function (codigo) {
+
+    return GRenderedColunas.find(function (coluna) {
+
+        return coluna.codigocoluna == codigo
+    })
+}
+
+
+RenderedLinha.prototype.getLinhaSubtotal = function () {
+
+    var linhaRendered = this
+
+    return GRenderedLinhas.find(function (linhaSubtotal) {
+
+        return linhaSubtotal.linkid == linhaRendered.rowid && linhaSubtotal.config.codigo == "SUBTOTALINHA"
+    })
+
+}
+RenderedLinha.prototype.actualizarTotaisColunasLinha = function () {
+
+
+    var linhaSubtotal = this.getLinhaSubtotal();
+    var renderedLinha = this
+
+
+
+    if (linhaSubtotal) {
+
+        var celulasLinha = linhaSubtotal.getLinhaCellObjects();
+
+
+        GRenderedColunas.map(function (renderedColuna) {
+
+            if (renderedColuna.config.tipo == "digit") {
+                totalColuna = renderedColuna.getTotalRenderedColuna("cellObject.linkid=='" + renderedLinha.rowid + "' && cellObject.unionkey.includes('SUBTOTAL')==false ");
+
+                var celulaSubtotal = celulasLinha.find(function (celula) {
+                    return celula.codigocoluna == renderedColuna.codigocoluna && celula.categoria == "total"
+                });
+
+
+                if (celulaSubtotal) {
+
+                    celulaSubtotal.setValue(totalColuna, false)
+                }
+            }
+
+
+
+        });
+
+    }
+
+
+
+
+
+}
+
+RenderedLinha.prototype.getLinhaCellObjects = function () {
+
+
+    var renderedLinha = this;
+    var totalLinha = 0;
+    return GCellObjectsConfig.filter(function (cellObject) {
+
+        return cellObject.rowid == renderedLinha.rowid
+    })
+
+
+}
+
+RenderedLinha.prototype.findCelulaTotal = function () {
+
+    var renderedLinha = this;
+
+    return GCellObjectsConfig.find(function (cellObject) {
+
+        return cellObject.rowid == renderedLinha.rowid && cellObject.categoria == "total"
+    })
+
+
+}
+
+RenderedLinha.prototype.getTotalLinha = function () {
+
+
+    return getTotalCelulasByFiltro("cellObject.rowid == '" + this.rowid + "' & cellObject.dataType == 'digit' && cellObject.categoria!='total'");
+}
+
+RenderedLinha.prototype.actualizarTotalLinha = function () {
+
+    var celulaTotal = this.findCelulaTotal();
+    var totLinha = this.getTotalLinha();
+    if (celulaTotal) {
+
+        celulaTotal.setValue(totLinha, true);
+    }
+
+
+}
+
+
+
+function getTotalCelulasByFiltro(filtro) {
+
+    return _.sumBy(GCellObjectsConfig, function (cellObject) {
+        if (eval(filtro)) {
+            return isNaN(cellObject.valor) ? 0 : Number(cellObject.valor);
+        }
+        return 0;
+    });
+
+
+
+}
+
+
+
+function getCelulasByFiltro(filtro) {
+
+
+
+    return GCellObjectsConfig.filter(function (cellObject) {
+
+        return eval(filtro)
+    })
+
+
+
+}
+
+
+
+function setValueOnCell(celulaId, valorUpdt) {
+    var celulaCOnfigClone = GCellObjectsConfig.slice()
+
+
+    celulaCOnfigClone.forEach(function (celulaCloneObj) {
+
+        if (celulaCloneObj.cellid == celulaId && celulaCloneObj.categoria == "total") {
+            celulaCloneObj.valor = 0;
+            celulaCloneObj.valor = valorUpdt;
+
+            $("#" + celulaCloneObj.cellid).val(formatInputValue(parseFloat(valorUpdt).toFixed(2)));
+
+        }
+
+        new CellObjectConfig(celulaCloneObj)
+    });
+
+    GCellObjectsConfig = celulaCOnfigClone.slice()
+
+
+
+
+}
+
+
+function RenderedColuna(data) {
+    this.codigocoluna = data.codigocoluna || "";
+    this.config = new Coluna(data.config || {});
+    this.tipolistagem = data.tipolistagem || "";
+    this.preGen = data.preGen || "";
+    this.localData = data.localData || [];
+}
+
+RenderedColuna.prototype.fillTableData = function () {
+
+
+    if (this.tipolistagem == "EXPR") {
+        eval(this.expressao)
+        return
+    }
+
+    if (this.tipolistagem == "PROPREG") {
+
+        var tmpcomponentcategoria = this.componentcategoria
+        var linhaTipoFiltered = GReportConfig.linhas.filter(function (linhaGrupo) {
+
+            return linhaGrupo.tipo == tmpcomponentcategoria
+        });
+        GTmpListTableObject = linhaTipoFiltered
+        return
+    }
+
+
+
+
+    if (this.config.usaexpresstbjs) {
+        eval(this.config.expressaotbjs);
+    }
+    return
+
+
+};
+
+
+RenderedColuna.prototype.preGenHtml = function () {
+
+    if (this.config.tipo == "table") {
+
+        this.fillTableData();
+
+        var campooption = this.config.nometb
+        var campovalor = this.config.valtb
+
+        var selectHtml = generateSelect([], "form-control source-bind-table-control  table-select", "", " id=" + "[selectId]" + " source-key='" + this.config.bindData.sourceKey + "' source-bind='" + this.config.bindData.sourceBind + "' ", campooption, campovalor)
+
+        this.localData = GTmpListTableObject;
+        this.preGen = selectHtml;
+    }
+
+}
+
+
+
+RenderedColuna.prototype.getTotalRenderedColuna = function (filtro) {
+
+    return getTotalCelulasByFiltro("cellObject.dataType == 'digit' && cellObject.codigocoluna=='" + this.codigocoluna + "' &&" + filtro)
+}
+
+
+RenderedColuna.prototype.setFXExpression = function (filtro) {
+
+    var regex = /<([^>]+)>/g; // Find all values between angle brackets
+    var match;
+    var refs = [];
+    var expressao = this.config.fxdata.expressao
+    var orgExpr = "";
+    orgExpr = expressao
+
+    while ((match = regex.exec(expressao)) !== null) {
+        var extracted = match[1];
+
+        var celula = getCelulasByFiltro(filtro + "&& cellObject.codigocoluna=='" + extracted + "' && cellObject.dataType=='digit'")[0];
+        orgExpr = orgExpr.replaceAll("<" + extracted + ">", celula ? celula.getValueOrDefault() : "0")
+        refs.push(extracted)
+
+    }
+
+    return orgExpr
+
+}
+
+
+function Relatorio(data) {
+    this.totalrelatorio = data.totalrelatorio || false
+    this.totalcoluna = data.totalcoluna || false
+    this.dectotrelatorio = data.dectotrelatorio || ""
+    this.dectotcoluna = data.dectotcoluna || ""
+    this.defdesccoluna = data.defdesccoluna || ""
+    this.adicionalinha = data.adicionalinha || false
+    this.linhamodelo = data.linhamodelo || ""
+    this.modelos = Array.isArray(data.modelos) ? Array.from(data.modelos) : [];
+    this.codigo = data.codigo || ""
+    this.nome = data.nome || ""
+    this.categoria = data.categoria || ""
+    this.relatoriostamp = data.relatoriostamp || ""
+}
+function ReportConfig(data) {
+    this.linhas = Array.isArray(data.linhas) ? Array.from(data.linhas.map(mapLinha)) : [new Linha({})];
+    this.celulas = Array.isArray(data.celulas) ? Array.from(data.celulas.map(mapCelula)) : [new Celula({})];
+    this.colunas = Array.isArray(data.colunas) ? Array.from(data.colunas.map(mapColuna)) : [new Coluna({})];
+    this.relatorio = new Relatorio(data.relatorio || {});
+}
+
+function mapLinha(data) {
+    return new Linha(data);
+}
+
+function mapExtra(data) {
+    return new ExtraBindData(data)
+}
+
+function mapColuna(data) {
+    return new Coluna(data);
+}
+
+function mapCelula(data) {
+    return new Celula(data);
+}
+
+function mapFields(sourceObject, mappingConfig) {
+    function mapReducer(mappedObject, targetKey) {
+        var sourceKey = mappingConfig[targetKey];
+        mappedObject[targetKey] = sourceObject[sourceKey];
+        return mappedObject;
+    }
+    return Object.keys(mappingConfig).reduce(mapReducer, {});
+}
+
+function mapConfigComponentByDestiny(destiny, mapConfigs, configData, EntityToInstantiate) {
+
+    var mapConfigFilt = mapConfigs.filter(function (obj) {
+
+        return obj.mapDestiny == destiny
+    });
+
+    var mappedComponentRecord = []
+
+
+    mapConfigFilt.forEach(function (mapConfig) {
+
+        var filteredConfig = configData[mapConfig.mapSource];
+
+        if (!Array.isArray(filteredConfig)) {
+
+            if (mapConfig.bindData) {
+                filteredData.bindData = mapConfig.bindData
+            }
+
+
+
+            var mapResult = new EntityToInstantiate(mapFields(filteredConfig, mapConfig.mapData));
+
+
+
+            mappedComponentRecord.push(mapResult)
+
+        } else {
+
+            filteredConfig.forEach(function (filteredData) {
+
+                if (mapConfig.bindData) {
+                    filteredData.bindData = mapConfig.bindData
+                }
+
+                var mapResult = new EntityToInstantiate(mapFields(filteredData, mapConfig.mapData));
+
+
+
+                mappedComponentRecord.push(mapResult)
+            });
+        }
+
+
+
+    })
+
+
+
+    return mappedComponentRecord;
+}
+
+
+function GetConfig(url, args) {
+
+    return executeScriptOnPHC(url, args)
+}
+
+function MapConfig(mapConfigs, configData) {
+
+    var celulas = mapConfigComponentByDestiny("Celula", mapConfigs, configData, Celula);
+    var linhas = mapConfigComponentByDestiny("Linha", mapConfigs, configData, Linha);
+    var colunas = mapConfigComponentByDestiny("Coluna", mapConfigs, configData, Coluna);
+    var relatorio = mapConfigComponentByDestiny("Relatorio", mapConfigs, configData, Relatorio)[0];
+
+    if (relatorio) {
+
+        if (relatorio.adicionalinha) {
+
+            var linhasModelo = linhas.filter(function (linha) {
+                return linha.modelo == true
+            }).map(function (linha) {
+                relatorio.modelos.push(linha.codigo);
+            });
+
+        }
+
+    }
+
+    return new ReportConfig({ linhas: linhas, celulas: celulas, colunas: colunas, relatorio: relatorio });
+}
+
+
+
+function getMapConfigByComponent(renderConfig, component) {
+
+    return renderConfig.mapping.find(function (obj) {
+
+        return obj.component == component
+    })
+}
+
+
+function getMappingByKey(key) {
+
+    return GRenderData[key].mapping
+}
+
+
+function setLinhaRender(linha, linkid, parentid, records) {
+
+
+    //No futuro se por exemplo for dito que o utilizador poderá apagar as linhas dos grupos e subgrupos . Para garantir que ao ter records (records.length>0) se liste exactamente o numero de grupos e subgrupos uma vez que podem ser apagados.
+    //Deve se Filtrar o array que vai preencher os grupos e subgrupos se por acaso este não varar dos records ou seja : records.find(function (obj) return obj[mapConfig.mapData[config.bindData.sourceKey]] == config.codigo { if (linhaData) {}
+    var config = new Linha(linha);
+
+    var mapConfig = getMapConfigByComponent(GRenderData.renderConfig, config.tipo);
+    var sourceBinds = config.bindData.sourceBind.split(",")
+    var linhaData = records.find(function (obj) {
+        return obj[sourceBinds[0]] == config.codigo
+    });
+
+    var linhaid = generateUUID();
+    var novoregisto = true;
+
+    if (linhaData) {
+        linhaid = linhaData[config.bindData.sourceKey];
+        novoregisto = false;
+    }
+
+
+    return new RenderedLinha({ novoregisto: novoregisto, rowid: linhaid, linkid: linkid, parentid: parentid, config: config })
+
+
+}
+
+
+function setColunasRender(colunas, records) {
+
+    var renderedColunas = [new RenderedColuna({})]
+    renderedColunas = []
+
+
+    colunas.filter(function (colunaNegativa) {
+
+        return colunaNegativa.ordem < 0
+    }).forEach(function (coluna) {
+
+        var colunaRendered = new Coluna(coluna);
+        colunaRendered.setFxData();
+        var renderedColuna = new RenderedColuna({
+            codigocoluna: coluna.codigocoluna,
+            config: colunaRendered
+        });
+        renderedColuna.preGenHtml();
+        renderedColunas.push(renderedColuna);
+
+    });
+
+
+
+    if (!GReportConfig.relatorio.adicionalinha) {
+
+        var dadosColuna = new Coluna({
+            codigocoluna: "DEFCOL",
+            desccoluna: GReportConfig.relatorio.defdesccoluna,
+            tipo: "text",
+            decimais: "",
+            categoria: "defcol"
+        });
+
+        var renderedColuna = new RenderedColuna({
+            codigocoluna: "DEFCOL",
+            config: new Coluna(dadosColuna)
+        });
+        console.log("renderedColuna", renderedColuna)
+        renderedColuna.preGenHtml();
+        renderedColunas.push(renderedColuna);
+    }
+
+
+
+    colunas.filter(function (colunaNegativa) {
+
+        return colunaNegativa.ordem >= 0
+    }).forEach(function (coluna) {
+
+        var colunaRendered = new Coluna(coluna);
+        colunaRendered.setFxData()
+        var renderedColuna = new RenderedColuna({
+            codigocoluna: coluna.codigocoluna,
+            config: colunaRendered
+        });
+        renderedColuna.preGenHtml();
+        renderedColunas.push(renderedColuna);
+
+    });
+
+
+    if (GReportConfig.relatorio.totalcoluna) {
+
+
+        var dadosColuna = new Coluna({
+            codigocoluna: "TOTALCOLUNA",
+            desccoluna: "Total",
+            tipo: "digit",
+            decimais: "2",
+            categoria: "total"
+        });
+
+
+        renderedColunas.push(new RenderedColuna({
+            codigocoluna: "TOTALCOLUNA",
+            config: new Coluna(dadosColuna)
+        }))
+
+    }
+
+    return renderedColunas
+}
+
+
+function setCabecalhos(records) {
+
+    var header = {
+        style: "text-align:right!important;",
+        rowId: "",
+        classes: "defgridheader",
+        customData: "",
+        cols: [
+        ],
+    }
+
+
+    header.cols.push({
+        content: "Acções",
+        style: "width:4%!important;text-align:left!important",
+        classes: "action-zone",
+        colId: "ACTIONDEFCOL"
+
+    });
+
+
+    GRenderedColunas.forEach(function (coluna) {
+
+        var mapConfig = getMapConfigByComponent(GRenderData.renderConfig, "Colunas")
+        header.cols.push({
+            content: coluna.config.desccoluna,
+            classes: "header-for-edit-col  header-col",
+            colId: coluna.codigocoluna,
+            style: "text-align:right!important",
+            customData: " data-fixacoluna='" + coluna.config.fixacoluna + "' data-proibenegativo='" + coluna.config.proibenegativo + "'  data-decimais='" + coluna.config.decimais + "' data-cikybastamp='" + coluna.config.colunastamp + "' data-desccoluna='" + coluna.config.desccoluna + "' data-coluna='" + coluna.codigocoluna + "'"
+        });
+    });
+
+
+
+    GTableData.header = new HeaderHtml({ rows: [header] });
+
+
+}
+
+
+function handleDefaultValueByDataType(dataType, valor) {
+
+    switch (dataType) {
+        case "digit":
+
+            return isNaN(valor) || valor == null ? 0 : valor;
+
+        case "text":
+
+            return valor ? valor : "";
+        case "date":
+            return valor ? valor : "1900-01-01";
+        case "table":
+            return valor ? valor : "";
+        default:
+            return valor;
+    }
+}
 
 
 
