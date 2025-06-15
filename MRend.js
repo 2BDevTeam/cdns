@@ -4,6 +4,8 @@ function Mrend(options) {
 
 
     var globalThis = this;
+    
+    this.GTable = {};
     this.GDefaultConfig = undefined;
     this.GRenderData = {};
     this.GReportConfig = new ReportConfig({});
@@ -12,6 +14,7 @@ function Mrend(options) {
     this.GRows = [];
     this.GRenderedColunas = [new RenderedColuna({})];
     this.GRenderedLinhas = [new RenderedLinha({})];
+    this.GGridData = []
     this.GContainerToRender = "#campos > .row:last";
     this.GRenderedLinhas = [];
     this.GRenderedColunas = [];
@@ -24,7 +27,7 @@ function Mrend(options) {
     this.GTmpListTableObject = [];
     this.relatoriosNotReadonly = [];
     this.db = undefined;
-    this.GDB = undefined;
+    this.db = undefined;
     this.GNewRecords = [];
 
     this.datasourceName = options.datasourceName || "";
@@ -408,10 +411,7 @@ function Mrend(options) {
         var buildChangeResult = buildChangedObjectUpdateData(htmlComponent, cellObject, varlorF);
 
 
-        var table = globalThis.GRenderData.tableSourceName;
-
-
-
+        var table = globalThis.tableSourceName;
         return updateCellOnDB(buildChangeResult, table).then(function (updateResult) {
 
 
@@ -518,7 +518,7 @@ function Mrend(options) {
         if (this.tipolistagem == "PROPREG") {
 
             var tmpcomponentcategoria = this.componentcategoria
-            var linhaTipoFiltered = globalThis.GReportConfig.linhas.filter(function (linhaGrupo) {
+            var linhaTipoFiltered = globalThis.reportConfig.config.linhas.filter(function (linhaGrupo) {
 
                 return linhaGrupo.tipo == tmpcomponentcategoria
             });
@@ -551,7 +551,7 @@ function Mrend(options) {
     CellObjectConfig.prototype.getCelulaConfig = function () {
 
         var celulaConfig = this;
-        var celulaFound = globalThis.GReportConfig.celulas.find(function (celula) {
+        var celulaFound = globalThis.reportConfig.config.celulas.find(function (celula) {
 
             return celula.linhastamp == celulaConfig.renderelinha.config.linhastamp && celula.codigocoluna == celulaConfig.codigocoluna
         });
@@ -723,35 +723,7 @@ function Mrend(options) {
     }
 
     CellObjectConfig.prototype.updateOnDBPassingVal = function (htmlComponent, valor) {
-        /*
-            var cellObject = this
-            if (cellObject.changedb == false) {
-        
-                return
-            }
-        
-            var buildChangeResult = buildChangedObjectUpdateData(htmlComponent, this, valor);
-        
-            var table = globalThis.GRenderData.tableSourceName;
-        
-        
-            return updateCellOnDB(buildChangeResult, table).then(function (updateResult) {
-        
-                cellObject.valor = handleDataType(cellObject.dataType, htmlComponent.val());
-        
-                cellObject.handleFx();
-                cellObject.executeChangeEvents()
-                cellObject.calcularTotalLinha();
-                calcularSubtotais();
-        
-                if (globalThis.GReportConfig.relatorio.totalrelatorio) {
-        
-                    GTableData.calcularTotalRelatorio();
-                }
-            }).catch(function (err) {
-                console.log("ERR", err)
-            })
-                */
+
 
 
     }
@@ -772,7 +744,7 @@ function Mrend(options) {
 
     CellObjectConfig.prototype.calcularTotalLinha = function () {
 
-        if (this.dataType != "digit" && globalThis.GReportConfig.relatorio.totalcoluna) {
+        if (this.dataType != "digit" && globalThis.reportConfig.config.relatorio.totalcoluna) {
 
             return;
         }
@@ -888,7 +860,7 @@ function Mrend(options) {
 
         return new Promise(function (resolve, reject) {
 
-            return globalThis.GDB[tableName]
+            return globalThis.db[tableName]
                 .where(updateData.sourceKey)
                 .equals(updateData.sourceValue)
                 .modify(updateData.changedData).then(function (res) {
@@ -966,6 +938,7 @@ function Mrend(options) {
         this.isParent = data.isParent || false;
         this.linkcodigo = data.linkcodigo || "";
         this.linkdescricao = data.linkdescricao || ""
+        this.UIObject = data.UIObject || {};
         this.ordem = getMaxRenderedLinha() * 1000 || 0;
         this.parentid = data.parentid || "";
         this.novoregisto = data.novoregisto
@@ -997,7 +970,7 @@ function Mrend(options) {
 
 
     RenderedLinha.prototype.deleteRow = function () {
-        var tableName = globalThis.GRenderData.tableSourceName; // Nome da tabela no Dexie
+        var tableName = globalThis.tableSourceName; // Nome da tabela no Dexie
         var rowId = this.rowid; // ID da linha a ser removida
         var thisRow = this;
         var mapping = getMappingByKey("renderConfig");
@@ -1007,7 +980,7 @@ function Mrend(options) {
 
 
         return new Promise(function (resolve, reject) {
-            globalThis.GDB[tableName]
+            globalThis.db[tableName]
                 .where(singularMap.mapData.rowid) // Filtra os registros pelo campo "rowid"
                 .equals(rowId) // Verifica se o valor de "rowid" é igual ao da linha atual
                 .delete() // Remove os registros correspondentes
@@ -1028,20 +1001,35 @@ function Mrend(options) {
     };
 
 
-    RenderedLinha.prototype.addToLocalRenderedLinhasList = function (linhaRecords, distinctRow, linhaMapData, renderCelula) {
+
+    RenderedLinha.prototype.addToLocalRenderedLinhasList = function (linhaRecords, distinctRow, renderCelula) {
 
 
 
         globalThis.GRenderedLinhas.push(this);
+
         if (renderCelula) {
 
             var recFlt = linhaRecords.filter(function (rec) {
-                return rec[linhaMapData.mapData.rowid] == distinctRow[linhaMapData.mapData.rowid]
+                return rec.rowid == distinctRow.rowid
             }
             );
-
             setLinha(this, "", recFlt);
+
+            if (this.linkid) {
+
+                var self = this;
+                var parentLinha = GRenderedLinhas.find(function (linha) {
+                    return linha.rowid == self.linkid
+                });
+
+                parentLinha.UIObject._children = parentLinha.UIObject._children || [];
+                parentLinha.UIObject._children.push(this.UIObject);
+
+            }
         }
+
+
 
 
     }
@@ -1235,7 +1223,7 @@ function Mrend(options) {
         if (this.tipolistagem == "PROPREG") {
 
             var tmpcomponentcategoria = this.componentcategoria
-            var linhaTipoFiltered = globalThis.GReportConfig.linhas.filter(function (linhaGrupo) {
+            var linhaTipoFiltered = globalThis.reportConfig.config.linhas.filter(function (linhaGrupo) {
 
                 return linhaGrupo.tipo == tmpcomponentcategoria
             });
@@ -1247,6 +1235,8 @@ function Mrend(options) {
 
 
         if (this.config.usaexpresstbjs) {
+            console.log("Executing expressaotbjs", this.config.expressaotbjs)
+
             eval(this.config.expressaotbjs);
         }
         return
@@ -1445,7 +1435,7 @@ function Mrend(options) {
 
     function getMappingByKey(key) {
 
-        return globalThis.GRenderData[key].mapping
+        return globalThis[key].mapping
     }
 
 
@@ -1456,7 +1446,7 @@ function Mrend(options) {
         //Deve se Filtrar o array que vai preencher os grupos e subgrupos se por acaso este não varar dos records ou seja : records.find(function (obj) return obj[mapConfig.mapData[config.bindData.sourceKey]] == config.codigo { if (linhaData) {}
         var config = new Linha(linha);
 
-        var mapConfig = getMapConfigByComponent(globalThis.GRenderData.renderConfig, config.tipo);
+        var mapConfig = getMapConfigByComponent(globalThis.renderConfig, config.tipo);
         var sourceBinds = config.bindData.sourceBind.split(",")
         var linhaData = records.find(function (obj) {
             return obj[sourceBinds[0]] == config.codigo
@@ -1501,11 +1491,11 @@ function Mrend(options) {
 
 
 
-        if (!globalThis.GReportConfig.relatorio.adicionalinha) {
+        if (!globalThis.reportConfig.config.relatorio.adicionalinha) {
 
             var dadosColuna = new Coluna({
                 codigocoluna: "DEFCOL",
-                desccoluna: globalThis.GReportConfig.relatorio.defdesccoluna,
+                desccoluna: globalThis.reportConfig.config.relatorio.defdesccoluna,
                 tipo: "text",
                 decimais: "",
                 categoria: "defcol"
@@ -1539,7 +1529,7 @@ function Mrend(options) {
         });
 
 
-        if (globalThis.GReportConfig.relatorio.totalcoluna) {
+        if (globalThis.reportConfig.config.relatorio.totalcoluna) {
 
 
             var dadosColuna = new Coluna({
@@ -1585,7 +1575,6 @@ function Mrend(options) {
 
         globalThis.GRenderedColunas.forEach(function (coluna) {
 
-            var mapConfig = getMapConfigByComponent(globalThis.GRenderData.renderConfig, "Colunas")
             header.cols.push({
                 content: coluna.config.desccoluna,
                 classes: "header-for-edit-col  header-col",
@@ -1990,7 +1979,7 @@ function Mrend(options) {
                 })
 
                 rowCells.forEach(function (cell) {
-                    var colunaConfig = globalThis.GReportConfig.colunas.find(function (coluna) {
+                    var colunaConfig = globalThis.reportConfig.config.colunas.find(function (coluna) {
                         return coluna.codigocoluna == cell.coluna
                     });
 
@@ -2023,7 +2012,7 @@ function Mrend(options) {
     }
 
     function ConvertDbTableToMrendObject(data, MrendConversionConfig) {
-
+        console.log("ConvertDbTableToMrendObject", MrendConversionConfig)
         if (!data[0]) {
 
             return []
@@ -2036,7 +2025,7 @@ function Mrend(options) {
         data.forEach(function (record) {
             keys.forEach(function (key) {
 
-                var configCol = globalThis.GReportConfig.colunas.find(function (coluna) {
+                var configCol = globalThis.reportConfig.config.colunas.find(function (coluna) {
                     return coluna.codigocoluna == key
                 })
 
@@ -2097,113 +2086,14 @@ function Mrend(options) {
     function initTableDataAndContainer() {
 
 
-        $(".sourceTabletableContainer").remove();
-        GTableData = new TableHtml({})
-        GTableData.tableId = globalThis.GRenderData.tableSourceName + "SourcedTable"
-        GTableData.customData = "data-source='" + globalThis.GRenderData.dataSource + "'"
-        GTableData.classes = "table sourced-table "
-        GTableData.body.rows = []
-        GTableData.header = new HeaderHtml({});
+        $("#sourceTabletableContainer" + globalThis.table).remove();
 
         globalThis.GCellObjectsConfig = []
         globalThis.TMPCellObjectCOnfig = []
         globalThis.GRenderedColunas = []
         globalThis.GRenderedLinhas = []
 
-        $(globalThis.GContainerToRender).after("<div id='sourceTabletableContainer' style='margin-top:2.5em' class='row table-responsive  sourceTabletableContainer'></div>")
-    }
-
-    function RenderReport(renderData) {
-
-        if ($("#mainPage").data("state") == "eof") {
-            return new Promise(function (resolve, reject) {
-
-                resolve({ rendered: false, message: "Screen on mode eof" })
-            })
-        }
-        mainSpinner("show")
-        return InitDB(renderData.datasourceName, renderData.schemas).then(function (initDBResult) {
-
-            return this.GetConfig(renderData.reportConfig.url, renderData.reportConfig.args).then(function (configDataResult) {
-
-                if (configDataResult.cod != "0000") {
-
-                    console.log("Error on get config data", configDataResult)
-                    customReportMessageError("Erro ao gerar grelha do relatório. Contacte o admnistrador do sistema")
-                    return { rendered: false, message: "Erro ao gerar grelha do relatório. Contacte o admnistrador do sistema" }
-                }
-
-
-                globalThis.GDefaultConfig = configDataResult.data;
-                globalThis.GRenderData = renderData
-                var mapConfigs = renderData.reportConfig.mapping;
-                globalThis.GReportConfig = MapConfig(mapConfigs, configDataResult.data);
-                globalThis.GDB = initDBResult.db
-                globalThis.db = initDBResult.db;
-                globalThis.GContainerToRender = renderData.containerToRender;
-
-
-                if (renderData.records.length > 0) {
-                    var records = ConvertDbTableToMrendObject(renderData.records, renderData.dbTableToMrendObject);
-
-                    deleteAllRecords(renderData.tableSourceName).then(function (deleteResult) {
-
-                        RenderHandler(records);
-
-                    })
-
-
-
-
-                }
-                return fetchFromSource(renderData.table, renderData.codigo, renderData.recordData.stamp, initDBResult.db, renderData.dbTableToMrendObject).then(function (fetchResult) {
-
-                    mainSpinner("show");
-
-                    $(".sourceTabletableContainer").remove()
-                    if (fetchResult.novoRegisto == true && $("#mainPage").data("state") == "consultar") {
-                        customReportMessageError("Sem resultados")
-                        return { rendered: false, message: "No records" }
-
-                    }
-
-                    databaseAndTableHasRecords(initDBResult.db, globalThis.GRenderData.tableSourceName)
-                        .then(function (result) {
-                            mainSpinner("show")
-                            if (result.exists) {
-
-
-                                RenderHandler(result.data);
-
-
-                            } else {
-
-
-                                RenderHandler(fetchResult.records)
-                                //console.log(renderData.recordData.stamp)
-                                storeStampRegisto(renderData.recordData.stamp)
-                                addBulkData(initDBResult.db, globalThis.GRenderData.tableSourceName, fetchResult.records)
-
-
-                            }
-                        })
-                        .catch(function (error) {
-                            relatorioErrorMessageHandler()
-                            console.error('An error occurred:', error);
-                        });
-
-                    return { rendered: true, message: "Rendered" }
-
-                })
-
-            })
-
-        })
-
-
-
-
-
+        $(globalThis.containerToRender).append("<div id='sourceTabletableContainer" + globalThis.table + "' style='margin-top:2.5em' class='row table-responsive'></div>")
     }
 
     function buildAlert(alertClass, alertText) {
@@ -2485,7 +2375,7 @@ function Mrend(options) {
 
             case "Próprio Registo":
 
-                var linhaTipoFiltered = globalThis.GReportConfig.linhas.filter(function (linhaGrupo) {
+                var linhaTipoFiltered = globalThis.reportConfig.config.linhas.filter(function (linhaGrupo) {
 
                     return linhaGrupo.tipo == linha.config.tipo
                 });
@@ -2653,22 +2543,7 @@ function Mrend(options) {
 
         var linhaId = linha.rowid;
 
-        var customStyles = ""
-        if (linha.config.cor) {
-            customStyles = "background:" + setStyle("Color", linha.config.tipo, linha.config.cor) + "!important"
-        }
 
-
-        var customDataParent = linha.isParent ? " data-id='" + linhaId + "' " : "";
-        var customDataLink = linha.linkid ? " data-id='" + linhaId + "' data-parent-id='" + linha.linkid + "' " : "";
-        var linhaHtml = {
-            rowId: linhaId,
-            style: customStyles,
-            classes: "" + linha.config.tipo + "-row",
-            customData: customDataLink + customDataParent,
-            cols: []
-
-        }
         var cellActionZoneObjectConfig = new CellObjectConfig(
             {
                 bindData: {},
@@ -2689,25 +2564,7 @@ function Mrend(options) {
                 rowid: linha.rowid
             });
 
-        // cellActionZoneObjectConfig.setDefaultValue();
 
-
-        var addFilhoBtn = "<button data-modelo='" + linha.config.codigo + "' type='button' style='margin-left:0.3em;color:#0765b7!important;background:transparent;margin-right:0.3em' class='btn  btn-xs  addFilho'><span  class='glyphicon glyphicon glyphicon-plus'></span></button>"
-        var removeBtn = "<button type='button' style='color:#d9534f!important;background:transparent' class='btn btn-xs  removeTableRow'><span  class='glyphicon glyphicon glyphicon-trash'></span></button>"
-
-
-        var divContainerAcionsZone = "<div style='display:flex;flex-direction:row' class='container-action-zone'>"
-        divContainerAcionsZone += removeBtn;
-        divContainerAcionsZone += (linha.config.addfilho ? addFilhoBtn : "");
-        divContainerAcionsZone += "</div>"
-
-        linhaHtml.cols.push({
-            style: "" + (linha.config.addfilho ? "" : ""),
-            colId: "",
-            classes: "action-zone",
-            content: divContainerAcionsZone,
-            customData: "",
-        });
 
 
         if (linha.config.temcolunas) {
@@ -2718,7 +2575,7 @@ function Mrend(options) {
                 var recFlt = records.filter(function (rec) {
                     return rec.coluna == coluna.codigocoluna
                 });
-                setCelula(linhaHtml, linha, coluna, recFlt, coluna.config.categoria, "", {})
+                setCelula({}, linha, coluna, recFlt, coluna.config.categoria, "", {})
 
             });
 
@@ -2728,25 +2585,12 @@ function Mrend(options) {
 
 
 
-        if (linha.config.temcolunas == false) {
-
-            linhaHtml.cols.push({
-                style: "",
-                colId: "",
-                classes: "",
-                content: "",
-                customData: "colspan=" + (globalThis.GRenderedColunas.length).toString() + "",
-            })
-
-
-        }
-
-
-        GTableData.body.rows.push(linhaHtml);
 
 
 
-        return linhaHtml
+
+
+        return {}
 
 
     }
@@ -2899,19 +2743,13 @@ function Mrend(options) {
     }
 
 
-    function inputGenerationTst() {
-
-
-        return "<input type='text' class='form-control source-bind-table-control input-sm table-input-col ' style='background:#eff0f1!important;' id='DEFCOLTOTALSUBTOTAL' source-key='DEFCOLTOTAL' source-bind='SUBTOTAL' data-type='text'  placeholder='' >"
-    }
-
 
 
     function buildDefaultCelula(linhaHtml, linh, colun, records) {
 
         var linha = linh;
         var coluna = colun;
-        var configCelula = globalThis.GReportConfig.celulas.find(function (configCelula) {
+        var configCelula = globalThis.reportConfig.config.celulas.find(function (configCelula) {
             return configCelula.linhastamp == linha.config.linhastamp && configCelula.codigocoluna == coluna.codigocoluna
         });
 
@@ -2919,71 +2757,35 @@ function Mrend(options) {
 
         var linhaRecord;
 
-
-        var mapping = getMappingByKey("renderConfig");
-        var subGrupoMap = mapping.find(function (smap) {
-            return smap.component == "Subgrupo"
-        });
-
-        var grupoMap = mapping.find(function (smap) {
-            return smap.component == "Grupo"
-        });
-
-        var colunaMap = mapping.find(function (smap) {
-            return smap.component == "Coluna"
-        });
-
-        var singularMap = mapping.find(function (smap) {
-            return smap.component == "Singular"
-        });
-
-        var linhaFilterKey = (linha.config.tipo == "Grupo" ? grupoMap.mapData.gruporowid : subGrupoMap.mapData.subrowid);
-
-        switch (linha.config.tipo) {
-            case "Grupo":
-                linhaFilterKey = grupoMap.mapData.gruporowid;
-                break;
-            case "Subgrupo":
-                linhaFilterKey = subGrupoMap.mapData.subrowid;
-                break;
-            case "Singular":
-                linhaFilterKey = singularMap.mapData.rowid;
-                break;
-
-            default:
-                break;
-        }
-
+        var linhaFilterKey = "rowid";
 
 
         linhaRecord = records[0]
-
-
 
         var cellId = null;
         var novoRegisto = false;
 
         if (linhaRecord) {
 
-            cellId = linhaRecord[configCelula.bindData.sourceKey]
+            cellId = linhaRecord.cellId
 
         }
         if (!linhaRecord) {
-            linhaRecord = JSON.parse(JSON.stringify(globalThis.GRenderData.schemas[0].tableSourceSchema))
+            linhaRecord = JSON.parse(JSON.stringify(GRenderData.schemas[0].tableSourceSchema))
             cellId = generateUUID();
             novoRegisto = true
 
 
         }
 
-        if (globalThis.GRenderData.records.length > 0) {
-
-            globalThis.GNewRecords.push(linhaRecord);
-        }
+        /* if (GRenderData.records.length > 0) {
+ 
+             GNewRecords.push(linhaRecord);
+         }*/
 
         var cellObjectConfig = new CellObjectConfig(
             {
-                bindData: new BindData({ sourceKey: configCelula.bindData.sourceKey, sourceBind: coluna.config.campo }),
+                bindData: new BindData({ sourceKey: "cellId", sourceBind: coluna.config.campo }),
                 tipolistagem: "",
                 component: "Celula",
                 componentcategoria: "Celula",
@@ -3004,52 +2806,35 @@ function Mrend(options) {
                 renderelinha: linha
             });
 
+
         cellObjectConfig.setDefaultValue();
-        //globalThis.TMPCellObjectCOnfig.unshift(cellObjectConfig);
-
-
-
-        var celulaHtmlObject = generateHtmlObject(cellObjectConfig);
+        linh.UIObject[coluna.config.campo] = cellObjectConfig.valor;
+        linh.UIObject.cellId = cellObjectConfig.cellid;
 
         var cellValue = cellObjectConfig.valor;
 
         if (novoRegisto) {
 
-            linhaRecord[configCelula.bindData.sourceKey] = cellId;
+            linhaRecord.cellId = cellId;
             linhaRecord[coluna.config.campo] = cellValue;
-            linhaRecord[colunaMap.mapData.colunaid] = coluna.codigocoluna
+            linhaRecord.coluna = coluna.codigocoluna
 
-            if (linha.config.tipo == "Grupo") {
-
-                linhaRecord[subGrupoMap.mapData.subrowid] = linha.config.tipo == "Subgrupo" ? linha.rowid : ""
-                linhaRecord[subGrupoMap.mapData.codigosubgrupo] = linha.config.tipo == "Subgrupo" ? linha.config.codigo : ""
-                linhaRecord[subGrupoMap.mapData.descricao] = linha.config.descricao;
-
-            }
-
-
-            if (linha.config.tipo == "Subgrupo") {
-
-                linhaRecord[grupoMap.mapData.descricao] = linha.config.linkdescricao;
-                linhaRecord[grupoMap.mapData.codigogrupo] = linha.config.tipo == "Subgrupo" ? linha.linkcodigo : linha.config.codigo;
-                linhaRecord[grupoMap.mapData.gruporowid] = linha.config.tipo == "Grupo" ? linha.rowid : linha.linkid
-            }
 
             if (linha.config.tipo == "Singular") {
-                linhaRecord[singularMap.mapData.rowid] = linha.rowid;
-                linhaRecord[singularMap.mapData.codigolinha] = linha.config.codigo;
+                linhaRecord.rowid = linha.rowid;
+                linhaRecord.codigolinha = linha.config.codigo;
             }
 
-            if (globalThis.GRenderData.dbTableToMrendObject.convert) {
+            if (GRenderData.dbTableToMrendObject.convert) {
 
-                linhaRecord[getCampoMrend()] = coluna.config.campo;
+                linhaRecord.campo = coluna.config.campo;
                 linhaRecord.linkid = linha.linkid;
-                linhaRecord.linkfield = globalThis.GRenderData.dbTableToMrendObject.extras.linkfield;
-                linhaRecord.sourceTable = globalThis.GRenderData.dbTableToMrendObject.table;
-                linhaRecord.sourceKey = globalThis.GRenderData.dbTableToMrendObject.tableKey;
+                linhaRecord.linkfield = globalThis.dbTableToMrendObject.extras.linkfield;
+                linhaRecord.sourceTable = globalThis.dbTableToMrendObject.table;
+                linhaRecord.sourceKey = globalThis.dbTableToMrendObject.tableKey;
                 linhaRecord.sourceKeyValue = linha.rowid;
                 linhaRecord.ordem = linha.ordem
-                linhaRecord.ordemField = globalThis.GRenderData.dbTableToMrendObject.ordemField;
+                linhaRecord.ordemField = globalThis.dbTableToMrendObject.ordemField;
 
                 if (coluna.config.sourceTable) {
 
@@ -3062,20 +2847,11 @@ function Mrend(options) {
             }
 
 
-            globalThis.GNewRecords.push(linhaRecord);
+            GNewRecords.push(linhaRecord);
         }
-
-        linhaHtml.cols.push({
-            content: celulaHtmlObject,
-            classes: "skeleton",
-            colId: "",
-            customData: "data-desccoluna='" + coluna.config.desccoluna + "' data-coluna='" + coluna.codigocoluna + "'"
-
-        });
 
 
     }
-
 
     function InitDB(datasourceName, schemas) {
 
@@ -3083,7 +2859,7 @@ function Mrend(options) {
             globalThis.db = new Dexie(datasourceName);
             var promises = []; // Armazena todas as Promises do loop
 
-            return configureDataBase(db, schemas[0].tableSourceName, 1, Object.keys(schemas[0].tableSourceSchema)).then(function (result) {
+            return configureDataBase(globalThis.db, schemas[0].tableSourceName, 1, Object.keys(schemas[0].tableSourceSchema)).then(function (result) {
                 globalThis.db = result;
                 resolve({ inited: true, message: "Success", db: result }); // Resolve quando todas as promessas concluírem
             });
@@ -3112,7 +2888,7 @@ function Mrend(options) {
 
         return new Promise(function (resolve, reject) {
 
-            getDataFromPHC(codigo, registo)
+            getDataFromRemote(codigo, registo)
                 .then(function (response) {
 
                     if (dbTableToMrendObject) {
@@ -3190,7 +2966,7 @@ function Mrend(options) {
     }
     function storeDataSourceStamp(sourceStamp) {
 
-        window.localStorage.setItem("sourcestamp", sourceStamp.trim())
+        window.localStorage.setItem("sourcestamp" + globalThis.tableSourceName, sourceStamp.trim())
     }
 
     function clearStamps() {
@@ -3199,7 +2975,7 @@ function Mrend(options) {
     }
 
     function getSourceStamp() {
-        return window.localStorage.getItem("sourcestamp")
+        return window.localStorage.getItem("sourcestamp" + globalThis.tableSourceName) ? window.localStorage.getItem("sourcestamp" + globalThis.tableSourceName).trim() : "";
     }
 
 
@@ -3207,7 +2983,7 @@ function Mrend(options) {
     function deleteAllRecords(tableName) {
         return new Promise(function (resolve, reject) {
 
-            if (db['_allTables'][tableName]) {
+            if (globalThis.db['_allTables'][tableName]) {
                 return globalThis.db[tableName].clear().then(function () {
                     // //console.log(`All records from ${tableName} have been deleted successfully.`);
                     resolve(true)
@@ -3246,7 +3022,7 @@ function Mrend(options) {
     function addBulkData(db, tableName, dataArray) {
 
         //console.log("tableName",tableName)
-        if (db['_allTables'][tableName]) {
+        if (globalThis.db['_allTables'][tableName]) {
             return globalThis.db[tableName].bulkPut(dataArray)
         } else {
             return globalThis.db[tableName].bulkAdd(dataArray)
@@ -3256,17 +3032,13 @@ function Mrend(options) {
 
 
 
-    function getDataFromPHC(codigo, filtroval) {
-        ////console.log(tabela, opcaoEcraId, coluna, registo)
+    function getDataFromRemote() {
 
         return new Promise(function (resolve, reject) {
             $.ajax({
-                type: "POST",
-                url: "../programs/gensel.aspx?cscript=getdatafromphc",
-                data: {
-                    //  '__EVENTTARGET': opcaoEcraId,
-                    '__EVENTARGUMENT': JSON.stringify([{ codigo: codigo, filtroval: filtroval }]),
-                },
+                type: globalThis.remoteFetchData.type,
+                url: globalThis.remoteFetchData.url,
+                data: globalThis.remoteFetchData.data,
                 success: function (response) {
 
                     resolve(response);
@@ -3469,7 +3241,7 @@ function Mrend(options) {
     function addNewRecords() {
 
         if (globalThis.GNewRecords.length > 0) {
-            addBulkData(globalThis.GDB, globalThis.GRenderData.tableSourceName, globalThis.GNewRecords).then(function (data) {
+            addBulkData(globalThis.db, globalThis.tableSourceName, globalThis.GNewRecords).then(function (data) {
                 console.log("NEW ROWS INSERTED", data);
                 globalThis.GNewRecords = []
 
@@ -3507,42 +3279,213 @@ function Mrend(options) {
     }
 
 
-    function RenderSourceTable() {
+    function formatNumber(value) {
+        var input = document.createElement("input");
+        var cleave = new Cleave(input, {
+            numeral: true,
+            numeralThousandsGroupStyle: "thousand",
+            numeralDecimalScale: 2,
+            numeralDecimalMark: ".",
+            delimiter: " "
+        });
+        cleave.setRawValue(value || 0);
+        return input.value;
+    }
+
+    function numberFormatCustomEditor(cell, onRendered, success, cancel) {
+        var input = document.createElement("input");
+        input.type = "text";
+        input.style.width = "100%";
+        input.style.boxSizing = "border-box";
+        input.style.padding = "8px 12px";
+        input.style.border = "0px solid #e0e6ed";
+        input.style.borderRadius = "4px";
+        input.style.fontFamily = "inherit";
+        input.value = formatNumber(cell.getValue());
+
+        var cleave = new Cleave(input, {
+            numeral: true,
+            numeralThousandsGroupStyle: "thousand",
+            numeralDecimalScale: 2,
+            numeralDecimalMark: ".",
+            delimiter: " "
+        });
+
+        onRendered(function () {
+            input.focus();
+            input.select();
+        });
+
+        input.addEventListener("blur", function () {
+            var raw = input.value.replace(/\./g, "").replace(",", ".");
+            var num = inputToNumberDB(input.value);
+            success(isNaN(num) ? 0 : num);
+        });
+
+        input.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") input.blur();
+            else if (e.key === "Escape") cancel();
+        });
+
+        return input;
+    }
 
 
-        addNewRecords()
+    function handleColFormatter(cell, colunaConfig, colunaUIConfig) {
 
-        var lazyLoadThreshold = 1000; // Tamanho do limite para o carregamento lento
+        switch (colunaConfig.tipo) {
 
-        if (globalThis.GRenderedLinhas.length > lazyLoadThreshold) {
+            case "digit":
 
+                return formatNumber(cell.getValue());
+                break;
 
-            GTableData.lazyLoad = true;
-            GTableData.lazyLoadRendering()
+            default:
 
-        } else {
-
-            var tableHtml = generateTableV2(GTableData);
-            $(".sourceTabletableContainer").append(tableHtml);
+                return cell.getValue();
+                break;
 
         }
 
+    }
 
 
+    function RenderSourceTable() {
 
 
+        // addNewRecords()
 
-        modoEcraHandler()
-        registerClickGravar()
-
-        handleCellEvents()
-        handleTotais();
-        GTableData.handleUI({});
-        GTableData.generateTableButtons();
-        mainSpinner("hide")
         globalThis.GCellObjectsConfig = globalThis.GCellObjectsConfig.concat(globalThis.TMPCellObjectCOnfig);
 
+        var columns = [
+            {
+                title: "#",
+                field: "idx",
+                width: 120
 
+            },
+            {
+                title: "Ações",
+                formatter: function (cell, formatterParams) {
+                    return "<i style='color:#0765b7' class='fa fa-plus-circle action-btn add-child' title='Adicionar Filho'></i><i style='color:#d9534f!important;' class='fa fa-trash action-btn remove-row' title='Remover Linha'></i> ";
+                },
+                width: 110,
+                hozAlign: "center",
+                headerSort: false,
+                cellClick: function (e, cell) {
+                    var row = cell.getRow();
+                    var target = e.target;
+
+                    if (target.classList.contains("add-child")) {
+                        var newId = Math.floor(Math.random() * 1000000);
+                        row.addTreeChild({
+                            id: newId,
+                            quantidade: 1,
+                            preco: 0,
+                            referencia: "ref1",
+                            precovenda: 0
+                        });
+                        row.treeExpand();
+                    }
+
+                    if (target.classList.contains("remove-row")) {
+                        var row = cell.getRow();
+                        var children = row.getTreeChildren();
+
+                        if (children.length > 0) {
+                            if (confirm("Esta linha tem filhos. Deseja remover tudo?")) {
+                                children.forEach(function (child) {
+                                    child.delete();
+                                });
+                                row.delete();
+                            }
+                        } else {
+                            row.delete();
+                        }
+                    }
+                }
+            }
+
+        ];
+
+        globalThis.GRenderedColunas.forEach(function (coluna) {
+
+            var colunaUIConfig = {
+                title: coluna.config.desccoluna,
+                field: coluna.codigocoluna,
+                editor: "input",
+                width: 310,
+                frozen: coluna.config.fixacoluna,
+                formatter: function (cell) {
+                    return handleColFormatter(cell, coluna.config, colunaUIConfig);
+                }
+
+
+            }
+
+            if (coluna.config.tipo == "digit") {
+
+                colunaUIConfig.editor = numberFormatCustomEditor;
+            }
+
+            columns.push(colunaUIConfig);
+
+        })
+
+
+        globalThis.GTable = new Tabulator(globalThis.containerToRender, {
+            data: globalThis.GGridData,
+            dataTree: true,
+            dataTreeStartExpanded: true,
+            dataTreeChildIndent: 15,
+            popupContainer: "body",
+            layout: "fitData",
+            rowFormatter: function (row) {
+
+                var data = row.getData();
+                if (row.getTreeParent()) {
+                    row.getElement().style.backgroundColor = "#f8fafc";
+                }
+            },
+            columns: columns
+        });
+
+        globalThis.GTable.on("cellEdited", function (cell) {
+            var rowData = cell.getRow().getData();
+            var updateData = {};
+            Object.keys(rowData).forEach(function (key) {
+                if (key !== "_children" && key !== "id") {
+                    updateData[key] = rowData[key];
+                }
+            });
+            cell.getRow().update(updateData);
+        });
+
+        $("#add-main-row").on("click", function () {
+            var newRow = {
+                id: Date.now(),
+                quantidade: 1,
+                preco: 0,
+                referencia: "ref1",
+                precovenda: 0,
+                _children: []
+            };
+            globalThis.GTable.addRow(newRow, false).then(function (row) {
+                row.treeExpand();
+            });
+        });
+
+
+
+        setTimeout(function () {
+
+            applyTabulatorStylesWithJquery();
+        }, 100); // Atraso para garantir que o Tabulator é renderizado após a adição de novas linhas
+
+        setTimeout(function () {
+
+            applyTabulatorStylesWithJquery();
+        }, 500); // Atraso para garantir que o Tabulator é renderizado após a adição de novas linhas
 
     }
 
@@ -3616,7 +3559,7 @@ function Mrend(options) {
     }
 
     function handleTotais() {
-        if (globalThis.GReportConfig.relatorio.totalcoluna) {
+        if (globalThis.reportConfig.config.relatorio.totalcoluna) {
 
             globalThis.GRenderedLinhas.forEach(function (linha) {
 
@@ -3625,7 +3568,7 @@ function Mrend(options) {
         }
 
         calcularSubtotais();
-        if (globalThis.GReportConfig.relatorio.totalrelatorio) {
+        if (globalThis.reportConfig.config.relatorio.totalrelatorio) {
 
             GTableData.calcularTotalRelatorio();
 
@@ -3642,24 +3585,9 @@ function Mrend(options) {
         notExistLinhas = []
         novasLinhas = [];
 
-        var contadorIteraccoes = 0;
-        var mapping = getMappingByKey("renderConfig");
-        var grupoMap = mapping.find(function (smap) {
-            return smap.component == "Grupo"
-        });
-
-        var subGrupoMap = mapping.find(function (smap) {
-            return smap.component == "Subgrupo"
-        });
-
-        var singularMap = mapping.find(function (smap) {
-            return smap.component == "Singular"
-        });
-
-        var gruposDistinct = getDistinctWithKeys(records, grupoMap.mapData.gruporowid);
 
 
-        var linhaModelo = globalThis.GReportConfig.linhas.filter(function (linha) {
+        var linhaModelo = globalThis.reportConfig.config.linhas.filter(function (linha) {
 
             return linha.tipo == "Singular"
         });
@@ -3668,18 +3596,18 @@ function Mrend(options) {
 
             var recordData = records.find(function (record) {
 
-                return record[singularMap.mapData.codigolinha] == linhModelo.codigo
+                return record.codigolinha == linhModelo.codigo
             });
 
 
             if (recordData) {
 
                 var linhaRecords = records.filter(function (record) {
-                    return record[singularMap.mapData.codigolinha] == linhModelo.codigo
+                    return record.codigolinha == linhModelo.codigo
                 }
                 );
 
-                var distinctRowIds = _.uniqBy(linhaRecords, singularMap.mapData.rowid);
+                var distinctRowIds = _.uniqBy(linhaRecords, "rowid");
 
                 distinctRowIds.sort(function (a, b) {
                     return (a.ordem || 0) - (b.ordem || 0);
@@ -3689,19 +3617,16 @@ function Mrend(options) {
                 distinctRowIds.forEach(function (distinctRow) {
 
                     var linhasFilhas = linhaRecords.filter(function (rec) {
-                        return rec.linkid == distinctRow[singularMap.mapData.rowid]
+                        return rec.linkid == distinctRow.rowid
                     }
                     );
 
-                    setSingularLinha(distinctRow, linhaRecords, linhModelo, singularMap, renderedLinhas, linhasFilhas.length > 0);
-
-
-
-                    var distinctRowFilhas = _.uniqBy(linhasFilhas, singularMap.mapData.rowid);
+                    setSingularLinha(distinctRow, linhaRecords, linhModelo, renderedLinhas, linhasFilhas.length > 0);
+                    var distinctRowFilhas = _.uniqBy(linhasFilhas, "rowid");
 
                     distinctRowFilhas.forEach(function (filha) {
 
-                        setSingularLinha(filha, linhaRecords, linhModelo, singularMap, renderedLinhas, false);
+                        setSingularLinha(filha, linhaRecords, linhModelo, renderedLinhas, false);
                     });
 
 
@@ -3722,117 +3647,19 @@ function Mrend(options) {
 
 
 
-        gruposDistinct.forEach(function (grupo) {
 
-            var linhasGrupo = records.filter(function (item) {
-                return item[grupoMap.mapData.gruporowid] == grupo[grupoMap.mapData.gruporowid]
-            });
-            var codigoGrupo = grupo[grupoMap.mapData.codigogrupo];
+        var tmpGrData = []
+        globalThis.GGridData = globalThis.GRenderedLinhas.map(function (lin) {
 
-            var linhaGrupoConfig = globalThis.GReportConfig.linhas.find(function (linhaConfig) {
+            if (!lin.linkid) {
 
-                return linhaConfig['codigo'] == codigoGrupo
-            });
-
-            if (linhaGrupoConfig) {
-
-                var configLinhaGrupo = new Linha(linhaGrupoConfig);
-                var rendered = new RenderedLinha({ novoregisto: false, rowid: grupo[grupoMap.mapData.gruporowid], linkid: "", parentid: "", config: configLinhaGrupo })
-                rendered.addToLocalRenderedLinhasList(linhasGrupo, grupo, grupoMap, true);
-                renderedLinhas.push(rendered)
+                tmpGrData.push(lin.UIObject);
             }
-
-            var distinctSubgrupos = linhasGrupo.filter(function (item, index, self) {
-                return self.findIndex(function (other) {
-                    return other[subGrupoMap.mapData.subrowid] === item[subGrupoMap.mapData.subrowid] && other[subGrupoMap.mapData.subrowid] != "";
-                }) === index;
-            });
-
-
-            distinctSubgrupos.forEach(function (subGrupo) {
-
-                var codigoSubgrupo = subGrupo[subGrupoMap.mapData.codigosubgrupo];
-
-                var linhaSubgrupoConfig = globalThis.GReportConfig.linhas.find(function (linhaConfig) {
-
-                    return linhaConfig['codigo'] == codigoSubgrupo
-                });
-
-                var subGrupoRecords = linhasGrupo.filter(function (item) {
-                    return item[subGrupoMap.mapData.subrowid] == subGrupo[subGrupoMap.mapData.subrowid]
-                });
-
-                if (linhaSubgrupoConfig) {
-
-                    var configLinhaSubgrupo = new Linha(linhaSubgrupoConfig);
-                    var rendered = new RenderedLinha({ novoregisto: false, linkdescricao: grupo[grupoMap.mapData.descricao], linkcodigo: grupo[grupoMap.mapData.codigogrupo], rowid: subGrupo[subGrupoMap.mapData.subrowid], linkid: grupo[grupoMap.mapData.gruporowid], parentid: "", config: configLinhaSubgrupo })
-                    renderedLinhas.push(rendered)
-                    rendered.addToLocalRenderedLinhasList(subGrupoRecords, subGrupo, subGrupoMap, true);
-
-                }
-
-            });
-
-
-        })
-
-
-
-
-
-        globalThis.GReportConfig.linhas.map(function (linha) {
-
-            var config = new Linha(linha);
-
-            var linhaExists = renderedLinhas.find(function (linhaExist) {
-
-                return linhaExist.config.codigo == config.codigo
-            });
-
-            if (!linhaExists) {
-
-                notExistLinhas.push(config)
-            }
-
         });
 
+        globalThis.GGridData = tmpGrData;
 
-        var notExistsGrupo = notExistLinhas.filter(function (linha) {
-
-            return linha.tipo == "Grupo"
-        })
-
-        notExistsGrupo.forEach(function (grupo) {
-
-            var gruporowid = generateUUID();
-
-            var rendered = new RenderedLinha({ novoregisto: true, rowid: gruporowid, linkid: "", parentid: "", config: grupo })
-            rendered.addToLocalRenderedLinhasList([], grupoMap, true);
-            renderedLinhas.push(rendered);
-
-
-
-            var subgrupos = notExistLinhas.filter(function (linha) {
-
-                return linha.linkstamp == grupo.linhastamp;
-            });
-
-
-
-            subgrupos.forEach(function (subgrupo) {
-
-                var subgruporowid = generateUUID();
-                var rendered = new RenderedLinha({ novoregisto: true, rowid: subgruporowid, linkcodigo: grupo.codigo, linkdescricao: grupo.descricao, linkid: gruporowid, parentid: "", config: subgrupo })
-                rendered.addToLocalRenderedLinhasList([], subGrupoMap, true);
-                renderedLinhas.push(rendered)
-
-            });
-
-
-
-        })
-
-
+        console.log("GGridData", globalThis.GGridData)
 
         return renderedLinhas;
 
@@ -3840,10 +3667,11 @@ function Mrend(options) {
 
 
 
-    function setSingularLinha(distinctRow, linhaRecords, linhModelo, singularMap, renderedLinhas, isParent) {
+
+    function setSingularLinha(distinctRow, linhaRecords, linhModelo, renderedLinhas, isParent) {
 
         var linhaAdicionada = globalThis.GRenderedLinhas.find(function (linha) {
-            return linha.rowid == distinctRow[singularMap.mapData.rowid]
+            return linha.rowid == distinctRow.rowid
         });
 
         if (linhaAdicionada) {
@@ -3851,35 +3679,26 @@ function Mrend(options) {
             return;
         }
 
+        var UIObject = {
+            rowid: distinctRow.rowid
+        }
+
         var linha = new Linha(linhModelo);
-        var rendered = new RenderedLinha({ novoregisto: false, isParent: isParent, rowid: distinctRow[singularMap.mapData.rowid], linkid: distinctRow.linkid, parentid: "", config: linha })
+
+
+        var rendered = new RenderedLinha({ novoregisto: false, isParent: isParent, rowid: distinctRow.rowid, linkid: distinctRow.linkid, parentid: "", config: linha, UIObject: UIObject });
         renderedLinhas.push(rendered);
 
         var recFlt = linhaRecords.filter(function (rec) {
-            return rec[singularMap.mapData.rowid] == distinctRow[singularMap.mapData.rowid]
+            return rec.rowid == distinctRow.rowid
         }
         );
-        rendered.addToLocalRenderedLinhasList(recFlt, distinctRow, singularMap, true);
+        rendered.addToLocalRenderedLinhasList(recFlt, distinctRow, true);
     }
 
     function RenderHandler(records) {
 
-
-        globalThis.GDB["UI"].toArray().then(function (cachedData) {
-            if (cachedData.length > 0) {
-
-                console.log("Cached data found, using it to render the table.", cachedData);
-                var cacheUI = new CachedUI(cachedData[0]);
-                cacheUI.fillAndRender();
-                mainSpinner("hide")
-
-            } else {
-
-                ViewRender(records)
-            }
-        }).catch(function (err) {
-            console.error("Error fetching data On RenderHandler:", err);
-        });
+        ViewRender(records)
 
     }
 
@@ -3888,46 +3707,13 @@ function Mrend(options) {
 
         initTableDataAndContainer();
 
-        globalThis.GRenderedColunas = setColunasRender(globalThis.GReportConfig.colunas);
-        setCabecalhos(records);
+
+        globalThis.GRenderedColunas = setColunasRender(globalThis.reportConfig.config.colunas);
+
+
         var renderedLinhas = getRenderedLinhas(records);
 
         globalThis.GRenderedLinhas = renderedLinhas
-
-        /*
-        var linhasGrupo = globalThis.GRenderedLinhas.filter(function (linhaGrupo) {
-    
-            return linhaGrupo.config.tipo == "Grupo"
-        });
-    
-        linhasGrupo.sort(function (a, b) {
-            return a.config.ordem - b.config.ordem;
-        });
-    
-        linhasGrupo.forEach(function (grupo) {
-    
-            setLinha(grupo, "", records);
-    
-        });
-        */
-
-        var linhasModelo = globalThis.GRenderedLinhas.filter(function (linha) {
-
-            return linha.config.tipo == "Singular"
-        });
-
-        var linhaCont = 0;
-
-
-        if (globalThis.GReportConfig.relatorio.totalrelatorio) {
-
-
-            var renderedLinhaTotalRelatorio = setLinhaRenderTotal({ codigo: "TOTALRELATORIO", descricao: "Total do relatório", cor: "#033076", linkid: "", rowid: "TOTALRELATORIOROWID" });
-            renderedLinhaTotalRelatorio.addToLocalRenderedLinhasList([], "", {}, false);
-
-            setLinha(renderedLinhaTotalRelatorio, "", [])
-        }
-
 
         RenderSourceTable();
 
@@ -4095,111 +3881,74 @@ function Mrend(options) {
     }
 
 
-    $(document).ready(function () {
-
-        registerMrendListeners();
 
 
-    })
+    function handleReportRecords() {
+        return new Promise(function (resolve, reject) {
+            var stampAtual = (globalThis.recordData.stamp || "").trim();
+            var stampArmazenado = getSourceStamp().trim();
 
+            return databaseAndTableHasRecords(globalThis.db, globalThis.tableSourceName)
+                .then(function (result) {
+                    // Se stamp bateu e TEM dados locais, retorna sem refetch
 
+                    if (stampAtual === stampArmazenado && result.exists && Array.isArray(result.data) && result.data.length > 0) {
+                        globalThis.records = result.data;
+                        return resolve({ refetchDb: false, records: result.data });
+                    }
 
+                    storeDataSourceStamp(globalThis.recordData.stamp);
+                    console.log("Source stamp updated or local DB empty, refetching data...", globalThis.recordData.stamp, stampArmazenado);
 
-    function initTreeForTable(tableSelector) {
+                    if (globalThis.remoteFetch === true) {
+                        return getDataFromRemote()
+                            .then(function (remoteData) {
 
-        console.log("INITING TREEE SCOPPPPPE")
-        return
-        var $table = $(tableSelector);
+                                globalThis.records = remoteData && remoteData.data ? remoteData.data : [];
+                                return resolve({ refetchDb: true, records: globalThis.records, remoteFetch: true });
+                            })
+                            .catch(reject);
+                    }
 
-        // Memoriza quais IDs estão expandidos
-        var expandedIds = new Set();
-        $table.find('.tree-toggle.fa-angle-down').each(function () {
-            var $row = $(this).closest('tr');
-            var id = $row.data('id');
-            if (id) expandedIds.add(id);
-        });
+                    resolve({ refetchDb: true, records: globalThis.records });
+                })
+                .catch(reject);
+        }).then(function (result) {
 
-        // Remove ícones antigos de expansão, mantendo o conteúdo
-        $table.find('.tree-toggle').remove();
+            return new Promise(function (resolve, reject) {
 
-        // Prepara e oculta filhos
-        $table.find('tbody tr').each(function () {
-            var $tr = $(this);
-            var parentId = $tr.data('parent-id');
-            if (parentId) {
-                $tr.hide().addClass('child-row');
-            } else {
-                $tr.removeClass('child-row').show();
-            }
-
-            var hasChildren = $table.find('tr[data-parent-id="' + $tr.data("id") + '"]').length > 0;
-            var icon = hasChildren
-                ? '<i class="tree-toggle fa fa-angle-right" style="cursor: pointer;color:#626e78; font-size: 20px; font-weight: bold; margin-right: 8px;"></i>'
-                : '<span style="display: inline-block; width: 20px; margin-right: 8px;"></span>';
-
-            var $actionZone = $tr.find('.container-action-zone');
-            if ($actionZone.length > 0 && $actionZone.find('.tree-toggle, .empty-toggle').length === 0) {
-                $actionZone.prepend(icon);
-            }
-        });
-
-        // Calcula profundidade (indentação)
-        $table.find('tbody tr').each(function () {
-            var depth = 0;
-            var current = $(this);
-            while (current.data("parent-id")) {
-                depth++;
-                current = $table.find('tr[data-id="' + current.data("parent-id") + '"]');
-            }
-
-            // Aplica padding diretamente à action-zone ou linha
-            var $actionZone = $(this).find('.container-action-zone');
-            if ($actionZone.length > 0) {
-                $actionZone.css('padding-left', (depth * 32) + 'px');
-            } else {
-                $(this).css("padding-left", (depth * 32) + "px");
-            }
-        });
-
-        // Comportamento de expandir/colapsar
-        $table.find('.tree-toggle').off('click').on('click', function (e) {
-            e.stopPropagation();
-            var $icon = $(this);
-            var $row = $icon.closest('tr');
-            var id = $row.data('id');
-            var isExpanded = $icon.hasClass('fa-angle-down');
-
-            $icon.toggleClass('fa-angle-right fa-angle-down');
-            toggleChildren(id, !isExpanded, $table);
-        });
-
-        function toggleChildren(parentId, show, $table) {
-            console.log("Toggling children for parentId:", parentId, "Show:", show);
-            return
-            $table.find('tr[data-parent-id="' + parentId + '"]').each(function () {
-                var $child = $(this);
-                $child.toggle(show);
-                if (!show) {
-                    $child.find(".tree-toggle").removeClass("fa-angle-down").addClass("fa-angle-right");
-                    toggleChildren($child.data("id"), false, $table);
+                if (result.refetchDb) {
+                    return deleteAllRecords(globalThis.table).then(function (data) {
+                        var dbConverstion = ConvertDbTableToMrendObject(globalThis.records, globalThis.dbTableToMrendObject);
+                        return addBulkData(globalThis.db, globalThis.table, dbConverstion).then(function (data) {
+                            console.log("Records refetched for DB....");
+                            return resolve(result);
+                        })
+                    })
                 }
-            });
-        }
-
-        // Restaura estado expandido
-        expandedIds.forEach(function (id) {
-            var $row = $table.find('tr[data-id="' + id + '"]');
-            $row.find(".tree-toggle").removeClass("fa-angle-right").addClass("fa-angle-down");
-            toggleChildren(id, true, $table);
+                return resolve(result)
+            })
         });
     }
+    this.clearSourceStamp = function () {
 
+        localStorage.removeItem("sourcestamp" + globalThis.tableSourceName);
+    }
 
 
     this.render = function () {
 
-        console.log("Rendering Mrend...")
+        return InitDB(globalThis.datasourceName, globalThis.schemas).then(function (initDBResult) {
 
+            handleReportRecords().then(function (reportRecordResult) {
+
+                RenderHandler(globalThis.records)
+
+
+
+            })
+
+        })
 
     }
 
@@ -4209,6 +3958,177 @@ function Mrend(options) {
 }
 
 
+
+$(document).ready(function () {
+
+
+});
+
+
+
+
+function applyTabulatorStylesWithJquery() {
+    // Tabulator container
+    $(".tabulator").css({
+        "background-color": "white",
+        "border-radius": "10px",
+        "box-shadow": "0 4px 20px rgba(0, 0, 0, 0.08)",
+        "border": "none"
+    });
+
+    // Header
+    $(".tabulator .tabulator-header").css({
+        "background-color": "#0765b7",
+        "border-bottom": "none",
+        "border-radius": "10px 10px 0 0"
+    });
+
+    // Header columns
+    $(".tabulator .tabulator-header .tabulator-col").css({
+        "background-color": "#0765b7",
+        "color": "white",
+        "border-right": "none",
+        "padding": "12px 15px",
+        "font-weight": "500"
+    });
+
+    $(".tabulator .tabulator-header .tabulator-col:first-child").css("border-top-left-radius", "10px");
+    $(".tabulator .tabulator-header .tabulator-col:last-child").css("border-top-right-radius", "10px");
+
+    // Rows
+    $(".tabulator-row").css({
+        "border-bottom": "1px solid #e0e6ed",
+        "transition": "background-color 0.2s ease"
+    });
+    $(".tabulator-row.tabulator-row-even").css("background-color", "#fcfdfe");
+    $(".tabulator-row").hover(
+        function () { $(this).css("background-color", "#f5f9ff"); },
+        function () { $(this).css("background-color", ""); }
+    );
+
+    $(".tabulator .tabulator-header .tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid red");
+    $(".tabulator-row .tabulator-cell.tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid #0000");
+
+
+    // Cells
+    $(".tabulator-cell").css({
+        "padding": "12px 15px",
+        "border-right": "none"
+    });
+
+    // Botão adicionar
+    $(".btn-add").css({
+        "margin": "0 0 15px 0",
+        "padding": "10px 18px",
+        "background-color": "#0765b7",
+        "color": "white",
+        "border": "none",
+        "border-radius": "6px",
+        "cursor": "pointer",
+        "font-weight": "500",
+        "font-size": "14px",
+        "transition": "all 0.2s ease",
+        "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
+    }).hover(
+        function () {
+            $(this).css({
+                "background-color": "#06539e",
+                "transform": "translateY(-1px)",
+                "box-shadow": "0 4px 12px rgba(7, 101, 183, 0.3)"
+            });
+        },
+        function () {
+            $(this).css({
+                "background-color": "#0765b7",
+                "transform": "",
+                "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
+            });
+        }
+    );
+
+    $(".btn-add i").css("margin-right", "6px");
+
+    // Botões de ação
+    $(".action-btn").css({
+        "background": "none",
+        "border": "none",
+        //  "color": "#5a8de6",
+        "cursor": "pointer",
+        "font-size": "15px",
+        "margin": "0 5px",
+        "transition": "all 0.2s ease"
+    }).hover(
+        function () {
+            $(this).css({
+                //   "color": "#0765b7",
+                "transform": "scale(1.1)"
+            });
+        },
+        function () {
+            $(this).css({
+                //   "color": "#5a8de6",
+                "transform": ""
+            });
+        }
+    );
+
+    // Tree/indent
+    $(".tabulator-row .tabulator-cell.tabulator-tree-col").css("padding-left", "15px");
+    $(".tabulator-tree-branch").css({
+        "border-left": "2px solid #d1e3ff",
+        "margin-left": "7.5px"
+    });
+    $(".tabulator-tree-level-1 .tabulator-cell.tabulator-tree-col").css("padding-left", "30px");
+    $(".tabulator-tree-level-2 .tabulator-cell.tabulator-tree-col").css("padding-left", "45px");
+    $(".tabulator-tree-level-3 .tabulator-cell.tabulator-tree-col").css("padding-left", "60px");
+
+    // Tree controls
+    $(".tabulator-row .tabulator-cell .tabulator-data-tree-control").css({
+        "align-items": "center",
+        "background": "rgb(255 255 255 / 10%)",
+        "border": "1px solid #2975dd",
+        "border-radius": "2px",
+        "display": "inline-flex",
+        "height": "11px",
+        "justify-content": "center",
+        "margin-right": "5px",
+        "overflow": "hidden",
+        "vertical-align": "middle",
+        "width": "11px"
+    });
+
+    $(".tabulator-tree-collapse, .tabulator-tree-expand").css({
+        "color": "#0765b7",
+        "border-radius": "50%",
+        "width": "18px",
+        "height": "18px",
+        "display": "inline-flex",
+        "align-items": "center",
+        "justify-content": "center",
+        "margin-right": "8px",
+        "transition": "all 0.2s ease"
+    }).hover(
+        function () { $(this).css("background-color", "rgba(7, 101, 183, 0.1)"); },
+        function () { $(this).css("background-color", ""); }
+    );
+
+    // Edit list
+    $(".tabulator-edit-list").css({
+        "z-index": "9999",
+        "position": "absolute",
+        "border-radius": "6px",
+        "box-shadow": "0 5px 15px rgba(0, 0, 0, 0.1)",
+        "border": "1px solid #e0e6ed"
+    });
+    $(".tabulator-edit-list .tabulator-edit-list-item").css("padding", "8px 15px");
+    $(".tabulator-edit-list .tabulator-edit-list-item.active").css({
+        "background-color": "rgba(7, 101, 183, 0.1)",
+        "color": "#0765b7"
+    });
+
+    // Scrollbar (apenas para webkit browsers)
+    $("body").append('<style>::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; } ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }</style>');
+}
 
 
 function getCampoMrend() {
@@ -4219,8 +4139,8 @@ function getCampoMrend() {
 function MrendObject(data) {
 
     this.cellId = data.cellId || "";
-    this.coluna = data.coluna || "";
     this.rowid = data.rowid || "";
+    this.coluna = data.coluna || "";
     this.sourceTable = data.sourceTable || "";
     this.sourceKey = data.sourceKey || "";
     this.sourceKeyValue = data.sourceKeyValue || "";

@@ -1638,6 +1638,7 @@ RenderedColuna.prototype.fillTableData = function () {
 
 
     if (this.config.usaexpresstbjs) {
+        console.log("Executing expressaotbjs", this.config.expressaotbjs)
         eval(this.config.expressaotbjs);
     }
     return
