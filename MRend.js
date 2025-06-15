@@ -4,7 +4,7 @@ function Mrend(options) {
 
 
     var globalThis = this;
-    
+
     this.GTable = {};
     this.GDefaultConfig = undefined;
     this.GRenderData = {};
@@ -1235,9 +1235,8 @@ function Mrend(options) {
 
 
         if (this.config.usaexpresstbjs) {
-            console.log("Executing expressaotbjs", this.config.expressaotbjs)
 
-            eval(this.config.expressaotbjs);
+            this.localData = eval(this.config.expressaotbjs);
         }
         return
 
@@ -1256,7 +1255,6 @@ function Mrend(options) {
 
             var selectHtml = generateSelect([], "form-control source-bind-table-control  table-select", "", " id=" + "[selectId]" + " source-key='" + this.config.bindData.sourceKey + "' source-bind='" + this.config.bindData.sourceBind + "' ", campooption, campovalor)
 
-            this.localData = globalThis.GTmpListTableObject;
             this.preGen = selectHtml;
         }
 
@@ -3279,12 +3277,14 @@ function Mrend(options) {
     }
 
 
-    function formatNumber(value) {
+    function formatNumber(value, colunaConfig) {
         var input = document.createElement("input");
+
         var cleave = new Cleave(input, {
             numeral: true,
             numeralThousandsGroupStyle: "thousand",
-            numeralDecimalScale: 2,
+            numeralDecimalScale: colunaConfig.decimais || 2,
+            numeralPositiveOnly: colunaConfig.proibenegativo || false,
             numeralDecimalMark: ".",
             delimiter: " "
         });
@@ -3292,7 +3292,9 @@ function Mrend(options) {
         return input.value;
     }
 
-    function numberFormatCustomEditor(cell, onRendered, success, cancel) {
+    function numberFormatCustomEditor(cell, onRendered, success, cancel, editorParams) {
+
+        console.log("editor params", editorParams)
         var input = document.createElement("input");
         input.type = "text";
         input.style.width = "100%";
@@ -3301,12 +3303,13 @@ function Mrend(options) {
         input.style.border = "0px solid #e0e6ed";
         input.style.borderRadius = "4px";
         input.style.fontFamily = "inherit";
-        input.value = formatNumber(cell.getValue());
+        input.value = formatNumber(cell.getValue(), editorParams.colunaConfig);
 
         var cleave = new Cleave(input, {
             numeral: true,
             numeralThousandsGroupStyle: "thousand",
-            numeralDecimalScale: 2,
+            numeralDecimalScale: editorParams.colunaConfig.decimais || 2,
+            numeralPositiveOnly: editorParams.colunaConfig.proibenegativo || false,
             numeralDecimalMark: ".",
             delimiter: " "
         });
@@ -3337,7 +3340,7 @@ function Mrend(options) {
 
             case "digit":
 
-                return formatNumber(cell.getValue());
+                return formatNumber(cell.getValue(), colunaConfig);
                 break;
 
             default:
@@ -3349,6 +3352,107 @@ function Mrend(options) {
 
     }
 
+    function handleEditor(coluna) {
+        if (coluna.config.tipo === "digit") {
+            return {
+                editor: numberFormatCustomEditor,
+                editorParams: { colunaConfig: coluna.config }
+            };
+        }
+        if (coluna.config.tipo === "text") {
+            return { editor: "input" };
+        }
+        if (coluna.config.tipo === "table") {
+            var values = (coluna.localData || []).map(function (item) {
+                return {
+                    value: item[coluna.config.valtb],
+                    label: item[coluna.config.nometb]
+                };
+            });
+            return {
+                editor: "list",
+                editorParams: {
+                    values: values,
+                    autocomplete: true,
+                    freetext: true,
+                    popupContainer: document.body,
+                    listItemFormatter: function (value, text) {
+                        return "<div style='padding: 6px 12px; transition: all 0.2s;'>" + text + "</div>";
+                    }
+                }
+            };
+        }
+        return {};
+    }
+
+
+    var customMutator = function (value, data, type, params, component) {
+
+        return data.qtt * data.pcusto;
+    }
+
+    var extractCellValue = function (expression, colunaConfig, rowData) {
+
+        var regex = /\{([^}]+)\}/g; // Encontra tudo entre { e }
+        var match;
+        var orgExpr = expression;
+
+        while ((match = regex.exec(expression)) !== null) {
+            var colName = match[1];
+
+            var valor = rowData[colName] || "0";
+
+            valor = valor == "Infinity" || valor == "-Infinity" || valor == Infinity || isNaN(valor) ? 0 : valor;
+
+            // Substituição manual para manter compatibilidade com ES5
+            var token = "{" + colName + "}";
+            while (orgExpr.indexOf(token) !== -1) {
+                orgExpr = orgExpr.replace(token, valor);
+            }
+        }
+        return orgExpr;
+    }
+
+    function handleMutator(coluna) {
+
+        var renderedColuna = new RenderedColuna(coluna);
+        if (renderedColuna.config.colfunc) {
+            return {
+                mutator: function (value, rowData, type, params, component) {
+
+                    var expression = extractCellValue(renderedColuna.config.expresscolfun, renderedColuna.config, rowData);
+                    var expressionResult = eval(expression);
+                    expressionResult = expressionResult == "Infinity" || expressionResult == "-Infinity" || expressionResult == Infinity || isNaN(expressionResult) ? 0 : expressionResult;
+
+                    var rowupdated={}
+                    rowupdated[renderedColuna.codigocoluna] = expressionResult;
+                    rowupdated.rowid = rowData.rowid;
+
+                  
+
+                    updateCellObjectConfig(renderedColuna.codigocoluna, rowupdated);
+
+                    return Number(expressionResult);
+                },
+                mutatorParams: { colunaConfig: coluna.config }
+            };
+        }
+        // Adicione outros mutators por tipo/código aqui se necessário
+        return {};
+    }
+
+    function updateCellObjectConfig(coluna, rowData) {
+
+        var cellObjectConfig = globalThis.GCellObjectsConfig.find(function (obj) {
+            return obj.codigocoluna == coluna && obj.rowid == rowData.rowid;
+        });
+
+        if (cellObjectConfig) {
+
+            console.log("Updating cellObjectConfig for coluna:", coluna, "with valor:", rowData[coluna]);
+            cellObjectConfig.valor = rowData[coluna];
+        }
+    }
 
     function RenderSourceTable() {
 
@@ -3413,7 +3517,6 @@ function Mrend(options) {
             var colunaUIConfig = {
                 title: coluna.config.desccoluna,
                 field: coluna.codigocoluna,
-                editor: "input",
                 width: 310,
                 frozen: coluna.config.fixacoluna,
                 formatter: function (cell) {
@@ -3423,10 +3526,12 @@ function Mrend(options) {
 
             }
 
-            if (coluna.config.tipo == "digit") {
 
-                colunaUIConfig.editor = numberFormatCustomEditor;
-            }
+            var editorConfig = handleEditor(coluna);
+            Object.assign(colunaUIConfig, editorConfig);
+
+            var mutatorConfig = handleMutator(coluna);
+            Object.assign(colunaUIConfig, mutatorConfig);
 
             columns.push(colunaUIConfig);
 
@@ -3452,6 +3557,8 @@ function Mrend(options) {
 
         globalThis.GTable.on("cellEdited", function (cell) {
             var rowData = cell.getRow().getData();
+
+            var columnField = cell.getField(); // <-- Aqui você pega o nome/campo da coluna editada
             var updateData = {};
             Object.keys(rowData).forEach(function (key) {
                 if (key !== "_children" && key !== "id") {
@@ -3459,6 +3566,9 @@ function Mrend(options) {
                 }
             });
             cell.getRow().update(updateData);
+
+            updateCellObjectConfig(columnField, rowData);
+
         });
 
         $("#add-main-row").on("click", function () {
@@ -3680,7 +3790,8 @@ function Mrend(options) {
         }
 
         var UIObject = {
-            rowid: distinctRow.rowid
+            rowid: distinctRow.rowid,
+            id: distinctRow.rowid
         }
 
         var linha = new Linha(linhModelo);
