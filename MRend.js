@@ -114,7 +114,7 @@ function Mrend(options) {
         this.sourceKeyValue = data.sourceKeyValue || "";
         this.valor = data.valor || "";
         this.campo = data.campo || "";
-        this.linkId = data.linkId || "";
+        this.linkid = data.linkId || "";
         this.linkfield = data.linkfield || "";
         this.codigolinha = data.codigolinha || "";
         this.ordemField = data.ordemField || "";
@@ -952,18 +952,19 @@ function Mrend(options) {
 
         var renderedLinha = new RenderedLinha({ novoregisto: true, rowid: generateUUID(), linkid: this.rowid, parentid: "", config: this.config });
 
-        renderedLinha.addToLocalRenderedLinhasList([], "", {}, false);
-        var linha = new RowHtml(setLinha(renderedLinha, "", []));
-        var linhaHtml = linha.generateHtml();
+        renderedLinha.UIObject = {
+            id: renderedLinha.rowid,
+            rowid: renderedLinha.rowid
+            //_children: []
+        };
+
+        renderedLinha.addToLocalRenderedLinhasList([], "", {}, false, false);
+
         this.isParent = true;
-        $("#" + this.rowid).attr("data-id", this.rowid);
+        addNewRecords();
 
-        console.log($("#" + this.rowid), "dasdsdsadsadas")
-        $("#" + GTableData.tableId).append(linhaHtml);
-        //globalThis.GRenderedLinhas.push(renderedLinha);
-        addNewRecords()
+        return renderedLinha;
 
-        GTableData.handleUI({});
 
 
     }
@@ -973,24 +974,20 @@ function Mrend(options) {
         var tableName = globalThis.tableSourceName; // Nome da tabela no Dexie
         var rowId = this.rowid; // ID da linha a ser removida
         var thisRow = this;
-        var mapping = getMappingByKey("renderConfig");
-        var singularMap = mapping.find(function (smap) {
-            return smap.component == thisRow.config.tipo
-        });
+
 
 
         return new Promise(function (resolve, reject) {
             globalThis.db[tableName]
-                .where(singularMap.mapData.rowid) // Filtra os registros pelo campo "rowid"
+                .where("rowid") // Filtra os registros pelo campo "rowid"
                 .equals(rowId) // Verifica se o valor de "rowid" é igual ao da linha atual
                 .delete() // Remove os registros correspondentes
                 .then(function () {
                     // Remove a linha da lista local de linhas renderizadas
-                    globalThis.GRenderedLinhas = globalThis.GRenderedLinhas.filter(function (linha) {
-                        return linha.rowid !== rowId;
-                    });
 
-                    $("#" + rowId).remove();
+                    globalThis.GCellObjectsConfig = globalThis.GCellObjectsConfig.filter(function (cellObject) {
+                        return cellObject.rowid != rowId
+                    })
 
                     resolve("Linha removida com sucesso.");
                 })
@@ -1002,7 +999,7 @@ function Mrend(options) {
 
 
 
-    RenderedLinha.prototype.addToLocalRenderedLinhasList = function (linhaRecords, distinctRow, renderCelula) {
+    RenderedLinha.prototype.addToLocalRenderedLinhasList = function (linhaRecords, distinctRow, renderCelula, setChildren) {
 
 
 
@@ -1016,15 +1013,22 @@ function Mrend(options) {
             );
             setLinha(this, "", recFlt);
 
-            if (this.linkid) {
+            if (this.linkid && setChildren == true) {
 
                 var self = this;
-                var parentLinha = GRenderedLinhas.find(function (linha) {
+                var parentLinha = globalThis.GRenderedLinhas.find(function (linha) {
                     return linha.rowid == self.linkid
                 });
 
-                parentLinha.UIObject._children = parentLinha.UIObject._children || [];
-                parentLinha.UIObject._children.push(this.UIObject);
+
+                if (parentLinha) {
+
+                    parentLinha.UIObject._children = parentLinha.UIObject._children || [];
+                    parentLinha.UIObject._children.push(this.UIObject);
+
+                }
+
+
 
             }
         }
@@ -1503,7 +1507,6 @@ function Mrend(options) {
                 codigocoluna: "DEFCOL",
                 config: new Coluna(dadosColuna)
             });
-            console.log("renderedColuna", renderedColuna)
             renderedColuna.preGenHtml();
             renderedColunas.push(renderedColuna);
         }
@@ -2521,7 +2524,7 @@ function Mrend(options) {
         if (linha.config.temtotais) {
 
             var renderedLinhaTotalRelatorio = setLinhaRenderTotal({ codigo: "SUBTOTALINHA", descricao: "Total", cor: "#417ad3", linkid: linha.rowid, rowid: "SUBTOTAL" + linha.rowid });
-            renderedLinhaTotalRelatorio.addToLocalRenderedLinhasList([], "", {}, false);
+            renderedLinhaTotalRelatorio.addToLocalRenderedLinhasList([], "", {}, false, true);
             setLinha(renderedLinhaTotalRelatorio, "", [])
 
 
@@ -2751,8 +2754,6 @@ function Mrend(options) {
             return configCelula.linhastamp == linha.config.linhastamp && configCelula.codigocoluna == coluna.codigocoluna
         });
 
-
-
         var linhaRecord;
 
         var linhaFilterKey = "rowid";
@@ -2769,17 +2770,12 @@ function Mrend(options) {
 
         }
         if (!linhaRecord) {
-            linhaRecord = JSON.parse(JSON.stringify(GRenderData.schemas[0].tableSourceSchema))
+            linhaRecord = JSON.parse(JSON.stringify(globalThis.schemas[0].tableSourceSchema))
             cellId = generateUUID();
             novoRegisto = true
 
 
         }
-
-        /* if (GRenderData.records.length > 0) {
- 
-             GNewRecords.push(linhaRecord);
-         }*/
 
         var cellObjectConfig = new CellObjectConfig(
             {
@@ -2823,29 +2819,25 @@ function Mrend(options) {
                 linhaRecord.codigolinha = linha.config.codigo;
             }
 
-            if (GRenderData.dbTableToMrendObject.convert) {
 
-                linhaRecord.campo = coluna.config.campo;
-                linhaRecord.linkid = linha.linkid;
-                linhaRecord.linkfield = globalThis.dbTableToMrendObject.extras.linkfield;
-                linhaRecord.sourceTable = globalThis.dbTableToMrendObject.table;
-                linhaRecord.sourceKey = globalThis.dbTableToMrendObject.tableKey;
+            linhaRecord.campo = coluna.config.campo;
+            linhaRecord.linkid = linha.linkid;
+            linhaRecord.linkfield = globalThis.dbTableToMrendObject.extras.linkfield;
+            linhaRecord.sourceTable = globalThis.dbTableToMrendObject.table;
+            linhaRecord.sourceKey = globalThis.dbTableToMrendObject.tableKey;
+            linhaRecord.sourceKeyValue = linha.rowid;
+            linhaRecord.ordem = linha.ordem
+            linhaRecord.ordemField = globalThis.dbTableToMrendObject.ordemField;
+
+            if (coluna.config.sourceTable) {
+
+                linhaRecord.sourceTable = coluna.config.sourceTable;
+                linhaRecord.sourceKey = coluna.config.sourceKey;
                 linhaRecord.sourceKeyValue = linha.rowid;
-                linhaRecord.ordem = linha.ordem
-                linhaRecord.ordemField = globalThis.dbTableToMrendObject.ordemField;
-
-                if (coluna.config.sourceTable) {
-
-                    linhaRecord.sourceTable = coluna.config.sourceTable;
-                    linhaRecord.sourceKey = coluna.config.sourceKey;
-                    linhaRecord.sourceKeyValue = linha.rowid;
-                }
-
-
             }
 
 
-            GNewRecords.push(linhaRecord);
+            globalThis.GNewRecords.push(linhaRecord);
         }
 
 
@@ -3240,7 +3232,6 @@ function Mrend(options) {
 
         if (globalThis.GNewRecords.length > 0) {
             addBulkData(globalThis.db, globalThis.tableSourceName, globalThis.GNewRecords).then(function (data) {
-                console.log("NEW ROWS INSERTED", data);
                 globalThis.GNewRecords = []
 
                 globalThis.GCellObjectsConfig = globalThis.GCellObjectsConfig.concat(globalThis.TMPCellObjectCOnfig);
@@ -3294,7 +3285,6 @@ function Mrend(options) {
 
     function numberFormatCustomEditor(cell, onRendered, success, cancel, editorParams) {
 
-        console.log("editor params", editorParams)
         var input = document.createElement("input");
         input.type = "text";
         input.style.width = "100%";
@@ -3353,16 +3343,17 @@ function Mrend(options) {
     }
 
     function handleEditor(coluna) {
-        if (coluna.config.tipo === "digit") {
+        if (coluna.config.tipo === "digit" && !coluna.config.colfunc) {
             return {
                 editor: numberFormatCustomEditor,
                 editorParams: { colunaConfig: coluna.config }
             };
         }
-        if (coluna.config.tipo === "text") {
+        if (coluna.config.tipo === "text" && !coluna.config.colfunc) {
             return { editor: "input" };
         }
-        if (coluna.config.tipo === "table") {
+
+        if (coluna.config.tipo === "table" && !coluna.config.colfunc) {
             var values = (coluna.localData || []).map(function (item) {
                 return {
                     value: item[coluna.config.valtb],
@@ -3382,7 +3373,11 @@ function Mrend(options) {
                 }
             };
         }
-        return {};
+
+        if (coluna.config.colfunc) {
+            return {}
+        }
+        return { editor: "input" };
     }
 
 
@@ -3424,11 +3419,11 @@ function Mrend(options) {
                     var expressionResult = eval(expression);
                     expressionResult = expressionResult == "Infinity" || expressionResult == "-Infinity" || expressionResult == Infinity || isNaN(expressionResult) ? 0 : expressionResult;
 
-                    var rowupdated={}
+                    var rowupdated = {}
                     rowupdated[renderedColuna.codigocoluna] = expressionResult;
                     rowupdated.rowid = rowData.rowid;
 
-                  
+
 
                     updateCellObjectConfig(renderedColuna.codigocoluna, rowupdated);
 
@@ -3449,10 +3444,51 @@ function Mrend(options) {
 
         if (cellObjectConfig) {
 
-            console.log("Updating cellObjectConfig for coluna:", coluna, "with valor:", rowData[coluna]);
             cellObjectConfig.valor = rowData[coluna];
         }
     }
+
+
+    function deleteRowById(rowid) {
+
+        var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+            return linha.rowid == rowid;
+        });
+
+        if (renderedLinha) {
+
+            renderedLinha.deleteRow();
+        }
+    }
+
+    function addLinhaFilha(rowid) {
+
+        var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+            return linha.rowid == rowid;
+        });
+
+        var renderedFilha = null;
+        if (!renderedLinha) {
+
+            throw new Error("Linha com rowid " + rowid + " não encontrada.");
+
+
+        }
+        renderedFilha = renderedLinha.addLinhaFilha();
+
+
+        return renderedFilha;
+
+    }
+
+    function deleteRowAndChildren(row) {
+        var children = row.getTreeChildren();
+        children.forEach(function (child) {
+            deleteRowAndChildren(child); // Chamada recursiva para remover subfilhos
+        });
+        row.delete();
+    }
+
 
     function RenderSourceTable() {
 
@@ -3481,15 +3517,12 @@ function Mrend(options) {
                     var target = e.target;
 
                     if (target.classList.contains("add-child")) {
-                        var newId = Math.floor(Math.random() * 1000000);
-                        row.addTreeChild({
-                            id: newId,
-                            quantidade: 1,
-                            preco: 0,
-                            referencia: "ref1",
-                            precovenda: 0
-                        });
+
+                        var addFilhaResult = addLinhaFilha(row.getData().rowid);
+                        row.addTreeChild(addFilhaResult.UIObject);
                         row.treeExpand();
+                        applyTabulatorStylesWithJquery();
+
                     }
 
                     if (target.classList.contains("remove-row")) {
@@ -3498,14 +3531,14 @@ function Mrend(options) {
 
                         if (children.length > 0) {
                             if (confirm("Esta linha tem filhos. Deseja remover tudo?")) {
-                                children.forEach(function (child) {
-                                    child.delete();
-                                });
-                                row.delete();
+                                deleteRowAndChildren(row);
                             }
                         } else {
                             row.delete();
                         }
+
+                        deleteRowById(row.getData().rowid);
+
                     }
                 }
             }
@@ -3571,19 +3604,17 @@ function Mrend(options) {
 
         });
 
-        $("#add-main-row").on("click", function () {
-            var newRow = {
-                id: Date.now(),
-                quantidade: 1,
-                preco: 0,
-                referencia: "ref1",
-                precovenda: 0,
-                _children: []
-            };
-            globalThis.GTable.addRow(newRow, false).then(function (row) {
-                row.treeExpand();
-            });
+
+        globalThis.GTable.on("dataTreeRowExpanded", function (row, level) {
+            applyTabulatorStylesWithJquery();
         });
+
+
+        globalThis.GTable.on("dataTreeRowCollapsed", function (row, level) {
+
+            applyTabulatorStylesWithJquery();
+        });
+
 
 
 
@@ -3597,6 +3628,7 @@ function Mrend(options) {
             applyTabulatorStylesWithJquery();
         }, 500); // Atraso para garantir que o Tabulator é renderizado após a adição de novas linhas
 
+        generateTableButtons();
     }
 
     function generateTableStructure(table) {
@@ -3731,12 +3763,13 @@ function Mrend(options) {
                     }
                     );
 
+
                     setSingularLinha(distinctRow, linhaRecords, linhModelo, renderedLinhas, linhasFilhas.length > 0);
                     var distinctRowFilhas = _.uniqBy(linhasFilhas, "rowid");
 
                     distinctRowFilhas.forEach(function (filha) {
 
-                        setSingularLinha(filha, linhaRecords, linhModelo, renderedLinhas, false);
+                        setSingularLinha(filha, linhaRecords, linhModelo, renderedLinhas, true);
                     });
 
 
@@ -3748,8 +3781,13 @@ function Mrend(options) {
             else {
 
                 var linha = new Linha(linhModelo);
-                var rendered = new RenderedLinha({ novoregisto: true, rowid: generateUUID(), linkid: "", parentid: "", config: linha });
-                rendered.addToLocalRenderedLinhasList([], "", {}, false);
+                var rowid = generateUUID();
+                var UIObject = {
+                    rowid: rowid,
+                    id: rowid
+                }
+                var rendered = new RenderedLinha({ novoregisto: true, rowid: rowid, linkid: "", parentid: "", config: linha, UIObject: UIObject });
+                rendered.addToLocalRenderedLinhasList([], "", {}, false, true);
                 renderedLinhas.push(rendered)
             }
 
@@ -3769,7 +3807,6 @@ function Mrend(options) {
 
         globalThis.GGridData = tmpGrData;
 
-        console.log("GGridData", globalThis.GGridData)
 
         return renderedLinhas;
 
@@ -3794,6 +3831,7 @@ function Mrend(options) {
             id: distinctRow.rowid
         }
 
+
         var linha = new Linha(linhModelo);
 
 
@@ -3804,7 +3842,7 @@ function Mrend(options) {
             return rec.rowid == distinctRow.rowid
         }
         );
-        rendered.addToLocalRenderedLinhasList(recFlt, distinctRow, true);
+        rendered.addToLocalRenderedLinhasList(recFlt, distinctRow, true, true);
     }
 
     function RenderHandler(records) {
@@ -4047,6 +4085,102 @@ function Mrend(options) {
     }
 
 
+    function addLinhaByModelo(modelo) {
+
+
+        var linhaModelo = globalThis.reportConfig.config.linhas.find(function (linha) {
+
+            return linha.codigo == modelo
+        });
+
+        var renderedLinha
+        if (linhaModelo) {
+
+
+            renderedLinha = new RenderedLinha({ novoregisto: true, rowid: generateUUID(), linkid: "", parentid: "", config: linhaModelo })
+
+            renderedLinha.UIObject = {
+                rowid: renderedLinha.rowid,
+                id: renderedLinha.rowid
+            };
+
+
+            renderedLinha.addToLocalRenderedLinhasList([], "", {}, true, true);
+
+
+
+
+        }
+
+        addNewRecords();
+
+
+        return renderedLinha;
+
+
+    }
+    function generateTableButtons() {
+
+        if (globalThis.reportConfig.config.relatorio.adicionalinha) {
+
+            var tableButtons = $("<div id='tableButtons' class='col-md-12 pull-left tableButtons'></div>");
+            $(globalThis.containerToRender).after(tableButtons);
+
+            globalThis.reportConfig.config.relatorio.modelos.forEach(function (modelo) {
+
+
+                var botaoId = "btnAdd" + modelo;
+                var configuracaoLinha = globalThis.reportConfig.config.linhas.find(function (linha) {
+                    return linha.codigo == modelo
+
+                });
+                var descbtnModelo = "Adiciona linha";
+
+                if (configuracaoLinha) {
+                    descbtnModelo = configuracaoLinha.descbtnModelo || "Adiciona linha";
+                }
+                var botaoAdLinha = {
+                    style: "margin-left:0.4em",
+                    buttonId: botaoId,
+                    classes: "btn btn-primary btn-sm",
+                    customData: " type='button' data-modelo='" + modelo + "' data-tooltip='true' data-original-title='" + descbtnModelo + "' ",
+                    label: descbtnModelo + " <span style='color:white;'  class='glyphicon glyphicon-plus'></span>",
+                    onClick: "",
+                };
+
+                var buttonHtml = generateButton(botaoAdLinha);
+
+                $("#tableButtons").append(buttonHtml);
+                $("#" + botaoId).on("click", function () {
+                    var modelo = $(this).data("modelo");
+
+
+
+                    var linhaByModeloResult = addLinhaByModelo(modelo);
+
+                    // console.log("Linha adicionada por modelo", linhaByModeloResult)
+                    globalThis.GTable.addRow(linhaByModeloResult.UIObject, false).then(function (row) {
+                        row.treeExpand();
+                        applyTabulatorStylesWithJquery();
+
+                    });
+
+
+                    //   thisTable.addLinhaByModelo(modelo);
+                });
+
+                ///console.log("Confirma adicao da linha", $("#" + this.tableId))
+
+
+            })
+
+
+
+
+        }
+    }
+
+
     this.render = function () {
 
         return InitDB(globalThis.datasourceName, globalThis.schemas).then(function (initDBResult) {
@@ -4059,7 +4193,7 @@ function Mrend(options) {
 
             })
 
-        })
+        });
 
     }
 
