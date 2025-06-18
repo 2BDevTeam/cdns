@@ -16,6 +16,7 @@ function Mrend(options) {
     this.GRenderedLinhas = [new RenderedLinha({})];
     this.GGridData = []
     this.GContainerToRender = "#campos > .row:last";
+    this.GTMPFilhas = [];
     this.GRenderedLinhas = [];
     this.GRenderedColunas = [];
     this.GBatchSize = 30;
@@ -29,7 +30,8 @@ function Mrend(options) {
     this.db = undefined;
     this.db = undefined;
     this.GNewRecords = [];
-
+    this.enableEdit = options.enableEdit || false;
+    this.resetSourceStamp = options.resetSourceStamp || false;
     this.datasourceName = options.datasourceName || "";
     this.schemas = Array.isArray(options.schemas) ? options.schemas.map(function (s) { return new MrendSchema(s); }) : [];
     this.containerToRender = options.containerToRender || "";
@@ -75,6 +77,7 @@ function Mrend(options) {
         this.linkfield = data.linkfield || "";
         this.cellIdField = data.cellIdField || "";
         this.colunaField = data.colunaField || "";
+        this.linhaField = data.linhaField || "";
     }
 
     // Classe para reportConfig
@@ -120,6 +123,7 @@ function Mrend(options) {
         this.ordemField = data.ordemField || "";
         this.cellIdField = data.cellIdField || "";
         this.colunaField = data.colunaField || "";
+        this.linhaField = data.linhaField || "";
         this.ordem = data.ordem || 0;
 
     }
@@ -987,6 +991,10 @@ function Mrend(options) {
 
                     globalThis.GCellObjectsConfig = globalThis.GCellObjectsConfig.filter(function (cellObject) {
                         return cellObject.rowid != rowId
+                    });
+
+                    globalThis.GRenderedLinhas = globalThis.GRenderedLinhas.filter(function (linha) {
+                        return linha.rowid != rowId
                     })
 
                     resolve("Linha removida com sucesso.");
@@ -1006,18 +1014,18 @@ function Mrend(options) {
         globalThis.GRenderedLinhas.push(this);
 
         if (renderCelula) {
-
             var recFlt = linhaRecords.filter(function (rec) {
                 return rec.rowid == distinctRow.rowid
             }
             );
             setLinha(this, "", recFlt);
 
+            var self = this;
             if (this.linkid && setChildren == true) {
 
-                var self = this;
+
                 var parentLinha = globalThis.GRenderedLinhas.find(function (linha) {
-                    return linha.rowid == self.linkid
+                    return linha.rowid.trim() == self.linkid.trim()
                 });
 
 
@@ -1989,7 +1997,9 @@ function Mrend(options) {
                 tableRow[source.sourceKey] = row.sourceKeyValue
                 tableRow[source.linkfield] = row.linkid || "";
                 tableRow[source.ordemField] = row.ordem || 0;
-
+                tableRow[source.cellIdField] = row.cellId || "";
+                tableRow[source.linhaField] = row.codigolinha || "";
+                tableRow[source.colunaField] = row.codigocoluna || "";
 
 
                 tableData.push(tableRow)
@@ -2008,12 +2018,12 @@ function Mrend(options) {
         })
 
 
+
         return sources;
 
     }
 
     function ConvertDbTableToMrendObject(data, MrendConversionConfig) {
-        console.log("ConvertDbTableToMrendObject", MrendConversionConfig)
         if (!data[0]) {
 
             return []
@@ -2041,13 +2051,19 @@ function Mrend(options) {
                     mrendObject.rowid = rowid;
                     mrendObject.codigolinha = MrendConversionConfig.table;
                     mrendObject.cellId = key + "COLUNA___LINHA" + rowid.trim();
-                    mrendObject.ordemField = MrendConversionConfig.ordemField;
+                    mrendObject.ordemField = MrendConversionConfig.extras.ordemField;
 
-                    mrendObject.ordem = record[MrendConversionConfig.ordemField] || 0;
+
+                    console.log("MrendConversionConfig", MrendConversionConfig.ordemField)
+
+
+
+                    mrendObject.ordem = record[MrendConversionConfig.extras.ordemField] || 0;
 
                     mrendObject.sourceTable = MrendConversionConfig.table
                     mrendObject.sourceKey = MrendConversionConfig.tableKey;
                     mrendObject.sourceKeyValue = record[MrendConversionConfig.tableKey];
+                    mrendObject.codigocoluna = configCol.codigocoluna;
 
                     if (configCol.sourceTable) {
                         mrendObject.sourceTable = configCol.sourceTable;
@@ -2064,6 +2080,22 @@ function Mrend(options) {
 
                             mrendObject.linkid = record[MrendConversionConfig.extras.linkfield];
                             mrendObject.linkfield = MrendConversionConfig.extras.linkfield;
+                            mrendObject.colunaField = MrendConversionConfig.extras.colunaField;
+                            mrendObject.linhaField = MrendConversionConfig.extras.linhaField;
+                            mrendObject.cellIdField = MrendConversionConfig.extras.cellIdField;
+
+
+
+
+
+
+                            if (record[MrendConversionConfig.extras.linhaField]) {
+
+                                mrendObject.codigolinha = record[MrendConversionConfig.extras.linhaField].trim();
+                            }
+
+                           
+
                         }
                     }
 
@@ -2537,7 +2569,7 @@ function Mrend(options) {
 
 
 
-    function setLinhaModeloOuSingular(linh, parentid, records) {
+    function setLinhaToRender(linh, parentid, records) {
 
         var linha = linh;
         linha.parentid = parentid;
@@ -2660,28 +2692,9 @@ function Mrend(options) {
 
     function setLinha(linh, parentid, records) {
 
+        //Colocou-se uma função dentro de outra para que no futuro seja possível adicionar mais tipos de linhas
 
-        switch (linh.config.tipo) {
-            case "Grupo":
-            case "Subgrupo":
-
-                return setLinhaGrupoAndSubgrupo(linh, parentid, records)
-
-            case "Singular":
-                return setLinhaModeloOuSingular(linh, parentid, records);
-
-            case "Total":
-                return setLinhaTotal(linh);
-
-
-            default:
-                throw new Error("TIPO DE LINHA NÃO RECONHECIDO PARA GERAÇÃO.");
-        }
-
-
-
-
-
+        return setLinhaToRender(linh, parentid, records);
 
     }
 
@@ -2759,7 +2772,10 @@ function Mrend(options) {
         var linhaFilterKey = "rowid";
 
 
-        linhaRecord = records[0]
+
+        linhaRecord = records[0];
+
+
 
         var cellId = null;
         var novoRegisto = false;
@@ -2809,17 +2825,13 @@ function Mrend(options) {
 
         if (novoRegisto) {
 
+
+            //console.log("Novo registo", linhaRecord, cellObjectConfig)
             linhaRecord.cellId = cellId;
             linhaRecord[coluna.config.campo] = cellValue;
             linhaRecord.coluna = coluna.codigocoluna
-
-
-            if (linha.config.tipo == "Singular") {
-                linhaRecord.rowid = linha.rowid;
-                linhaRecord.codigolinha = linha.config.codigo;
-            }
-
-
+            linhaRecord.rowid = linha.rowid;
+            linhaRecord.codigolinha = linha.config.codigo;
             linhaRecord.campo = coluna.config.campo;
             linhaRecord.linkid = linha.linkid;
             linhaRecord.linkfield = globalThis.dbTableToMrendObject.extras.linkfield;
@@ -2870,81 +2882,6 @@ function Mrend(options) {
 
     }
 
-
-
-    function fetchFromSource(tableName, codigo, registo, db, dbTableToMrendObject) {
-
-
-
-        return new Promise(function (resolve, reject) {
-
-            getDataFromRemote(codigo, registo)
-                .then(function (response) {
-
-                    if (dbTableToMrendObject) {
-
-                        if (dbTableToMrendObject.convert == true) {
-
-                            var dbConverstion = ConvertDbTableToMrendObject(response.data, dbTableToMrendObject);
-
-                            response.data = dbConverstion
-                        }
-
-                    }
-
-                    if (response.cod != "0000") {
-                        reject(response)
-                    }
-
-                    if (getState() == "consultar") {
-
-                        if (response.data.length > 0) {
-                            deleteAllRecords(tableName).then(function (data) {
-                                addBulkData(db, tableName, response.data)
-                                resolve({ novoRegisto: false, response: response, records: response.data });
-                            })
-                        }
-                        else {
-                            resolve({ novoRegisto: true, response: response, records: response.data });
-                        }
-                    }
-
-
-
-                    if (getState() != "consultar") {
-
-
-                        if (registo.trim() != getSourceStamp().trim()) {
-
-                            storeDataSourceStamp(registo)
-                            //  storeNota(getNotaData().nota)
-                            deleteAllRecords(tableName).then(function (data) {
-
-                                if (response.data.length > 0) {
-                                    addBulkData(db, tableName, response.data)
-
-                                    resolve({ novoRegisto: false, response: response, records: response.data });
-                                }
-
-                                else {
-                                    resolve({ novoRegisto: true, response: response, records: [] });
-                                }
-                            })
-
-                        }
-
-                        else {
-                            resolve({ novoRegisto: false, response: null, records: response.data });
-                        }
-                    }
-
-                })
-                .catch(function (error) {
-                    reject(error);
-                });
-
-        });
-    }
 
 
     function getState() {
@@ -3343,6 +3280,10 @@ function Mrend(options) {
     }
 
     function handleEditor(coluna) {
+
+        if (!globalThis.enableEdit) {
+            return {};
+        }
         if (coluna.config.tipo === "digit" && !coluna.config.colfunc) {
             return {
                 editor: numberFormatCustomEditor,
@@ -3487,13 +3428,14 @@ function Mrend(options) {
             deleteRowAndChildren(child); // Chamada recursiva para remover subfilhos
         });
         row.delete();
+        deleteRowById(row.getData().rowid);
     }
 
 
     function RenderSourceTable() {
 
 
-        // addNewRecords()
+        addNewRecords()
 
         globalThis.GCellObjectsConfig = globalThis.GCellObjectsConfig.concat(globalThis.TMPCellObjectCOnfig);
 
@@ -3507,7 +3449,40 @@ function Mrend(options) {
             {
                 title: "Ações",
                 formatter: function (cell, formatterParams) {
-                    return "<i style='color:#0765b7' class='fa fa-plus-circle action-btn add-child' title='Adicionar Filho'></i><i style='color:#d9534f!important;' class='fa fa-trash action-btn remove-row' title='Remover Linha'></i> ";
+
+                    var rowData = cell.getRow().getData()
+
+                    var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+
+                        return linha.rowid == rowData.rowid;
+                    });
+
+                    if (!renderedLinha) {
+
+                        throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
+                    }
+
+
+                    if (!globalThis.enableEdit) {
+                        return "";
+                    }
+
+                    var botãoAddFilho = ""
+                    var botaoRemover = "";
+
+                    if (renderedLinha.config.addfilho) {
+
+                        botãoAddFilho = "<i style='color:#0765b7' class='fa fa-plus-circle action-btn add-child' title='Adicionar Filho'></i>"
+                    }
+
+                    if (renderedLinha.config.modelo) {
+
+                        botaoRemover = "<i style='color:#d9534f!important;' class='fa fa-trash action-btn remove-row' title='Remover Linha'></i> "
+                    }
+
+                    var globalBotoes = botãoAddFilho + botaoRemover;
+
+                    return globalBotoes;
                 },
                 width: 110,
                 hozAlign: "center",
@@ -3577,7 +3552,7 @@ function Mrend(options) {
             dataTreeStartExpanded: true,
             dataTreeChildIndent: 15,
             popupContainer: "body",
-            layout: "fitData",
+            layout: "fitDataFill",
             rowFormatter: function (row) {
 
                 var data = row.getData();
@@ -3616,17 +3591,59 @@ function Mrend(options) {
         });
 
 
-
-
-        setTimeout(function () {
+        function setTabulatorStyle() {
+            var $style = $("<style></style>");
+            var styleCss = "";
+            styleCss += ".tabulator { background-color: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); border: none; }";
+            styleCss += ".tabulator .tabulator-header { background-color: #0765b7!important; border-bottom: none; border-radius: 10px 10px 0 0; padding:3px}";
+            styleCss += ".tabulator .tabulator-header .tabulator-col { background-color: #0765b7; color: white; border-right: none; padding: 12px 15px; font-weight: 500; }";
+            styleCss += ".tabulator .tabulator-header .tabulator-col:first-child { border-top-left-radius: 10px; }";
+            styleCss += ".tabulator .tabulator-header .tabulator-col:last-child { border-top-right-radius: 10px; }";
+            styleCss += ".tabulator-row { border-bottom: 1px solid #e0e6ed; transition: background-color 0.2s ease; }";
+            styleCss += ".tabulator-row.tabulator-row-even { background-color: #fcfdfe; }";
+            styleCss += ".tabulator-row:hover { background-color: #f5f9ff !important; }";
+            styleCss += ".tabulator-cell { padding: 12px 15px; border-right: none; }";
+            styleCss += ".btn-add { margin: 0 0 15px 0; padding: 10px 18px; background-color: #0765b7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(7, 101, 183, 0.2); }";
+            styleCss += ".btn-add:hover { background-color: #06539e; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(7, 101, 183, 0.3); }";
+            styleCss += ".btn-add i { margin-right: 6px; }";
+            styleCss += ".action-btn { background: none; border: none; color: #5a8de6; cursor: pointer; font-size: 15px; margin: 0 5px; transition: all 0.2s ease; }";
+            styleCss += ".action-btn:hover { color: #0765b7; transform: scale(1.1); }";
+            styleCss += ".tabulator-row .tabulator-cell.tabulator-tree-col { padding-left: 15px; }";
+            styleCss += ".tabulator-tree-branch { border-left: 2px solid #d1e3ff; margin-left: calc(15px / 2); }";
+            styleCss += ".tabulator-tree-level-1 .tabulator-cell.tabulator-tree-col { padding-left: calc(15px * 2); }";
+            styleCss += ".tabulator-tree-level-2 .tabulator-cell.tabulator-tree-col { padding-left: calc(15px * 3); }";
+            styleCss += ".tabulator-tree-level-3 .tabulator-cell.tabulator-tree-col { padding-left: calc(15px * 4); }";
+            styleCss += ".tabulator-row .tabulator-cell .tabulator-data-tree-control { align-items: center; background: rgb(255 255 255 / 10%); border: 1px solid #2975dd; border-radius: 2px; display: inline-flex; height: 11px; justify-content: center; margin-right: 5px; overflow: hidden; vertical-align: middle; width: 11px; }";
+            styleCss += ".tabulator-tree-collapse, .tabulator-tree-expand { color: #0765b7; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; margin-right: 8px; transition: all 0.2s ease; }";
+            styleCss += ".tabulator-tree-collapse:hover, .tabulator-tree-expand:hover { background-color: rgba(7, 101, 183, 0.1); }";
+            styleCss += ".tabulator-edit-list { z-index: 9999 !important; position: absolute !important; border-radius: 6px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); border: 1px solid #e0e6ed; }";
+            styleCss += ".tabulator-edit-list .tabulator-edit-list-item { padding: 8px 15px; }";
+            styleCss += ".tabulator-edit-list .tabulator-edit-list-item.active { background-color: rgba(7, 101, 183, 0.1); color: #0765b7; }";
+            styleCss += "::-webkit-scrollbar { width: 6px; height: 6px; }";
+            styleCss += "::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }";
+            styleCss += "::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }";
+            styleCss += "::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }";
+            $style.text(styleCss);
+            $("head").append($style);
+        }
+        var tableBuiltEvent = function (data) {
 
             applyTabulatorStylesWithJquery();
-        }, 100); // Atraso para garantir que o Tabulator é renderizado após a adição de novas linhas
+
+            /* setInterval(function () {
+              //   applyTabulatorStylesWithJquery();
+             }, 1000);*/
+        }
+
+
+
+        globalThis.GTable.on("tableBuilt", tableBuiltEvent);
 
         setTimeout(function () {
-
             applyTabulatorStylesWithJquery();
-        }, 500); // Atraso para garantir que o Tabulator é renderizado após a adição de novas linhas
+        }, 500);
+
+
 
         generateTableButtons();
     }
@@ -3721,6 +3738,7 @@ function Mrend(options) {
     function getRenderedLinhas(records) {
 
 
+
         var renderedLinhas = [new RenderedLinha({})];
         renderedLinhas = [];
         var notExistLinhas = [new Linha({})]
@@ -3729,23 +3747,24 @@ function Mrend(options) {
 
 
 
-        var linhaModelo = globalThis.reportConfig.config.linhas.filter(function (linha) {
+        var linhasToRender = globalThis.reportConfig.config.linhas;
 
-            return linha.tipo == "Singular"
+        linhasToRender.sort(function (a, b) {
+            return (a.ordem || 0) - (b.ordem || 0);
         });
 
-        linhaModelo.forEach(function (linhModelo) {
+
+        linhasToRender.forEach(function (linhaToRender) {
 
             var recordData = records.find(function (record) {
 
-                return record.codigolinha == linhModelo.codigo
+                return record.codigolinha == linhaToRender.codigo
             });
-
 
             if (recordData) {
 
                 var linhaRecords = records.filter(function (record) {
-                    return record.codigolinha == linhModelo.codigo
+                    return record.codigolinha == linhaToRender.codigo
                 }
                 );
 
@@ -3764,14 +3783,13 @@ function Mrend(options) {
                     );
 
 
-                    setSingularLinha(distinctRow, linhaRecords, linhModelo, renderedLinhas, linhasFilhas.length > 0);
+                    addLinha(distinctRow, linhaRecords, linhaToRender, renderedLinhas, linhasFilhas.length > 0, true);
                     var distinctRowFilhas = _.uniqBy(linhasFilhas, "rowid");
 
                     distinctRowFilhas.forEach(function (filha) {
 
-                        setSingularLinha(filha, linhaRecords, linhModelo, renderedLinhas, true);
+                        addLinha(filha, linhaRecords, linhaToRender, renderedLinhas, true, true);
                     });
-
 
 
                 });
@@ -3780,15 +3798,41 @@ function Mrend(options) {
             }
             else {
 
-                var linha = new Linha(linhModelo);
-                var rowid = generateUUID();
-                var UIObject = {
-                    rowid: rowid,
-                    id: rowid
+                var isFilhaRendered = globalThis.GTMPFilhas.find(function (filha) {
+
+                    return filha.codigo.trim() == linhaToRender.codigo.trim();
+                });
+
+                if (!isFilhaRendered) {
+
+                    var rowid = generateUUID();
+                    var dstRow = {
+                        rowid: rowid,
+                        linkid: ""
+                    }
+
+                    var linhasFilhas = [];
+
+                    linhasFilhas = globalThis.reportConfig.config.linhas.filter(function (linha) {
+                        return linha.linkstamp == linhaToRender.linhastamp
+                    });
+
+
+
+                    linhasFilhas.sort(function (a, b) {
+                        return (a.ordem || 0) - (b.ordem || 0);
+                    });
+
+                    addLinha(dstRow, records, linhaToRender, renderedLinhas, linhasFilhas.length > 0, linhaToRender.modelo != true);
+
+                    if (linhasFilhas.length > 0) {
+                        processFilhasRecursivo(linhaToRender, dstRow.rowid, renderedLinhas);
+                    }
+
+
                 }
-                var rendered = new RenderedLinha({ novoregisto: true, rowid: rowid, linkid: "", parentid: "", config: linha, UIObject: UIObject });
-                rendered.addToLocalRenderedLinhasList([], "", {}, false, true);
-                renderedLinhas.push(rendered)
+
+
             }
 
         })
@@ -3799,13 +3843,17 @@ function Mrend(options) {
         var tmpGrData = []
         globalThis.GGridData = globalThis.GRenderedLinhas.map(function (lin) {
 
-            if (!lin.linkid) {
+            var someCellObjectConfig = globalThis.GCellObjectsConfig.find(function (cellObj) {
+                return cellObj.rowid == lin.rowid
+            })
+            if (!lin.linkid && someCellObjectConfig) {
 
                 tmpGrData.push(lin.UIObject);
             }
         });
 
         globalThis.GGridData = tmpGrData;
+        globalThis.GTMPFilhas = []
 
 
         return renderedLinhas;
@@ -3813,9 +3861,30 @@ function Mrend(options) {
     }
 
 
+    function processFilhasRecursivo(linhaPai, rowidPai, renderedLinhas) {
+        var linhasFilhas = globalThis.reportConfig.config.linhas.filter(function (linha) {
+            return linha.linkstamp == linhaPai.linhastamp;
+        });
+
+        linhasFilhas.forEach(function (linhaFilha) {
+            var rowidFilha = generateUUID();
+            var dstRowFilha = {
+                rowid: rowidFilha,
+                linkid: rowidPai
+            };
+
+            addLinha(dstRowFilha, [], linhaFilha, renderedLinhas, true, linhaFilha.modelo != true);
+            globalThis.GTMPFilhas.push(linhaFilha);
+            processFilhasRecursivo(linhaFilha, rowidFilha, renderedLinhas);
 
 
-    function setSingularLinha(distinctRow, linhaRecords, linhModelo, renderedLinhas, isParent) {
+
+
+        });
+    }
+
+
+    function addLinha(distinctRow, linhaRecords, linhModelo, renderedLinhas, isParent, renderCelula) {
 
         var linhaAdicionada = globalThis.GRenderedLinhas.find(function (linha) {
             return linha.rowid == distinctRow.rowid
@@ -3835,14 +3904,47 @@ function Mrend(options) {
         var linha = new Linha(linhModelo);
 
 
+
+
         var rendered = new RenderedLinha({ novoregisto: false, isParent: isParent, rowid: distinctRow.rowid, linkid: distinctRow.linkid, parentid: "", config: linha, UIObject: UIObject });
+
+
+
+
+        if (!rendered.linkid && linha.linkstamp) {
+
+            var configuracaoLinha = globalThis.reportConfig.config.linhas.find(function (linhaC) {
+                return linhaC.linhastamp == linha.linkstamp
+
+            });
+
+            if (configuracaoLinha) {
+
+
+                console.log("Linha sem linkid encontrada, atribuindo linkid:", distinctRow.linkid);
+                var findOnRecordsResult = linhaRecords.find(function (rec) {
+                    return rec.codigolinha == configuracaoLinha.codigo
+                });
+
+                if (findOnRecordsResult) {
+                    console.log("findOnRecordsResult", findOnRecordsResult);
+                    rendered.linkid = findOnRecordsResult.rowid;
+                    distinctRow.linkid = findOnRecordsResult.rowid;
+                }
+
+            }
+
+
+        }
+
+
         renderedLinhas.push(rendered);
 
         var recFlt = linhaRecords.filter(function (rec) {
             return rec.rowid == distinctRow.rowid
         }
         );
-        rendered.addToLocalRenderedLinhasList(recFlt, distinctRow, true, true);
+        rendered.addToLocalRenderedLinhasList(recFlt, distinctRow, renderCelula, true);
     }
 
     function RenderHandler(records) {
@@ -4040,16 +4142,18 @@ function Mrend(options) {
             return databaseAndTableHasRecords(globalThis.db, globalThis.tableSourceName)
                 .then(function (result) {
                     // Se stamp bateu e TEM dados locais, retorna sem refetch
-
-                    if (stampAtual === stampArmazenado && result.exists && Array.isArray(result.data) && result.data.length > 0) {
-                        globalThis.records = result.data;
-                        return resolve({ refetchDb: false, records: result.data });
+                    //if (stampAtual === stampArmazenado && result.exists && Array.isArray(result.data) && result.data.length > 0) {
+                    if (stampAtual === stampArmazenado) {
+                        globalThis.records = result.data || [];
+                        return resolve({ refetchDb: false, records: result.data || [] });
                     }
 
                     storeDataSourceStamp(globalThis.recordData.stamp);
+
                     console.log("Source stamp updated or local DB empty, refetching data...", globalThis.recordData.stamp, stampArmazenado);
 
                     if (globalThis.remoteFetch === true) {
+
                         return getDataFromRemote()
                             .then(function (remoteData) {
 
@@ -4069,8 +4173,8 @@ function Mrend(options) {
                 if (result.refetchDb) {
                     return deleteAllRecords(globalThis.table).then(function (data) {
                         var dbConverstion = ConvertDbTableToMrendObject(globalThis.records, globalThis.dbTableToMrendObject);
+                        globalThis.records = dbConverstion;
                         return addBulkData(globalThis.db, globalThis.table, dbConverstion).then(function (data) {
-                            console.log("Records refetched for DB....");
                             return resolve(result);
                         })
                     })
@@ -4082,6 +4186,7 @@ function Mrend(options) {
     this.clearSourceStamp = function () {
 
         localStorage.removeItem("sourcestamp" + globalThis.tableSourceName);
+
     }
 
 
@@ -4121,6 +4226,9 @@ function Mrend(options) {
     }
     function generateTableButtons() {
 
+        if (!globalThis.enableEdit) {
+            return;
+        }
         if (globalThis.reportConfig.config.relatorio.adicionalinha) {
 
             var tableButtons = $("<div id='tableButtons' class='col-md-12 pull-left tableButtons'></div>");
@@ -4185,12 +4293,29 @@ function Mrend(options) {
 
         return InitDB(globalThis.datasourceName, globalThis.schemas).then(function (initDBResult) {
 
+            if (globalThis.resetSourceStamp) {
+                globalThis.clearSourceStamp();
+            }
             handleReportRecords().then(function (reportRecordResult) {
 
                 RenderHandler(globalThis.records)
 
 
 
+            })
+
+        });
+
+    }
+
+    this.getDbData = function () {
+
+        return new Promise(function (resolve, reject) {
+            globalThis.db[globalThis.tableSourceName].toArray().then(function (records) {
+
+                var recordsConverted = ConvertMrendObjectToTable(records)
+
+                resolve(recordsConverted);
             })
 
         });
@@ -4225,7 +4350,8 @@ function applyTabulatorStylesWithJquery() {
     $(".tabulator .tabulator-header").css({
         "background-color": "#0765b7",
         "border-bottom": "none",
-        "border-radius": "10px 10px 0 0"
+        "border-radius": "10px 10px 0 0",
+        "padding": "13px"
     });
 
     // Header columns
@@ -4233,7 +4359,7 @@ function applyTabulatorStylesWithJquery() {
         "background-color": "#0765b7",
         "color": "white",
         "border-right": "none",
-        "padding": "12px 15px",
+        /*  "padding": "12px 15px",*/
         "font-weight": "500"
     });
 
@@ -4372,7 +4498,7 @@ function applyTabulatorStylesWithJquery() {
     });
 
     // Scrollbar (apenas para webkit browsers)
-    $("body").append('<style>::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; } ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }</style>');
+    // $("body").append('<style>::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; } ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }</style>');
 }
 
 

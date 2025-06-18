@@ -2644,8 +2644,7 @@ function ConvertMrendObjectToTable(records) {
 
     var distinctSources = getDistinctWithKeys(records, "sourceTable");
 
-
-
+    
     var sources = []
 
     distinctSources.forEach(function (source) {
