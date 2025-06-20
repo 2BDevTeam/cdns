@@ -3571,7 +3571,7 @@ function Mrend(options) {
             data: globalThis.GGridData,
             dataTree: true,
             dataTreeStartExpanded: true,
-            dataTreeChildIndent: 15,
+            dataTreeChildIndent: 25,
             popupContainer: "body",
             layout: "fitDataFill",
             rowFormatter: function (row) {
