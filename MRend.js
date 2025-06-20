@@ -14,6 +14,7 @@ function Mrend(options) {
     this.GRows = [];
     this.GRenderedColunas = [new RenderedColuna({})];
     this.GRenderedLinhas = [new RenderedLinha({})];
+    this.colunaTmpSetup = new RenderedColuna({}); // Variável temporária para armazenar a coluna que está sendo configurada
     this.GGridData = []
     this.GContainerToRender = "#campos > .row:last";
     this.GTMPFilhas = [];
@@ -72,12 +73,17 @@ function Mrend(options) {
     }
 
     // Classe para extras de dbTableToMrendObject
+
     function DbTableExtras(data) {
         this.ordemField = data.ordemField || "";
-        this.linkfield = data.linkfield || "";
+        this.linkField = data.linkField || "";
         this.cellIdField = data.cellIdField || "";
         this.colunaField = data.colunaField || "";
         this.linhaField = data.linhaField || "";
+        this.descLinhaField = data.descLinhaField || "";
+        this.descColunaField = data.descColunaField || "";
+        this.ordemColunaField = data.ordemColunaField || "";
+
     }
 
     // Classe para reportConfig
@@ -118,12 +124,14 @@ function Mrend(options) {
         this.valor = data.valor || "";
         this.campo = data.campo || "";
         this.linkid = data.linkId || "";
-        this.linkfield = data.linkfield || "";
+        this.linkField = data.linkField || "";
         this.codigolinha = data.codigolinha || "";
         this.ordemField = data.ordemField || "";
         this.cellIdField = data.cellIdField || "";
         this.colunaField = data.colunaField || "";
         this.linhaField = data.linhaField || "";
+        this.ordemColunaField = data.ordemColunaField || "";
+        this.ordemcoluna = data.ordemcoluna || 0;
         this.ordem = data.ordem || 0;
 
     }
@@ -1220,8 +1228,10 @@ function Mrend(options) {
 
     function RenderedColuna(data) {
         this.codigocoluna = data.codigocoluna || "";
+        this.desccoluna = data.desccoluna || "";
         this.config = new Coluna(data.config || {});
         this.tipolistagem = data.tipolistagem || "";
+        this.ordem = data.ordem || 0;
         this.preGen = data.preGen || "";
         this.localData = data.localData || [];
     }
@@ -1492,10 +1502,38 @@ function Mrend(options) {
             var colunaRendered = new Coluna(coluna);
             var renderedColuna = new RenderedColuna({
                 codigocoluna: coluna.codigocoluna,
+                desccoluna: coluna.desccoluna,
+                ordem: coluna.ordem,
                 config: colunaRendered
             });
             renderedColuna.preGenHtml();
             renderedColunas.push(renderedColuna);
+
+        });
+
+        colunas.filter(function (dadosColunaModelo) {
+            return dadosColunaModelo.modelo == true
+        }).forEach(function (coluna) {
+
+
+            var recordsColuna = records.filter(function (record) {
+                return record.coluna.indexOf(coluna.codigocoluna.trim() + "___") > -1;
+            });
+
+            var distinctColunas = getDistinctWithKeys(recordsColuna, "coluna");
+
+            distinctColunas.forEach(function (distinctColuna) {
+                var renderedColuna = new RenderedColuna({
+                    codigocoluna: distinctColuna.coluna,
+                    desccoluna: distinctColuna.descColuna,
+                    ordem: coluna.ordemColuna || 0,
+                    config: coluna
+                });
+
+                renderedColuna.preGenHtml();
+                renderedColunas.push(renderedColuna);
+
+            })
 
         });
 
@@ -1921,36 +1959,15 @@ function Mrend(options) {
                 });
 
                 tableRow[source.sourceKey] = row.sourceKeyValue
-                tableRow[source.linkfield] = row.linkid || "";
+                tableRow[source.linkField] = row.linkid || "";
 
                 setIfSourceFieldExists(tableRow, source, "ordemField", source.ordemField, 0, row, "ordem");
                 setIfSourceFieldExists(tableRow, source, "linhaField", source.linhaField, "", row, "codigolinha");
+                setIfSourceFieldExists(tableRow, source, "descLinhaField", source.descLinhaField, "", row, "descLinha");
+                setIfSourceFieldExists(tableRow, source, "descColunaField", source.descColunaField, "", row, "descColunaField");
+                setIfSourceFieldExists(tableRow, source, "ordemColunaField", source.ordemColunaField, "", row, "ordemcoluna");
                 setIfSourceFieldExists(tableRow, source, "cellIdField", source.cellIdField, "", row, "cellId");
                 setIfSourceFieldExists(tableRow, source, "colunaField", source.colunaField, "", row, "codigocoluna");
-
-                /*
-                if (source.ordemField) {
-
-                    tableRow[source.ordemField] = row.ordem || 0;
-                }
-
-                if (source.linhaField) {
-
-                    tableRow[source.linhaField] = row.codigolinha || "";
-                }
-
-
-
-                if (source.cellIdField) {
-
-                    tableRow[source.cellIdField] = row.cellId || "";
-                }
-
-                if (source.colunaField) {
-
-                    tableRow[source.colunaField] = row.codigocoluna || "";
-                }*/
-
 
 
 
@@ -2010,10 +2027,6 @@ function Mrend(options) {
                     mrendObject.cellId = key + "COLUNA___LINHA" + rowid.trim();
                     mrendObject.ordemField = MrendConversionConfig.extras.ordemField;
 
-
-
-
-
                     mrendObject.ordem = record[MrendConversionConfig.extras.ordemField] || 0;
 
                     mrendObject.sourceTable = MrendConversionConfig.table
@@ -2027,42 +2040,14 @@ function Mrend(options) {
                         mrendObject.sourceKeyValue = record[configCol.sourceKey];
                     }
 
-                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "linkfield", "linkid");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "linkField", "linkid");
                     applyExtraField(mrendObject, record, MrendConversionConfig.extras, "cellIdField", "cellId");
                     applyExtraField(mrendObject, record, MrendConversionConfig.extras, "colunaField", "codigocoluna");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "ordemColunaField", "ordemcoluna");
                     applyExtraField(mrendObject, record, MrendConversionConfig.extras, "linhaField", "codigolinha");
 
 
-                    /*  if (MrendConversionConfig.extras) {
-  
-                          if (MrendConversionConfig.extras.linkfield) {
-  
-                              mrendObject.linkid = record[MrendConversionConfig.extras.linkfield];
-                              mrendObject.linkfield = MrendConversionConfig.extras.linkfield;
-  
-                          }
-  
-                          if (record[MrendConversionConfig.extras.ordemField]) {
-  
-                              mrendObject.ordem = record[MrendConversionConfig.extras.ordemField];
-                          }
-  
-                          if (MrendConversionConfig.extras.cellIdField) {
-                              mrendObject.cellIdField = MrendConversionConfig.extras.cellIdField;
-                              mrendObject.cellId = record[MrendConversionConfig.extras.cellIdField].trim() ? record[MrendConversionConfig.extras.cellIdField].trim() : mrendObject.cellId;
-                          }
-  
-  
-                          if (MrendConversionConfig.extras.colunaField) {
-                              mrendObject.colunaField = MrendConversionConfig.extras.colunaField;
-                              mrendObject.codigocoluna = record[MrendConversionConfig.extras.colunaField].trim() ? record[MrendConversionConfig.extras.colunaField].trim() : mrendObject.codigocoluna;
-                          }
-  
-                          if (MrendConversionConfig.extras.linhaField) {
-                              mrendObject.linhaField = MrendConversionConfig.extras.linhaField;
-                              mrendObject.codigolinha = record[MrendConversionConfig.extras.linhaField].trim() ? record[MrendConversionConfig.extras.linhaField].trim() : mrendObject.codigolinha;
-                          }
-                      }*/
+
 
                     mrendObjects.push(mrendObject)
                 }
@@ -2577,17 +2562,6 @@ function Mrend(options) {
 
         });
 
-
-
-
-
-
-
-
-
-
-
-
         return {}
 
 
@@ -2728,19 +2702,12 @@ function Mrend(options) {
 
         var linha = linh;
         var coluna = colun;
-        var configCelula = globalThis.reportConfig.config.celulas.find(function (configCelula) {
-            return configCelula.linhastamp == linha.config.linhastamp && configCelula.codigocoluna == coluna.codigocoluna
-        });
+        var configCelula = colun.config;
 
         var linhaRecord;
 
         var linhaFilterKey = "rowid";
-
-
-
         linhaRecord = records[0];
-
-
 
         var cellId = null;
         var novoRegisto = false;
@@ -2750,6 +2717,8 @@ function Mrend(options) {
             cellId = linhaRecord.cellId
 
         }
+
+
         if (!linhaRecord) {
             linhaRecord = JSON.parse(JSON.stringify(globalThis.schemas[0].tableSourceSchema))
             cellId = generateUUID();
@@ -2790,7 +2759,6 @@ function Mrend(options) {
 
         if (novoRegisto) {
 
-
             linhaRecord.cellId = cellId;
             linhaRecord[coluna.config.campo] = cellValue;
             linhaRecord.coluna = coluna.codigocoluna
@@ -2798,12 +2766,22 @@ function Mrend(options) {
             linhaRecord.codigolinha = linha.config.codigo;
             linhaRecord.campo = coluna.config.campo;
             linhaRecord.linkid = linha.linkid;
-            linhaRecord.linkfield = globalThis.dbTableToMrendObject.extras.linkfield;
+            linhaRecord.linkField = globalThis.dbTableToMrendObject.extras.linkField;
             linhaRecord.sourceTable = globalThis.dbTableToMrendObject.table;
             linhaRecord.sourceKey = globalThis.dbTableToMrendObject.tableKey;
             linhaRecord.sourceKeyValue = linha.rowid;
             linhaRecord.ordem = linha.ordem
-            linhaRecord.ordemField = globalThis.dbTableToMrendObject.ordemField;
+            linhaRecord.ordemField = globalThis.dbTableToMrendObject.extras.ordemField;
+            linhaRecord.colunaField = globalThis.dbTableToMrendObject.extras.colunaField;
+            linhaRecord.linhaField = globalThis.dbTableToMrendObject.extras.linhaField;
+            linhaRecord.descLinhaField = globalThis.dbTableToMrendObject.extras.descLinhaField;
+            linhaRecord.cellIdField = globalThis.dbTableToMrendObject.extras.cellIdField;
+            linhaRecord.descColunaField = globalThis.dbTableToMrendObject.extras.descColunaField;
+            linhaRecord.ordemColunaField = globalThis.dbTableToMrendObject.extras.ordemColunaField;
+            linhaRecord.descColuna = coluna.desccoluna;
+            linhaRecord.descLinha = linha.config.descricao;
+
+
 
             if (coluna.config.sourceTable) {
 
@@ -3252,8 +3230,17 @@ function Mrend(options) {
             throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
         }
 
+        var renderedColuna = globalThis.GRenderedColunas.find(function (coluna) {
+            return coluna.codigocoluna == cell.getField();
+        });
+
+        if(!renderedColuna){
+
+            throw new Error("Coluna renderedColuna com codigocoluna " + cell.getField() + " não encontrada.");
+        }
+
         var celula = globalThis.reportConfig.config.celulas.find(function (celula) {
-            return celula.codigocoluna.trim() == cell.getField() && celula.linhastamp.trim() == renderedLinha.config.linhastamp.trim();
+            return celula.codigocoluna.trim() == renderedColuna.config.codigocoluna && celula.linhastamp.trim() == renderedLinha.config.linhastamp.trim();
         });
 
 
@@ -3549,7 +3536,7 @@ function Mrend(options) {
         globalThis.GRenderedColunas.forEach(function (coluna) {
 
             var colunaUIConfig = {
-                title: coluna.config.desccoluna,
+                title: coluna.desccoluna,
                 field: coluna.codigocoluna,
                 width: 310,
                 frozen: coluna.config.fixacoluna,
@@ -3559,7 +3546,6 @@ function Mrend(options) {
 
 
             }
-
 
             var editorConfig = handleEditor(coluna);
             Object.assign(colunaUIConfig, editorConfig);
@@ -4004,7 +3990,7 @@ function Mrend(options) {
         initTableDataAndContainer();
 
 
-        globalThis.GRenderedColunas = setColunasRender(globalThis.reportConfig.config.colunas);
+        globalThis.GRenderedColunas = setColunasRender(globalThis.reportConfig.config.colunas, records);
 
 
         var renderedLinhas = getRenderedLinhas(records);
@@ -4293,7 +4279,7 @@ function Mrend(options) {
                     descbtnModelo = configuracaoLinha.descbtnModelo || "Adiciona linha";
                 }
                 var botaoAdLinha = {
-                    style: "margin-left:0.4em",
+                    style: "margin-top:1.2em",
                     buttonId: botaoId,
                     classes: "btn btn-primary btn-sm",
                     customData: " type='button' data-modelo='" + modelo + "' data-tooltip='true' data-original-title='" + descbtnModelo + "' ",
@@ -4322,18 +4308,218 @@ function Mrend(options) {
                     //   thisTable.addLinhaByModelo(modelo);
                 });
 
-                ///console.log("Confirma adicao da linha", $("#" + this.tableId))
-
-
             })
 
 
 
 
         }
+
+
+
+        var colunasModelos = globalThis.reportConfig.config.colunas.filter(function (coluna) {
+            return coluna.modelo == true;
+        })
+
+        if (colunasModelos.length > 0) {
+
+            var tableButtonsColId = "tableButtonsCol" + globalThis.table;
+            var tableButtonsCol = $("<div id='" + tableButtonsColId + "' class='col-md-12 pull-left tableButtonsCol'></div>");
+            $(globalThis.containerToRender).before(tableButtonsCol);
+
+        }
+
+
+        colunasModelos.forEach(function (coluna) {
+
+            if (coluna.addBtn) {
+
+                var botaoId = "btnAddColuna" + coluna.codigocoluna;
+                var descbtnModelo = coluna.descbtnModelo || "Adiciona coluna";
+                var botaoAddColuna = {
+                    style: "margin-bottom:0.6em;",
+                    buttonId: botaoId,
+                    classes: "btn btn-primary btn-sm",
+                    customData: " type='button' data-modelo='" + coluna.codigocoluna + "' data-tooltip='true' data-original-title='" + descbtnModelo + "' ",
+                    label: descbtnModelo + " <span style='color:white;'  class='glyphicon glyphicon-plus'></span>",
+                    onClick: "",
+                };
+
+                var buttonHtml = generateButton(botaoAddColuna);
+
+                $("#" + tableButtonsColId).append(buttonHtml);
+                $("#" + botaoId).on("click", function () {
+                    var modelo = $(this).data("modelo");
+                    globalThis.openAddColunaModal(modelo);
+
+                });
+
+            }
+        })
     }
 
 
+    function generateTimestampNumber(size) {
+        size = size || 10
+
+        if (!Number.isInteger(size) || size <= 0) {
+            throw new Error("O parâmetro 'size' deve ser um inteiro positivo.");
+        }
+
+        var ts = Date.now().toString();
+        var tsLen = ts.length;
+
+        if (tsLen >= size) {
+
+            return Number(ts.slice(0, size));
+        }
+
+        var extra = (
+            performance.now().toString().replace('.', '') +
+            Math.floor(Math.random() * 1e6).toString()
+        ).padEnd(size - tsLen, '0');
+
+        var full = ts + extra;
+        var fixed = full.slice(0, size);
+
+        return size <= 15 ? Number(fixed) : fixed;
+    }
+
+    this.openAddColunaModal = function (modelo) {
+
+        $("#modalAddColuna").remove();
+        var sufixoForm = "addColunaForm";
+        var containerId = "Container" + sufixoForm;
+
+        var sourceData = {
+            sourceTable: "coluna",
+            sourceKey: "colunaid"
+        }
+        var containers = []
+
+        containers = [{
+            colSize: 12,
+            style: "margin-bottom:0.5em;",
+            content: {
+                contentType: "input",
+                type: "text",
+                id: "desccoluna",
+                classes: " colunadynam-item-input form-control input-sm ",
+                customData: " v-model='colunaTmpSetup.desccoluna' ",
+                style: "",
+                selectCustomData: " v-model='colunaTmpSetup.desccoluna'",
+                fieldToOption: "",
+                fieldToValue: "",
+                label: "Descrição da Coluna",
+                selectData: [],
+                value: "Coluna",
+                event: "",
+                placeholder: ""
+            }
+        }]
+
+
+        $("#modalRendConfigItem").remove()
+        var containerData = {
+            containerId: containerId,
+            spinnerId: "overlay" + sufixoForm,
+            hasSpinner: false,
+            customData: "",
+            sourceData: sourceData,
+            items: containers
+        }
+        var formContainerResult = GenerateCustomFormContainer(containerData);
+
+        var modalBodyHtml = ""
+        modalBodyHtml += formContainerResult;
+
+
+
+        var modalAddColunaConfig = {
+            title: "Dados da coluna ",
+            id: "modalAddColuna",
+            customData: "",
+            otherclassess: "",
+            body: modalBodyHtml,
+            footerContent: "<button type='button' class='btn btn-primary' id='btnAddColunaDyn'>Adicionar Coluna</button>",
+        };
+        var modalHTML = generateModalHTML(modalAddColunaConfig);
+
+        $("#maincontent").append(modalHTML);
+        $("#modalAddColuna").modal("show");
+
+
+        var dadosColunaConfig = globalThis.reportConfig.config.colunas.find(function (coluna) {
+            return coluna.codigocoluna == modelo;
+        });
+
+        var colConfig = new Coluna(dadosColunaConfig);
+
+        var maxOrdemColuna = globalThis.GRenderedColunas.reduce(function (max, col) {
+            return Math.max(max, col.ordem || 0);
+        }, 0);
+
+        var colunaToRender = new RenderedColuna({
+            codigocoluna: colConfig.codigocoluna + "___" + generateTimestampNumber(10),
+            ordem: maxOrdemColuna + 1,
+            desccoluna: "Coluna ",
+            config: colConfig
+        });
+
+        globalThis.colunaTmpSetup = colunaToRender
+
+        PetiteVue.createApp({
+            colunaTmpSetup: globalThis.colunaTmpSetup
+        }).mount('#maincontent');
+
+
+        $("#btnAddColunaDyn").off("click").on("click", function () {
+
+            var desccoluna = globalThis.colunaTmpSetup.desccoluna || "Coluna";
+            if (!desccoluna) {
+                alert("Descrição da coluna é obrigatória");
+                return;
+            }
+
+            var newColuna = globalThis.colunaTmpSetup;
+
+            var colunas = [newColuna]
+
+            globalThis.addColunasByModelo(colunas);
+
+
+            $("#modalAddColuna").modal("hide");
+            globalThis.colunaTmpSetup = new RenderedColuna({})
+
+
+
+        })
+
+
+    }
+
+    this.addColunasByModelo = function (colunas) {
+
+        colunas.forEach(function (coluna) {
+
+            var renderedLinhas = globalThis.GRenderedLinhas.filter(function (linha) {
+
+                return linha.config.modelo != true;
+            });
+
+            renderedLinhas.forEach(function (linha) {
+
+                setCelula({}, linha, coluna, [], coluna.config.categoria, "", {})
+            })
+
+            globalThis.GRenderedColunas.push(coluna);
+            addNewRecords();
+
+        });
+
+
+        applyTabulatorStylesWithJquery();
+    }
     this.render = function () {
 
         return InitDB(globalThis.datasourceName, globalThis.schemas).then(function (initDBResult) {
@@ -4563,11 +4749,17 @@ function MrendObject(data) {
     this.valor = data.valor || "";
     this.campo = data.campo || "";
     this.linkId = data.linkId || "";
-    this.linkfield = data.linkfield || "";
+    this.linkField = data.linkField || "";
     this.codigolinha = data.codigolinha || "";
     this.ordemField = data.ordemField || "";
     this.cellIdField = data.cellIdField || "";
     this.colunaField = data.colunaField || "";
+    this.descLinhaField = data.descLinhaField || "";
+    this.descLinha = data.descLinha || "";
+    this.descColunaField = data.descColunaField || "";
+    this.ordemColunaField = data.ordemColunaField || "";
+    this.ordemColuna = data.ordemColuna || 0;
+    this.descColuna = data.descColuna || "";
     this.ordem = data.ordem || 0;
 
 }
