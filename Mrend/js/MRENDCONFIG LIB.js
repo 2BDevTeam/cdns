@@ -51,6 +51,9 @@ function ColunaMrenderConfig(data) {
     this.tipo = data.tipo || "text";
     this.atributo = data.atributo || "";
     this.campovalid = data.campovalid || "";
+    this.sourceTable = data.sourceTable || "";
+    this.sourceKey = data.sourceKey || "";
+    this.expressaodb = data.expressaodb || "";
     this.relatoriostamp = data.relatoriostamp || "";
     this.condicaovalidacao = data.condicaovalidacao || "";
     this.validacoluna = data.validacoluna || false;
@@ -64,6 +67,9 @@ function ColunaMrenderConfig(data) {
     this.nometb = data.nometb || "";
     this.valtb = data.valtb || "";
     this.categoria = data.categoria || "default";
+    this.modelo= data.modelo || false;
+    this.descbtnModelo = data.descbtnModelo || "Adicionar coluna";
+    this.addBtn = data.addBtn || false;
     // this.expressaodb = data.expressaodb || "";
     this.expressaojsevento = data.expressaojsevento || "";
     this.executaeventochange = data.executaeventochange || false;
@@ -156,8 +162,13 @@ function getColunaUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
         new UIObjectFormConfig({ campo: "codigocoluna", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
         new UIObjectFormConfig({ campo: "desccoluna", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
-        new UIObjectFormConfig({ campo: "campo", tipo: "text", titulo: "Campo", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
+        new UIObjectFormConfig({ campo: "campo", tipo: "text", titulo: "Campo", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ campo: "sourceTable", tipo: "text", titulo: "Tabela fonte", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ campo: "sourceKey", tipo: "text", titulo: "Chave fonte", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ campo: "modelo", tipo: "checkbox", titulo: "É modelo", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ campo: "descbtnModelo", tipo: "text", titulo: "Descrição Botão Modelo", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ campo: "addBtn", tipo: "checkbox", titulo: "Botão para adicionar a coluna visível", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "fixacoluna", tipo: "checkbox", titulo: "Fixa Coluna", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "proibenegativo", tipo: "checkbox", titulo: "Proíbe Negativo", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "colfunc", tipo: "checkbox", titulo: "Coluna Função", classes: "input-source-form", contentType: "input" }),
@@ -203,6 +214,7 @@ function getColunaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 8, campo: "expressaotbjs", tipo: "textarea", titulo: "Expressão Tabela JS", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "nometb", tipo: "text", titulo: "Nome TB", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
         new UIObjectFormConfig({ colSize: 6, campo: "valtb", tipo: "text", titulo: "Valor TB", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
+        new UIObjectFormConfig({ colSize: 12, campo: "expressaodb", tipo: "textarea", titulo: "Expressão Base de dados", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
         new UIObjectFormConfig({ campo: "usaexpressaocoldesc", tipo: "checkbox", titulo: "Usa Expressão Coluna Desc.", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 8, campo: "expresssaojscoldesc", tipo: "textarea", titulo: "Expressão JS Coluna Desc.", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 2, campo: "executaeventochange", tipo: "checkbox", titulo: "Executa Evento Change", classes: "input-source-form", contentType: "input" }),
@@ -476,11 +488,11 @@ function renderConfigMrender(config) {
     });
 
 
-    linhas.sort(function (a, b) {
+   /* linhas.sort(function (a, b) {
         if (a.tipo === "Grupo" && b.tipo !== "Grupo") return -1;
         if (a.tipo !== "Grupo" && b.tipo === "Grupo") return 1;
         return 0;
-    });
+    });*/
     linhas.forEach(function (linha) {
 
         setLinhasConfigMrender(linha, linhas, celulas);
@@ -488,11 +500,15 @@ function renderConfigMrender(config) {
             return sublinha.linkstamp == linha.linhastamp && sublinha.linkstamp;
         });
 
-        console.log("Sublinhas", linha.descricao, sublinhas)
+        //console.log("Sublinhas", linha.descricao, sublinhas)
 
         sublinhas.forEach(function (sublinha) {
+
             setLinhasConfigMrender(sublinha, linhas, celulas);
+            
         });
+
+
     });
 
     handleTableReactive();
@@ -568,6 +584,7 @@ function setLinhasConfigMrender(linha, linhas, celulas) {
 
 
 function handleTableReactive() {
+
     PetiteVue.createApp({
         GMrendConfigLinhas: GMrendConfigLinhas,
         GMrendConfigColunas: GMrendConfigColunas,
@@ -747,6 +764,10 @@ function registerListenersMrender() {
         var colunastamp = generateUUID();
         var codigocoluna = "COLUNA" + colunastamp;
         var colunaUIObjectFormConfigResult = getColunaUIObjectFormConfigAndSourceValues();
+
+        var maxOrdemColuna = GMrendConfigColunas.reduce(function (max, col) {
+            return Math.max(max, col.ordem || 0);
+        }, 0);
         var coluna = new ColunaMrenderConfig({
             colunastamp: colunastamp,
             codigocoluna: codigocoluna,
@@ -760,7 +781,7 @@ function registerListenersMrender() {
             validacoluna: false,
             expresscolfun: "",
             colfunc: false,
-            ordem: 0,
+            ordem: maxOrdemColuna + 1,
             expressaotbjs: "",
             usaexpresstbjs: false,
             usaexpressaocoldesc: false,
@@ -905,6 +926,11 @@ function setNovaLinha(tipo) {
     }
 
     var linhaUIObjectFormConfigResult = getLinhaUIObjectFormConfigAndSourceValues();
+    var ordem = GMrendConfigLinhas.reduce(function (max, linha) {
+        return Math.max(max, linha.ordem || 0);
+    }, 0);
+
+
     var linha = new LinhaMrenderConfig({
         linhastamp: linhastamp,
         linkstamp: linkstamp,
@@ -924,7 +950,7 @@ function setNovaLinha(tipo) {
         condicaovalidacao: "",
         categoria: "default",
         codcategoria: "",
-        ordem: 0,
+        ordem: ordem + 1,
         usafnpren: false,
         fnpren: "",
         tipolistagem: "table",
