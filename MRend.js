@@ -216,6 +216,8 @@ function Mrend(options) {
         this.expressaojsrubdesc = data.expressaojsrubdesc || "";
         this.nometb = data.nometb || "";
         this.valtb = data.valtb || "";
+        this.setinicio = data.setinicio || false;
+        this.setfim = data.setfim || false;
         this.categoria = data.categoria || "default";
         this.modelo = data.modelo || false;
         this.descbtnModelo = data.descbtnModelo || "Adicionar coluna";
@@ -1514,6 +1516,7 @@ function Mrend(options) {
         renderedColunas = [];
         var renderedDynamicColunas = [];
 
+
         colunas.filter(function (dadosColuna) {
 
             return dadosColuna.modelo == false
@@ -1558,29 +1561,30 @@ function Mrend(options) {
         });
 
 
-        if (globalThis.reportConfig.config.relatorio.totalcoluna) {
 
-
-            var dadosColuna = new Coluna({
-                codigocoluna: "TOTALCOLUNA",
-                desccoluna: "Total",
-                tipo: "digit",
-                decimais: "2",
-                categoria: "total"
-            });
-
-
-            renderedColunas.push(new RenderedColuna({
-                codigocoluna: "TOTALCOLUNA",
-                config: new Coluna(dadosColuna)
-            }))
-
-        }
         renderedDynamicColunas.sort(function (a, b) {
             return a.ordem - b.ordem;
         });
+
+
         renderedColunas = renderedColunas.concat(renderedDynamicColunas);
 
+        var colunasSetInicio = renderedColunas.filter(function (coluna) {
+            return coluna.config.setinicio == true
+        });
+
+        var colunasSetFim = renderedColunas.filter(function (coluna) {
+            return coluna.config.setfim == true
+        });
+
+        var colunasSemInicioFim = renderedColunas.filter(function (coluna) {
+            return coluna.config.setinicio == false && coluna.config.setfim == false
+        });
+
+        var finalRenderedColunas = [];
+        finalRenderedColunas = colunasSetInicio.concat(colunasSemInicioFim).concat(colunasSetFim);
+
+        renderedColunas = finalRenderedColunas;
         return renderedColunas
     }
 
@@ -3492,6 +3496,20 @@ function Mrend(options) {
 
             colunaUIConfig.editable = function (cell) {
 
+
+                var renderedColuna = globalThis.GRenderedColunas.find(function (coluna) {
+                    return coluna.codigocoluna == cell.getField();
+                });
+
+                if (!renderedColuna) {
+
+                    throw new Error("Coluna renderedColuna set editable com codigocoluna " + cell.getField() + " não encontrada.");
+                }
+
+                if (renderedColuna.config.atributo == "readonly" || renderedColuna.config.atributo == "disabled") {
+                    return false;
+                }
+
                 var celula = getCelulaConfigFromTabulator(cell, coluna.config, colunaUIConfig);
 
                 return !celula.inactivo;
@@ -3594,40 +3612,7 @@ function Mrend(options) {
         ];
 
         addTabulatorColumns(globalThis.GRenderedColunas, columns);
-        /*
-        globalThis.GRenderedColunas.forEach(function (coluna) {
 
-            var colunaUIConfig = {
-                title: coluna.desccoluna,
-                field: coluna.codigocoluna,
-                width: 310,
-                frozen: coluna.config.fixacoluna,
-                formatter: function (cell) {
-                    return handleColFormatter(cell, coluna.config, colunaUIConfig);
-                }
-
-
-            }
-
-            var editorConfig = handleEditor(coluna);
-            Object.assign(colunaUIConfig, editorConfig);
-
-            var mutatorConfig = handleMutator(coluna);
-            Object.assign(colunaUIConfig, mutatorConfig);
-
-
-
-            colunaUIConfig.editable = function (cell) {
-
-                var celula = getCelulaConfigFromTabulator(cell, coluna.config, colunaUIConfig);
-
-                return !celula.inactivo;
-
-            }
-            columns.push(colunaUIConfig);
-
-
-        })*/
 
 
         globalThis.GTable = new Tabulator(globalThis.containerToRender, {
@@ -4587,6 +4572,8 @@ function Mrend(options) {
     }
     this.addColunasByModelo = function (colunas) {
 
+        var lastRendered = ""
+
         colunas.forEach(function (coluna) {
 
             var renderedLinhas = globalThis.GRenderedLinhas.filter(function (linha) {
@@ -4600,6 +4587,7 @@ function Mrend(options) {
             })
 
             globalThis.GRenderedColunas.push(coluna);
+            lastRendered = coluna.codigocoluna;
             addNewRecords();
 
         });
@@ -4609,9 +4597,32 @@ function Mrend(options) {
 
             globalThis.GTable.addColumn(col, false).then(function () {
                 //console.log("Coluna adicionada:", col);
-            })
+            });
+
+
+
+        });
+
+        var colunasSetFim = globalThis.GRenderedColunas.filter(function (coluna) {
+
+            return coluna.config.setfim == true;
+        });
+
+        colunasSetFim.sort(function (a, b) {
+            return (b.ordem || 0) - (a.ordem || 0);
+        });
+
+        // console.log("colunasSetFim", colunasSetFim)
+        colunasSetFim.forEach(function (coluna) {
+
+            var columnExists = globalThis.GTable.getColumn(lastRendered.trim())
+            if (columnExists) {
+
+                globalThis.GTable.moveColumn(coluna.codigocoluna.trim(), lastRendered.trim(), true);
+            }
 
         })
+
 
 
         applyTabulatorStylesWithJquery();
@@ -4698,7 +4709,7 @@ function applyTabulatorStylesWithJquery() {
         "border-bottom": "1px solid #e0e6ed",
         "transition": "background-color 0.2s ease"
     });
-    $(".tabulator-row.tabulator-row-even").css("background-color", "#fcfdfe");
+   // $(".tabulator-row.tabulator-row-even").css("background-color", "#fcfdfe");
     $(".tabulator-row")/*.hover(
         function () { $(this).css("background-color", "#f5f9ff"); },
         function () { $(this).css("background-color", ""); }

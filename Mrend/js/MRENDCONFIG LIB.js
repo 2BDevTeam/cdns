@@ -493,7 +493,12 @@ function renderConfigMrender(config) {
         return !coluna.setinicio && !coluna.setfim;
     });
 
-    colunasSetInicio.forEach(function (coluna) {
+    var colunasAjustadas=[];
+    colunasAjustadas = colunasSetInicio.concat(colunasNormais).concat(colunasSetFim);
+
+    colunas=colunasAjustadas
+
+    colunas.forEach(function (coluna) {
 
         var colunaUIObjectFormConfigAndSourceValues = getColunaUIObjectFormConfigAndSourceValues();
         var col = new ColunaMrenderConfig(coluna);
@@ -506,26 +511,7 @@ function renderConfigMrender(config) {
     })
 
 
-    colunasNormais.forEach(function (coluna) {
-        var colunaUIObjectFormConfigAndSourceValues = getColunaUIObjectFormConfigAndSourceValues();
-        var col = new ColunaMrenderConfig(coluna);
-        col.objectsUIFormConfig = colunaUIObjectFormConfigAndSourceValues.objectsUIFormConfig;
-        col.localsource = colunaUIObjectFormConfigAndSourceValues.localsource;
-        GMrendConfigColunas.push(col);
-        addColunaMrenderConfig(col, colunaUIObjectFormConfigAndSourceValues);
-
-    });
-
-
-    colunasSetFim.forEach(function (coluna) {
-
-        var colunaUIObjectFormConfigAndSourceValues = getColunaUIObjectFormConfigAndSourceValues();
-        var col = new ColunaMrenderConfig(coluna);
-        col.objectsUIFormConfig = colunaUIObjectFormConfigAndSourceValues.objectsUIFormConfig;
-        col.localsource = colunaUIObjectFormConfigAndSourceValues.localsource;
-        GMrendConfigColunas.push(col);
-        addColunaMrenderConfig(col, colunaUIObjectFormConfigAndSourceValues)
-    })
+   
  
 
 
