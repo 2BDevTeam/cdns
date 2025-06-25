@@ -526,7 +526,7 @@ function renderConfigMrender(config) {
         GMrendConfigColunas.push(col);
         addColunaMrenderConfig(col, colunaUIObjectFormConfigAndSourceValues)
     })
-
+ 
 
 
     linhas.forEach(function (linha) {
