@@ -1225,9 +1225,28 @@ function Mrend(options) {
 
     }
 
+    this.setNewRenderedColuna = function (data) {
 
+        var renderedColuna = new RenderedColuna(data);
+        return renderedColuna;
+
+    }
     function RenderedColuna(data) {
-        this.codigocoluna = data.codigocoluna || "";
+
+        var configColuna = new Coluna(data.config || {});
+
+        if (configColuna.modelo === true
+            && data.codigocoluna &&
+            data.codigocoluna !== configColuna.codigocoluna
+            &&
+            !String(data.codigocoluna).includes(configColuna.codigocoluna + "___")
+        ) {
+            this.codigocoluna = configColuna.codigocoluna + "___" + data.codigocoluna;
+        }
+        else {
+            this.codigocoluna = data.codigocoluna || "";
+        }
+
         this.desccoluna = data.desccoluna || "";
         this.config = new Coluna(data.config || {});
         this.tipolistagem = data.tipolistagem || "";
@@ -1492,7 +1511,8 @@ function Mrend(options) {
     function setColunasRender(colunas, records) {
 
         var renderedColunas = [new RenderedColuna({})]
-        renderedColunas = []
+        renderedColunas = [];
+        var renderedDynamicColunas = [];
 
         colunas.filter(function (dadosColuna) {
 
@@ -1526,12 +1546,12 @@ function Mrend(options) {
                 var renderedColuna = new RenderedColuna({
                     codigocoluna: distinctColuna.coluna,
                     desccoluna: distinctColuna.descColuna,
-                    ordem: coluna.ordemColuna || 0,
+                    ordem: distinctColuna.ordemColuna || 0,
                     config: coluna
                 });
 
                 renderedColuna.preGenHtml();
-                renderedColunas.push(renderedColuna);
+                renderedDynamicColunas.push(renderedColuna);
 
             })
 
@@ -1556,6 +1576,10 @@ function Mrend(options) {
             }))
 
         }
+        renderedDynamicColunas.sort(function (a, b) {
+            return a.ordem - b.ordem;
+        });
+        renderedColunas = renderedColunas.concat(renderedDynamicColunas);
 
         return renderedColunas
     }
@@ -2778,6 +2802,7 @@ function Mrend(options) {
             linhaRecord.cellIdField = globalThis.dbTableToMrendObject.extras.cellIdField;
             linhaRecord.descColunaField = globalThis.dbTableToMrendObject.extras.descColunaField;
             linhaRecord.ordemColunaField = globalThis.dbTableToMrendObject.extras.ordemColunaField;
+            linhaRecord.ordemColuna = coluna.ordem || 0;
             linhaRecord.descColuna = coluna.desccoluna;
             linhaRecord.descLinha = linha.config.descricao;
 
@@ -3111,7 +3136,6 @@ function Mrend(options) {
 
 
     function addNewRecords() {
-
         if (globalThis.GNewRecords.length > 0) {
             addBulkData(globalThis.db, globalThis.tableSourceName, globalThis.GNewRecords).then(function (data) {
                 globalThis.GNewRecords = []
@@ -3234,7 +3258,7 @@ function Mrend(options) {
             return coluna.codigocoluna == cell.getField();
         });
 
-        if(!renderedColuna){
+        if (!renderedColuna) {
 
             throw new Error("Coluna renderedColuna com codigocoluna " + cell.getField() + " não encontrada.");
         }
@@ -3443,6 +3467,42 @@ function Mrend(options) {
     }
 
 
+    function addTabulatorColumns(colunas, columns) {
+
+        colunas.forEach(function (coluna) {
+            var colunaUIConfig = {
+                title: coluna.desccoluna,
+                field: coluna.codigocoluna,
+                width: 310,
+                frozen: coluna.config.fixacoluna,
+                formatter: function (cell) {
+                    return handleColFormatter(cell, coluna.config, colunaUIConfig);
+                }
+
+
+            }
+
+            var editorConfig = handleEditor(coluna);
+            Object.assign(colunaUIConfig, editorConfig);
+
+            var mutatorConfig = handleMutator(coluna);
+            Object.assign(colunaUIConfig, mutatorConfig);
+
+
+
+            colunaUIConfig.editable = function (cell) {
+
+                var celula = getCelulaConfigFromTabulator(cell, coluna.config, colunaUIConfig);
+
+                return !celula.inactivo;
+
+            }
+            columns.push(colunaUIConfig);
+        })
+
+    }
+
+
     function RenderSourceTable() {
 
 
@@ -3533,6 +3593,8 @@ function Mrend(options) {
 
         ];
 
+        addTabulatorColumns(globalThis.GRenderedColunas, columns);
+        /*
         globalThis.GRenderedColunas.forEach(function (coluna) {
 
             var colunaUIConfig = {
@@ -3564,7 +3626,8 @@ function Mrend(options) {
             }
             columns.push(colunaUIConfig);
 
-        })
+
+        })*/
 
 
         globalThis.GTable = new Tabulator(globalThis.containerToRender, {
@@ -4459,10 +4522,12 @@ function Mrend(options) {
             return Math.max(max, col.ordem || 0);
         }, 0);
 
+        var ordemColuna = maxOrdemColuna + 1;
         var colunaToRender = new RenderedColuna({
-            codigocoluna: colConfig.codigocoluna + "___" + generateTimestampNumber(10),
-            ordem: maxOrdemColuna + 1,
-            desccoluna: "Coluna ",
+            // codigocoluna: colConfig.codigocoluna + "___" + generateTimestampNumber(10),
+            codigocoluna: generateTimestampNumber(10),
+            ordem: ordemColuna,
+            desccoluna: "Coluna " + ordemColuna,
             config: colConfig
         });
 
@@ -4498,6 +4563,28 @@ function Mrend(options) {
 
     }
 
+    this.deleteColuna = function (codigocoluna) {
+        var colunaToDelete = globalThis.GRenderedColunas.find(function (coluna) {
+            return coluna.codigocoluna == codigocoluna;
+        });
+
+        if (!colunaToDelete) {
+            throw new Error("Coluna para remover com código " + codigocoluna + " não encontrada.");
+        }
+
+        globalThis.GRenderedColunas = globalThis.GRenderedColunas.filter(function (coluna) {
+            return coluna.codigocoluna != codigocoluna;
+        });
+
+        globalThis.GTable.deleteColumn(colunaToDelete.codigocoluna, false);
+        globalThis.GCellObjectsConfig = globalThis.GCellObjectsConfig.filter(function (cellObj) {
+            return cellObj.codigocoluna != codigocoluna;
+        });
+
+        globalThis.db[globalThis.table].where("coluna").equals(codigocoluna).delete().then(function () {
+            console.log("Coluna deletada com sucesso:", codigocoluna);
+        });
+    }
     this.addColunasByModelo = function (colunas) {
 
         colunas.forEach(function (coluna) {
@@ -4516,6 +4603,15 @@ function Mrend(options) {
             addNewRecords();
 
         });
+        var columns = [];
+        addTabulatorColumns(colunas, columns);
+        columns.forEach(function (col) {
+
+            globalThis.GTable.addColumn(col, false).then(function () {
+                //console.log("Coluna adicionada:", col);
+            })
+
+        })
 
 
         applyTabulatorStylesWithJquery();
