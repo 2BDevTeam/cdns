@@ -67,9 +67,11 @@ function ColunaMrenderConfig(data) {
     this.nometb = data.nometb || "";
     this.valtb = data.valtb || "";
     this.categoria = data.categoria || "default";
-    this.modelo= data.modelo || false;
+    this.modelo = data.modelo || false;
     this.descbtnModelo = data.descbtnModelo || "Adicionar coluna";
     this.addBtn = data.addBtn || false;
+    this.setinicio = data.setinicio || false;
+    this.setfim = data.setfim || false;
     // this.expressaodb = data.expressaodb || "";
     this.expressaojsevento = data.expressaojsevento || "";
     this.executaeventochange = data.executaeventochange || false;
@@ -166,6 +168,8 @@ function getColunaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ campo: "sourceTable", tipo: "text", titulo: "Tabela fonte", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "sourceKey", tipo: "text", titulo: "Chave fonte", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ campo: "setinicio", tipo: "checkbox", titulo: "Set Início", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ campo: "setfim", tipo: "checkbox", titulo: "Set Fim", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "modelo", tipo: "checkbox", titulo: "É modelo", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "descbtnModelo", tipo: "text", titulo: "Descrição Botão Modelo", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "addBtn", tipo: "checkbox", titulo: "Botão para adicionar a coluna visível", classes: "input-source-form", contentType: "input" }),
@@ -477,7 +481,32 @@ function renderConfigMrender(config) {
     var celulas = [new CelulaMrenderConfig({})];
     celulas = config.celulas || [];
 
-    colunas.forEach(function (coluna) {
+    colunasSetInicio = colunas.filter(function (coluna) {
+        return coluna.setinicio;
+    });
+
+    colunasSetFim = colunas.filter(function (coluna) {
+        return coluna.setfim;
+    });
+
+    colunasNormais = colunas.filter(function (coluna) {
+        return !coluna.setinicio && !coluna.setfim;
+    });
+
+    colunasSetInicio.forEach(function (coluna) {
+
+        var colunaUIObjectFormConfigAndSourceValues = getColunaUIObjectFormConfigAndSourceValues();
+        var col = new ColunaMrenderConfig(coluna);
+        col.objectsUIFormConfig = colunaUIObjectFormConfigAndSourceValues.objectsUIFormConfig;
+        col.localsource = colunaUIObjectFormConfigAndSourceValues.localsource;
+        GMrendConfigColunas.push(col);
+        addColunaMrenderConfig(col, colunaUIObjectFormConfigAndSourceValues);
+
+
+    })
+
+
+    colunasNormais.forEach(function (coluna) {
         var colunaUIObjectFormConfigAndSourceValues = getColunaUIObjectFormConfigAndSourceValues();
         var col = new ColunaMrenderConfig(coluna);
         col.objectsUIFormConfig = colunaUIObjectFormConfigAndSourceValues.objectsUIFormConfig;
@@ -488,11 +517,18 @@ function renderConfigMrender(config) {
     });
 
 
-   /* linhas.sort(function (a, b) {
-        if (a.tipo === "Grupo" && b.tipo !== "Grupo") return -1;
-        if (a.tipo !== "Grupo" && b.tipo === "Grupo") return 1;
-        return 0;
-    });*/
+    colunasSetFim.forEach(function (coluna) {
+
+        var colunaUIObjectFormConfigAndSourceValues = getColunaUIObjectFormConfigAndSourceValues();
+        var col = new ColunaMrenderConfig(coluna);
+        col.objectsUIFormConfig = colunaUIObjectFormConfigAndSourceValues.objectsUIFormConfig;
+        col.localsource = colunaUIObjectFormConfigAndSourceValues.localsource;
+        GMrendConfigColunas.push(col);
+        addColunaMrenderConfig(col, colunaUIObjectFormConfigAndSourceValues)
+    })
+
+
+
     linhas.forEach(function (linha) {
 
         setLinhasConfigMrender(linha, linhas, celulas);
@@ -505,7 +541,7 @@ function renderConfigMrender(config) {
         sublinhas.forEach(function (sublinha) {
 
             setLinhasConfigMrender(sublinha, linhas, celulas);
-            
+
         });
 
 
