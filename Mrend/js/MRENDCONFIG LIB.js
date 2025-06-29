@@ -30,6 +30,8 @@ function LinhaMrenderConfig(data) {
     this.executachange = data.executachange || false;
     this.expressaochangejs = data.expressaochangejs || "";
     this.cor = data.cor || "";
+    this.estilopersonalizado = data.estilopersonalizado || false;
+    this.expressaoestilopersonalizado = data.expressaoestilopersonalizado || "";
     this.explist = data.explist || "";
     this.defselect = data.defselect || "";
     this.campooption = data.campooption || "";
@@ -66,6 +68,14 @@ function ColunaMrenderConfig(data) {
     this.expresssaojscoldesc = data.expresssaojscoldesc || "";
     this.nometb = data.nometb || "";
     this.valtb = data.valtb || "";
+    this.eventoclique = data.eventoclique || false;
+    this.expressaoclique = data.expressaoclique || "";
+    this.condicattr = data.condicattr || false;
+    this.condicattrexpr = data.condicattrexpr || "";
+    this.condictipo = data.condictipo || false;
+    this.condicetipoxpr = data.condicetipoxpr || "";
+    this.condicfunc = data.condicfunc || false;
+    this.condicfuncexpr = data.condicfuncexpr || "";
     this.categoria = data.categoria || "default";
     this.modelo = data.modelo || false;
     this.descbtnModelo = data.descbtnModelo || "Adicionar coluna";
@@ -145,6 +155,8 @@ function getLinhaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ campo: "executachange", tipo: "checkbox", titulo: "Executa Change", classes: "input-source-form" }),
         new UIObjectFormConfig({ campo: "expressaochangejs", tipo: "text", titulo: "Expressão Change JS", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ campo: "cor", tipo: "text", titulo: "Cor", classes: "form-control input-source-form  input-sm" }),
+        new UIObjectFormConfig({ campo: "estilopersonalizado", tipo: "checkbox", titulo: "Estilo Personalizado", classes: "input-source-form" }),
+
         new UIObjectFormConfig({ campo: "explist", tipo: "text", titulo: "ExpList", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ campo: "defselect", tipo: "text", titulo: "DefSelect", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ campo: "campooption", tipo: "text", titulo: "Campo Option", classes: "form-control input-source-form  input-sm" }),
@@ -165,18 +177,26 @@ function getColunaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ campo: "codigocoluna", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
         new UIObjectFormConfig({ campo: "desccoluna", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
         new UIObjectFormConfig({ campo: "campo", tipo: "text", titulo: "Campo", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ campo: "condicattr", tipo: "checkbox", titulo: "Tem condição do atributo", classes: "input-source-form", contentType: "input", colSize: 6 }),
+        new UIObjectFormConfig({ campo: "condicattrexpr", tipo: "text", titulo: "Expressão  para o atributo", classes: "form-control input-source-form  input-sm ", contentType: "input", colSize: 6 }),
+        new UIObjectFormConfig({ campo: "condictipo", tipo: "checkbox", titulo: "Tem condição do Tipo", classes: "input-source-form", contentType: "input", colSize: 6 }),
+        new UIObjectFormConfig({ campo: "condicetipoxpr", tipo: "text", titulo: "Expressão para definir o  Tipo", classes: "form-control input-source-form  input-sm ", contentType: "input", colSize: 6 }),
         new UIObjectFormConfig({ campo: "sourceTable", tipo: "text", titulo: "Tabela fonte", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "sourceKey", tipo: "text", titulo: "Chave fonte", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
-        new UIObjectFormConfig({ campo: "setinicio", tipo: "checkbox", titulo: "Set Início", classes: "input-source-form", contentType: "input" }),
-        new UIObjectFormConfig({ campo: "setfim", tipo: "checkbox", titulo: "Set Fim", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "setinicio", tipo: "checkbox", titulo: "Set Início", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "setfim", tipo: "checkbox", titulo: "Set Fim", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "eventoclique", tipo: "checkbox", titulo: "Evento clique", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "expressaoclique", tipo: "textarea", titulo: "Expressão Clique", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "modelo", tipo: "checkbox", titulo: "É modelo", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "descbtnModelo", tipo: "text", titulo: "Descrição Botão Modelo", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "addBtn", tipo: "checkbox", titulo: "Botão para adicionar a coluna visível", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "fixacoluna", tipo: "checkbox", titulo: "Fixa Coluna", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "proibenegativo", tipo: "checkbox", titulo: "Proíbe Negativo", classes: "input-source-form", contentType: "input" }),
-        new UIObjectFormConfig({ campo: "colfunc", tipo: "checkbox", titulo: "Coluna Função", classes: "input-source-form", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 8, campo: "expresscolfun", tipo: "textarea", titulo: "Expressão Coluna Função", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ campo: "condicfunc", tipo: "checkbox", titulo: "Tem condição para definir se é função", classes: "input-source-form", contentType: "input", colSize: 4 }),
+        new UIObjectFormConfig({ campo: "condicfuncexpr", tipo: "textarea", titulo: "Expressão  para definir se tem função", classes: "form-control input-source-form  input-sm ", contentType: "input", colSize: 4 }),
+        new UIObjectFormConfig({ campo: "colfunc", tipo: "checkbox", titulo: "Coluna Função", classes: "input-source-form", contentType: "input", colSize: 6 }),
+        new UIObjectFormConfig({ colSize: 12, campo: "expresscolfun", tipo: "textarea", titulo: "Expressão Coluna Função", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({
             colSize: 6,
             campo: "tipo",
@@ -235,6 +255,7 @@ function getColunaUIObjectFormConfigAndSourceValues() {
 
 function getCelulaUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
+
         new UIObjectFormConfig({ campo: "sinalnegativo", tipo: "checkbox", titulo: "Sinal Negativo", classes: "input-source-form" }),
         new UIObjectFormConfig({ campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form" }),
         new UIObjectFormConfig({ campo: "desabilitado", tipo: "checkbox", titulo: "Desabilitado", classes: "input-source-form" }),
@@ -243,6 +264,8 @@ function getCelulaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ campo: "fnpren", tipo: "text", titulo: "FnPren", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ campo: "fx", tipo: "text", titulo: "FX", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ campo: "temfx", tipo: "checkbox", titulo: "Tem FX", classes: "input-source-form" }),
+        new UIObjectFormConfig({ campo: "usaexpresstbjs", tipo: "checkbox", titulo: "Usa Expressão Tabela JS", classes: "input-source-form" }),
+        new UIObjectFormConfig({ campo: "expressaotbjs", tipo: "textarea", titulo: "Expressão Tabela JS", classes: "form-control input-source-form  input-sm" })
     ];
 
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMrendConfigCelulas", idField: "celulastamp" };
@@ -260,6 +283,8 @@ function CelulaMrenderConfig(data) {
     this.usafnpren = data.usafnpren || false;
     this.atributo = data.atributo || "";
     this.fnpren = data.fnpren || "";
+    this.expressaotbjs = data.expressaotbjs || "";
+    this.usaexpresstbjs = data.usaexpresstbjs || false;
     this.bindData = new BindData(data.bindData ? data.bindData : {});
     this.fx = data.fx || "";
     this.temfx = data.temfx || false;
@@ -493,10 +518,10 @@ function renderConfigMrender(config) {
         return !coluna.setinicio && !coluna.setfim;
     });
 
-    var colunasAjustadas=[];
+    var colunasAjustadas = [];
     colunasAjustadas = colunasSetInicio.concat(colunasNormais).concat(colunasSetFim);
 
-    colunas=colunasAjustadas
+    colunas = colunasAjustadas
 
     colunas.forEach(function (coluna) {
 
@@ -511,8 +536,8 @@ function renderConfigMrender(config) {
     })
 
 
-   
- 
+
+
 
 
     linhas.forEach(function (linha) {
@@ -569,7 +594,8 @@ function setLinhasConfigMrender(linha, linhas, celulas) {
             celula.idField = celulaUIObjectFormConfigAndSourceValues.idField;
             celulasLinha.push(celula);
 
-        } else {
+        }
+        else {
             celulasLinha.push(new CelulaMrenderConfig({
                 linhastamp: linha.linhastamp,
                 colunastamp: coluna.colunastamp,

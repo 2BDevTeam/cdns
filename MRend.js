@@ -80,6 +80,7 @@ function Mrend(options) {
         this.cellIdField = data.cellIdField || "";
         this.colunaField = data.colunaField || "";
         this.linhaField = data.linhaField || "";
+        this.rowIdField = data.rowIdField || "";
         this.descLinhaField = data.descLinhaField || "";
         this.descColunaField = data.descColunaField || "";
         this.ordemColunaField = data.ordemColunaField || "";
@@ -127,7 +128,10 @@ function Mrend(options) {
         this.linkField = data.linkField || "";
         this.codigolinha = data.codigolinha || "";
         this.ordemField = data.ordemField || "";
+        this.descColuna = data.descColuna || "";
+        this.descColunaField = data.descColunaField || "";
         this.cellIdField = data.cellIdField || "";
+        this.rowIdField = data.rowIdField || "";
         this.colunaField = data.colunaField || "";
         this.linhaField = data.linhaField || "";
         this.ordemColunaField = data.ordemColunaField || "";
@@ -183,6 +187,8 @@ function Mrend(options) {
         this.executachange = data.executachange || false;
         this.expressaochangejs = data.expressaochangejs || "";
         this.cor = data.cor || "";
+        this.estilopersonalizado = data.estilopersonalizado || false;
+        this.expressaoestilopersonalizado = data.expressaoestilopersonalizado || "";
         this.explist = data.explist || "";
         this.defselect = data.defselect || "";
         this.campooption = data.campooption || "";
@@ -209,11 +215,23 @@ function Mrend(options) {
         this.validacoluna = data.validacoluna || false;
         this.expresscolfun = data.expresscolfun || "";
         this.colfunc = data.colfunc || false;
+        this.eventoclique = data.eventoclique || false;
+        this.expressaoclique = data.expressaoclique || "";
         this.ordem = data.ordem || 0;
         this.expressaotbjs = data.expressaotbjs || "";
         this.usaexpresstbjs = data.usaexpresstbjs || false;
         this.usaexpressrubdesc = data.usaexpressrubdesc || false;
         this.expressaojsrubdesc = data.expressaojsrubdesc || "";
+
+        this.condicattr = data.condicattr || false;
+        this.condicattrexpr = data.condicattrexpr || "";
+
+        this.condictipo = data.condictipo || false;
+        this.condicetipoxpr = data.condicetipoxpr || "";
+
+        this.condicfunc = data.condicfunc || false;
+        this.condicfuncexpr = data.condicfuncexpr || "";
+
         this.nometb = data.nometb || "";
         this.valtb = data.valtb || "";
         this.setinicio = data.setinicio || false;
@@ -280,6 +298,7 @@ function Mrend(options) {
     }
 
     function Celula(data) {
+
         this.linhastamp = data.linhastamp || "";
         this.celulastamp = data.celulastamp || "";
         this.codigocoluna = data.codigocoluna || "";
@@ -521,34 +540,34 @@ function Mrend(options) {
 
     CellObjectConfig.prototype.fillTableData = function () {
 
-        var codColuna = this.codigocoluna
-        var dadosColuna = globalThis.GRenderedColunas.find(function (coluna) {
-            return coluna.codigocoluna == codColuna
-        });
-
-        if (this.tipolistagem == "EXPR") {
-            eval(this.expressao)
-            return
-        }
-
-        if (this.tipolistagem == "PROPREG") {
-
-            var tmpcomponentcategoria = this.componentcategoria
-            var linhaTipoFiltered = globalThis.reportConfig.config.linhas.filter(function (linhaGrupo) {
-
-                return linhaGrupo.tipo == tmpcomponentcategoria
-            });
-            globalThis.GTmpListTableObject = linhaTipoFiltered
-            return
-        }
-
-
-
-
-        if (dadosColuna.config.usaexpresstbjs) {
-            eval(dadosColuna.config.expressaotbjs)
-        }
-        return
+        /* var codColuna = this.codigocoluna
+         var dadosColuna = globalThis.GRenderedColunas.find(function (coluna) {
+             return coluna.codigocoluna == codColuna
+         });
+ 
+         if (this.tipolistagem == "EXPR") {
+             eval(this.expressao)
+             return
+         }
+ 
+         if (this.tipolistagem == "PROPREG") {
+ 
+             var tmpcomponentcategoria = this.componentcategoria
+             var linhaTipoFiltered = globalThis.reportConfig.config.linhas.filter(function (linhaGrupo) {
+ 
+                 return linhaGrupo.tipo == tmpcomponentcategoria
+             });
+             globalThis.GTmpListTableObject = linhaTipoFiltered
+             return
+         }
+ 
+ 
+ 
+ 
+         if (dadosColuna.config.usaexpresstbjs) {
+             eval(dadosColuna.config.expressaotbjs)
+         }
+         return*/
 
 
     };
@@ -940,33 +959,46 @@ function Mrend(options) {
         this.sourceValue = data.sourceValue || null;
         this.changedData = data.changedData || {};
     }
-    function getMaxRenderedLinha() {
+    function generateLinhaOrdem() {
 
 
-        return isArray(globalThis.GRenderedLinhas) ? globalThis.GRenderedLinhas.length : 0;
+        var maxOrdemLinha = (globalThis.GRenderedLinhas || []).reduce(function (max, linha) {
+            return Math.max(max, linha.ordem || 0);
+        }, 0);
+
+        if (maxOrdemLinha == 0) {
+            return 1000;
+        }
+
+        return maxOrdemLinha + 1;
     }
 
 
     function RenderedLinha(data) {
-        this.index = getMaxRenderedLinha();
+        this.index = generateLinhaOrdem();
         this.linkid = data.linkid || "";
+        this.codigo = data.codigo || "";
         this.rowid = data.rowid || "";
         this.isParent = data.isParent || false;
         this.linkcodigo = data.linkcodigo || "";
         this.linkdescricao = data.linkdescricao || ""
         this.UIObject = data.UIObject || {};
-        this.ordem = getMaxRenderedLinha() * 1000 || 0;
+        //  this.ordem = generateLinhaOrdem();
+        this.ordem = data.ordem || (generateLinhaOrdem());
         this.parentid = data.parentid || "";
         this.novoregisto = data.novoregisto
         this.config = new Linha(data.config || new Linha({}));
+        var cod = data.codigo || "";
+        this.isInstance = cod.includes("___") ? true : false;
 
     }
 
 
     RenderedLinha.prototype.addLinhaFilha = function () {
 
-
-        var renderedLinha = new RenderedLinha({ novoregisto: true, rowid: generateUUID(), linkid: this.rowid, parentid: "", config: this.config });
+        var codigoLinha = this.config.codigo + "___" + generateTimestampNumber(10);
+        var ordem = generateLinhaOrdem();
+        var renderedLinha = new RenderedLinha({ ordem: ordem, codigo: codigoLinha, novoregisto: true, rowid: generateUUID(), linkid: this.rowid, parentid: "", config: this.config });
 
         renderedLinha.UIObject = {
             id: renderedLinha.rowid,
@@ -1280,8 +1312,12 @@ function Mrend(options) {
 
 
         if (this.config.usaexpresstbjs) {
+            try {
 
-            this.localData = eval(this.config.expressaotbjs);
+                this.localData = eval(this.config.expressaotbjs);
+            } catch (error) {
+
+            }
         }
         return
 
@@ -1544,6 +1580,9 @@ function Mrend(options) {
             });
 
             var distinctColunas = getDistinctWithKeys(recordsColuna, "coluna");
+            distinctColunas.sort(function (a, b) {
+                return a.ordemcoluna - b.ordemcoluna;
+            });
 
             distinctColunas.forEach(function (distinctColuna) {
                 var renderedColuna = new RenderedColuna({
@@ -1596,7 +1635,7 @@ function Mrend(options) {
         switch (dataType) {
             case "digit":
 
-                return isNaN(valor) || valor == null ? 0 : valor;
+                return isNaN(valor) || valor == null || isNumber(valor) == false ? 0 : valor;
 
             case "text":
 
@@ -1960,6 +1999,55 @@ function Mrend(options) {
 
         var sources = []
 
+
+        if (globalThis.dbTableToMrendObject.chunkMapping == false) {
+
+
+            distinctSources.forEach(function (source) {
+
+                var tableData = []
+                var sourceRecords = records.filter(function (record) {
+                    return record.sourceTable == source.sourceTable;
+                });
+
+
+                sourceRecords.forEach(function (tableRow) {
+
+                    globalThis.GRenderedColunas.forEach(function (coluna) {
+
+
+                        tableRow[coluna.config.campo] = handleDefaultValueByDataType(coluna.config.tipo, tableRow[coluna.config.campo]);
+                        tableRow[source.linkField] = tableRow.linkid || "";
+                        setIfSourceFieldExists(tableRow, source, "ordemField", source.ordemField, 0, tableRow, "ordem");
+                        setIfSourceFieldExists(tableRow, source, "linhaField", source.linhaField, "", tableRow, "codigolinha");
+                        setIfSourceFieldExists(tableRow, source, "descLinhaField", source.descLinhaField, "", tableRow, "descLinha");
+                        setIfSourceFieldExists(tableRow, source, "descColunaField", source.descColunaField, "", tableRow, "descColuna");
+                        setIfSourceFieldExists(tableRow, source, "ordemColunaField", source.ordemColunaField, 0, tableRow, "ordemColuna");
+                        setIfSourceFieldExists(tableRow, source, "cellIdField", source.cellIdField, "", tableRow, "cellId");
+
+                        setIfSourceFieldExists(tableRow, source, "colunaField", source.colunaField, "", tableRow, "coluna");
+                        setIfSourceFieldExists(tableRow, source, "rowIdField", source.rowIdField, "", tableRow, "rowid");
+                    });
+                    tableData.push(tableRow)
+
+
+                });
+
+                sources.push({
+                    sourceTable: source.sourceTable,
+                    sourceKey: source.sourceKey,
+                    records: tableData
+                });
+
+
+            });
+
+            return sources;
+
+        }
+
+
+
         distinctSources.forEach(function (source) {
 
 
@@ -1979,11 +2067,17 @@ function Mrend(options) {
 
                 rowCells.forEach(function (cell) {
 
-                    var colunaConfig = globalThis.reportConfig.config.colunas.find(function (coluna) {
+                    var colunaConfig = globalThis.GRenderedColunas.find(function (coluna) {
                         return coluna.codigocoluna == cell.coluna
                     });
 
-                    tableRow[cell.campo] = handleDefaultValueByDataType(colunaConfig.tipo, cell[cell.campo])
+                    if (colunaConfig) {
+
+                        tableRow[cell.campo] = handleDefaultValueByDataType(colunaConfig.config.tipo, cell[cell.campo])
+
+                    } else {
+                        console.warn("ALERTA ConvertMrendObjectToTable:  Coluna não encontrada para o cellObject: ", cell);
+                    }
                 });
 
                 tableRow[source.sourceKey] = row.sourceKeyValue
@@ -1992,10 +2086,12 @@ function Mrend(options) {
                 setIfSourceFieldExists(tableRow, source, "ordemField", source.ordemField, 0, row, "ordem");
                 setIfSourceFieldExists(tableRow, source, "linhaField", source.linhaField, "", row, "codigolinha");
                 setIfSourceFieldExists(tableRow, source, "descLinhaField", source.descLinhaField, "", row, "descLinha");
-                setIfSourceFieldExists(tableRow, source, "descColunaField", source.descColunaField, "", row, "descColunaField");
-                setIfSourceFieldExists(tableRow, source, "ordemColunaField", source.ordemColunaField, "", row, "ordemcoluna");
+                setIfSourceFieldExists(tableRow, source, "descColunaField", source.descColunaField, "", row, "descColuna");
+                setIfSourceFieldExists(tableRow, source, "ordemColunaField", source.ordemColunaField, "", row, "ordemColuna");
                 setIfSourceFieldExists(tableRow, source, "cellIdField", source.cellIdField, "", row, "cellId");
-                setIfSourceFieldExists(tableRow, source, "colunaField", source.colunaField, "", row, "codigocoluna");
+
+                setIfSourceFieldExists(tableRow, source, "colunaField", source.colunaField, "", row, "coluna");
+                setIfSourceFieldExists(tableRow, source, "rowIdField", source.rowIdField, "", row, "rowid");
 
 
 
@@ -2025,6 +2121,38 @@ function Mrend(options) {
             targetObj[source[sourceField]] = row && row[rowField] !== undefined && row[rowField] != "" ? row[rowField] : defaultValue;
         }
     }
+
+    function mapRecordToMrendObject(record, MrendConversionConfig) {
+        var extras = MrendConversionConfig.extras || {};
+        return new MrendObject({
+            cellId: record[extras.cellIdField] || "",
+            rowid: record[extras.rowIdField] || "",
+            rowIdField: extras.rowIdField || "", // <-- Adicionado aqui
+            coluna: record[extras.colunaField] || "",
+            sourceTable: MrendConversionConfig.table || "",
+            sourceKey: MrendConversionConfig.tableKey || "",
+            sourceKeyValue: record[MrendConversionConfig.tableKey] || "",
+            valor: record.valor || "",
+            campo: record.campo || "",
+            linkId: record[extras.linkField] || "",
+            linkField: extras.linkField || "",
+            codigolinha: record[extras.linhaField] || "",
+            ordemField: extras.ordemField || "",
+            cellIdField: extras.cellIdField || "",
+            colunaField: extras.colunaField || "",
+            descLinhaField: extras.descLinhaField || "",
+            linhaField: extras.linhaField || "",
+            descLinha: record[extras.descLinhaField] || "",
+            descColunaField: extras.descColunaField || "",
+            descColuna: record[extras.descColunaField] || "",
+            ordemColunaField: extras.ordemColunaField || "",
+            ordemcoluna: record[extras.ordemColunaField] || 0,
+            descColuna: record[extras.descColunaField] || "",
+            ordem: record[extras.ordemField] || 0
+        });
+    }
+
+
     function ConvertDbTableToMrendObject(data, MrendConversionConfig) {
         if (!data[0]) {
 
@@ -2034,21 +2162,70 @@ function Mrend(options) {
         var mrendObjects = []
 
 
+        if (MrendConversionConfig.chunkMapping == false) {
+
+            distinctKey = getDistinctWithKeys(data, MrendConversionConfig.extras.colunaField);
+
+            keys = distinctKey.map(function (obj) {
+                return obj[MrendConversionConfig.extras.colunaField];
+            });
+
+            data.forEach(function (record) {
+
+                var mrendObject = new MrendObject({});
+
+                mrendObject = mapRecordToMrendObject(record, MrendConversionConfig);
+
+                var colunaInstance = mrendObject.coluna.split("___")[0];
+
+                var colunaConfig = globalThis.reportConfig.config.colunas.filter(function (coluna) {
+                    return coluna.codigocoluna == colunaInstance || coluna.codigocoluna == mrendObject.coluna;
+                });
+
+                if (colunaConfig) {
+
+                    mrendObject.campo = colunaConfig[0].campo;
+                    mrendObject[colunaConfig[0].campo] = record[colunaConfig[0].campo];
+                }
+
+                mrendObjects.push(mrendObject);
+
+
+            });
+
+
+
+            return mrendObjects;
+
+        }
+
+
+
+
+
+
 
         data.forEach(function (record) {
+            var mrendObject = new MrendObject({});
             keys.forEach(function (key) {
 
                 var configCol = globalThis.reportConfig.config.colunas.find(function (coluna) {
                     return coluna.codigocoluna == key
                 })
 
+                if (MrendConversionConfig.chunkMapping == true) {
+
+                    mrendObject = new MrendObject({});
+                }
+
                 if (MrendConversionConfig.tableKey != key && configCol) {
 
 
                     var rowid = record[MrendConversionConfig.tableKey]
-                    var mrendObject = new MrendObject({});
-                    mrendObject.campo = key;
-                    mrendObject[configCol.campo] = record[key];
+
+                    // console.log(configCol.campo, record[configCol.campo])
+                    mrendObject.campo = MrendConversionConfig.chunkMapping == true ? key : configCol.campo;
+                    mrendObject[configCol.campo] = MrendConversionConfig.chunkMapping == true ? record[key] : record[configCol.campo];
                     mrendObject.coluna = key;
                     mrendObject.rowid = rowid;
                     mrendObject.codigolinha = MrendConversionConfig.table;
@@ -2072,17 +2249,28 @@ function Mrend(options) {
                     applyExtraField(mrendObject, record, MrendConversionConfig.extras, "cellIdField", "cellId");
                     applyExtraField(mrendObject, record, MrendConversionConfig.extras, "colunaField", "codigocoluna");
                     applyExtraField(mrendObject, record, MrendConversionConfig.extras, "ordemColunaField", "ordemcoluna");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "rowIdField", "rowid");
                     applyExtraField(mrendObject, record, MrendConversionConfig.extras, "linhaField", "codigolinha");
 
 
+                    if (MrendConversionConfig.chunkMapping == true) {
 
+                        mrendObjects.push(mrendObject)
+                    }
 
-                    mrendObjects.push(mrendObject)
                 }
 
             })
 
+            if (MrendConversionConfig.chunkMapping == false) {
+
+                mrendObjects.push(mrendObject)
+            }
+
         })
+
+        //  console.log("ConvertDbTableToMrendObject Final", mrendObjects)
+
 
         return mrendObjects;
 
@@ -2791,7 +2979,7 @@ function Mrend(options) {
             linhaRecord[coluna.config.campo] = cellValue;
             linhaRecord.coluna = coluna.codigocoluna
             linhaRecord.rowid = linha.rowid;
-            linhaRecord.codigolinha = linha.config.codigo;
+            linhaRecord.codigolinha = linha.codigo
             linhaRecord.campo = coluna.config.campo;
             linhaRecord.linkid = linha.linkid;
             linhaRecord.linkField = globalThis.dbTableToMrendObject.extras.linkField;
@@ -2806,6 +2994,7 @@ function Mrend(options) {
             linhaRecord.cellIdField = globalThis.dbTableToMrendObject.extras.cellIdField;
             linhaRecord.descColunaField = globalThis.dbTableToMrendObject.extras.descColunaField;
             linhaRecord.ordemColunaField = globalThis.dbTableToMrendObject.extras.ordemColunaField;
+            linhaRecord.rowIdField = globalThis.dbTableToMrendObject.extras.rowIdField;
             linhaRecord.ordemColuna = coluna.ordem || 0;
             linhaRecord.descColuna = coluna.desccoluna;
             linhaRecord.descLinha = linha.config.descricao;
@@ -3313,17 +3502,17 @@ function Mrend(options) {
         if (!globalThis.enableEdit) {
             return {};
         }
-        if (coluna.config.tipo === "digit" && !coluna.config.colfunc) {
+        if (coluna.config.tipo === "digit") {
             return {
                 editor: numberFormatCustomEditor,
                 editorParams: { colunaConfig: coluna.config }
             };
         }
-        if (coluna.config.tipo === "text" && !coluna.config.colfunc) {
+        if (coluna.config.tipo === "text") {
             return { editor: "input" };
         }
 
-        if (coluna.config.tipo === "table" && !coluna.config.colfunc) {
+        if (coluna.config.tipo === "table") {
             var values = (coluna.localData || []).map(function (item) {
                 return {
                     value: item[coluna.config.valtb],
@@ -3333,7 +3522,25 @@ function Mrend(options) {
             return {
                 editor: "list",
                 editorParams: {
-                    values: values,
+                    valuesLookup: function (cell) {
+                        var rowData = cell.getRow().getData();
+                        var list = [];
+                        var renderedColuna = coluna
+
+                        if (coluna.config.usaexpresstbjs) {
+                            list = eval(coluna.config.expressaotbjs);
+
+                            console.log(list, "list", coluna.config.expressaotbjs)
+                        }
+
+                        return (list || []).map(function (item) {
+
+                            return {
+                                value: item[coluna.config.valtb],
+                                label: item[coluna.config.nometb]
+                            };
+                        });
+                    },
                     autocomplete: true,
                     freetext: true,
                     popupContainer: document.body,
@@ -3344,9 +3551,7 @@ function Mrend(options) {
             };
         }
 
-        if (coluna.config.colfunc) {
-            return {}
-        }
+
         return { editor: "input" };
     }
 
@@ -3388,9 +3593,25 @@ function Mrend(options) {
     function handleMutator(coluna) {
 
         var renderedColuna = new RenderedColuna(coluna);
+
+
+
         if (renderedColuna.config.colfunc) {
             return {
                 mutator: function (value, rowData, type, params, component) {
+
+
+                    var condicColFunc = renderedColuna.config.condicfunc;
+                    var resultCondicColFunc = true;
+                    if (condicColFunc) {
+
+                        resultCondicColFunc = eval(renderedColuna.config.condicfuncexpr);
+                    }
+
+                    if (!resultCondicColFunc) {
+                        return value; // Se a condição não for atendida, retorna o valor original
+                    }
+
 
                     var expression = extractCellValue(renderedColuna.config.expresscolfun, renderedColuna.config, rowData);
                     var expressionResult = eval(expression);
@@ -3398,6 +3619,8 @@ function Mrend(options) {
 
                         expressionResult = expressionResult == "Infinity" || expressionResult == "-Infinity" || expressionResult == Infinity || isNaN(expressionResult) ? 0 : expressionResult;
                     }
+
+
 
                     var rowupdated = {}
                     rowupdated[renderedColuna.codigocoluna] = expressionResult;
@@ -3492,11 +3715,41 @@ function Mrend(options) {
             var mutatorConfig = handleMutator(coluna);
             Object.assign(colunaUIConfig, mutatorConfig);
 
+            if (coluna.config.eventoclique) {
+
+                colunaUIConfig.cellClick = function (e, cell) {
+
+                    if (e.detail > 0) {
+                        return
+                    }
+
+                    var rowData = cell.getRow().getData();
+                    var renderedColuna = globalThis.GRenderedColunas.find(function (coluna) {
+                        return coluna.codigocoluna == cell.getField();
+                    });
+
+                    if (!renderedColuna) {
+
+                        throw new Error("Coluna renderedColuna com codigocoluna " + cell.getField() + " não encontrada.");
+                    }
+
+
+                    eval(renderedColuna.config.expressaoclique)
+
+
+
+
+
+
+                }
+
+            }
+
 
 
             colunaUIConfig.editable = function (cell) {
 
-
+                var rowData = cell.getRow().getData()
                 var renderedColuna = globalThis.GRenderedColunas.find(function (coluna) {
                     return coluna.codigocoluna == cell.getField();
                 });
@@ -3504,6 +3757,17 @@ function Mrend(options) {
                 if (!renderedColuna) {
 
                     throw new Error("Coluna renderedColuna set editable com codigocoluna " + cell.getField() + " não encontrada.");
+                }
+
+                var condicAttrResult = ""
+                if (renderedColuna.config.condicattr) {
+
+                    condicAttrResult = eval(renderedColuna.config.condicattrexpr);
+
+                }
+
+                if (condicAttrResult == "readonly" || condicAttrResult == "disabled") {
+                    return false;
                 }
 
                 if (renderedColuna.config.atributo == "readonly" || renderedColuna.config.atributo == "disabled") {
@@ -3535,6 +3799,7 @@ function Mrend(options) {
                 width: 120
 
             },
+
             {
                 title: "Ações",
                 formatter: function (cell, formatterParams) {
@@ -3563,15 +3828,16 @@ function Mrend(options) {
 
                     if (renderedLinha.config.addfilho) {
 
-                        botãoAddFilho = "<i style='color:#0765b7' class='fa fa-plus-circle action-btn add-child' title='Adicionar Filho'></i>"
+                        botãoAddFilho = "<div ><i style='color:#0765b7' class='fa fa-plus-circle action-btn add-child' title='Adicionar Filho'></i> </div>"
                     }
 
-                    if (renderedLinha.config.modelo) {
 
-                        botaoRemover = "<i style='color:#d9534f!important;' class='fa fa-trash action-btn remove-row' title='Remover Linha'></i> "
+                    if (renderedLinha.config.modelo || renderedLinha.isInstance) {
+
+                        botaoRemover = "<div ><i style='color:#d9534f!important;' class='fa fa-trash action-btn remove-row' title='Remover Linha'></i> </div>"
                     }
 
-                    var globalBotoes = botãoAddFilho + botaoRemover;
+                    var globalBotoes = "<div style='display:flex;column-gap:0.3em'>" + botãoAddFilho + botaoRemover + "</div>";
 
                     return globalBotoes;
                 },
@@ -3613,7 +3879,29 @@ function Mrend(options) {
 
         addTabulatorColumns(globalThis.GRenderedColunas, columns);
 
+        function observeTabulatorChanges() {
+            var tabulatorContainer = document.querySelector(".tabulator");
+            if (!tabulatorContainer) return;
 
+            // Cria o observer
+            var observer = new MutationObserver(function (mutationsList, observer) {
+                // Sempre que houver alteração, reaplica os estilos
+                ///console.log("Tabulator styles changed, reapplying styles...");
+                applyTabulatorStylesWithJquery();
+            });
+
+            // Configura para observar alterações em filhos e subárvores
+            observer.observe(tabulatorContainer, {
+                childList: true,
+                subtree: true,
+                attributes: true
+            });
+        }
+
+        // Chame após criar o Tabulator
+        setTimeout(function () {
+            observeTabulatorChanges();
+        }, 1000);
 
         globalThis.GTable = new Tabulator(globalThis.containerToRender, {
             data: globalThis.GGridData,
@@ -3622,9 +3910,11 @@ function Mrend(options) {
             dataTreeChildIndent: 25,
             popupContainer: "body",
             layout: "fitDataFill",
+            height: "400px", // altura fixa para ativar scroll e fixar cabeçalho
             rowFormatter: function (row) {
 
                 var data = row.getData();
+                var rowData = data;
                 if (row.getTreeParent()) {
                     row.getElement().style.backgroundColor = "#f8fafc";
                 }
@@ -3632,10 +3922,28 @@ function Mrend(options) {
                     return linha.rowid == data.rowid;
                 });
 
+
+
                 if (!renderedLinha) {
                     throw new Error("Linha com rowid " + data.rowid + " não encontrada.");
                 }
-                row.getElement().style.backgroundColor = renderedLinha.config.cor || "#f8fafc";
+
+
+
+
+                var customStyles = {
+                    backgroundColor: renderedLinha.config.cor || "#f8fafc",
+                }
+
+                if (renderedLinha.config.estilopersonalizado) {
+                    customStyles = eval(renderedLinha.config.expressaoestilopersonalizado);
+                }
+
+                var customStylesKey = Object.keys(customStyles);
+
+                customStylesKey.forEach(function (key) {
+                    row.getElement().style[key] = customStyles[key];
+                })
 
 
             },
@@ -3670,41 +3978,7 @@ function Mrend(options) {
         });
 
 
-        function setTabulatorStyle() {
-            var $style = $("<style></style>");
-            var styleCss = "";
-            styleCss += ".tabulator { background-color: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); border: none; }";
-            styleCss += ".tabulator .tabulator-header { background-color: #0765b7!important; border-bottom: none; border-radius: 10px 10px 0 0; padding:3px}";
-            styleCss += ".tabulator .tabulator-header .tabulator-col { background-color: #0765b7; color: white; border-right: none; padding: 12px 15px; font-weight: 500; }";
-            styleCss += ".tabulator .tabulator-header .tabulator-col:first-child { border-top-left-radius: 10px; }";
-            styleCss += ".tabulator .tabulator-header .tabulator-col:last-child { border-top-right-radius: 10px; }";
-            styleCss += ".tabulator-row { border-bottom: 1px solid #e0e6ed; transition: background-color 0.2s ease; }";
-            styleCss += ".tabulator-row.tabulator-row-even { background-color: #fcfdfe; }";
-            styleCss += ".tabulator-row:hover { background-color: #f5f9ff !important; }";
-            styleCss += ".tabulator-cell { padding: 12px 15px; border-right: none; }";
-            styleCss += ".btn-add { margin: 0 0 15px 0; padding: 10px 18px; background-color: #0765b7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(7, 101, 183, 0.2); }";
-            styleCss += ".btn-add:hover { background-color: #06539e; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(7, 101, 183, 0.3); }";
-            styleCss += ".btn-add i { margin-right: 6px; }";
-            styleCss += ".action-btn { background: none; border: none; color: #5a8de6; cursor: pointer; font-size: 15px; margin: 0 5px; transition: all 0.2s ease; }";
-            styleCss += ".action-btn:hover { color: #0765b7; transform: scale(1.1); }";
-            styleCss += ".tabulator-row .tabulator-cell.tabulator-tree-col { padding-left: 15px; }";
-            styleCss += ".tabulator-tree-branch { border-left: 2px solid #d1e3ff; margin-left: calc(15px / 2); }";
-            styleCss += ".tabulator-tree-level-1 .tabulator-cell.tabulator-tree-col { padding-left: calc(15px * 2); }";
-            styleCss += ".tabulator-tree-level-2 .tabulator-cell.tabulator-tree-col { padding-left: calc(15px * 3); }";
-            styleCss += ".tabulator-tree-level-3 .tabulator-cell.tabulator-tree-col { padding-left: calc(15px * 4); }";
-            styleCss += ".tabulator-row .tabulator-cell .tabulator-data-tree-control { align-items: center; background: rgb(255 255 255 / 10%); border: 1px solid #2975dd; border-radius: 2px; display: inline-flex; height: 11px; justify-content: center; margin-right: 5px; overflow: hidden; vertical-align: middle; width: 11px; }";
-            styleCss += ".tabulator-tree-collapse, .tabulator-tree-expand { color: #0765b7; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; margin-right: 8px; transition: all 0.2s ease; }";
-            styleCss += ".tabulator-tree-collapse:hover, .tabulator-tree-expand:hover { background-color: rgba(7, 101, 183, 0.1); }";
-            styleCss += ".tabulator-edit-list { z-index: 9999 !important; position: absolute !important; border-radius: 6px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); border: 1px solid #e0e6ed; }";
-            styleCss += ".tabulator-edit-list .tabulator-edit-list-item { padding: 8px 15px; }";
-            styleCss += ".tabulator-edit-list .tabulator-edit-list-item.active { background-color: rgba(7, 101, 183, 0.1); color: #0765b7; }";
-            styleCss += "::-webkit-scrollbar { width: 6px; height: 6px; }";
-            styleCss += "::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }";
-            styleCss += "::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }";
-            styleCss += "::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }";
-            $style.text(styleCss);
-            $("head").append($style);
-        }
+
         var tableBuiltEvent = function (data) {
 
             applyTabulatorStylesWithJquery();
@@ -3837,13 +4111,13 @@ function Mrend(options) {
 
             var recordData = records.find(function (record) {
 
-                return record.codigolinha == linhaToRender.codigo
+                return record.codigolinha == linhaToRender.codigo || String(record.codigolinha.trim()).includes(linhaToRender.codigo.trim() + "___")
             });
 
             if (recordData) {
 
                 var linhaRecords = records.filter(function (record) {
-                    return record.codigolinha == linhaToRender.codigo
+                    return record.codigolinha == linhaToRender.codigo || String(record.codigolinha.trim()).includes(linhaToRender.codigo.trim() + "___")
                 }
                 );
 
@@ -3862,11 +4136,12 @@ function Mrend(options) {
                     );
 
 
+
                     addLinha(distinctRow, linhaRecords, linhaToRender, renderedLinhas, linhasFilhas.length > 0, true);
                     var distinctRowFilhas = _.uniqBy(linhasFilhas, "rowid");
 
                     distinctRowFilhas.forEach(function (filha) {
-
+                        // console.log("ADDING FILHA")
                         addLinha(filha, linhaRecords, linhaToRender, renderedLinhas, true, true);
                     });
 
@@ -3887,7 +4162,8 @@ function Mrend(options) {
                     var rowid = generateUUID();
                     var dstRow = {
                         rowid: rowid,
-                        linkid: ""
+                        linkid: "",
+                        codigolinha: linhaToRender.codigo,
                     }
 
                     var linhasFilhas = [];
@@ -3949,7 +4225,8 @@ function Mrend(options) {
             var rowidFilha = generateUUID();
             var dstRowFilha = {
                 rowid: rowidFilha,
-                linkid: rowidPai
+                linkid: rowidPai,
+                codigolinha: linhaFilha.codigo,
             };
 
             addLinha(dstRowFilha, [], linhaFilha, renderedLinhas, true, linhaFilha.modelo != true);
@@ -3968,7 +4245,6 @@ function Mrend(options) {
         var linhaAdicionada = globalThis.GRenderedLinhas.find(function (linha) {
             return linha.rowid == distinctRow.rowid
         });
-
         if (linhaAdicionada) {
 
             return;
@@ -3985,9 +4261,12 @@ function Mrend(options) {
 
 
 
-        var rendered = new RenderedLinha({ novoregisto: false, isParent: isParent, rowid: distinctRow.rowid, linkid: distinctRow.linkid, parentid: "", config: linha, UIObject: UIObject });
+        var rendered = new RenderedLinha({ codigo: distinctRow.codigolinha, novoregisto: false, isParent: isParent, rowid: distinctRow.rowid, linkid: distinctRow.linkid, parentid: "", config: linha, UIObject: UIObject });
 
+        if (distinctRow.ordem) {
+            rendered.ordem = distinctRow.ordem
 
+        }
 
 
         if (!rendered.linkid && linha.linkstamp) {
@@ -4000,13 +4279,11 @@ function Mrend(options) {
             if (configuracaoLinha) {
 
 
-                console.log("Linha sem linkid encontrada, atribuindo linkid:", distinctRow.linkid);
                 var findOnRecordsResult = linhaRecords.find(function (rec) {
                     return rec.codigolinha == configuracaoLinha.codigo
                 });
 
                 if (findOnRecordsResult) {
-                    console.log("findOnRecordsResult", findOnRecordsResult);
                     rendered.linkid = findOnRecordsResult.rowid;
                     distinctRow.linkid = findOnRecordsResult.rowid;
                 }
@@ -4234,7 +4511,7 @@ function Mrend(options) {
 
                         return getDataFromRemote()
                             .then(function (remoteData) {
-
+                                //console.log("Remote data fetched successfully.........DNELSE", remoteData);
                                 globalThis.records = remoteData && remoteData.data ? remoteData.data : [];
                                 return resolve({ refetchDb: true, records: globalThis.records, remoteFetch: true });
                             })
@@ -4250,7 +4527,9 @@ function Mrend(options) {
 
                 if (result.refetchDb) {
                     return deleteAllRecords(globalThis.table).then(function (data) {
+
                         var dbConverstion = ConvertDbTableToMrendObject(globalThis.records, globalThis.dbTableToMrendObject);
+                        console.log("dbConverstion DELTE ALL RECORDS", dbConverstion);
                         globalThis.records = dbConverstion;
                         return addBulkData(globalThis.db, globalThis.table, dbConverstion).then(function (data) {
                             return resolve(result);
@@ -4279,8 +4558,9 @@ function Mrend(options) {
         var renderedLinha
         if (linhaModelo) {
 
-
-            renderedLinha = new RenderedLinha({ novoregisto: true, rowid: generateUUID(), linkid: "", parentid: "", config: linhaModelo })
+            var codigo = linhaModelo.codigo + "___" + generateTimestampNumber(10);
+            var ordem = generateLinhaOrdem();
+            renderedLinha = new RenderedLinha({ ordem: ordem, codigo: codigo, novoregisto: true, rowid: generateUUID(), linkid: "", parentid: "", config: linhaModelo })
 
             renderedLinha.UIObject = {
                 rowid: renderedLinha.rowid,
@@ -4627,6 +4907,67 @@ function Mrend(options) {
 
         applyTabulatorStylesWithJquery();
     }
+
+    function findRowById(rowid, coluna) {
+        // Busca recursiva em todas as linhas (inclusive filhas)
+        function search(rows) {
+            rows.forEach(function (row) {
+
+                if (row.getData().rowid == rowid) {
+
+                    var updateData = {};
+                    var rowData = row.getData();
+
+                    Object.keys(rowData).forEach(function (key) {
+
+                        if (key !== "_children" && key !== "id") {
+
+                            updateData[key] = rowData[key];
+                        }
+
+                    });
+
+                    row.update(updateData);
+
+                    var cellObjectConfig = globalThis.GCellObjectsConfig.find(function (obj) {
+                        return obj.rowid == rowid && obj.codigocoluna == coluna;
+                    });
+                    if (cellObjectConfig) {
+                        cellObjectConfig.valor = updateData[coluna];
+                    }
+                    else {
+                        console.warn("CellObjectConfig não encontrado para rowid:", rowid, "e coluna:", coluna);
+                    }
+
+                    return row;
+                }
+
+                var children = row.getTreeChildren ? row.getTreeChildren() : [];
+                var found = search(children);
+                if (found) return found;
+            })
+            return null;
+        }
+        return search(globalThis.GTable.getRows());
+    }
+    this.updateTableRow = function (rowid, rowData, coluna) {
+
+        var updateData = {};
+
+        Object.keys(rowData).forEach(function (key) {
+
+            if (key !== "_children" && key !== "id") {
+
+                updateData[key] = rowData[key]
+            }
+
+
+        });
+
+        var row = findRowById(rowid, coluna);
+
+
+    }
     this.render = function () {
 
         return InitDB(globalThis.datasourceName, globalThis.schemas).then(function (initDBResult) {
@@ -4653,7 +4994,11 @@ function Mrend(options) {
 
                 var recordsConverted = ConvertMrendObjectToTable(records)
 
-                resolve(recordsConverted);
+
+                return resolve(recordsConverted);
+            }).catch(function (error) {
+                console.error("Erro ao obter dados do banco:", error);
+                return reject(error);
             })
 
         });
@@ -4709,7 +5054,7 @@ function applyTabulatorStylesWithJquery() {
         "border-bottom": "1px solid #e0e6ed",
         "transition": "background-color 0.2s ease"
     });
-   // $(".tabulator-row.tabulator-row-even").css("background-color", "#fcfdfe");
+    // $(".tabulator-row.tabulator-row-even").css("background-color", "#fcfdfe");
     $(".tabulator-row")/*.hover(
         function () { $(this).css("background-color", "#f5f9ff"); },
         function () { $(this).css("background-color", ""); }
