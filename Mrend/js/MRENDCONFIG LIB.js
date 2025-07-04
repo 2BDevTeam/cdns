@@ -184,6 +184,7 @@ function getColunaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ campo: "sourceTable", tipo: "text", titulo: "Tabela fonte", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "sourceKey", tipo: "text", titulo: "Chave fonte", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
+
         new UIObjectFormConfig({ colSize: 6, campo: "setinicio", tipo: "checkbox", titulo: "Set Início", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "setfim", tipo: "checkbox", titulo: "Set Fim", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, campo: "eventoclique", tipo: "checkbox", titulo: "Evento clique", classes: "input-source-form", contentType: "input" }),
@@ -258,6 +259,8 @@ function getCelulaUIObjectFormConfigAndSourceValues() {
 
         new UIObjectFormConfig({ campo: "sinalnegativo", tipo: "checkbox", titulo: "Sinal Negativo", classes: "input-source-form" }),
         new UIObjectFormConfig({ campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "condicinactivo", tipo: "checkbox", titulo: "Condição Inactivo", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "condicinactexpr", tipo: "text", titulo: "Expressão Inactivo", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "desabilitado", tipo: "checkbox", titulo: "Desabilitado", classes: "input-source-form" }),
         new UIObjectFormConfig({ campo: "usafnpren", tipo: "checkbox", titulo: "Usa FnPren", classes: "input-source-form" }),
         new UIObjectFormConfig({ campo: "atributo", tipo: "text", titulo: "Atributo", classes: "form-control input-source-form  input-sm" }),
@@ -273,12 +276,15 @@ function getCelulaUIObjectFormConfigAndSourceValues() {
 
 
 function CelulaMrenderConfig(data) {
+    
     this.linhastamp = data.linhastamp || "";
     this.celulastamp = data.celulastamp || "";
     this.colunastamp = data.colunastamp || "";
     this.codigocoluna = data.codigocoluna || "";
     this.sinalnegativo = data.sinalnegativo || "";
     this.inactivo = data.inactivo || false;
+    this.condicinactivo = data.condicinactivo || false;
+    this.condicinactexpr = data.condicinactexpr || "";
     this.desabilitado = data.desabilitado || false;
     this.usafnpren = data.usafnpren || false;
     this.atributo = data.atributo || "";

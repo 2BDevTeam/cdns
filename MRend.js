@@ -304,6 +304,8 @@ function Mrend(options) {
         this.codigocoluna = data.codigocoluna || "";
         this.sinalnegativo = data.sinalnegativo || null;
         this.inactivo = data.inactivo || false;
+        this.condicinactivo = data.condicinactivo || false;
+        this.condicinactexpr = data.condicinactexpr || "";
         this.desabilitado = data.desabilitado || false;
         this.usafnpren = data.usafnpren || false;
         this.atributo = data.atributo || null;
@@ -3473,8 +3475,19 @@ function Mrend(options) {
 
 
         var celula = getCelulaConfigFromTabulator(cell, colunaConfig, colunaUIConfig);
+        var renderedColuna = colunaConfig;
+        var rowData = cell.getRow().getData();
 
-        if (celula.inactivo) {
+        var condicinactivo = celula.condicinactivo;
+        if (condicinactivo) {
+            var resultCondicInactivo = eval(celula.condicinactexpr);
+            if (resultCondicInactivo) {
+                return ""
+            }
+        }
+
+
+        if (celula.inactivo && condicinactivo == false) {
             return "";
         }
 
@@ -3596,9 +3609,31 @@ function Mrend(options) {
 
 
 
-        if (renderedColuna.config.colfunc) {
-            return {
-                mutator: function (value, rowData, type, params, component) {
+        return {
+            mutator: function (value, rowData, type, params, component) {
+
+                var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+                    return linha.rowid == rowData.rowid;
+                });
+
+                if (!renderedLinha) {
+                    throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
+                }
+
+                var celula = globalThis.reportConfig.config.celulas.find(function (celula) {
+                    return celula.codigocoluna.trim() == renderedColuna.config.codigocoluna && celula.linhastamp.trim() == renderedLinha.config.linhastamp.trim();
+                });
+
+
+                if (!celula) {
+                    throw new Error("Celula com codigocoluna " + renderedColuna.config.codigocoluna + " e linhastamp " + renderedLinha.config.linhastamp + " não encontrada.");
+                }
+
+
+
+                if (renderedColuna.config.colfunc || celula.usafnpren) {
+
+
 
 
                     var condicColFunc = renderedColuna.config.condicfunc;
@@ -3612,8 +3647,16 @@ function Mrend(options) {
                         return value; // Se a condição não for atendida, retorna o valor original
                     }
 
+                    var expressaoColFunc = renderedColuna.config.expresscolfun;
 
-                    var expression = extractCellValue(renderedColuna.config.expresscolfun, renderedColuna.config, rowData);
+                    if (celula.usafnpren) {
+
+                        expressaoColFunc = celula.fnpren;
+                    }
+
+
+                    var expression = extractCellValue(expressaoColFunc, renderedColuna.config, rowData);
+
                     var expressionResult = eval(expression);
                     if (renderedColuna.tipo == "digit") {
 
@@ -3631,9 +3674,10 @@ function Mrend(options) {
                     updateCellObjectConfig(renderedColuna.codigocoluna, rowupdated);
 
                     return renderedColuna.tipo == "digit" ? Number(expressionResult) : expressionResult;
-                },
-                mutatorParams: { colunaConfig: coluna.config }
-            };
+                };
+                return value
+            },
+            mutatorParams: { colunaConfig: coluna.config }
         }
         // Adicione outros mutators por tipo/código aqui se necessário
         return {};
@@ -3776,7 +3820,24 @@ function Mrend(options) {
 
                 var celula = getCelulaConfigFromTabulator(cell, coluna.config, colunaUIConfig);
 
-                return !celula.inactivo;
+                if (celula.atributo == "readonly" || celula.atributo == "disabled") {
+                    return false;
+                }
+
+                var condicinactivo = celula.condicinactivo;
+                if (condicinactivo) {
+                    var resultCondicInactivo = eval(celula.condicinactexpr);
+                    if (resultCondicInactivo) {
+                        return false
+                    }
+                }
+
+                if (celula.inactivo && condicinactivo == false) {
+                    return false;
+                }
+
+
+                return true
 
             }
             columns.push(colunaUIConfig);
@@ -4927,17 +4988,19 @@ function Mrend(options) {
 
                     });
 
-                    row.update(updateData);
-
                     var cellObjectConfig = globalThis.GCellObjectsConfig.find(function (obj) {
                         return obj.rowid == rowid && obj.codigocoluna == coluna;
                     });
                     if (cellObjectConfig) {
                         cellObjectConfig.valor = updateData[coluna];
+                        row.update(updateData);
                     }
                     else {
                         console.warn("CellObjectConfig não encontrado para rowid:", rowid, "e coluna:", coluna);
                     }
+
+
+
 
                     return row;
                 }
@@ -4968,23 +5031,72 @@ function Mrend(options) {
 
 
     }
-    this.render = function () {
 
-        return InitDB(globalThis.datasourceName, globalThis.schemas).then(function (initDBResult) {
+    function loadAssetsPromiseAll() {
+        var scripts = [
+            'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js',
+            'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js',
+            'https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js',
+            'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS',
+            'https://unpkg.com/petite-vue',
+            'https://uicdn.toast.com/tui-grid/latest/tui-grid.min.js',
+            'https://cdn.jsdelivr.net/npm/observable-slim@0.1.6/observable-slim.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/imask/7.6.1/imask.js'
+        ];
 
-            if (globalThis.resetSourceStamp) {
-                globalThis.clearSourceStamp();
+        var cssLinks = [
+            { href: 'https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css', rel: 'stylesheet' },
+            { href: 'https://uicdn.toast.com/tui-grid/latest/tui-grid.min.css', rel: 'stylesheet' },
+            { href: 'https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css', rel: 'stylesheet' }
+        ];
+
+        // Carrega CSS normalmente (não precisa Promise)
+        cssLinks.forEach(function (asset) {
+            if (!document.querySelector('link[href="' + asset.href + '"]')) {
+                var link = document.createElement('link');
+                link.href = asset.href;
+                link.rel = asset.rel;
+                document.head.appendChild(link);
             }
-            handleReportRecords().then(function (reportRecordResult) {
-
-                RenderHandler(globalThis.records)
-
-
-
-            })
-
         });
 
+        // Função para carregar um script e retornar uma Promise
+        function loadScriptPromise(src) {
+            return new Promise(function (resolve, reject) {
+                // Já existe?
+                if (Array.from(document.getElementsByTagName('script')).some(function (s) {
+                    return s.src && s.src.indexOf(src) !== -1;
+                })) {
+                    resolve();
+                    return;
+                }
+                var script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Retorna uma Promise que resolve quando TODOS os scripts carregarem
+        return Promise.all(scripts.map(loadScriptPromise));
+    }
+
+
+
+    this.render = function () {
+        return loadAssetsPromiseAll().then(function () {
+            return InitDB(globalThis.datasourceName, globalThis.schemas).then(function (initDBResult) {
+                if (globalThis.resetSourceStamp) {
+                    globalThis.clearSourceStamp();
+                }
+                handleReportRecords().then(function (reportRecordResult) {
+                    RenderHandler(globalThis.records)
+                })
+            });
+        });
     }
 
     this.getDbData = function () {
@@ -5012,12 +5124,113 @@ function Mrend(options) {
 
 
 
+function loadAssetsWithGetScript() {
+
+    var scripts = [
+        'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js',
+        'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js',
+        'https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js',
+        'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS',
+        'https://unpkg.com/petite-vue',
+        'https://uicdn.toast.com/tui-grid/latest/tui-grid.min.js',
+        'https://cdn.jsdelivr.net/npm/observable-slim@0.1.6/observable-slim.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/imask/7.6.1/imask.js'
+    ];
+
+    // Carrega CSS normalmente
+    var cssLinks = [
+        { href: 'https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css', rel: 'stylesheet' },
+        { href: 'https://uicdn.toast.com/tui-grid/latest/tui-grid.min.css', rel: 'stylesheet' },
+        { href: 'https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css', rel: 'stylesheet' }
+    ];
+    cssLinks.forEach(function (asset) {
+        if (!document.querySelector('link[href="' + asset.href + '"]')) {
+            var link = document.createElement('link');
+            link.href = asset.href;
+            link.rel = asset.rel;
+            document.head.appendChild(link);
+        }
+    });
+
+    // Carrega scripts usando jQuery.getScript se ainda não existem
+    scripts.forEach(function (src) {
+        var exists = Array.from(document.getElementsByTagName('script')).some(function (s) {
+            return s.src && s.src.indexOf(src) !== -1;
+        });
+        if (!exists) {
+            $.getScript(src);
+        }
+    });
+}
+
+// Chame no início do seu JS principal
+
+
+
+
 $(document).ready(function () {
 
+    loadAssetsWithGetScript();
+    // loadMrendAssets()
 
 });
 
 
+function assetExists(type, url) {
+    if (type === 'script') {
+        var scripts = document.getElementsByTagName('script');
+        for (var i = 0; i < scripts.length; i++) {
+            if (scripts[i].src && scripts[i].src.indexOf(url) !== -1) {
+                return true;
+            }
+        }
+    } else if (type === 'link') {
+        var links = document.getElementsByTagName('link');
+        for (var i = 0; i < links.length; i++) {
+            if (links[i].href && links[i].href.indexOf(url) !== -1) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function loadMrendAssets() {
+
+    var assets = [
+
+        { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js' },
+        { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js' },
+        { type: 'script', src: 'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js' },
+        { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js' },
+        { type: 'link', href: 'https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css', rel: 'stylesheet' },
+        { type: 'script', src: 'https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js' },
+        { type: 'script', src: 'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS' },
+        { type: 'script', src: 'https://unpkg.com/petite-vue' },
+        { type: 'script', src: 'https://cdn.jsdelivr.net/npm/observable-slim@0.1.6/observable-slim.min.js' },
+        { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/imask/7.6.1/imask.js' }
+    ];
+
+    assets.forEach(function (asset) {
+        if (asset.type === 'script') {
+            if (!assetExists('script', asset.src)) {
+                var script = document.createElement('script');
+                script.src = asset.src;
+                script.async = false;
+                document.head.appendChild(script);
+            }
+        } else if (asset.type === 'link') {
+            if (!assetExists('link', asset.href)) {
+                var link = document.createElement('link');
+                link.href = asset.href;
+                link.rel = asset.rel;
+                document.head.appendChild(link);
+            }
+        }
+    });
+}
 
 
 function applyTabulatorStylesWithJquery() {
