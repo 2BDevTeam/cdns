@@ -163,3 +163,13 @@ CREATE TABLE u_reportl (
     valor Numeric(16,2) DEFAULT 0,
     cvalor VARCHAR(250) DEFAULT ''
 );
+
+
+CREATE TABLE Mrendconfigligacao(
+
+    mrendligacoesstamp VARCHAR(25) PRIMARY KEY DEFAULT '',
+    elemento VARCHAR(250) DEFAULT '',
+    componentenegstamp VARCHAR(25) DEFAULT '',
+    componentelibstamp VARCHAR(25) DEFAULT '',
+    ligacaokey VARCHAR(250) DEFAULT '',
+)

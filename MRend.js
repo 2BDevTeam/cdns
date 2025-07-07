@@ -89,28 +89,29 @@ function Mrend(options) {
 
     // Classe para reportConfig
     function ReportConfigWrapper(data) {
-        this.config = new MrendConfigData(data.config) || new MrendConfigData({ celulas: [], linhas: [], colunas: [], relatorio: {} }); // Default empty config
+        this.config = new MrendConfigData(data) || new MrendConfigData({ celulas: [], linhas: [], colunas: [], relatorio: {}, extra: {} }); // Default empty config
     }
 
 
     function MrendConfigData(data) {
 
-        this.celulas = Array.isArray(data.celulas) ? data.celulas.map(function (s) { return new Celula(s); }) : [];
-        this.linhas = Array.isArray(data.linhas) ? data.linhas.map(function (s) { return new Linha(s); }) : [];
-        this.colunas = Array.isArray(data.colunas) ? data.colunas.map(function (s) { return new Coluna(s); }) : [];
+        var config = data.config || {};
+        this.celulas = Array.isArray(config.celulas) ? config.celulas.map(function (s) { return new Celula(s); }) : [];
+        this.linhas = Array.isArray(config.linhas) ? config.linhas.map(function (s) { return new Linha(s); }) : [];
+        this.colunas = Array.isArray(config.colunas) ? config.colunas.map(function (s) { return new Coluna(s); }) : [];
+        this.extra = data.extra || {};
 
 
-        this.relatorio = data.relatorio ? new Relatorio(data.relatorio) : {};
+        this.relatorio = config.relatorio ? new Relatorio(config.relatorio) : {};
         var self = this;
-        if (data.relatorio.adicionalinha) {
 
-            var linhasModelo = self.linhas.filter(function (linha) {
-                return linha.modelo == true
-            }).map(function (linha) {
-                self.relatorio.modelos.push(linha.codigo);
-            });
+        var linhasModelo = self.linhas.filter(function (linha) {
+            return linha.modelo == true
+        }).map(function (linha) {
+            self.relatorio.modelos.push(linha.codigo);
+        });
 
-        }
+
     }
 
 
@@ -313,6 +314,7 @@ function Mrend(options) {
         this.bindData = new BindData(data.bindData ? data.bindData : {});
         this.fx = data.fx || "";
         this.temfx = data.temfx || false;
+        this.localData = Array.isArray(data.localData) ? Array.from(data.localData) : [];
         this.fxdata = new FXData(data.fxdata ? data.fxdata : {})
     }
 
@@ -1387,6 +1389,7 @@ function Mrend(options) {
         this.nome = data.nome || ""
         this.categoria = data.categoria || ""
         this.relatoriostamp = data.relatoriostamp || ""
+        this.estilopersonalizado = data.estilopersonalizado || {};
     }
     function ReportConfig(data) {
         this.linhas = Array.isArray(data.linhas) ? Array.from(data.linhas.map(mapLinha)) : [new Linha({})];
@@ -1472,37 +1475,6 @@ function Mrend(options) {
 
         return mappedComponentRecord;
     }
-
-
-    function GetConfig(url, args) {
-
-        return executeScriptOnPHC(url, args)
-    }
-
-    function MapConfig(mapConfigs, configData) {
-
-        var celulas = mapConfigComponentByDestiny("Celula", mapConfigs, configData, Celula);
-        var linhas = mapConfigComponentByDestiny("Linha", mapConfigs, configData, Linha);
-        var colunas = mapConfigComponentByDestiny("Coluna", mapConfigs, configData, Coluna);
-        var relatorio = mapConfigComponentByDestiny("Relatorio", mapConfigs, configData, Relatorio)[0];
-
-        if (relatorio) {
-
-            if (relatorio.adicionalinha) {
-
-                var linhasModelo = linhas.filter(function (linha) {
-                    return linha.modelo == true
-                }).map(function (linha) {
-                    relatorio.modelos.push(linha.codigo);
-                });
-
-            }
-
-        }
-
-        return new ReportConfig({ linhas: linhas, celulas: celulas, colunas: colunas, relatorio: relatorio });
-    }
-
 
 
     function getMapConfigByComponent(renderConfig, component) {
@@ -2970,7 +2942,7 @@ function Mrend(options) {
 
 
         cellObjectConfig.setDefaultValue();
-        linh.UIObject[maoObraMrendConfig.dbTableToMrendObject.chunkMapping ? coluna.config.campo : coluna.codigocoluna] = cellObjectConfig.valor;
+        linh.UIObject[globalThis.dbTableToMrendObject.chunkMapping ? coluna.config.campo : coluna.codigocoluna] = cellObjectConfig.valor;
         linh.UIObject.cellId = cellObjectConfig.cellid;
 
         var cellValue = cellObjectConfig.valor;
@@ -3491,8 +3463,7 @@ function Mrend(options) {
             return "";
         }
 
-
-
+        
 
         switch (colunaConfig.tipo) {
 
@@ -3500,6 +3471,27 @@ function Mrend(options) {
 
                 return formatNumber(cell.getValue(), colunaConfig);
                 break;
+
+            case "table":
+
+                if (renderedColuna.usaexpresstbjs && celula.localData.length == 0) {
+                    list = eval(renderedColuna.expressaotbjs);
+                    celula.localData = list;
+                }
+
+                selectedLabel = "";
+                var selectedData = celula.localData.find(function (item) {
+                    return item[renderedColuna.valtb] == cell.getValue()
+                });
+
+                if (selectedData) {
+
+                    selectedLabel = selectedData[renderedColuna.nometb];
+
+                }
+
+                return selectedLabel;
+
 
             default:
 
@@ -3510,7 +3502,7 @@ function Mrend(options) {
 
     }
 
-    function handleEditor(coluna) {
+    function handleEditor(coluna, colunaUIConfig) {
 
         if (!globalThis.enableEdit) {
             return {};
@@ -3538,13 +3530,16 @@ function Mrend(options) {
                     valuesLookup: function (cell) {
                         var rowData = cell.getRow().getData();
                         var list = [];
-                        var renderedColuna = coluna
+                        var renderedColuna = coluna;
 
-                        if (coluna.config.usaexpresstbjs) {
-                            list = eval(coluna.config.expressaotbjs);
+                        var celula = getCelulaConfigFromTabulator(cell, coluna.config, colunaUIConfig);
 
-                            console.log(list, "list", coluna.config.expressaotbjs)
+                        if (coluna.config.usaexpresstbjs && celula.localData.length == 0) {
+                            celula.localData = eval(coluna.config.expressaotbjs);
+
                         }
+
+                        list = celula.localData || [];
 
                         return (list || []).map(function (item) {
 
@@ -3591,10 +3586,6 @@ function Mrend(options) {
                 valor = valor == "Infinity" || valor == "-Infinity" || valor == Infinity || isNaN(valor) ? 0 : valor;
             }
 
-
-
-
-            // Substituição manual para manter compatibilidade com ES5
             var token = "{" + colName + "}";
             while (orgExpr.indexOf(token) !== -1) {
                 orgExpr = orgExpr.replace(token, valor);
@@ -3602,6 +3593,7 @@ function Mrend(options) {
         }
         return orgExpr;
     }
+
 
     function handleMutator(coluna) {
 
@@ -3630,11 +3622,7 @@ function Mrend(options) {
                 }
 
 
-
                 if (renderedColuna.config.colfunc || celula.usafnpren) {
-
-
-
 
                     var condicColFunc = renderedColuna.config.condicfunc;
                     var resultCondicColFunc = true;
@@ -3675,7 +3663,9 @@ function Mrend(options) {
 
                     return renderedColuna.tipo == "digit" ? Number(expressionResult) : expressionResult;
                 };
-                return value
+
+
+                return value;
             },
             mutatorParams: { colunaConfig: coluna.config }
         }
@@ -3753,7 +3743,7 @@ function Mrend(options) {
 
             }
 
-            var editorConfig = handleEditor(coluna);
+            var editorConfig = handleEditor(coluna, colunaUIConfig);
             Object.assign(colunaUIConfig, editorConfig);
 
             var mutatorConfig = handleMutator(coluna);
@@ -4648,61 +4638,61 @@ function Mrend(options) {
         if (!globalThis.enableEdit) {
             return;
         }
-        if (globalThis.reportConfig.config.relatorio.adicionalinha) {
-
-            var tableButtonsId = "tableButtons" + globalThis.table;
-            var tableButtons = $("<div id='" + tableButtonsId + "' class='col-md-12 pull-left tableButtons'></div>");
-            $(globalThis.containerToRender).after(tableButtons);
-
-            globalThis.reportConfig.config.relatorio.modelos.forEach(function (modelo) {
 
 
-                var botaoId = "btnAdd" + modelo;
-                var configuracaoLinha = globalThis.reportConfig.config.linhas.find(function (linha) {
-                    return linha.codigo == modelo
+        var tableButtonsId = "tableButtons" + globalThis.table;
+        var tableButtons = $("<div id='" + tableButtonsId + "' class='col-md-12 pull-left tableButtons'></div>");
+        $(globalThis.containerToRender).after(tableButtons);
+
+        globalThis.reportConfig.config.relatorio.modelos.forEach(function (modelo) {
+
+
+            var botaoId = "btnAdd" + modelo;
+            var configuracaoLinha = globalThis.reportConfig.config.linhas.find(function (linha) {
+                return linha.codigo == modelo
+
+            });
+            var descbtnModelo = "Adiciona linha";
+
+            if (configuracaoLinha) {
+                descbtnModelo = configuracaoLinha.descbtnModelo || "Adiciona linha";
+            }
+            var botaoAdLinha = {
+                style: "margin-top:1.2em",
+                buttonId: botaoId,
+                classes: "btn btn-primary btn-sm",
+                customData: " type='button' data-modelo='" + modelo + "' data-tooltip='true' data-original-title='" + descbtnModelo + "' ",
+                label: descbtnModelo + " <span style='color:white;'  class='glyphicon glyphicon-plus'></span>",
+                onClick: "",
+            };
+
+            var buttonHtml = generateButton(botaoAdLinha);
+
+            $("#" + tableButtonsId).append(buttonHtml);
+            $("#" + botaoId).on("click", function () {
+                var modelo = $(this).data("modelo");
+
+
+
+                var linhaByModeloResult = addLinhaByModelo(modelo);
+
+                // console.log("Linha adicionada por modelo", linhaByModeloResult)
+                globalThis.GTable.addRow(linhaByModeloResult.UIObject, false).then(function (row) {
+                    row.treeExpand();
+                    applyTabulatorStylesWithJquery();
 
                 });
-                var descbtnModelo = "Adiciona linha";
-
-                if (configuracaoLinha) {
-                    descbtnModelo = configuracaoLinha.descbtnModelo || "Adiciona linha";
-                }
-                var botaoAdLinha = {
-                    style: "margin-top:1.2em",
-                    buttonId: botaoId,
-                    classes: "btn btn-primary btn-sm",
-                    customData: " type='button' data-modelo='" + modelo + "' data-tooltip='true' data-original-title='" + descbtnModelo + "' ",
-                    label: descbtnModelo + " <span style='color:white;'  class='glyphicon glyphicon-plus'></span>",
-                    onClick: "",
-                };
-
-                var buttonHtml = generateButton(botaoAdLinha);
-
-                $("#" + tableButtonsId).append(buttonHtml);
-                $("#" + botaoId).on("click", function () {
-                    var modelo = $(this).data("modelo");
 
 
+                //   thisTable.addLinhaByModelo(modelo);
+            });
 
-                    var linhaByModeloResult = addLinhaByModelo(modelo);
-
-                    // console.log("Linha adicionada por modelo", linhaByModeloResult)
-                    globalThis.GTable.addRow(linhaByModeloResult.UIObject, false).then(function (row) {
-                        row.treeExpand();
-                        applyTabulatorStylesWithJquery();
-
-                    });
-
-
-                    //   thisTable.addLinhaByModelo(modelo);
-                });
-
-            })
+        })
 
 
 
 
-        }
+
 
 
 
@@ -5234,6 +5224,12 @@ function loadMrendAssets() {
 
 
 function applyTabulatorStylesWithJquery() {
+
+    var customStyles = {}
+
+    if (GDOMrend.reportConfig.config.extra) {
+        customStyles = GDOMrend.reportConfig.config.extra.customStyles || {};
+    }
     // Tabulator container
     $(".tabulator").css({
         "background-color": "white",
@@ -5244,7 +5240,7 @@ function applyTabulatorStylesWithJquery() {
 
     // Header
     $(".tabulator .tabulator-header").css({
-        "background-color": "#0765b7",
+        "background-color": customStyles.headerBackground ? customStyles.headerBackground : "#0765b7",
         "border-bottom": "none",
         "border-radius": "10px 10px 0 0",
         "padding": "13px"
@@ -5252,7 +5248,7 @@ function applyTabulatorStylesWithJquery() {
 
     // Header columns
     $(".tabulator .tabulator-header .tabulator-col").css({
-        "background-color": "#0765b7",
+        "background-color": customStyles.headerBackground ? customStyles.headerBackground : "#0765b7",
         "color": "white",
         "border-right": "none",
         /*  "padding": "12px 15px",*/

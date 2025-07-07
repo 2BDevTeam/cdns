@@ -41,6 +41,7 @@ function LinhaMrenderConfig(data) {
     this.bindData = new BindData(data.bindData ? data.bindData : {})
     this.localSource = data.localSource || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+    this.extraFields = handleExtraFieldsByComponente("Linha");
 
 }
 
@@ -95,6 +96,76 @@ function ColunaMrenderConfig(data) {
     this.localsource = data.localsource || "";
 
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+    this.extraFields = handleExtraFieldsByComponente("Coluna");
+
+}
+
+
+
+function handleDefaultValue(tipo) {
+
+    switch (tipo) {
+
+        case "text":
+            return ""
+        case "digit":
+            return 0
+        default:
+            return ""
+    }
+}
+
+
+function handleExtraFieldsByComponente(componente) {
+    try {
+
+        if (!Array.isArray(GMrendLigacoesPredefinidas)) {
+            return {}
+        }
+
+        var ligacoesPredefinidas = GMrendLigacoesPredefinidas.filter(function (item) {
+            return item.elemento == componente;
+        });
+
+
+        var extraFieldsData = {}
+
+        ligacoesPredefinidas.forEach(function (item) {
+
+            item.UIObjectsUIFormConfig.forEach(function (uiObject) {
+
+                extraFieldsData[uiObject.campo] = handleDefaultValue(uiObject.tipo);
+            })
+
+        })
+
+
+        return extraFieldsData
+    } catch (error) {
+
+        console.log("ERROR NO HANDLE EXTRA FIELDS BY COMPONENTE", error)
+        return {}
+    }
+
+
+
+}
+
+
+function Mrendconfigligacao(data) {
+
+    this.mrendligacoesstamp = data.mrendligacoesstamp || generateUUID();
+    this.elemento = data.elemento || "";
+    this.tabela = data.tabela || "";
+
+    this.componentenegstamp = data.componentenegstamp || "";
+    this.componentenegField = data.componentenegField || "";
+
+    this.componentelibstamp = data.componentelibstamp || "";
+
+
+    this.ligacaokey = (this.componentelibstamp || "") + "___" + (this.componentenegstamp || "");
+    this.UIObjectsUIFormConfig = data.UIObjectsUIFormConfig || [];
 
 }
 
@@ -276,7 +347,7 @@ function getCelulaUIObjectFormConfigAndSourceValues() {
 
 
 function CelulaMrenderConfig(data) {
-    
+
     this.linhastamp = data.linhastamp || "";
     this.celulastamp = data.celulastamp || "";
     this.colunastamp = data.colunastamp || "";
@@ -298,6 +369,7 @@ function CelulaMrenderConfig(data) {
     this.localsource = data.localsource || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.idField = data.idField || "";
+    this.extraFields = handleExtraFieldsByComponente("Celula");
 
 }
 
@@ -334,7 +406,13 @@ var GConfigCodigo = ""
 GRenderedLinhas = []
 GMrendConfigColunas = []
 GMrendConfigLinhas = []
-GMrendConfigCelulas = []
+GMrendConfigCelulas = [];
+
+var GMrendLigacoes = [new Mrendconfigligacao({})];
+GMrendLigacoes = [];
+
+var GMrendLigacoesPredefinidas = [new Mrendconfigligacao({})];
+
 var GRendConfigTableHtml = {
     tableId: "dd",
     classes: "table table-hover config-input-report-table ",
@@ -397,6 +475,7 @@ function organizarEcraMrender() {
 
 function initTabelaConfiguracaoMrender(config) {
 
+    GMrendLigacoesPredefinidas = config.ligacoes || [];
     GRelatorioStamp = config.relatoriostamp || $("#ctl00_conteudo_u_mrendrelstamp_mLabel1").text();
     GConfigCodigo = config.codigo || "";
     GRendConfigTableHtml = {
@@ -703,7 +782,7 @@ function addColunaMrenderConfig(coluna, colunaUIObjectFormConfigResult) {
         customData: "",
     });
 
-    var customData = " idValue='" + coluna.colunastamp + "' localsource='" + colunaUIObjectFormConfigResult.localsource + "'  idfield='" + colunaUIObjectFormConfigResult.idField + "'"
+    var customData = " componente='Coluna' idValue='" + coluna.colunastamp + "' localsource='" + colunaUIObjectFormConfigResult.localsource + "'  idfield='" + colunaUIObjectFormConfigResult.idField + "'"
     var table = $("#" + GRendConfigTableHtml.tableId);
     var thHtml = "<th " + customData + " class='colunaHeader mrendconfig-item' id='" + coluna.colunastamp + "'>" + contentColuna + "</th>";
 
@@ -752,7 +831,7 @@ function addColunaMrenderConfig(coluna, colunaUIObjectFormConfigResult) {
 
 
         var colContent = generateInput(textInputData);
-        var customCelulaUIData = " idValue='" + celula.celulastamp + "' localsource='" + celulaUIObjectFormConfigResult.localsource + "'  idfield='" + celula.idField + "'"
+        var customCelulaUIData = " componente='Linha' idValue='" + celula.celulastamp + "' localsource='" + celulaUIObjectFormConfigResult.localsource + "'  idfield='" + celula.idField + "'"
 
         var $tr = table.find("tbody tr#" + linha.linhastamp);
         if ($tr.length) {
@@ -878,7 +957,10 @@ function registerListenersMrender() {
         var idValue = $(this).attr("idValue");
         var localsource = $(this).attr("localsource");
         var idField = $(this).attr("idfield");
+        var componente = $(this).attr("componente");
         var localSource = getLocalSource(localsource);
+
+
 
         var mrendConfigItem = localSource.find(function (obj) {
             return obj[idField] == idValue;
@@ -923,6 +1005,51 @@ function registerListenersMrender() {
 
             });
 
+            var ligacoesPredefinidas = GMrendLigacoesPredefinidas.filter(function (ligacao) {
+                return ligacao.elemento == componente;
+            });
+
+            var extraFields= mrendConfigItem.extraFields || {};
+            
+            ligacoesPredefinidas.forEach(function (ligacao) {
+
+                console.log("extraFields",extraFields)
+                ligacao.UIObjectsUIFormConfig.forEach(function (obj) {
+
+
+
+                    containers.push({
+                        colSize: obj.colSize,
+                        style: "margin-bottom:0.5em; " + (obj.tipo == "checkbox" ? "display:flex;flex-direction:column" : ""),
+                        content: {
+                            contentType: obj.contentType,
+                            type: obj.tipo,
+                            id: obj.campo,
+                            classes: obj.classes + " extraFields-item-input",
+                            customData: obj.customData + " v-model='extraFields." + obj.campo + "'",
+                            style: obj.style,
+                            selectCustomData: obj.customData + " v-model='extraFields." + obj.campo + "'",
+                            fieldToOption: obj.fieldToOption,
+                            fieldToValue: obj.fieldToValue,
+                            label: obj.titulo,
+                            selectData: obj.selectValues,
+                            value: extraFields[obj.campo],
+                            event: "",
+                            placeholder: "",
+
+                        }
+                    })
+
+
+
+
+                })
+
+            })
+
+            console.log("Ligacoes Predefinidas", componente, ligacoesPredefinidas)
+
+
             $("#modalRendConfigItem").remove()
             var containerData = {
                 containerId: containerId,
@@ -951,7 +1078,8 @@ function registerListenersMrender() {
 
             $("#modalRendConfigItem").modal("show");
             PetiteVue.createApp({
-                mrendConfigItem: mrendConfigItem
+                mrendConfigItem: mrendConfigItem,
+                extraFields: extraFields
             }).mount('#maincontent');
 
 
@@ -1057,7 +1185,7 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
         return;
     }
     var cols = [];
-    var customDataUIObjectLinha = " idValue='" + linha.linhastamp + "' localsource='" + linhaUIObjectFormConfigResult.localsource + "'  idfield='" + linhaUIObjectFormConfigResult.idField + "'"
+    var customDataUIObjectLinha = " componente='Linha' idValue='" + linha.linhastamp + "' localsource='" + linhaUIObjectFormConfigResult.localsource + "'  idfield='" + linhaUIObjectFormConfigResult.idField + "'"
 
     var cols = [];
     cols.push({
@@ -1091,7 +1219,7 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
             placeholder: ""
         };
 
-        var customCelulaUIData = " idValue='" + celula.celulastamp + "' localsource='" + celula.localsource + "'  idfield='" + celula.idField + "'"
+        var customCelulaUIData = " componente='Linha'  idValue='" + celula.celulastamp + "' localsource='" + celula.localsource + "'  idfield='" + celula.idField + "'"
 
 
         var colContent = generateInput(textInputData)

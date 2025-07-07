@@ -101,7 +101,7 @@ function FormItem(data) {
     this.customData = data.customData || "";
     this.style = data.style || "";
     this.content = data.content ? new FormContent(data.content) : new FormContent({});
-} 
+}
 
 function FormContent(data) {
 
@@ -214,7 +214,21 @@ function HandlerCustomContainerContentGenerator(content) {
             return generateSelect(content.selectData, content.classes, content.style, content.selectCustomData, content.fieldToOption, content.fieldToValue, content.label);
         case "button":
             return generateButton(content);
+        case "div":
+            return generateDiv(content);
     }
+}
+
+function generateDiv(content) {
+    var html = "<div ";
+    html += " id='" + content.id + "' ";
+    html += " class='" + content.classes + "' ";
+    html += content.customData ? " " + content.customData : "";
+    html += content.style ? " style='" + content.style + "'" : "";
+    html += ">";
+    html += content.value || "";
+    html += "</div>";
+    return html;
 }
 
 
