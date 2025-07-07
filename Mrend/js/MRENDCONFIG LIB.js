@@ -41,7 +41,7 @@ function LinhaMrenderConfig(data) {
     this.bindData = new BindData(data.bindData ? data.bindData : {})
     this.localSource = data.localSource || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
-    this.extraFields = handleExtraFieldsByComponente("Linha");
+    this.relationData = handleRelationDataByComponente("Linha", this.linhastamp);
 
 }
 
@@ -96,7 +96,7 @@ function ColunaMrenderConfig(data) {
     this.localsource = data.localsource || "";
 
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
-    this.extraFields = handleExtraFieldsByComponente("Coluna");
+    this.relationRecords = handleRelationDataByComponente("Coluna", this.colunastamp);
 
 }
 
@@ -116,7 +116,7 @@ function handleDefaultValue(tipo) {
 }
 
 
-function handleExtraFieldsByComponente(componente) {
+function handleRelationDataByComponente(componente, componentestamp) {
     try {
 
         if (!Array.isArray(GMrendLigacoesPredefinidas)) {
@@ -128,19 +128,33 @@ function handleExtraFieldsByComponente(componente) {
         });
 
 
-        var extraFieldsData = {}
+        var relationRecords = [];
+
 
         ligacoesPredefinidas.forEach(function (item) {
+            //filtrarpor relacoes por componente+tabela+stampcomponente
+            var relationData = {
+                sourceTable: item.tabela || "",
+                sourceKey: item.componentenegField,
+                UIObjectsUIFormConfig: item.UIObjectsUIFormConfig || [],
+                record: {}
+            }
 
-            item.UIObjectsUIFormConfig.forEach(function (uiObject) {
 
-                extraFieldsData[uiObject.campo] = handleDefaultValue(uiObject.tipo);
-            })
+            relationData.record[item.componentenegField] = item.componentenegstamp || componentestamp;
 
-        })
+            item.UIObjectsUIFormConfig.forEach(function (UIObject) {
 
 
-        return extraFieldsData
+                relationData.record[UIObject.campo] = handleDefaultValue(UIObject.tipo);
+            });
+
+            relationRecords.push(relationData);
+
+        });
+
+
+        return relationRecords
     } catch (error) {
 
         console.log("ERROR NO HANDLE EXTRA FIELDS BY COMPONENTE", error)
@@ -369,7 +383,7 @@ function CelulaMrenderConfig(data) {
     this.localsource = data.localsource || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.idField = data.idField || "";
-    this.extraFields = handleExtraFieldsByComponente("Celula");
+    this.relationData = handleRelationDataByComponente("Celula", this.celulastamp);
 
 }
 
@@ -977,7 +991,8 @@ function registerListenersMrender() {
                 sourceTable: localsource,
                 sourceKey: localsource
             }
-            var containers = []
+            var containers = [];
+
             objectsUIFormConfig.forEach(function (obj) {
 
                 containers.push({
@@ -1003,20 +1018,18 @@ function registerListenersMrender() {
                 })
 
 
+
             });
 
-            var ligacoesPredefinidas = GMrendLigacoesPredefinidas.filter(function (ligacao) {
-                return ligacao.elemento == componente;
-            });
-
-            var extraFields= mrendConfigItem.extraFields || {};
-            
-            ligacoesPredefinidas.forEach(function (ligacao) {
-
-                console.log("extraFields",extraFields)
-                ligacao.UIObjectsUIFormConfig.forEach(function (obj) {
 
 
+            var indexField = 0
+
+
+            mrendConfigItem.relationRecords.forEach(function (extraFieldData) {
+
+
+                extraFieldData.UIObjectsUIFormConfig.forEach(function (obj) {
 
                     containers.push({
                         colSize: obj.colSize,
@@ -1025,15 +1038,15 @@ function registerListenersMrender() {
                             contentType: obj.contentType,
                             type: obj.tipo,
                             id: obj.campo,
-                            classes: obj.classes + " extraFields-item-input",
-                            customData: obj.customData + " v-model='extraFields." + obj.campo + "'",
+                            classes: obj.classes + " relationData-item-input",
+                            customData: obj.customData + " v-model='mrendConfigItem.relationRecords[" + indexField + "].record." + obj.campo + "'",
                             style: obj.style,
-                            selectCustomData: obj.customData + " v-model='extraFields." + obj.campo + "'",
+                            selectCustomData: obj.customData + " v-model='mrendConfigItem.relationRecords[" + indexField + "].record." + obj.campo + "'",
                             fieldToOption: obj.fieldToOption,
                             fieldToValue: obj.fieldToValue,
                             label: obj.titulo,
                             selectData: obj.selectValues,
-                            value: extraFields[obj.campo],
+                            value: mrendConfigItem.relationRecords[indexField].record[obj.campo],
                             event: "",
                             placeholder: "",
 
@@ -1042,12 +1055,14 @@ function registerListenersMrender() {
 
 
 
-
                 })
+
+                indexField++;
 
             })
 
-            console.log("Ligacoes Predefinidas", componente, ligacoesPredefinidas)
+
+
 
 
             $("#modalRendConfigItem").remove()
@@ -1079,7 +1094,6 @@ function registerListenersMrender() {
             $("#modalRendConfigItem").modal("show");
             PetiteVue.createApp({
                 mrendConfigItem: mrendConfigItem,
-                extraFields: extraFields
             }).mount('#maincontent');
 
 
@@ -1320,6 +1334,32 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
 
 }
 
+function groupRecordsBySource(arr, relationKey) {
+    var extraRecords = [];
+    arr.forEach(function (item) {
+        var relationRecords = item[relationKey] || [];
+        var distinctTabelas = _.uniqBy(relationRecords, "sourceTable");
+        distinctTabelas.forEach(function (tabela) {
+            var extraRecordExists = extraRecords.find(function (record) {
+                return record.sourceTable == tabela.sourceTable;
+            });
+            var records = relationRecords.filter(function (record) {
+                return record.sourceTable == tabela.sourceTable;
+            });
+            if (!extraRecordExists) {
+                extraRecords.push({
+                    sourceTable: tabela.sourceTable,
+                    sourceKey: tabela.sourceKey,
+                    records: records
+                });
+            } else {
+                extraRecordExists.records = extraRecordExists.records.concat(records);
+            }
+        });
+    });
+    return extraRecords;
+}
+
 function actualizarConfiguracaoMrender() {
 
     var configData = [{
@@ -1336,9 +1376,59 @@ function actualizarConfiguracaoMrender() {
         sourceTable: "MrendCelula",
         sourceKey: "celulastamp",
         records: GMrendConfigCelulas
-    }]
+    }];
 
-    console.log("configData", configData)
+
+    var extraRecords = [];
+
+    /*GMrendConfigColunas.map(function (coluna) {
+
+        var distinctTabelas = _.uniqBy(coluna.relationRecords, "sourceTable");
+
+
+        distinctTabelas.forEach(function (tabela) {
+
+            extraRecordExists = extraRecords.find(function (record) {
+
+                return record.sourceTable == record.sourceTable
+            });
+
+            var records = coluna.relationRecords.filter(function (record) {
+                return record.sourceTable == tabela.sourceTable;
+            });
+            if (!extraRecordExists) {
+
+                extraRecords.push({
+                    sourceTable: tabela.sourceTable,
+                    sourceKey: tabela.sourceKey,
+                    records: records
+                });
+
+            } else {
+
+
+
+                extraRecordExists.records = extraRecordExists.records.concat(records);
+
+
+            }
+
+        })
+
+
+
+
+    })*/
+
+    var extraRecordsColunas = groupRecordsBySource(GMrendConfigColunas, "relationRecords");
+    var extraRecordsLinhas = groupRecordsBySource(GMrendConfigLinhas, "relationRecords");
+    var extraRecordsCelulas = groupRecordsBySource(GMrendConfigCelulas, "relationRecords");
+
+    // Se quiser juntar tudo:
+    var allExtraRecords = [].concat(extraRecordsColunas, extraRecordsLinhas, extraRecordsCelulas);
+
+    console.log("allExtraRecords", allExtraRecords)
+    throw new Error("intentional error to stop execution");
     $.ajax({
         type: "POST",
         url: "../programs/gensel.aspx?cscript=actualizarmrendconfig",
