@@ -75,6 +75,8 @@ CREATE TABLE MrendColuna
     expresscolfun TEXT DEFAULT '',
     expressaodb TEXT DEFAULT '',
     colfunc BIT DEFAULT 0,
+    condicfuncexpr TEXT DEFAULT '',
+    condicfunc BIT DEFAULT 0,
     eventoclique BIT DEFAULT 0,
     expressaoclique TEXT DEFAULT '',
     ordem INT DEFAULT 0,
@@ -148,6 +150,18 @@ CREATE TABLE MrendCelula
 );
 
 
+CREATE TABLE Mrendconfigligacao(
+
+    mrendligacoesstamp VARCHAR(25) PRIMARY KEY DEFAULT '',
+    elemento VARCHAR(250) DEFAULT '',
+    tabela VARCHAR(100) DEFAULT '',
+    componentenegstamp VARCHAR(25) DEFAULT '',
+    componentelibstamp VARCHAR(25) DEFAULT '',
+    componentenegfield VARCHAR(100) DEFAULT '',
+    ligacaokey VARCHAR(250) DEFAULT '',
+    relatoriostamp VARCHAR(25) DEFAULT '',
+)
+
 CREATE TABLE u_reportl (
     u_reportlstamp VARCHAR(25) PRIMARY KEY DEFAULT '',
     ordem Numeric(16) DEFAULT 0,
@@ -165,11 +179,3 @@ CREATE TABLE u_reportl (
 );
 
 
-CREATE TABLE Mrendconfigligacao(
-
-    mrendligacoesstamp VARCHAR(25) PRIMARY KEY DEFAULT '',
-    elemento VARCHAR(250) DEFAULT '',
-    componentenegstamp VARCHAR(25) DEFAULT '',
-    componentelibstamp VARCHAR(25) DEFAULT '',
-    ligacaokey VARCHAR(250) DEFAULT '',
-)

@@ -54,16 +54,25 @@ Try
     Dim queryResultCelula as DataTable= ExecuteQuery(queryCelula,sqlParametersCelula)
 
     Dim queryRelatorio as String="select u_mrendrel.* from u_mrendrel where u_mrendrel.codigo=@codigo"
-   Dim sqlParametersRelatorio as new List(Of System.Data.SqlClient.SqlParameter)
+    Dim sqlParametersRelatorio as new List(Of System.Data.SqlClient.SqlParameter)
     sqlParametersRelatorio.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
     Dim queryResultRelatorio as DataTable= ExecuteQuery(queryRelatorio,sqlParametersRelatorio)
+
+    Dim queryLigacoes as String="select Mrendconfigligacao.*from Mrendconfigligacao join u_mrendrel on u_mrendrel.u_mrendrelstamp=Mrendconfigligacao.relatoriostamp  where u_mrendrel.codigo=@codigo"
+    Dim sqlParametersLigacao as new List(Of System.Data.SqlClient.SqlParameter)
+    sqlParametersLigacao.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
+    Dim queryResultLigacao as DataTable= ExecuteQuery(queryLigacoes,sqlParametersLigacao)
+
+
+
 
 
    Dim dadosRelatorio=new With{
     .relatorio=queryResultRelatorio,
     .linhas=queryResultLinha,
     .colunas=queryResultColuna,
-    .celulas=queryResultCelula
+    .celulas=queryResultCelula,
+    .ligacoes=queryResultLigacao
    }
 
    Dim responseDTO= New With {.cod ="0000" ,.codDesc="Success",.message="Success",.data=dadosRelatorio}

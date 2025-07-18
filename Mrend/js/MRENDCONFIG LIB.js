@@ -41,7 +41,8 @@ function LinhaMrenderConfig(data) {
     this.bindData = new BindData(data.bindData ? data.bindData : {})
     this.localSource = data.localSource || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
-    this.relationData = handleRelationDataByComponente("Linha", this.linhastamp);
+    this.ligacoes = [];
+    this.relationRecords = handleRelationDataByComponente("Linha", this.linhastamp, this);
 
 }
 
@@ -96,7 +97,10 @@ function ColunaMrenderConfig(data) {
     this.localsource = data.localsource || "";
 
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
-    this.relationRecords = handleRelationDataByComponente("Coluna", this.colunastamp);
+    this.ligacoes = [];
+    this.relationRecords = handleRelationDataByComponente("Coluna", this.colunastamp, this);
+
+
 
 }
 
@@ -110,15 +114,21 @@ function handleDefaultValue(tipo) {
             return ""
         case "digit":
             return 0
+        case "checkbox":
+            return false
         default:
             return ""
     }
 }
 
 
-function handleRelationDataByComponente(componente, componentestamp) {
+function handleRelationDataByComponente(componente, componentestamp, componenteData) {
     try {
 
+        if (!componentestamp) {
+
+            return []
+        }
         if (!Array.isArray(GMrendLigacoesPredefinidas)) {
             return {}
         }
@@ -130,35 +140,67 @@ function handleRelationDataByComponente(componente, componentestamp) {
 
         var relationRecords = [];
 
+        var ligacoes = [new Mrendconfigligacao({})];
+        ligacoes = []
+
 
         ligacoesPredefinidas.forEach(function (item) {
             //filtrarpor relacoes por componente+tabela+stampcomponente
+
+            var ligacaoExistente = GMrendLigacoesExistentes.find(function (ligacao) {
+                return ligacao.elemento.trim() == componente.trim() && ligacao.tabela.trim() == item.tabela.trim() && ligacao.componentelibstamp.trim() == componentestamp.trim()
+            });
+
             var relationData = {
                 sourceTable: item.tabela || "",
-                sourceKey: item.componentenegField,
+                sourceKey: item.componentenegfield,
                 UIObjectsUIFormConfig: item.UIObjectsUIFormConfig || [],
                 record: {}
             }
 
+            var recordExistente = ligacaoExistente ? ligacaoExistente.record : {};
 
-            relationData.record[item.componentenegField] = item.componentenegstamp || componentestamp;
+            ligacaoExistente = ligacaoExistente || {};
 
-            item.UIObjectsUIFormConfig.forEach(function (UIObject) {
+            var mrendligacoesstamp = ligacaoExistente.mrendligacoesstamp || generateUUID();
+            var componentenegstamp = ligacaoExistente.componentenegstamp || componentestamp;
 
 
-                relationData.record[UIObject.campo] = handleDefaultValue(UIObject.tipo);
-            });
+            if (Object.keys(recordExistente).length == 0) {
+
+                relationData.record[item.componentenegfield] = componentenegstamp;
+                item.UIObjectsUIFormConfig.forEach(function (UIObject) {
+
+                    relationData.record[UIObject.campo] = handleDefaultValue(UIObject.tipo);
+                });
+
+            } else {
+                relationData.record = recordExistente;
+            }
 
             relationRecords.push(relationData);
 
+            var ligacaoData = new Mrendconfigligacao({
+                mrendligacoesstamp: mrendligacoesstamp,
+                elemento: componente,
+                tabela: item.tabela || "",
+                componentenegstamp: componentenegstamp,
+                componentenegfield: item.componentenegfield || "",
+                componentelibstamp: componentestamp
+            })
+            ligacoes.push(ligacaoData);
+
+            GMrendLigacoes.push(ligacaoData);
+
+
         });
 
-
+        componenteData.ligacoes = ligacoes;
         return relationRecords
     } catch (error) {
 
         console.log("ERROR NO HANDLE EXTRA FIELDS BY COMPONENTE", error)
-        return {}
+        return []
     }
 
 
@@ -171,15 +213,13 @@ function Mrendconfigligacao(data) {
     this.mrendligacoesstamp = data.mrendligacoesstamp || generateUUID();
     this.elemento = data.elemento || "";
     this.tabela = data.tabela || "";
-
     this.componentenegstamp = data.componentenegstamp || "";
-    this.componentenegField = data.componentenegField || "";
-
+    this.componentenegfield = data.componentenegfield || "";
     this.componentelibstamp = data.componentelibstamp || "";
-
-
+    this.relatoriostamp = GRelatorioStamp || "";
     this.ligacaokey = (this.componentelibstamp || "") + "___" + (this.componentenegstamp || "");
     this.UIObjectsUIFormConfig = data.UIObjectsUIFormConfig || [];
+    this.record = data.record || {};
 
 }
 
@@ -241,6 +281,7 @@ function getLinhaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ campo: "expressaochangejs", tipo: "text", titulo: "Expressão Change JS", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ campo: "cor", tipo: "text", titulo: "Cor", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ campo: "estilopersonalizado", tipo: "checkbox", titulo: "Estilo Personalizado", classes: "input-source-form" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "expressaoestilopersonalizado", tipo: "textarea", titulo: "Expressão Estilo Personalizado", classes: "form-control input-source-form  input-sm" }),
 
         new UIObjectFormConfig({ campo: "explist", tipo: "text", titulo: "ExpList", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ campo: "defselect", tipo: "text", titulo: "DefSelect", classes: "form-control input-source-form  input-sm" }),
@@ -383,7 +424,8 @@ function CelulaMrenderConfig(data) {
     this.localsource = data.localsource || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.idField = data.idField || "";
-    this.relationData = handleRelationDataByComponente("Celula", this.celulastamp);
+    this.ligacoes = [];
+    this.relationRecords = handleRelationDataByComponente("Celula", this.celulastamp, this);
 
 }
 
@@ -424,6 +466,9 @@ GMrendConfigCelulas = [];
 
 var GMrendLigacoes = [new Mrendconfigligacao({})];
 GMrendLigacoes = [];
+
+var GMrendLigacoesExistentes = [new Mrendconfigligacao({})];
+GMrendLigacoesExistentes = [];
 
 var GMrendLigacoesPredefinidas = [new Mrendconfigligacao({})];
 
@@ -586,6 +631,69 @@ function fetchConfigMrender(codigo) {
                     return false
                 }
                 var config = response.data;
+                var ligacoesResponse = config.ligacoes || [];
+
+                var ligacoes = ligacoesResponse.map(function (ligacao) {
+
+                    var confLigacao = new Mrendconfigligacao(ligacao);
+
+                    $.ajax({
+                        type: "POST",
+                        url: "../programs/gensel.aspx?cscript=getregistomrend",
+                        async: false,
+                        data: {
+                            '__EVENTARGUMENT': JSON.stringify([{
+                                coluna: confLigacao.componentenegfield,
+                                registo: confLigacao.componentenegstamp,
+                                tabela: confLigacao.tabela
+                            }]),
+                        },
+                        success: function (response) {
+
+                            var errorMessage = "ao trazer resultados da ligação"
+                            try {
+                                if (response.cod != "0000") {
+
+                                    console.log("Erro " + errorMessage, response)
+                                    return false
+                                }
+
+                                var dadosLigacaoPredefinida = GMrendLigacoesPredefinidas.filter(function (ligacaoPredefinida) {
+                                    return ligacaoPredefinida.elemento == confLigacao.elemento
+                                });
+
+                                var recordData = {}
+                                dadosLigacaoPredefinida.map(function (ligg) {
+
+                                    var uiObjects = ligg.UIObjectsUIFormConfig;
+
+                                    var recc = response.data[0] || {}
+                                    uiObjects.forEach(function (uiObject) {
+                                        recordData[uiObject.campo] = recc[uiObject.campo] || handleDefaultValue(uiObject.tipo);
+                                    });
+
+
+                                    recordData[ligg.componentenegfield] = recc[ligg.componentenegfield];
+
+
+
+                                })
+
+                                confLigacao.record = recordData
+                            } catch (error) {
+                                console.log("Erro interno " + errorMessage, response)
+                                //alertify.error("Erro interno " + errorMessage, 10000)
+                            }
+
+                            //  javascript:__doPostBack('','')
+                        }
+                    })
+
+                    return confLigacao;
+                });
+
+                GMrendLigacoesExistentes = ligacoes;
+
                 renderConfigMrender(config);
             } catch (error) {
                 console.log("Erro interno " + errorMessage, error)
@@ -1025,8 +1133,35 @@ function registerListenersMrender() {
 
             var indexField = 0
 
+            var relationRecords = mrendConfigItem.relationRecords || [];
+            if (relationRecords.length > 0) {
 
-            mrendConfigItem.relationRecords.forEach(function (extraFieldData) {
+                containers.push({
+                    colSize: 12,
+                    style: "margin-bottom:0.5em;",
+                    content: {
+                        contentType: "div",
+                        type: "div",
+                        id: "",
+                        classes: "",
+                        customData: "",
+                        style: "",
+                        selectCustomData: "",
+                        fieldToOption: "",
+                        fieldToValue: "",
+                        label: "",
+                        selectData: "",
+                        value: "<h4 style='font-weight:bolf' >Campos extra</h4><hr>",
+                        event: "",
+                        placeholder: "",
+
+                    }
+                })
+
+
+            }
+
+            relationRecords.forEach(function (extraFieldData) {
 
 
                 extraFieldData.UIObjectsUIFormConfig.forEach(function (obj) {
@@ -1233,7 +1368,7 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
             placeholder: ""
         };
 
-        var customCelulaUIData = " componente='Linha'  idValue='" + celula.celulastamp + "' localsource='" + celula.localsource + "'  idfield='" + celula.idField + "'"
+        var customCelulaUIData = " componente='Celula'  idValue='" + celula.celulastamp + "' localsource='" + celula.localsource + "'  idfield='" + celula.idField + "'"
 
 
         var colContent = generateInput(textInputData)
@@ -1345,6 +1480,9 @@ function groupRecordsBySource(arr, relationKey) {
             });
             var records = relationRecords.filter(function (record) {
                 return record.sourceTable == tabela.sourceTable;
+            }).map(function (recc) {
+
+                return recc.record
             });
             if (!extraRecordExists) {
                 extraRecords.push({
@@ -1376,49 +1514,12 @@ function actualizarConfiguracaoMrender() {
         sourceTable: "MrendCelula",
         sourceKey: "celulastamp",
         records: GMrendConfigCelulas
+    }, {
+        sourceTable: "Mrendconfigligacao",
+        sourceKey: "mrendligacoesstamp",
+        records: GMrendLigacoes
     }];
 
-
-    var extraRecords = [];
-
-    /*GMrendConfigColunas.map(function (coluna) {
-
-        var distinctTabelas = _.uniqBy(coluna.relationRecords, "sourceTable");
-
-
-        distinctTabelas.forEach(function (tabela) {
-
-            extraRecordExists = extraRecords.find(function (record) {
-
-                return record.sourceTable == record.sourceTable
-            });
-
-            var records = coluna.relationRecords.filter(function (record) {
-                return record.sourceTable == tabela.sourceTable;
-            });
-            if (!extraRecordExists) {
-
-                extraRecords.push({
-                    sourceTable: tabela.sourceTable,
-                    sourceKey: tabela.sourceKey,
-                    records: records
-                });
-
-            } else {
-
-
-
-                extraRecordExists.records = extraRecordExists.records.concat(records);
-
-
-            }
-
-        })
-
-
-
-
-    })*/
 
     var extraRecordsColunas = groupRecordsBySource(GMrendConfigColunas, "relationRecords");
     var extraRecordsLinhas = groupRecordsBySource(GMrendConfigLinhas, "relationRecords");
@@ -1427,8 +1528,11 @@ function actualizarConfiguracaoMrender() {
     // Se quiser juntar tudo:
     var allExtraRecords = [].concat(extraRecordsColunas, extraRecordsLinhas, extraRecordsCelulas);
 
-    console.log("allExtraRecords", allExtraRecords)
-    throw new Error("intentional error to stop execution");
+
+
+    configData = configData.concat(allExtraRecords);
+
+    console.log("configData Records", configData)
     $.ajax({
         type: "POST",
         url: "../programs/gensel.aspx?cscript=actualizarmrendconfig",

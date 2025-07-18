@@ -3082,7 +3082,6 @@ function Mrend(options) {
 
     function addBulkData(db, tableName, dataArray) {
 
-        //console.log("tableName",tableName)
         if (globalThis.db['_allTables'][tableName]) {
             return globalThis.db[tableName].bulkPut(dataArray)
         } else {
@@ -3474,6 +3473,11 @@ function Mrend(options) {
 
             case "table":
 
+                if (renderedColuna.colfunc || celula.usafnpren) {
+
+                    return cell.getValue();
+                }
+
                 if (renderedColuna.usaexpresstbjs && celula.localData.length == 0) {
                     list = eval(renderedColuna.expressaotbjs);
                     celula.localData = list;
@@ -3646,6 +3650,7 @@ function Mrend(options) {
                     var expression = extractCellValue(expressaoColFunc, renderedColuna.config, rowData);
 
                     var expressionResult = eval(expression);
+
                     if (renderedColuna.tipo == "digit") {
 
                         expressionResult = expressionResult == "Infinity" || expressionResult == "-Infinity" || expressionResult == Infinity || isNaN(expressionResult) ? 0 : expressionResult;
@@ -3904,7 +3909,7 @@ function Mrend(options) {
                         var addFilhaResult = addLinhaFilha(row.getData().rowid);
                         row.addTreeChild(addFilhaResult.UIObject);
                         row.treeExpand();
-                        applyTabulatorStylesWithJquery();
+                        globalThis.applyTabulatorStylesWithJquery(globalThis);
 
                     }
 
@@ -3938,7 +3943,7 @@ function Mrend(options) {
             var observer = new MutationObserver(function (mutationsList, observer) {
                 // Sempre que houver alteração, reaplica os estilos
                 ///console.log("Tabulator styles changed, reapplying styles...");
-                applyTabulatorStylesWithJquery();
+                globalThis.applyTabulatorStylesWithJquery(globalThis);
             });
 
             // Configura para observar alterações em filhos e subárvores
@@ -3997,6 +4002,7 @@ function Mrend(options) {
                 })
 
 
+
             },
             columns: columns
         });
@@ -4019,20 +4025,20 @@ function Mrend(options) {
 
 
         globalThis.GTable.on("dataTreeRowExpanded", function (row, level) {
-            applyTabulatorStylesWithJquery();
+            globalThis.applyTabulatorStylesWithJquery(globalThis);
         });
 
 
         globalThis.GTable.on("dataTreeRowCollapsed", function (row, level) {
 
-            applyTabulatorStylesWithJquery();
+            globalThis.applyTabulatorStylesWithJquery(globalThis);
         });
 
 
 
         var tableBuiltEvent = function (data) {
 
-            applyTabulatorStylesWithJquery();
+            globalThis.applyTabulatorStylesWithJquery(globalThis);
 
             /* setInterval(function () {
               //   applyTabulatorStylesWithJquery();
@@ -4044,7 +4050,7 @@ function Mrend(options) {
         globalThis.GTable.on("tableBuilt", tableBuiltEvent);
 
         setTimeout(function () {
-            applyTabulatorStylesWithJquery();
+            globalThis.applyTabulatorStylesWithJquery(globalThis);
         }, 500);
 
 
@@ -4158,6 +4164,7 @@ function Mrend(options) {
         });
 
 
+
         linhasToRender.forEach(function (linhaToRender) {
 
             var recordData = records.find(function (record) {
@@ -4165,6 +4172,7 @@ function Mrend(options) {
                 return record.codigolinha == linhaToRender.codigo || String(record.codigolinha.trim()).includes(linhaToRender.codigo.trim() + "___")
             });
 
+            console.log("linhasToRender", linhasToRender, recordData)
             if (recordData) {
 
                 var linhaRecords = records.filter(function (record) {
@@ -4185,6 +4193,7 @@ function Mrend(options) {
                         return rec.linkid == distinctRow.rowid
                     }
                     );
+
 
 
 
@@ -4250,10 +4259,10 @@ function Mrend(options) {
         globalThis.GGridData = globalThis.GRenderedLinhas.map(function (lin) {
 
             var someCellObjectConfig = globalThis.GCellObjectsConfig.find(function (cellObj) {
-                return cellObj.rowid == lin.rowid
+                return cellObj.rowid.trim() == lin.rowid.trim()
             })
-            if (!lin.linkid && someCellObjectConfig) {
 
+            if (!lin.linkid.trim().replaceAll(" ", "") && someCellObjectConfig) {
                 tmpGrData.push(lin.UIObject);
             }
         });
@@ -4679,7 +4688,7 @@ function Mrend(options) {
                 // console.log("Linha adicionada por modelo", linhaByModeloResult)
                 globalThis.GTable.addRow(linhaByModeloResult.UIObject, false).then(function (row) {
                     row.treeExpand();
-                    applyTabulatorStylesWithJquery();
+                    globalThis.applyTabulatorStylesWithJquery(globalThis);
 
                 });
 
@@ -4956,7 +4965,7 @@ function Mrend(options) {
 
 
 
-        applyTabulatorStylesWithJquery();
+        globalThis.applyTabulatorStylesWithJquery(globalThis);
     }
 
     function findRowById(rowid, coluna) {
@@ -5075,6 +5084,164 @@ function Mrend(options) {
     }
 
 
+
+    this.applyTabulatorStylesWithJquery = function (repInstance) {
+
+        var customStyles = {}
+
+        if (repInstance.reportConfig.config.extra) {
+            customStyles = repInstance.reportConfig.config.extra.customStyles || {};
+        }
+        // Tabulator container
+        $(".tabulator").css({
+            "background-color": "white",
+            "border-radius": "10px",
+            "box-shadow": "0 4px 20px rgba(0, 0, 0, 0.08)",
+            "border": "none"
+        });
+
+        // Header
+        $(".tabulator .tabulator-header").css({
+            "background-color": customStyles.headerBackground ? customStyles.headerBackground : "#0765b7",
+            "border-bottom": "none",
+            "border-radius": "10px 10px 0 0",
+            "padding": "13px"
+        });
+
+        // Header columns
+        $(".tabulator .tabulator-header .tabulator-col").css({
+            "background-color": customStyles.headerBackground ? customStyles.headerBackground : "#0765b7",
+            "color": "white",
+            "border-right": "none",
+            /*  "padding": "12px 15px",*/
+            "font-weight": "500"
+        });
+
+        $(".tabulator .tabulator-header .tabulator-col:first-child").css("border-top-left-radius", "10px");
+        $(".tabulator .tabulator-header .tabulator-col:last-child").css("border-top-right-radius", "10px");
+
+        // Rows
+        $(".tabulator-row").css({
+            "border-bottom": "1px solid #e0e6ed",
+            "transition": "background-color 0.2s ease"
+        });
+
+        $(".tabulator .tabulator-header .tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid red");
+        $(".tabulator-row .tabulator-cell.tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid #0000");
+
+        // Cells
+        $(".tabulator-cell").css({
+            "padding": "12px 15px",
+            "border-right": "none"
+        });
+
+        // Botão adicionar
+        $(".btn-add").css({
+            "margin": "0 0 15px 0",
+            "padding": "10px 18px",
+            "background-color": "#0765b7",
+            "color": "white",
+            "border": "none",
+            "border-radius": "6px",
+            "cursor": "pointer",
+            "font-weight": "500",
+            "font-size": "14px",
+            "transition": "all 0.2s ease",
+            "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
+        }).hover(
+            function () {
+                $(this).css({
+                    "background-color": "#06539e",
+                    "transform": "translateY(-1px)",
+                    "box-shadow": "0 4px 12px rgba(7, 101, 183, 0.3)"
+                });
+            },
+            function () {
+                $(this).css({
+                    "background-color": "#0765b7",
+                    "transform": "",
+                    "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
+                });
+            }
+        );
+
+        $(".btn-add i").css("margin-right", "6px");
+
+        // Botões de ação
+        $(".action-btn").css({
+            "background": "none",
+            "border": "none",
+            "cursor": "pointer",
+            "font-size": "15px",
+            "margin": "0 5px",
+            "transition": "all 0.2s ease"
+        }).hover(
+            function () {
+                $(this).css({
+                    "transform": "scale(1.1)"
+                });
+            },
+            function () {
+                $(this).css({
+                    "transform": ""
+                });
+            }
+        );
+
+        // Tree/indent
+        $(".tabulator-row .tabulator-cell.tabulator-tree-col").css("padding-left", "15px");
+        $(".tabulator-tree-branch").css({
+            "border-left": "2px solid #d1e3ff",
+            "margin-left": "7.5px"
+        });
+        $(".tabulator-tree-level-1 .tabulator-cell.tabulator-tree-col").css("padding-left", "30px");
+        $(".tabulator-tree-level-2 .tabulator-cell.tabulator-tree-col").css("padding-left", "45px");
+        $(".tabulator-tree-level-3 .tabulator-cell.tabulator-tree-col").css("padding-left", "60px");
+
+        // Tree controls
+        $(".tabulator-row .tabulator-cell .tabulator-data-tree-control").css({
+            "align-items": "center",
+            "background": "rgb(255 255 255 / 10%)",
+            "border": "1px solid #2975dd",
+            "border-radius": "2px",
+            "display": "inline-flex",
+            "height": "11px",
+            "justify-content": "center",
+            "margin-right": "5px",
+            "overflow": "hidden",
+            "vertical-align": "middle",
+            "width": "11px"
+        });
+
+        $(".tabulator-tree-collapse, .tabulator-tree-expand").css({
+            "color": "#0765b7",
+            "border-radius": "50%",
+            "width": "18px",
+            "height": "18px",
+            "display": "inline-flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "margin-right": "8px",
+            "transition": "all 0.2s ease"
+        }).hover(
+            function () { $(this).css("background-color", "rgba(7, 101, 183, 0.1)"); },
+            function () { $(this).css("background-color", ""); }
+        );
+
+        // Edit list
+        $(".tabulator-edit-list").css({
+            "z-index": "9999",
+            "position": "absolute",
+            "border-radius": "6px",
+            "box-shadow": "0 5px 15px rgba(0, 0, 0, 0.1)",
+            "border": "1px solid #e0e6ed"
+        });
+        $(".tabulator-edit-list .tabulator-edit-list-item").css("padding", "8px 15px");
+        $(".tabulator-edit-list .tabulator-edit-list-item.active").css({
+            "background-color": "rgba(7, 101, 183, 0.1)",
+            "color": "#0765b7"
+        });
+    };
 
     this.render = function () {
         return loadAssetsPromiseAll().then(function () {
@@ -5223,12 +5390,16 @@ function loadMrendAssets() {
 }
 
 
+
+
+
 function applyTabulatorStylesWithJquery() {
 
     var customStyles = {}
 
-    if (GDOMrend.reportConfig.config.extra) {
-        customStyles = GDOMrend.reportConfig.config.extra.customStyles || {};
+    console.log("globalThis.reportConfig", globalThis.reportConfig)
+    if (globalThis.reportConfig.config.extra) {
+        customStyles = globalThis.reportConfig.config.extra.customStyles || {};
     }
     // Tabulator container
     $(".tabulator").css({
