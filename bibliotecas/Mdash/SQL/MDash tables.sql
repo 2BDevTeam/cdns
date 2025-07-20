@@ -20,3 +20,4 @@ CREATE TABLE MdashContainerItem(
     conteudo TEXT DEFAULT ''
 );
 
+select * from MdashContainer;

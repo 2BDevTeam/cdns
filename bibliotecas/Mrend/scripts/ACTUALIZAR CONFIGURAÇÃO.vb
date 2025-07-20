@@ -215,15 +215,7 @@ Try
    
     connection.Open()
     Dim transaction As System.Data.SqlClient.SqlTransaction = connection.BeginTransaction()
-    'deleteConfiguracaQuery=$"
-    'delete  mrendcelula  from mrendcelula join mrendlinha on mrendcelula.linhastamp=mrendlinha.linhastamp
-    'join mrendcoluna on mrendcelula.colunastamp=mrendcoluna.colunastamp
-    'where mrendlinha.relatoriostamp='{relatoriostamp}' and mrendcoluna.relatoriostamp='{relatoriostamp}';
-'
-    'delete from mrendlinha where relatoriostamp='{relatoriostamp}';
-'
-    'delete from mrendcoluna where relatoriostamp='{relatoriostamp}';
-    '"
+
     Try
         
         For Each jObject As Newtonsoft.Json.Linq.JObject In config

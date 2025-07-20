@@ -3,6 +3,7 @@
 
 var GMDashContainers = [new MdashContainer({})];
 GMDashContainers = []
+var GMDashStamp="";
 
 
 
@@ -55,6 +56,48 @@ function getContainerUIObjectFormConfigAndSourceValues() {
 
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashContainers", idField: "mdashcontainerstamp" };
 }
+
+function actualizarCOnfiguracaoMDashboard() {
+
+    var configData = [{
+        sourceTable: "MdashContainer",
+        sourceKey: "mdashcontainerstamp",
+        records: GMDashContainers
+    }];
+
+
+   // console.log([{ mdashstamp: GMDashStamp, config: configData }])
+
+    $.ajax({
+        type: "POST",
+        url: "../programs/gensel.aspx?cscript=actualizaconfiguracaomrelatorio",
+
+        data: {
+            '__EVENTARGUMENT': JSON.stringify([{ relatoriostamp: GMDashStamp, config: configData }]),
+        },
+        success: function (response) {
+
+            var errorMessage = "ao trazer resultados "
+            try {
+                console.log(response)
+                if (response.cod != "0000") {
+
+                    console.log("Erro " + errorMessage, response);
+                    alertify.error("Erro ao actualizar configuração", 9000)
+                    return false
+                }
+                alertify.success("Dados actualizados com sucesso", 9000)
+            } catch (error) {
+                console.log("Erro interno " + errorMessage, response, error)
+                //alertify.error("Erro interno " + errorMessage, 10000)
+            }
+
+            //  javascript:__doPostBack('','')
+        }
+    })
+}
+
+
 
 
 
@@ -381,6 +424,8 @@ function generateDefaultMDashboardHTML(cardData) {
 function initConfiguracaoDashboard(config) {
 
 
+    GMDashStamp = config.mdashstamp || "";
+
     var mainContainer = "<div style='margin-top:2.5em' id='m-dash-main-container' class='row m-dash-main-container'> </div>";
 
     $("#campos > .row:last").after(mainContainer);
@@ -423,9 +468,21 @@ function initConfiguracaoDashboard(config) {
     mdashContainer += "</div>";
     $("#m-dash-main-container").append(mdashContainer);
 
+    var actualizarDashboardConfigContainer="<div class='col-md-12' style='margin-top:1em'>"
 
+   var buttonHtml = generateButton({
+       style: "",
+       buttonId: "updateDashboardConfigBtn",
+       classes: "btn btn-sm btn-primary",
+       customData: " type='button' data-tooltip='true' data-original-title='Actualizar configuração' ",
+       label: "Actualizar configuração",
+       onClick: "actualizarCOnfiguracaoMDashboard()"
+   });
 
+   actualizarDashboardConfigContainer += buttonHtml;
+   actualizarDashboardConfigContainer += "</div>";
 
+   $("#m-dash-main-container").append(actualizarDashboardConfigContainer);
 
 
 
