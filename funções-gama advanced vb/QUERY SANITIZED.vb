@@ -14,5 +14,4 @@
     If containsKeyword Then
        return false
     End If
-
-    return true
+End Function
