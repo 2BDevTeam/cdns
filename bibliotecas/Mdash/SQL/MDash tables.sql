@@ -6,18 +6,24 @@ Create table MdashContainer(
     tipo VARCHAR(100) DEFAULT '',
     tamanho INT DEFAULT 0,
     ordem INT DEFAULT 0,
-    dashboardstamp VARCHAR(25) DEFAULT '',
+    dashboardstamp VARCHAR(25) DEFAULT ''
 )
 
 CREATE TABLE MdashContainerItem(
     mdashcontaineritemstamp VARCHAR(25) PRIMARY KEY,
     mdashcontainerstamp VARCHAR(25) DEFAULT '',
+    codigo VARCHAR(250) DEFAULT '',
     titulo VARCHAR(250) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
     tamanho INT DEFAULT 0,
     ordem INT DEFAULT 0,
+    layoutcontaineritemdefault BIT DEFAULT 0,
+    expressaolayoutcontaineritem TEXT DEFAULT '',
     dashboardstamp VARCHAR(25) DEFAULT '',
-    conteudo TEXT DEFAULT ''
+    fontelocal BIT DEFAULT 0,
+    expressaodblistagem TEXT DEFAULT '',
+    expressaoapresentacaodados TEXT DEFAULT '',
 );
 
-select * from MdashContainer;
+
+select *from MdashContainerItem

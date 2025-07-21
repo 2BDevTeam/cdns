@@ -652,7 +652,6 @@ function generateInput(inputData) {
     inputHTML += ">";
     return inputHTML;
 }
-
 function generateTextarea(textareaData) {
     var textareaHTML = "";
 
@@ -668,17 +667,17 @@ function generateTextarea(textareaData) {
     if (textareaData.style) textareaHTML += " style='" + textareaData.style + "'";
     if (textareaData.classes) textareaHTML += " class='" + textareaData.classes + "'";
     if (textareaData.customData) textareaHTML += " " + textareaData.customData;
+    if (textareaData.cols) textareaHTML += " cols='" + textareaData.cols + "'";
+    if (textareaData.rows) textareaHTML += " rows='" + textareaData.rows + "'";
 
     textareaHTML += ">";
 
-    if (textareaData.value) textareaHTML += textareaData.value;
+    if (typeof textareaData.value !== "undefined" && textareaData.value !== null) textareaHTML += textareaData.value;
 
     textareaHTML += "</textarea>";
 
     return textareaHTML;
 }
-
-
 function registerCollapseHeaderClickListener() {
     var collapseStyle = ""
     collapseStyle += "<style type='text/css'>.pad {"
