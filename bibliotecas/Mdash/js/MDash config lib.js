@@ -6,6 +6,11 @@ GMDashContainers = []
 
 var GMDashContainerItems = [new MdashContainerItem({})];
 GMDashContainerItems = [];
+
+
+var GMDashFilters = [new MdashFilter({})];
+GMDashFilters = [];
+
 var GMDashStamp = "";
 
 
@@ -26,6 +31,60 @@ function UIObjectFormConfig(data) {
     this.fieldToValue = data.fieldToValue || "";
     this.contentType = data.contentType || "input";
 
+}
+
+
+function MdashFilter(data) {
+    // Calcula ordem máxima se não for fornecida
+    var maxOrdem = 0;
+    if (Array.isArray(GMDashFilters) && GMDashFilters.length > 0) {
+        maxOrdem = GMDashFilters.reduce(function (max, item) {
+            return Math.max(max, item.ordem || 0);
+        }, 0);
+    }
+
+    this.mdashfilterstamp = data.mdashfilterstamp || generateUUID();
+    this.dashboardstamp = data.dashboardstamp || GMDashStamp;
+    this.codigo = data.codigo || "";
+    this.descricao = data.descricao || "";
+    this.tipo = data.tipo || "text";
+    this.tamanho = data.tamanho || 4;
+    this.expressaolistagem = data.expressaolistagem || "";
+    this.valordefeito = data.valordefeito || "";
+    this.ordem = data.ordem || (maxOrdem + 1);
+    this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+    this.localsource = data.localsource || "";
+    this.idfield = data.idfield || "mdashfilterstamp";
+}
+
+function getMdashFilterUIObjectFormConfigAndSourceValues() {
+    var objectsUIFormConfig = [
+        new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "descricao", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({
+            campo: "tipo",
+            tipo: "select",
+            titulo: "Tipo",
+            fieldToOption: "option",
+            contentType: "select",
+            fieldToValue: "value",
+            classes: "form-control input-source-form  input-sm ",
+            selectValues: [
+                { option: "Texto", value: "text" },
+                { option: "Radio", value: "radio" },
+                { option: "Lógico", value: "logic" },
+                { option: "Data", value: "date" },
+                { option: "Número", value: "number" },
+                { option: "Lista", value: "list" },
+                { option: "Multipla escolha", value: "multiselect" }
+            ]
+        }),
+        new UIObjectFormConfig({ colSize: 4, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "valordefeito", tipo: "div", cols: 90, rows: 90, titulo: "Valor por Defeito", classes: "input-source-form m-editor", contentType: "div" })
+    ];
+
+    return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashFilters", idField: "mdashfilterstamp" };
 }
 
 function MdashContainer(data) {
@@ -87,14 +146,15 @@ function MdashContainerItem(data) {
 }
 
 function getContainerItemUIObjectFormConfigAndSourceValues() {
+
     var objectsUIFormConfig = [
-        new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "layoutcontaineritemdefault", tipo: "checkbox", titulo: "Usa layout default para item do container", classes: "input-source-form", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 12, campo: "expressaolayoutcontaineritem", tipo: "textarea", titulo: "Expressão de layout do item do container", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 12, campo: "expressaodblistagem", tipo: "textarea", titulo: "Expressão de DB Listagem", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 12, campo: "expressaoapresentacaodados", tipo: "textarea", titulo: "Expressão de apresentação de dados", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ colSize:  4,  campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ colSize:  4,  campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ colSize:  6,  campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ colSize:  4,  campo: "layoutcontaineritemdefault", tipo: "checkbox", titulo: "Usa layout default para item do container", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "expressaolayoutcontaineritem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de layout do item do container", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "expressaodblistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de DB Listagem", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "fontelocal", tipo: "checkbox", titulo: "Fonte local", classes: "input-source-form", contentType: "input" })
     ]
 
@@ -117,6 +177,11 @@ function actualizarCOnfiguracaoMDashboard() {
             sourceTable: "MdashContainerItem",
             sourceKey: "mdashcontaineritemstamp",
             records: GMDashContainerItems
+        },
+        {
+            sourceTable: "MdashFilter",
+            sourceKey: "mdashfilterstamp",
+            records: GMDashFilters
         }
     ];
 
@@ -169,6 +234,7 @@ $(document).ready(function () {
     var styles = [];
     getDashboardDefaultStyles(styles);
     getDashCardStyles(styles);
+    getMeditorStyles(styles);
 
 
     var globalStyle = ""
@@ -193,9 +259,12 @@ $(document).ready(function () {
 
 function handleConfigReactive() {
 
+
+
     PetiteVue.createApp({
         GMDashContainers: GMDashContainers,
         GMDashContainerItems: GMDashContainerItems,
+        GMDashFilters: GMDashFilters,
         syncContainerByStamp: function (stamp) {
             var container = this.GMDashContainers.find(function (c) {
                 return c.mdashcontainerstamp === stamp;
@@ -213,8 +282,62 @@ function handleConfigReactive() {
                 return c.mdashcontaineritemstamp === stamp;
             });
             return item ? item.titulo : "";
+        },
+        syncDescricaoFiltroByFiltroStamp: function (stamp) {
+            var filter = this.GMDashFilters.find(function (f) {
+                return f.mdashfilterstamp === stamp;
+            });
+            return filter ? filter.descricao : "";
         }
     }).mount('#m-dash-main-container');
+
+
+
+
+
+
+}
+
+function handleCodeEditor() {
+    var editors = [];
+    document.querySelectorAll('.m-editor').forEach(function (el, idx) {
+        // Garante um id único para cada editor
+        if (!el.id) el.id = 'm-editor' + idx;
+        var aceEditor = ace.edit(el.id);
+        aceEditor.setTheme("ace/theme/monokai");
+        aceEditor.session.setMode("ace/mode/javascript");
+        editors.push(aceEditor);
+    });
+
+    // Guarda o editor atualmente focado
+    var focusedEditor = null;
+    editors.forEach(function (ed) {
+        ed.on('focus', function () {
+            focusedEditor = ed;
+        });
+    });
+
+    // Atalho: Ctrl + Shift + F para o editor focado
+    document.addEventListener("keydown", function (e) {
+        if (e.shiftKey && e.key.toLowerCase() === "f" && focusedEditor) {
+            e.preventDefault();
+            formatCode(focusedEditor);
+        }
+    });
+
+    function formatCode(editorInstance) {
+        var code = editorInstance.getValue();
+        try {
+            var formatted = prettier.format(code, {
+                parser: "babel",
+                plugins: [prettierPlugins.babel],
+            });
+            editorInstance.setValue(formatted, -1);
+        } catch (err) {
+            alert("Erro ao formatar: " + err.message);
+        }
+    }
+
 }
 
 function getLocalSource(source) {
@@ -255,6 +378,13 @@ function handleShowConfigContainer(data) {
 
         objectsUIFormConfig.forEach(function (obj) {
 
+            var isDiv = obj.contentType === "div";
+            var customData = obj.customData + " v-model='mdashConfigItem." + obj.campo + "'";
+            if (isDiv) {
+                console.log("Div detected for campo: " + obj.campo);
+                customData += " v-on:input='changeDivContent(\"" + obj.campo + "\")'";
+            }
+
             containers.push({
                 colSize: obj.colSize,
                 style: "margin-bottom:0.5em; " + (obj.tipo == "checkbox" ? "display:flex;flex-direction:column" : ""),
@@ -263,11 +393,13 @@ function handleShowConfigContainer(data) {
                     type: obj.tipo,
                     id: obj.campo,
                     classes: obj.classes + " mdashconfig-item-input",
-                    customData: obj.customData + " v-model='mdashConfigItem." + obj.campo + "'",
+                    customData: customData,
                     style: obj.style,
                     selectCustomData: obj.customData + " v-model='mdashConfigItem." + obj.campo + "'",
                     fieldToOption: obj.fieldToOption,
                     fieldToValue: obj.fieldToValue,
+                    rows: obj.rows || 10,
+                    cols: obj.cols || 10,
                     label: obj.titulo,
                     selectData: obj.selectValues,
                     value: mdashConfigItem[obj.campo],
@@ -310,7 +442,13 @@ function handleShowConfigContainer(data) {
         $("#modalMdashConfigItem").modal("show");
         PetiteVue.createApp({
             mdashConfigItem: mdashConfigItem,
+            changeDivContent: function (e) {
+                var editor = ace.edit(e);
+                this.mdashConfigItem[e] = editor.getValue();
+            }
         }).mount('#maincontent');
+
+        handleCodeEditor();
     }
 
 }
@@ -318,6 +456,60 @@ function handleShowConfigContainer(data) {
 
 
 function registerListenersMdash() {
+
+
+
+    $(document).off("click", ".open-config-item-filter").on("click", ".open-config-item-filter", function (e) {
+
+        var idValue = $(this).closest(".m-dash-filter-item").attr("idValue");
+        var localsource = $(this).closest(".m-dash-filter-item").attr("localsource");
+        var idField = $(this).closest(".m-dash-filter-item").attr("idfield");
+        var componente = $(this).closest(".m-dash-filter-item").attr("componente");
+        var localSourceRes = getLocalSource(localsource);
+
+        console.log("ID Value: " + idValue);
+        console.log("Local Source: ", localSourceRes);
+        console.log("ID Field: " + idField);
+        console.log("Componente: " + componente);
+
+        handleShowConfigContainer({
+            idValue: idValue,
+            localsource: localsource,
+            idField: idField,
+            componente: componente
+        });
+
+
+
+    })
+
+    $(document).off("click", "#addFilterMDashBtn").on("click", "#addFilterMDashBtn", function (e) {
+
+        var mdashfilterstamp = generateUUID();
+        var codigo = "FILTER_" + mdashfilterstamp;
+
+        var mdashFilterUIObjectFormConfigResult = getMdashFilterUIObjectFormConfigAndSourceValues();
+
+        var mdashFilter = new MdashFilter({
+            mdashfilterstamp: mdashfilterstamp,
+            codigo: codigo,
+            descricao: "Novo Filtro",
+            tipo: "texto",
+            tamanho: 4,
+            expressaolistagem: "",
+            valordefeito: "",
+            objectsUIFormConfig: mdashFilterUIObjectFormConfigResult.objectsUIFormConfig,
+            localsource: mdashFilterUIObjectFormConfigResult.localsource,
+            idfield: mdashFilterUIObjectFormConfigResult.idField
+        });
+
+        GMDashFilters.push(mdashFilter);
+
+        addFilterMDashConfig(mdashFilter, mdashFilterUIObjectFormConfigResult);
+
+
+
+    })
 
 
     $(document).off("click", ".remover-item-container-btn").on("click", ".remover-item-container-btn", function (e) {
@@ -342,6 +534,8 @@ function registerListenersMdash() {
             idField: idField,
             componente: componente
         });
+
+
 
     })
 
@@ -444,6 +638,57 @@ function registerListenersMdash() {
 }
 
 
+function addFilterMDashConfig(filter, mdashFilterUIObjectFormConfigResult) {
+
+    var filterHtml = "<div class='row'>";
+    filterHtml += "     <div class='col-md-12'>";
+    filterHtml += "     <h4 class='m-dash-filter-title'>" + " {{ syncDescricaoFiltroByFiltroStamp('" + filter.mdashfilterstamp + "') }} " + "</h4>";
+    filterHtml += "  </div>";
+
+    var actionsContainer = "<div style='display:flex;column-gap:0.5em'>";
+
+    var botaoRemoverItemFilter = {
+        style: "",
+        buttonId: "removeItemFilterBtn_" + filter.mdashfilterstamp,
+        classes: "btn btn-xs btn-default  remover-item-filter-btn",
+        customData: " type='button' data-tooltip='true' data-original-title='Remover filtro' ",
+        label: "<span class='glyphicon glyphicon glyphicon-trash' ></span>",
+        onClick: "",
+    };
+
+    var removerItemFilterHtml = generateButton(botaoRemoverItemFilter);
+    actionsContainer += removerItemFilterHtml;
+
+    var botaoOpenConfigItemFilter = {
+        style: "",
+        buttonId: "openConfigItemFilterBtn_" + filter.mdashfilterstamp,
+        classes: "btn btn-xs btn-default open-config-item-filter",
+        customData: " type='button' data-tooltip='true' data-original-title='Abrir configurações do filtro' ",
+        label: "<span class='glyphicon glyphicon-cog'></span>",
+        onClick: "",
+    };
+
+    var openConfigItemFilterHtml = generateButton(botaoOpenConfigItemFilter);
+    actionsContainer += openConfigItemFilterHtml;
+    actionsContainer += "</div>"
+
+    filterHtml += "<div class='col-md-12 m-dash-filter-item' componente='Filtro' idValue='" + filter.mdashfilterstamp + "' localsource='" + mdashFilterUIObjectFormConfigResult.localsource + "' idfield='" + mdashFilterUIObjectFormConfigResult.idField + "' id='" + filter.mdashfilterstamp + "'  style='margin-bottom:0.5em'>";
+    filterHtml += actionsContainer;
+    filterHtml += "</div>";
+
+    filterHtml += "</div>";
+
+    var newTableRowFilter = "<tr>";
+    newTableRowFilter += "<td>" + filterHtml + "</td>";
+    newTableRowFilter += "</tr>";
+
+    $("#m-dash-filter-body").append(newTableRowFilter);
+
+    handleConfigReactive();
+
+
+}
+
 
 function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigResult) {
 
@@ -499,6 +744,8 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
     $("#" + containerItem.mdashcontainerstamp + " .m-dash-container-body ").append(mdashContainerItemHTML);
 
     handleConfigReactive();
+
+
 
 
 
@@ -560,6 +807,15 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
 
 }
 
+
+function getMeditorStyles(styles) {
+    var meditorStyle = ".m-editor{";
+    meditorStyle += "width: 100%;";
+    meditorStyle += "height: 200px;";
+    meditorStyle += "}";
+    styles.push(meditorStyle);
+
+}
 
 function getDashCardStyles(styles) {
     var dashCardStyle = "";
@@ -674,13 +930,13 @@ function generateDefaultMDashboardHTML(cardData) {
 }
 
 
-function fetchDadosMDash(config,dados) {
+function fetchDadosMDash(config, dados) {
 
 
-    console.log("fetchDadosMDash", dados)
 
     var containers = dados.containers || [];
     var containerItems = dados.containerItems || [];
+    var filters = dados.filters || [];
 
     containers.forEach(function (container) {
 
@@ -731,7 +987,30 @@ function fetchDadosMDash(config,dados) {
 
         })
 
-        
+
+    })
+
+    filters.forEach(function (filter) {
+
+        var mdashFilterUIObjectFormConfigResult = getMdashFilterUIObjectFormConfigAndSourceValues();
+        var mdashFilter = new MdashFilter({
+            mdashfilterstamp: filter.mdashfilterstamp,
+            codigo: filter.codigo,
+            descricao: filter.descricao,
+            tipo: filter.tipo,
+            tamanho: filter.tamanho,
+            expressaolistagem: filter.expressaolistagem || "",
+            valordefeito: filter.valordefeito || "",
+            objectsUIFormConfig: mdashFilterUIObjectFormConfigResult.objectsUIFormConfig || [],
+            localsource: mdashFilterUIObjectFormConfigResult.localsource || "",
+            idfield: mdashFilterUIObjectFormConfigResult.idField || "mdashfilterstamp"
+        });
+
+        GMDashFilters.push(mdashFilter);
+        addFilterMDashConfig(mdashFilter, mdashFilterUIObjectFormConfigResult);
+
+
+
     })
 
 
@@ -739,32 +1018,32 @@ function fetchDadosMDash(config,dados) {
 
 
 function initConfiguracaoDashboard(config) {
-
-
     GMDashStamp = config.mdashstamp || "";
 
-    var mainContainer = "<div style='margin-top:2.5em' id='m-dash-main-container' class='row m-dash-main-container'> </div>";
+    // Botão para adicionar filtro
+    var botaoAddFiltro = {
+        style: "",
+        buttonId: "addFilterMDashBtn",
+        classes: "btn btn-sm btn-default add-m-dash-filter-btn",
+        customData: " type='button' data-tooltip='true' data-original-title='Adicionar filtro' ",
+        label: "Adicionar filtro <span class='glyphicon glyphicon glyphicon-plus' ></span>",
+        onClick: "",
+    };
+    var addFilterButtonHtml = generateButton(botaoAddFiltro);
 
-    $("#campos > .row:last").after(mainContainer);
-
-    var filterContainer = "<div class='col-md-3 m-dash-filter-container' style='margin-top:1em'>";
-
-    var filterHTML = generateDefaultMDashboardHTML({
-        id: "m-dash-filter-card",
-        title: "Filtros",
-        type: "primary",
-        headerCustomData: "data-filter='true'",
-        bodyContent: filterContainer
-    });
-
-    filterContainer += filterHTML;
-
+    // Container para filtros (col-md-3)
+    var filterContainer = "<div class='col-md-3 m-dash-data-filter-container' style='margin-top:1em'>";
+    filterContainer += "<div class='row'>";
+    filterContainer += "<div class='col-md-12'>" + addFilterButtonHtml + "</div>";
+    filterContainer += "</div>";
+    filterContainer += "<table id='m-dash-filter-table' class='table table-striped m-dash-filter-table' style='margin-top:1em'>";
+    filterContainer += "<thead><tr><th>Filtros</th></tr></thead>";
+    filterContainer += "<tbody id='m-dash-filter-body'></tbody>";
+    filterContainer += "</table>";
     filterContainer += "</div>";
 
-    $("#m-dash-main-container").append(filterContainer);
-
-    var mdashContainer = "<div class='col-md-9 m-dash-data-container' style='margin-top:1em'>";
-
+    // Container para o conteúdo do dashboard (col-md-9)
+    var dashboardContainer = "<div class='col-md-9 m-dash-data-container' style='margin-top:1em'>";
     var addContainerBtnData = {
         style: "",
         buttonId: "addContainerMDashBtn",
@@ -773,21 +1052,17 @@ function initConfiguracaoDashboard(config) {
         label: "Adicionar container <span class='glyphicon glyphicon glyphicon-plus' ></span>",
         onClick: "",
     };
-    var buttonHtml = generateButton(addContainerBtnData)
+    var addContainerButtonHtml = generateButton(addContainerBtnData);
 
-    mdashContainer += "<div class='row'>"
-    mdashContainer += "<div class='col-md-6 pull-left'>";
-    mdashContainer += buttonHtml;
-    mdashContainer += "</div>";
-    mdashContainer += "</div>";
-    mdashContainer += "<div id='m-dash-containers' class='m-dash-containers'></div>";
+    dashboardContainer += "<div class='row'>";
+    dashboardContainer += "<div class='col-md-12'>" + addContainerButtonHtml + "</div>";
+    dashboardContainer += "</div>";
+    dashboardContainer += "<div id='m-dash-containers' class='m-dash-containers'></div>";
+    dashboardContainer += "</div>";
 
-    mdashContainer += "</div>";
-    $("#m-dash-main-container").append(mdashContainer);
-
-    var actualizarDashboardConfigContainer = "<div class='col-md-12' style='margin-top:1em'>"
-
-    var buttonHtml = generateButton({
+    // Atualizar configuração do dashboard
+    var atualizarDashboardConfigContainer = "<div class='col-md-12' style='margin-top:1em'>";
+    var atualizarButtonHtml = generateButton({
         style: "",
         buttonId: "updateDashboardConfigBtn",
         classes: "btn btn-sm btn-primary",
@@ -795,46 +1070,41 @@ function initConfiguracaoDashboard(config) {
         label: "Actualizar configuração",
         onClick: "actualizarCOnfiguracaoMDashboard()"
     });
+    atualizarDashboardConfigContainer += atualizarButtonHtml;
+    atualizarDashboardConfigContainer += "</div>";
 
-    actualizarDashboardConfigContainer += buttonHtml;
-    actualizarDashboardConfigContainer += "</div>";
+    // Adicionar os containers ao layout principal
+    var mainContainer = "<div id='m-dash-main-container' class='row m-dash-main-container'>";
+    mainContainer += filterContainer; // Parte dos filtros (col-md-3)
+    mainContainer += dashboardContainer; // Parte do dashboard (col-md-9)
+    mainContainer += atualizarDashboardConfigContainer; // Botão de atualizar
+    mainContainer += "</div>";
 
-    $("#m-dash-main-container").append(actualizarDashboardConfigContainer);
+    // Inserir o layout no DOM
+    $("#campos > .row:last").after(mainContainer);
 
+    // Buscar dados do dashboard
     $.ajax({
         type: "POST",
         url: "../programs/gensel.aspx?cscript=getconfiguracaomdash",
-        async:false,
+        async: false,
         data: {
             '__EVENTARGUMENT': JSON.stringify([{ codigo: config.codigo }]),
         },
         success: function (response) {
-
-            var errorMessage = "ao trazer resultados  da configuração do m dashboard"
+            var errorMessage = "ao trazer resultados da configuração do m dashboard";
             try {
                 if (response.cod != "0000") {
-
-                    console.log("Erro " + errorMessage, response)
-                    return false
+                    console.log("Erro " + errorMessage, response);
+                    return false;
                 }
-
                 fetchDadosMDash(config, response.data);
             } catch (error) {
-                console.log("Erro interno " + errorMessage, response)
-                //alertify.error("Erro interno " + errorMessage, 10000)
+                console.log("Erro interno " + errorMessage, response);
             }
-
         }
-    })
-
-
-
-
-
-
-
+    });
 }
-
 
 
 

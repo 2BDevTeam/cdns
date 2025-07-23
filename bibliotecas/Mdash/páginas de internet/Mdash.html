@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+</head>
+
+<style>
+    .snapshot:hover,
+    .celula:hover {
+        cursor: pointer;
+    }
+
+    .celula:hover {
+        text-decoration: underline;
+    }
+
+
+    form[action*="./ewpview.aspx?codigo=mdash"] #fieldsAndOptionsZone,
+    form[action*="./ewpview.aspx?codigo=catalogo-"] #fieldsAndOptionsZone {
+        background: none !important;
+        box-shadow: none !important;
+    }
+
+    form[action*="./ewpview.aspx?codigo=mdash"] #optionsFields,
+    form[action*="./ewpview.aspx?codigo=mdash"] .headerZone,
+    form[action*="./ewpview.aspx?codigo=catalogo-"] #optionsFields,
+    form[action*="./ewpview.aspx?codigo=catalogo-"] .headerZone {
+        display: none;
+    }
+
+
+    .m-dash-header {
+        display: flex;
+        margin-bottom: 30px;
+        background: #FFF;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    }
+
+    .m-dash-body {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .m-dash-header h1 {
+        margin: 0;
+        font-weight: bold;
+        color: #626e78 !important;
+    }
+
+    .m-dash-filter {
+        background: #FFF;
+        -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+        -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+        border-radius: 12px;
+        padding: 30px;
+    }
+
+    .m-dash-filter-btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .m-dash-btn-filter {
+        display: flex;
+        justify-content: space-between;
+        gap: 5px;
+    }
+
+    .m-dash-data-headers {
+        background: #FFF;
+        -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+        -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+        border-radius: 12px;
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        font-size: 0.9em;
+    }
+
+    .m-dash-main {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        flex-grow: 1;
+    }
+
+
+    .stats-card-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .stats-card {
+        background-color: #efefef;
+        padding: 15px;
+        border-radius: 5px;
+    }
+
+    .stats-card-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .stats-card-chart {
+        height: 300px;
+    }
+
+    .stats-card-value-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .stats-card-value {
+        color: #999999;
+    }
+
+    .stats-card-label {
+        font-size: 0.9em;
+        font-weight: bold;
+    }
+
+
+
+    .m-dash-item {
+        background: #FFF;
+        -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+        -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+        border-radius: 12px;
+        padding: 30px;
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .m-dash-item.snapshot {
+        padding: 20px;
+    }
+
+    .m-dash-item h1 {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+
+    .m-dash-charts {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        justify-content: space-between;
+    }
+
+    .m-dash-table {
+        font-size: 0.9em;
+        overflow-x: auto;
+        max-height: 400px;
+    }
+
+    .m-dash-table table {
+        width: 100%;
+    }
+
+    .m-dash-item-text {
+        color: #626e78;
+    }
+
+    .m-dash-filter-item {
+        color: #626e78;
+    }
+
+    @media screen and (min-width: 768px) {
+        .stats-card-container {
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .stats-card-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media screen and (min-width: 1024px) {
+        .m-dash-body {
+            flex-direction: row;
+        }
+
+        .m-dash-data-headers {
+            flex-direction: row;
+        }
+
+        .m-dash-filter {
+            min-width: 275px;
+            max-width: 275px;
+        }
+
+        .m-dash-charts {
+            flex-direction: row;
+        }
+
+        .stats-card-container {
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 30px;
+        }
+    }
+</style>
+
+
+<body>
+
+    <div id="mdash" class="mdash">
+
+        <div class="m-dash-header">
+            <h1>{{ mdash.dashboardconfig.descricao }}</h1>
+        </div>
+
+        <div class="m-dash-body">
+
+            <div v-if="mdash.filters.length >0" class="m-dash-filter">
+
+                <div class="m-dash-filter-btn-group">
+
+                    <div class="m-dash-btn-filter">
+                        <p class="m-dash-item-text">Refrescar</p>
+                        <button type='button' id='btn-refrescar'
+                            class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
+                        </button>
+                    </div>
+
+                    <div class="m-dash-btn-filter">
+                        <p class="m-dash-item-text">Filtro</p>
+                        <button type='button' id='btn-limpar-filtros'
+                            class='btn btn-default btn-sm glyphicon glyphicon-trash filtro'></button>
+                    </div>
+
+                </div>
+
+                <div class="m-dash-dynamic-filters">
+                    <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp" class="m-dash-filter-item">
+                        <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}</label>
+                        <div v-html="handleTipoObjectoFiltro(filter)"></div>
+                    </div>
+                </div>
+                <div class="m-dash-dynamic-filters">
+
+                </div>
+
+            </div>
+
+            <div class="m-dash-main">
+
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+
+<script src="https://unpkg.com/petite-vue"></script>
+<script>
+
+    function buildAlert(alertClass, alertText) {
+        var alerta = ""
+        alerta += "<div  class='alert custom-alert " + alertClass + "'>"
+        alerta += "  <strong>Atenção!</strong> " + alertText
+        alerta += "</div>"
+
+        return alerta
+    }
+
+    function MdashRendConfig(data) {
+
+        this.codigo = data.codigo || "";
+        this.descricao = data.descricao || "";
+        this.categoria = data.categoria || "";
+        this.dashboardstamp = data.dashboardstamp || "";
+        this.temfiltro = data.temfiltro || false;
+
+    }
+
+    function Mdash(data) {
+
+        var globalThis = this;
+
+        this.GMDashStamp = data.GMDashStamp || ""
+        this.GMDashRendContainers = [];
+        this.GMDashRendContainerItems = [];
+        this.GMDashRendFilters = [];
+        this.dashboardconfig = new MdashRendConfig(data.dashboardconfig) || new MdashRendConfig({});
+
+        this.filters = Array.isArray(data.filters) ? data.filters.map(function (filter) {
+            return new MdashRendFilter(filter);
+        }) : [];
+
+        this.containers = Array.isArray(data.containers) ? data.containers.map(function (container) {
+            return new MdashRendContainer(container);
+        }) : [];
+
+        this.containerItems = Array.isArray(data.containerItems) ? data.containerItems.map(function (item) {
+            return new MdashContainerItem(item);
+        }) : [];
+
+        this.reactiveInstance = null;
+
+
+        function MdashRendFilter(data) {
+
+            this.mdashfilterstamp = data.mdashfilterstamp || generateUUID();
+            this.dashboardstamp = data.dashboardstamp || GMDashStamp;
+            this.codigo = data.codigo || "";
+            this.descricao = data.descricao || "";
+            this.tipo = data.tipo || "text";
+            this.tamanho = data.tamanho || 4;
+            this.expressaolistagem = data.expressaolistagem || "";
+            this.valordefeito = data.valordefeito || "";
+            this.ordem = data.ordem || 0;
+        }
+
+        function MdashRendContainer(data) {
+
+            this.mdashcontainerstamp = data.mdashcontainerstamp || generateUUID();
+            this.codigo = data.codigo || "";
+            this.titulo = data.titulo || "";
+            this.tipo = data.tipo || "";
+            this.tamanho = data.tamanho || 12;
+            this.ordem = data.ordem || 0;
+            this.dashboardstamp = data.dashboardstamp || GMDashStamp;
+        }
+
+        function MdashContainerItem(data) {
+
+            this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || generateUUID();
+            this.mdashcontainerstamp = data.mdashcontainerstamp || "";
+            this.codigo = data.codigo || "";
+            this.titulo = data.titulo || "";
+            this.tipo = data.tipo || "";
+            this.tamanho = data.tamanho || 4;
+            this.ordem = data.ordem || 0;
+            this.layoutcontaineritemdefault = data.layoutcontaineritemdefault || true;
+            this.expressaolayoutcontaineritem = data.expressaolayoutcontaineritem || "";
+            this.dashboardstamp = data.dashboardstamp || "";
+            this.fontelocal = data.fontelocal || false;
+            this.expressaodblistagem = data.expressaodblistagem || "";
+            this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
+        }
+
+        this.render = function () {
+
+
+
+            console.log("Rendering MDash with GMDashStamp:", globalThis.GMDashStamp);
+            // Implement rendering logic here
+        };
+
+
+    }
+
+    var GMainDashInstance = new Mdash({
+        dashboardconfig: {
+            dashboardstamp: "",
+            codigo: "",
+            descricao: "",
+        },
+        categoria: ""
+    });
+
+    $(document).ready(function () {
+
+        var state = PetiteVue.reactive({
+            mdash: GMainDashInstance,
+            handleTipoObjectoFiltro(filter) {
+
+                switch (filter.tipo) {
+                    case "text":
+                        return `<input type="text" id="${filter.codigo}" placeholder="${filter.valordefeito}" class="form-control filtro">`;
+                    case "list":
+                        return `
+                    <select id="${filter.codigo}" class="form-control filtro">
+                        <option value="">${filter.valordefeito}</option>
+                        <option value="opcao1">Opção 1</option>
+                        <option value="opcao2">Opção 2</option>
+                    </select>
+                `;
+                    case "checkbox":
+                        return `
+                    <div class="form-check">
+                        <input type="checkbox" id="${filter.codigo}" class="form-check-input filtro">
+                        <label class="form-check-label" for="${filter.codigo}">${filter.valordefeito}</label>
+                    </div>
+                `;
+                    default:
+                        return `<input type="text" id="${filter.codigo}" placeholder="${filter.valordefeito}" class="form-control filtro">`;
+                }
+            }
+        })
+        window.mdashAppState = state;
+
+        PetiteVue.createApp(state).mount("#mdash");
+
+        handleMdashConfigData().then(function (data) {
+
+
+        })
+
+    });
+
+    async function handleMdashConfigData() {
+        try {
+
+            params = new URLSearchParams(document.location.search);
+            codigomdash = params.get("codigomdash");
+
+            if (!codigomdash) {
+                $(".m-dash-main").empty();
+                var alertResult = buildAlert("alert-danger", "O código do Dashboard não foi encontrado.");
+
+                $(".m-dash-main").append(alertResult);
+                return false;
+            }
+
+            var errorMessage = "ao trazer resultados da configuração do m dashboard ao rendereizar o m dashboard";
+            var response = await $.ajax({
+                type: "POST",
+                url: "../programs/gensel.aspx?cscript=getconfiguracaomdash",
+                data: {
+                    '__EVENTARGUMENT': JSON.stringify([{ codigo: codigomdash }]),
+                }
+            });
+
+
+            if (response.cod != "0000") {
+                console.log("Erro " + errorMessage, response);
+                return false;
+            }
+
+            var configData = response.data
+            var dashboardconfig = response.data.dashboard[0] || {};
+
+
+            configData.dashboardconfig = dashboardconfig;
+
+            var configData = new Mdash(configData);
+
+            console.log("dashboardconfigdashboardconfig", configData);
+
+            window.mdashAppState.mdash = configData;
+
+            console.log("window.mdashAppState.mdash.filters", window.mdashAppState.mdash.filters.length)
+
+
+
+            // console.log("configData", configData)
+
+        } catch (error) {
+            console.log("Erro interno " + errorMessage, error);
+        }
+
+
+    }
+
+
+</script>
+
+
+
+</html>

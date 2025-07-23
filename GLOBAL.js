@@ -12,7 +12,7 @@ $(document).ready(function () {
         }
     });
 
-    formatAllInputDigits()
+    //formatAllInputDigits()
 });
 
 
@@ -653,8 +653,8 @@ function generateInput(inputData) {
     return inputHTML;
 }
 function generateTextarea(textareaData) {
-    var textareaHTML = "";
 
+    var textareaHTML = "";
     if (textareaData.label) {
         textareaHTML += "<label for='" + textareaData.id + "'>" + textareaData.label + "</label>";
     }
@@ -751,7 +751,7 @@ function generateModalHTML(modalData) {
     // Add the modal header if there is a title
     if (modalData.title) {
         modalHTML += '<div class="modal-header">';
-        modalHTML += '<h5 class="modal-title">' + modalData.title + '</h5>';
+        modalHTML += '<h4 class="modal-title">' + modalData.title + '</h4>';
         // modalHTML += '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>';
         modalHTML += '</div>';
     }

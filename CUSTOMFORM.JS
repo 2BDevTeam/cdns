@@ -115,6 +115,8 @@ function FormContent(data) {
     this.fieldToOption = data.fieldToOption || "";
     this.fieldToValue = data.fieldToValue || "";
     this.label = data.label || "";
+    this.cols = data.cols || 12;
+    this.rows = data.rows || 10;
     this.selectData = data.selectData || "";
     this.value = data.value || "";
     this.event = data.event || "";
@@ -220,7 +222,11 @@ function HandlerCustomContainerContentGenerator(content) {
 }
 
 function generateDiv(content) {
-    var html = "<div ";
+    var html = "";
+     if (content.label) {
+        html += "<label for='" + content.id + "'>" + content.label + "</label>";
+    }
+    html += "<div ";
     html += " id='" + content.id + "' ";
     html += " class='" + content.classes + "' ";
     html += content.customData ? " " + content.customData : "";

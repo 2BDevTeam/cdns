@@ -26,4 +26,19 @@ CREATE TABLE MdashContainerItem(
 );
 
 
-select *from MdashContainerItem
+CREATE TABLE MdashFilter(
+
+    mdashfilterstamp VARCHAR(25) PRIMARY KEY,
+    dashboardstamp VARCHAR(25) DEFAULT '',
+    codigo VARCHAR(250) DEFAULT '',
+    descricao VARCHAR(250) DEFAULT '',
+    tipo VARCHAR(100) DEFAULT '',
+    tamanho INT DEFAULT 0,
+    expressaolistagem TEXT DEFAULT '',
+    valordefeito TEXT DEFAULT '',
+    ordem INT DEFAULT 0
+);
+
+
+select *from MdashFilter
+

@@ -51,10 +51,18 @@ Try
     sqlParametersContainerItem.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
     Dim queryResultContainerItem as DataTable= ExecuteQuery(queryMdashContainerItem,sqlParametersContainerItem)
 
+
+    Dim queryMdashFilter="select MdashFilter.* from MdashFilter join u_mdash on u_mdash.u_mdashstamp=MdashFilter.dashboardstamp where u_mdash.codigo=@codigo order by MdashFilter.ordem asc "
+    Dim sqlParametersFilter as new List(Of System.Data.SqlClient.SqlParameter)
+    sqlParametersFilter.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
+    Dim queryResultFilter as DataTable= ExecuteQuery(queryMdashFilter,sqlParametersFilter)
+
+
     Dim dadosRelatorio as New With {
         .dashboard = queryResultMdashboard,
         .containers = queryResultContainer,
-        .containerItems = queryResultContainerItem
+        .containerItems = queryResultContainerItem,
+        .filters = queryResultFilter
         }
      
      Dim responseDTO= New With {.cod ="0000" ,.codDesc="Success",.message="Success",.data=dadosRelatorio}
