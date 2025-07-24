@@ -244,17 +244,17 @@
                         <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}</label>
 
                         <!-- text -->
-                        <input @input="updateCachedFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
+                        <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
                             class="form-control input-sm input-mdash-filter" :id="filter.codigo"
                             v-model="mdash.filterValues[filter.codigo]" />
 
                         <!-- digit -->
-                        <input @input="updateCachedFilter(filter,$event)" v-else-if="filter.tipo === 'digit'"
-                            type="text" class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                        <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
+                            class="form-control input-sm input-mdash-filter" :id="filter.codigo"
                             v-model="mdash.filterValues[filter.codigo]" />
 
                         <!-- list -->
-                        <select @change="updateCachedFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
+                        <select @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
                             class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
                             v-model="mdash.filterValues[filter.codigo]">
                             <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
@@ -263,12 +263,11 @@
                         </select>
 
                         <!-- logic -->
-                        <input @input="updateCachedFilter(filter,$event)" v-else-if="filter.tipo === 'logic'"
-                            type="checkbox" class="form-check-input" :id="filter.codigo"
-                            v-model="mdash.filterValues[filter.codigo]" />
+                        <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
+                            class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
 
                         <!-- fallback -->
-                        <input @input="updateCachedFilter(filter,$event)" v-else type="text"
+                        <input @change="updateFilter(filter,$event)" v-else type="text"
                             class="form-control input-sm input-mdash-filter" :id="filter.codigo"
                             v-model="mdash.filterValues[filter.codigo]" />
                     </div>
@@ -282,19 +281,24 @@
 
             <div class="m-dash-main">
 
-                <div v-for="container in mdash.containers" :key="container.mdashcontainerstamp" :class="['col', 
+                <div v-for="container in mdash.containers" :key="container.mdashcontainerstamp" :class="[
                      `col-md-${container.tamanho}`, 
                      `col-sm-${container.tamanho}`, 
                      `col-lg-${container.tamanho}`]">
 
-                    <h1>{{ container.titulo }}</h1>
+                    <div v-if="container.titulo.length >0" style="margin-bottom: 0.8em;" class="col-md-12 pull-left">
+                        <h1 class="m-dash-item-text">{{ container.titulo }}</h1>
+                        <hr>
+                    </div>
 
-                    <div v-for="item in mdash.containerItems.filter(i => i.mdashcontainerstamp === container.mdashcontainerstamp)"
-                        :key="item.mdashcontaineritemstamp" :class="['col', 
+                    <div v-html="item.renderedContent" style="margin-bottom: 0.8em;"
+                        v-for="item in mdash.containerItems.filter(i => i.mdashcontainerstamp === container.mdashcontainerstamp)"
+                        :key="item.mdashcontaineritemstamp" :class="[ 
                         `col-md-${item.tamanho}`, 
                         `col-sm-${item.tamanho}`, 
                         `col-lg-${item.tamanho}`]">
-                        <p>{{ item.titulo }}</p>
+
+
 
                     </div>
 
@@ -322,6 +326,34 @@
         return alerta
     }
 
+
+    function generateStandardCard(cardData) {
+
+        return `<div class="m-dash-item">
+                    <h4 class="m-dash-item-text">${cardData.titulo || "Sem título"}</h4>
+                    
+                        ${cardData.bodyContent}
+                    
+                </div>`;
+
+
+    }
+
+    function generateDashCardHTML(cardData) {
+        var cardHTML = '<div id="' + (cardData.id || '') + '" class="dashcard">';
+        // Header
+        cardHTML += '<div class="dashcard-header dashcard-header-' + (cardData.type || "primary") + '">';
+        cardHTML += '<span class="dashcard-title">' + (cardData.title || "") + '</span>';
+        cardHTML += '</div>';
+        // Body
+        cardHTML += '<div class="dashcard-body">';
+        cardHTML += (cardData.bodyContent || "");
+        cardHTML += '</div>';
+        cardHTML += '</div>';
+        return cardHTML.trim();
+    }
+
+
     function MdashRendConfig(data) {
 
         this.codigo = data.codigo || "";
@@ -345,6 +377,7 @@
         this.filters = Array.isArray(data.filters) ? data.filters.map(function (filter) {
             return new MdashRendFilter(filter);
         }) : [];
+        this.filterValues = data.filterValues || {};
 
         this.containers = Array.isArray(data.containers) ? data.containers.map(function (container) {
             return new MdashRendContainer(container);
@@ -385,6 +418,15 @@
 
         function MdashContainerItem(data) {
 
+
+            var cardContainerItemData = {
+                id: "",
+                title: "Conteúdo não disponível",
+                type: "primary",
+                headerCustomData: "data-container-item='true'",
+                bodyContent: ""
+            }
+
             this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || generateUUID();
             this.mdashcontainerstamp = data.mdashcontainerstamp || "";
             this.codigo = data.codigo || "";
@@ -392,22 +434,68 @@
             this.tipo = data.tipo || "";
             this.tamanho = data.tamanho || 4;
             this.ordem = data.ordem || 0;
+            this.filters = data.filters || []
+            this.urlfetch = data.urlfetch || "";
             this.layoutcontaineritemdefault = data.layoutcontaineritemdefault || true;
             this.expressaolayoutcontaineritem = data.expressaolayoutcontaineritem || "";
             this.dashboardstamp = data.dashboardstamp || "";
             this.fontelocal = data.fontelocal || false;
-            this.expressaodblistagem = data.expressaodblistagem || "";
+            this.renderedContent = data.renderedContent || generateStandardCard({ titulo: "Sem conteúdo disponível", bodyContent: "" }) || "";
             this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
         }
 
-        this.render = function () {
+        MdashContainerItem.prototype.refreshContent = function () {
+
+            var self = this;
 
 
+            if (self.filters.length == 0) {
 
-            console.log("Rendering MDash with GMDashStamp:", globalThis.GMDashStamp);
-            // Implement rendering logic here
+                self.renderedContent = generateStandardCard({ titulo: "Sem conteúdo", bodyContent: "" });
+                return
+            }
+
+            if (!self.urlfetch) {
+
+                self.renderedContent = buildAlert("alert-danger", "URL para listagem  não definida");
+                return
+            }
+
+            var requestData = {
+                codigo: globalThis.dashboardconfig.codigo,
+                mdashcontaineritemstamp: self.mdashcontaineritemstamp,
+                filters: globalThis.filterValues
+            }
+
+            $.ajax({
+                type: "POST",
+                url: self.urlfetch,
+                data: {
+                    '__EVENTARGUMENT': JSON.stringify([requestData]),
+                },
+                success: function (response) {
+
+                    var errorMessage = "ao trazer resultados no [refreshContent] "
+                    try {
+                        if (response.cod != "0000") {
+
+                            console.log("Erro " + errorMessage, response)
+
+                            self.renderedContent = buildAlert("alert-danger", "Erro ao trazer resultados: ");
+                            return false
+                        }
+                        console.log(response)
+                    } catch (error) {
+                        console.log("Erro interno " + errorMessage, response)
+                        self.renderedContent = buildAlert("alert-danger", "Erro interno ao processar resultados: ");
+
+
+                        //alertify.error("Erro interno " + errorMessage, 10000)
+                    }
+                }
+            })
+
         };
-
 
     }
 
@@ -459,8 +547,7 @@
 
 
 
-
-
+    var GConfigDash = null;
     $(document).ready(function () {
 
         var state = PetiteVue.reactive({
@@ -473,13 +560,30 @@
                     return [];
                 }
             },
-            updateCachedFilter(filtro, event) {
+            updateFilter(filtro, event) {
 
+                var containerItemsThatContainFilter = []
+
+                this.mdash.containerItems.map(function (item) {
+
+                    var filterFound = item.filters.find(function (f) {
+                        return f == filtro.codigo;
+                    })
+
+
+                    if (filterFound) {
+                        containerItemsThatContainFilter.push(item);
+                    }
+
+                })
+
+                containerItemsThatContainFilter.forEach(function (itemWithFilter) {
+
+                    itemWithFilter.refreshContent();
+
+                })
 
                 this.mdash.filterValues[filtro.codigo] = event.target.value;
-
-                // Salva novamente no localStorage  
-                console.log("event.target.value", event.target.value)
                 window.localStorage.setItem("mdashcachedFilters", JSON.stringify(this.mdash.filterValues));
 
             }
@@ -494,7 +598,18 @@
 
         handleMdashConfigData().then(function (data) {
 
+            if (GConfigDash) {
 
+                window.mdashAppState.mdash.containerItems.forEach(function (item) {
+
+                    try {
+                        item.refreshContent();
+
+                    } catch (error) {
+
+                    }
+                })
+            }
 
         })
 
@@ -517,7 +632,7 @@
             var errorMessage = "ao trazer resultados da configuração do m dashboard ao rendereizar o m dashboard";
             var response = await $.ajax({
                 type: "POST",
-                url: "../programs/gensel.aspx?cscript=getconfiguracaomdash",
+                url: "../programs/gensel.aspx?cscript=getconfiguracaoclientmdash",
                 data: {
                     '__EVENTARGUMENT': JSON.stringify([{ codigo: codigomdash }]),
                 }
@@ -550,8 +665,7 @@
 
             window.mdashAppState.mdash = configData;
 
-
-
+            GConfigDash = configData;
 
             // console.log("configData", configData)
 

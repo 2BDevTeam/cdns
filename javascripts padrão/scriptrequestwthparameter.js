@@ -2,8 +2,6 @@ $.ajax({
     type: "POST",
     url: "../programs/gensel.aspx?cscript=scriptexamplewthparameter",
 
-
-
     data: {
         '__EVENTARGUMENT': JSON.stringify([{ ano: "2023" }]),
     },

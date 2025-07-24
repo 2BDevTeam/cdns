@@ -15,6 +15,7 @@ CREATE TABLE MdashContainerItem(
     codigo VARCHAR(250) DEFAULT '',
     titulo VARCHAR(250) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
+    urlfetch TEXT DEFAULT '',
     tamanho INT DEFAULT 0,
     ordem INT DEFAULT 0,
     layoutcontaineritemdefault BIT DEFAULT 0,
@@ -40,7 +41,3 @@ CREATE TABLE MdashFilter(
     valordefeito TEXT DEFAULT '',
     ordem INT DEFAULT 0
 );
-
-
-
-select *from MdashContainerItem

@@ -15,7 +15,6 @@ var GMDashStamp = "";
 
 
 
-//ClassesMdashContainer
 
 function UIObjectFormConfig(data) {
 
@@ -143,6 +142,7 @@ function MdashContainerItem(data) {
     this.expressaolayoutcontaineritem = data.expressaolayoutcontaineritem || "";
     this.dashboardstamp = data.dashboardstamp || "";
     this.fontelocal = data.fontelocal || false;
+    this.urlfetch = data.urlfetch || "";
     this.expressaodblistagem = data.expressaodblistagem || "";
     this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
@@ -158,6 +158,7 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "layoutcontaineritemdefault", tipo: "checkbox", titulo: "Usa layout default para item do container", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, campo: "expressaolayoutcontaineritem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de layout do item do container", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "urlfetch", tipo: "text", titulo: "URL de Fetch", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, campo: "expressaodblistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de DB Listagem", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "fontelocal", tipo: "checkbox", titulo: "Fonte local", classes: "input-source-form", contentType: "input" })
@@ -310,7 +311,7 @@ function handleCodeEditor() {
         if (!el.id) el.id = 'm-editor' + idx;
         var aceEditor = ace.edit(el.id);
         aceEditor.setTheme("ace/theme/monokai");
-        aceEditor.session.setMode("ace/mode/javascript");
+        aceEditor.session.setMode("ace/mode/sql");
         editors.push(aceEditor);
     });
 
@@ -387,7 +388,7 @@ function handleShowConfigContainer(data) {
             var customData = obj.customData + " v-model='mdashConfigItem." + obj.campo + "'";
             if (isDiv) {
                 console.log("Div detected for campo: " + obj.campo);
-                customData += " v-on:input='changeDivContent(\"" + obj.campo + "\")'";
+                customData += " v-on:keyup='changeDivContent(\"" + obj.campo + "\")'";
             }
 
             containers.push({

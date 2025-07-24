@@ -1,6 +1,7 @@
  Dim querySanitized=Function(Byval sqlExpression as String )
 
-    Dim writeKeywords As String() = {"DROP", "DELETE", "UPDATE", "INSERT", "ALTER","CREATE","TRUNCATE","EXEC","EXECUTE","GRANT","REVOKE","MERGE","CALL"}
+   
+   Dim writeKeywords As String() = {"DROP", "DELETE", "UPDATE", "INSERT", "ALTER","CREATE"}
 
     Dim containsKeyword As Boolean = False
 
@@ -13,5 +14,9 @@
 
     If containsKeyword Then
        return false
+      'throw new Exception("The input string contains a write keyword.")
     End If
+
+    return true
+    
 End Function
