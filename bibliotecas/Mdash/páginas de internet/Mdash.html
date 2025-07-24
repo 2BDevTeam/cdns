@@ -232,15 +232,9 @@
 
                     <div class="m-dash-btn-filter">
                         <p class="m-dash-item-text">Refrescar</p>
-                        <button type='button' id='btn-refrescar'
+                        <button type='button' id='btn-refrescar-filtro'
                             class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
                         </button>
-                    </div>
-
-                    <div class="m-dash-btn-filter">
-                        <p class="m-dash-item-text">Filtro</p>
-                        <button type='button' id='btn-limpar-filtros'
-                            class='btn btn-default btn-sm glyphicon glyphicon-trash filtro'></button>
                     </div>
 
                 </div>
@@ -250,17 +244,17 @@
                         <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}</label>
 
                         <!-- text -->
-                        <input @input="updateCachedFilter(filter)" v-if="filter.tipo === 'text'" type="text"
+                        <input @input="updateCachedFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
                             class="form-control input-sm input-mdash-filter" :id="filter.codigo"
                             v-model="mdash.filterValues[filter.codigo]" />
 
                         <!-- digit -->
-                        <input @input="updateCachedFilter(filter)" v-else-if="filter.tipo === 'digit'" type="text"
-                            class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                        <input @input="updateCachedFilter(filter,$event)" v-else-if="filter.tipo === 'digit'"
+                            type="text" class="form-control input-sm input-mdash-filter" :id="filter.codigo"
                             v-model="mdash.filterValues[filter.codigo]" />
 
                         <!-- list -->
-                        <select @change="updateCachedFilter(filter)" v-else-if="filter.tipo === 'list'"
+                        <select @change="updateCachedFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
                             class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
                             v-model="mdash.filterValues[filter.codigo]">
                             <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
@@ -269,11 +263,12 @@
                         </select>
 
                         <!-- logic -->
-                        <input @input="updateCachedFilter(filter)" v-else-if="filter.tipo === 'logic'" type="checkbox"
-                            class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
+                        <input @input="updateCachedFilter(filter,$event)" v-else-if="filter.tipo === 'logic'"
+                            type="checkbox" class="form-check-input" :id="filter.codigo"
+                            v-model="mdash.filterValues[filter.codigo]" />
 
                         <!-- fallback -->
-                        <input @input="updateCachedFilter(filter)" v-else type="text"
+                        <input @input="updateCachedFilter(filter,$event)" v-else type="text"
                             class="form-control input-sm input-mdash-filter" :id="filter.codigo"
                             v-model="mdash.filterValues[filter.codigo]" />
                     </div>
@@ -287,9 +282,29 @@
 
             <div class="m-dash-main">
 
+                <div v-for="container in mdash.containers" :key="container.mdashcontainerstamp" :class="['col', 
+                     `col-md-${container.tamanho}`, 
+                     `col-sm-${container.tamanho}`, 
+                     `col-lg-${container.tamanho}`]">
+
+                    <h1>{{ container.titulo }}</h1>
+
+                    <div v-for="item in mdash.containerItems.filter(i => i.mdashcontainerstamp === container.mdashcontainerstamp)"
+                        :key="item.mdashcontaineritemstamp" :class="['col', 
+                        `col-md-${item.tamanho}`, 
+                        `col-sm-${item.tamanho}`, 
+                        `col-lg-${item.tamanho}`]">
+                        <p>{{ item.titulo }}</p>
+
+                    </div>
+
+                </div>
+
+
             </div>
 
         </div>
+
 
     </div>
 
@@ -442,86 +457,14 @@
     }
 
 
-    function updateCachedFilter(element) {
-        // Obtém o código do filtro e o valor atual
-        var plainValues = JSON.parse(JSON.stringify(this.mdash.values));
-        console.log("Valores simples:", plainValues);
-        return;
-        // Salva novamente no localStorage
-        window.localStorage.setItem("mdashcachedFilters", JSON.stringify(cachedFilters));
-
-    }
 
 
 
-    function getFilterHtmlObject(filter) {
-        var valorDefeito = getValorDefeito(filter);
-
-        switch (filter.tipo) {
-            case "text":
-                var textInputData = {
-                    type: "text",
-                    value: valorDefeito,
-                    classes: "form-control  input-sm input-mdash-filter",
-                    style: "",
-                    customData: " v-model='mdash.categoria' id='" + filter.codigo + "' filter-key='" + filter.codigo + "' onchange='updateCachedFilter(this)'",
-                    placeholder: ""
-                };
-                return generateInput(textInputData);
-
-            case "digit":
-                var digitInputData = {
-                    type: "text",
-                    value: valorDefeito,
-                    classes: "form-control  input-sm input-mdash-filter",
-                    style: "",
-                    customData: " id='" + filter.codigo + "' filter-key='" + filter.codigo + "' onchange='updateCachedFilter(this)'",
-                    placeholder: ""
-                };
-                return generateInput(digitInputData);
-
-            case "list":
-                var valoresListagem = eval(filter.expressaolistagem) || [];
-                return generateSelectSettingSelectValue(
-                    valoresListagem,
-                    "form-control select-mdash-filter input-mdash-filter",
-                    "",
-                    " id=" + filter.codigo + " filter-key='" + filter.codigo + "' onchange='updateCachedFilter(this)'",
-                    filter.campooption,
-                    filter.campovalor,
-                    valorDefeito
-                );
-
-            case "logic":
-                var logicInputData = {
-                    type: "checkbox",
-                    value: valorDefeito,
-                    classes: "form-check-input",
-                    customData: " id='" + filter.codigo + "' filter-key='" + filter.codigo + "' onchange='updateCachedFilter(this)'"
-                };
-                return generateCheckbox(logicInputData);
-
-            default:
-                var textInputData = {
-                    type: "text",
-                    value: valorDefeito,
-                    classes: "form-control  input-sm input-mdash-filter",
-                    style: "",
-                    customData: " v-model='mdash.categoria' id='" + filter.codigo + "' filter-key='" + filter.codigo + "' onchange='updateCachedFilter(this)'",
-                    placeholder: ""
-                };
-                return generateInput(textInputData);
-        }
-    }
 
     $(document).ready(function () {
 
         var state = PetiteVue.reactive({
             mdash: GMainDashInstance,
-            handleTipoObjectoFiltro(filter) {
-
-                return getFilterHtmlObject(filter);
-            },
             getOptions(filter) {
                 try {
                     return eval(filter.expressaolistagem) || [];
@@ -530,13 +473,13 @@
                     return [];
                 }
             },
-            updateCachedFilter(filtro,event) {
+            updateCachedFilter(filtro, event) {
 
 
-                this.mdash.filterValues[element.codigo]=event.target.value;
-               
+                this.mdash.filterValues[filtro.codigo] = event.target.value;
+
                 // Salva novamente no localStorage  
-                console.log("event.target.value",event.target.value)
+                console.log("event.target.value", event.target.value)
                 window.localStorage.setItem("mdashcachedFilters", JSON.stringify(this.mdash.filterValues));
 
             }
@@ -602,6 +545,8 @@
             });
 
             configData.filterValues = filterValues;
+
+            window.localStorage.setItem("mdashcachedFilters", JSON.stringify(configData.filterValues));
 
             window.mdashAppState.mdash = configData;
 

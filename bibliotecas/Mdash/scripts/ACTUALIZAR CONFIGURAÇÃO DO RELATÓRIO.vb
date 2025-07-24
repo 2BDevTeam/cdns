@@ -27,8 +27,7 @@ End Function
 
 
 
-
-Dim BuildDynamicInsertDatarowQueryWithoutParameters=Function(ByVal dataRow As DataRow, ByVal tableName As String, ByVal recordKey As String, ByVal id As String) As String
+Dim BuildDynamicInsertDatarowQueryWithoutParameters = Function(ByVal dataRow As DataRow, ByVal tableName As String, ByVal recordKey As String, ByVal id As String) As String
 
     Dim columns As New List(Of String)
     Dim values As New List(Of String)
@@ -36,35 +35,36 @@ Dim BuildDynamicInsertDatarowQueryWithoutParameters=Function(ByVal dataRow As Da
 
     For Each column As DataColumn In dataRow.Table.Columns
         columns.Add(column.ColumnName)
-        Dim isSanitized As Boolean = querySanitized(dataRow(column.ColumnName))
 
-        If Not isSanitized Then
-            Throw New Exception("A string de conexão contém uma keyword de escrita")
+        Dim rawValue = dataRow(column.ColumnName)
+
+        Dim safeSqlValue As String
+
+        If IsDBNull(rawValue) Then
+            safeSqlValue = "NULL"
+        Else
+            ' Escapar aspas simples para simular query parametrizada
+            Dim sanitizedValue As String = rawValue.ToString().Replace("'", "''")
+            safeSqlValue = $"'{sanitizedValue}'"
         End If
 
-        Dim valueToSet = "'" & dataRow(column.ColumnName).ToString() & "'"
-        values.Add(valueToSet)
-        updateSet.Add($"{column.ColumnName} = {valueToSet}")
+        values.Add(safeSqlValue)
+        updateSet.Add($"{column.ColumnName} = {safeSqlValue}")
     Next
 
-    Dim recordExists As Boolean = False
-    Dim queryCheck = $"SELECT * FROM {tableName} WHERE {recordKey} = '{id}'"
-    Dim isSanitizedCheck As Boolean = querySanitized(queryCheck)
+    ' Escapar o ID também
+    Dim idSanitized = id.Replace("'", "''")
+    Dim queryCheck = $"SELECT * FROM {tableName} WHERE {recordKey} = '{idSanitized}'"
 
-    If Not isSanitizedCheck Then
-        Throw New Exception("A string de conexão contém uma keyword de escrita")
-    End If
-
+    ' Nenhuma verificação de palavra-chave é mais necessária
     Dim result = cdata.getDatatable(queryCheck)
-    If result.Rows.Count > 0 Then
-        recordExists = True
-    End If
+    Dim recordExists As Boolean = result.Rows.Count > 0
 
     Dim queryDynamic As String
-    If recordExists=True Then
-        queryDynamic = $"UPDATE {tableName} SET {String.Join(", ", updateSet)} WHERE {recordKey} = '{id}';"
+    If recordExists Then
+        queryDynamic = $"UPDATE {tableName} SET {String.Join(", ", updateSet)} WHERE {recordKey} = '{idSanitized}';"
     Else
-    queryDynamic = $"INSERT INTO {tableName} ({String.Join(", ", columns)}) VALUES ({String.Join(", ", values)});"
+        queryDynamic = $"INSERT INTO {tableName} ({String.Join(", ", columns)}) VALUES ({String.Join(", ", values)});"
     End If
 
     Return queryDynamic
