@@ -248,9 +248,37 @@
                 <div class="m-dash-dynamic-filters">
                     <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp" class="m-dash-filter-item">
                         <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}</label>
-                        <div v-html="handleTipoObjectoFiltro(filter)"></div>
+
+                        <!-- text -->
+                        <input @input="updateCachedFilter(filter)" v-if="filter.tipo === 'text'" type="text"
+                            class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                            v-model="mdash.filterValues[filter.codigo]" />
+
+                        <!-- digit -->
+                        <input @input="updateCachedFilter(filter)" v-else-if="filter.tipo === 'digit'" type="text"
+                            class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                            v-model="mdash.filterValues[filter.codigo]" />
+
+                        <!-- list -->
+                        <select @change="updateCachedFilter(filter)" v-else-if="filter.tipo === 'list'"
+                            class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
+                            v-model="mdash.filterValues[filter.codigo]">
+                            <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
+                                {{ opt[filter.campooption] }}
+                            </option>
+                        </select>
+
+                        <!-- logic -->
+                        <input @input="updateCachedFilter(filter)" v-else-if="filter.tipo === 'logic'" type="checkbox"
+                            class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
+
+                        <!-- fallback -->
+                        <input @input="updateCachedFilter(filter)" v-else type="text"
+                            class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                            v-model="mdash.filterValues[filter.codigo]" />
                     </div>
                 </div>
+
                 <div class="m-dash-dynamic-filters">
 
                 </div>
@@ -322,6 +350,8 @@
             this.descricao = data.descricao || "";
             this.tipo = data.tipo || "text";
             this.tamanho = data.tamanho || 4;
+            this.campooption = data.campooption || "";
+            this.campovalor = data.campovalor || "";
             this.expressaolistagem = data.expressaolistagem || "";
             this.valordefeito = data.valordefeito || "";
             this.ordem = data.ordem || 0;
@@ -375,40 +405,152 @@
         categoria: ""
     });
 
+
+
+    function handleDefaultValue(dataType, valor) {
+        switch (dataType.trim()) {
+            case "digit":
+                var inputValTxt = (String(valor) ? String(valor).replaceAll(" ", "").replaceAll(",", "") : "0")
+
+                return inputValTxt;
+                return isNaN(inputValTxt) || inputValTxt == null || inputValTxt == undefined || inputValTxt == "" ? 0 : inputValTxt;
+
+            case "text":
+
+                return valor ? valor : "";
+            default:
+                return valor;
+        }
+    }
+
+    function getValorDefeito(filter) {
+
+        var valorDefeito = null;
+        if (filter.valordefeito) {
+            valorDefeito = eval(filter.valordefeito);
+        }
+
+        var cachedFilters = window.localStorage.getItem("mdashcachedFilters");
+        cachedFilters = cachedFilters ? JSON.parse(cachedFilters) : {};
+
+        if (cachedFilters[filter.codigo]) {
+            valorDefeito = cachedFilters[filter.codigo];
+        }
+
+        return handleDefaultValue(filter.tipo, valorDefeito);
+
+    }
+
+
+    function updateCachedFilter(element) {
+        // Obtém o código do filtro e o valor atual
+        var plainValues = JSON.parse(JSON.stringify(this.mdash.values));
+        console.log("Valores simples:", plainValues);
+        return;
+        // Salva novamente no localStorage
+        window.localStorage.setItem("mdashcachedFilters", JSON.stringify(cachedFilters));
+
+    }
+
+
+
+    function getFilterHtmlObject(filter) {
+        var valorDefeito = getValorDefeito(filter);
+
+        switch (filter.tipo) {
+            case "text":
+                var textInputData = {
+                    type: "text",
+                    value: valorDefeito,
+                    classes: "form-control  input-sm input-mdash-filter",
+                    style: "",
+                    customData: " v-model='mdash.categoria' id='" + filter.codigo + "' filter-key='" + filter.codigo + "' onchange='updateCachedFilter(this)'",
+                    placeholder: ""
+                };
+                return generateInput(textInputData);
+
+            case "digit":
+                var digitInputData = {
+                    type: "text",
+                    value: valorDefeito,
+                    classes: "form-control  input-sm input-mdash-filter",
+                    style: "",
+                    customData: " id='" + filter.codigo + "' filter-key='" + filter.codigo + "' onchange='updateCachedFilter(this)'",
+                    placeholder: ""
+                };
+                return generateInput(digitInputData);
+
+            case "list":
+                var valoresListagem = eval(filter.expressaolistagem) || [];
+                return generateSelectSettingSelectValue(
+                    valoresListagem,
+                    "form-control select-mdash-filter input-mdash-filter",
+                    "",
+                    " id=" + filter.codigo + " filter-key='" + filter.codigo + "' onchange='updateCachedFilter(this)'",
+                    filter.campooption,
+                    filter.campovalor,
+                    valorDefeito
+                );
+
+            case "logic":
+                var logicInputData = {
+                    type: "checkbox",
+                    value: valorDefeito,
+                    classes: "form-check-input",
+                    customData: " id='" + filter.codigo + "' filter-key='" + filter.codigo + "' onchange='updateCachedFilter(this)'"
+                };
+                return generateCheckbox(logicInputData);
+
+            default:
+                var textInputData = {
+                    type: "text",
+                    value: valorDefeito,
+                    classes: "form-control  input-sm input-mdash-filter",
+                    style: "",
+                    customData: " v-model='mdash.categoria' id='" + filter.codigo + "' filter-key='" + filter.codigo + "' onchange='updateCachedFilter(this)'",
+                    placeholder: ""
+                };
+                return generateInput(textInputData);
+        }
+    }
+
     $(document).ready(function () {
 
         var state = PetiteVue.reactive({
             mdash: GMainDashInstance,
             handleTipoObjectoFiltro(filter) {
 
-                switch (filter.tipo) {
-                    case "text":
-                        return `<input type="text" id="${filter.codigo}" placeholder="${filter.valordefeito}" class="form-control filtro">`;
-                    case "list":
-                        return `
-                    <select id="${filter.codigo}" class="form-control filtro">
-                        <option value="">${filter.valordefeito}</option>
-                        <option value="opcao1">Opção 1</option>
-                        <option value="opcao2">Opção 2</option>
-                    </select>
-                `;
-                    case "checkbox":
-                        return `
-                    <div class="form-check">
-                        <input type="checkbox" id="${filter.codigo}" class="form-check-input filtro">
-                        <label class="form-check-label" for="${filter.codigo}">${filter.valordefeito}</label>
-                    </div>
-                `;
-                    default:
-                        return `<input type="text" id="${filter.codigo}" placeholder="${filter.valordefeito}" class="form-control filtro">`;
+                return getFilterHtmlObject(filter);
+            },
+            getOptions(filter) {
+                try {
+                    return eval(filter.expressaolistagem) || [];
+                } catch (e) {
+                    console.warn('Erro em expressaolistagem', e);
+                    return [];
                 }
+            },
+            updateCachedFilter(filtro,event) {
+
+
+                this.mdash.filterValues[element.codigo]=event.target.value;
+               
+                // Salva novamente no localStorage  
+                console.log("event.target.value",event.target.value)
+                window.localStorage.setItem("mdashcachedFilters", JSON.stringify(this.mdash.filterValues));
+
             }
-        })
+        });
+
+
+
+
         window.mdashAppState = state;
 
         PetiteVue.createApp(state).mount("#mdash");
 
         handleMdashConfigData().then(function (data) {
+
 
 
         })
@@ -445,18 +587,24 @@
             }
 
             var configData = response.data
+
             var dashboardconfig = response.data.dashboard[0] || {};
 
 
             configData.dashboardconfig = dashboardconfig;
 
             var configData = new Mdash(configData);
+            var filters = configData.filters || [];
+            var filterValues = {};
 
-            console.log("dashboardconfigdashboardconfig", configData);
+            filters.forEach(function (filter) {
+                filterValues[filter.codigo] = getValorDefeito(filter);
+            });
+
+            configData.filterValues = filterValues;
 
             window.mdashAppState.mdash = configData;
 
-            console.log("window.mdashAppState.mdash.filters", window.mdashAppState.mdash.filters.length)
 
 
 

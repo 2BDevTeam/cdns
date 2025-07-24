@@ -33,6 +33,8 @@ CREATE TABLE MdashFilter(
     codigo VARCHAR(250) DEFAULT '',
     descricao VARCHAR(250) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
+    campooption VARCHAR(250) DEFAULT '',
+    campovalor VARCHAR(250) DEFAULT '',
     tamanho INT DEFAULT 0,
     expressaolistagem TEXT DEFAULT '',
     valordefeito TEXT DEFAULT '',
@@ -40,5 +42,5 @@ CREATE TABLE MdashFilter(
 );
 
 
-select *from MdashFilter
 
+select *from MdashFilter

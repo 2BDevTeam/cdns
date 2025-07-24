@@ -51,6 +51,8 @@ function MdashFilter(data) {
     this.tamanho = data.tamanho || 4;
     this.expressaolistagem = data.expressaolistagem || "";
     this.valordefeito = data.valordefeito || "";
+    this.campooption = data.campooption || "";
+    this.campovalor = data.campovalor || "";
     this.ordem = data.ordem || (maxOrdem + 1);
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.localsource = data.localsource || "";
@@ -62,6 +64,7 @@ function getMdashFilterUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "descricao", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({
+            colSize: 12,
             campo: "tipo",
             tipo: "select",
             titulo: "Tipo",
@@ -79,6 +82,8 @@ function getMdashFilterUIObjectFormConfigAndSourceValues() {
                 { option: "Multipla escolha", value: "multiselect" }
             ]
         }),
+        new UIObjectFormConfig({ colSize: 6, campo: "campooption", tipo: "text", titulo: "Campo de Opção", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "campovalor", tipo: "text", titulo: "Campo de Valor", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "valordefeito", tipo: "div", cols: 90, rows: 90, titulo: "Valor por Defeito", classes: "input-source-form m-editor", contentType: "div" })
@@ -148,10 +153,10 @@ function MdashContainerItem(data) {
 function getContainerItemUIObjectFormConfigAndSourceValues() {
 
     var objectsUIFormConfig = [
-        new UIObjectFormConfig({ colSize:  4,  campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
-        new UIObjectFormConfig({ colSize:  4,  campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
-        new UIObjectFormConfig({ colSize:  6,  campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
-        new UIObjectFormConfig({ colSize:  4,  campo: "layoutcontaineritemdefault", tipo: "checkbox", titulo: "Usa layout default para item do container", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "layoutcontaineritemdefault", tipo: "checkbox", titulo: "Usa layout default para item do container", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, campo: "expressaolayoutcontaineritem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de layout do item do container", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "expressaodblistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de DB Listagem", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
@@ -737,7 +742,16 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
     }
 
     var cardContainerItemHtml = generateDashCardHTML(cardContainerItemData);
-    var mdashContainerItemHTML = "<div :class=\"' m-dash-container-item col-md-' + syncTamanhoContainerItemByStamp('" + containerItem.mdashcontaineritemstamp + "')\" style='margin-bottom:1em' id='" + containerItem.mdashcontaineritemstamp + "' componente='Item' idValue='" + containerItem.mdashcontaineritemstamp + "' localsource='" + containerUIObjectFormConfigResult.localsource + "' idfield='" + containerItem.idfield + "' >";
+        var mdashContainerItemHTML = "<div "
+        + ":class=\"'m-dash-container-item col col-lg-' + syncTamanhoContainerItemByStamp('" + containerItem.mdashcontaineritemstamp + "')"
+        + " + ' col-md-' + syncTamanhoContainerItemByStamp('" + containerItem.mdashcontaineritemstamp + "')"
+        + " + ' col-sm-' + syncTamanhoContainerItemByStamp('" + containerItem.mdashcontaineritemstamp + "')\""
+        + " style='margin-bottom:1em' "
+        + " id='" + containerItem.mdashcontaineritemstamp + "'"
+        + " componente='Item' "
+        + " idValue='" + containerItem.mdashcontaineritemstamp + "'"
+        + " localsource='" + containerUIObjectFormConfigResult.localsource + "'"
+        + " idfield='" + containerItem.idfield + "' >";
     mdashContainerItemHTML += cardContainerItemHtml;
     mdashContainerItemHTML += "</div>";
 
@@ -933,7 +947,6 @@ function generateDefaultMDashboardHTML(cardData) {
 function fetchDadosMDash(config, dados) {
 
 
-
     var containers = dados.containers || [];
     var containerItems = dados.containerItems || [];
     var filters = dados.filters || [];
@@ -941,18 +954,11 @@ function fetchDadosMDash(config, dados) {
     containers.forEach(function (container) {
 
         var containerUIConfigResult = getContainerUIObjectFormConfigAndSourceValues();
-        var mdashContainer = new MdashContainer({
-            mdashcontainerstamp: container.mdashcontainerstamp,
-            codigo: container.codigo,
-            titulo: container.titulo,
-            tipo: container.tipo,
-            tamanho: container.tamanho,
-            ordem: container.ordem,
-            dashboardstamp: config.mdashstamp || GMDashStamp,
-            objectsUIFormConfig: containerUIConfigResult.objectsUIFormConfig || [],
-            localsource: containerUIConfigResult.localsource || "",
-            idfield: containerUIConfigResult.idField || "mdashcontainerstamp"
-        });
+
+        var mdashContainer = new MdashContainer(container);
+        mdashContainer.objectsUIFormConfig = containerUIConfigResult.objectsUIFormConfig || [];
+        mdashContainer.localsource = containerUIConfigResult.localsource || "";
+        mdashContainer.idfield = containerUIConfigResult.idField || "mdashcontainerstamp";
 
         GMDashContainers.push(mdashContainer);
         addContainerMDashConfig(mdashContainer, containerUIConfigResult);
@@ -964,23 +970,11 @@ function fetchDadosMDash(config, dados) {
         items.forEach(function (item) {
 
             var containerItemUIConfigResult = getContainerItemUIObjectFormConfigAndSourceValues();
-            var mdashContainerItem = new MdashContainerItem({
-                mdashcontaineritemstamp: item.mdashcontaineritemstamp,
-                mdashcontainerstamp: item.mdashcontainerstamp,
-                codigo: item.codigo,
-                titulo: item.titulo,
-                tipo: item.tipo,
-                tamanho: item.tamanho,
-                ordem: item.ordem,
-                layoutcontaineritemdefault: item.layoutcontaineritemdefault || false,
-                expressaolayoutcontaineritem: item.expressaolayoutcontaineritem || "",
-                fontelocal: item.fontelocal || false,
-                expressaodblistagem: item.expressaodblistagem || "",
-                expressaoapresentacaodados: item.expressaoapresentacaodados || "",
-                objectsUIFormConfig: containerItemUIConfigResult.objectsUIFormConfig || [],
-                localsource: containerItemUIConfigResult.localsource || "",
-                idfield: containerItemUIConfigResult.idField || "mdashcontaineritemstamp"
-            });
+
+            var mdashContainerItem = new MdashContainerItem(item);
+            mdashContainerItem.objectsUIFormConfig = containerItemUIConfigResult.objectsUIFormConfig || [];
+            mdashContainerItem.localsource = containerItemUIConfigResult.localsource || "";
+            mdashContainerItem.idfield = containerItemUIConfigResult.idField || "mdashcontaineritemstamp";
 
             GMDashContainerItems.push(mdashContainerItem);
             addContainerItemMDashConfig(mdashContainerItem, containerItemUIConfigResult);
@@ -993,18 +987,11 @@ function fetchDadosMDash(config, dados) {
     filters.forEach(function (filter) {
 
         var mdashFilterUIObjectFormConfigResult = getMdashFilterUIObjectFormConfigAndSourceValues();
-        var mdashFilter = new MdashFilter({
-            mdashfilterstamp: filter.mdashfilterstamp,
-            codigo: filter.codigo,
-            descricao: filter.descricao,
-            tipo: filter.tipo,
-            tamanho: filter.tamanho,
-            expressaolistagem: filter.expressaolistagem || "",
-            valordefeito: filter.valordefeito || "",
-            objectsUIFormConfig: mdashFilterUIObjectFormConfigResult.objectsUIFormConfig || [],
-            localsource: mdashFilterUIObjectFormConfigResult.localsource || "",
-            idfield: mdashFilterUIObjectFormConfigResult.idField || "mdashfilterstamp"
-        });
+
+        var mdashFilter = new MdashFilter(filter);
+        mdashFilter.objectsUIFormConfig = mdashFilterUIObjectFormConfigResult.objectsUIFormConfig || [];
+        mdashFilter.localsource = mdashFilterUIObjectFormConfigResult.localsource || "";
+        mdashFilter.idfield = mdashFilterUIObjectFormConfigResult.idField || "mdashfilterstamp";
 
         GMDashFilters.push(mdashFilter);
         addFilterMDashConfig(mdashFilter, mdashFilterUIObjectFormConfigResult);
