@@ -7,6 +7,8 @@
 
 </head>
 
+<script src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
 <style>
     .snapshot:hover,
     .celula:hover {
@@ -280,31 +282,27 @@
             </div>
 
             <div class="m-dash-main">
+                <div v-for="container in mdash.containers" :key="container.mdashcontainerstamp"
+                    :class="[`col-md-${container.tamanho}`, `col-sm-${container.tamanho}`, `col-lg-${container.tamanho}`]">
 
-                <div v-for="container in mdash.containers" :key="container.mdashcontainerstamp" :class="[
-                     `col-md-${container.tamanho}`, 
-                     `col-sm-${container.tamanho}`, 
-                     `col-lg-${container.tamanho}`]">
-
-                    <div v-if="container.titulo.length >0" style="margin-bottom: 0.8em;" class="col-md-12 pull-left">
+                    <div v-if="container.titulo.length > 0" style="margin-bottom: 0.8em;" class="col-md-12 pull-left">
                         <h1 class="m-dash-item-text">{{ container.titulo }}</h1>
                         <hr>
                     </div>
 
-                    <div v-html="item.renderedContent" style="margin-bottom: 0.8em;"
-                        v-for="item in mdash.containerItems.filter(i => i.mdashcontainerstamp === container.mdashcontainerstamp)"
-                        :key="item.mdashcontaineritemstamp" :class="[ 
-                        `col-md-${item.tamanho}`, 
-                        `col-sm-${item.tamanho}`, 
-                        `col-lg-${item.tamanho}`]">
+                    <!-- Aqui usamos os grupos de rows -->
+                    <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)"
+                        :key="'row-' + rowIndex" class="row" style="margin-bottom: 0.8em;">
 
-
-
+                        <div v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
+                            :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area', 
+                          `col-md-${item.tamanho}`, 
+                          `col-sm-${item.tamanho}`, 
+                          `col-lg-${item.tamanho}`]">
+                        </div>
                     </div>
 
                 </div>
-
-
             </div>
 
         </div>
@@ -326,6 +324,44 @@
         return alerta
     }
 
+    function groupItemsByRows(containerItems, maxRowSize = 12) {
+        var rows = [];
+        var currentRow = [];
+        var currentRowSize = 0;
+
+        containerItems.forEach(function (item) {
+            var itemSize = parseInt(item.tamanho) || 12;
+
+            // Se adicionar este item ultrapassar o tamanho máximo da row
+            if (currentRowSize + itemSize > maxRowSize) {
+                // Finaliza a row atual (se não estiver vazia)
+                if (currentRow.length > 0) {
+                    rows.push({
+                        items: currentRow,
+                        totalSize: currentRowSize
+                    });
+                }
+
+                // Inicia uma nova row
+                currentRow = [item];
+                currentRowSize = itemSize;
+            } else {
+                // Adiciona o item à row atual
+                currentRow.push(item);
+                currentRowSize += itemSize;
+            }
+        });
+
+        // Adiciona a última row se não estiver vazia
+        if (currentRow.length > 0) {
+            rows.push({
+                items: currentRow,
+                totalSize: currentRowSize
+            });
+        }
+
+        return rows;
+    }
 
     function generateStandardCard(cardData) {
 
@@ -444,59 +480,112 @@
             this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
         }
 
-        MdashContainerItem.prototype.refreshContent = function () {
-
-            var self = this;
-
-
-            if (self.filters.length == 0) {
-
-                self.renderedContent = generateStandardCard({ titulo: "Sem conteúdo", bodyContent: "" });
-                return
-            }
-
-            if (!self.urlfetch) {
-
-                self.renderedContent = buildAlert("alert-danger", "URL para listagem  não definida");
-                return
-            }
-
-            var requestData = {
-                codigo: globalThis.dashboardconfig.codigo,
-                mdashcontaineritemstamp: self.mdashcontaineritemstamp,
-                filters: globalThis.filterValues
-            }
-
-            $.ajax({
-                type: "POST",
-                url: self.urlfetch,
-                data: {
-                    '__EVENTARGUMENT': JSON.stringify([requestData]),
-                },
-                success: function (response) {
-
-                    var errorMessage = "ao trazer resultados no [refreshContent] "
-                    try {
-                        if (response.cod != "0000") {
-
-                            console.log("Erro " + errorMessage, response)
-
-                            self.renderedContent = buildAlert("alert-danger", "Erro ao trazer resultados: ");
-                            return false
-                        }
-                        console.log(response)
-                    } catch (error) {
-                        console.log("Erro interno " + errorMessage, response)
-                        self.renderedContent = buildAlert("alert-danger", "Erro interno ao processar resultados: ");
+        MdashContainerItem.prototype.refreshContent = async function () {
+            try {
+                var containerItem = this;
 
 
-                        //alertify.error("Erro interno " + errorMessage, 10000)
-                    }
+                if (containerItem.filters.length == 0) {
+
+                    containerItem.cleanAndRender(generateDashCardHTML({ title: containerItem.titulo, bodyContent: "<h3 class='m-dash-item-text' >Sem conteúdo</h3>" }));
+                    return
                 }
-            })
+
+                if (!containerItem.urlfetch) {
+
+                    containerItem.cleanAndRender(buildAlert("alert-danger", "URL para listagem  não definida"));
+                    return;
+                }
+
+                var requestData = {
+                    codigo: globalThis.dashboardconfig.codigo,
+                    mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
+                    filters: globalThis.filterValues
+                }
+
+                var response = await $.ajax({
+                    type: "POST",
+                    url: containerItem.urlfetch,
+                    data: {
+                        '__EVENTARGUMENT': JSON.stringify([requestData]),
+                    }
+                });
+
+                var errorMessage = "ao trazer resultados no [refreshContent] "
+
+                if (response.cod != "0000") {
+
+                    console.log("Erro " + errorMessage, response)
+
+                    containerItem.cleanAndRender(buildAlert("alert-danger", "Erro ao trazer resultados: "));
+                    return false
+                }
+
+                var contentRecords = response.data || [];
+
+                containerItem.handleLayout();
+                
+                eval(containerItem.expressaoapresentacaodados);
+
+
+            }
+            catch (error) {
+                console.log("Erro interno " + errorMessage, error)
+                containerItem.cleanAndRender(buildAlert("alert-danger", "Erro interno ao processar resultados: "));
+
+
+                //alertify.error("Erro interno " + errorMessage, 10000)
+            }
 
         };
 
+        MdashContainerItem.prototype.handleLayout = function (content) {
+            var containerItem = this;
+            if (containerItem.layoutcontaineritemdefault) {
+                containerItem.cleanAndRender(generateDashCardHTML({ id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp, title: containerItem.titulo, bodyContent: "" }));
+
+            } else {
+
+                if (containerItem.expressaolayoutcontaineritem) {
+                    eval(containerItem.expressaolayoutcontaineritem);
+                }
+            }
+
+        }
+
+        MdashContainerItem.prototype.render = function (content) {
+
+            $("#" + this.mdashcontaineritemstamp).append(content);
+        }
+
+        MdashContainerItem.prototype.cleanAndRender = function (content) {
+
+            $("#" + this.mdashcontaineritemstamp).empty();
+            $("#" + this.mdashcontaineritemstamp).append(content);
+        }
+
+        MdashContainerItem.prototype.renderOnLayout = function (content) {
+
+            $("#m-dash-layout-" + this.mdashcontaineritemstamp).append(content);
+        }
+
+        MdashContainerItem.prototype.cleanAndRenderOnLayout = function (content) {
+
+            $("#m-dash-layout-" + this.mdashcontaineritemstamp).empty();
+            $("#m-dash-layout-" + this.mdashcontaineritemstamp).append(content);
+        }
+
+
+        MdashContainerItem.prototype.renderBodyLayout = function (content) {
+
+            $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").append(content);
+        }
+
+        MdashContainerItem.prototype.cleanAndRenderBodyLayout = function (content) {
+
+            $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").empty();
+            $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").append(content);
+        }
     }
 
     var GMainDashInstance = new Mdash({
@@ -560,6 +649,20 @@
                     return [];
                 }
             },
+            getRowGroups(containerStamp) {
+                // Filtra os items do container específico
+                var containerItems = this.mdash.containerItems.filter(function (item) {
+                    return item.mdashcontainerstamp === containerStamp;
+                });
+
+                // Ordena por ordem se necessário
+                containerItems.sort(function (a, b) {
+                    return (a.ordem || 0) - (b.ordem || 0);
+                });
+
+                // Agrupa em rows
+                return groupItemsByRows(containerItems);
+            },
             updateFilter(filtro, event) {
 
                 var containerItemsThatContainFilter = []
@@ -577,9 +680,9 @@
 
                 })
 
-                containerItemsThatContainFilter.forEach(function (itemWithFilter) {
+                containerItemsThatContainFilter.forEach(async function (itemWithFilter) {
 
-                    itemWithFilter.refreshContent();
+                    await itemWithFilter.refreshContent();
 
                 })
 
@@ -600,10 +703,10 @@
 
             if (GConfigDash) {
 
-                window.mdashAppState.mdash.containerItems.forEach(function (item) {
+                window.mdashAppState.mdash.containerItems.forEach(async function (item) {
 
                     try {
-                        item.refreshContent();
+                        await item.refreshContent();
 
                     } catch (error) {
 

@@ -7,6 +7,9 @@ GMDashContainers = []
 var GMDashContainerItems = [new MdashContainerItem({})];
 GMDashContainerItems = [];
 
+var GMDashContainerItemObjects = [new MdashContainerItemObject({})];
+GMDashContainerItemObjects = [];
+
 
 var GMDashFilters = [new MdashFilter({})];
 GMDashFilters = [];
@@ -34,7 +37,7 @@ function UIObjectFormConfig(data) {
 
 
 function MdashFilter(data) {
-    // Calcula ordem máxima se não for fornecida
+
     var maxOrdem = 0;
     if (Array.isArray(GMDashFilters) && GMDashFilters.length > 0) {
         maxOrdem = GMDashFilters.reduce(function (max, item) {
@@ -81,10 +84,12 @@ function getMdashFilterUIObjectFormConfigAndSourceValues() {
                 { option: "Multipla escolha", value: "multiselect" }
             ]
         }),
+
+
         new UIObjectFormConfig({ colSize: 6, campo: "campooption", tipo: "text", titulo: "Campo de Opção", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "campovalor", tipo: "text", titulo: "Campo de Valor", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 12, campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "valordefeito", tipo: "div", cols: 90, rows: 90, titulo: "Valor por Defeito", classes: "input-source-form m-editor", contentType: "div" })
     ];
 
@@ -138,6 +143,7 @@ function MdashContainerItem(data) {
     this.tipo = data.tipo || "";
     this.tamanho = data.tamanho || 4;
     this.ordem = data.ordem || (maxOrdem + 1);
+    this.templatelayout = data.templatelayout || "";
     this.layoutcontaineritemdefault = data.layoutcontaineritemdefault || true;
     this.expressaolayoutcontaineritem = data.expressaolayoutcontaineritem || "";
     this.dashboardstamp = data.dashboardstamp || "";
@@ -157,10 +163,10 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 4, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "layoutcontaineritemdefault", tipo: "checkbox", titulo: "Usa layout default para item do container", classes: "input-source-form", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 12, campo: "expressaolayoutcontaineritem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de layout do item do container", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolayoutcontaineritem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de layout do item do container", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "urlfetch", tipo: "text", titulo: "URL de Fetch", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 12, campo: "expressaodblistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de DB Listagem", classes: "input-source-form m-editor", contentType: "div" }),
-        new UIObjectFormConfig({ colSize: 12, campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaodblistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de DB Listagem", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "fontelocal", tipo: "checkbox", titulo: "Fonte local", classes: "input-source-form", contentType: "input" })
     ]
 
@@ -446,6 +452,7 @@ function handleShowConfigContainer(data) {
         $("#maincontent").append(modalHTML);
 
         $("#modalMdashConfigItem").modal("show");
+        $("#modalMdashConfigItem .modal-dialog").css("width", "90%")
         PetiteVue.createApp({
             mdashConfigItem: mdashConfigItem,
             changeDivContent: function (e) {
@@ -461,9 +468,252 @@ function handleShowConfigContainer(data) {
 
 
 
+
+//Schema
+//Configuração do Objeto
+//Handler de apresentação do objeto
+//
+function MdashContainerItemObject(data) {
+    // Calcula ordem máxima se não for fornecida
+    var maxOrdem = 0;
+    if (Array.isArray(GMDashContainerItemObjects) && GMDashContainerItemObjects.length > 0) {
+        maxOrdem = GMDashContainerItemObjects.reduce(function (max, item) {
+            return Math.max(max, item.ordem || 0);
+        }, 0);
+    }
+
+    this.mdashcontaineritemobjectstamp = data.mdashcontaineritemobjectstamp || generateUUID();
+    this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || "";
+    this.dashboardstamp = data.dashboardstamp || GMDashStamp;
+    this.tipo = data.tipo || "";
+    this.tamanho = data.tamanho || 0;
+    this.ordem = data.ordem || (maxOrdem + 1);
+    this.expressaoobjecto = data.expressaoobjecto || "";
+    this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+    this.localsource = data.localsource || "";
+    this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
+}
+
+function getContainerItemObjectUIObjectFormConfigAndSourceValues() {
+    var objectsUIFormConfig = [
+        new UIObjectFormConfig({
+            colSize: 12,
+            campo: "tipo",
+            tipo: "select",
+            titulo: "Tipo de Objeto",
+            fieldToOption: "option",
+            contentType: "select",
+            fieldToValue: "value",
+            classes: "form-control input-source-form input-sm",
+            selectValues: [
+                { option: "Gráfico", value: "chart" },
+                { option: "Tabela", value: "table" },
+                { option: "Card", value: "card" },
+                { option: "Texto", value: "text" },
+                { option: "Imagem", value: "image" }
+            ]
+        }),
+        new UIObjectFormConfig({
+            colSize: 6,
+            campo: "tamanho",
+            tipo: "digit",
+            titulo: "Tamanho",
+            classes: "form-control input-source-form input-sm",
+            contentType: "input"
+        }),
+        new UIObjectFormConfig({
+            colSize: 6,
+            campo: "ordem",
+            tipo: "digit",
+            titulo: "Ordem",
+            classes: "form-control input-source-form input-sm",
+            contentType: "input"
+        }),
+        new UIObjectFormConfig({
+            colSize: 12,
+            campo: "expressaoobjecto",
+            tipo: "div",
+            cols: 90,
+            rows: 90,
+            titulo: "Expressão do Objeto",
+            classes: "input-source-form m-editor",
+            contentType: "div"
+        })
+    ];
+
+    return {
+        objectsUIFormConfig: objectsUIFormConfig,
+        localsource: "GMDashContainerItemObjects",
+        idField: "mdashcontaineritemobjectstamp"
+    };
+}
+
+function getPreviewContainerItemData(containerItem) {
+
+
+
+
+    var defaultRecords=[]
+
+}
+
+
+
+
+
 function registerListenersMdash() {
 
+    $(document).off("click", ".add-container-item-object-btn").on("click", ".add-container-item-object-btn", function (e) {
 
+        var containerItemId = $(this).attr("containeritemId");
+
+        var containerItem = GMDashContainerItems.find(function (item) {
+            return item.mdashcontaineritemstamp === containerItemId;
+        });
+
+        var containerItemObjectUIObjectFormConfigResult = getContainerItemObjectUIObjectFormConfigAndSourceValues();
+
+        var sufixoForm = containerItemObjectUIObjectFormConfigResult.localsource;
+        var containerId = "Container" + sufixoForm;
+        var localsource = containerItemObjectUIObjectFormConfigResult.localsource;
+
+        var sourceData = {
+            sourceTable: localsource,
+            sourceKey: localsource
+        }
+        var containers = [];
+
+        if (!containerItem) {
+            console.error("Container Item not found");
+            alert("Container Item not found");
+            return;
+        }
+
+        containers = [
+            {
+                colSize: 6,
+                style: "",
+                content: {
+                    contentType: "select",
+                    type: "select",
+                    id: "templatelayout",
+                    classes: "mdashconfig-item-input form-control input-source-form input-sm",
+                    customData: "",
+                    style: "width: 100%;",
+                    selectCustomData: "" + " v-model='containerItem.templatelayout' @change=handleTemplateLayoutChange(containerItem.templatelayout)",
+                    fieldToOption: "descricao",
+                    fieldToValue: "codigo",
+                    rows: 10,
+                    cols: 10,
+                    label: "Layout do container",
+                    selectData: getTemplateLayoutOptions(),
+                    value: containerItem.templatelayout,
+                    event: "",
+                    placeholder: "",
+
+                }
+            }, {
+                colSize: 6,
+                style: "",
+                content: {
+                    contentType: "div",
+                    type: "div",
+                    id: "layoutdisplay",
+                    classes: "",
+                    customData: "",
+                    style: "",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "",
+                    selectData: "",
+                    value: "",
+                    event: "",
+                    placeholder: "",
+
+                }
+            }, {
+                colSize: 12,
+                style: "",
+                content: {
+                    contentType: "div",
+                    type: "div",
+                    id: "expressaodblistagemccontainerobject",
+                    classes: "m-editor mdashconfig-item-input ",
+                    customData: "v-on:keyup='changeExpressaoDbListagemAndHandleFilters(\"" + "expressaodblistagemccontainerobject" + "\",\"expressaodblistagem\")'",
+                    style: "width: 100%; height: 50px;",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "Expressão de DB Listagem",
+                    selectData: "",
+                    value: containerItem.expressaodblistagem || "",
+                    event: "",
+                    placeholder: "",
+
+                }
+            }];
+
+        $("#modalContainerItemObjectConfig").remove()
+        var containerData = {
+            containerId: containerId,
+            spinnerId: "overlay" + sufixoForm,
+            hasSpinner: false,
+            customData: "",
+            sourceData: sourceData,
+            items: containers
+        }
+        var formContainerResult = GenerateCustomFormContainer(containerData);
+
+        var modalBodyHtml = ""
+        modalBodyHtml += formContainerResult;
+
+        var modalContainerItemObjectConfig = {
+            title: "Configuração ",
+            id: "modalContainerItemObjectConfig",
+            customData: "",
+            otherclassess: "",
+            body: modalBodyHtml,
+            footerContent: "",
+        };
+        var modalHTML = generateModalHTML(modalContainerItemObjectConfig);
+
+        $("#maincontent").append(modalHTML);
+
+        $("#modalContainerItemObjectConfig").modal("show");
+        $("#modalContainerItemObjectConfig .modal-dialog").css("width", "90%")
+
+        PetiteVue.createApp({
+            containerItem: containerItem,
+            handleTemplateLayoutChange: function (layout) {
+                var listaTemplates = getTemplateLayoutOptions();
+                var selectedTemplate = listaTemplates.find(function (template) {
+                    return template.codigo === layout;
+                });
+
+                if (selectedTemplate) {
+
+                    $("#layoutdisplay").empty()
+                    $("#layoutdisplay").append(selectedTemplate.generateCard({title:containerItem.titulo,id:containerItem.mdashcontaineritemstamp,bodyContent:"Conteúdo do Card "+containerItem.titulo}));
+                }
+
+
+                // Aqui você pode adicionar lógica para lidar com a mudança de layout
+            },
+            changeExpressaoDbListagemAndHandleFilters: function (e,campo) {
+                
+                
+                var editor = ace.edit(e);
+                this.containerItem[campo] = editor.getValue();
+            }
+        }).mount('#maincontent');
+
+        handleCodeEditor();
+    })
 
     $(document).off("click", ".open-config-item-filter").on("click", ".open-config-item-filter", function (e) {
 
@@ -725,6 +975,20 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
 
     var openConfigItemContainerHtml = generateButton(botaoOpenConfigItemContainer);
     actionsContainer += openConfigItemContainerHtml;
+
+    var botaoAddContainerItemObject = {
+        style: "",
+        buttonId: "addContainerItemObjectBtn_" + containerItem.mdashcontaineritemstamp,
+        classes: "btn btn-xs btn-default add-container-item-object-btn",
+        customData: " containeritemId='" + containerItem.mdashcontaineritemstamp + "' type='button' data-tooltip='true' data-original-title='Adicionar objeto ao item do container' ",
+        label: "<span class='glyphicon glyphicon-stats'></span>",
+        onClick: "",
+    };
+
+    var addContainerItemObjectHtml = generateButton(botaoAddContainerItemObject);
+    actionsContainer += addContainerItemObjectHtml;
+
+
     actionsContainer += "</div>"
 
     bodyContentHtml += " <div class='col-md-12' style='margin-bottom:0.5em'>"
@@ -743,7 +1007,7 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
     }
 
     var cardContainerItemHtml = generateDashCardHTML(cardContainerItemData);
-        var mdashContainerItemHTML = "<div "
+    var mdashContainerItemHTML = "<div "
         + ":class=\"'m-dash-container-item col col-lg-' + syncTamanhoContainerItemByStamp('" + containerItem.mdashcontaineritemstamp + "')"
         + " + ' col-md-' + syncTamanhoContainerItemByStamp('" + containerItem.mdashcontaineritemstamp + "')"
         + " + ' col-sm-' + syncTamanhoContainerItemByStamp('" + containerItem.mdashcontaineritemstamp + "')\""
@@ -824,6 +1088,8 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
 
 
 function getMeditorStyles(styles) {
+
+    return
     var meditorStyle = ".m-editor{";
     meditorStyle += "width: 100%;";
     meditorStyle += "height: 200px;";

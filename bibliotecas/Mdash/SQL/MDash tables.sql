@@ -23,6 +23,7 @@ CREATE TABLE MdashContainerItem(
     dashboardstamp VARCHAR(25) DEFAULT '',
     fontelocal BIT DEFAULT 0,
     expressaodblistagem TEXT DEFAULT '',
+    templatelayout TEXT DEFAULT '',
     expressaoapresentacaodados TEXT DEFAULT '',
 );
 
@@ -41,3 +42,20 @@ CREATE TABLE MdashFilter(
     valordefeito TEXT DEFAULT '',
     ordem INT DEFAULT 0
 );
+
+CREATE TABLE MdashContainerItemObject(
+
+    mdashcontaineritemobjectstamp VARCHAR(25) PRIMARY KEY,
+    mdashcontaineritemstamp VARCHAR(25) DEFAULT '',
+    dashboardstamp VARCHAR(25) DEFAULT '',
+    tipo VARCHAR(100) DEFAULT '',
+    tamanho INT DEFAULT 0,
+    ordem INT DEFAULT 0,
+    expressaoobjecto TEXT DEFAULT ''
+)
+
+
+select *from  MdashContainerItemObject
+
+
+alter table MdashContainerItem add templatelayout TEXT DEFAULT '';
