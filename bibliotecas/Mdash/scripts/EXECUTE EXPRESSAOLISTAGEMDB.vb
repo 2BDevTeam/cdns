@@ -54,37 +54,23 @@ End Function
 End Function
 
 
-Dim  queryComFiltros as String=""
+
+
+
 Try
-    Dim parametro As String = System.Web.HttpContext.Current.Request.Form("__EVENTARGUMENT")
-      Dim jArray As Newtonsoft.Json.Linq.JArray = Newtonsoft.Json.Linq.JArray.Parse(parametro)
 
-    Dim requestJObject As Newtonsoft.Json.Linq.JObject = jArray(0)
+   Dim parametro As String = System.Web.HttpContext.Current.Request.Form("__EVENTARGUMENT")
+   Dim jArray As Newtonsoft.Json.Linq.JArray = Newtonsoft.Json.Linq.JArray.Parse(parametro)
+   Dim requestJObject As Newtonsoft.Json.Linq.JObject = jArray(0)
 
-    Dim queryMdashContainerItem = "
-        SELECT MdashContainerItem.* 
-        FROM MdashContainerItem 
-        JOIN MdashContainer ON MdashContainer.mdashcontainerstamp = MdashContainerItem.mdashcontainerstamp 
-        JOIN u_mdash ON u_mdash.u_mdashstamp = MdashContainer.dashboardstamp
-        WHERE u_mdash.codigo = @codigo 
-        AND MdashContainerItem.mdashcontaineritemstamp = @mdashcontaineritemstamp 
-        ORDER BY MdashContainerItem.ordem ASC
-    "
-
-    Dim sqlParametersContainerItem As New List(Of System.Data.SqlClient.SqlParameter)
-    sqlParametersContainerItem.Add(New System.Data.SqlClient.SqlParameter("@codigo", requestJObject("codigo").ToString()))
-    sqlParametersContainerItem.Add(New System.Data.SqlClient.SqlParameter("@mdashcontaineritemstamp", requestJObject("mdashcontaineritemstamp").ToString()))
-    Dim queryResultContainerItem As DataTable = ExecuteQuery(queryMdashContainerItem, sqlParametersContainerItem)
-
-    If queryResultContainerItem.Rows.Count = 0 Then
-        Throw New Exception("Dados do item do container não encontrados")
-    End If
-
-    Dim expressaodblistagem As String = queryResultContainerItem.Rows(0)("expressaodblistagem").ToString()
-    Dim regexPattern As String = "\{(.*?)\}" ' Padrão para capturar texto dentro de {}
-    Dim matches As MatchCollection = Regex.Matches(expressaodblistagem, regexPattern)
-     queryComFiltros  = expressaodblistagem
-    Dim filtros As Newtonsoft.Json.Linq.JObject = requestJObject("filters").ToObject(Of Newtonsoft.Json.Linq.JObject)()
+   Dim queryComFiltros As String = ""
+   Dim expressaodblistagem As String = requestJObject("expressaodblistagem").ToString()
+   Dim regexPattern As String = "\{(.*?)\}" ' Padrão para capturar texto dentro de {}
+   Dim matches As MatchCollection = Regex.Matches(expressaodblistagem, regexPattern)
+   queryComFiltros  = expressaodblistagem
+   
+   Dim filtros As Newtonsoft.Json.Linq.JObject = requestJObject("filters").ToObject(Of Newtonsoft.Json.Linq.JObject)()
+   
     For Each match As Match In matches
         Dim key As String = match.Groups(1).Value
         
@@ -120,17 +106,15 @@ Try
     }
     mpage.Response.ContentType = "application/json"
     mpage.Response.Write(Newtonsoft.Json.JsonConvert.SerializeObject(responseDTO))
+   
 
-Catch ex As Exception
-    ' XcUtil.LogViewSource(mpage, ex.ToString())
+Catch ex as Exception
+ ' XcUtil.LogViewSource(mpage,e.toString())
 
-    mpage.Response.ContentType = "application/json"
-    Dim responseDTO = New With {
-        .cod = "0007",
-        .codDesc = "Error",
-        .message = ex.ToString()
-    }
-    mpage.Response.Write(Newtonsoft.Json.JsonConvert.SerializeObject(responseDTO))
+   mpage.Response.ContentType = "application/json"
+   Dim responseDTO= New With {.cod ="0007" ,.codDesc="Error",.message=ex.toString()}
+   mpage.Response.Write(Newtonsoft.Json.JsonConvert.SerializeObject(responseDTO))
+
 
 Finally
     mpage.Response.End()

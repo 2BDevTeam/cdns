@@ -151,6 +151,8 @@ function MdashContainerItem(data) {
     this.urlfetch = data.urlfetch || "";
     this.expressaodblistagem = data.expressaodblistagem || "";
     this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
+    this.filters = data.filters || [];
+    this.records = data.records || [];
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.localsource = data.localsource || "";
     this.idfield = data.idfield || "mdashcontainerstamp";
@@ -491,6 +493,7 @@ function MdashContainerItemObject(data) {
     this.expressaoobjecto = data.expressaoobjecto || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.localsource = data.localsource || "";
+    this.config = data.config || {};
     this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
 }
 
@@ -553,10 +556,253 @@ function getPreviewContainerItemData(containerItem) {
 
 
 
-    var defaultRecords=[]
+    var defaultRecords = []
 
 }
 
+
+
+
+
+
+
+function LocalMdashQuery(container, data) {
+    var self = this;
+    self.container = $(container);
+    self.data = data;
+    self.fields = Object.keys(data[0]);
+    self.operacoes = [
+        { label: "Todos os campos", value: "TODOS" },
+        { label: "Nenhuma", value: "" },
+        { label: "COUNT(*)", value: "COUNT" },
+        { label: "SUM", value: "SUM" },
+        { label: "AVG", value: "AVG" },
+        { label: "MIN", value: "MIN" },
+        { label: "MAX", value: "MAX" }
+    ];
+    self.operadores = ['=', '<', '>', '<=', '>=', '<>', 'LIKE'];
+
+    self.$selectContainer = self.container.find(".selectFieldsContainer");
+    self.$filterContainer = self.container.find(".filtersContainer");
+    self.$groupByContainer = self.container.find(".groupByContainer");
+    self.$orderByField = self.container.find(".orderByField");
+    self.$orderByDirection = self.container.find(".orderByDirection");
+    self.$limit = self.container.find(".limit");
+    self.$btnRun = self.container.find(".btnRun");
+    self.$querySqlEl = self.container.find(".querySql");
+    self.$jsonResultEl = self.container.find(".jsonResult");
+    self.$resultEl = self.container.find(".result");
+
+    self.init = function () {
+        self.initGroupAndOrder();
+        self.addSelectField();
+        self.addFilter();
+
+        // Eventos dos botões dentro do container
+        self.container.find(".btnAddSelectField").on("click", function () {
+            self.addSelectField();
+        });
+
+        self.container.find(".btnAddFilter").on("click", function () {
+            self.addFilter();
+        });
+
+        self.$btnRun.on("click", function () {
+            self.run();
+        });
+    };
+
+    self.initGroupAndOrder = function () {
+        self.$groupByContainer.empty();
+        self.$orderByField.empty().append('<option value="">-- Nenhum --</option>');
+        for (var i = 0; i < self.fields.length; i++) {
+            var f = self.fields[i];
+            var $label = $("<label>").addClass("mr-3");
+            var $cb = $("<input>")
+                .attr("type", "checkbox")
+                .attr("value", f)
+                .addClass("mr-1");
+            $label.append($cb).append(f);
+            self.$groupByContainer.append($label);
+
+            self.$orderByField.append($("<option>").attr("value", f).text(f));
+        }
+    };
+
+    self.addSelectField = function () {
+        var $div = $("<div>").addClass("select-row  mb-2");
+
+        var $opSel = $("<select>").addClass("form-control input-sm mr-2");
+        for (var i = 0; i < self.operacoes.length; i++) {
+            var o = self.operacoes[i];
+            $opSel.append($("<option>").val(o.value).text(o.label));
+        }
+
+        var $fieldSel = $("<select>").addClass("form-control input-sm mr-2");
+        for (var i = 0; i < self.fields.length; i++) {
+            $fieldSel.append($("<option>").val(self.fields[i]).text(self.fields[i]));
+        }
+
+        var $aliasInput = $("<input>")
+            .attr("placeholder", "Alias")
+            .addClass("form-control input-sm alias-input mr-2");
+
+        var $btn = $("<button>")
+            .addClass("btn btn-danger btn-sm btn-remove")
+            .attr("type", "button")
+            .text("X")
+            .on("click", function () {
+                $div.remove();
+            });
+
+        $div.append($opSel, $fieldSel, $aliasInput, $btn);
+        self.$selectContainer.append($div);
+    };
+
+    self.addFilter = function () {
+        var $div = $("<div>").addClass("filter-row  mb-2");
+
+        var $selCampo = $("<select>").addClass("form-control input-sm mr-2");
+        for (var i = 0; i < self.fields.length; i++) {
+            $selCampo.append($("<option>").val(self.fields[i]).text(self.fields[i]));
+        }
+
+        var $selOperador = $("<select>").addClass("form-control input-sm mr-2");
+        for (var i = 0; i < self.operadores.length; i++) {
+            $selOperador.append($("<option>").val(self.operadores[i]).text(self.operadores[i]));
+        }
+
+        var $inputValor = $("<input>")
+            .attr("placeholder", "Valor")
+            .addClass("form-control input-sm mr-2");
+
+        var $btn = $("<button>")
+            .addClass("btn btn-danger btn-sm btn-remove")
+            .text("X")
+            .on("click", function () {
+                $div.remove();
+            });
+
+        $div.append($selCampo, $selOperador, $inputValor, $btn);
+        self.$filterContainer.append($div);
+    };
+
+    self.run = function () {
+        var selects = [];
+        var stopLoop = false;
+
+        self.$selectContainer.children().each(function (idx, div) {
+            if (stopLoop) return;
+
+            var $div = $(div);
+            var op = $div.children("select:eq(0)").val();
+            var field = $div.children("select:eq(1)").val();
+            var alias = $div.children("input").val().trim();
+
+            if (op === "TODOS") {
+                for (var j = 0; j < self.fields.length; j++) {
+                    selects.push(self.fields[j]);
+                }
+                stopLoop = true;
+                return;
+            }
+
+            if (op === "") {
+                selects.push(alias ? field + " AS " + alias : field);
+            } else if (op === "COUNT") {
+                selects.push(alias ? "COUNT(*) AS " + alias : "COUNT(*)");
+            } else if (
+                op === "SUM" ||
+                op === "AVG" ||
+                op === "MIN" ||
+                op === "MAX"
+            ) {
+                selects.push(alias ? op + "(" + field + ") AS " + alias : op + "(" + field + ")");
+            } else {
+                alert("Operação desconhecida: " + op);
+                stopLoop = true;
+                return;
+            }
+        });
+
+        if (selects.length === 0) {
+            alert("Selecione ao menos um campo");
+            return;
+        }
+
+        var filtros = [];
+        self.$filterContainer.children().each(function (idx, div) {
+            var $div = $(div);
+            var campo = $div.children("select:eq(0)").val();
+            var op = $div.children("select:eq(1)").val();
+            var val = $div.children("input").val().trim();
+            if (val === "") return;
+
+            if (isNaN(val)) {
+                val = "'" + val.replace(/'/g, "\\'") + "'";
+            }
+            filtros.push(campo + " " + op + " " + val);
+        });
+
+        var groupBy = [];
+        self.$groupByContainer.find("input[type=checkbox]:checked").each(function () {
+            groupBy.push($(this).val());
+        });
+
+        var orderBy = "";
+        if (self.$orderByField.val() !== "") {
+            orderBy = self.$orderByField.val() + " " + self.$orderByDirection.val();
+        }
+
+        var limitVal = self.$limit.val();
+        limitVal = limitVal ? parseInt(limitVal) : null;
+
+        var query = "SELECT " + selects.join(", ") + " FROM ?";
+        if (filtros.length) query += " WHERE " + filtros.join(" AND ");
+        if (groupBy.length) query += " GROUP BY " + groupBy.join(", ");
+        if (orderBy) query += " ORDER BY " + orderBy;
+        if (limitVal) query += " LIMIT " + limitVal;
+
+        try {
+            var result = alasql(query, [self.data]);
+            self.$querySqlEl.text(query);
+            self.$jsonResultEl.text(JSON.stringify(result, null, 2));
+            self.renderResult(result);
+        } catch (e) {
+            alert("Erro: " + e.message);
+        }
+    };
+
+    self.renderResult = function (rows) {
+        self.$resultEl.empty();
+        if (rows.length === 0) {
+            self.$resultEl.html("<p><i>Nenhum resultado</i></p>");
+            return;
+        }
+
+        var $table = $("<table>").addClass("table table-sm table-bordered table-striped");
+        var $thead = $("<thead>");
+        var $tr = $("<tr>");
+
+        for (var k in rows[0]) {
+            $tr.append($("<th>").text(k));
+        }
+        $thead.append($tr);
+        $table.append($thead);
+
+        var $tbody = $("<tbody>");
+        for (var i = 0; i < rows.length; i++) {
+            var $tr = $("<tr>");
+            for (var k in rows[i]) {
+                $tr.append($("<td>").text(rows[i][k]));
+            }
+            $tbody.append($tr);
+        }
+        $table.append($tbody);
+
+        self.$resultEl.append($table);
+    };
+}
 
 
 
@@ -589,6 +835,102 @@ function registerListenersMdash() {
             return;
         }
 
+
+        var addObjectoContainerItem = {
+            style: "margin-bottom:0.5em;",
+            buttonId: "addObjectoContainerItem",
+            label: "<span class='glyphicon glyphicon glyphicon-plus' ></span>Adicionar Objeto ao Container"
+            ,
+            classes: "btn btn-default btn-sm pull-left",
+            customData: " type='button' v-on:click='addObjectoContainerItem()'",
+        };
+
+        var buttonHtml = generateButton(addObjectoContainerItem);
+
+
+        var containersObjectsListDiv = "";
+
+        // Container principal
+        containersObjectsListDiv += "<div  v-for='containerItemObject in GMDashContainerItemObjects' :key='containerItemObject.mdashcontaineritemobjectstamp'>";
+
+        // Estrutura do collapse baseada em generateCollapseHTML
+        containersObjectsListDiv += "   <div class='home-collapse container-item-object' :id='\"object-collapse-\" + containerItemObject.mdashcontaineritemobjectstamp'>";
+
+        // Header do collapse
+        containersObjectsListDiv += "    <div class='home-collapse-header mainformcptitulo'>";
+        containersObjectsListDiv += "      <span style='margin-top:-0.3em;' class='glyphicon glyphicon-triangle-right'>{{ containerItemObject.tipo || 'Objeto' }} {{ containerItemObject.ordem }}</span>";
+        containersObjectsListDiv += "          <button v-on:click='removeContainerObject(containerItemObject)' type='button' class='btn btn-xs btn-danger remover-container-object-btn'";
+        containersObjectsListDiv += "                  :data-object-id='containerItemObject.mdashcontaineritemobjectstamp'";
+        containersObjectsListDiv += "                  data-tooltip='true' data-original-title='Remover objeto'>";
+        containersObjectsListDiv += "            <i style='font-size:17px' class='fa fa-trash'></i>";
+        containersObjectsListDiv += "          </button>";
+
+        containersObjectsListDiv += "      <div class='row'><span class='collapse-content'></span></div>";
+        containersObjectsListDiv += "    </div>";
+
+        // Body do collapse
+        containersObjectsListDiv += "    <div class='home-collapse-body hidden'>";
+        containersObjectsListDiv += "      <div :id='\"object-\" + containerItemObject.mdashcontaineritemobjectstamp' class='container-item-object-body'>";
+
+        containersObjectsListDiv += "         <div class='row'>";
+
+        // ...existing code...
+        containersObjectsListDiv += "           <div :id='\"tratamento-dadoscontainer-\" + containerItemObject.mdashcontaineritemobjectstamp' class='col-md-6 tratamento-dadoscontainer-item-object'>";
+
+        // Campos para SELECT / Agregações
+        containersObjectsListDiv += "             <label>Campos para SELECT / Agregações:</label>";
+        containersObjectsListDiv += "             <div class='selectFieldsContainer'></div>";
+        containersObjectsListDiv += "             <button class='btnAddSelectField btn btn-primary btn-sm mb-3'>";
+        containersObjectsListDiv += "               + Adicionar campo/aggregação";
+        containersObjectsListDiv += "             </button>";
+
+        // Filtros
+        containersObjectsListDiv += "             <label>Filtros:</label>";
+        containersObjectsListDiv += "             <div class='filtersContainer'></div>";
+        containersObjectsListDiv += "             <button class='btnAddFilter btn btn-primary btn-sm mb-3'>";
+        containersObjectsListDiv += "               + Adicionar filtro";
+        containersObjectsListDiv += "             </button>";
+
+        // Group By
+        containersObjectsListDiv += "             <label>Group By:</label>";
+        containersObjectsListDiv += "             <div class='groupByContainer groupby-checkboxes'></div>";
+
+        // Order By, Direção, Limit e Executar
+        containersObjectsListDiv += "             <div class='form-row align-items-center mt-3'>";
+        containersObjectsListDiv += "               <div class='col-auto'>";
+        containersObjectsListDiv += "                 <label>Order By:</label>";
+        containersObjectsListDiv += "                 <select class='orderByField form-control input-sm'></select>";
+        containersObjectsListDiv += "               </div>";
+        containersObjectsListDiv += "               <div class='col-auto'>";
+        containersObjectsListDiv += "                 <label>Direção:</label>";
+        containersObjectsListDiv += "                 <select class='orderByDirection form-control input-sm'>";
+        containersObjectsListDiv += "                   <option value='ASC'>Ascendente</option>";
+        containersObjectsListDiv += "                   <option value='DESC'>Descendente</option>";
+        containersObjectsListDiv += "                 </select>";
+        containersObjectsListDiv += "               </div>";
+        containersObjectsListDiv += "               <div class='col-auto'>";
+        containersObjectsListDiv += "                 <label>Limit:</label>";
+        containersObjectsListDiv += "                 <input type='number' min='1' placeholder='Ex: 10' class='limit form-control input-sm' />";
+        containersObjectsListDiv += "               </div>";
+        containersObjectsListDiv += "               <div class='col-auto mt-4'>";
+        containersObjectsListDiv += "                 <button class='btnRun btn btn-success btn-sm'>Executar</button>";
+        containersObjectsListDiv += "               </div>";
+        containersObjectsListDiv += "             </div>";
+
+        containersObjectsListDiv += "           </div>";
+        // ...existing code...
+        containersObjectsListDiv += "             {{initLocalQueryMdash(containerItemObject)}}";
+
+        containersObjectsListDiv += "           <div class='col-md-6'>";
+        containersObjectsListDiv += "           </div>";
+
+        containersObjectsListDiv += "         </div>"; // container-item-object-body
+        // Fechamento das divs
+        containersObjectsListDiv += "      </div>"; // container-item-object-body
+        containersObjectsListDiv += "    </div>"; // home-collapse-body
+        containersObjectsListDiv += "  </div>"; // home-collapse container-item-object
+        containersObjectsListDiv += "</div>"; // v-for container
+
         containers = [
             {
                 colSize: 6,
@@ -605,12 +947,11 @@ function registerListenersMdash() {
                     fieldToValue: "codigo",
                     rows: 10,
                     cols: 10,
-                    label: "Layout do container",
+                    label: " Layout do container ",
                     selectData: getTemplateLayoutOptions(),
                     value: containerItem.templatelayout,
                     event: "",
-                    placeholder: "",
-
+                    placeholder: ""
                 }
             }, {
                 colSize: 6,
@@ -656,6 +997,96 @@ function registerListenersMdash() {
                     placeholder: "",
 
                 }
+            },
+            {
+                colSize: 12,
+                style: "",
+                content: {
+                    contentType: "div",
+                    type: "div",
+                    id: "filtervariables",
+                    classes: "",
+                    customData: "",
+                    style: "",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "",
+                    selectData: "",
+                    value: generateFilterVariablesHTML(),
+                    event: "",
+                    placeholder: "",
+
+                }
+            },
+            {
+                colSize: 12,
+                style: "",
+                content: {
+                    contentType: "button",
+                    type: "button",
+                    id: "executarexpressaodblistagem",
+                    classes: "pull-left btn btn-primary btn-sm",
+                    customData: "v-on:click='executarExpressaoDbListagem()'",
+                    style: "margin-top:0.4em;",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "<span class='glyphicon glyphicon glyphicon-play' ></span>",
+                    selectData: "",
+                    value: "",
+                    event: "",
+                    placeholder: "",
+
+                }
+            },
+            {
+                colSize: 12,
+                style: "",
+                content: {
+                    contentType: "div",
+                    type: "actionsAddObjectContainerItem",
+                    id: "",
+                    classes: "pull-left",
+                    customData: "",
+                    style: "margin-top:0.4em;",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "",
+                    selectData: "",
+                    value: buttonHtml,
+                    event: "",
+                    placeholder: ""
+                }
+            },
+            {
+                colSize: 12,
+                style: "",
+                content: {
+                    contentType: "div",
+                    type: "div",
+                    id: "containerItemObjectList",
+                    classes: "row",
+                    customData: "",
+                    style: "margin-top:0.4em;",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "",
+                    selectData: "",
+                    value: containersObjectsListDiv,
+                    event: "",
+                    placeholder: ""
+                }
             }];
 
         $("#modalContainerItemObjectConfig").remove()
@@ -687,9 +1118,83 @@ function registerListenersMdash() {
         $("#modalContainerItemObjectConfig").modal("show");
         $("#modalContainerItemObjectConfig .modal-dialog").css("width", "90%")
 
+        var filterValues = {};
+
+        GMDashFilters.forEach(function (filter) {
+
+            filterValues[filter.codigo] = "";
+
+        });
+
+
+
+
         PetiteVue.createApp({
             containerItem: containerItem,
+            filterValues: filterValues,
+            getContainerRecords: function () {
+
+
+                if (this.containerItem.records && this.containerItem.records.length > 0) {
+                    return this.containerItem.records;
+                }
+
+                return [
+                    { nome: "Ana", genero: "F", salario: 1200, departamento: "RH" },
+                    { nome: "João", genero: "M", salario: 1500, departamento: "TI" },
+                    { nome: "Carlos", genero: "M", salario: 1000, departamento: "RH" },
+                    { nome: "Maria", genero: "F", salario: 1300, departamento: "Marketing" },
+                    { nome: "Pedro", genero: "M", salario: 1600, departamento: "TI" }
+                ];
+
+
+            },
+            GMDashContainerItemObjects: GMDashContainerItemObjects,
+            initLocalQueryMdash: function (containerItemObject) {
+                var self = this;
+                this.$nextTick(function () {
+                    setTimeout(function () {
+                        var elementId = "#tratamento-dadoscontainer-" + containerItemObject.mdashcontaineritemobjectstamp;
+                        var element = document.querySelector(elementId);
+
+                        if (element) {
+                            console.log("Inicializando consulta local para:", elementId);
+                            var localQuery = new LocalMdashQuery(elementId, self.getContainerRecords());
+                            localQuery.init();
+                        } else {
+                            console.warn("Elemento não encontrado:", elementId);
+                        }
+                    }, 100);
+                });
+                return "";
+            },
+            removeContainerObject: function (containerItemObject) {
+
+
+                this.GMDashContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
+                    return obj.mdashcontaineritemobjectstamp !== containerItemObject.mdashcontaineritemobjectstamp;
+                });
+
+                GMDashContainerItemObjects = this.GMDashContainerItemObjects
+            },
+            addObjectoContainerItem: function () {
+
+                var newObject = new MdashContainerItemObject({
+                    mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
+                    dashboardstamp: GMDashStamp,
+                    tipo: "",
+                    tamanho: 4,
+                    expressaoobjecto: "",
+                    objectsUIFormConfig: getContainerItemObjectUIObjectFormConfigAndSourceValues().objectsUIFormConfig,
+                    localsource: getContainerItemObjectUIObjectFormConfigAndSourceValues().localsource
+                });
+
+                this.GMDashContainerItemObjects.push(newObject);
+
+
+            },
             handleTemplateLayoutChange: function (layout) {
+
                 var listaTemplates = getTemplateLayoutOptions();
                 var selectedTemplate = listaTemplates.find(function (template) {
                     return template.codigo === layout;
@@ -697,23 +1202,151 @@ function registerListenersMdash() {
 
                 if (selectedTemplate) {
 
-                    $("#layoutdisplay").empty()
-                    $("#layoutdisplay").append(selectedTemplate.generateCard({title:containerItem.titulo,id:containerItem.mdashcontaineritemstamp,bodyContent:"Conteúdo do Card "+containerItem.titulo}));
+                    $("#layoutdisplay").empty();
+                    $("#layoutdisplay").append(selectedTemplate.generateCard({ title: containerItem.titulo, id: containerItem.mdashcontaineritemstamp, bodyContent: "Conteúdo do Card " + containerItem.titulo }));
+
                 }
 
 
-                // Aqui você pode adicionar lógica para lidar com a mudança de layout
+
+
             },
-            changeExpressaoDbListagemAndHandleFilters: function (e,campo) {
-                
-                
+            executarExpressaoDbListagem: function () {
+                var self = this;
+                $.ajax({
+                    type: "POST",
+                    url: "../programs/gensel.aspx?cscript=executeexpressaolistagemdb",
+
+                    data: {
+                        '__EVENTARGUMENT': JSON.stringify([{ expressaodblistagem: self.containerItem.expressaodblistagem, filters: self.filterValues }]),
+                    },
+                    success: function (response) {
+
+                        var errorMessage = "ao trazer resultados da listagem . consulte no console do browser"
+                        try {
+                            console.log(response)
+                            if (response.cod != "0000") {
+
+                                console.log("Erro " + errorMessage, response)
+                                alertify.error("Erro " + errorMessage, 9000)
+                                return false
+                            }
+
+                            self.containerItem.records = response.data || [];
+                        } catch (error) {
+                            console.log("Erro interno " + errorMessage, response)
+                            alertify.error("Erro " + errorMessage, 9000)
+                            //alertify.error("Erro interno " + errorMessage, 10000)
+                        }
+
+                        //  javascript:__doPostBack('','')
+                    }
+                })
+
+            },
+            updateFilter: function (filter, event) {
+
+            },
+            getFilterByExpressaoDb: function (expressaoDbListagem) {
+                // Lógica para obter filtros com base na expressão de DB
+                var filters = [];
+                var extractedFilters = extractFiltersFromExpression(expressaoDbListagem);
+
+                var foundFilters = []
+
+                extractedFilters.forEach(function (filterName) {
+
+                    var filterData = GMDashFilters.find(function (f) {
+                        return f.codigo === filterName;
+                    });
+                    if (filterData) {
+                        foundFilters.push(filterData);
+                    }
+                });
+
+
+                return foundFilters;
+            },
+            changeExpressaoDbListagemAndHandleFilters: function (e, campo) {
+
                 var editor = ace.edit(e);
+
                 this.containerItem[campo] = editor.getValue();
             }
         }).mount('#maincontent');
 
+
+
+        // Chama a função imediatamente após montar para mostrar o layout inicial
+        setTimeout(function () {
+            // Verifica se já existe um template selecionado e mostra o preview
+            if (containerItem.templatelayout) {
+                var listaTemplates = getTemplateLayoutOptions();
+                var selectedTemplate = listaTemplates.find(function (template) {
+                    return template.codigo === containerItem.templatelayout;
+                });
+
+                if (selectedTemplate) {
+                    $("#layoutdisplay").empty();
+                    $("#layoutdisplay").append(selectedTemplate.generateCard({
+                        title: containerItem.titulo,
+                        id: containerItem.mdashcontaineritemstamp,
+                        bodyContent: "Conteúdo do Card " + containerItem.titulo
+                    }));
+                }
+            }
+        }, 100); // Pequeno delay para garantir que o DOM foi renderizado
+
+
         handleCodeEditor();
     })
+
+    function generateFilterVariablesHTML() {
+        var filterVariablesHTML = "";
+
+        filterVariablesHTML += "<div style='display:flex;flex-direction:row;flex-wrap:wrap;' v-for=\"filter in getFilterByExpressaoDb(containerItem.expressaodblistagem)\" :key=\"filter.mdashfilterstamp\" class=\"\">";
+        filterVariablesHTML += "    <label class=\"m-dash-filter-item\" :for=\"filter.codigo\">{{ filter.descricao }}</label>";
+        filterVariablesHTML += "    <!-- text -->";
+        filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-if=\"filter.tipo === 'text'\" type=\"text\"";
+        filterVariablesHTML += "        class=\"form-control input-sm input-mdash-filter\" :id=\"filter.codigo\"";
+        filterVariablesHTML += "        v-model=\"filterValues[filter.codigo]\" />";
+        filterVariablesHTML += "";
+        filterVariablesHTML += "    <!-- digit -->";
+        filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else-if=\"filter.tipo === 'digit'\" type=\"text\"";
+        filterVariablesHTML += "        class=\"form-control input-sm input-mdash-filter\" :id=\"filter.codigo\"";
+        filterVariablesHTML += "        v-model=\"filterValues[filter.codigo]\" />";
+        filterVariablesHTML += "";
+        filterVariablesHTML += "    <!-- logic -->";
+        filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else-if=\"filter.tipo === 'logic'\" type=\"checkbox\"";
+        filterVariablesHTML += "        class=\"form-check-input\" :id=\"filter.codigo\" v-model=\"filterValues[filter.codigo]\" />";
+        filterVariablesHTML += "";
+        filterVariablesHTML += "    <!-- fallback -->";
+        filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else type=\"text\" class=\"form-control input-sm input-mdash-filter\"";
+        filterVariablesHTML += "        :id=\"filter.codigo\" v-model=\"filterValues[filter.codigo]\" />";
+        filterVariablesHTML += "</div>";
+
+        return filterVariablesHTML;
+    }
+
+    function extractFiltersFromExpression(sqlExpression) {
+        if (!sqlExpression) return [];
+
+        var regexPattern = /\{([^}]+)\}/g; // Padrão para capturar texto dentro de {}
+        var matches = [];
+        var match;
+
+        // Extrai todos os matches usando regex
+        while ((match = regexPattern.exec(sqlExpression)) !== null) {
+            var filterName = match[1].trim(); // Remove espaços em branco
+
+            // Verifica se o filtro já não existe no array para evitar duplicatas
+            if (matches.indexOf(filterName) === -1) {
+                matches.push(filterName);
+            }
+        }
+
+        return matches;
+    }
 
     $(document).off("click", ".open-config-item-filter").on("click", ".open-config-item-filter", function (e) {
 

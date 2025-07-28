@@ -246,8 +246,14 @@ function ocultarColunaByCabecalhoNome(nomeCab, tabelaId) {
     });
 }
 
+$(document).on('click', '.home-collapse-header', function () {
+    $(this).find(".glyphicon").toggleClass("glyphicon-triangle-bottom");
+    //$(this).next("div").css("hidden");
+    $(this).next("div").toggleClass("hidden");
 
+});
 function generateAccordionHtml(containerId, accordionData) {
+
     var accordionHtml = '<div class="accordion" id="' + containerId + '">';
 
     accordionData.forEach(function (item, index) {
@@ -646,9 +652,9 @@ function generateInput(inputData) {
     if (inputData.placeholder) inputHTML += " placeholder='" + inputData.placeholder + "'";
     if (inputData.style) inputHTML += " style='" + inputData.style + "'";
     if (inputData.classes) inputHTML += " class='" + inputData.classes + "'";
-    if (inputData.customData) inputHTML += " " + inputData.customData ;
+    if (inputData.customData) inputHTML += " " + inputData.customData;
 
-    inputHTML+=handleInputCustomData(inputData.type, inputData.value)
+    inputHTML += handleInputCustomData(inputData.type, inputData.value)
     inputHTML += ">";
     return inputHTML;
 }
@@ -724,7 +730,7 @@ function generateButton(button) {
     if (button.buttonId) html += " id='" + button.buttonId + "'";
     if (button.id) html += " id='" + button.id + "'";
     if (button.classes) html += " class='" + button.classes + "'";
-    if(button.type) html += " type='" + button.type + "'";
+    if (button.type) html += " type='" + button.type + "'";
     if (button.customData) html += " " + button.customData;
 
     // add onClick event
