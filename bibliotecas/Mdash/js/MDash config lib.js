@@ -196,6 +196,11 @@ function actualizarCOnfiguracaoMDashboard() {
             sourceTable: "MdashFilter",
             sourceKey: "mdashfilterstamp",
             records: GMDashFilters
+        },
+        {
+            sourceTable: "MdashContainerItemObject",
+            sourceKey: "mdashcontaineritemobjectstamp",
+            records: GMDashContainerItemObjects
         }
     ];
 
@@ -495,6 +500,47 @@ function MdashContainerItemObject(data) {
     this.localsource = data.localsource || "";
     this.config = data.config || {};
     this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
+
+    var queryConfig = data.queryConfig || {
+        selectFields: [],
+        filters: [],
+        groupBy: [],
+        orderBy: { field: "", direction: "ASC" },
+        limit: null,
+        generatedSQL: "",
+        lastResult: []
+    };
+
+    if (data.queryconfigjson) {
+
+        try {
+            queryConfig = JSON.parse(data.queryconfigjson);
+        } catch (error) {
+
+        }
+
+    }
+
+    this.queryConfig = queryConfig || {
+        selectFields: [],
+        filters: [],
+        groupBy: [],
+        orderBy: { field: "", direction: "ASC" },
+        limit: null,
+        generatedSQL: "",
+        lastResult: []
+    };
+
+    var queryConfigVoid = {
+        selectFields: [],
+        filters: [],
+        groupBy: [],
+        orderBy: { field: "", direction: "ASC" },
+        limit: null,
+        generatedSQL: "",
+        lastResult: []
+    };
+    this.queryconfigjson = queryConfig ? JSON.stringify(queryConfig) : JSON.stringify(queryConfigVoid);
 }
 
 function getContainerItemObjectUIObjectFormConfigAndSourceValues() {
@@ -564,6 +610,131 @@ function getPreviewContainerItemData(containerItem) {
 
 
 
+// Gerar o HTML reativo para a query local
+function generateReactiveQueryHTML() {
+    var queryHTML = "";
+
+    // Campos para SELECT / Agregações
+    queryHTML += "             <div class='mb-3'>";
+    queryHTML += "               <label><strong>Campos de Selecção / Agregações:</strong></label>";
+    queryHTML += "               <div class='selectFieldsContainer'>";
+    queryHTML += "                 <div v-for='(selectField, index) in containerItemObject.queryConfig.selectFields' :key='index' class='select-row mb-2' style='display: flex; align-items: center; gap: 0.8em;margin-bottom: 0.5em;'>";
+    queryHTML += "                   <select v-model='selectField.operation' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                     <option value=''>Nenhuma</option>";
+    queryHTML += "                     <option value='TODOS'>Todos os campos</option>";
+    queryHTML += "                     <option value='COUNT'>COUNT(*)</option>";
+    queryHTML += "                     <option value='SUM'>SUM</option>";
+    queryHTML += "                     <option value='AVG'>AVG</option>";
+    queryHTML += "                     <option value='MIN'>MIN</option>";
+    queryHTML += "                     <option value='MAX'>MAX</option>";
+    queryHTML += "                   </select>";
+    queryHTML += "                   <select v-model='selectField.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                     <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
+    queryHTML += "                   </select>";
+    queryHTML += "                   <input v-model='selectField.alias' placeholder='Alias' class='form-control input-sm' style='flex: 1;' />";
+    queryHTML += "                   <button @click='removeSelectField(index, containerItemObject)' type='button' class='btn btn-danger btn-sm'>X</button>";
+    queryHTML += "                 </div>";
+    queryHTML += "               </div>";
+    queryHTML += "               <button @click='addSelectField(containerItemObject)' type='button' class='btn btn-primary btn-sm mt-2'>";
+    queryHTML += "                 + Adicionar campo/agregação";
+    queryHTML += "               </button>";
+    queryHTML += "             </div>";
+
+    // Filtros
+    queryHTML += "             <div class='mb-3'>";
+    queryHTML += "               <label><strong>Filtros:</strong></label>";
+    queryHTML += "               <div class='filtersContainer'>";
+    queryHTML += "                 <div v-for='(filter, index) in containerItemObject.queryConfig.filters' :key='index' class='filter-row mb-2' style='display: flex; align-items: center; gap: 0.8em;'>";
+    queryHTML += "                   <select v-model='filter.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                     <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
+    queryHTML += "                   </select>";
+    queryHTML += "                   <select v-model='filter.operator' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                     <option value='='>=</option>";
+    queryHTML += "                     <option value='<'><</option>";
+    queryHTML += "                     <option value='>'>></option>";
+    queryHTML += "                     <option value='<='><=</option>";
+    queryHTML += "                     <option value='>='>>=</option>";
+    queryHTML += "                     <option value='<>'><></option>";
+    queryHTML += "                     <option value='LIKE'>LIKE</option>";
+    queryHTML += "                   </select>";
+    queryHTML += "                   <input v-model='filter.value' placeholder='Valor' class='form-control input-sm' style='flex: 1;' />";
+    queryHTML += "                   <button @click='removeFilter(index, containerItemObject)' type='button' class='btn btn-danger btn-sm'>X</button>";
+    queryHTML += "                 </div>";
+    queryHTML += "               </div>";
+    queryHTML += "               <button style='margin-top:0.4em' @click='addFilter(containerItemObject)' type='button' class='btn btn-primary btn-sm mt-2'>";
+    queryHTML += "                 + Adicionar filtro";
+    queryHTML += "               </button>";
+    queryHTML += "             </div>";
+
+    // Group By
+    queryHTML += "             <div class='mb-3'>";
+    queryHTML += "               <label><strong>Agrupamento:</strong></label>";
+    queryHTML += "               <div class='groupByContainer'>";
+    queryHTML += "                 <div v-for='(groupField, index) in containerItemObject.queryConfig.groupBy' :key='index' class='group-row mb-2' style='display: flex; align-items: center; gap: 0.8em;margin-bottom: 0.5em;'>";
+    queryHTML += "                   <select v-model='groupField.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                     <option value=''>-- Selecione o campo --</option>";
+    queryHTML += "                     <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
+    queryHTML += "                   </select>";
+    queryHTML += "                   <button @click='removeGroupBy(index, containerItemObject)' type='button' class='btn btn-danger btn-sm'>X</button>";
+    queryHTML += "                 </div>";
+    queryHTML += "               </div>";
+    queryHTML += "               <button style='margin-top:0.4em' @click='addGroupBy(containerItemObject)' type='button' class='btn btn-primary btn-sm'>";
+    queryHTML += "                 + Adicionar Agrupamento";
+    queryHTML += "               </button>";
+    queryHTML += "             </div>";
+    // Order By, Direção, Limit e Executar
+    queryHTML += "             <div class='form-row align-items-center mt-3 mb-3'>";
+    queryHTML += "               <div class='col-auto'>";
+    queryHTML += "                 <label><strong>Ordernar por:</strong></label>";
+    queryHTML += "                 <select v-model='containerItemObject.queryConfig.orderBy.field' class='form-control input-sm select-local-query'>";
+    queryHTML += "                   <option value=''>-- Nenhum --</option>";
+    queryHTML += "                   <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
+    queryHTML += "                 </select>";
+    queryHTML += "               </div>";
+    queryHTML += "               <div class='col-auto'>";
+    queryHTML += "                 <label><strong>Ordem:</strong></label>";
+    queryHTML += "                 <select v-model='containerItemObject.queryConfig.orderBy.direction' class='form-control input-sm'>";
+    queryHTML += "                   <option value='ASC'>Ascendente</option>";
+    queryHTML += "                   <option value='DESC'>Descendente</option>";
+    queryHTML += "                 </select>";
+    queryHTML += "               </div>";
+    queryHTML += "               <div class='col-auto'>";
+    queryHTML += "                 <label><strong>Limit:</strong></label>";
+    queryHTML += "                 <input v-model.number='containerItemObject.queryConfig.limit' type='number' min='1' placeholder='Ex: 10' class='form-control input-sm' />";
+    queryHTML += "               </div>";
+    queryHTML += "               <div style='margin-top:0.4em' class='col-auto mt-4'>";
+    queryHTML += "                 <button type='button' @click='executeQuery(containerItemObject)' class='btn btn-primary btn-sm'>Executar</button>";
+    queryHTML += "               </div>";
+    queryHTML += "             </div>";
+
+    // Resultado
+    queryHTML += "             <div class='mb-3'>";
+    queryHTML += "               <label><strong>SQL Gerado:</strong></label>";
+    queryHTML += "               <pre class='bg-light p-2 border rounded' style='font-size: 12px;'>{{ containerItemObject.queryConfig.generatedSQL || 'Nenhuma query executada ainda' }}</pre>";
+    queryHTML += "             </div>";
+
+    queryHTML += "             <div class='mb-3'>";
+    queryHTML += "               <label><strong>Resultado ({{ containerItemObject.queryConfig.lastResult.length }} registros):</strong></label>";
+    queryHTML += "               <div class='table-responsive' style='max-height: 300px; overflow-y: auto;'>";
+    queryHTML += "                 <table v-if='containerItemObject.queryConfig.lastResult.length > 0' class='table table-sm table-bordered table-striped'>";
+    queryHTML += "                   <thead>";
+    queryHTML += "                     <tr>";
+    queryHTML += "                       <th v-for='(value, key) in containerItemObject.queryConfig.lastResult[0]' :key='key'>{{ key }}</th>";
+    queryHTML += "                     </tr>";
+    queryHTML += "                   </thead>";
+    queryHTML += "                   <tbody>";
+    queryHTML += "                     <tr v-for='(row, index) in containerItemObject.queryConfig.lastResult' :key='index'>";
+    queryHTML += "                       <td v-for='(value, key) in row' :key='key'>{{ value }}</td>";
+    queryHTML += "                     </tr>";
+    queryHTML += "                   </tbody>";
+    queryHTML += "                 </table>";
+    queryHTML += "                 <p v-else class='text-muted'><i>Nenhum resultado encontrado</i></p>";
+    queryHTML += "               </div>";
+    queryHTML += "             </div>";
+
+    return queryHTML;
+}
+
 
 
 function LocalMdashQuery(container, data) {
@@ -632,6 +803,13 @@ function LocalMdashQuery(container, data) {
     self.addSelectField = function () {
         var $div = $("<div>").addClass("select-row  mb-2");
 
+        $div.css({
+            'display': 'flex',
+            'align-items': 'center',
+            'gap': '0.8em'
+        });
+
+
         var $opSel = $("<select>").addClass("form-control input-sm mr-2");
         for (var i = 0; i < self.operacoes.length; i++) {
             var o = self.operacoes[i];
@@ -678,6 +856,7 @@ function LocalMdashQuery(container, data) {
 
         var $btn = $("<button>")
             .addClass("btn btn-danger btn-sm btn-remove")
+            .attr("type", "button")
             .text("X")
             .on("click", function () {
                 $div.remove();
@@ -806,8 +985,48 @@ function LocalMdashQuery(container, data) {
 
 
 
+function setMutationObserverSelectQuery() {
+
+    var targetNode = document.getElementById("master-content");
+    var config = { attributes: false, childList: true, subtree: true };
+
+    var callback = function (mutationList, observer) {
+
+
+        if ($(".select-local-query").length > 0) {
+
+            console.log("Select local query found, initializing LocalMdashQuery");
+
+            $(".select-local-query").each(function () {
+                var $this = $(this);
+                if (!$this.data("initialized")) {
+                    $this.select2({
+                        width: '100%',
+                        placeholder: "Selecione um campo",
+                        allowClear: true
+                    });
+                    $this.data("initialized", true);
+                }
+            });
+
+        }
+
+    };
+
+    var observer = new MutationObserver(callback);
+    observer.observe(targetNode, config);
+
+
+}
+
 
 function registerListenersMdash() {
+
+
+    // setMutationObserverSelectQuery();
+
+    $.getScript("https://cdn.jsdelivr.net/npm/alasql ", function () { });
+
 
     $(document).off("click", ".add-container-item-object-btn").on("click", ".add-container-item-object-btn", function (e) {
 
@@ -846,25 +1065,22 @@ function registerListenersMdash() {
         };
 
         var buttonHtml = generateButton(addObjectoContainerItem);
-
-
         var containersObjectsListDiv = "";
 
-        // Container principal
-        containersObjectsListDiv += "<div  v-for='containerItemObject in GMDashContainerItemObjects' :key='containerItemObject.mdashcontaineritemobjectstamp'>";
+        // Container principal com v-for para iterar pelos objetos
+        containersObjectsListDiv += "<div class='container-item-objects-main' v-for='containerItemObject in filteredContainerItemObjects' :key='containerItemObject.mdashcontaineritemobjectstamp'>";
 
         // Estrutura do collapse baseada em generateCollapseHTML
-        containersObjectsListDiv += "   <div class='home-collapse container-item-object' :id='\"object-collapse-\" + containerItemObject.mdashcontaineritemobjectstamp'>";
+        containersObjectsListDiv += "  <div class='home-collapse container-item-object' :id='\"object-collapse-\" + containerItemObject.mdashcontaineritemobjectstamp'>";
 
         // Header do collapse
         containersObjectsListDiv += "    <div class='home-collapse-header mainformcptitulo'>";
-        containersObjectsListDiv += "      <span style='margin-top:-0.3em;' class='glyphicon glyphicon-triangle-right'>{{ containerItemObject.tipo || 'Objeto' }} {{ containerItemObject.ordem }}</span>";
+        containersObjectsListDiv += "      <span class='glyphicon glyphicon-triangle-right'>{{ containerItemObject.tipo || 'Objeto' }}  {{ containerItemObject.ordem }}</span>";
         containersObjectsListDiv += "          <button v-on:click='removeContainerObject(containerItemObject)' type='button' class='btn btn-xs btn-danger remover-container-object-btn'";
         containersObjectsListDiv += "                  :data-object-id='containerItemObject.mdashcontaineritemobjectstamp'";
         containersObjectsListDiv += "                  data-tooltip='true' data-original-title='Remover objeto'>";
         containersObjectsListDiv += "            <i style='font-size:17px' class='fa fa-trash'></i>";
         containersObjectsListDiv += "          </button>";
-
         containersObjectsListDiv += "      <div class='row'><span class='collapse-content'></span></div>";
         containersObjectsListDiv += "    </div>";
 
@@ -872,64 +1088,25 @@ function registerListenersMdash() {
         containersObjectsListDiv += "    <div class='home-collapse-body hidden'>";
         containersObjectsListDiv += "      <div :id='\"object-\" + containerItemObject.mdashcontaineritemobjectstamp' class='container-item-object-body'>";
 
-        containersObjectsListDiv += "         <div class='row'>";
 
-        // ...existing code...
-        containersObjectsListDiv += "           <div :id='\"tratamento-dadoscontainer-\" + containerItemObject.mdashcontaineritemobjectstamp' class='col-md-6 tratamento-dadoscontainer-item-object'>";
+        // Container para o tratamento de dados (dentro do collapse body)
+        containersObjectsListDiv += "        <div :id='\"tratamento-dadoscontainer-\" + containerItemObject.mdashcontaineritemobjectstamp' class='col-md-12 tratamento-dadoscontainer-item-object'>";
 
-        // Campos para SELECT / Agregações
-        containersObjectsListDiv += "             <label>Campos para SELECT / Agregações:</label>";
-        containersObjectsListDiv += "             <div class='selectFieldsContainer'></div>";
-        containersObjectsListDiv += "             <button class='btnAddSelectField btn btn-primary btn-sm mb-3'>";
-        containersObjectsListDiv += "               + Adicionar campo/aggregação";
-        containersObjectsListDiv += "             </button>";
-
-        // Filtros
-        containersObjectsListDiv += "             <label>Filtros:</label>";
-        containersObjectsListDiv += "             <div class='filtersContainer'></div>";
-        containersObjectsListDiv += "             <button class='btnAddFilter btn btn-primary btn-sm mb-3'>";
-        containersObjectsListDiv += "               + Adicionar filtro";
-        containersObjectsListDiv += "             </button>";
-
-        // Group By
-        containersObjectsListDiv += "             <label>Group By:</label>";
-        containersObjectsListDiv += "             <div class='groupByContainer groupby-checkboxes'></div>";
-
-        // Order By, Direção, Limit e Executar
-        containersObjectsListDiv += "             <div class='form-row align-items-center mt-3'>";
-        containersObjectsListDiv += "               <div class='col-auto'>";
-        containersObjectsListDiv += "                 <label>Order By:</label>";
-        containersObjectsListDiv += "                 <select class='orderByField form-control input-sm'></select>";
-        containersObjectsListDiv += "               </div>";
-        containersObjectsListDiv += "               <div class='col-auto'>";
-        containersObjectsListDiv += "                 <label>Direção:</label>";
-        containersObjectsListDiv += "                 <select class='orderByDirection form-control input-sm'>";
-        containersObjectsListDiv += "                   <option value='ASC'>Ascendente</option>";
-        containersObjectsListDiv += "                   <option value='DESC'>Descendente</option>";
-        containersObjectsListDiv += "                 </select>";
-        containersObjectsListDiv += "               </div>";
-        containersObjectsListDiv += "               <div class='col-auto'>";
-        containersObjectsListDiv += "                 <label>Limit:</label>";
-        containersObjectsListDiv += "                 <input type='number' min='1' placeholder='Ex: 10' class='limit form-control input-sm' />";
-        containersObjectsListDiv += "               </div>";
-        containersObjectsListDiv += "               <div class='col-auto mt-4'>";
-        containersObjectsListDiv += "                 <button class='btnRun btn btn-success btn-sm'>Executar</button>";
-        containersObjectsListDiv += "               </div>";
-        containersObjectsListDiv += "             </div>";
-
-        containersObjectsListDiv += "           </div>";
-        // ...existing code...
-        containersObjectsListDiv += "             {{initLocalQueryMdash(containerItemObject)}}";
-
-        containersObjectsListDiv += "           <div class='col-md-6'>";
-        containersObjectsListDiv += "           </div>";
-
-        containersObjectsListDiv += "         </div>"; // container-item-object-body
+        containersObjectsListDiv += "          <div class='row'>";
+        containersObjectsListDiv += "            <div class='col-md-6'>";
+        containersObjectsListDiv += generateReactiveQueryHTML();
+        containersObjectsListDiv += "            </div>";
+        containersObjectsListDiv += "            <div class='col-md-6'>";
+        containersObjectsListDiv += "              <div class='container-item-object-preview' style='margin-top: 1em;'>";
+        containersObjectsListDiv += "                <h4>Preview do Objeto</h4>";
+        containersObjectsListDiv += "              </div>";
+        containersObjectsListDiv += "            </div>";
+        containersObjectsListDiv += "          </div>"; // row
         // Fechamento das divs
         containersObjectsListDiv += "      </div>"; // container-item-object-body
         containersObjectsListDiv += "    </div>"; // home-collapse-body
         containersObjectsListDiv += "  </div>"; // home-collapse container-item-object
-        containersObjectsListDiv += "</div>"; // v-for container
+        containersObjectsListDiv += "</div>"; // v-for container           </div>";
 
         containers = [
             {
@@ -1127,18 +1304,17 @@ function registerListenersMdash() {
         });
 
 
-
+        var filteredContainerItemObjects = GMDashContainerItemObjects.filter(function (obj) {
+            return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
+        });
 
         PetiteVue.createApp({
             containerItem: containerItem,
             filterValues: filterValues,
             getContainerRecords: function () {
-
-
                 if (this.containerItem.records && this.containerItem.records.length > 0) {
                     return this.containerItem.records;
                 }
-
                 return [
                     { nome: "Ana", genero: "F", salario: 1200, departamento: "RH" },
                     { nome: "João", genero: "M", salario: 1500, departamento: "TI" },
@@ -1146,70 +1322,25 @@ function registerListenersMdash() {
                     { nome: "Maria", genero: "F", salario: 1300, departamento: "Marketing" },
                     { nome: "Pedro", genero: "M", salario: 1600, departamento: "TI" }
                 ];
-
-
             },
             GMDashContainerItemObjects: GMDashContainerItemObjects,
-            initLocalQueryMdash: function (containerItemObject) {
+            filteredContainerItemObjects: filteredContainerItemObjects,
+            handleTemplateLayoutChange: function (templateCode) {
                 var self = this;
-                this.$nextTick(function () {
-                    setTimeout(function () {
-                        var elementId = "#tratamento-dadoscontainer-" + containerItemObject.mdashcontaineritemobjectstamp;
-                        var element = document.querySelector(elementId);
-
-                        if (element) {
-                            console.log("Inicializando consulta local para:", elementId);
-                            var localQuery = new LocalMdashQuery(elementId, self.getContainerRecords());
-                            localQuery.init();
-                        } else {
-                            console.warn("Elemento não encontrado:", elementId);
-                        }
-                    }, 100);
-                });
-                return "";
-            },
-            removeContainerObject: function (containerItemObject) {
-
-
-                this.GMDashContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
-                    return obj.mdashcontaineritemobjectstamp !== containerItemObject.mdashcontaineritemobjectstamp;
-                });
-
-                GMDashContainerItemObjects = this.GMDashContainerItemObjects
-            },
-            addObjectoContainerItem: function () {
-
-                var newObject = new MdashContainerItemObject({
-                    mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
-                    dashboardstamp: GMDashStamp,
-                    tipo: "",
-                    tamanho: 4,
-                    expressaoobjecto: "",
-                    objectsUIFormConfig: getContainerItemObjectUIObjectFormConfigAndSourceValues().objectsUIFormConfig,
-                    localsource: getContainerItemObjectUIObjectFormConfigAndSourceValues().localsource
-                });
-
-                this.GMDashContainerItemObjects.push(newObject);
-
-
-            },
-            handleTemplateLayoutChange: function (layout) {
-
                 var listaTemplates = getTemplateLayoutOptions();
                 var selectedTemplate = listaTemplates.find(function (template) {
-                    return template.codigo === layout;
+                    return template.codigo === templateCode;
                 });
 
                 if (selectedTemplate) {
-
+                    // Atualizar o preview do layout
                     $("#layoutdisplay").empty();
-                    $("#layoutdisplay").append(selectedTemplate.generateCard({ title: containerItem.titulo, id: containerItem.mdashcontaineritemstamp, bodyContent: "Conteúdo do Card " + containerItem.titulo }));
-
+                    $("#layoutdisplay").append(selectedTemplate.generateCard({
+                        title: self.containerItem.titulo,
+                        id: self.containerItem.mdashcontaineritemstamp,
+                        bodyContent: "Conteúdo do Card " + self.containerItem.titulo
+                    }));
                 }
-
-
-
-
             },
             executarExpressaoDbListagem: function () {
                 var self = this;
@@ -1244,38 +1375,259 @@ function registerListenersMdash() {
                 })
 
             },
-            updateFilter: function (filter, event) {
 
+            // Métodos para query local
+            getAvailableFields: function () {
+                var records = this.getContainerRecords();
+                if (records && records.length > 0) {
+                    return Object.keys(records[0]);
+                }
+                return [];
             },
-            getFilterByExpressaoDb: function (expressaoDbListagem) {
-                // Lógica para obter filtros com base na expressão de DB
-                var filters = [];
-                var extractedFilters = extractFiltersFromExpression(expressaoDbListagem);
 
-                var foundFilters = []
+            addSelectField: function (containerItemObject) {
+                var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
+                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                });
 
-                extractedFilters.forEach(function (filterName) {
-
-                    var filterData = GMDashFilters.find(function (f) {
-                        return f.codigo === filterName;
+                if (objectIndex !== -1) {
+                    this.GMDashContainerItemObjects[objectIndex].queryConfig.selectFields.push({
+                        operation: '',
+                        field: '',
+                        alias: ''
                     });
-                    if (filterData) {
-                        foundFilters.push(filterData);
+                }
+            },
+
+            removeSelectField: function (index, containerItemObject) {
+                this.GMDashContainerItemObjects.filter(function (obj) {
+                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                }).forEach(function (obj) {
+                    if (obj.queryConfig.selectFields[index]) {
+                        obj.queryConfig.selectFields.splice(index, 1);
+                    }
+                });
+            },
+
+            addFilter: function (containerItemObject) {
+                var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
+                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                });
+
+                if (objectIndex !== -1) {
+                    this.GMDashContainerItemObjects[objectIndex].queryConfig.filters.push({
+                        field: '',
+                        operator: '=',
+                        value: ''
+                    });
+                }
+            },
+
+            removeFilter: function (index, containerItemObject) {
+                this.GMDashContainerItemObjects.filter(function (obj) {
+                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                }).forEach(function (obj) {
+
+
+                    if (obj.queryConfig.filters[index]) {
+                        obj.queryConfig.filters.splice(index, 1);
+                    }
+                });
+            },
+
+            executeQuery: function (containerItemObject) {
+                var self = this;
+                var records = this.getContainerRecords();
+
+                // Encontrar o objeto atual
+                var currentObject = this.GMDashContainerItemObjects.find(function (obj) {
+                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                });
+
+                if (!currentObject || !records || records.length === 0) {
+                    console.warn("Nenhum dado disponível para executar a query");
+                    return;
+                }
+
+                try {
+                    var query = this.buildSQLQuery(currentObject.queryConfig, records);
+                    var result = alasql(query.sql, query.params);
+
+                    // Atualizar a configuração com o resultado
+                    currentObject.queryConfig.generatedSQL = query.sql;
+                    currentObject.queryConfig.lastResult = result;
+
+
+                    console.log("Query executada com sucesso:", query.sql);
+                    console.log("Resultado:", result);
+                    containerItemObject.queryconfigjson = JSON.stringify(currentObject.queryConfig);
+
+                    console.log(" containerItemObject.queryconfigjson ", containerItemObject.queryconfigjson);
+
+                } catch (error) {
+                    console.error("Erro ao executar query:", error);
+                    alert("Erro ao executar query: " + error.message);
+                }
+            },
+
+            addGroupBy: function (containerItemObject) {
+                var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
+                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                });
+
+                if (objectIndex !== -1) {
+                    this.GMDashContainerItemObjects[objectIndex].queryConfig.groupBy.push({
+                        field: ''
+                    });
+                }
+            },
+
+            removeGroupBy: function (index, containerItemObject) {
+                this.GMDashContainerItemObjects.filter(function (obj) {
+                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                }).forEach(function (obj) {
+                    if (obj.queryConfig.groupBy[index]) {
+                        obj.queryConfig.groupBy.splice(index, 1);
+                    }
+                });
+            },
+
+            // Atualizar o método buildSQLQuery para trabalhar com o novo formato do Group By
+            buildSQLQuery: function (queryConfig, records) {
+                var selects = [];
+                var stopLoop = false;
+
+                // Processar campos SELECT
+                queryConfig.selectFields.forEach(function (selectField) {
+                    if (stopLoop) return;
+
+                    var op = selectField.operation;
+                    var field = selectField.field;
+                    var alias = selectField.alias.trim();
+
+                    if (op === "TODOS") {
+                        var fields = Object.keys(records[0]);
+                        fields.forEach(function (f) {
+                            selects.push(f);
+                        });
+                        stopLoop = true;
+                        return;
+                    }
+
+                    if (op === "") {
+                        selects.push(alias ? field + " AS " + alias : field);
+                    } else if (op === "COUNT") {
+                        selects.push(alias ? "COUNT(*) AS " + alias : "COUNT(*)");
+                    } else if (["SUM", "AVG", "MIN", "MAX"].indexOf(op) !== -1) {
+                        selects.push(alias ? op + "(" + field + ") AS " + alias : op + "(" + field + ")");
                     }
                 });
 
+                if (selects.length === 0) {
+                    var fields = Object.keys(records[0]);
+                    selects = fields;
+                }
 
-                return foundFilters;
+                // Processar filtros
+                var filtros = [];
+                queryConfig.filters.forEach(function (filter) {
+                    if (filter.field && filter.value.trim() !== "") {
+                        var value = filter.value.trim();
+                        if (isNaN(value)) {
+                            value = "'" + value.replace(/'/g, "\\'") + "'";
+                        }
+                        filtros.push(filter.field + " " + filter.operator + " " + value);
+                    }
+                });
+
+                // Processar Group By - Nova implementação
+                var groupByFields = [];
+                queryConfig.groupBy.forEach(function (groupField) {
+                    if (groupField.field && groupField.field.trim() !== "") {
+                        groupByFields.push(groupField.field);
+                    }
+                });
+
+                // Construir SQL
+                var sql = "SELECT " + selects.join(", ") + " FROM ?";
+
+                if (filtros.length > 0) {
+                    sql += " WHERE " + filtros.join(" AND ");
+                }
+
+                if (groupByFields.length > 0) {
+                    sql += " GROUP BY " + groupByFields.join(", ");
+                }
+
+                if (queryConfig.orderBy && queryConfig.orderBy.field) {
+                    sql += " ORDER BY " + queryConfig.orderBy.field + " " + queryConfig.orderBy.direction;
+                }
+
+                if (queryConfig.limit && queryConfig.limit > 0) {
+                    sql += " LIMIT " + queryConfig.limit;
+                }
+
+                return {
+                    sql: sql,
+                    params: [records]
+                };
             },
-            changeExpressaoDbListagemAndHandleFilters: function (e, campo) {
+            getFilterByExpressaoDb: function (expressaoDb) {
+                if (!expressaoDb) return [];
 
-                var editor = ace.edit(e);
+                var filterCodes = extractFiltersFromExpression(expressaoDb);
+                var matchedFilters = [];
 
-                this.containerItem[campo] = editor.getValue();
-            }
+                filterCodes.forEach(function (filterCode) {
+                    var filter = GMDashFilters.find(function (f) {
+                        return f.codigo === filterCode;
+                    });
+
+                    if (filter) {
+                        matchedFilters.push(filter);
+                    }
+                });
+
+                return matchedFilters;
+            },
+
+            // ... resto dos métodos existentes
+            removeContainerObject: function (containerItemObject) {
+                this.GMDashContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
+                    return obj.mdashcontaineritemobjectstamp !== containerItemObject.mdashcontaineritemobjectstamp;
+                });
+                GMDashContainerItemObjects = this.GMDashContainerItemObjects;
+            },
+
+            addObjectoContainerItem: function () {
+                var newObject = new MdashContainerItemObject({
+                    mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
+                    dashboardstamp: GMDashStamp,
+                    tipo: "",
+                    tamanho: 4,
+                    expressaoobjecto: "",
+                    objectsUIFormConfig: getContainerItemObjectUIObjectFormConfigAndSourceValues().objectsUIFormConfig,
+                    localsource: getContainerItemObjectUIObjectFormConfigAndSourceValues().localsource,
+                    queryConfig: {
+                        selectFields: [],
+                        filters: [],
+                        groupBy: [],
+                        orderBy: { field: "", direction: "ASC" },
+                        limit: null,
+                        generatedSQL: "",
+                        lastResult: []
+                    }
+                });
+
+                this.GMDashContainerItemObjects.push(newObject);
+
+                this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
+                    return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
+                });
+            },
+
+            // ... resto dos métodos existentes
         }).mount('#maincontent');
-
-
 
         // Chama a função imediatamente após montar para mostrar o layout inicial
         setTimeout(function () {
@@ -1850,6 +2202,7 @@ function fetchDadosMDash(config, dados) {
     var containers = dados.containers || [];
     var containerItems = dados.containerItems || [];
     var filters = dados.filters || [];
+    var containerItemObjects = dados.containerItemObjects || [];
 
     containers.forEach(function (container) {
 
@@ -1899,6 +2252,19 @@ function fetchDadosMDash(config, dados) {
 
 
     })
+
+    containerItemObjects.forEach(function (itemObject) {
+
+        var containerItemObjectUIConfigResult = getContainerItemObjectUIObjectFormConfigAndSourceValues();
+
+        var mdashContainerItemObject = new MdashContainerItemObject(itemObject);
+        mdashContainerItemObject.objectsUIFormConfig = containerItemObjectUIConfigResult.objectsUIFormConfig || [];
+        mdashContainerItemObject.localsource = containerItemObjectUIConfigResult.localsource || "";
+        mdashContainerItemObject.idfield = containerItemObjectUIConfigResult.idField || "mdashcontaineritemobjectstamp";
+
+        GMDashContainerItemObjects.push(mdashContainerItemObject);
+
+    });
 
 
 }

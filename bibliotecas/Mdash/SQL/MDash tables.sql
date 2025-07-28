@@ -51,11 +51,16 @@ CREATE TABLE MdashContainerItemObject(
     tipo VARCHAR(100) DEFAULT '',
     tamanho INT DEFAULT 0,
     ordem INT DEFAULT 0,
-    expressaoobjecto TEXT DEFAULT ''
+    expressaoobjecto TEXT DEFAULT '',
+    queryconfigjson TEXT DEFAULT ''
 )
 
 
 select *from  MdashContainerItemObject
 
 
-alter table MdashContainerItem add templatelayout TEXT DEFAULT '';
+alter table MdashContainerItemObject add queryconfigjson TEXT DEFAULT '';
+SELECT * FROM MdashContainerItemObject 
+
+
+SELECT *FROM MdashContainerItem where mdashcontaineritemstamp='601ed786-226a-4640-aeb6-f' order by ordem asc

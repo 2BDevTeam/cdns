@@ -57,11 +57,17 @@ Try
     sqlParametersFilter.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
     Dim queryResultFilter as DataTable= ExecuteQuery(queryMdashFilter,sqlParametersFilter)
 
+    Dim queryMdashContainerItemObject="select MdashContainerItemObject.* from MdashContainerItemObject join u_mdash on u_mdash.u_mdashstamp=MdashContainerItemObject.dashboardstamp where u_mdash.codigo=@codigo order by MdashContainerItemObject.ordem asc"
+    Dim sqlParametersContainerItemObject as new List(Of System.Data.SqlClient.SqlParameter)
+    sqlParametersContainerItemObject.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
+    Dim queryResultContainerItemObject as DataTable= ExecuteQuery(queryMdashContainerItemObject,sqlParametersContainerItemObject)
+
 
     Dim dadosRelatorio as New With {
         .dashboard = queryResultMdashboard,
         .containers = queryResultContainer,
         .containerItems = queryResultContainerItem,
+        .containerItemObjects = queryResultContainerItemObject,
         .filters = queryResultFilter
         }
      
