@@ -185,6 +185,9 @@ MdashContainerItem.prototype.renderLayout = function (container, cleanContainer)
 }
 
 MdashContainerItem.prototype.refreshContainerItem = function (masterContent) {
+
+    if (!masterContent) return;
+
     var dadosTemplate = this.dadosTemplate;
 
     if (!dadosTemplate.containerSelectorToRender) {
@@ -199,11 +202,13 @@ MdashContainerItem.prototype.refreshContainerItem = function (masterContent) {
         return obj.mdashcontaineritemstamp === self.mdashcontaineritemstamp;
     });
 
-    $(masterContent + dadosTemplate.containerSelectorToRender).empty();
+
 
     containerItemObjects.forEach(function (itemObject) {
 
-        itemObject.renderObjectByContainerItem(masterContent + dadosTemplate.containerSelectorToRender, self);
+        var concatenatedMasterContent = ".container-item-object-render-" + itemObject.mdashcontaineritemobjectstamp + " " + dadosTemplate.containerSelectorToRender;
+        $(concatenatedMasterContent).empty();
+        itemObject.renderObjectByContainerItem(concatenatedMasterContent, self);
 
     });
 
@@ -551,10 +556,25 @@ function MdashContainerItemObject(data) {
     this.expressaoobjecto = data.expressaoobjecto || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.localsource = data.localsource || "";
-    this.config = data.config || {};
+
+
+    var config = {}
+
+    if (data.configjson) {
+        try {
+            config = JSON.parse(data.configjson);
+        } catch (error) {
+            console.error("Erro ao analisar configjson:", error);
+        }
+    }
+
+    this.config = config || {}
+    this.configjson = data.configjson || ""
     this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
 
     this.objectoConfig = data.objectoConfig || {};
+
+
 
     var queryConfig = data.queryConfig || {
         selectFields: [],
@@ -971,10 +991,12 @@ function generateReactiveQueryHTML() {
 
     queryHTML += "                 <div class='row'>";
     queryHTML += "                        <div class='col-md-6'>";
-    queryHTML += "                              <div id='objectEditorContainer' ></div>                                         "
+    queryHTML += "{{initEditorObject(containerItemObject)}}"
+    queryHTML += "                        <div :id='\"objectEditorContainer-\" + containerItemObject.mdashcontaineritemobjectstamp'></div>";
+
     queryHTML += "                        </div>";
     queryHTML += "                        <div v-if='containerItemObject.tipo' class='col-md-6'>";
-    queryHTML += "                          <div class='container-item-object-preview' style='margin-top: 1em;'>";
+    queryHTML += "                          <div :class='\"container-item-object-render-\" + containerItemObject.mdashcontaineritemobjectstamp' style='margin-top: 1em;'>";
     queryHTML += "                            <h4>Previsão do objecto</h4>";
 
     queryHTML += "                          </div>";
@@ -1708,6 +1730,16 @@ function registerListenersMdash() {
             filterValues: filterValues,
             GMDashContainerItemObjects: GMDashContainerItemObjects,
             filteredContainerItemObjects: filteredContainerItemObjects,
+
+            initEditorObject: function (containerItemObject) {
+
+                var self = this;
+
+                setTimeout(function () {
+                    self.updateObjectType(containerItemObject);
+                }, 200); // Atraso para garantir que o container está pronto
+
+            },
             updateObjectType: function (containerItemObject) {
                 var self = this;
 
@@ -1721,7 +1753,9 @@ function registerListenersMdash() {
 
                     containerItemObject.objectoConfig = tipoObjecto
 
-                    var editor = new JSONEditor(document.getElementById('objectEditorContainer'), {
+                    console.log('Schema Editor: ', document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp));
+
+                    var editor = new JSONEditor(document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp), {
                         schema: schemaEditor,
                         theme: 'bootstrap4',
                         iconlib: 'fontawesome4',
@@ -1733,7 +1767,25 @@ function registerListenersMdash() {
                         disable_array_reorder: true           // Remove "Reordenar"
                     });
 
+
+
                     editor.on('ready', function () {
+
+
+                        if (containerItemObject.configjson && containerItemObject.configjson.trim() !== '') {
+                            try {
+
+                                var savedConfig = JSON.parse(containerItemObject.configjson);
+                                console.log('Carregando configuração salva:', savedConfig);
+                                editor.setValue(savedConfig);
+                            } catch (error) {
+                                console.warn('Erro ao carregar configuração salva:', error);
+                                console.log('configjson inválido:', containerItemObject.configjson);
+                                // Se não conseguir fazer parse, inicializar com configuração vazia
+
+                            }
+                        }
+
 
 
                         $(".json-editor-btn-collapse").css({
@@ -1748,15 +1800,36 @@ function registerListenersMdash() {
                         $(".json-editor-btntype-add").css({
                             "margin-top": "0.9em"
                         });
-                        self.containerItem.renderLayout(".container-item-object-preview", true);
+
+                        $(".je-object__title").css(
+                            {
+                                "font-size": "14px",
+                                "font-weight": "bold"
+                            }
+                        )
+
+                        $(".card-title").css(
+                            {
+                                "font-size": "14px",
+                                "font-weight": "bold"
+                            }
+                        )
+                        self.containerItem.renderLayout(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, true);
 
                     });
 
                     editor.on('change', function () {
                         var currentValue = editor.getValue();
-                        self.containerItem.renderLayout(".container-item-object-preview", true);
+                        self.containerItem.renderLayout(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, true);
                         containerItemObject.config = currentValue;
-                        self.containerItem.refreshContainerItem(".container-item-object-preview ");
+                        self.containerItem.refreshContainerItem(".container-item-object-render");
+                        containerItemObject.configjson = JSON.stringify(currentValue);
+                        $(".card-title").css(
+                            {
+                                "font-size": "14px",
+                                "font-weight": "bold"
+                            }
+                        )
                     });
 
 
@@ -1812,6 +1885,8 @@ function registerListenersMdash() {
             handleTemplateLayoutChange: function (templateCode) {
 
                 this.containerItem.renderLayout("#layoutdisplay", true)
+                this.containerItem.renderLayout(".container-item-object-render", true);
+                this.containerItem.refreshContainerItem(".container-item-object-render");
             },
             executarExpressaoDbListagem: function () {
                 var self = this;
@@ -1835,6 +1910,32 @@ function registerListenersMdash() {
                             }
 
                             self.containerItem.records = response.data || [];
+
+                            var containersItemObjectsList = self.GMDashContainerItemObjects.filter(function (obj) {
+                                return obj.mdashcontaineritemstamp === self.containerItem.mdashcontaineritemstamp;
+                            });
+
+                            containersItemObjectsList.forEach(function (containerItemObject) {
+
+                                containerItemObject.queryConfig = {
+                                    selectFields: [],
+                                    filters: [],
+                                    groupBy: [],
+                                    orderBy: { field: "", direction: "ASC" },
+                                    limit: null,
+                                    generatedSQL: "",
+                                    lastResult: []
+                                };
+
+                                containerItemObject.queryconfigjson = JSON.stringify(containerItemObject.queryConfig);
+
+
+
+                            })
+
+
+
+
                         } catch (error) {
                             console.log("Erro interno " + errorMessage, response)
                             alertify.error("Erro " + errorMessage, 9000)
@@ -1932,15 +2033,16 @@ function registerListenersMdash() {
                     }
 
                     var query = this.buildSQLQuery(currentObject.queryConfig, records);
+                    currentObject.queryConfig.generatedSQL = query.sql;
 
-                    //console.log("query.params", query.params)
                     var result = alasql(query.sql, query.params);
 
-                    // Atualizar a configuração com o resultado
-                    currentObject.queryConfig.generatedSQL = query.sql;
                     currentObject.queryConfig.lastResult = result;
 
                     containerItemObject.queryconfigjson = JSON.stringify(currentObject.queryConfig);
+                    containerItemObject.config = {};
+                    containerItemObject.configjson = "";
+                    containerItemObject.tipo = "";
 
 
                 } catch (error) {

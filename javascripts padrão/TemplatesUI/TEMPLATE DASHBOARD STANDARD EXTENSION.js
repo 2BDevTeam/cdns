@@ -52,6 +52,22 @@ function createDynamicSchemaGrafico(data) {
         type: "object",
         title: "Configuração de gráficos",
         properties: {
+            chartContainer: {
+                type: "object",
+                title: "Container do Gráfico",
+                properties: {
+                    width: {
+                        type: "string",
+                        title: "Largura",
+                        'default': "600"
+                    },
+                    height: {
+                        type: "string",
+                        title: "Altura",
+                        'default': "400"
+                    }
+                }
+            },
             title: {
                 type: "object",
                 title: "Título",
@@ -125,37 +141,59 @@ function createDynamicSchemaGrafico(data) {
                             type: "string",
                             title: "Cor",
                             format: "color"
+                        },
+                        barWidth: {
+                            type: "number",
+                            title: "Largura da Barra (%)",
+                            'default': 60,
+                            minimum: 10,
+                            maximum: 100,
+                            description: "Largura das barras em percentagem (10-100)"
+                        },
+                        itemStyle: {
+                            type: "object", title: "Estilo dos Itens",
+                            properties: {
+                                borderRadius: {
+                                    type: "array",
+                                    title: "Raio das Bordas [topo-esq, topo-dir, baixo-dir, baixo-esq]",
+                                    items: {
+                                        type: "number"
+                                    },
+                                    'default': [6, 6, 0, 0],
+                                    maxItems: 4,
+                                    minItems: 4
+                                }
+                            }
                         }
                     }
                 }
             }
+            // ...existing code...
         }
     };
 }
 
 
 function renderObjectGrafico(dados) {
-    
+
     var chartId = 'm-dash-grafico' + dados.itemObject.mdashcontaineritemobjectstamp;
     $("#" + chartId).remove(); // Remove any existing chart with the same ID
-    var chartDomDiv = "<div style='width: 600px; height: 600px;' id='" + chartId + "' class='m-dash-grafico'></div>";
+    var chartDomDiv = "<div style='width: " + (dados.config.chartContainer.width + "px" || "600px") + "; height: " + (dados.config.chartContainer.height + "px" || "400px") + ";' id='" + chartId + "' class='m-dash-grafico'></div>";
 
-    console.log("dados.containerSelector",dados.containerSelector)
+    console.log("dados.containerSelector", dados.containerSelector)
     $(dados.containerSelector).append(chartDomDiv);
 
-  
+
     var chartElement = document.getElementById(chartId);
     var chartToRender = echarts.init(chartElement);
 
 
-    
+
     updateChartOnContainer(chartToRender, dados.config, JSON.parse(JSON.stringify(dados.data)));
 }
 
 
-// Função para atualizar o gráfico ECharts
 function updateChartOnContainer(chart, config, data) {
-    
     try {
         var option = {
             title: {
@@ -178,14 +216,34 @@ function updateChartOnContainer(chart, config, data) {
                 type: config.yAxis.type
             },
             series: config.series ? config.series.map(function (serie) {
-                return {
+                var serieConfig = {
                     name: serie.name,
                     type: serie.type,
                     data: data.map(function (item) {
                         return item[serie.dataField];
-                    }),
-                    itemStyle: serie.color ? { color: serie.color } : undefined
+                    })
                 };
+
+                // Adicionar cor se definida
+                if (serie.color) {
+                    serieConfig.itemStyle = serieConfig.itemStyle || {};
+                    serieConfig.itemStyle.color = serie.color;
+                }
+
+                // Adicionar barWidth concatenando % na renderização
+                if (serie.barWidth) {
+                    serieConfig.barWidth = serie.barWidth + '%';
+                }
+
+                // Adicionar itemStyle se definido
+                if (serie.itemStyle) {
+                    serieConfig.itemStyle = serieConfig.itemStyle || {};
+                    if (serie.itemStyle.borderRadius) {
+                        serieConfig.itemStyle.borderRadius = serie.itemStyle.borderRadius;
+                    }
+                }
+
+                return serieConfig;
             }) : []
         };
 
@@ -203,12 +261,439 @@ function getTiposObjectoConfig() {
         descricao: "Gráfico",
         createDynamicSchema: createDynamicSchemaGrafico,
         renderObject: renderObjectGrafico
-    }]
+    },
+    {
+        tipo: "Pie",
+        descricao: "Gráfico de Pizza",
+        createDynamicSchema: function (data) {
+            var fieldOptions = [];
+            var fieldTitles = [];
+
+            if (data && data.length > 0) {
+                Object.keys(data[0]).forEach(function (key) {
+                    fieldOptions.push(key);
+                    fieldTitles.push(key);
+                });
+            }
+
+            return {
+                type: "object",
+                title: "Configuração do Gráfico de Pizza",
+                properties: {
+                    // Campos de dados
+                    labelField: {
+                        type: "string",
+                        title: "Campo para Rótulos",
+                        'enum': fieldOptions,
+                        options: {
+                            enum_titles: fieldTitles
+                        },
+                        description: "Campo que será usado como rótulo das fatias"
+                    },
+                    valueField: {
+                        type: "string",
+                        title: "Campo para Valores",
+                        'enum': fieldOptions,
+                        options: {
+                            enum_titles: fieldTitles
+                        },
+                        description: "Campo que será usado como valor das fatias"
+                    },
+
+                    // Configurações visuais
+                    radius: {
+                        type: "object",
+                        title: "Configuração do Raio",
+                        properties: {
+                            inner: {
+                                type: "string",
+                                title: "Raio Interno",
+                                'default': "40%",
+                                description: "Raio interno (para donut chart)"
+                            },
+                            outer: {
+                                type: "string",
+                                title: "Raio Externo",
+                                'default': "70%",
+                                description: "Raio externo do gráfico"
+                            }
+                        }
+                    },
+
+                    // Configurações de aparência
+                    itemStyle: {
+                        type: "object",
+                        title: "Estilo dos Itens",
+                        properties: {
+                            borderRadius: {
+                                type: "integer",
+                                title: "Raio das Bordas",
+                                'default': 10,
+                                minimum: 0,
+                                maximum: 50
+                            },
+                            padAngle: {
+                                type: "integer",
+                                title: "Espaçamento entre Fatias",
+                                'default': 5,
+                                minimum: 0,
+                                maximum: 20
+                            }
+                        }
+                    },
+
+                    // Configurações da legenda
+                    legend: {
+                        type: "object",
+                        title: "Configuração da Legenda",
+                        properties: {
+                            show: {
+                                type: "boolean",
+                                title: "Mostrar Legenda",
+                                'default': true
+                            },
+                            position: {
+                                type: "string",
+                                title: "Posição da Legenda",
+                                'enum': ["top", "bottom", "left", "right"],
+                                options: {
+                                    enum_titles: ["Superior", "Inferior", "Esquerda", "Direita"]
+                                },
+                                'default': "top"
+                            },
+                            align: {
+                                type: "string",
+                                title: "Alinhamento",
+                                'enum': ["left", "center", "right"],
+                                options: {
+                                    enum_titles: ["Esquerda", "Centro", "Direita"]
+                                },
+                                'default': "center"
+                            }
+                        }
+                    },
+
+                    // Configurações dos rótulos
+                    label: {
+                        type: "object",
+                        title: "Configuração dos Rótulos",
+                        properties: {
+                            show: {
+                                type: "boolean",
+                                title: "Mostrar Rótulos",
+                                'default': false
+                            },
+                            position: {
+                                type: "string",
+                                title: "Posição dos Rótulos",
+                                'enum': ["outside", "inside", "center"],
+                                options: {
+                                    enum_titles: ["Fora", "Dentro", "Centro"]
+                                },
+                                'default': "outside"
+                            },
+                            showPercentage: {
+                                type: "boolean",
+                                title: "Mostrar Percentual",
+                                'default': true
+                            },
+                            fontSize: {
+                                type: "integer",
+                                title: "Tamanho da Fonte",
+                                'default': 12,
+                                minimum: 8,
+                                maximum: 24
+                            }
+                        }
+                    },
+
+                    // Configurações de tooltip
+                    tooltip: {
+                        type: "object",
+                        title: "Configuração do Tooltip",
+                        properties: {
+                            trigger: {
+                                type: "string",
+                                title: "Tipo de Trigger",
+                                'enum': ["item", "axis"],
+                                options: {
+                                    enum_titles: ["Item", "Eixo"]
+                                },
+                                'default': "item"
+                            },
+                            showPercentage: {
+                                type: "boolean",
+                                title: "Mostrar Percentual no Tooltip",
+                                'default': true
+                            }
+                        }
+                    },
+
+                    // Texto central (para donut charts)
+                    centerText: {
+                        type: "object",
+                        title: "Texto Central",
+                        properties: {
+                            show: {
+                                type: "boolean",
+                                title: "Mostrar Texto Central",
+                                'default': false
+                            },
+                            text: {
+                                type: "string",
+                                title: "Texto",
+                                'default': "Total"
+                            },
+                            showTotal: {
+                                type: "boolean",
+                                title: "Mostrar Total",
+                                'default': true,
+                                description: "Mostrar a soma dos valores no centro"
+                            },
+                            fontSize: {
+                                type: "integer",
+                                title: "Tamanho da Fonte",
+                                'default': 30,
+                                minimum: 12,
+                                maximum: 60
+                            },
+                            fontWeight: {
+                                type: "string",
+                                title: "Peso da Fonte",
+                                'enum': ["normal", "bold"],
+                                options: {
+                                    enum_titles: ["Normal", "Negrito"]
+                                },
+                                'default': "bold"
+                            },
+                            color: {
+                                type: "string",
+                                title: "Cor do Texto",
+                                format: "color",
+                                'default': "#333"
+                            }
+                        }
+                    },
+
+                    // Cores personalizadas
+                    colors: {
+                        type: "array",
+                        title: "Cores Personalizadas",
+                        items: {
+                            type: "string",
+                            format: "color"
+                        },
+                        'default': [
+                            '#f79523',
+                            '#d43f3a',
+                            '#00897B',
+                            '#91c7ae',
+                            '#749f83',
+                            '#ca8622',
+                            '#bda29a',
+                            '#6e7074',
+                            '#546570',
+                            '#c4ccd3'
+                        ]
+                    },
+
+                    // Dimensões
+                    dimensions: {
+                        type: "object",
+                        title: "Dimensões do Gráfico",
+                        properties: {
+                            width: {
+                                type: "string",
+                                title: "Largura",
+                                'default': 400
+                            },
+                            height: {
+                                type: "integer",
+                                title: "Altura (px)",
+                                'default': 400,
+                                minimum: 200,
+                                maximum: 800
+                            }
+                        }
+                    }
+                },
+                required: ["labelField", "valueField"]
+            };
+        },
+        renderObject: function (params) {
+            var containerSelector = params.containerSelector;
+            var itemObject = params.itemObject;
+            var config = params.config;
+            var data = params.data;
+
+            if (!config.labelField || !config.valueField) {
+                console.warn("Campos obrigatórios não configurados para o gráfico de pizza");
+                return;
+            }
+
+            updatePie(containerSelector, itemObject, config, data);
+        }
+    }
+
+    ]
 
 
 
 
 }
+
+
+
+
+function updatePie(containerSelector, itemObject, config, data) {
+    var chartId = 'pie_chart_' + itemObject.mdashcontaineritemobjectstamp;
+
+    // Preparar container do gráfico
+    var chartContainer = '<div id="' + chartId + '" style="width: ' +
+        (config.dimensions.width || 400) + 'px; height: ' +
+        (config.dimensions.height || 400) + 'px;"></div>';
+
+    $(containerSelector).html(chartContainer);
+
+    // Aguardar o DOM estar pronto
+    setTimeout(function () {
+        var chartDom = document.getElementById(chartId);
+
+        if (!chartDom) {
+            console.error('Container do gráfico não encontrado:', chartId);
+            return;
+        }
+
+        // Inicializar ECharts
+        var myChart = echarts.init(chartDom);
+
+        // Preparar dados para o gráfico de pizza
+        var items = data.map(function (item) {
+            return {
+                name: item[config.labelField],
+                value: parseFloat(item[config.valueField]) || 0
+            };
+        });
+
+        // Calcular total para texto central
+        var total = items.reduce(function (sum, item) {
+            return sum + item.value;
+        }, 0);
+
+        // Configurar opções do gráfico
+        var option = {
+            tooltip: {
+                trigger: config.tooltip.trigger || 'item',
+                padding: [10, 10],
+                formatter: function (params) {
+                    var percentage = ((params.value / total) * 100).toFixed(1);
+                    var result = params.name + '<br/>';
+                    result += params.seriesName + ': ' + params.value;
+                    if (config.tooltip.showPercentage !== false) {
+                        result += ' (' + percentage + '%)';
+                    }
+                    return result;
+                }
+            },
+
+            legend: config.legend.show !== false ? {
+                top: config.legend.position === 'top' ? '0%' :
+                    config.legend.position === 'bottom' ? 'bottom' : 'auto',
+                left: config.legend.align || 'center',
+                bottom: config.legend.position === 'bottom' ? '0%' : 'auto',
+                right: config.legend.position === 'right' ? '0%' : 'auto',
+                orient: (config.legend.position === 'left' || config.legend.position === 'right') ? 'vertical' : 'horizontal'
+            } : {
+                show: false
+            },
+
+            color: config.colors || [
+                '#f79523', '#d43f3a', '#00897B', '#91c7ae', '#749f83'
+            ],
+
+            series: [
+                {
+                    name: config.labelField || 'Dados',
+                    type: 'pie',
+                    radius: [config.radius.inner || '40%', config.radius.outer || '70%'],
+                    avoidLabelOverlap: false,
+                    padAngle: config.itemStyle.padAngle || 5,
+                    itemStyle: {
+                        borderRadius: config.itemStyle.borderRadius || 10
+                    },
+                    label: {
+                        show: config.label.show || false,
+                        position: config.label.position || 'outside',
+                        fontSize: config.label.fontSize || 12,
+                        formatter: function (params) {
+                            if (config.label.showPercentage !== false) {
+                                var percentage = ((params.value / total) * 100).toFixed(1);
+                                return params.name + '\n' + percentage + '%';
+                            }
+                            return params.name;
+                        }
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: (config.label.fontSize || 12) + 4,
+                            fontWeight: 'bold'
+                        },
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    },
+                    labelLine: {
+                        show: config.label.show || false
+                    },
+                    data: items
+                }
+            ]
+        };
+
+        // Adicionar texto central se configurado
+        if (config.centerText.show) {
+            var centerTextValue = '';
+
+            if (config.centerText.showTotal) {
+                centerTextValue = total.toString();
+            }
+
+            if (config.centerText.text && config.centerText.text.trim() !== '') {
+                centerTextValue = config.centerText.showTotal ?
+                    config.centerText.text + '\n' + centerTextValue :
+                    config.centerText.text;
+            }
+
+            option.graphic = {
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: {
+                    text: centerTextValue,
+                    fontSize: config.centerText.fontSize || 30,
+                    fontWeight: config.centerText.fontWeight || 'bold',
+                    fill: config.centerText.color || '#333',
+                    textAlign: 'center'
+                }
+            };
+        }
+
+        // Aplicar configuração e renderizar
+        myChart.setOption(option);
+
+        // Responsividade
+        window.addEventListener('resize', function () {
+            myChart.resize();
+        });
+
+        console.log('Gráfico de pizza renderizado com sucesso:', chartId);
+
+    }, 100);
+}
+
 
 
 

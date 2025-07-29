@@ -58,6 +58,12 @@ Try
     Dim queryResultFilter as DataTable= ExecuteQuery(queryMdashFilter,sqlParametersFilter)
 
 
+    Dim queryMdashContainerItemObject="select MdashContainerItemObject.* from MdashContainerItemObject join u_mdash on u_mdash.u_mdashstamp=MdashContainerItemObject.dashboardstamp where u_mdash.codigo=@codigo order by MdashContainerItemObject.ordem asc"
+    Dim sqlParametersContainerItemObject as new List(Of System.Data.SqlClient.SqlParameter)
+    sqlParametersContainerItemObject.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
+    Dim queryResultContainerItemObject as DataTable= ExecuteQuery(queryMdashContainerItemObject,sqlParametersContainerItemObject)
+
+
        ' Adiciona a nova coluna "filters" do tipo Object
       If Not queryResultContainerItem.Columns.Contains("filters") Then
           queryResultContainerItem.Columns.Add("filters", GetType(Object))
@@ -95,6 +101,7 @@ Try
         .dashboard = queryResultMdashboard,
         .containers = queryResultContainer,
         .containerItems = queryResultContainerItem,
+        .containerItemObjects = queryResultContainerItemObject,
         .filters = queryResultFilter
         }
      
