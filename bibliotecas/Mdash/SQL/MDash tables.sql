@@ -56,11 +56,7 @@ CREATE TABLE MdashContainerItemObject(
 )
 
 
-select *from  MdashContainerItemObject
 
 
-alter table MdashContainerItemObject add queryconfigjson TEXT DEFAULT '';
-SELECT * FROM MdashContainerItemObject 
 
-
-SELECT *FROM MdashContainerItem where mdashcontaineritemstamp='601ed786-226a-4640-aeb6-f' order by ordem asc
+delete from MdashContainerItemObject

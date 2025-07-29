@@ -19,7 +19,7 @@ function generateDashCardSnapshot(cardData) {
     cardHTML += '<div id="' + (dashCard.id || 'snapshot-' + generateUUID()) + '" class="m-dash-item snapshot ' + (dashCard.classes || '') + '" style="' + (dashCard.styles || '') + '">';
     cardHTML += '  <div class="stats-card-value-container">';
     cardHTML += '    <span class="stats-card-label">' + (dashCard.title || "") + '</span>';
-    cardHTML += '    <span class="stats-card-value">' + (dashCard.bodyContent || "") + '</span>';
+    cardHTML += '    <div class="stats-card-body">' + (dashCard.bodyContent || "") + '</div>';
     cardHTML += '  </div>';
     cardHTML += '</div>';
 
@@ -33,12 +33,184 @@ function generateDashCardStandard(cardData) {
     cardHTML += '<div id="' + dashCard.id + '" class="m-dash-item ' + (dashCard.classes || '') + '" style="' + (dashCard.styles || '') + '">';
     cardHTML += '  <h1 class="m-dash-item-title">' + (dashCard.title || "Gráfico") + '</h1>';
 
-    cardHTML += dashCard.bodyContent || "";
+    cardHTML += "<div class='m-dash-standard-card-body' >" + (dashCard.bodyContent || "") + "</div>";
     cardHTML += '  </div>';
     cardHTML += '</div>';
 
     return cardHTML;
 }
+
+
+
+
+
+// Função para criar schema dinâmico baseado nos dados
+function createDynamicSchemaGrafico(data) {
+    var availableFields = Object.keys(data[0]);
+
+    return {
+        type: "object",
+        title: "Configuração de gráficos",
+        properties: {
+            title: {
+                type: "object",
+                title: "Título",
+                properties: {
+                    text: {
+                        type: "string",
+                        title: "Texto do Título",
+                        'default': "Meu Gráfico"
+                    },
+                    show: {
+                        type: "boolean",
+                        title: "Mostrar Título",
+                        'default': true
+                    }
+                }
+            },
+            xAxis: {
+                type: "object",
+                title: "Eixo X",
+                properties: {
+                    type: {
+                        type: "string",
+                        title: "Tipo",
+                        'enum': ["category", "value", "time", "log"],
+                        'default': "category"
+                    },
+                    dataField: {
+                        type: "string",
+                        title: "Campo para Eixo X",
+                        'enum': availableFields,
+                        'default': "mes"
+                    }
+                }
+            },
+            yAxis: {
+                type: "object",
+                title: "Eixo Y",
+                properties: {
+                    type: {
+                        type: "string",
+                        title: "Tipo",
+                        'enum': ["category", "value", "time", "log"],
+                        'default': "value"
+                    }
+                }
+            },
+            series: {
+                type: "array",
+                title: "Séries",
+                items: {
+                    type: "object",
+                    title: "Série",
+                    properties: {
+                        name: {
+                            type: "string",
+                            title: "Nome da Série"
+                        },
+                        dataField: {
+                            type: "string",
+                            title: "Campo de Dados",
+                            'enum': availableFields,
+                            'default': "totalsalario"
+                        },
+                        type: {
+                            type: "string",
+                            title: "Tipo de Gráfico",
+                            'enum': ["line", "bar", "pie", "scatter", "area"],
+                            'default': "line"
+                        },
+                        color: {
+                            type: "string",
+                            title: "Cor",
+                            format: "color"
+                        }
+                    }
+                }
+            }
+        }
+    };
+}
+
+
+function renderObjectGrafico(dados) {
+    
+    var chartId = 'm-dash-grafico' + dados.itemObject.mdashcontaineritemobjectstamp;
+    $("#" + chartId).remove(); // Remove any existing chart with the same ID
+    var chartDomDiv = "<div style='width: 600px; height: 600px;' id='" + chartId + "' class='m-dash-grafico'></div>";
+
+    console.log("dados.containerSelector",dados.containerSelector)
+    $(dados.containerSelector).append(chartDomDiv);
+
+  
+    var chartElement = document.getElementById(chartId);
+    var chartToRender = echarts.init(chartElement);
+
+
+    
+    updateChartOnContainer(chartToRender, dados.config, JSON.parse(JSON.stringify(dados.data)));
+}
+
+
+// Função para atualizar o gráfico ECharts
+function updateChartOnContainer(chart, config, data) {
+    
+    try {
+        var option = {
+            title: {
+                text: config.title ? config.title.text : '',
+                show: config.title ? config.title.show : false
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: config.series ? config.series.map(function (s) { return s.name; }) : []
+            },
+            xAxis: {
+                type: config.xAxis.type,
+                data: data.map(function (item) {
+                    return item[config.xAxis.dataField];
+                })
+            },
+            yAxis: {
+                type: config.yAxis.type
+            },
+            series: config.series ? config.series.map(function (serie) {
+                return {
+                    name: serie.name,
+                    type: serie.type,
+                    data: data.map(function (item) {
+                        return item[serie.dataField];
+                    }),
+                    itemStyle: serie.color ? { color: serie.color } : undefined
+                };
+            }) : []
+        };
+
+        chart.setOption(option, true);
+        console.log('Gráfico atualizado:', option);
+    } catch (e) {
+        console.error('Erro ao atualizar gráfico:', e);
+    }
+}
+
+function getTiposObjectoConfig() {
+
+    return [{
+        tipo: "Gráfico",
+        descricao: "Gráfico",
+        createDynamicSchema: createDynamicSchemaGrafico,
+        renderObject: renderObjectGrafico
+    }]
+
+
+
+
+}
+
+
 
 function getTemplateLayoutOptions() {
 
@@ -47,25 +219,29 @@ function getTemplateLayoutOptions() {
             descricao: "Snapshot Layout v1",
             codigo: "snapshot_layout_v1",
             tipo: "snapshot",
-            generateCard: generateDashCardInfo
+            generateCard: generateDashCardInfo,
+            containerSelectorToRender: ".m-dash-card-body-content"
         },
         {
             descricao: "Snapshot layout v2",
             codigo: "snapshot_layout_v2",
             tipo: "snapshot",
-            generateCard: generateDashCardSnapshot
+            generateCard: generateDashCardSnapshot,
+            containerSelectorToRender: ".stats-card-body"
         },
         {
             descricao: "Card standard",
             codigo: "card_standard",
             tipo: "card",
-            generateCard: generateDashCardStandard
+            generateCard: generateDashCardStandard,
+            containerSelectorToRender: ".m-dash-standard-card-body"
         },
         {
             descricao: "Card header destacado",
             codigo: "card_header_highlighted",
             tipo: "card",
-            generateCard: generateDashCardHTML
+            generateCard: generateDashCardHTML,
+            containerSelectorToRender: ".dashcard-body"
         },
     ];
 

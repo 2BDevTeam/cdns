@@ -154,8 +154,61 @@ function MdashContainerItem(data) {
     this.filters = data.filters || [];
     this.records = data.records || [];
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+    this.dadosTemplate = data.dadosTemplate || {}
     this.localsource = data.localsource || "";
     this.idfield = data.idfield || "mdashcontainerstamp";
+}
+
+MdashContainerItem.prototype.renderLayout = function (container, cleanContainer) {
+
+    var self = this;
+    var listaTemplates = getTemplateLayoutOptions();
+    var selectedTemplate = listaTemplates.find(function (template) {
+        return template.codigo === self.templatelayout;
+    });
+
+    if (selectedTemplate) {
+
+        self.dadosTemplate = selectedTemplate
+        if (cleanContainer) {
+            $(container).empty();
+        }
+        $(container).append(selectedTemplate.generateCard({
+            title: self.titulo,
+            id: self.mdashcontaineritemstamp,
+            bodyContent: "Sem conteúdo",
+        }));
+
+        self.refreshContainerItem("");
+    }
+
+}
+
+MdashContainerItem.prototype.refreshContainerItem = function (masterContent) {
+    var dadosTemplate = this.dadosTemplate;
+
+    if (!dadosTemplate.containerSelectorToRender) {
+
+        console.error("Container selector to render is not defined in the template data.");
+        alertify.error("Erro ao renderizar item do container. Verifique o template.", 4000);
+        return;
+    }
+
+    var self = this
+    var containerItemObjects = GMDashContainerItemObjects.filter(function (obj) {
+        return obj.mdashcontaineritemstamp === self.mdashcontaineritemstamp;
+    });
+
+    $(masterContent + dadosTemplate.containerSelectorToRender).empty();
+
+    containerItemObjects.forEach(function (itemObject) {
+
+        itemObject.renderObjectByContainerItem(masterContent + dadosTemplate.containerSelectorToRender, self);
+
+    });
+
+
+
 }
 
 function getContainerItemUIObjectFormConfigAndSourceValues() {
@@ -501,6 +554,8 @@ function MdashContainerItemObject(data) {
     this.config = data.config || {};
     this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
 
+    this.objectoConfig = data.objectoConfig || {};
+
     var queryConfig = data.queryConfig || {
         selectFields: [],
         filters: [],
@@ -542,6 +597,27 @@ function MdashContainerItemObject(data) {
     };
     this.queryconfigjson = queryConfig ? JSON.stringify(queryConfig) : JSON.stringify(queryConfigVoid);
 }
+
+
+MdashContainerItemObject.prototype.renderObjectByContainerItem = function (containerSelector, containerItem) {
+    var self = this;
+
+    if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
+
+
+        self.objectoConfig.renderObject({
+            containerSelector: containerSelector,
+            itemObject: self,
+            queryConfig: self.queryConfig,
+            config: self.config,
+            containerItem: containerItem,
+            data: containerItem.records || [],
+        })
+    }
+
+
+}
+
 
 function getContainerItemObjectUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
@@ -611,7 +687,7 @@ function getPreviewContainerItemData(containerItem) {
 
 
 // Gerar o HTML reativo para a query local
-function generateReactiveQueryHTML() {
+function generateReactiveQueryHTML2() {
     var queryHTML = "";
 
     // Campos para SELECT / Agregações
@@ -716,9 +792,9 @@ function generateReactiveQueryHTML() {
     queryHTML += "             <div class='mb-3'>";
     queryHTML += "               <label><strong>Resultado ({{ containerItemObject.queryConfig.lastResult.length }} registros):</strong></label>";
     queryHTML += "               <div class='table-responsive' style='max-height: 300px; overflow-y: auto;'>";
-    queryHTML += "                 <table v-if='containerItemObject.queryConfig.lastResult.length > 0' class='table table-sm table-bordered table-striped'>";
+    queryHTML += "                 <table id='resultTableSql' v-if='containerItemObject.queryConfig.lastResult.length > 0' class='table table-sm  table-striped'>";
     queryHTML += "                   <thead>";
-    queryHTML += "                     <tr>";
+    queryHTML += "                     <tr class='defgridheader' >";
     queryHTML += "                       <th v-for='(value, key) in containerItemObject.queryConfig.lastResult[0]' :key='key'>{{ key }}</th>";
     queryHTML += "                     </tr>";
     queryHTML += "                   </thead>";
@@ -734,6 +810,279 @@ function generateReactiveQueryHTML() {
 
     return queryHTML;
 }
+
+
+// ...existing code...
+
+// Gerar o HTML reativo para a query local
+function generateReactiveQueryHTML() {
+    var queryHTML = "";
+
+    // Primeiro Collapse - Query Local
+    queryHTML += "             <div class='home-collapse query-local-collapse'>";
+    queryHTML += "               <div class='home-collapse-header mainformcptitulo'>";
+    queryHTML += "                 <span class='glyphicon glyphicon-triangle-right'></span>";
+    queryHTML += "                 <span class='collapse-title'>Query Local</span>";
+    queryHTML += "               </div>";
+    queryHTML += "               <div class='home-collapse-body hidden'>";
+
+    // Campos para SELECT / Agregações
+    queryHTML += "                 <div class='mb-3'>";
+    queryHTML += "                   <label><strong>Campos de Selecção / Agregações:</strong></label>";
+    queryHTML += "                   <div class='selectFieldsContainer'>";
+    queryHTML += "                     <div v-for='(selectField, index) in containerItemObject.queryConfig.selectFields' :key='index' class='select-row mb-2' style='display: flex; align-items: center; gap: 0.8em;margin-bottom: 0.5em;'>";
+    queryHTML += "                       <select v-model='selectField.operation' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                         <option value=''>Nenhuma</option>";
+    queryHTML += "                         <option value='TODOS'>Todos os campos</option>";
+    queryHTML += "                         <option value='COUNT'>COUNT(*)</option>";
+    queryHTML += "                         <option value='SUM'>SUM</option>";
+    queryHTML += "                         <option value='AVG'>AVG</option>";
+    queryHTML += "                         <option value='MIN'>MIN</option>";
+    queryHTML += "                         <option value='MAX'>MAX</option>";
+    queryHTML += "                       </select>";
+    queryHTML += "                       <select v-model='selectField.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                         <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
+    queryHTML += "                       </select>";
+    queryHTML += "                       <input v-model='selectField.alias' placeholder='Alias' class='form-control input-sm' style='flex: 1;' />";
+    queryHTML += "                       <button @click='removeSelectField(index, containerItemObject)' type='button' class='btn btn-danger btn-sm'>X</button>";
+    queryHTML += "                     </div>";
+    queryHTML += "                   </div>";
+    queryHTML += "                   <button @click='addSelectField(containerItemObject)' type='button' class='btn btn-primary btn-sm mt-2'>";
+    queryHTML += "                     + Adicionar campo/agregação";
+    queryHTML += "                   </button>";
+    queryHTML += "                 </div>";
+
+    // Filtros
+    queryHTML += "                 <div class='mb-3'>";
+    queryHTML += "                   <label><strong>Filtros:</strong></label>";
+    queryHTML += "                   <div class='filtersContainer'>";
+    queryHTML += "                     <div v-for='(filter, index) in containerItemObject.queryConfig.filters' :key='index' class='filter-row mb-2' style='display: flex; align-items: center; gap: 0.8em;'>";
+    queryHTML += "                       <select v-model='filter.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                         <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
+    queryHTML += "                       </select>";
+    queryHTML += "                       <select v-model='filter.operator' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                         <option value='='>=</option>";
+    queryHTML += "                         <option value='<'><</option>";
+    queryHTML += "                         <option value='>'>></option>";
+    queryHTML += "                         <option value='<='><=</option>";
+    queryHTML += "                         <option value='>='>>=</option>";
+    queryHTML += "                         <option value='<>'><></option>";
+    queryHTML += "                         <option value='LIKE'>LIKE</option>";
+    queryHTML += "                       </select>";
+    queryHTML += "                       <input v-model='filter.value' placeholder='Valor' class='form-control input-sm' style='flex: 1;' />";
+    queryHTML += "                       <button @click='removeFilter(index, containerItemObject)' type='button' class='btn btn-danger btn-sm'>X</button>";
+    queryHTML += "                     </div>";
+    queryHTML += "                   </div>";
+    queryHTML += "                   <button style='margin-top:0.4em' @click='addFilter(containerItemObject)' type='button' class='btn btn-primary btn-sm mt-2'>";
+    queryHTML += "                     + Adicionar filtro";
+    queryHTML += "                   </button>";
+    queryHTML += "                 </div>";
+
+    // Group By
+    queryHTML += "                 <div class='mb-3'>";
+    queryHTML += "                   <label><strong>Agrupamento:</strong></label>";
+    queryHTML += "                   <div class='groupByContainer'>";
+    queryHTML += "                     <div v-for='(groupField, index) in containerItemObject.queryConfig.groupBy' :key='index' class='group-row mb-2' style='display: flex; align-items: center; gap: 0.8em;margin-bottom: 0.5em;'>";
+    queryHTML += "                       <select v-model='groupField.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                         <option value=''>-- Selecione o campo --</option>";
+    queryHTML += "                         <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
+    queryHTML += "                       </select>";
+    queryHTML += "                       <button @click='removeGroupBy(index, containerItemObject)' type='button' class='btn btn-danger btn-sm'>X</button>";
+    queryHTML += "                     </div>";
+    queryHTML += "                   </div>";
+    queryHTML += "                   <button style='margin-top:0.4em' @click='addGroupBy(containerItemObject)' type='button' class='btn btn-primary btn-sm'>";
+    queryHTML += "                     + Adicionar Agrupamento";
+    queryHTML += "                   </button>";
+    queryHTML += "                 </div>";
+
+    // Order By, Direção, Limit e Executar
+    queryHTML += "                 <div class='form-row align-items-center mt-3 mb-3'>";
+    queryHTML += "                   <div class='col-auto'>";
+    queryHTML += "                     <label><strong>Ordernar por:</strong></label>";
+    queryHTML += "                     <select v-model='containerItemObject.queryConfig.orderBy.field' class='form-control input-sm select-local-query'>";
+    queryHTML += "                       <option value=''>-- Nenhum --</option>";
+    queryHTML += "                       <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
+    queryHTML += "                     </select>";
+    queryHTML += "                   </div>";
+    queryHTML += "                   <div class='col-auto'>";
+    queryHTML += "                     <label><strong>Ordem:</strong></label>";
+    queryHTML += "                     <select v-model='containerItemObject.queryConfig.orderBy.direction' class='form-control input-sm'>";
+    queryHTML += "                       <option value='ASC'>Ascendente</option>";
+    queryHTML += "                       <option value='DESC'>Descendente</option>";
+    queryHTML += "                     </select>";
+    queryHTML += "                   </div>";
+    queryHTML += "                   <div class='col-auto'>";
+    queryHTML += "                     <label><strong>Limit:</strong></label>";
+    queryHTML += "                     <input v-model.number='containerItemObject.queryConfig.limit' type='number' min='1' placeholder='Ex: 10' class='form-control input-sm' />";
+    queryHTML += "                   </div>";
+    queryHTML += "                   <div style='margin-top:0.4em' class='col-auto mt-4'>";
+    queryHTML += "                     <button type='button' @click='executeQuery(containerItemObject)' class='btn btn-primary btn-sm'>Executar</button>";
+    queryHTML += "                   </div>";
+    queryHTML += "                 </div>";
+
+    // Resultado
+    queryHTML += "                 <div class='mb-3'>";
+    queryHTML += "                   <label><strong>SQL Gerado:</strong></label>";
+    queryHTML += "                   <pre class='bg-light p-2 border rounded' style='font-size: 12px;'>{{ containerItemObject.queryConfig.generatedSQL || 'Nenhuma query executada ainda' }}</pre>";
+    queryHTML += "                 </div>";
+
+    queryHTML += "                 <div class='mb-3'>";
+    queryHTML += "                   <label><strong>Resultado ({{ containerItemObject.queryConfig.lastResult.length }} registros):</strong></label>";
+    queryHTML += "                   <div class='table-responsive' style='max-height: 300px; overflow-y: auto;'>";
+    queryHTML += "                     <table :id='\"resultTableSql_\" + containerItemObject.mdashcontaineritemobjectstamp' v-if='containerItemObject.queryConfig.lastResult.length > 0' class='table table-sm table-striped result-table-sql'>";
+    queryHTML += "                       <thead>";
+    queryHTML += "                         <tr class='defgridheader'>";
+    queryHTML += "                           <th v-for='(value, key) in containerItemObject.queryConfig.lastResult[0]' :key='key'>{{ key }}</th>";
+    queryHTML += "                         </tr>";
+    queryHTML += "                       </thead>";
+    queryHTML += "                       <tbody>";
+    queryHTML += "                         <tr v-for='(row, index) in containerItemObject.queryConfig.lastResult' :key='index'>";
+    queryHTML += "                           <td v-for='(value, key) in row' :key='key'>{{ value }}</td>";
+    queryHTML += "                         </tr>";
+    queryHTML += "                       </tbody>";
+    queryHTML += "                     </table>";
+    queryHTML += "                     <p v-else class='text-muted'><i>Nenhum resultado encontrado</i></p>";
+    queryHTML += "                   </div>";
+    queryHTML += "                 </div>";
+
+    queryHTML += "               </div>"; // Fim do home-collapse-body para Query Local
+    queryHTML += "             </div>"; // Fim do home-collapse para Query Local
+
+    // Segundo Collapse - Configuração do Objecto
+    queryHTML += "             <div v-if='containerItemObject.queryConfig.lastResult.length > 0' class='home-collapse object-config-collapse' style='margin-top: 1em;'>";
+    queryHTML += "               <div class='home-collapse-header mainformcptitulo'>";
+    queryHTML += "                 <span class='glyphicon glyphicon-triangle-right'></span>";
+    queryHTML += "                 <span class='collapse-title'>Configuração do Objecto</span>";
+    queryHTML += "               </div>";
+    queryHTML += "               <div class='home-collapse-body hidden'>";
+
+
+    queryHTML += "                 <div class='row'>";
+    queryHTML += "                   <div class='col-md-6 pull-left'>";
+    queryHTML += "                   <label><strong>Tipo de Objeto:</strong></label>";
+    queryHTML += "                   <select v-model='containerItemObject.tipo' class='form-control input-sm' @change='updateObjectType(containerItemObject)'>";
+    queryHTML += "                     <option value=''>-- Selecione o tipo --</option>";
+    queryHTML += "                     <option v-for='tipoObj in getTiposObjectoConfig()' :key='tipoObj.tipo' :value='tipoObj.tipo'>{{ tipoObj.descricao }}</option>";
+    queryHTML += "                   </select>";
+    queryHTML += "                 </div>";
+    queryHTML += "                 </div>";
+    queryHTML += "               </div>";
+
+
+    queryHTML += "                 <div class='row'>";
+    queryHTML += "                        <div class='col-md-6'>";
+    queryHTML += "                              <div id='objectEditorContainer' ></div>                                         "
+    queryHTML += "                        </div>";
+    queryHTML += "                        <div v-if='containerItemObject.tipo' class='col-md-6'>";
+    queryHTML += "                          <div class='container-item-object-preview' style='margin-top: 1em;'>";
+    queryHTML += "                            <h4>Previsão do objecto</h4>";
+
+    queryHTML += "                          </div>";
+    queryHTML += "                        </div>";
+
+
+    queryHTML += "                    </div>              "
+
+    queryHTML += "               </div>"; // Fim do home-collapse-body para Configuração do Objecto
+    queryHTML += "             </div>"; // Fim do home-collapse para Configuração do Objecto
+
+    return queryHTML;
+}
+
+// ...existing code...
+
+
+JSONEditor.defaults.languages.pt = {
+    /**
+     * When a property is not set
+     */
+    error_notset: "Propriedade deve ser definida",
+    /**
+     * When a string is too short
+     */
+    error_minLength: "Valor deve ter pelo menos {{0}} caracteres",
+    /**
+     * When a string is too long
+     */
+    error_maxLength: "Valor deve ter no máximo {{0}} caracteres",
+    /**
+     * When a number is too small
+     */
+    error_minimum: "Valor deve ser maior ou igual a {{0}}",
+    /**
+     * When a number is too big
+     */
+    error_maximum: "Valor deve ser menor ou igual a {{0}}",
+    /**
+     * When a property is not one of the enumerated values
+     */
+    error_enum: "Valor deve ser um dos seguintes: {{0}}",
+    /**
+     * When a property is not of type X
+     */
+    error_type: "Valor deve ser do tipo {{0}}",
+    /**
+     * When required property is missing
+     */
+    error_required: "Este campo é obrigatório",
+    /**
+     * Text on Delete All buttons
+     */
+    button_delete_all: "Excluir Todos",
+    /**
+     * Title on Delete All buttons
+     */
+    button_delete_all_title: "Excluir Todos",
+    /**
+     * Text on Delete Last buttons
+     */
+    button_delete_last: "Excluir Último {{0}}",
+    /**
+     * Title on Delete Last buttons
+     */
+    button_delete_last_title: "Excluir Último {{0}}",
+    /**
+     * Title on Add Row buttons
+     */
+    button_add_row_title: "Adicionar {{0}}",
+    /**
+     * Title on Move Down buttons
+     */
+    button_move_down_title: "Mover para baixo",
+    /**
+     * Title on Move Up buttons
+     */
+    button_move_up_title: "Mover para cima",
+    /**
+     * Title on Delete Row buttons
+     */
+    button_delete_row_title: "Excluir {{0}}",
+    /**
+     * Title on Delete Row buttons, short version (no parameter with the name of the removed item)
+     */
+    button_delete_row_title_short: "Excluir",
+    /**
+     * Title on Copy buttons
+     */
+    button_copy_row_title: "Copiar {{0}}",
+    /**
+     * Title on Copy buttons, short version (no parameter with the name of the copied item)
+     */
+    button_copy_row_title_short: "Copiar",
+    /**
+     * Title on Collapse buttons
+     */
+    button_collapse: "Recolher",
+    /**
+     * Title on Expand buttons
+     */
+    button_expand: "Expandir"
+};
+
+// Definir português como idioma padrão
+JSONEditor.defaults.language = 'pt';
+// Initialize the editor
+
 
 
 
@@ -985,6 +1334,56 @@ function LocalMdashQuery(container, data) {
 
 
 
+function setMutationObserverTableSqlResult() {
+    return
+    var targetNode = document.getElementById("master-content");
+    var config = { attributes: false, childList: true, subtree: true };
+
+    var callback = function (mutationList, observer) {
+
+
+        if ($("#resultTableSql").length > 0) {
+
+            $("#result  zTableSql").DataTable({
+                "language": {
+                    "sProcessing": "Processando...",
+                    "sLengthMenu": "Mostrar _MENU_ registros",
+                    "sZeroRecords": "Sem resultados",
+                    "sEmptyTable": "Sem registos",
+                    "sInfo": "Mostrando registros de _START_ a _END_ de um total de _TOTAL_ registros",
+                    "sInfoEmpty": "Mostrando registros de 0 a 0 de um total de 0 registros",
+                    "sInfoFiltered": "(filtrado de um total de _MAX_ registros)",
+                    "sInfoPostFix": "",
+                    "sSearch": "Pesquisar:",
+                    "sUrl": "",
+                    "sInfoThousands": ",",
+                    "sLoadingRecords": "Carregando..",
+                    "oPaginate": {
+                        "sFirst": "Primeiro",
+                        "sLast": "Último",
+                        "sNext": "Seguinte",
+                        "sPrevious": "Anterior"
+                    },
+                    "oAria": {
+                        "sSortAscending": ": Activar para ordenar a coluna de maneira ascendente",
+                        "sSortDescending": ": Activar para ordenar a coluna de maneira descendente"
+                    }
+                }
+            })
+
+
+
+        }
+
+    };
+
+    var observer = new MutationObserver(callback);
+    observer.observe(targetNode, config);
+
+
+
+}
+
 function setMutationObserverSelectQuery() {
 
     var targetNode = document.getElementById("master-content");
@@ -1024,7 +1423,7 @@ function registerListenersMdash() {
 
 
     // setMutationObserverSelectQuery();
-
+    setMutationObserverTableSqlResult();
     $.getScript("https://cdn.jsdelivr.net/npm/alasql ", function () { });
 
 
@@ -1075,7 +1474,7 @@ function registerListenersMdash() {
 
         // Header do collapse
         containersObjectsListDiv += "    <div class='home-collapse-header mainformcptitulo'>";
-        containersObjectsListDiv += "      <span class='glyphicon glyphicon-triangle-right'>{{ containerItemObject.tipo || 'Objeto' }}  {{ containerItemObject.ordem }}</span>";
+        containersObjectsListDiv += "      <span class='glyphicon glyphicon-triangle-right'>{{ containerItemObject.tipo || 'Objeto' }} {{ containerItemObject.ordem }}</span>";
         containersObjectsListDiv += "          <button v-on:click='removeContainerObject(containerItemObject)' type='button' class='btn btn-xs btn-danger remover-container-object-btn'";
         containersObjectsListDiv += "                  :data-object-id='containerItemObject.mdashcontaineritemobjectstamp'";
         containersObjectsListDiv += "                  data-tooltip='true' data-original-title='Remover objeto'>";
@@ -1093,14 +1492,10 @@ function registerListenersMdash() {
         containersObjectsListDiv += "        <div :id='\"tratamento-dadoscontainer-\" + containerItemObject.mdashcontaineritemobjectstamp' class='col-md-12 tratamento-dadoscontainer-item-object'>";
 
         containersObjectsListDiv += "          <div class='row'>";
-        containersObjectsListDiv += "            <div class='col-md-6'>";
+        containersObjectsListDiv += "            <div class='col-md-12'>";
         containersObjectsListDiv += generateReactiveQueryHTML();
         containersObjectsListDiv += "            </div>";
-        containersObjectsListDiv += "            <div class='col-md-6'>";
-        containersObjectsListDiv += "              <div class='container-item-object-preview' style='margin-top: 1em;'>";
-        containersObjectsListDiv += "                <h4>Preview do Objeto</h4>";
-        containersObjectsListDiv += "              </div>";
-        containersObjectsListDiv += "            </div>";
+
         containersObjectsListDiv += "          </div>"; // row
         // Fechamento das divs
         containersObjectsListDiv += "      </div>"; // container-item-object-body
@@ -1311,36 +1706,112 @@ function registerListenersMdash() {
         PetiteVue.createApp({
             containerItem: containerItem,
             filterValues: filterValues,
+            GMDashContainerItemObjects: GMDashContainerItemObjects,
+            filteredContainerItemObjects: filteredContainerItemObjects,
+            updateObjectType: function (containerItemObject) {
+                var self = this;
+
+                var tipoObjecto = getTiposObjectoConfig().find(function (tipo) {
+                    return tipo.tipo === containerItemObject.tipo;
+                });
+
+                if (tipoObjecto) {
+
+                    var schemaEditor = tipoObjecto.createDynamicSchema(containerItemObject.queryConfig.lastResult)
+
+                    containerItemObject.objectoConfig = tipoObjecto
+
+                    var editor = new JSONEditor(document.getElementById('objectEditorContainer'), {
+                        schema: schemaEditor,
+                        theme: 'bootstrap4',
+                        iconlib: 'fontawesome4',
+                        disable_edit_json: true,      // Remove botão "JSON"
+                        disable_properties: true,     // Remove botão "Properties"
+                        no_additional_properties: true, // Evita propriedades adicionais
+                        disable_array_delete_last_row: true,  // Remove "Excluir último"
+                        disable_array_delete_all_rows: true,  // Remove "Excluir todos"
+                        disable_array_reorder: true           // Remove "Reordenar"
+                    });
+
+                    editor.on('ready', function () {
+
+
+                        $(".json-editor-btn-collapse").css({
+                            "background": "transparent",
+                            "color": getColorByType("primary").background
+                        });
+
+                        $(".tratamento-dadoscontainer-item-object input").addClass("form-control input-sm");
+                        $(".tratamento-dadoscontainer-item-object select").addClass("form-control input-sm");
+                        $(".tratamento-dadoscontainer-item-object").css({ color: "#626e78" })
+
+                        $(".json-editor-btntype-add").css({
+                            "margin-top": "0.9em"
+                        });
+                        self.containerItem.renderLayout(".container-item-object-preview", true);
+
+                    });
+
+                    editor.on('change', function () {
+                        var currentValue = editor.getValue();
+                        self.containerItem.renderLayout(".container-item-object-preview", true);
+                        containerItemObject.config = currentValue;
+                        self.containerItem.refreshContainerItem(".container-item-object-preview ");
+                    });
+
+
+
+
+
+
+                }
+
+            },
+            changeExpressaoDbListagemAndHandleFilters: function (id, filtro) {
+                var self = this;
+                var value = $("#" + id).text();
+
+                var filterCodes = extractFiltersFromExpression(value);
+                var matchedFilters = [];
+                filterCodes.forEach(function (filterCode) {
+                    var filter = GMDashFilters.find(function (f) {
+                        return f.codigo === filterCode;
+                    });
+
+                    if (filter) {
+                        self.filterValues[filter.codigo] = ""
+                    }
+                });
+
+                var editor = ace.edit(id);
+
+
+                self.containerItem.expressaodblistagem = editor.getValue();
+
+
+
+            },
             getContainerRecords: function () {
+
                 if (this.containerItem.records && this.containerItem.records.length > 0) {
                     return this.containerItem.records;
                 }
-                return [
+                var defaultRecords = [
                     { nome: "Ana", genero: "F", salario: 1200, departamento: "RH" },
                     { nome: "João", genero: "M", salario: 1500, departamento: "TI" },
                     { nome: "Carlos", genero: "M", salario: 1000, departamento: "RH" },
                     { nome: "Maria", genero: "F", salario: 1300, departamento: "Marketing" },
                     { nome: "Pedro", genero: "M", salario: 1600, departamento: "TI" }
                 ];
-            },
-            GMDashContainerItemObjects: GMDashContainerItemObjects,
-            filteredContainerItemObjects: filteredContainerItemObjects,
-            handleTemplateLayoutChange: function (templateCode) {
-                var self = this;
-                var listaTemplates = getTemplateLayoutOptions();
-                var selectedTemplate = listaTemplates.find(function (template) {
-                    return template.codigo === templateCode;
-                });
 
-                if (selectedTemplate) {
-                    // Atualizar o preview do layout
-                    $("#layoutdisplay").empty();
-                    $("#layoutdisplay").append(selectedTemplate.generateCard({
-                        title: self.containerItem.titulo,
-                        id: self.containerItem.mdashcontaineritemstamp,
-                        bodyContent: "Conteúdo do Card " + self.containerItem.titulo
-                    }));
-                }
+                this.containerItem.records = defaultRecords;
+
+                return defaultRecords;
+            },
+
+            handleTemplateLayoutChange: function (templateCode) {
+
+                this.containerItem.renderLayout("#layoutdisplay", true)
             },
             executarExpressaoDbListagem: function () {
                 var self = this;
@@ -1449,20 +1920,28 @@ function registerListenersMdash() {
                     return;
                 }
 
+
+
                 try {
+
+
+
+                    if ($.fn.DataTable.isDataTable("#resultTableSql")) {
+                        $("#resultTableSql").DataTable().destroy();
+                        $("#resultTableSql").dataTable().fnDestroy();
+                    }
+
                     var query = this.buildSQLQuery(currentObject.queryConfig, records);
+
+                    //console.log("query.params", query.params)
                     var result = alasql(query.sql, query.params);
 
                     // Atualizar a configuração com o resultado
                     currentObject.queryConfig.generatedSQL = query.sql;
                     currentObject.queryConfig.lastResult = result;
 
-
-                    console.log("Query executada com sucesso:", query.sql);
-                    console.log("Resultado:", result);
                     containerItemObject.queryconfigjson = JSON.stringify(currentObject.queryConfig);
 
-                    console.log(" containerItemObject.queryconfigjson ", containerItemObject.queryconfigjson);
 
                 } catch (error) {
                     console.error("Erro ao executar query:", error);
@@ -1587,7 +2066,6 @@ function registerListenersMdash() {
                         matchedFilters.push(filter);
                     }
                 });
-
                 return matchedFilters;
             },
 
@@ -1597,6 +2075,10 @@ function registerListenersMdash() {
                     return obj.mdashcontaineritemobjectstamp !== containerItemObject.mdashcontaineritemobjectstamp;
                 });
                 GMDashContainerItemObjects = this.GMDashContainerItemObjects;
+
+                this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
+                    return obj.mdashcontaineritemstamp === containerItemObject.mdashcontaineritemstamp;
+                });
             },
 
             addObjectoContainerItem: function () {
@@ -1624,30 +2106,18 @@ function registerListenersMdash() {
                 this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
                     return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
                 });
-            },
+            }
 
-            // ... resto dos métodos existentes
         }).mount('#maincontent');
 
-        // Chama a função imediatamente após montar para mostrar o layout inicial
-        setTimeout(function () {
-            // Verifica se já existe um template selecionado e mostra o preview
-            if (containerItem.templatelayout) {
-                var listaTemplates = getTemplateLayoutOptions();
-                var selectedTemplate = listaTemplates.find(function (template) {
-                    return template.codigo === containerItem.templatelayout;
-                });
 
-                if (selectedTemplate) {
-                    $("#layoutdisplay").empty();
-                    $("#layoutdisplay").append(selectedTemplate.generateCard({
-                        title: containerItem.titulo,
-                        id: containerItem.mdashcontaineritemstamp,
-                        bodyContent: "Conteúdo do Card " + containerItem.titulo
-                    }));
-                }
+        setTimeout(function () {
+
+            if (containerItem.templatelayout) {
+
+                containerItem.renderLayout("#layoutdisplay", true);
             }
-        }, 100); // Pequeno delay para garantir que o DOM foi renderizado
+        }, 100);
 
 
         handleCodeEditor();

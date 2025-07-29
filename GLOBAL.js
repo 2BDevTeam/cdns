@@ -252,6 +252,25 @@ $(document).on('click', '.home-collapse-header', function () {
     $(this).next("div").toggleClass("hidden");
 
 });
+
+function getColorByType(type) {
+    // Cria botão temporário dinamicamente
+    var tempBtn = $('<button class="btn btn-' + type + '" style="display:none"></button>').appendTo('body');
+
+    // Obtém cores
+    var corFundo = tempBtn.css('background-color');
+    var corTexto = tempBtn.css('color');
+
+    // Remove o botão temporário
+    tempBtn.remove();
+
+    // Retorna objeto com as cores
+    return {
+        background: corFundo,
+        text: corTexto
+    };
+}
+
 function generateAccordionHtml(containerId, accordionData) {
 
     var accordionHtml = '<div class="accordion" id="' + containerId + '">';
