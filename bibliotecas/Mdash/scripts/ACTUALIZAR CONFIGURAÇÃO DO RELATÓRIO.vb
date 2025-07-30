@@ -210,6 +210,8 @@ Try
    Dim result as new Object
    Dim relatoriostamp= MapToDefaultValue(Newtonsoft.Json.Linq.JArray.Parse(parametro)(0)("relatoriostamp"))
    Dim config As Newtonsoft.Json.Linq.JArray = Newtonsoft.Json.Linq.JArray.Parse(parametro)(0)("config")
+   Dim recordsToDelete As Newtonsoft.Json.Linq.JArray = Newtonsoft.Json.Linq.JArray.Parse(parametro)(0)("recordsToDelete")
+
 
  Using connection as SqlClient.SqlConnection = SqlHelp.GetNewConnection()
    
@@ -239,15 +241,31 @@ Try
 
         Next
 
-        'Dim sqlParametersDlt as new List(Of System.Data.SqlClient.SqlParameter)
-        'Using command As New System.Data.SqlClient.SqlCommand(deleteConfiguracaQuery, connection, transaction)
-        '    If sqlParametersDlt IsNot Nothing Then
-        '        For Each sqlParameter As System.Data.SqlClient.SqlParameter In sqlParametersDlt
-        '            command.Parameters.Add(sqlParameter)
-        '        Next
-        '    End If
-        '    command.ExecuteNonQuery()
-        'End Using
+       For Each recordToDelete As Newtonsoft.Json.Linq.JObject In recordsToDelete
+            Dim table As String = MapToDefaultValue(recordToDelete("table"))
+            Dim tableKey As String = MapToDefaultValue(recordToDelete("tableKey"))
+            Dim stamp As String = MapToDefaultValue(recordToDelete("stamp"))
+
+            deleteConfiguracaQuery += $" DELETE FROM {table} WHERE {tableKey} = '{stamp}'; " & vbCrLf
+
+            ' Adicionar à lista de registros a serem excluídos
+           
+        Next
+
+       if Not String.IsNullOrEmpty(deleteConfiguracaQuery) Then
+
+             Dim sqlParametersDlt as new List(Of System.Data.SqlClient.SqlParameter)
+             Using command As New System.Data.SqlClient.SqlCommand(deleteConfiguracaQuery, connection, transaction)
+                 If sqlParametersDlt IsNot Nothing Then
+                     For Each sqlParameter As System.Data.SqlClient.SqlParameter In sqlParametersDlt
+                         command.Parameters.Add(sqlParameter)
+                     Next
+                 End If
+                 command.ExecuteNonQuery()
+             End Using
+
+        End If
+      
 
         Dim sqlParametersDynamic as new List(Of System.Data.SqlClient.SqlParameter)
 

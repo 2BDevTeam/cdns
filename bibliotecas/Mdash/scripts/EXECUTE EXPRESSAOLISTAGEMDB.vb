@@ -68,35 +68,44 @@ Try
    Dim regexPattern As String = "\{(.*?)\}" ' Padrão para capturar texto dentro de {}
    Dim matches As MatchCollection = Regex.Matches(expressaodblistagem, regexPattern)
    queryComFiltros  = expressaodblistagem
-   
-   Dim filtros As Newtonsoft.Json.Linq.JObject = requestJObject("filters").ToObject(Of Newtonsoft.Json.Linq.JObject)()
-   
-    For Each match As Match In matches
-        Dim key As String = match.Groups(1).Value
-        
-        If filtros.ContainsKey(key) Then
-            Dim valorFiltro As Newtonsoft.Json.Linq.JToken = filtros(key)
-    
-            ' Verifica se o valor é booleano e converte para 1 ou 0
-            Dim valorConvertido As String
-            If valorFiltro.Type = Newtonsoft.Json.Linq.JTokenType.Boolean Then
-                valorConvertido = If(valorFiltro.ToObject(Of Boolean)(), "1", "0")
-            Else
-                valorConvertido = valorFiltro.ToString()
-            End If
-    
-            ' Substitui o valor no queryComFiltros
-            queryComFiltros = queryComFiltros.Replace("{" & key & "}", valorConvertido)
-        Else
-            Throw New Exception($"Filtro '{key}' não encontrado nos filtros fornecidos")
-        End If
-    Next
 
-    If Not querySanitized(queryComFiltros) Then
-        Throw New Exception("A consulta contém palavras-chave de escrita proibidas.")
-    End If
+   Dim queryResult As DataTable
+   
+    if not String.IsNullOrEmpty(queryComFiltros) and not  String.IsNullOrWhiteSpace(expressaodblistagem)  Then
     
-    Dim queryResult As DataTable = ExecuteQuery(queryComFiltros, Nothing)
+         Dim filtros As Newtonsoft.Json.Linq.JObject = requestJObject("filters").ToObject(Of Newtonsoft.Json.Linq.JObject)()
+   
+         For Each match As Match In matches
+             Dim key As String = match.Groups(1).Value
+             
+             If filtros.ContainsKey(key) Then
+                 Dim valorFiltro As Newtonsoft.Json.Linq.JToken = filtros(key)
+         
+                 ' Verifica se o valor é booleano e converte para 1 ou 0
+                 Dim valorConvertido As String
+                 If valorFiltro.Type = Newtonsoft.Json.Linq.JTokenType.Boolean Then
+                     valorConvertido = If(valorFiltro.ToObject(Of Boolean)(), "1", "0")
+                 Else
+                     valorConvertido = valorFiltro.ToString()
+                 End If
+         
+                 ' Substitui o valor no queryComFiltros
+                 queryComFiltros = queryComFiltros.Replace("{" & key & "}", valorConvertido)
+             Else
+                 Throw New Exception($"Filtro '{key}' não encontrado nos filtros fornecidos")
+             End If
+         Next
+     
+         If Not querySanitized(queryComFiltros) Then
+             Throw New Exception("A consulta contém palavras-chave de escrita proibidas.")
+         End If
+     
+         queryResult = ExecuteQuery(queryComFiltros, Nothing)
+
+    End If
+
+
+  
 
     Dim responseDTO = New With {
         .cod = "0000",

@@ -16,7 +16,7 @@ function generateDashCardSnapshot(cardData) {
     var dashCard = new MDashCard(cardData);
     var cardHTML = "";
 
-    cardHTML += '<div id="' + (dashCard.id || 'snapshot-' + generateUUID()) + '" class="m-dash-item snapshot ' + (dashCard.classes || '') + '" style="' + (dashCard.styles || '') + '">';
+    cardHTML += '<div id="' + (dashCard.id || 'snapshot-' + generateUUID()) + '" class="m-dash-item snapshot ' + (dashCard.classes || '') + '" style="height: 100%!important;' + (dashCard.styles || '') + '">';
     cardHTML += '  <div class="stats-card-value-container">';
     cardHTML += '    <span class="stats-card-label">' + (dashCard.title || "") + '</span>';
     cardHTML += '    <div class="stats-card-body">' + (dashCard.bodyContent || "") + '</div>';
@@ -30,7 +30,7 @@ function generateDashCardStandard(cardData) {
     var dashCard = new MDashCard(cardData);
     var cardHTML = "";
 
-    cardHTML += '<div id="' + dashCard.id + '" class="m-dash-item ' + (dashCard.classes || '') + '" style="' + (dashCard.styles || '') + '">';
+    cardHTML += '<div id="' + dashCard.id + '" class="m-dash-item ' + (dashCard.classes || '') + '" style="height: 100%!important;' + (dashCard.styles || '') + '">';
     cardHTML += '  <h1 class="m-dash-item-title">' + (dashCard.title || "Gráfico") + '</h1>';
 
     cardHTML += "<div class='m-dash-standard-card-body' >" + (dashCard.bodyContent || "") + "</div>";
@@ -178,7 +178,7 @@ function renderObjectGrafico(dados) {
 
     var chartId = 'm-dash-grafico' + dados.itemObject.mdashcontaineritemobjectstamp;
     $("#" + chartId).remove(); // Remove any existing chart with the same ID
-    var chartDomDiv = "<div style='width: " + (dados.config.chartContainer.width + "px" || "600px") + "; height: " + (dados.config.chartContainer.height + "px" || "400px") + ";' id='" + chartId + "' class='m-dash-grafico'></div>";
+    var chartDomDiv = "<div style='width: " + ("100" + "%" || "600px") + "; height: " + (dados.config.chartContainer.height + "px" || "400px") + ";' id='" + chartId + "' class='m-dash-grafico'></div>";
 
     console.log("dados.containerSelector", dados.containerSelector)
     $(dados.containerSelector).append(chartDomDiv);
@@ -550,7 +550,7 @@ function updatePie(containerSelector, itemObject, config, data) {
 
     // Preparar container do gráfico
     var chartContainer = '<div id="' + chartId + '" style="width: ' +
-        (config.dimensions.width || 400) + 'px; height: ' +
+        (100) + '%; height: ' +
         (config.dimensions.height || 400) + 'px;"></div>';
 
     $(containerSelector).html(chartContainer);
@@ -705,12 +705,28 @@ function getTemplateLayoutOptions() {
             codigo: "snapshot_layout_v1",
             tipo: "snapshot",
             generateCard: generateDashCardInfo,
+            UIData: {
+                tipo: "primary"
+            },
+            containerSelectorToRender: ".m-dash-card-body-content"
+        },
+        {
+            descricao: "Snapshot Layout v1 Warning",
+            codigo: "snapshot_layout_v1_warning",
+            tipo: "snapshot",
+            UIData: {
+                tipo: "warning"
+            },
+            generateCard: generateDashCardInfo,
             containerSelectorToRender: ".m-dash-card-body-content"
         },
         {
             descricao: "Snapshot layout v2",
             codigo: "snapshot_layout_v2",
             tipo: "snapshot",
+            UIData: {
+                tipo: "primary"
+            },
             generateCard: generateDashCardSnapshot,
             containerSelectorToRender: ".stats-card-body"
         },
@@ -718,6 +734,9 @@ function getTemplateLayoutOptions() {
             descricao: "Card standard",
             codigo: "card_standard",
             tipo: "card",
+            UIData: {
+                tipo: "primary"
+            },
             generateCard: generateDashCardStandard,
             containerSelectorToRender: ".m-dash-standard-card-body"
         },
@@ -725,6 +744,9 @@ function getTemplateLayoutOptions() {
             descricao: "Card header destacado",
             codigo: "card_header_highlighted",
             tipo: "card",
+            UIData: {
+                tipo: "primary"
+            },
             generateCard: generateDashCardHTML,
             containerSelectorToRender: ".dashcard-body"
         },
@@ -736,7 +758,7 @@ function getTemplateLayoutOptions() {
 function generateDashCardHTML(cardData) {
 
     var dashCard = new MDashCard(cardData);
-    var cardHTML = '<div id="' + (dashCard.id || '') + '" class="dashcard">';
+    var cardHTML = '<div style="height: 100%!important;" id="' + (dashCard.id || '') + '" class="dashcard">';
     // Header
     cardHTML += '<div class="dashcard-header dashcard-header-' + (dashCard.type || "primary") + '">';
     cardHTML += '<span class="dashcard-title">' + (dashCard.title || "") + '</span>';
@@ -756,8 +778,8 @@ function generateDashCardInfo(cardData) {
 
     var cardHTML = "";
 
-    cardHTML += '<div id="mdash' + dashCard.id + '" class="c-dashboardInfo ' + dashCard.classes + '" style="' + dashCard.styles + '">';
-    cardHTML += '  <div class="wrap c-dashboardInfo_' + dashCard.type + '">';
+    cardHTML += '<div id="mdash' + dashCard.id + '" class="c-dashboardInfo ' + dashCard.classes + '" style="height: 100%!important;' + dashCard.styles + '">';
+    cardHTML += '  <div class="wrap c-dashboardInfo_' + dashCard.tipo + '">';
     cardHTML += '    <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">';
     cardHTML += dashCard.title;
     if (dashCard.icon) {
@@ -792,7 +814,7 @@ function MDashCard(data) {
 
     this.title = data.title || "";
     this.id = data.id || ""
-    this.type = data.type || "primary";
+    this.tipo = data.tipo || "primary";
     this.bodyContent = data.bodyContent || "";
     this.icon = data.icon || "";
     this.customData = data.customData || {};
@@ -808,7 +830,7 @@ MDashCard.prototype.generateDashCardInfo = function () {
     var cardHTML = "";
 
     cardHTML += '<div id="mdash' + this.id + '" class="c-dashboardInfo ' + this.classes + '" style="' + this.styles + '">';
-    cardHTML += '  <div class="wrap c-dashboardInfo_' + this.type + '">';
+    cardHTML += '  <div class="wrap c-dashboardInfo_' + this.tipo + '">';
     cardHTML += '    <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">';
     cardHTML += this.title;
     if (this.icon) {

@@ -52,8 +52,6 @@ End Function
     return true
     
 End Function
-
-
 Dim  queryComFiltros as String=""
 Try
     Dim parametro As String = System.Web.HttpContext.Current.Request.Form("__EVENTARGUMENT")
@@ -80,10 +78,15 @@ Try
         Throw New Exception("Dados do item do container não encontrados")
     End If
 
+    Dim queryResult As New DataTable()
+
     Dim expressaodblistagem As String = queryResultContainerItem.Rows(0)("expressaodblistagem").ToString()
+     queryComFiltros  = expressaodblistagem
+
+ if not String.IsNullOrEmpty(queryComFiltros)   Then
+
     Dim regexPattern As String = "\{(.*?)\}" ' Padrão para capturar texto dentro de {}
     Dim matches As MatchCollection = Regex.Matches(expressaodblistagem, regexPattern)
-     queryComFiltros  = expressaodblistagem
     Dim filtros As Newtonsoft.Json.Linq.JObject = requestJObject("filters").ToObject(Of Newtonsoft.Json.Linq.JObject)()
     For Each match As Match In matches
         Dim key As String = match.Groups(1).Value
@@ -110,7 +113,17 @@ Try
         Throw New Exception("A consulta contém palavras-chave de escrita proibidas.")
     End If
     
-    Dim queryResult As DataTable = ExecuteQuery(queryComFiltros, Nothing)
+
+   
+
+   End If
+
+   if not String.IsNullOrEmpty(queryComFiltros)   Then
+  
+        queryResult  = ExecuteQuery(queryComFiltros, Nothing)
+
+   End If
+
 
     Dim responseDTO = New With {
         .cod = "0000",

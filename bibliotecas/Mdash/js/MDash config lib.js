@@ -14,6 +14,8 @@ GMDashContainerItemObjects = [];
 var GMDashFilters = [new MdashFilter({})];
 GMDashFilters = [];
 
+var GMdashDeleteRecords = [];
+
 var GMDashStamp = "";
 
 
@@ -173,9 +175,11 @@ MdashContainerItem.prototype.renderLayout = function (container, cleanContainer)
         if (cleanContainer) {
             $(container).empty();
         }
+
         $(container).append(selectedTemplate.generateCard({
             title: self.titulo,
             id: self.mdashcontaineritemstamp,
+            tipo: selectedTemplate.UIData.tipo || "primary",
             bodyContent: "Sem conteúdo",
         }));
 
@@ -270,7 +274,7 @@ function actualizarCOnfiguracaoMDashboard() {
         url: "../programs/gensel.aspx?cscript=actualizaconfiguracaomrelatorio",
 
         data: {
-            '__EVENTARGUMENT': JSON.stringify([{ relatoriostamp: GMDashStamp, config: configData }]),
+            '__EVENTARGUMENT': JSON.stringify([{ relatoriostamp: GMDashStamp, config: configData, recordsToDelete: GMdashDeleteRecords }]),
         },
         success: function (response) {
 
@@ -620,6 +624,7 @@ function MdashContainerItemObject(data) {
 
 
 MdashContainerItemObject.prototype.renderObjectByContainerItem = function (containerSelector, containerItem) {
+
     var self = this;
 
     if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
@@ -1449,6 +1454,27 @@ function registerListenersMdash() {
     $.getScript("https://cdn.jsdelivr.net/npm/alasql ", function () { });
 
 
+    $(document).off("click", ".remover-item-filter-btn").on("click", ".remover-item-filter-btn", function (e) {
+
+
+        var filterstamp = $(this).closest("tr").attr("id");
+        $(this).closest("tr").remove();
+
+        GMdashDeleteRecords.push({
+            table: "MdashFilter",
+            stamp: filterstamp,
+            tableKey: "mdashfilterstamp"
+        })
+
+        GMDashFilters = GMDashFilters.filter(function (item) {
+            return item.mdashfilterstamp !== filterstamp;
+        });
+
+
+
+
+    })
+
     $(document).off("click", ".add-container-item-object-btn").on("click", ".add-container-item-object-btn", function (e) {
 
         var containerItemId = $(this).attr("containeritemId");
@@ -2181,6 +2207,13 @@ function registerListenersMdash() {
                 this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
                     return obj.mdashcontaineritemstamp === containerItemObject.mdashcontaineritemstamp;
                 });
+
+                GMdashDeleteRecords.push({
+                    table: "MdashContainerItemObject",
+                    stamp: containerItemObject.mdashcontaineritemobjectstamp,
+                    tableKey: "mdashcontaineritemobjectstamp"
+                });
+
             },
 
             addObjectoContainerItem: function () {
@@ -2331,6 +2364,12 @@ function registerListenersMdash() {
             return item.mdashcontaineritemstamp !== itemId;
         });
         $(this).closest(".m-dash-container-item").remove();
+
+        GMdashDeleteRecords.push({
+            table: "MdashContainerItem",
+            stamp: itemId,
+            tableKey: "mdashcontaineritemstamp"
+        });
     })
 
     $(document).off("click", ".open-config-item-container").on("click", ".open-config-item-container", function (e) {
@@ -2380,6 +2419,12 @@ function registerListenersMdash() {
         });
 
         $(this).closest(".m-dash-container").remove();
+
+        GMdashDeleteRecords.push({
+            table: "MdashContainer",
+            stamp: containerId,
+            tableKey: "mdashcontainerstamp"
+        });
 
         //Remove items
 
@@ -2485,13 +2530,13 @@ function addFilterMDashConfig(filter, mdashFilterUIObjectFormConfigResult) {
     actionsContainer += openConfigItemFilterHtml;
     actionsContainer += "</div>"
 
-    filterHtml += "<div class='col-md-12 m-dash-filter-item' componente='Filtro' idValue='" + filter.mdashfilterstamp + "' localsource='" + mdashFilterUIObjectFormConfigResult.localsource + "' idfield='" + mdashFilterUIObjectFormConfigResult.idField + "' id='" + filter.mdashfilterstamp + "'  style='margin-bottom:0.5em'>";
+    filterHtml += "<div class='col-md-12 m-dash-filter-item' componente='Filtro' idValue='" + filter.mdashfilterstamp + "' localsource='" + mdashFilterUIObjectFormConfigResult.localsource + "' idfield='" + mdashFilterUIObjectFormConfigResult.idField + "'   style='margin-bottom:0.5em'>";
     filterHtml += actionsContainer;
     filterHtml += "</div>";
 
     filterHtml += "</div>";
 
-    var newTableRowFilter = "<tr>";
+    var newTableRowFilter = "<tr id='" + filter.mdashfilterstamp + "'>";
     newTableRowFilter += "<td>" + filterHtml + "</td>";
     newTableRowFilter += "</tr>";
 

@@ -9,7 +9,58 @@
 
 <script src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 
+
 <style>
+    /* mdash-skeleton base */
+    .mdash-skeleton {
+        background: #eee;
+        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Shimmer animation */
+    .mdash-skeleton::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -150px;
+        height: 100%;
+        width: 150px;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer {
+        0% {
+            left: -150px;
+        }
+
+        100% {
+            left: 100%;
+        }
+    }
+
+    /* mdash-skeleton shapes */
+    .mdash-skeleton-image {
+        width: 100%;
+        height: 150px;
+        margin-bottom: 20px;
+    }
+
+    .mdash-skeleton-title {
+        width: 70%;
+        height: 20px;
+        margin: 0 auto 15px auto;
+    }
+
+    .mdash-skeleton-text {
+        width: 90%;
+        height: 15px;
+        margin: 8px auto;
+    }
+
+
     .snapshot:hover,
     .celula:hover {
         cursor: pointer;
@@ -35,12 +86,14 @@
 
 
     .m-dash-header {
+        column-gap: 0.4em;
         display: flex;
         margin-bottom: 30px;
         background: #FFF;
         padding: 30px;
         border-radius: 8px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+        align-items: center;
     }
 
     .m-dash-body {
@@ -181,6 +234,32 @@
         color: #626e78;
     }
 
+    .m-dash-render-area {
+        height: 100% !important;
+    }
+
+   /* .m-dash-container-item-row {
+
+        height: 360px;
+    }
+
+
+    @media screen and (min-width: 1280px) {
+        .m-dash-container-item-row {
+           height: 360px;
+        }
+    }
+
+    @media screen and (min-width: 1440px) {
+        .m-dash-container-item-row {
+           height: 360px;
+        }
+    }
+*/
+
+
+
+
     @media screen and (min-width: 768px) {
         .stats-card-container {
             grid-template-columns: 1fr 1fr;
@@ -224,17 +303,21 @@
 
         <div class="m-dash-header">
             <h1>{{ mdash.dashboardconfig.descricao }}</h1>
+            <button style="font-size: 12px;" v-if="mdash.dashboardconfig.temfiltro==false" @click="refreshDashboard()"
+                type='button' id='btn-refrescar-filtro'
+                class='btn btn-primary btn-sm glyphicon glyphicon-refresh filtro'>
+            </button>
         </div>
 
         <div class="m-dash-body">
 
-            <div v-if="mdash.filters.length >0" class="m-dash-filter">
+            <div v-if="mdash.dashboardconfig.temfiltro" class="m-dash-filter">
 
                 <div class="m-dash-filter-btn-group">
 
                     <div class="m-dash-btn-filter">
                         <p class="m-dash-item-text">Refrescar</p>
-                        <button type='button' id='btn-refrescar-filtro'
+                        <button @click="refreshDashboard()" type='button' id='btn-refrescar-filtro'
                             class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
                         </button>
                     </div>
@@ -292,13 +375,16 @@
 
                     <!-- Aqui usamos os grupos de rows -->
                     <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)"
-                        :key="'row-' + rowIndex" class="row" style="margin-bottom: 0.8em;">
+                        :key="'row-' + rowIndex" class="row m-dash-container-item-row gy-3" style="margin-bottom: 0.8em;">
 
-                        <div v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
-                            :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area', 
+                        <div style="height: 100%!important;" v-for="item in rowGroup.items"
+                            :key="item.mdashcontaineritemstamp" :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area','d-flex', 
                           `col-md-${item.tamanho}`, 
                           `col-sm-${item.tamanho}`, 
                           `col-lg-${item.tamanho}`]">
+
+
+
                         </div>
                     </div>
 
@@ -313,6 +399,7 @@
 </body>
 
 <script src="https://unpkg.com/petite-vue"></script>
+<script src="https://cdn.jsdelivr.net/npm/alasql"></script>
 <script>
 
     function buildAlert(alertClass, alertText) {
@@ -423,6 +510,10 @@
             return new MdashContainerItem(item);
         }) : [];
 
+        this.containerItemObjects = Array.isArray(data.containerItemObjects) ? data.containerItemObjects.map(function (itemObject) {
+            return new MdashContainerItemObject(itemObject);
+        }) : [];
+
         this.reactiveInstance = null;
 
 
@@ -469,8 +560,11 @@
             this.titulo = data.titulo || "";
             this.tipo = data.tipo || "";
             this.tamanho = data.tamanho || 4;
+            this.dadosTemplate = data.dadosTemplate || {};
+            this.skeletonId = data.skeletonId || ""
             this.ordem = data.ordem || 0;
             this.filters = data.filters || []
+            this.templatelayout = data.templatelayout || "";
             this.urlfetch = data.urlfetch || "";
             this.layoutcontaineritemdefault = data.layoutcontaineritemdefault || true;
             this.expressaolayoutcontaineritem = data.expressaolayoutcontaineritem || "";
@@ -478,6 +572,7 @@
             this.fontelocal = data.fontelocal || false;
             this.renderedContent = data.renderedContent || generateStandardCard({ titulo: "Sem conteúdo disponível", bodyContent: "" }) || "";
             this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
+            this.records = [];
         }
 
         MdashContainerItem.prototype.refreshContent = async function () {
@@ -485,22 +580,17 @@
                 var containerItem = this;
 
 
-                if (containerItem.filters.length == 0) {
-
-                    containerItem.cleanAndRender(generateDashCardHTML({ title: containerItem.titulo, bodyContent: "<h3 class='m-dash-item-text' >Sem conteúdo</h3>" }));
-                    return
-                }
-
                 if (!containerItem.urlfetch) {
 
                     containerItem.cleanAndRender(buildAlert("alert-danger", "URL para listagem  não definida"));
                     return;
                 }
 
+                containerItem.handleLayout();
                 var requestData = {
                     codigo: globalThis.dashboardconfig.codigo,
                     mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
-                    filters: globalThis.filterValues
+                    filters: globalThis.filterValues || {}
                 }
 
                 var response = await $.ajax({
@@ -523,10 +613,26 @@
 
                 var contentRecords = response.data || [];
 
-                containerItem.handleLayout();
-                
-                eval(containerItem.expressaoapresentacaodados);
+                containerItem.records = contentRecords;
 
+
+
+                var containerItemObjects = globalThis.containerItemObjects.filter(function (itemObject) {
+                    return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
+                });
+
+
+                containerItemObjects.forEach(function (itemObject) {
+                    itemObject.renderObjectByContainerItem("#" + containerItem.mdashcontaineritemstamp + " " + containerItem.dadosTemplate.containerSelectorToRender, containerItem);
+                });
+
+
+                if (containerItem.expressaoapresentacaodados) {
+
+                    eval(containerItem.expressaoapresentacaodados);
+                }
+
+                containerItem.hideSkeleton();
 
             }
             catch (error) {
@@ -540,15 +646,48 @@
         };
 
         MdashContainerItem.prototype.handleLayout = function (content) {
+
             var containerItem = this;
+
+            containerItem.skeletonId = "skeleton-" + containerItem.mdashcontaineritemstamp;
+
+            // Gerar skeleton HTML
+            var skeletonHTML = generateSkeleton({
+                id: containerItem.skeletonId
+            });
             if (containerItem.layoutcontaineritemdefault) {
+
+                var listaTemplates = getTemplateLayoutOptions();
+                var selectedTemplate = listaTemplates.find(function (template) {
+                    return template.codigo === containerItem.templatelayout;
+                });
+
+                if (selectedTemplate) {
+
+                    containerItem.dadosTemplate = selectedTemplate
+
+                    $("#" + this.mdashcontaineritemstamp).empty();
+
+                    $("#" + this.mdashcontaineritemstamp).append(selectedTemplate.generateCard({
+                        title: containerItem.titulo,
+                        id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp,
+                        tipo: selectedTemplate.UIData.tipo || "primary",
+                        bodyContent: skeletonHTML,
+                    }));
+
+                    return;
+                }
+
+
+
+
                 containerItem.cleanAndRender(generateDashCardHTML({ id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp, title: containerItem.titulo, bodyContent: "" }));
 
-            } else {
+                return;
+            }
 
-                if (containerItem.expressaolayoutcontaineritem) {
-                    eval(containerItem.expressaolayoutcontaineritem);
-                }
+            if (containerItem.expressaolayoutcontaineritem) {
+                eval(containerItem.expressaolayoutcontaineritem);
             }
 
         }
@@ -557,6 +696,13 @@
 
             $("#" + this.mdashcontaineritemstamp).append(content);
         }
+
+        MdashContainerItem.prototype.hideSkeleton = function () {
+
+            $("#" + this.skeletonId).hide()
+                ;
+        }
+
 
         MdashContainerItem.prototype.cleanAndRender = function (content) {
 
@@ -586,6 +732,124 @@
             $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").empty();
             $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").append(content);
         }
+
+        function MdashContainerItemObject(data) {
+            // Calcula ordem máxima se não for fornecida
+
+
+            this.mdashcontaineritemobjectstamp = data.mdashcontaineritemobjectstamp;
+            this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || "";
+            this.dashboardstamp = data.dashboardstamp || "";
+            this.tipo = data.tipo || "";
+            this.tamanho = data.tamanho || 0;
+            this.ordem = data.ordem || 0;
+            this.expressaoobjecto = data.expressaoobjecto || "";
+            this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+            this.localsource = data.localsource || "";
+
+
+            var config = {}
+
+            if (data.configjson) {
+                try {
+                    config = JSON.parse(data.configjson);
+                } catch (error) {
+                    console.error("Erro ao analisar configjson:", error);
+                }
+            }
+
+            this.config = config || {}
+            this.configjson = data.configjson || ""
+            this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
+
+
+            this.objectoConfig = data.objectoConfig || {};
+
+            if (this.tipo) {
+
+                var tiposObjecto = getTiposObjectoConfig();
+                var self = this;
+
+                var tipoObjecto = tiposObjecto.find(function (tipo) {
+                    return tipo.tipo === self.tipo;
+                });
+
+                if (tipoObjecto) {
+                    this.objectoConfig = tipoObjecto || {};
+                }
+
+            }
+
+
+
+            var queryConfig = data.queryConfig || {
+                selectFields: [],
+                filters: [],
+                groupBy: [],
+                orderBy: { field: "", direction: "ASC" },
+                limit: null,
+                generatedSQL: "",
+                lastResult: []
+            };
+
+            if (data.queryconfigjson) {
+
+                try {
+                    queryConfig = JSON.parse(data.queryconfigjson);
+                } catch (error) {
+
+                }
+
+            }
+
+            this.queryConfig = queryConfig || {
+                selectFields: [],
+                filters: [],
+                groupBy: [],
+                orderBy: { field: "", direction: "ASC" },
+                limit: null,
+                generatedSQL: "",
+                lastResult: []
+            };
+
+            var queryConfigVoid = {
+                selectFields: [],
+                filters: [],
+                groupBy: [],
+                orderBy: { field: "", direction: "ASC" },
+                limit: null,
+                generatedSQL: "",
+                lastResult: []
+            };
+            this.queryconfigjson = queryConfig ? JSON.stringify(queryConfig) : JSON.stringify(queryConfigVoid);
+        }
+
+
+
+        MdashContainerItemObject.prototype.renderObjectByContainerItem = function (containerSelector, containerItem) {
+
+            var self = this;
+
+            if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
+
+                var localQueryResult = alasql(self.queryConfig.generatedSQL, [containerItem.records]);
+
+                console.log("localQueryResult", self.queryConfig.generatedSQL, localQueryResult);
+
+                self.objectoConfig.renderObject({
+                    containerSelector: containerSelector,
+                    itemObject: self,
+                    queryConfig: self.queryConfig,
+                    config: self.config,
+                    containerItem: containerItem,
+                    data: containerItem.records || [],
+                })
+            }
+
+
+        }
+
+
     }
 
     var GMainDashInstance = new Mdash({
@@ -662,6 +926,12 @@
 
                 // Agrupa em rows
                 return groupItemsByRows(containerItems);
+            },
+            refreshDashboard() {
+                console.log("Refreshing Dashboard.....");
+                this.mdash.containerItems.forEach(async function (containerItem) {
+                    await containerItem.refreshContent();
+                });
             },
             updateFilter(filtro, event) {
 

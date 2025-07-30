@@ -253,6 +253,20 @@ $(document).on('click', '.home-collapse-header', function () {
 
 });
 
+
+function generateSkeleton(skeletonData) {
+    var skeletonHTML = "";
+    skeletonHTML += '<div id="' + skeletonData.id + '" class="mdashskeleton">';
+    skeletonHTML += '    <div class="mdash-skeleton mdash-skeleton-image"></div>';
+    skeletonHTML += '    <div class="mdash-skeleton mdash-skeleton-title"></div>';
+    skeletonHTML += '    <div class="mdash-skeleton mdash-skeleton-text"></div>';
+    skeletonHTML += '    <div class="mdash-skeleton mdash-skeleton-text"></div>';
+    skeletonHTML += '</div>';
+
+    return skeletonHTML;
+}
+
+
 function getColorByType(type) {
     // Cria botão temporário dinamicamente
     var tempBtn = $('<button class="btn btn-' + type + '" style="display:none"></button>').appendTo('body');
