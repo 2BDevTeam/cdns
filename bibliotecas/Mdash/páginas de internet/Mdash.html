@@ -8,7 +8,8 @@
 </head>
 
 <script src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-
+<link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
 
 <style>
     /* mdash-skeleton base */
@@ -238,7 +239,7 @@
         height: 100% !important;
     }
 
-   /* .m-dash-container-item-row {
+    /* .m-dash-container-item-row {
 
         height: 360px;
     }
@@ -293,6 +294,76 @@
             grid-template-columns: 1fr 1fr 1fr 1fr;
             gap: 30px;
         }
+    }
+
+
+
+
+    .tabulator-row.tabulator-tree-level-1 {
+        background-color: #f8f9fa !important;
+    }
+
+    .tabulator-row.tabulator-tree-level-2 {
+        background-color: #e9ecef !important;
+    }
+
+    .tabulator-row.tabulator-tree-level-3 {
+        background-color: #dee2e6 !important;
+    }
+
+    .tabulator-row.tabulator-tree-level-4 {
+        background-color: #ced4da !important;
+    }
+
+    .tabulator-row.tabulator-tree-level-5 {
+        background-color: #adb5bd !important;
+    }
+
+    .tabulator {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: none;
+    }
+
+    .tabulator .tabulator-header {
+        background-color: #0765b7;
+        border-bottom: none;
+        border-radius: 10px 10px 0 0;
+    }
+
+    .tabulator .tabulator-header .tabulator-col {
+        background-color: #0765b7;
+        color: white;
+        border-right: none;
+        padding: 12px 15px;
+        font-weight: 500;
+    }
+
+    .tabulator .tabulator-header .tabulator-col:first-child {
+        border-top-left-radius: 10px;
+    }
+
+    .tabulator .tabulator-header .tabulator-col:last-child {
+        border-top-right-radius: 10px;
+    }
+
+    .tabulator-row {
+        border-bottom: 1px solid #e0e6ed;
+        transition: background-color 0.2s ease;
+    }
+
+    .tabulator-row.tabulator-row-even {
+        background-color: #fcfdfe;
+    }
+
+    .tabulator-row:hover {
+        background-color: #f5f9ff !important;
+    }
+
+    .tabulator-cell {
+        padding: 12px 15px;
+        border-right: none;
     }
 </style>
 
@@ -375,7 +446,8 @@
 
                     <!-- Aqui usamos os grupos de rows -->
                     <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)"
-                        :key="'row-' + rowIndex" class="row m-dash-container-item-row gy-3" style="margin-bottom: 0.8em;">
+                        :key="'row-' + rowIndex" class="row m-dash-container-item-row gy-3"
+                        style="margin-bottom: 0.8em;">
 
                         <div style="height: 100%!important;" v-for="item in rowGroup.items"
                             :key="item.mdashcontaineritemstamp" :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area','d-flex', 
@@ -575,9 +647,11 @@
             this.records = [];
         }
 
+
         MdashContainerItem.prototype.refreshContent = async function () {
+            var containerItem = this;
+            var errorMessage = "ao trazer resultados no [refreshContent] " + containerItem.titulo
             try {
-                var containerItem = this;
 
 
                 if (!containerItem.urlfetch) {
@@ -601,7 +675,6 @@
                     }
                 });
 
-                var errorMessage = "ao trazer resultados no [refreshContent] "
 
                 if (response.cod != "0000") {
 
@@ -929,8 +1002,8 @@
             },
             refreshDashboard() {
                 console.log("Refreshing Dashboard.....");
-                this.mdash.containerItems.forEach(async function (containerItem) {
-                    await containerItem.refreshContent();
+                this.mdash.containerItems.forEach(function (containerItem) {
+                    containerItem.refreshContent();
                 });
             },
             updateFilter(filtro, event) {
@@ -950,9 +1023,9 @@
 
                 })
 
-                containerItemsThatContainFilter.forEach(async function (itemWithFilter) {
+                containerItemsThatContainFilter.forEach(function (itemWithFilter) {
 
-                    await itemWithFilter.refreshContent();
+                    itemWithFilter.refreshContent();
 
                 })
 
@@ -973,10 +1046,10 @@
 
             if (GConfigDash) {
 
-                window.mdashAppState.mdash.containerItems.forEach(async function (item) {
+                window.mdashAppState.mdash.containerItems.forEach(function (item) {
 
                     try {
-                        await item.refreshContent();
+                        item.refreshContent();
 
                     } catch (error) {
 
