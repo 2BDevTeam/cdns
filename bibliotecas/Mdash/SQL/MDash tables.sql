@@ -52,25 +52,11 @@ CREATE TABLE MdashContainerItemObject(
     tamanho INT DEFAULT 0,
     ordem INT DEFAULT 0,
     expressaoobjecto TEXT DEFAULT '',
-    queryconfigjson TEXT DEFAULT '',
-    configjson TEXT DEFAULT ''
+    queryconfigjson TEXT DEFAULT ''
 )
 
 
 
-alter table MdashContainerItemObject
-    add  configjson TEXT DEFAULT '';
 
 
-
-select *from MdashFilter where mdashfilterstamp='b70c0ae1-a28f-4b34-a757-3'
-
-
-
-
-
-select *from MdashContainer WHERE mdashcontainerstamp='1867be5e-26e8-417b-a0ed-c'
-
-
-select * from MdashContainer join MdashContainerItem on MdashContainerItem.mdashcontainerstamp = MdashContainer.mdashcontainerstamp
--- where MdashContainer.mdashcontainerstamp='1867be5e-26e8-417b-a0ed-c'
+delete from MdashContainerItemObject

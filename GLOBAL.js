@@ -267,6 +267,14 @@ function generateSkeleton(skeletonData) {
 }
 
 
+
+function registerDynamicEvent(selector, eventType, callback) {
+    $(selector).removeAttr("href");
+    $(document).off(eventType, selector).on(eventType, selector, callback);
+}
+
+
+
 function getColorByType(type) {
     // Cria botão temporário dinamicamente
     var tempBtn = $('<button class="btn btn-' + type + '" style="display:none"></button>').appendTo('body');
@@ -1021,3 +1029,197 @@ function generateCardHTML(cardData) {
     return cardHTML.trim(); // Remove any leading/trailing whitespace
 }
 
+
+
+function adicionarCheckboxOcultarCampo() {
+    $(".hide-checkbox").remove()
+    $("#botaoOcultarElementos").remove()
+    $('.form-group.mainformfg').each(function () {
+        var id = $(this).attr('id'); // Obtém o ID do elemento
+        if (id && id.startsWith("ctl00_conteudo_")) {
+            var campo = id.replace("ctl00_conteudo_", ""); // Remove o prefixo
+            var checkbox = $('<input type="checkbox" class="hide-checkbox">')
+                .attr("data-campo", campo) // Define o atributo data-campo
+                .css({
+                    "border": "2px solid red",
+                    "width": "16px",
+                    "height": "16px"
+                })
+                .insertBefore($(this));
+
+            // Adiciona evento de mudança (check/uncheck) usando função anônima
+            checkbox.on("change", function () {
+                if ($(this).is(":checked")) {
+                    GCamposOcultar.push({ campo: campo });
+                } else {
+                    GCamposOcultar = GCamposOcultar.filter(function (item) {
+                        return item.campo !== campo;
+                    });
+                }
+                console.log(GCamposOcultar); // Exibe o array atualizado no console
+            });
+        }
+    });
+
+    var botaoOcultarElementos = {
+        style: "",
+        buttonId: "botaoOcultarElementos",
+        classes: "btn btn-warning btn-sm",
+        customData: " type='button' data-tooltip='true' data-original-title='Ocultar elementos' ",
+        label: "Ocultar Elementos",
+
+        onClick: "generateVBHideScript()",
+    };
+
+    var buttonHtml = "<div class='btn-group '>"
+    buttonHtml += generateButton(botaoOcultarElementos);
+    buttonHtml += "</div>"
+
+    $("#BUCANCELARBottom").parent().after(buttonHtml)
+}
+
+
+function ocultarCamposVb() {
+
+    $.ajax({
+        type: "POST",
+        url: "../programs/gensel.aspx?cscript=ocultarcamposbyevento",
+        async: false,
+        data: {
+            '__EVENTARGUMENT': JSON.stringify({ eeventosstamp: $("#selectEvento").val(), campos: GCamposOcultar }),
+        },
+        success: function (response) {
+
+            var errorMessage = "ao ocultar campos "
+            try {
+                console.log("Response evvv...", response)
+                if (response.cod != "0000") {
+
+                    console.log("Erro " + errorMessage, response)
+                    alertify.error("Erro  " + errorMessage, 10000)
+                    return false
+                }
+
+                alertify.success("Campos ocultados regrave o evento actualizado para reflectir rapidamente", 5000)
+                location.reload()
+            } catch (error) {
+                console.log("Erro interno " + errorMessage, response)
+                //alertify.error("Erro interno " + errorMessage, 10000)
+            }
+
+            //  javascript:__doPostBack('','')
+        }
+    })
+
+
+
+
+}
+
+
+function formatAllInputDigits() {
+
+    var elementsDate = document.querySelectorAll('input[type="number"]');
+
+    // Convert the NodeList to an array and apply Cleave to each input element
+    Array.from(elementsDate).forEach(function (element) {
+
+        formatarInputNumber(element.id)
+    });
+}
+
+
+function formatarInputNumber(idElemento) {
+    console.log("formatarInputNumber", idElemento)
+    if ($('#' + idElemento).length == 0) {
+        return false
+    }
+
+    var newCloned = $('#' + idElemento).clone().attr('data-cloned', idElemento)
+
+    newCloned.addClass("inputformatado")
+    newCloned.removeClass("source-bind-listener")
+    newCloned.removeAttr("id")
+    newCloned.removeAttr("name")
+    newCloned.removeAttr("data-obrigatorio")
+    newCloned.removeAttr("data-sourcecampo")
+    newCloned.removeAttr("data-sourcename")
+    newCloned.removeAttr("onblur")
+    newCloned.attr("type", "text")
+    newCloned.attr("value", newCloned.val().replace(/ /g, ''))
+    newCloned.attr("value", newCloned.val().replace(/ /g, ''))
+    var number = newCloned.val()
+    newCloned.val(number.replace(/\B(?=(\d{3})+(?!\d))/g, " "));
+
+    $('#' + idElemento).before(newCloned)
+    newCloned.val()
+    $("#" + idElemento).hide()
+
+
+    var cleave = new Cleave(newCloned, {
+        numeral: true,
+        numeralThousandsGroupStyle: 'thousand', delimiter: " ",
+    });
+
+    newCloned.off("keyup").on("keyup", function () {
+
+        var valorNaoFormatado = Number(this.value.replaceAll(" ", "").replaceAll(",", ""))
+
+        $("#" + $(this).data("cloned")).val(valorNaoFormatado).trigger("change")
+
+    });
+
+
+
+
+}
+
+
+function registerDynamicEvent(selector, eventType, callback) {
+    $(selector).removeAttr("href");
+    $(document).off(eventType, selector).on(eventType, selector, callback);
+}
+
+
+function generateVBHideScript() {
+
+    $("#modalOcultarElementos").remove();
+    getEcraEventos().then(function (ecraEventosResult) {
+
+        if (ecraEventosResult.cod != "0000") {
+
+            console.log("Erro ao trazer resultado dos eventos", ecraEventosResult)
+            return
+        }
+        var eventosSelect = generateSelect(ecraEventosResult.data, "form-control", "width:100%", "id='selectEvento' ", "resumo", "eeventosstamp")
+
+        var modalBodyHtml = "<div class='modalOcultarEventoContainer'>"
+        modalBodyHtml += "<label>Eventos:<label/>"
+        modalBodyHtml += eventosSelect
+        modalBodyHtml += "</div>"
+
+        var modalData = {
+            title: "<h4>Dados do evento</h4>",
+            id: "modalOcultarElementos",
+            customData: "",
+            otherclassess: "",
+            body: modalBodyHtml,
+            footerContent: "<button type='button' onClick='ocultarCamposVb()' class='btn btn-primary' >Submeter</button>"
+        }
+        var modalHTML = generateModalHTML(modalData);
+        $("#maincontent").append(modalHTML);
+
+        $("#selectEvento").select2({
+            width: "100%",
+            allowClear: false
+        });
+
+        $("#modalOcultarElementos").show();
+
+
+
+    })
+
+
+
+}

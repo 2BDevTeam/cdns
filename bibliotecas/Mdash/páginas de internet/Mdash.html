@@ -2,8 +2,8 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 </head>
 
@@ -12,234 +12,542 @@
 <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
 
 <style>
-    /* mdash-skeleton base */
-    .mdash-skeleton {
-        background: #eee;
-        border-radius: 6px;
-        position: relative;
-        overflow: hidden;
+  /* CONTAINER RESPONSIVO */
+  .gr-container {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Limites máximos do container como no Bootstrap */
+  @media (min-width: 576px) {
+    .gr-container {
+      max-width: 540px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .gr-container {
+      max-width: 720px;
+    }
+  }
+
+  @media (min-width: 992px) {
+    .gr-container {
+      max-width: 960px;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .gr-container {
+      max-width: 1140px;
+    }
+  }
+
+  @media (min-width: 1400px) {
+    .gr-container {
+      max-width: 1320px;
+    }
+  }
+
+  /* ROW */
+  .gr-row {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1rem;
+    grid-auto-rows: 1fr;
+    margin-bottom: 2rem;
+  }
+
+  /* COLUNAS base */
+  [class*="gr-col-"] {
+    grid-column: span 12;
+  }
+
+  /* Breakpoints (xs até xl) — igual antes */
+  .gr-col-xs-1 {
+    grid-column: span 1;
+  }
+
+  .gr-col-xs-2 {
+    grid-column: span 2;
+  }
+
+  .gr-col-xs-3 {
+    grid-column: span 3;
+  }
+
+  .gr-col-xs-4 {
+    grid-column: span 4;
+  }
+
+  .gr-col-xs-5 {
+    grid-column: span 5;
+  }
+
+  .gr-col-xs-6 {
+    grid-column: span 6;
+  }
+
+  .gr-col-xs-7 {
+    grid-column: span 7;
+  }
+
+  .gr-col-xs-8 {
+    grid-column: span 8;
+  }
+
+  .gr-col-xs-9 {
+    grid-column: span 9;
+  }
+
+  .gr-col-xs-10 {
+    grid-column: span 10;
+  }
+
+  .gr-col-xs-11 {
+    grid-column: span 11;
+  }
+
+  .gr-col-xs-12 {
+    grid-column: span 12;
+  }
+
+  @media (min-width: 576px) {
+    .gr-col-sm-1 {
+      grid-column: span 1;
     }
 
-    /* Shimmer animation */
-    .mdash-skeleton::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -150px;
-        height: 100%;
-        width: 150px;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-        animation: shimmer 1.5s infinite;
+    .gr-col-sm-2 {
+      grid-column: span 2;
     }
 
-    @keyframes shimmer {
-        0% {
-            left: -150px;
-        }
-
-        100% {
-            left: 100%;
-        }
+    .gr-col-sm-3 {
+      grid-column: span 3;
     }
 
-    /* mdash-skeleton shapes */
-    .mdash-skeleton-image {
-        width: 100%;
-        height: 150px;
-        margin-bottom: 20px;
+    .gr-col-sm-4 {
+      grid-column: span 4;
     }
 
-    .mdash-skeleton-title {
-        width: 70%;
-        height: 20px;
-        margin: 0 auto 15px auto;
+    .gr-col-sm-5 {
+      grid-column: span 5;
     }
 
-    .mdash-skeleton-text {
-        width: 90%;
-        height: 15px;
-        margin: 8px auto;
+    .gr-col-sm-6 {
+      grid-column: span 6;
     }
 
-
-    .snapshot:hover,
-    .celula:hover {
-        cursor: pointer;
+    .gr-col-sm-7 {
+      grid-column: span 7;
     }
 
-    .celula:hover {
-        text-decoration: underline;
+    .gr-col-sm-8 {
+      grid-column: span 8;
     }
 
-
-    form[action*="./ewpview.aspx?codigo=mdash"] #fieldsAndOptionsZone,
-    form[action*="./ewpview.aspx?codigo=catalogo-"] #fieldsAndOptionsZone {
-        background: none !important;
-        box-shadow: none !important;
+    .gr-col-sm-9 {
+      grid-column: span 9;
     }
 
-    form[action*="./ewpview.aspx?codigo=mdash"] #optionsFields,
-    form[action*="./ewpview.aspx?codigo=mdash"] .headerZone,
-    form[action*="./ewpview.aspx?codigo=catalogo-"] #optionsFields,
-    form[action*="./ewpview.aspx?codigo=catalogo-"] .headerZone {
-        display: none;
+    .gr-col-sm-10 {
+      grid-column: span 10;
     }
 
-
-    .m-dash-header {
-        column-gap: 0.4em;
-        display: flex;
-        margin-bottom: 30px;
-        background: #FFF;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-        align-items: center;
+    .gr-col-sm-11 {
+      grid-column: span 11;
     }
 
-    .m-dash-body {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
+    .gr-col-sm-12 {
+      grid-column: span 12;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .gr-col-md-1 {
+      grid-column: span 1;
     }
 
-    .m-dash-header h1 {
-        margin: 0;
-        font-weight: bold;
-        color: #626e78 !important;
+    .gr-col-md-2 {
+      grid-column: span 2;
     }
 
-    .m-dash-filter {
-        background: #FFF;
-        -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-        -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-        border-radius: 12px;
-        padding: 30px;
+    .gr-col-md-3 {
+      grid-column: span 3;
     }
 
-    .m-dash-filter-btn-group {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+    .gr-col-md-4 {
+      grid-column: span 4;
     }
 
-    .m-dash-btn-filter {
-        display: flex;
-        justify-content: space-between;
-        gap: 5px;
+    .gr-col-md-5 {
+      grid-column: span 5;
     }
 
-    .m-dash-data-headers {
-        background: #FFF;
-        -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-        -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-        border-radius: 12px;
-        padding: 30px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        font-size: 0.9em;
+    .gr-col-md-6 {
+      grid-column: span 6;
     }
 
-    .m-dash-main {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        flex-grow: 1;
+    .gr-col-md-7 {
+      grid-column: span 7;
     }
 
-
-    .stats-card-container {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
+    .gr-col-md-8 {
+      grid-column: span 8;
     }
 
-    .stats-card {
-        background-color: #efefef;
-        padding: 15px;
-        border-radius: 5px;
+    .gr-col-md-9 {
+      grid-column: span 9;
     }
 
-    .stats-card-grid {
-        display: grid;
-        grid-template-columns: 1fr;
+    .gr-col-md-10 {
+      grid-column: span 10;
     }
 
-    .stats-card-chart {
-        height: 300px;
+    .gr-col-md-11 {
+      grid-column: span 11;
     }
 
-    .stats-card-value-container {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
+    .gr-col-md-12 {
+      grid-column: span 12;
+    }
+  }
+
+  @media (min-width: 992px) {
+    .gr-col-lg-1 {
+      grid-column: span 1;
     }
 
-    .stats-card-value {
-        color: #999999;
+    .gr-col-lg-2 {
+      grid-column: span 2;
     }
 
-    .stats-card-label {
-        font-size: 0.9em;
-        font-weight: bold;
+    .gr-col-lg-3 {
+      grid-column: span 3;
     }
 
-
-
-    .m-dash-item {
-        background: #FFF;
-        -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-        -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-        border-radius: 12px;
-        padding: 30px;
-        width: 100%;
-        overflow-x: auto;
+    .gr-col-lg-4 {
+      grid-column: span 4;
     }
 
-    .m-dash-item.snapshot {
-        padding: 20px;
+    .gr-col-lg-5 {
+      grid-column: span 5;
     }
 
-    .m-dash-item h1 {
-        font-size: 1.2em;
-        font-weight: bold;
-        margin-bottom: 15px;
+    .gr-col-lg-6 {
+      grid-column: span 6;
     }
 
-    .m-dash-charts {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        justify-content: space-between;
+    .gr-col-lg-7 {
+      grid-column: span 7;
     }
 
-    .m-dash-table {
-        font-size: 0.9em;
-        overflow-x: auto;
-        max-height: 400px;
+    .gr-col-lg-8 {
+      grid-column: span 8;
     }
 
-    .m-dash-table table {
-        width: 100%;
+    .gr-col-lg-9 {
+      grid-column: span 9;
     }
 
-    .m-dash-item-text {
-        color: #626e78;
+    .gr-col-lg-10 {
+      grid-column: span 10;
     }
 
-    .m-dash-filter-item {
-        color: #626e78;
+    .gr-col-lg-11 {
+      grid-column: span 11;
     }
 
-    .m-dash-render-area {
-        height: 100% !important;
+    .gr-col-lg-12 {
+      grid-column: span 12;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .gr-col-xl-1 {
+      grid-column: span 1;
     }
 
-    /* .m-dash-container-item-row {
+    .gr-col-xl-2 {
+      grid-column: span 2;
+    }
+
+    .gr-col-xl-3 {
+      grid-column: span 3;
+    }
+
+    .gr-col-xl-4 {
+      grid-column: span 4;
+    }
+
+    .gr-col-xl-5 {
+      grid-column: span 5;
+    }
+
+    .gr-col-xl-6 {
+      grid-column: span 6;
+    }
+
+    .gr-col-xl-7 {
+      grid-column: span 7;
+    }
+
+    .gr-col-xl-8 {
+      grid-column: span 8;
+    }
+
+    .gr-col-xl-9 {
+      grid-column: span 9;
+    }
+
+    .gr-col-xl-10 {
+      grid-column: span 10;
+    }
+
+    .gr-col-xl-11 {
+      grid-column: span 11;
+    }
+
+    .gr-col-xl-12 {
+      grid-column: span 12;
+    }
+  }
+
+
+
+
+
+
+  /* mdash-skeleton base */
+  .mdash-skeleton {
+    background: #eee;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Shimmer animation */
+  .mdash-skeleton::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -150px;
+    height: 100%;
+    width: 150px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      left: -150px;
+    }
+
+    100% {
+      left: 100%;
+    }
+  }
+
+  /* mdash-skeleton shapes */
+  .mdash-skeleton-image {
+    width: 100%;
+    height: 150px;
+    margin-bottom: 20px;
+  }
+
+  .mdash-skeleton-title {
+    width: 70%;
+    height: 20px;
+    margin: 0 auto 15px auto;
+  }
+
+  .mdash-skeleton-text {
+    width: 90%;
+    height: 15px;
+    margin: 8px auto;
+  }
+
+
+  .snapshot:hover,
+  .celula:hover {
+    cursor: pointer;
+  }
+
+  .celula:hover {
+    text-decoration: underline;
+  }
+
+
+  form[action*="./ewpview.aspx?codigo=mdash"] #fieldsAndOptionsZone,
+  form[action*="./ewpview.aspx?codigo=catalogo-"] #fieldsAndOptionsZone {
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  form[action*="./ewpview.aspx?codigo=mdash"] #optionsFields,
+  form[action*="./ewpview.aspx?codigo=mdash"] .headerZone,
+  form[action*="./ewpview.aspx?codigo=catalogo-"] #optionsFields,
+  form[action*="./ewpview.aspx?codigo=catalogo-"] .headerZone {
+    display: none;
+  }
+
+
+  .m-dash-header {
+    column-gap: 0.4em;
+    display: flex;
+    margin-bottom: 30px;
+    background: #FFF;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    align-items: center;
+  }
+
+  .m-dash-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .m-dash-header h1 {
+    margin: 0;
+    font-weight: bold;
+    color: #626e78 !important;
+  }
+
+  .m-dash-filter {
+    background: #FFF;
+    -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    border-radius: 12px;
+    padding: 30px;
+  }
+
+  .m-dash-filter-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .m-dash-btn-filter {
+    display: flex;
+    justify-content: space-between;
+    gap: 5px;
+  }
+
+  .m-dash-data-headers {
+    background: #FFF;
+    -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    border-radius: 12px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 0.9em;
+  }
+
+  .m-dash-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex-grow: 1;
+  }
+
+
+  .stats-card-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .stats-card {
+    background-color: #efefef;
+    padding: 15px;
+    border-radius: 5px;
+  }
+
+  .stats-card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .stats-card-chart {
+    height: 300px;
+  }
+
+  .stats-card-value-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stats-card-value {
+    color: #999999;
+  }
+
+  .stats-card-label {
+    font-size: 0.9em;
+    font-weight: bold;
+  }
+
+
+
+  .m-dash-item {
+    background: #FFF;
+    -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    border-radius: 12px;
+    padding: 30px;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .m-dash-item.snapshot {
+    padding: 20px;
+  }
+
+  .m-dash-item h1 {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 15px;
+  }
+
+  .m-dash-charts {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: space-between;
+  }
+
+  .m-dash-table {
+    font-size: 0.9em;
+    overflow-x: auto;
+    max-height: 400px;
+  }
+
+  .m-dash-table table {
+    width: 100%;
+  }
+
+  .m-dash-item-text {
+    color: #626e78;
+  }
+
+  .m-dash-filter-item {
+    color: #626e78;
+  }
+
+  .m-dash-render-area {
+    height: 100% !important;
+  }
+
+  /* .m-dash-container-item-row {
 
         height: 360px;
     }
@@ -261,212 +569,210 @@
 
 
 
-    @media screen and (min-width: 768px) {
-        .stats-card-container {
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .stats-card-grid {
-            grid-template-columns: 1fr 1fr;
-        }
+  @media screen and (min-width: 768px) {
+    .stats-card-container {
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
     }
 
-    @media screen and (min-width: 1024px) {
-        .m-dash-body {
-            flex-direction: row;
-        }
+    .stats-card-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
 
-        .m-dash-data-headers {
-            flex-direction: row;
-        }
-
-        .m-dash-filter {
-            min-width: 275px;
-            max-width: 275px;
-        }
-
-        .m-dash-charts {
-            flex-direction: row;
-        }
-
-        .stats-card-container {
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 30px;
-        }
+  @media screen and (min-width: 1024px) {
+    .m-dash-body {
+      flex-direction: row;
     }
 
-
-
-
-    .tabulator-row.tabulator-tree-level-1 {
-        background-color: #f8f9fa !important;
+    .m-dash-data-headers {
+      flex-direction: row;
     }
 
-    .tabulator-row.tabulator-tree-level-2 {
-        background-color: #e9ecef !important;
+    .m-dash-filter {
+      min-width: 275px;
+      max-width: 275px;
     }
 
-    .tabulator-row.tabulator-tree-level-3 {
-        background-color: #dee2e6 !important;
+    .m-dash-charts {
+      flex-direction: row;
     }
 
-    .tabulator-row.tabulator-tree-level-4 {
-        background-color: #ced4da !important;
+    .stats-card-container {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 30px;
     }
+  }
 
-    .tabulator-row.tabulator-tree-level-5 {
-        background-color: #adb5bd !important;
-    }
 
-    .tabulator {
-        background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        border: none;
-    }
 
-    .tabulator .tabulator-header {
-        background-color: #0765b7;
-        border-bottom: none;
-        border-radius: 10px 10px 0 0;
-    }
 
-    .tabulator .tabulator-header .tabulator-col {
-        background-color: #0765b7;
-        color: white;
-        border-right: none;
-        padding: 12px 15px;
-        font-weight: 500;
-    }
+  .tabulator-row.tabulator-tree-level-1 {
+    background-color: #f8f9fa !important;
+  }
 
-    .tabulator .tabulator-header .tabulator-col:first-child {
-        border-top-left-radius: 10px;
-    }
+  .tabulator-row.tabulator-tree-level-2 {
+    background-color: #e9ecef !important;
+  }
 
-    .tabulator .tabulator-header .tabulator-col:last-child {
-        border-top-right-radius: 10px;
-    }
+  .tabulator-row.tabulator-tree-level-3 {
+    background-color: #dee2e6 !important;
+  }
 
-    .tabulator-row {
-        border-bottom: 1px solid #e0e6ed;
-        transition: background-color 0.2s ease;
-    }
+  .tabulator-row.tabulator-tree-level-4 {
+    background-color: #ced4da !important;
+  }
 
-    .tabulator-row.tabulator-row-even {
-        background-color: #fcfdfe;
-    }
+  .tabulator-row.tabulator-tree-level-5 {
+    background-color: #adb5bd !important;
+  }
 
-    .tabulator-row:hover {
-        background-color: #f5f9ff !important;
-    }
+  .tabulator {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: none;
+  }
 
-    .tabulator-cell {
-        padding: 12px 15px;
-        border-right: none;
-    }
+  .tabulator .tabulator-header {
+    background-color: #0765b7;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .tabulator .tabulator-header .tabulator-col {
+    background-color: #0765b7;
+    color: white;
+    border-right: none;
+    padding: 12px 15px;
+    font-weight: 500;
+  }
+
+  .tabulator .tabulator-header .tabulator-col:first-child {
+    border-top-left-radius: 10px;
+  }
+
+  .tabulator .tabulator-header .tabulator-col:last-child {
+    border-top-right-radius: 10px;
+  }
+
+  .tabulator-row {
+    border-bottom: 1px solid #e0e6ed;
+    transition: background-color 0.2s ease;
+  }
+
+  .tabulator-row.tabulator-row-even {
+    background-color: #fcfdfe;
+  }
+
+  .tabulator-row:hover {
+    background-color: #f5f9ff !important;
+  }
+
+  .tabulator-cell {
+    padding: 12px 15px;
+    border-right: none;
+  }
 </style>
 
 
 <body>
 
-    <div id="mdash" class="mdash">
+  <div id="mdash" class="mdash">
 
-        <div class="m-dash-header">
-            <h1>{{ mdash.dashboardconfig.descricao }}</h1>
-            <button style="font-size: 12px;" v-if="mdash.dashboardconfig.temfiltro==false" @click="refreshDashboard()"
-                type='button' id='btn-refrescar-filtro'
-                class='btn btn-primary btn-sm glyphicon glyphicon-refresh filtro'>
+    <div class="m-dash-header">
+      <h1>{{ mdash.dashboardconfig.descricao }}</h1>
+      <button style="font-size: 12px;" v-if="mdash.dashboardconfig.temfiltro==false" @click="refreshDashboard()"
+        type='button' id='btn-refrescar-filtro' class='btn btn-primary btn-sm glyphicon glyphicon-refresh filtro'>
+      </button>
+    </div>
+
+    <div class="m-dash-body">
+
+      <div v-if="mdash.dashboardconfig.temfiltro" class="m-dash-filter">
+
+        <div class="m-dash-filter-btn-group">
+
+          <div class="m-dash-btn-filter">
+            <p class="m-dash-item-text">Refrescar</p>
+            <button @click="refreshDashboard()" type='button' id='btn-refrescar-filtro'
+              class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
             </button>
-        </div>
-
-        <div class="m-dash-body">
-
-            <div v-if="mdash.dashboardconfig.temfiltro" class="m-dash-filter">
-
-                <div class="m-dash-filter-btn-group">
-
-                    <div class="m-dash-btn-filter">
-                        <p class="m-dash-item-text">Refrescar</p>
-                        <button @click="refreshDashboard()" type='button' id='btn-refrescar-filtro'
-                            class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
-                        </button>
-                    </div>
-
-                </div>
-
-                <div class="m-dash-dynamic-filters">
-                    <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp" class="m-dash-filter-item">
-                        <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}</label>
-
-                        <!-- text -->
-                        <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
-                            class="form-control input-sm input-mdash-filter" :id="filter.codigo"
-                            v-model="mdash.filterValues[filter.codigo]" />
-
-                        <!-- digit -->
-                        <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
-                            class="form-control input-sm input-mdash-filter" :id="filter.codigo"
-                            v-model="mdash.filterValues[filter.codigo]" />
-
-                        <!-- list -->
-                        <select @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
-                            class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
-                            v-model="mdash.filterValues[filter.codigo]">
-                            <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
-                                {{ opt[filter.campooption] }}
-                            </option>
-                        </select>
-
-                        <!-- logic -->
-                        <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
-                            class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
-
-                        <!-- fallback -->
-                        <input @change="updateFilter(filter,$event)" v-else type="text"
-                            class="form-control input-sm input-mdash-filter" :id="filter.codigo"
-                            v-model="mdash.filterValues[filter.codigo]" />
-                    </div>
-                </div>
-
-                <div class="m-dash-dynamic-filters">
-
-                </div>
-
-            </div>
-
-            <div class="m-dash-main">
-                <div v-for="container in mdash.containers" :key="container.mdashcontainerstamp"
-                    :class="[`col-md-${container.tamanho}`, `col-sm-${container.tamanho}`, `col-lg-${container.tamanho}`]">
-
-                    <div v-if="container.titulo.length > 0" style="margin-bottom: 0.8em;" class="col-md-12 pull-left">
-                        <h1 class="m-dash-item-text">{{ container.titulo }}</h1>
-                        <hr>
-                    </div>
-
-                    <!-- Aqui usamos os grupos de rows -->
-                    <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)"
-                        :key="'row-' + rowIndex" class="row m-dash-container-item-row gy-3"
-                        style="margin-bottom: 0.8em;">
-
-                        <div style="height: 100%!important;" v-for="item in rowGroup.items"
-                            :key="item.mdashcontaineritemstamp" :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area','d-flex', 
-                          `col-md-${item.tamanho}`, 
-                          `col-sm-${item.tamanho}`, 
-                          `col-lg-${item.tamanho}`]">
-
-
-
-                        </div>
-                    </div>
-
-                </div>
-            </div>
+          </div>
 
         </div>
 
+        <div class="m-dash-dynamic-filters">
+          <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp" class="m-dash-filter-item">
+            <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}</label>
+
+            <!-- text -->
+            <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- digit -->
+            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- list -->
+            <select @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
+              class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]">
+              <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
+                {{ opt[filter.campooption] }}
+              </option>
+            </select>
+
+            <!-- logic -->
+            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
+              class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- fallback -->
+            <input @change="updateFilter(filter,$event)" v-else type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+          </div>
+        </div>
+
+        <div class="m-dash-dynamic-filters">
+
+        </div>
+
+      </div>
+
+      <div class="m-dash-main">
+        <div v-for="container in mdash.containers" :key="container.mdashcontainerstamp"
+          :class="[`gr-col-md-${container.tamanho}`, `gr-col-sm-${container.tamanho}`, `gr-col-lg-${container.tamanho}`]">
+
+          <div v-if="container.titulo.length > 0" style="margin-bottom: 0.8em;" class="gr-col-md-12 pull-left">
+            <h1 class="m-dash-item-text">{{ container.titulo }}</h1>
+            <hr>
+          </div>
+
+          <!-- Aqui usamos os grupos de rows -->
+          <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)" :key="'row-' + rowIndex"
+            class="gr-row m-dash-container-item-row " style="margin-bottom: 0.8em;">
+
+            <div style="height: 100%!important;" v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
+              :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area', 
+                          `gr-col-md-${item.tamanho}`, 
+                          `gr-col-sm-${item.tamanho}`, 
+                          `gr-col-lg-${item.tamanho}`]">
+
+
+
+            </div>
+          </div>
+
+        </div>
+      </div>
 
     </div>
+
+
+  </div>
 
 </body>
 
@@ -474,57 +780,57 @@
 <script src="https://cdn.jsdelivr.net/npm/alasql"></script>
 <script>
 
-    function buildAlert(alertClass, alertText) {
-        var alerta = ""
-        alerta += "<div  class='alert custom-alert " + alertClass + "'>"
-        alerta += "  <strong>Atenção!</strong> " + alertText
-        alerta += "</div>"
+  function buildAlert(alertClass, alertText) {
+    var alerta = ""
+    alerta += "<div  class='alert custom-alert " + alertClass + "'>"
+    alerta += "  <strong>Atenção!</strong> " + alertText
+    alerta += "</div>"
 
-        return alerta
-    }
+    return alerta
+  }
 
-    function groupItemsByRows(containerItems, maxRowSize = 12) {
-        var rows = [];
-        var currentRow = [];
-        var currentRowSize = 0;
+  function groupItemsByRows(containerItems, maxRowSize = 12) {
+    var rows = [];
+    var currentRow = [];
+    var currentRowSize = 0;
 
-        containerItems.forEach(function (item) {
-            var itemSize = parseInt(item.tamanho) || 12;
+    containerItems.forEach(function (item) {
+      var itemSize = parseInt(item.tamanho) || 12;
 
-            // Se adicionar este item ultrapassar o tamanho máximo da row
-            if (currentRowSize + itemSize > maxRowSize) {
-                // Finaliza a row atual (se não estiver vazia)
-                if (currentRow.length > 0) {
-                    rows.push({
-                        items: currentRow,
-                        totalSize: currentRowSize
-                    });
-                }
-
-                // Inicia uma nova row
-                currentRow = [item];
-                currentRowSize = itemSize;
-            } else {
-                // Adiciona o item à row atual
-                currentRow.push(item);
-                currentRowSize += itemSize;
-            }
-        });
-
-        // Adiciona a última row se não estiver vazia
+      // Se adicionar este item ultrapassar o tamanho máximo da row
+      if (currentRowSize + itemSize > maxRowSize) {
+        // Finaliza a row atual (se não estiver vazia)
         if (currentRow.length > 0) {
-            rows.push({
-                items: currentRow,
-                totalSize: currentRowSize
-            });
+          rows.push({
+            items: currentRow,
+            totalSize: currentRowSize
+          });
         }
 
-        return rows;
+        // Inicia uma nova row
+        currentRow = [item];
+        currentRowSize = itemSize;
+      } else {
+        // Adiciona o item à row atual
+        currentRow.push(item);
+        currentRowSize += itemSize;
+      }
+    });
+
+    // Adiciona a última row se não estiver vazia
+    if (currentRow.length > 0) {
+      rows.push({
+        items: currentRow,
+        totalSize: currentRowSize
+      });
     }
 
-    function generateStandardCard(cardData) {
+    return rows;
+  }
 
-        return `<div class="m-dash-item">
+  function generateStandardCard(cardData) {
+
+    return `<div class="m-dash-item">
                     <h4 class="m-dash-item-text">${cardData.titulo || "Sem título"}</h4>
                     
                         ${cardData.bodyContent}
@@ -532,595 +838,595 @@
                 </div>`;
 
 
+  }
+
+  function generateDashCardHTML(cardData) {
+    var cardHTML = '<div id="' + (cardData.id || '') + '" class="dashcard">';
+    // Header
+    cardHTML += '<div class="dashcard-header dashcard-header-' + (cardData.type || "primary") + '">';
+    cardHTML += '<span class="dashcard-title">' + (cardData.title || "") + '</span>';
+    cardHTML += '</div>';
+    // Body
+    cardHTML += '<div class="dashcard-body">';
+    cardHTML += (cardData.bodyContent || "");
+    cardHTML += '</div>';
+    cardHTML += '</div>';
+    return cardHTML.trim();
+  }
+
+
+  function MdashRendConfig(data) {
+
+    this.codigo = data.codigo || "";
+    this.descricao = data.descricao || "";
+    this.categoria = data.categoria || "";
+    this.dashboardstamp = data.dashboardstamp || "";
+    this.temfiltro = data.temfiltro || false;
+
+  }
+
+  function Mdash(data) {
+
+    var globalThis = this;
+
+    this.GMDashStamp = data.GMDashStamp || ""
+    this.GMDashRendContainers = [];
+    this.GMDashRendContainerItems = [];
+    this.GMDashRendFilters = [];
+    this.dashboardconfig = new MdashRendConfig(data.dashboardconfig) || new MdashRendConfig({});
+
+    this.filters = Array.isArray(data.filters) ? data.filters.map(function (filter) {
+      return new MdashRendFilter(filter);
+    }) : [];
+    this.filterValues = data.filterValues || {};
+
+    this.containers = Array.isArray(data.containers) ? data.containers.map(function (container) {
+      return new MdashRendContainer(container);
+    }) : [];
+
+    this.containerItems = Array.isArray(data.containerItems) ? data.containerItems.map(function (item) {
+      return new MdashContainerItem(item);
+    }) : [];
+
+    this.containerItemObjects = Array.isArray(data.containerItemObjects) ? data.containerItemObjects.map(function (itemObject) {
+      return new MdashContainerItemObject(itemObject);
+    }) : [];
+
+    this.reactiveInstance = null;
+
+
+    function MdashRendFilter(data) {
+
+      this.mdashfilterstamp = data.mdashfilterstamp || generateUUID();
+      this.dashboardstamp = data.dashboardstamp || GMDashStamp;
+      this.codigo = data.codigo || "";
+      this.descricao = data.descricao || "";
+      this.tipo = data.tipo || "text";
+      this.tamanho = data.tamanho || 4;
+      this.campooption = data.campooption || "";
+      this.campovalor = data.campovalor || "";
+      this.expressaolistagem = data.expressaolistagem || "";
+      this.valordefeito = data.valordefeito || "";
+      this.ordem = data.ordem || 0;
     }
 
-    function generateDashCardHTML(cardData) {
-        var cardHTML = '<div id="' + (cardData.id || '') + '" class="dashcard">';
-        // Header
-        cardHTML += '<div class="dashcard-header dashcard-header-' + (cardData.type || "primary") + '">';
-        cardHTML += '<span class="dashcard-title">' + (cardData.title || "") + '</span>';
-        cardHTML += '</div>';
-        // Body
-        cardHTML += '<div class="dashcard-body">';
-        cardHTML += (cardData.bodyContent || "");
-        cardHTML += '</div>';
-        cardHTML += '</div>';
-        return cardHTML.trim();
+    function MdashRendContainer(data) {
+
+      this.mdashcontainerstamp = data.mdashcontainerstamp || generateUUID();
+      this.codigo = data.codigo || "";
+      this.titulo = data.titulo || "";
+      this.tipo = data.tipo || "";
+      this.tamanho = data.tamanho || 12;
+      this.ordem = data.ordem || 0;
+      this.dashboardstamp = data.dashboardstamp || GMDashStamp;
     }
 
-
-    function MdashRendConfig(data) {
-
-        this.codigo = data.codigo || "";
-        this.descricao = data.descricao || "";
-        this.categoria = data.categoria || "";
-        this.dashboardstamp = data.dashboardstamp || "";
-        this.temfiltro = data.temfiltro || false;
-
-    }
-
-    function Mdash(data) {
-
-        var globalThis = this;
-
-        this.GMDashStamp = data.GMDashStamp || ""
-        this.GMDashRendContainers = [];
-        this.GMDashRendContainerItems = [];
-        this.GMDashRendFilters = [];
-        this.dashboardconfig = new MdashRendConfig(data.dashboardconfig) || new MdashRendConfig({});
-
-        this.filters = Array.isArray(data.filters) ? data.filters.map(function (filter) {
-            return new MdashRendFilter(filter);
-        }) : [];
-        this.filterValues = data.filterValues || {};
-
-        this.containers = Array.isArray(data.containers) ? data.containers.map(function (container) {
-            return new MdashRendContainer(container);
-        }) : [];
-
-        this.containerItems = Array.isArray(data.containerItems) ? data.containerItems.map(function (item) {
-            return new MdashContainerItem(item);
-        }) : [];
-
-        this.containerItemObjects = Array.isArray(data.containerItemObjects) ? data.containerItemObjects.map(function (itemObject) {
-            return new MdashContainerItemObject(itemObject);
-        }) : [];
-
-        this.reactiveInstance = null;
-
-
-        function MdashRendFilter(data) {
-
-            this.mdashfilterstamp = data.mdashfilterstamp || generateUUID();
-            this.dashboardstamp = data.dashboardstamp || GMDashStamp;
-            this.codigo = data.codigo || "";
-            this.descricao = data.descricao || "";
-            this.tipo = data.tipo || "text";
-            this.tamanho = data.tamanho || 4;
-            this.campooption = data.campooption || "";
-            this.campovalor = data.campovalor || "";
-            this.expressaolistagem = data.expressaolistagem || "";
-            this.valordefeito = data.valordefeito || "";
-            this.ordem = data.ordem || 0;
-        }
-
-        function MdashRendContainer(data) {
-
-            this.mdashcontainerstamp = data.mdashcontainerstamp || generateUUID();
-            this.codigo = data.codigo || "";
-            this.titulo = data.titulo || "";
-            this.tipo = data.tipo || "";
-            this.tamanho = data.tamanho || 12;
-            this.ordem = data.ordem || 0;
-            this.dashboardstamp = data.dashboardstamp || GMDashStamp;
-        }
-
-        function MdashContainerItem(data) {
-
-
-            var cardContainerItemData = {
-                id: "",
-                title: "Conteúdo não disponível",
-                type: "primary",
-                headerCustomData: "data-container-item='true'",
-                bodyContent: ""
-            }
-
-            this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || generateUUID();
-            this.mdashcontainerstamp = data.mdashcontainerstamp || "";
-            this.codigo = data.codigo || "";
-            this.titulo = data.titulo || "";
-            this.tipo = data.tipo || "";
-            this.tamanho = data.tamanho || 4;
-            this.dadosTemplate = data.dadosTemplate || {};
-            this.skeletonId = data.skeletonId || ""
-            this.ordem = data.ordem || 0;
-            this.filters = data.filters || []
-            this.templatelayout = data.templatelayout || "";
-            this.urlfetch = data.urlfetch || "";
-            this.layoutcontaineritemdefault = data.layoutcontaineritemdefault || true;
-            this.expressaolayoutcontaineritem = data.expressaolayoutcontaineritem || "";
-            this.dashboardstamp = data.dashboardstamp || "";
-            this.fontelocal = data.fontelocal || false;
-            this.renderedContent = data.renderedContent || generateStandardCard({ titulo: "Sem conteúdo disponível", bodyContent: "" }) || "";
-            this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
-            this.records = [];
-        }
-
-
-        MdashContainerItem.prototype.refreshContent = async function () {
-            var containerItem = this;
-            var errorMessage = "ao trazer resultados no [refreshContent] " + containerItem.titulo
-            try {
-
-
-                if (!containerItem.urlfetch) {
-
-                    containerItem.cleanAndRender(buildAlert("alert-danger", "URL para listagem  não definida"));
-                    return;
-                }
-
-                containerItem.handleLayout();
-                var requestData = {
-                    codigo: globalThis.dashboardconfig.codigo,
-                    mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
-                    filters: globalThis.filterValues || {}
-                }
-
-                var response = await $.ajax({
-                    type: "POST",
-                    url: containerItem.urlfetch,
-                    data: {
-                        '__EVENTARGUMENT': JSON.stringify([requestData]),
-                    }
-                });
-
-
-                if (response.cod != "0000") {
-
-                    console.log("Erro " + errorMessage, response)
-
-                    containerItem.cleanAndRender(buildAlert("alert-danger", "Erro ao trazer resultados: "));
-                    return false
-                }
-
-                var contentRecords = response.data || [];
-
-                containerItem.records = contentRecords;
-
-
-
-                var containerItemObjects = globalThis.containerItemObjects.filter(function (itemObject) {
-                    return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
-                });
-
-
-                containerItemObjects.forEach(function (itemObject) {
-                    itemObject.renderObjectByContainerItem("#" + containerItem.mdashcontaineritemstamp + " " + containerItem.dadosTemplate.containerSelectorToRender, containerItem);
-                });
-
-
-                if (containerItem.expressaoapresentacaodados) {
-
-                    eval(containerItem.expressaoapresentacaodados);
-                }
-
-                containerItem.hideSkeleton();
-
-            }
-            catch (error) {
-                console.log("Erro interno " + errorMessage, error)
-                containerItem.cleanAndRender(buildAlert("alert-danger", "Erro interno ao processar resultados: "));
-
-
-                //alertify.error("Erro interno " + errorMessage, 10000)
-            }
-
-        };
-
-        MdashContainerItem.prototype.handleLayout = function (content) {
-
-            var containerItem = this;
-
-            containerItem.skeletonId = "skeleton-" + containerItem.mdashcontaineritemstamp;
-
-            // Gerar skeleton HTML
-            var skeletonHTML = generateSkeleton({
-                id: containerItem.skeletonId
-            });
-            if (containerItem.layoutcontaineritemdefault) {
-
-                var listaTemplates = getTemplateLayoutOptions();
-                var selectedTemplate = listaTemplates.find(function (template) {
-                    return template.codigo === containerItem.templatelayout;
-                });
-
-                if (selectedTemplate) {
-
-                    containerItem.dadosTemplate = selectedTemplate
-
-                    $("#" + this.mdashcontaineritemstamp).empty();
-
-                    $("#" + this.mdashcontaineritemstamp).append(selectedTemplate.generateCard({
-                        title: containerItem.titulo,
-                        id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp,
-                        tipo: selectedTemplate.UIData.tipo || "primary",
-                        bodyContent: skeletonHTML,
-                    }));
-
-                    return;
-                }
-
-
-
-
-                containerItem.cleanAndRender(generateDashCardHTML({ id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp, title: containerItem.titulo, bodyContent: "" }));
-
-                return;
-            }
-
-            if (containerItem.expressaolayoutcontaineritem) {
-                eval(containerItem.expressaolayoutcontaineritem);
-            }
-
-        }
-
-        MdashContainerItem.prototype.render = function (content) {
-
-            $("#" + this.mdashcontaineritemstamp).append(content);
-        }
-
-        MdashContainerItem.prototype.hideSkeleton = function () {
-
-            $("#" + this.skeletonId).hide()
-                ;
-        }
-
-
-        MdashContainerItem.prototype.cleanAndRender = function (content) {
-
-            $("#" + this.mdashcontaineritemstamp).empty();
-            $("#" + this.mdashcontaineritemstamp).append(content);
-        }
-
-        MdashContainerItem.prototype.renderOnLayout = function (content) {
-
-            $("#m-dash-layout-" + this.mdashcontaineritemstamp).append(content);
-        }
-
-        MdashContainerItem.prototype.cleanAndRenderOnLayout = function (content) {
-
-            $("#m-dash-layout-" + this.mdashcontaineritemstamp).empty();
-            $("#m-dash-layout-" + this.mdashcontaineritemstamp).append(content);
-        }
-
-
-        MdashContainerItem.prototype.renderBodyLayout = function (content) {
-
-            $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").append(content);
-        }
-
-        MdashContainerItem.prototype.cleanAndRenderBodyLayout = function (content) {
-
-            $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").empty();
-            $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").append(content);
-        }
-
-        function MdashContainerItemObject(data) {
-            // Calcula ordem máxima se não for fornecida
-
-
-            this.mdashcontaineritemobjectstamp = data.mdashcontaineritemobjectstamp;
-            this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || "";
-            this.dashboardstamp = data.dashboardstamp || "";
-            this.tipo = data.tipo || "";
-            this.tamanho = data.tamanho || 0;
-            this.ordem = data.ordem || 0;
-            this.expressaoobjecto = data.expressaoobjecto || "";
-            this.objectsUIFormConfig = data.objectsUIFormConfig || [];
-            this.localsource = data.localsource || "";
-
-
-            var config = {}
-
-            if (data.configjson) {
-                try {
-                    config = JSON.parse(data.configjson);
-                } catch (error) {
-                    console.error("Erro ao analisar configjson:", error);
-                }
-            }
-
-            this.config = config || {}
-            this.configjson = data.configjson || ""
-            this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
-
-
-            this.objectoConfig = data.objectoConfig || {};
-
-            if (this.tipo) {
-
-                var tiposObjecto = getTiposObjectoConfig();
-                var self = this;
-
-                var tipoObjecto = tiposObjecto.find(function (tipo) {
-                    return tipo.tipo === self.tipo;
-                });
-
-                if (tipoObjecto) {
-                    this.objectoConfig = tipoObjecto || {};
-                }
-
-            }
-
-
-
-            var queryConfig = data.queryConfig || {
-                selectFields: [],
-                filters: [],
-                groupBy: [],
-                orderBy: { field: "", direction: "ASC" },
-                limit: null,
-                generatedSQL: "",
-                lastResult: []
-            };
-
-            if (data.queryconfigjson) {
-
-                try {
-                    queryConfig = JSON.parse(data.queryconfigjson);
-                } catch (error) {
-
-                }
-
-            }
-
-            this.queryConfig = queryConfig || {
-                selectFields: [],
-                filters: [],
-                groupBy: [],
-                orderBy: { field: "", direction: "ASC" },
-                limit: null,
-                generatedSQL: "",
-                lastResult: []
-            };
-
-            var queryConfigVoid = {
-                selectFields: [],
-                filters: [],
-                groupBy: [],
-                orderBy: { field: "", direction: "ASC" },
-                limit: null,
-                generatedSQL: "",
-                lastResult: []
-            };
-            this.queryconfigjson = queryConfig ? JSON.stringify(queryConfig) : JSON.stringify(queryConfigVoid);
-        }
-
-
-
-        MdashContainerItemObject.prototype.renderObjectByContainerItem = function (containerSelector, containerItem) {
-
-            var self = this;
-
-            if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
-
-                var localQueryResult = alasql(self.queryConfig.generatedSQL, [containerItem.records]);
-
-                console.log("localQueryResult", self.queryConfig.generatedSQL, localQueryResult);
-
-                self.objectoConfig.renderObject({
-                    containerSelector: containerSelector,
-                    itemObject: self,
-                    queryConfig: self.queryConfig,
-                    config: self.config,
-                    containerItem: containerItem,
-                    data: containerItem.records || [],
-                })
-            }
-
-
-        }
-
-
-    }
-
-    var GMainDashInstance = new Mdash({
-        dashboardconfig: {
-            dashboardstamp: "",
-            codigo: "",
-            descricao: "",
-        },
-        categoria: ""
-    });
-
-
-
-    function handleDefaultValue(dataType, valor) {
-        switch (dataType.trim()) {
-            case "digit":
-                var inputValTxt = (String(valor) ? String(valor).replaceAll(" ", "").replaceAll(",", "") : "0")
-
-                return inputValTxt;
-                return isNaN(inputValTxt) || inputValTxt == null || inputValTxt == undefined || inputValTxt == "" ? 0 : inputValTxt;
-
-            case "text":
-
-                return valor ? valor : "";
-            default:
-                return valor;
-        }
-    }
-
-    function getValorDefeito(filter) {
-
-        var valorDefeito = null;
-        if (filter.valordefeito) {
-            valorDefeito = eval(filter.valordefeito);
-        }
-
-        var cachedFilters = window.localStorage.getItem("mdashcachedFilters");
-        cachedFilters = cachedFilters ? JSON.parse(cachedFilters) : {};
-
-        if (cachedFilters[filter.codigo]) {
-            valorDefeito = cachedFilters[filter.codigo];
-        }
-
-        return handleDefaultValue(filter.tipo, valorDefeito);
-
+    function MdashContainerItem(data) {
+
+
+      var cardContainerItemData = {
+        id: "",
+        title: "Conteúdo não disponível",
+        type: "primary",
+        headerCustomData: "data-container-item='true'",
+        bodyContent: ""
+      }
+
+      this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || generateUUID();
+      this.mdashcontainerstamp = data.mdashcontainerstamp || "";
+      this.codigo = data.codigo || "";
+      this.titulo = data.titulo || "";
+      this.tipo = data.tipo || "";
+      this.tamanho = data.tamanho || 4;
+      this.dadosTemplate = data.dadosTemplate || {};
+      this.skeletonId = data.skeletonId || ""
+      this.ordem = data.ordem || 0;
+      this.filters = data.filters || []
+      this.templatelayout = data.templatelayout || "";
+      this.urlfetch = data.urlfetch || "";
+      this.layoutcontaineritemdefault = data.layoutcontaineritemdefault || true;
+      this.expressaolayoutcontaineritem = data.expressaolayoutcontaineritem || "";
+      this.dashboardstamp = data.dashboardstamp || "";
+      this.fontelocal = data.fontelocal || false;
+      this.renderedContent = data.renderedContent || generateStandardCard({ titulo: "Sem conteúdo disponível", bodyContent: "" }) || "";
+      this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
+      this.records = [];
     }
 
 
+    MdashContainerItem.prototype.refreshContent = async function () {
+      var containerItem = this;
+      var errorMessage = "ao trazer resultados no [refreshContent] " + containerItem.titulo
+      try {
 
 
-    var GConfigDash = null;
-    $(document).ready(function () {
+        if (!containerItem.urlfetch) {
 
-        var state = PetiteVue.reactive({
-            mdash: GMainDashInstance,
-            getOptions(filter) {
-                try {
-                    return eval(filter.expressaolistagem) || [];
-                } catch (e) {
-                    console.warn('Erro em expressaolistagem', e);
-                    return [];
-                }
-            },
-            getRowGroups(containerStamp) {
-                // Filtra os items do container específico
-                var containerItems = this.mdash.containerItems.filter(function (item) {
-                    return item.mdashcontainerstamp === containerStamp;
-                });
+          containerItem.cleanAndRender(buildAlert("alert-danger", "URL para listagem  não definida"));
+          return;
+        }
 
-                // Ordena por ordem se necessário
-                containerItems.sort(function (a, b) {
-                    return (a.ordem || 0) - (b.ordem || 0);
-                });
+        containerItem.handleLayout();
+        var requestData = {
+          codigo: globalThis.dashboardconfig.codigo,
+          mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
+          filters: globalThis.filterValues || {}
+        }
 
-                // Agrupa em rows
-                return groupItemsByRows(containerItems);
-            },
-            refreshDashboard() {
-                console.log("Refreshing Dashboard.....");
-                this.mdash.containerItems.forEach(function (containerItem) {
-                    containerItem.refreshContent();
-                });
-            },
-            updateFilter(filtro, event) {
-
-                var containerItemsThatContainFilter = []
-
-                this.mdash.containerItems.map(function (item) {
-
-                    var filterFound = item.filters.find(function (f) {
-                        return f == filtro.codigo;
-                    })
-
-
-                    if (filterFound) {
-                        containerItemsThatContainFilter.push(item);
-                    }
-
-                })
-
-                containerItemsThatContainFilter.forEach(function (itemWithFilter) {
-
-                    itemWithFilter.refreshContent();
-
-                })
-
-                this.mdash.filterValues[filtro.codigo] = event.target.value;
-                window.localStorage.setItem("mdashcachedFilters", JSON.stringify(this.mdash.filterValues));
-
-            }
+        var response = await $.ajax({
+          type: "POST",
+          url: containerItem.urlfetch,
+          data: {
+            '__EVENTARGUMENT': JSON.stringify([requestData]),
+          }
         });
 
 
+        if (response.cod != "0000") {
+
+          console.log("Erro " + errorMessage, response)
+
+          containerItem.cleanAndRender(buildAlert("alert-danger", "Erro ao trazer resultados: "));
+          return false
+        }
+
+        var contentRecords = response.data || [];
+
+        containerItem.records = contentRecords;
 
 
-        window.mdashAppState = state;
 
-        PetiteVue.createApp(state).mount("#mdash");
-
-        handleMdashConfigData().then(function (data) {
-
-            if (GConfigDash) {
-
-                window.mdashAppState.mdash.containerItems.forEach(function (item) {
-
-                    try {
-                        item.refreshContent();
-
-                    } catch (error) {
-
-                    }
-                })
-            }
-
-        })
-
-    });
-
-    async function handleMdashConfigData() {
-        try {
-
-            params = new URLSearchParams(document.location.search);
-            codigomdash = params.get("codigomdash");
-
-            if (!codigomdash) {
-                $(".m-dash-main").empty();
-                var alertResult = buildAlert("alert-danger", "O código do Dashboard não foi encontrado.");
-
-                $(".m-dash-main").append(alertResult);
-                return false;
-            }
-
-            var errorMessage = "ao trazer resultados da configuração do m dashboard ao rendereizar o m dashboard";
-            var response = await $.ajax({
-                type: "POST",
-                url: "../programs/gensel.aspx?cscript=getconfiguracaoclientmdash",
-                data: {
-                    '__EVENTARGUMENT': JSON.stringify([{ codigo: codigomdash }]),
-                }
-            });
+        var containerItemObjects = globalThis.containerItemObjects.filter(function (itemObject) {
+          return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
+        });
 
 
-            if (response.cod != "0000") {
-                console.log("Erro " + errorMessage, response);
-                return false;
-            }
-
-            var configData = response.data
-
-            var dashboardconfig = response.data.dashboard[0] || {};
+        containerItemObjects.forEach(function (itemObject) {
+          itemObject.renderObjectByContainerItem("#" + containerItem.mdashcontaineritemstamp + " " + containerItem.dadosTemplate.containerSelectorToRender, containerItem);
+        });
 
 
-            configData.dashboardconfig = dashboardconfig;
+        if (containerItem.expressaoapresentacaodados) {
 
-            var configData = new Mdash(configData);
-            var filters = configData.filters || [];
-            var filterValues = {};
+          eval(containerItem.expressaoapresentacaodados);
+        }
 
-            filters.forEach(function (filter) {
-                filterValues[filter.codigo] = getValorDefeito(filter);
-            });
+        containerItem.hideSkeleton();
 
-            configData.filterValues = filterValues;
+      }
+      catch (error) {
+        console.log("Erro interno " + errorMessage, error)
+        containerItem.cleanAndRender(buildAlert("alert-danger", "Erro interno ao processar resultados: "));
 
-            window.localStorage.setItem("mdashcachedFilters", JSON.stringify(configData.filterValues));
 
-            window.mdashAppState.mdash = configData;
+        //alertify.error("Erro interno " + errorMessage, 10000)
+      }
 
-            GConfigDash = configData;
+    };
 
-            // console.log("configData", configData)
+    MdashContainerItem.prototype.handleLayout = function (content) {
 
-        } catch (error) {
-            console.log("Erro interno " + errorMessage, error);
+      var containerItem = this;
+
+      containerItem.skeletonId = "skeleton-" + containerItem.mdashcontaineritemstamp;
+
+      // Gerar skeleton HTML
+      var skeletonHTML = generateSkeleton({
+        id: containerItem.skeletonId
+      });
+      if (containerItem.layoutcontaineritemdefault) {
+
+        var listaTemplates = getTemplateLayoutOptions();
+        var selectedTemplate = listaTemplates.find(function (template) {
+          return template.codigo === containerItem.templatelayout;
+        });
+
+        if (selectedTemplate) {
+
+          containerItem.dadosTemplate = selectedTemplate
+
+          $("#" + this.mdashcontaineritemstamp).empty();
+
+          $("#" + this.mdashcontaineritemstamp).append(selectedTemplate.generateCard({
+            title: containerItem.titulo,
+            id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp,
+            tipo: selectedTemplate.UIData.tipo || "primary",
+            bodyContent: skeletonHTML,
+          }));
+
+          return;
         }
 
 
+
+
+        containerItem.cleanAndRender(generateDashCardHTML({ id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp, title: containerItem.titulo, bodyContent: "" }));
+
+        return;
+      }
+
+      if (containerItem.expressaolayoutcontaineritem) {
+        eval(containerItem.expressaolayoutcontaineritem);
+      }
+
     }
+
+    MdashContainerItem.prototype.render = function (content) {
+
+      $("#" + this.mdashcontaineritemstamp).append(content);
+    }
+
+    MdashContainerItem.prototype.hideSkeleton = function () {
+
+      $("#" + this.skeletonId).hide()
+        ;
+    }
+
+
+    MdashContainerItem.prototype.cleanAndRender = function (content) {
+
+      $("#" + this.mdashcontaineritemstamp).empty();
+      $("#" + this.mdashcontaineritemstamp).append(content);
+    }
+
+    MdashContainerItem.prototype.renderOnLayout = function (content) {
+
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp).append(content);
+    }
+
+    MdashContainerItem.prototype.cleanAndRenderOnLayout = function (content) {
+
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp).empty();
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp).append(content);
+    }
+
+
+    MdashContainerItem.prototype.renderBodyLayout = function (content) {
+
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").append(content);
+    }
+
+    MdashContainerItem.prototype.cleanAndRenderBodyLayout = function (content) {
+
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").empty();
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").append(content);
+    }
+
+    function MdashContainerItemObject(data) {
+      // Calcula ordem máxima se não for fornecida
+
+
+      this.mdashcontaineritemobjectstamp = data.mdashcontaineritemobjectstamp;
+      this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || "";
+      this.dashboardstamp = data.dashboardstamp || "";
+      this.tipo = data.tipo || "";
+      this.tamanho = data.tamanho || 0;
+      this.ordem = data.ordem || 0;
+      this.expressaoobjecto = data.expressaoobjecto || "";
+      this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+      this.localsource = data.localsource || "";
+
+
+      var config = {}
+
+      if (data.configjson) {
+        try {
+          config = JSON.parse(data.configjson);
+        } catch (error) {
+          console.error("Erro ao analisar configjson:", error);
+        }
+      }
+
+      this.config = config || {}
+      this.configjson = data.configjson || ""
+      this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
+
+
+      this.objectoConfig = data.objectoConfig || {};
+
+      if (this.tipo) {
+
+        var tiposObjecto = getTiposObjectoConfig();
+        var self = this;
+
+        var tipoObjecto = tiposObjecto.find(function (tipo) {
+          return tipo.tipo === self.tipo;
+        });
+
+        if (tipoObjecto) {
+          this.objectoConfig = tipoObjecto || {};
+        }
+
+      }
+
+
+
+      var queryConfig = data.queryConfig || {
+        selectFields: [],
+        filters: [],
+        groupBy: [],
+        orderBy: { field: "", direction: "ASC" },
+        limit: null,
+        generatedSQL: "",
+        lastResult: []
+      };
+
+      if (data.queryconfigjson) {
+
+        try {
+          queryConfig = JSON.parse(data.queryconfigjson);
+        } catch (error) {
+
+        }
+
+      }
+
+      this.queryConfig = queryConfig || {
+        selectFields: [],
+        filters: [],
+        groupBy: [],
+        orderBy: { field: "", direction: "ASC" },
+        limit: null,
+        generatedSQL: "",
+        lastResult: []
+      };
+
+      var queryConfigVoid = {
+        selectFields: [],
+        filters: [],
+        groupBy: [],
+        orderBy: { field: "", direction: "ASC" },
+        limit: null,
+        generatedSQL: "",
+        lastResult: []
+      };
+      this.queryconfigjson = queryConfig ? JSON.stringify(queryConfig) : JSON.stringify(queryConfigVoid);
+    }
+
+
+
+    MdashContainerItemObject.prototype.renderObjectByContainerItem = function (containerSelector, containerItem) {
+
+      var self = this;
+
+      if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
+
+        var localQueryResult = alasql(self.queryConfig.generatedSQL, [containerItem.records]);
+
+        console.log("localQueryResult", self.queryConfig.generatedSQL, localQueryResult);
+
+        self.objectoConfig.renderObject({
+          containerSelector: containerSelector,
+          itemObject: self,
+          queryConfig: self.queryConfig,
+          config: self.config,
+          containerItem: containerItem,
+          data: containerItem.records || [],
+        })
+      }
+
+
+    }
+
+
+  }
+
+  var GMainDashInstance = new Mdash({
+    dashboardconfig: {
+      dashboardstamp: "",
+      codigo: "",
+      descricao: "",
+    },
+    categoria: ""
+  });
+
+
+
+  function handleDefaultValue(dataType, valor) {
+    switch (dataType.trim()) {
+      case "digit":
+        var inputValTxt = (String(valor) ? String(valor).replaceAll(" ", "").replaceAll(",", "") : "0")
+
+        return inputValTxt;
+        return isNaN(inputValTxt) || inputValTxt == null || inputValTxt == undefined || inputValTxt == "" ? 0 : inputValTxt;
+
+      case "text":
+
+        return valor ? valor : "";
+      default:
+        return valor;
+    }
+  }
+
+  function getValorDefeito(filter) {
+
+    var valorDefeito = null;
+    if (filter.valordefeito) {
+      valorDefeito = eval(filter.valordefeito);
+    }
+
+    var cachedFilters = window.localStorage.getItem("mdashcachedFilters");
+    cachedFilters = cachedFilters ? JSON.parse(cachedFilters) : {};
+
+    if (cachedFilters[filter.codigo]) {
+      valorDefeito = cachedFilters[filter.codigo];
+    }
+
+    return handleDefaultValue(filter.tipo, valorDefeito);
+
+  }
+
+
+
+
+  var GConfigDash = null;
+  $(document).ready(function () {
+
+    var state = PetiteVue.reactive({
+      mdash: GMainDashInstance,
+      getOptions(filter) {
+        try {
+          return eval(filter.expressaolistagem) || [];
+        } catch (e) {
+          console.warn('Erro em expressaolistagem', e);
+          return [];
+        }
+      },
+      getRowGroups(containerStamp) {
+        // Filtra os items do container específico
+        var containerItems = this.mdash.containerItems.filter(function (item) {
+          return item.mdashcontainerstamp === containerStamp;
+        });
+
+        // Ordena por ordem se necessário
+        containerItems.sort(function (a, b) {
+          return (a.ordem || 0) - (b.ordem || 0);
+        });
+
+        // Agrupa em rows
+        return groupItemsByRows(containerItems);
+      },
+      refreshDashboard() {
+        console.log("Refreshing Dashboard.....");
+        this.mdash.containerItems.forEach(function (containerItem) {
+          containerItem.refreshContent();
+        });
+      },
+      updateFilter(filtro, event) {
+
+        var containerItemsThatContainFilter = []
+
+        this.mdash.containerItems.map(function (item) {
+
+          var filterFound = item.filters.find(function (f) {
+            return f == filtro.codigo;
+          })
+
+
+          if (filterFound) {
+            containerItemsThatContainFilter.push(item);
+          }
+
+        })
+
+        containerItemsThatContainFilter.forEach(function (itemWithFilter) {
+
+          itemWithFilter.refreshContent();
+
+        })
+
+        this.mdash.filterValues[filtro.codigo] = event.target.value;
+        window.localStorage.setItem("mdashcachedFilters", JSON.stringify(this.mdash.filterValues));
+
+      }
+    });
+
+
+
+
+    window.mdashAppState = state;
+
+    PetiteVue.createApp(state).mount("#mdash");
+
+    handleMdashConfigData().then(function (data) {
+
+      if (GConfigDash) {
+
+        window.mdashAppState.mdash.containerItems.forEach(function (item) {
+
+          try {
+            item.refreshContent();
+
+          } catch (error) {
+
+          }
+        })
+      }
+
+    })
+
+  });
+
+  async function handleMdashConfigData() {
+    try {
+
+      params = new URLSearchParams(document.location.search);
+      codigomdash = params.get("codigomdash");
+
+      if (!codigomdash) {
+        $(".m-dash-main").empty();
+        var alertResult = buildAlert("alert-danger", "O código do Dashboard não foi encontrado.");
+
+        $(".m-dash-main").append(alertResult);
+        return false;
+      }
+
+      var errorMessage = "ao trazer resultados da configuração do m dashboard ao rendereizar o m dashboard";
+      var response = await $.ajax({
+        type: "POST",
+        url: "../programs/gensel.aspx?cscript=getconfiguracaoclientmdash",
+        data: {
+          '__EVENTARGUMENT': JSON.stringify([{ codigo: codigomdash }]),
+        }
+      });
+
+
+      if (response.cod != "0000") {
+        console.log("Erro " + errorMessage, response);
+        return false;
+      }
+
+      var configData = response.data
+
+      var dashboardconfig = response.data.dashboard[0] || {};
+
+
+      configData.dashboardconfig = dashboardconfig;
+
+      var configData = new Mdash(configData);
+      var filters = configData.filters || [];
+      var filterValues = {};
+
+      filters.forEach(function (filter) {
+        filterValues[filter.codigo] = getValorDefeito(filter);
+      });
+
+      configData.filterValues = filterValues;
+
+      window.localStorage.setItem("mdashcachedFilters", JSON.stringify(configData.filterValues));
+
+      window.mdashAppState.mdash = configData;
+
+      GConfigDash = configData;
+
+      // console.log("configData", configData)
+
+    } catch (error) {
+      console.log("Erro interno " + errorMessage, error);
+    }
+
+
+  }
 
 
 </script>

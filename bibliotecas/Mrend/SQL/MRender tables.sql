@@ -93,6 +93,8 @@ CREATE TABLE MrendColuna
     nometb VARCHAR(100) DEFAULT '',
     valtb VARCHAR(100) DEFAULT '',
     categoria VARCHAR(100) DEFAULT 'default',
+    tamanho INT DEFAULT 0,
+    alinhamento VARCHAR(100) DEFAULT '',
     addBtn BIT DEFAULT 0,
     descbtnModelo VARCHAR(250) DEFAULT '',
     modelocoluna BIT DEFAULT 0,
@@ -175,7 +177,8 @@ CREATE TABLE u_reportl (
     desccoluna VARCHAR(250) DEFAULT '',
     ordemcoluna Numeric(16) DEFAULT 0,
     valor Numeric(16,2) DEFAULT 0,
-    cvalor VARCHAR(250) DEFAULT ''
+    cvalor VARCHAR(250) DEFAULT '',
+    tipo VARCHAR(20) DEFAULT ''
 );
 
 

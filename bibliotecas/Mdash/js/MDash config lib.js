@@ -150,7 +150,7 @@ function MdashContainerItem(data) {
     this.expressaolayoutcontaineritem = data.expressaolayoutcontaineritem || "";
     this.dashboardstamp = data.dashboardstamp || "";
     this.fontelocal = data.fontelocal || false;
-    this.urlfetch = data.urlfetch || "";
+    this.urlfetch = data.urlfetch || "../programs/gensel.aspx?cscript=getdbcontaineritemdata";
     this.expressaodblistagem = data.expressaodblistagem || "";
     this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
     this.filters = data.filters || [];
