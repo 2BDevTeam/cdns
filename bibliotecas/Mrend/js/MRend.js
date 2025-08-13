@@ -68,6 +68,7 @@ function Mrend(options) {
         this.defaultColumnName = data.defaultColumnName || "";
         this.chunkMapping = data.chunkMapping || false;
         this.table = data.table || "";
+        this.dbName = data.dbName || "MrendDb" + this.table;
         this.tableKey = data.tableKey || "";
         this.extras = data.extras ? new DbTableExtras(data.extras) : {};
     }
@@ -175,6 +176,9 @@ function Mrend(options) {
         this.origem = data.origem || "";
         this.descbtnModelo = data.descbtnModelo || "";
         this.expressao = data.expressao || "";
+        this.eventoadd = data.eventoadd || false;
+        this.eventoaddexpr = data.eventoaddexpr || "";
+        this.eventodelete = data.eventodelete || false;
         this.campovalid = data.campovalid || "";
         this.sinalnegativo = data.sinalnegativo || false;
         this.temtotais = data.temtotais || false;
@@ -188,6 +192,7 @@ function Mrend(options) {
         this.fnpren = data.fnpren || "";
         this.tipolistagem = data.tipolistagem || "table";
         this.objectolist = data.objectolist || "";
+        this.leitura = data.leitura || false;
         this.executachange = data.executachange || false;
         this.expressaochangejs = data.expressaochangejs || "";
         this.cor = data.cor || "";
@@ -218,6 +223,7 @@ function Mrend(options) {
         this.sourceKey = data.sourceKey || "";
         this.validacoluna = data.validacoluna || false;
         this.expresscolfun = data.expresscolfun || "";
+        this.temlinhadesc = data.temlinhadesc || false;
         this.colfunc = data.colfunc || false;
         this.eventoclique = data.eventoclique || false;
         this.expressaoclique = data.expressaoclique || "";
@@ -235,6 +241,8 @@ function Mrend(options) {
 
         this.condicfunc = data.condicfunc || false;
         this.condicfuncexpr = data.condicfuncexpr || "";
+        this.tamanho = data.tamanho || 100;
+        this.alinhamento = data.alinhamento || "left";
 
         this.nometb = data.nometb || "";
         this.valtb = data.valtb || "";
@@ -318,7 +326,11 @@ function Mrend(options) {
         this.fx = data.fx || "";
         this.temfx = data.temfx || false;
         this.localData = Array.isArray(data.localData) ? Array.from(data.localData) : [];
-        this.fxdata = new FXData(data.fxdata ? data.fxdata : {})
+        this.fxdata = new FXData(data.fxdata ? data.fxdata : {});
+        this.valordefeito = data.valordefeito || false;
+        this.valordefeitoexpr = data.valordefeitoexpr || "";
+        this.valdefafinstancia = data.valdefafinstancia || false;
+
     }
 
 
@@ -990,7 +1002,8 @@ function Mrend(options) {
         this.linkcodigo = data.linkcodigo || "";
         this.linkdescricao = data.linkdescricao || ""
         this.UIObject = data.UIObject || {};
-        //  this.ordem = generateLinhaOrdem();
+
+        this.eventodeleteexpr = data.eventodeleteexpr || "";
         this.ordem = data.ordem || (generateLinhaOrdem());
         this.parentid = data.parentid || "";
         this.novoregisto = data.novoregisto
@@ -1057,6 +1070,30 @@ function Mrend(options) {
     };
 
 
+    RenderedLinha.prototype.getParent = function () {
+        var self = this;
+        var parentLinha = globalThis.GRenderedLinhas.find(function (linha) {
+            return linha.rowid == self.linkid;
+        }, this);
+        return parentLinha || null;
+    }
+
+    // ...existing code...
+
+    RenderedLinha.prototype.getChildren = function () {
+        var self = this;
+
+        return globalThis.GRenderedLinhas.filter(function (obj) {
+
+            return obj.linkid == self.rowid
+        })
+    };
+
+    // ...existing code...
+
+
+
+
 
     RenderedLinha.prototype.addToLocalRenderedLinhasList = function (linhaRecords, distinctRow, renderCelula, setChildren) {
 
@@ -1083,7 +1120,26 @@ function Mrend(options) {
                 if (parentLinha) {
 
                     parentLinha.UIObject._children = parentLinha.UIObject._children || [];
+
+
                     parentLinha.UIObject._children.push(this.UIObject);
+
+                    parentLinha.UIObject._children.sort(function (a, b) {
+
+                        var renderedLinhaA = globalThis.GRenderedLinhas.find(function (linha) {
+                            return linha.rowid == a.rowid;
+                        });
+
+                        var renderedLinhaB = globalThis.GRenderedLinhas.find(function (linha) {
+                            return linha.rowid == b.rowid;
+                        });
+
+
+                        var ordemA = renderedLinhaA ? (renderedLinhaA.ordem || 0) : 0;
+                        var ordemB = renderedLinhaB ? (renderedLinhaB.ordem || 0) : 0;
+
+                        return ordemA - ordemB;
+                    });
 
                 }
 
@@ -1995,7 +2051,7 @@ function Mrend(options) {
 
                         tableRow[coluna.config.campo] = handleDefaultValueByDataType(coluna.config.tipo, tableRow[coluna.config.campo]);
                         tableRow[source.linkField] = tableRow.linkid || "";
-                        
+
 
                         setIfSourceFieldExists(tableRow, source, "ordemField", source.ordemField, 0, tableRow, "ordem");
                         setIfSourceFieldExists(tableRow, source, "linhaField", source.linhaField, "", tableRow, "codigolinha");
@@ -2026,7 +2082,7 @@ function Mrend(options) {
 
 
 
-        
+
             return sources;
 
         }
@@ -2142,7 +2198,7 @@ function Mrend(options) {
 
     function ConvertDbTableToMrendObject(data, MrendConversionConfig) {
         if (!data[0]) {
-            
+
             return []
         }
         var keys = Object.keys(data[0]);
@@ -2150,7 +2206,7 @@ function Mrend(options) {
 
 
         if (MrendConversionConfig.chunkMapping == false) {
-            
+
             distinctKey = getDistinctWithKeys(data, MrendConversionConfig.extras.colunaField);
 
             keys = distinctKey.map(function (obj) {
@@ -2172,16 +2228,16 @@ function Mrend(options) {
                     return coluna.codigocoluna == colunaInstance || coluna.codigocoluna == mrendObject.coluna;
                 });
 
-                if (colunaConfig) {
+                if (colunaConfig.length > 0) {
 
                     mrendObject.campo = colunaConfig[0].campo;
                     mrendObject[colunaConfig[0].campo] = record[colunaConfig[0].campo];
 
-                    
+
                     if (!mrendObject.tipocol) {
                         mrendObject.tipocol = colunaConfig[0].tipo || "text";
                     }
-                
+
                 }
 
                 mrendObjects.push(mrendObject);
@@ -3022,7 +3078,7 @@ function Mrend(options) {
     function InitDB(datasourceName, schemas) {
 
         return new Promise(function (resolve, reject) {
-            globalThis.db = new Dexie(datasourceName + "" + schemas[0].tableSourceName);
+            globalThis.db = new Dexie(datasourceName);
             var promises = []; // Armazena todas as Promises do loop
 
             return configureDataBase(globalThis.db, schemas[0].tableSourceName, 1, Object.keys(schemas[0].tableSourceSchema)).then(function (result) {
@@ -3057,7 +3113,8 @@ function Mrend(options) {
     }
     function storeDataSourceStamp(sourceStamp) {
 
-        window.localStorage.setItem("sourcestamp" + globalThis.tableSourceName, sourceStamp.trim())
+
+        window.localStorage.setItem("sourcestamp_" + globalThis.dbTableToMrendObject.dbName + "_" + globalThis.tableSourceName, sourceStamp.trim())
     }
 
     function clearStamps() {
@@ -3066,7 +3123,8 @@ function Mrend(options) {
     }
 
     function getSourceStamp() {
-        return window.localStorage.getItem("sourcestamp" + globalThis.tableSourceName) ? window.localStorage.getItem("sourcestamp" + globalThis.tableSourceName).trim() : "";
+
+        return window.localStorage.getItem("sourcestamp_" + globalThis.dbTableToMrendObject.dbName + "_" + globalThis.tableSourceName) ? window.localStorage.getItem("sourcestamp_" + globalThis.dbTableToMrendObject.dbName + "_" + globalThis.tableSourceName).trim() : "";
     }
 
 
@@ -3638,6 +3696,9 @@ function Mrend(options) {
         return {
             mutator: function (value, rowData, type, params, component) {
 
+
+
+
                 var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
                     return linha.rowid == rowData.rowid;
                 });
@@ -3655,6 +3716,54 @@ function Mrend(options) {
                     throw new Error("Celula com codigocoluna " + renderedColuna.config.codigocoluna + " e linhastamp " + renderedLinha.config.linhastamp + " não encontrada.");
                 }
 
+                if (celula.valordefeito == true && renderedLinha.novoregisto == true) {
+                    try {
+                        var expressaoValDefeito = eval(celula.valordefeitoexpr);
+
+
+                        if (renderedLinha.isInstance == true && celula.valdefafinstancia == true) {
+
+                            var rowupdated = {};
+                            rowupdated[renderedColuna.codigocoluna] = expressaoValDefeito;
+                            rowupdated.rowid = rowData.rowid;
+                            updateCellObjectConfig(renderedColuna.codigocoluna, rowupdated);
+
+                            return expressaoValDefeito;
+                        }
+
+
+                        if (renderedLinha.isInstance == false) {
+
+                            var rowupdated = {};
+                            rowupdated[renderedColuna.codigocoluna] = expressaoValDefeito;
+                            rowupdated.rowid = rowData.rowid;
+                            updateCellObjectConfig(renderedColuna.codigocoluna, rowupdated);
+
+                            return expressaoValDefeito;
+
+                        }
+                    } catch (error) {
+
+                        console.warn("ERRO NO VALOR POR DEFEITO PARA COLUNA", renderedColuna.codigocoluna,"Célula ",celula, error)
+                    }
+
+
+
+
+                }
+
+
+                if (renderedLinha.isInstance == false && renderedColuna.config.temlinhadesc) {
+
+                    var rowupdated = {}
+                    var descricao = renderedLinha.config.descricao;
+                    rowupdated[renderedColuna.codigocoluna] = descricao;
+                    rowupdated.rowid = rowData.rowid;
+                    updateCellObjectConfig(renderedColuna.codigocoluna, rowupdated);
+
+                    return descricao
+
+                }
 
                 if (renderedColuna.config.colfunc || celula.usafnpren) {
 
@@ -3729,6 +3838,11 @@ function Mrend(options) {
 
         if (renderedLinha) {
 
+            globalThis.GRenderedLinhas = globalThis.GRenderedLinhas.filter(function (linha) {
+                return linha.rowid != rowid
+            })
+
+
             renderedLinha.deleteRow();
         }
     }
@@ -3769,7 +3883,8 @@ function Mrend(options) {
             var colunaUIConfig = {
                 title: coluna.desccoluna,
                 field: coluna.codigocoluna,
-                width: 100,
+                width: coluna.config.tamanho,
+                hozAlign: coluna.config.alinhamento,
                 frozen: coluna.config.fixacoluna,
                 headerTooltip: function (e, cell, onRendered) {
                     //e - mouseover event
@@ -3844,6 +3959,19 @@ function Mrend(options) {
                     throw new Error("Coluna renderedColuna set editable com codigocoluna " + cell.getField() + " não encontrada.");
                 }
 
+                var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+                    return linha.rowid == rowData.rowid;
+                });
+
+                if (!renderedLinha) {
+                    throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
+                }
+
+                if (renderedLinha.isInstance == false && renderedLinha.config.leitura) {
+
+                    return false;
+                }
+
                 var condicAttrResult = ""
                 if (renderedColuna.config.condicattr) {
 
@@ -3886,6 +4014,40 @@ function Mrend(options) {
 
     }
 
+
+    function handleRowEvent(row, operation) {
+        var rowData = row.getData();
+        var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+            return linha.rowid == rowData.rowid;
+        });
+        if (!renderedLinha) {
+            throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
+        }
+
+
+
+        switch (operation) {
+            case "add":
+
+                if (renderedLinha.config.eventoadd) {
+                    // console.log("Executing add event for rowid:", renderedLinha.config.eventoaddexpr);
+                    eval(renderedLinha.config.eventoaddexpr);
+                }
+
+                break;
+            case "delete":
+
+                if (renderedLinha.config.eventodelete) {
+                    // console.log("Executing delete event for rowid:", renderedLinha.config.eventodeleteexpr);
+                    eval(renderedLinha.config.eventoaddexpr);
+                }
+
+            default:
+                break;
+        }
+
+
+    }
 
     function RenderSourceTable() {
 
@@ -3952,10 +4114,14 @@ function Mrend(options) {
 
                     if (target.classList.contains("add-child")) {
 
+
                         var addFilhaResult = addLinhaFilha(row.getData().rowid);
                         row.addTreeChild(addFilhaResult.UIObject);
                         row.treeExpand();
                         globalThis.applyTabulatorStylesWithJquery(globalThis);
+                        handleRowEvent(row, "add");
+
+
 
                     }
 
@@ -3963,6 +4129,7 @@ function Mrend(options) {
                         var row = cell.getRow();
                         var children = row.getTreeChildren();
 
+                        deleteRowById(row.getData().rowid);
                         if (children.length > 0) {
                             if (confirm("Esta linha tem filhos. Deseja remover tudo?")) {
                                 deleteRowAndChildren(row);
@@ -3971,7 +4138,6 @@ function Mrend(options) {
                             row.delete();
                         }
 
-                        deleteRowById(row.getData().rowid);
 
                     }
                 }
@@ -4008,6 +4174,12 @@ function Mrend(options) {
          'enum': ["fitData", "fitColumns", "fitDataFill", "fitDataStretch"],
         
         */
+
+        $(globalThis.containerToRender).css({
+            "font-family": "Nunito, sans-serif",
+            /*"color": "#626e78"*/
+        })
+
         globalThis.GTable = new Tabulator(globalThis.containerToRender, {
             data: globalThis.GGridData,
             dataTree: true,
@@ -4094,6 +4266,21 @@ function Mrend(options) {
               //   applyTabulatorStylesWithJquery();
              }, 1000);*/
         }
+
+        globalThis.GTable.on("rowAdded", function (row) {
+            //row - row component
+            handleRowEvent(row, "add");
+        });
+
+        globalThis.GTable.on("rowDeleted", function (row) {
+
+            /* setTimeout(function () {
+ 
+                 handleRowEvent(row, "delete");
+ 
+             },3000)*/
+            //row - row component
+        });
 
 
 
@@ -4223,6 +4410,7 @@ function Mrend(options) {
             });
 
             //console.log(("linhasToRender", linhasToRender, recordData)
+
             if (recordData) {
 
                 var linhaRecords = records.filter(function (record) {
@@ -4245,14 +4433,22 @@ function Mrend(options) {
                     );
 
 
+                    /*linhasFilhas.sort(function (a, b) {
+                        return (a.ordem || 0) - (b.ordem || 0);
+                    });*/
 
 
-                    addLinha(distinctRow, linhaRecords, linhaToRender, renderedLinhas, linhasFilhas.length > 0, true);
+
+                    addLinha(distinctRow, linhaRecords, linhaToRender, renderedLinhas, linhasFilhas.length > 0, true, false);
                     var distinctRowFilhas = _.uniqBy(linhasFilhas, "rowid");
+
+                    distinctRowFilhas.sort(function (a, b) {
+                        return (a.ordem || 0) - (b.ordem || 0);
+                    });
 
                     distinctRowFilhas.forEach(function (filha) {
                         // //console.log(("ADDING FILHA")
-                        addLinha(filha, linhaRecords, linhaToRender, renderedLinhas, true, true);
+                        addLinha(filha, linhaRecords, linhaToRender, renderedLinhas, true, true, false);
                     });
 
 
@@ -4261,7 +4457,6 @@ function Mrend(options) {
 
             }
             else {
-
                 var isFilhaRendered = globalThis.GTMPFilhas.find(function (filha) {
 
                     return filha.codigo.trim() == linhaToRender.codigo.trim();
@@ -4288,10 +4483,10 @@ function Mrend(options) {
                         return (a.ordem || 0) - (b.ordem || 0);
                     });
 
-                    addLinha(dstRow, records, linhaToRender, renderedLinhas, linhasFilhas.length > 0, linhaToRender.modelo != true);
+                    addLinha(dstRow, records, linhaToRender, renderedLinhas, linhasFilhas.length > 0, linhaToRender.modelo != true, true);
 
                     if (linhasFilhas.length > 0) {
-                        processFilhasRecursivo(linhaToRender, dstRow.rowid, renderedLinhas);
+                        processFilhasRecursivo(linhaToRender, dstRow.rowid, renderedLinhas, true);
                     }
 
 
@@ -4326,9 +4521,13 @@ function Mrend(options) {
     }
 
 
-    function processFilhasRecursivo(linhaPai, rowidPai, renderedLinhas) {
+    function processFilhasRecursivo(linhaPai, rowidPai, renderedLinhas, novoRegisto) {
         var linhasFilhas = globalThis.reportConfig.config.linhas.filter(function (linha) {
             return linha.linkstamp == linhaPai.linhastamp;
+        });
+
+        linhasFilhas.sort(function (a, b) {
+            return (a.ordem || 0) - (b.ordem || 0);
         });
 
         linhasFilhas.forEach(function (linhaFilha) {
@@ -4339,18 +4538,16 @@ function Mrend(options) {
                 codigolinha: linhaFilha.codigo,
             };
 
-            addLinha(dstRowFilha, [], linhaFilha, renderedLinhas, true, linhaFilha.modelo != true);
+            addLinha(dstRowFilha, [], linhaFilha, renderedLinhas, true, linhaFilha.modelo != true, novoRegisto);
             globalThis.GTMPFilhas.push(linhaFilha);
-            processFilhasRecursivo(linhaFilha, rowidFilha, renderedLinhas);
-
-
+            processFilhasRecursivo(linhaFilha, rowidFilha, renderedLinhas, novoRegisto);
 
 
         });
     }
 
 
-    function addLinha(distinctRow, linhaRecords, linhModelo, renderedLinhas, isParent, renderCelula) {
+    function addLinha(distinctRow, linhaRecords, linhModelo, renderedLinhas, isParent, renderCelula, novoRegisto) {
 
         var linhaAdicionada = globalThis.GRenderedLinhas.find(function (linha) {
             return linha.rowid == distinctRow.rowid
@@ -4371,7 +4568,7 @@ function Mrend(options) {
 
 
 
-        var rendered = new RenderedLinha({ codigo: distinctRow.codigolinha, novoregisto: false, isParent: isParent, rowid: distinctRow.rowid, linkid: distinctRow.linkid, parentid: "", config: linha, UIObject: UIObject });
+        var rendered = new RenderedLinha({ codigo: distinctRow.codigolinha, novoregisto: false, isParent: isParent, rowid: distinctRow.rowid, linkid: distinctRow.linkid, parentid: "", config: linha, UIObject: UIObject, novoregisto: novoRegisto });
 
         if (distinctRow.ordem) {
             rendered.ordem = distinctRow.ordem
@@ -4574,6 +4771,10 @@ function Mrend(options) {
 
             if (row) {
 
+                globalThis.GRenderedLinhas = globalThis.GRenderedLinhas.filter(function (linha) {
+                    return linha.rowid != rowId
+                })
+
                 row.deleteRow();
             }
 
@@ -4605,6 +4806,8 @@ function Mrend(options) {
             var stampAtual = (globalThis.recordData.stamp || "").trim();
             var stampArmazenado = getSourceStamp().trim();
 
+
+
             return databaseAndTableHasRecords(globalThis.db, globalThis.tableSourceName)
                 .then(function (result) {
 
@@ -4621,7 +4824,7 @@ function Mrend(options) {
 
                         return getDataFromRemote()
                             .then(function (remoteData) {
-                                ////console.log(("Remote data fetched successfully.........DNELSE", remoteData);
+                                console.log("Remote data fetched successfully.........DNELSE", remoteData);
                                 globalThis.records = remoteData && remoteData.data ? remoteData.data : [];
                                 return resolve({ refetchDb: true, records: globalThis.records, remoteFetch: true });
                             })
@@ -4651,7 +4854,8 @@ function Mrend(options) {
     }
     this.clearSourceStamp = function () {
 
-        localStorage.removeItem("sourcestamp" + globalThis.tableSourceName);
+        localStorage.removeItem("sourcestamp_" + globalThis.dbTableToMrendObject.dbName + "_" + globalThis.tableSourceName);
+
 
     }
 
@@ -5017,6 +5221,59 @@ function Mrend(options) {
         globalThis.applyTabulatorStylesWithJquery(globalThis);
     }
 
+    function findRowByIdColuna(rowid, coluna, value) {
+        // Busca recursiva em todas as linhas (inclusive filhas)
+        function search(rows) {
+            rows.forEach(function (row) {
+
+                if (row.getData().rowid == rowid) {
+
+                    var updateData = {};
+                    var rowData = row.getData();
+                    rowData[coluna] = value;
+
+                    Object.keys(rowData).forEach(function (key) {
+
+                        if (key !== "_children" && key !== "id") {
+
+                            updateData[key] = rowData[key];
+                        }
+
+                    });
+
+                    updateData[coluna] = value;
+
+                    var cellObjectConfig = globalThis.GCellObjectsConfig.find(function (obj) {
+                        return obj.rowid == rowid && obj.codigocoluna == coluna;
+                    });
+
+
+                    row.update(updateData);
+
+
+                    if (cellObjectConfig) {
+                        cellObjectConfig.valor = updateData[coluna];
+
+                    }
+                    else {
+                        console.warn("CellObjectConfig não encontrado para rowid:", rowid, "e coluna:", coluna);
+                    }
+
+
+
+
+                    return row;
+                }
+
+                var children = row.getTreeChildren ? row.getTreeChildren() : [];
+                var found = search(children);
+                if (found) return found;
+            })
+            return null;
+        }
+        return search(globalThis.GTable.getRows());
+    }
+
     function findRowById(rowid, coluna) {
         // Busca recursiva em todas as linhas (inclusive filhas)
         function search(rows) {
@@ -5039,6 +5296,8 @@ function Mrend(options) {
                     var cellObjectConfig = globalThis.GCellObjectsConfig.find(function (obj) {
                         return obj.rowid == rowid && obj.codigocoluna == coluna;
                     });
+
+
                     if (cellObjectConfig) {
                         cellObjectConfig.valor = updateData[coluna];
                         row.update(updateData);
@@ -5063,22 +5322,30 @@ function Mrend(options) {
     }
     this.updateTableRow = function (rowid, rowData, coluna) {
 
-        var updateData = {};
-
-        Object.keys(rowData).forEach(function (key) {
-
-            if (key !== "_children" && key !== "id") {
-
-                updateData[key] = rowData[key]
-            }
-
-
-        });
+        /* var updateData = {};
+ 
+         Object.keys(rowData).forEach(function (key) {
+ 
+             if (key !== "_children" && key !== "id") {
+ 
+                 updateData[key] = rowData[key]
+             }
+ 
+ 
+         });*/
 
         var row = findRowById(rowid, coluna);
 
 
     }
+
+    this.updateTableRowColumnValue = function (rowid, rowData, coluna, value) {
+
+        var row = findRowByIdColuna(rowid, coluna, value);
+
+
+    }
+
 
     function loadAssetsPromiseAll() {
         var scripts = [
@@ -5316,7 +5583,9 @@ function Mrend(options) {
 
     this.render = function () {
         return loadAssetsPromiseAll().then(function () {
-            return InitDB(globalThis.datasourceName, globalThis.schemas).then(function (initDBResult) {
+
+
+            return InitDB(globalThis.dbTableToMrendObject.dbName, globalThis.schemas).then(function (initDBResult) {
                 if (globalThis.resetSourceStamp) {
                     globalThis.clearSourceStamp();
                 }

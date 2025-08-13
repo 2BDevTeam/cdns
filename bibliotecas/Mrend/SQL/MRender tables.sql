@@ -21,7 +21,11 @@ CREATE TABLE MrendLinha
     parentstamp VARCHAR(250) DEFAULT '',
     temcolunas BIT DEFAULT 0,
     modelo BIT DEFAULT 0,
-
+    leitura BIT DEFAULT 0,
+    eventoadd BIT DEFAULT 0,
+    eventoaddexpr TEXT DEFAULT '',
+    eventodelete BIT DEFAULT 0,
+    eventodeleteexpr TEXT DEFAULT '',
     descbtnModelo VARCHAR(250) DEFAULT '',
     tipo VARCHAR(250) DEFAULT '',
     codigo VARCHAR(250) DEFAULT '',
@@ -70,6 +74,7 @@ CREATE TABLE MrendColuna
     tipo VARCHAR(50) DEFAULT '',
     atributo VARCHAR(100) DEFAULT '',
     campovalid VARCHAR(100) DEFAULT '',
+    temlinhadesc BIT DEFAULT 0,
     condicaovalidacao VARCHAR(250) DEFAULT '',
     validacoluna BIT DEFAULT 0,
     expresscolfun TEXT DEFAULT '',
@@ -137,8 +142,10 @@ CREATE TABLE MrendCelula
     condicinactexpr TEXT DEFAULT '',
     desabilitado BIT DEFAULT 0,
     usafnpren BIT DEFAULT 0,
-    atributo VARCHAR(250) DEFAULT '',
-
+    atributo VARCHAR(250) DEFAULT  '',
+    valordefeito BIT DEFAULT 0,
+    valordefeitoexpr TEXT DEFAULT '',
+    valdefafinstancia BIT DEFAULT 0,
     fnpren VARCHAR(250) DEFAULT '',
     sourceKey VARCHAR(100) DEFAULT '',
     sourceBind VARCHAR(100) DEFAULT '',
@@ -177,8 +184,28 @@ CREATE TABLE u_reportl (
     desccoluna VARCHAR(250) DEFAULT '',
     ordemcoluna Numeric(16) DEFAULT 0,
     valor Numeric(16,2) DEFAULT 0,
+    mvalor TEXT DEFAULT '',
+    dvalor Date DEFAULT '1900-01-01',
     cvalor VARCHAR(250) DEFAULT '',
     tipo VARCHAR(20) DEFAULT ''
 );
 
 
+alter table MrendLinha
+    add  leitura BIT DEFAULT 0;
+
+alter table MrendColuna
+    add  temlinhadesc BIT DEFAULT 0;
+
+
+alter table MrendCelula
+    add  valordefeito BIT DEFAULT 0;
+
+alter table MrendCelula
+    add  valordefeitoexpr TEXT DEFAULT '';
+
+alter table u_reportl
+    add  mvalor TEXT DEFAULT '';
+
+alter table u_reportl
+    add  dvalor Date DEFAULT '1900-01-01';
