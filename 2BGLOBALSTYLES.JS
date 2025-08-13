@@ -566,7 +566,7 @@ function generateCollapseHTML(collapseData) {
 
     // Add the collapse header
     collapseHTML += '<div class="home-collapse-header mainformcptitulo">';
-    collapseHTML += '<p style="font-family:Nunito, sans-serif;font-weight:bold">' + collapseData.title + '<span class="glyphicon glyphicon-triangle-right"></span></p>';
+    collapseHTML += '<p style="font-family:Nunito, sans-serif;"><span class="glyphicon glyphicon-triangle-right"></span> ' + collapseData.title + '</p>';
     collapseHTML += '<div class="row"><span class="collapse-content">' + collapseData.headerContent + '</span></div>';
     collapseHTML += '</div>';
 
