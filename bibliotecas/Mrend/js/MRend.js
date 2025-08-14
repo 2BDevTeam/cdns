@@ -3,7 +3,7 @@
 function Mrend(options) {
 
 
-    var globalThis = this;
+    var mrendThis = this;
 
     this.GTable = {};
     this.GDefaultConfig = undefined;
@@ -30,6 +30,25 @@ function Mrend(options) {
     this.relatoriosNotReadonly = [];
     this.db = undefined;
     this.db = undefined;
+    this.reactiveData = PetiteVue.reactive({
+        customTotal: customTotal,
+        // Pode adicionar outros totais aqui
+        totalPcusto: 0,
+        totalVenda: 0,
+        totais: [
+            { codigocoluna: 'pcusto', valor: 20000, label: 'Preço de Custo' },
+            { codigocoluna: 'pvenda', valor: 45000, label: 'Valor Total de Venda' },
+            { codigocoluna: 'u_txtrans2', valor: 0, label: 'Valor do Transporte' },
+            { codigocoluna: 'u_taxamo', valor: 0, label: 'Valor das taxas aduaneiras' },
+            { codigocoluna: 'u_moprg', valor: 0, label: 'Valor da mão de obra' },
+            { codigocoluna: 'u_equipprc', valor: 0, label: 'Valor da comissão' }
+        ]
+    });
+
+    this.refreshReactiveData = function () {
+        mrendThis.reactiveData.cells = JSON.parse(JSON.stringify(mrendThis.GCellObjectsConfig));
+    }
+
     this.GNewRecords = [];
     this.enableEdit = options.enableEdit || false;
     this.resetSourceStamp = options.resetSourceStamp || false;
@@ -47,6 +66,24 @@ function Mrend(options) {
     this.remoteFetch = options.remoteFetch || false;
     this.remoteFetchData = options.remoteFetchData ? new RemoteFetchData(options.remoteFetchData) : new RemoteFetchData({});
 
+    this.getTotalCelulasByFiltro = function (filtro) {
+        _.sumBy(propostaMrendConfig.GCellObjectsConfig, function (cellObject) {
+            if (eval(filtro)) {
+                return isNaN(cellObject.valor) ? 0 : Number(cellObject.valor);
+            }
+            return 0;
+        });
+    }
+
+    this.getTotalCelulaByCodigoColuna = function (codigoColuna) {
+
+        return _.sumBy(propostaMrendConfig.GCellObjectsConfig, function (cellObject) {
+            if (cellObject.codigocoluna == codigoColuna) {
+                return isNaN(cellObject.valor) ? 0 : Number(cellObject.valor);
+            }
+            return 0;
+        });
+    }
 
 
     function RemoteFetchData(data) {
@@ -241,7 +278,7 @@ function Mrend(options) {
 
         this.condicfunc = data.condicfunc || false;
         this.condicfuncexpr = data.condicfuncexpr || "";
-        this.tamanho = data.tamanho || 100;
+        this.tamanho = data.tamanho || 150;
         this.alinhamento = data.alinhamento || "left";
 
         this.nometb = data.nometb || "";
@@ -425,6 +462,27 @@ function Mrend(options) {
 
                     var self = this;
 
+
+
+                    if (mrendThis.reactiveData.global) {
+
+                        var reactiveDataFound = mrendThis.reactiveData.cells.find(function (cellObject) {
+                            return cellObject.cellid == self.cellid;
+                        });
+
+                        if (reactiveDataFound) {
+                            reactiveDataFound.valor = newValue;
+
+                        }
+
+                    }
+
+
+
+
+
+                    //mrendThis.reactiveData.global.GCellObjectsConfig[0].valor = 78999
+
                     syncChangesToDB(this, handleDataTypeDB(this.dataType, newValue)).then(function () {
                         try {
 
@@ -455,7 +513,7 @@ function Mrend(options) {
     function syncChangesToDB(cellObject, valor) {
 
         if (cellObject.changedb == false) {
-            //console.log(("syncChangesToDB - changedb is false, skipping globalThis.db update");
+            //console.log(("syncChangesToDB - changedb is false, skipping mrendThis.db update");
             return
         }
         var htmlComponent = getCellHtmlComponent(cellObject.cellid);
@@ -465,7 +523,7 @@ function Mrend(options) {
         var buildChangeResult = buildChangedObjectUpdateData(htmlComponent, cellObject, varlorF);
 
 
-        var table = globalThis.tableSourceName;
+        var table = mrendThis.tableSourceName;
         return updateCellOnDB(buildChangeResult, table).then(function (updateResult) {
 
 
@@ -560,7 +618,7 @@ function Mrend(options) {
     CellObjectConfig.prototype.fillTableData = function () {
 
         /* var codColuna = this.codigocoluna
-         var dadosColuna = globalThis.GRenderedColunas.find(function (coluna) {
+         var dadosColuna = mrendThis.GRenderedColunas.find(function (coluna) {
              return coluna.codigocoluna == codColuna
          });
  
@@ -572,11 +630,11 @@ function Mrend(options) {
          if (this.tipolistagem == "PROPREG") {
  
              var tmpcomponentcategoria = this.componentcategoria
-             var linhaTipoFiltered = globalThis.reportConfig.config.linhas.filter(function (linhaGrupo) {
+             var linhaTipoFiltered = mrendThis.reportConfig.config.linhas.filter(function (linhaGrupo) {
  
                  return linhaGrupo.tipo == tmpcomponentcategoria
              });
-             globalThis.GTmpListTableObject = linhaTipoFiltered
+             mrendThis.GTmpListTableObject = linhaTipoFiltered
              return
          }
  
@@ -594,7 +652,7 @@ function Mrend(options) {
     CellObjectConfig.prototype.getColunaConfig = function () {
 
         var celulaConfig = this
-        return globalThis.GRenderedColunas.find(function (coluna) {
+        return mrendThis.GRenderedColunas.find(function (coluna) {
 
             return coluna.codigocoluna == celulaConfig.codigocoluna
         })
@@ -605,7 +663,7 @@ function Mrend(options) {
     CellObjectConfig.prototype.getCelulaConfig = function () {
 
         var celulaConfig = this;
-        var celulaFound = globalThis.reportConfig.config.celulas.find(function (celula) {
+        var celulaFound = mrendThis.reportConfig.config.celulas.find(function (celula) {
 
             return celula.linhastamp == celulaConfig.renderelinha.config.linhastamp && celula.codigocoluna == celulaConfig.codigocoluna
         });
@@ -623,7 +681,7 @@ function Mrend(options) {
         var celula = celulaConfig.getCelulaConfig();
         var coluna = celulaConfig.getColunaConfig();
 
-        return globalThis.GRenderedColunas.filter(function (colRef) {
+        return mrendThis.GRenderedColunas.filter(function (colRef) {
 
             return colRef.config.fxdata.colrefs.filter(function (cRef) { return cRef == coluna.codigocoluna }).length > 0
         });
@@ -732,7 +790,7 @@ function Mrend(options) {
 
     function calcularSubtotais() {
 
-        var linhasComTotais = globalThis.GRenderedLinhas.filter(function (linha) {
+        var linhasComTotais = mrendThis.GRenderedLinhas.filter(function (linha) {
 
             return linha.config.temtotais == true
 
@@ -798,7 +856,7 @@ function Mrend(options) {
 
     CellObjectConfig.prototype.calcularTotalLinha = function () {
 
-        if (this.dataType != "digit" && globalThis.reportConfig.config.relatorio.totalcoluna) {
+        if (this.dataType != "digit" && mrendThis.reportConfig.config.relatorio.totalcoluna) {
 
             return;
         }
@@ -914,7 +972,7 @@ function Mrend(options) {
 
         return new Promise(function (resolve, reject) {
 
-            return globalThis.db[tableName]
+            return mrendThis.db[tableName]
                 .where(updateData.sourceKey)
                 .equals(updateData.sourceValue)
                 .modify(updateData.changedData).then(function (res) {
@@ -966,7 +1024,7 @@ function Mrend(options) {
     CellObjectConfig.prototype.addToLocalCellList = function () {
 
 
-        globalThis.GCellObjectsConfig.unshift(this);
+        mrendThis.GCellObjectsConfig.unshift(this);
 
     }
 
@@ -981,7 +1039,7 @@ function Mrend(options) {
     function generateLinhaOrdem() {
 
 
-        var maxOrdemLinha = (globalThis.GRenderedLinhas || []).reduce(function (max, linha) {
+        var maxOrdemLinha = (mrendThis.GRenderedLinhas || []).reduce(function (max, linha) {
             return Math.max(max, linha.ordem || 0);
         }, 0);
 
@@ -1039,27 +1097,29 @@ function Mrend(options) {
 
 
     RenderedLinha.prototype.deleteRow = function () {
-        var tableName = globalThis.tableSourceName; // Nome da tabela no Dexie
+        var tableName = mrendThis.tableSourceName; // Nome da tabela no Dexie
         var rowId = this.rowid; // ID da linha a ser removida
         var thisRow = this;
 
 
 
         return new Promise(function (resolve, reject) {
-            globalThis.db[tableName]
+            mrendThis.db[tableName]
                 .where("rowid") // Filtra os registros pelo campo "rowid"
                 .equals(rowId) // Verifica se o valor de "rowid" é igual ao da linha atual
                 .delete() // Remove os registros correspondentes
                 .then(function () {
                     // Remove a linha da lista local de linhas renderizadas
 
-                    globalThis.GCellObjectsConfig = globalThis.GCellObjectsConfig.filter(function (cellObject) {
+                    mrendThis.GCellObjectsConfig = mrendThis.GCellObjectsConfig.filter(function (cellObject) {
                         return cellObject.rowid != rowId
                     });
 
-                    globalThis.GRenderedLinhas = globalThis.GRenderedLinhas.filter(function (linha) {
+                    mrendThis.GRenderedLinhas = mrendThis.GRenderedLinhas.filter(function (linha) {
                         return linha.rowid != rowId
                     })
+
+                    mrendThis.refreshReactiveData();
 
                     resolve("Linha removida com sucesso.");
                 })
@@ -1072,7 +1132,7 @@ function Mrend(options) {
 
     RenderedLinha.prototype.getParent = function () {
         var self = this;
-        var parentLinha = globalThis.GRenderedLinhas.find(function (linha) {
+        var parentLinha = mrendThis.GRenderedLinhas.find(function (linha) {
             return linha.rowid == self.linkid;
         }, this);
         return parentLinha || null;
@@ -1083,7 +1143,7 @@ function Mrend(options) {
     RenderedLinha.prototype.getChildren = function () {
         var self = this;
 
-        return globalThis.GRenderedLinhas.filter(function (obj) {
+        return mrendThis.GRenderedLinhas.filter(function (obj) {
 
             return obj.linkid == self.rowid
         })
@@ -1099,7 +1159,7 @@ function Mrend(options) {
 
 
 
-        globalThis.GRenderedLinhas.push(this);
+        mrendThis.GRenderedLinhas.push(this);
 
         if (renderCelula) {
             var recFlt = linhaRecords.filter(function (rec) {
@@ -1112,7 +1172,7 @@ function Mrend(options) {
             if (this.linkid && setChildren == true) {
 
 
-                var parentLinha = globalThis.GRenderedLinhas.find(function (linha) {
+                var parentLinha = mrendThis.GRenderedLinhas.find(function (linha) {
                     return linha.rowid.trim() == self.linkid.trim()
                 });
 
@@ -1126,11 +1186,11 @@ function Mrend(options) {
 
                     parentLinha.UIObject._children.sort(function (a, b) {
 
-                        var renderedLinhaA = globalThis.GRenderedLinhas.find(function (linha) {
+                        var renderedLinhaA = mrendThis.GRenderedLinhas.find(function (linha) {
                             return linha.rowid == a.rowid;
                         });
 
-                        var renderedLinhaB = globalThis.GRenderedLinhas.find(function (linha) {
+                        var renderedLinhaB = mrendThis.GRenderedLinhas.find(function (linha) {
                             return linha.rowid == b.rowid;
                         });
 
@@ -1155,7 +1215,7 @@ function Mrend(options) {
 
     var getLinhaById = function (id) {
 
-        return globalThis.GRenderedLinhas.find(function (linha) {
+        return mrendThis.GRenderedLinhas.find(function (linha) {
 
             return linha.rowid == id;
         });
@@ -1165,7 +1225,7 @@ function Mrend(options) {
 
     var getColunaByCodigo = function (codigo) {
 
-        return globalThis.GRenderedColunas.find(function (coluna) {
+        return mrendThis.GRenderedColunas.find(function (coluna) {
 
             return coluna.codigocoluna == codigo
         })
@@ -1176,7 +1236,7 @@ function Mrend(options) {
 
         var linhaRendered = this
 
-        return globalThis.GRenderedLinhas.find(function (linhaSubtotal) {
+        return mrendThis.GRenderedLinhas.find(function (linhaSubtotal) {
 
             return linhaSubtotal.linkid == linhaRendered.rowid && linhaSubtotal.config.codigo == "SUBTOTALINHA"
         })
@@ -1195,7 +1255,7 @@ function Mrend(options) {
             var celulasLinha = linhaSubtotal.getLinhaCellObjects();
 
 
-            globalThis.GRenderedColunas.map(function (renderedColuna) {
+            mrendThis.GRenderedColunas.map(function (renderedColuna) {
 
                 if (renderedColuna.config.tipo == "digit") {
                     totalColuna = renderedColuna.getTotalRenderedColuna("cellObject.linkid=='" + renderedLinha.rowid + "' && cellObject.unionkey.includes('SUBTOTAL')==false ");
@@ -1228,7 +1288,7 @@ function Mrend(options) {
 
         var renderedLinha = this;
         var totalLinha = 0;
-        return globalThis.GCellObjectsConfig.filter(function (cellObject) {
+        return mrendThis.GCellObjectsConfig.filter(function (cellObject) {
 
             return cellObject.rowid == renderedLinha.rowid
         })
@@ -1236,11 +1296,29 @@ function Mrend(options) {
 
     }
 
+    RenderedLinha.prototype.getCelulaLinha = function (coluna) {
+
+
+        var renderedLinha = this;
+        
+        var celulasLinha=this.getLinhaCellObjects();
+        return celulasLinha.find(function (cellObject) {
+
+            return cellObject.codigocoluna == coluna && cellObject.rowid == renderedLinha.rowid
+        });
+
+
+    }
+
+
+
+
+
     RenderedLinha.prototype.findCelulaTotal = function () {
 
         var renderedLinha = this;
 
-        return globalThis.GCellObjectsConfig.find(function (cellObject) {
+        return mrendThis.GCellObjectsConfig.find(function (cellObject) {
 
             return cellObject.rowid == renderedLinha.rowid && cellObject.categoria == "total"
         })
@@ -1270,7 +1348,7 @@ function Mrend(options) {
 
     function getTotalCelulasByFiltro(filtro) {
 
-        return _.sumBy(globalThis.GCellObjectsConfig, function (cellObject) {
+        return _.sumBy(mrendThis.GCellObjectsConfig, function (cellObject) {
             if (eval(filtro)) {
                 return isNaN(cellObject.valor) ? 0 : Number(cellObject.valor);
             }
@@ -1287,7 +1365,7 @@ function Mrend(options) {
 
 
 
-        return globalThis.GCellObjectsConfig.filter(function (cellObject) {
+        return mrendThis.GCellObjectsConfig.filter(function (cellObject) {
 
             return eval(filtro)
         })
@@ -1299,7 +1377,7 @@ function Mrend(options) {
 
 
     function setValueOnCell(celulaId, valorUpdt) {
-        var celulaCOnfigClone = globalThis.GCellObjectsConfig.slice()
+        var celulaCOnfigClone = mrendThis.GCellObjectsConfig.slice()
 
 
         celulaCOnfigClone.forEach(function (celulaCloneObj) {
@@ -1315,7 +1393,7 @@ function Mrend(options) {
             new CellObjectConfig(celulaCloneObj)
         });
 
-        globalThis.GCellObjectsConfig = celulaCOnfigClone.slice()
+        mrendThis.GCellObjectsConfig = celulaCOnfigClone.slice()
 
 
 
@@ -1363,11 +1441,11 @@ function Mrend(options) {
         if (this.tipolistagem == "PROPREG") {
 
             var tmpcomponentcategoria = this.componentcategoria
-            var linhaTipoFiltered = globalThis.reportConfig.config.linhas.filter(function (linhaGrupo) {
+            var linhaTipoFiltered = mrendThis.reportConfig.config.linhas.filter(function (linhaGrupo) {
 
                 return linhaGrupo.tipo == tmpcomponentcategoria
             });
-            globalThis.GTmpListTableObject = linhaTipoFiltered
+            mrendThis.GTmpListTableObject = linhaTipoFiltered
             return
         }
 
@@ -1547,7 +1625,7 @@ function Mrend(options) {
 
     function getMappingByKey(key) {
 
-        return globalThis[key].mapping
+        return mrendThis[key].mapping
     }
 
 
@@ -1558,7 +1636,7 @@ function Mrend(options) {
         //Deve se Filtrar o array que vai preencher os grupos e subgrupos se por acaso este não varar dos records ou seja : records.find(function (obj) return obj[mapConfig.mapData[config.bindData.sourceKey]] == config.codigo { if (linhaData) {}
         var config = new Linha(linha);
 
-        var mapConfig = getMapConfigByComponent(globalThis.renderConfig, config.tipo);
+        var mapConfig = getMapConfigByComponent(mrendThis.renderConfig, config.tipo);
         var sourceBinds = config.bindData.sourceBind.split(",")
         var linhaData = records.find(function (obj) {
             return obj[sourceBinds[0]] == config.codigo
@@ -1789,7 +1867,7 @@ function Mrend(options) {
 
     function getColunaConfig(cellObject) {
 
-        var configColuna = globalThis.GRenderedColunas.find(function (coluna) {
+        var configColuna = mrendThis.GRenderedColunas.find(function (coluna) {
             return coluna.codigocoluna == cellObject.codigocoluna;
         });
 
@@ -2033,7 +2111,7 @@ function Mrend(options) {
         var sources = []
 
 
-        if (globalThis.dbTableToMrendObject.chunkMapping == false) {
+        if (mrendThis.dbTableToMrendObject.chunkMapping == false) {
 
 
             distinctSources.forEach(function (source) {
@@ -2046,7 +2124,7 @@ function Mrend(options) {
 
                 sourceRecords.forEach(function (tableRow) {
 
-                    globalThis.GRenderedColunas.forEach(function (coluna) {
+                    mrendThis.GRenderedColunas.forEach(function (coluna) {
 
 
                         tableRow[coluna.config.campo] = handleDefaultValueByDataType(coluna.config.tipo, tableRow[coluna.config.campo]);
@@ -2108,7 +2186,7 @@ function Mrend(options) {
 
                 rowCells.forEach(function (cell) {
 
-                    var colunaConfig = globalThis.GRenderedColunas.find(function (coluna) {
+                    var colunaConfig = mrendThis.GRenderedColunas.find(function (coluna) {
                         return coluna.codigocoluna == cell.coluna
                     });
 
@@ -2213,7 +2291,7 @@ function Mrend(options) {
                 return obj[MrendConversionConfig.extras.colunaField];
             });
 
-            console.log(" globalThis.reportConfig.config.colunas", globalThis.reportConfig.config.colunas)
+            console.log(" mrendThis.reportConfig.config.colunas", mrendThis.reportConfig.config.colunas)
             data.forEach(function (record) {
 
                 var mrendObject = new MrendObject({});
@@ -2224,7 +2302,7 @@ function Mrend(options) {
 
                 var colunaInstance = mrendObject.coluna.split("___")[0];
 
-                var colunaConfig = globalThis.reportConfig.config.colunas.filter(function (coluna) {
+                var colunaConfig = mrendThis.reportConfig.config.colunas.filter(function (coluna) {
                     return coluna.codigocoluna == colunaInstance || coluna.codigocoluna == mrendObject.coluna;
                 });
 
@@ -2261,7 +2339,7 @@ function Mrend(options) {
             var mrendObject = new MrendObject({});
             keys.forEach(function (key) {
 
-                var configCol = globalThis.reportConfig.config.colunas.find(function (coluna) {
+                var configCol = mrendThis.reportConfig.config.colunas.find(function (coluna) {
                     return coluna.codigocoluna == key
                 })
 
@@ -2347,14 +2425,14 @@ function Mrend(options) {
     function initTableDataAndContainer() {
 
 
-        $("#sourceTabletableContainer" + globalThis.table).remove();
+        $("#sourceTabletableContainer" + mrendThis.table).remove();
 
-        globalThis.GCellObjectsConfig = []
-        globalThis.TMPCellObjectCOnfig = []
-        globalThis.GRenderedColunas = []
-        globalThis.GRenderedLinhas = []
+        mrendThis.GCellObjectsConfig = []
+        mrendThis.TMPCellObjectCOnfig = []
+        mrendThis.GRenderedColunas = []
+        mrendThis.GRenderedLinhas = []
 
-        $(globalThis.containerToRender).append("<div id='sourceTabletableContainer" + globalThis.table + "' style='margin-top:2.5em' class='row table-responsive'></div>")
+        $(mrendThis.containerToRender).append("<div id='sourceTabletableContainer" + mrendThis.table + "' style='margin-top:2.5em' class='row table-responsive'></div>")
     }
 
     function buildAlert(alertClass, alertText) {
@@ -2595,7 +2673,7 @@ function Mrend(options) {
 
             cellObjectConfig.fillTableData();
 
-            var dadosColuna = globalThis.GRenderedColunas.find(function (coluna) {
+            var dadosColuna = mrendThis.GRenderedColunas.find(function (coluna) {
                 return coluna.codigocoluna == cellObjectConfig.codigocoluna
             })
 
@@ -2636,7 +2714,7 @@ function Mrend(options) {
 
             case "Próprio Registo":
 
-                var linhaTipoFiltered = globalThis.reportConfig.config.linhas.filter(function (linhaGrupo) {
+                var linhaTipoFiltered = mrendThis.reportConfig.config.linhas.filter(function (linhaGrupo) {
 
                     return linhaGrupo.tipo == linha.config.tipo
                 });
@@ -2728,7 +2806,7 @@ function Mrend(options) {
                 return smap.component == "Coluna"
             });
 
-            globalThis.GRenderedColunas.map(function (coluna) {
+            mrendThis.GRenderedColunas.map(function (coluna) {
 
                 var recFlt = records.filter(function (record) {
                     return record[colunaMap.mapData.colunaid] == coluna.codigocoluna
@@ -2754,7 +2832,7 @@ function Mrend(options) {
                 colId: "",
                 classes: "",
                 content: "",
-                customData: "colspan=" + (globalThis.GRenderedColunas.length).toString() + "",
+                customData: "colspan=" + (mrendThis.GRenderedColunas.length).toString() + "",
             })
 
 
@@ -2764,7 +2842,7 @@ function Mrend(options) {
         GTableData.body.rows.push(linhaHtml);
 
 
-        var subLinhas = globalThis.GRenderedLinhas.filter(function (linhaObj) {
+        var subLinhas = mrendThis.GRenderedLinhas.filter(function (linhaObj) {
 
             return linhaObj.linkid == linha.rowid && linhaObj.linkid != ""
         });
@@ -2827,7 +2905,7 @@ function Mrend(options) {
 
 
 
-        globalThis.GRenderedColunas.forEach(function (coluna) {
+        mrendThis.GRenderedColunas.forEach(function (coluna) {
 
             var recFlt = records.filter(function (rec) {
                 return rec.coluna == coluna.codigocoluna
@@ -2889,7 +2967,7 @@ function Mrend(options) {
 
         }
 
-        globalThis.GRenderedColunas.forEach(function (coluna) {
+        mrendThis.GRenderedColunas.forEach(function (coluna) {
 
             var extraData = { customClasses: "", customStyles: "background:transparent!important;font-weight:bold!important;color:white!important" }
             setCelula(linhaHtml, linha, coluna, [], "total", extraData)
@@ -2994,7 +3072,7 @@ function Mrend(options) {
 
 
         if (!linhaRecord) {
-            linhaRecord = JSON.parse(JSON.stringify(globalThis.schemas[0].tableSourceSchema))
+            linhaRecord = JSON.parse(JSON.stringify(mrendThis.schemas[0].tableSourceSchema))
             cellId = generateUUID();
             novoRegisto = true
 
@@ -3026,7 +3104,7 @@ function Mrend(options) {
 
 
         cellObjectConfig.setDefaultValue();
-        linh.UIObject[globalThis.dbTableToMrendObject.chunkMapping ? coluna.config.campo : coluna.codigocoluna] = cellObjectConfig.valor;
+        linh.UIObject[mrendThis.dbTableToMrendObject.chunkMapping ? coluna.config.campo : coluna.codigocoluna] = cellObjectConfig.valor;
         linh.UIObject.cellId = cellObjectConfig.cellid;
 
         var cellValue = cellObjectConfig.valor;
@@ -3040,21 +3118,21 @@ function Mrend(options) {
             linhaRecord.codigolinha = linha.codigo
             linhaRecord.campo = coluna.config.campo;
             linhaRecord.linkid = linha.linkid;
-            linhaRecord.linkField = globalThis.dbTableToMrendObject.extras.linkField;
-            linhaRecord.sourceTable = globalThis.dbTableToMrendObject.table;
-            linhaRecord.sourceKey = globalThis.dbTableToMrendObject.tableKey;
+            linhaRecord.linkField = mrendThis.dbTableToMrendObject.extras.linkField;
+            linhaRecord.sourceTable = mrendThis.dbTableToMrendObject.table;
+            linhaRecord.sourceKey = mrendThis.dbTableToMrendObject.tableKey;
             linhaRecord.sourceKeyValue = linha.rowid;
             linhaRecord.ordem = linha.ordem
-            linhaRecord.ordemField = globalThis.dbTableToMrendObject.extras.ordemField;
-            linhaRecord.colunaField = globalThis.dbTableToMrendObject.extras.colunaField;
-            linhaRecord.linhaField = globalThis.dbTableToMrendObject.extras.linhaField;
-            linhaRecord.descLinhaField = globalThis.dbTableToMrendObject.extras.descLinhaField;
-            linhaRecord.cellIdField = globalThis.dbTableToMrendObject.extras.cellIdField;
-            linhaRecord.descColunaField = globalThis.dbTableToMrendObject.extras.descColunaField;
-            linhaRecord.ordemColunaField = globalThis.dbTableToMrendObject.extras.ordemColunaField;
-            linhaRecord.tipocolField = globalThis.dbTableToMrendObject.extras.tipocolField;
+            linhaRecord.ordemField = mrendThis.dbTableToMrendObject.extras.ordemField;
+            linhaRecord.colunaField = mrendThis.dbTableToMrendObject.extras.colunaField;
+            linhaRecord.linhaField = mrendThis.dbTableToMrendObject.extras.linhaField;
+            linhaRecord.descLinhaField = mrendThis.dbTableToMrendObject.extras.descLinhaField;
+            linhaRecord.cellIdField = mrendThis.dbTableToMrendObject.extras.cellIdField;
+            linhaRecord.descColunaField = mrendThis.dbTableToMrendObject.extras.descColunaField;
+            linhaRecord.ordemColunaField = mrendThis.dbTableToMrendObject.extras.ordemColunaField;
+            linhaRecord.tipocolField = mrendThis.dbTableToMrendObject.extras.tipocolField;
             linhaRecord.tipocol = coluna.config.tipo || "text";
-            linhaRecord.rowIdField = globalThis.dbTableToMrendObject.extras.rowIdField;
+            linhaRecord.rowIdField = mrendThis.dbTableToMrendObject.extras.rowIdField;
             linhaRecord.ordemColuna = coluna.ordem || 0;
             linhaRecord.descColuna = coluna.desccoluna;
             linhaRecord.descLinha = linha.config.descricao;
@@ -3069,7 +3147,7 @@ function Mrend(options) {
             }
 
 
-            globalThis.GNewRecords.push(linhaRecord);
+            mrendThis.GNewRecords.push(linhaRecord);
         }
 
 
@@ -3078,11 +3156,11 @@ function Mrend(options) {
     function InitDB(datasourceName, schemas) {
 
         return new Promise(function (resolve, reject) {
-            globalThis.db = new Dexie(datasourceName);
+            mrendThis.db = new Dexie(datasourceName);
             var promises = []; // Armazena todas as Promises do loop
 
-            return configureDataBase(globalThis.db, schemas[0].tableSourceName, 1, Object.keys(schemas[0].tableSourceSchema)).then(function (result) {
-                globalThis.db = result;
+            return configureDataBase(mrendThis.db, schemas[0].tableSourceName, 1, Object.keys(schemas[0].tableSourceSchema)).then(function (result) {
+                mrendThis.db = result;
                 resolve({ inited: true, message: "Success", db: result }); // Resolve quando todas as promessas concluírem
             });
 
@@ -3114,7 +3192,7 @@ function Mrend(options) {
     function storeDataSourceStamp(sourceStamp) {
 
 
-        window.localStorage.setItem("sourcestamp_" + globalThis.dbTableToMrendObject.dbName + "_" + globalThis.tableSourceName, sourceStamp.trim())
+        window.localStorage.setItem("sourcestamp_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName, sourceStamp.trim())
     }
 
     function clearStamps() {
@@ -3124,7 +3202,7 @@ function Mrend(options) {
 
     function getSourceStamp() {
 
-        return window.localStorage.getItem("sourcestamp_" + globalThis.dbTableToMrendObject.dbName + "_" + globalThis.tableSourceName) ? window.localStorage.getItem("sourcestamp_" + globalThis.dbTableToMrendObject.dbName + "_" + globalThis.tableSourceName).trim() : "";
+        return window.localStorage.getItem("sourcestamp_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName) ? window.localStorage.getItem("sourcestamp_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName).trim() : "";
     }
 
 
@@ -3132,8 +3210,8 @@ function Mrend(options) {
     function deleteAllRecords(tableName) {
         return new Promise(function (resolve, reject) {
 
-            if (globalThis.db['_allTables'][tableName]) {
-                return globalThis.db[tableName].clear().then(function () {
+            if (mrendThis.db['_allTables'][tableName]) {
+                return mrendThis.db[tableName].clear().then(function () {
                     // ////console.log((`All records from ${tableName} have been deleted successfully.`);
                     resolve(true)
                 }).catch(function (error) {
@@ -3156,8 +3234,8 @@ function Mrend(options) {
 
     function addData(db, tableName, data) {
         try {
-            // globalThis.db[tableName].add(data);
-            return globalThis.db[tableName].add(data);
+            // mrendThis.db[tableName].add(data);
+            return mrendThis.db[tableName].add(data);
             // ////console.log(('Data added with primary key:', primaryKey);
         } catch (error) {
             console.error('Error adding data:', error);
@@ -3165,15 +3243,15 @@ function Mrend(options) {
     }
 
     function deleteData(db, tableName, fieldName, filedValue) {
-        return globalThis.db[tableName].where(fieldName).equals(filedValue).delete()
+        return mrendThis.db[tableName].where(fieldName).equals(filedValue).delete()
     }
 
     function addBulkData(db, tableName, dataArray) {
 
-        if (globalThis.db['_allTables'][tableName]) {
-            return globalThis.db[tableName].bulkPut(dataArray)
+        if (mrendThis.db['_allTables'][tableName]) {
+            return mrendThis.db[tableName].bulkPut(dataArray)
         } else {
-            return globalThis.db[tableName].bulkAdd(dataArray)
+            return mrendThis.db[tableName].bulkAdd(dataArray)
         }
 
     }
@@ -3184,9 +3262,9 @@ function Mrend(options) {
 
         return new Promise(function (resolve, reject) {
             $.ajax({
-                type: globalThis.remoteFetchData.type,
-                url: globalThis.remoteFetchData.url,
-                data: globalThis.remoteFetchData.data,
+                type: mrendThis.remoteFetchData.type,
+                url: mrendThis.remoteFetchData.url,
+                data: mrendThis.remoteFetchData.data,
                 success: function (response) {
 
                     resolve(response);
@@ -3203,14 +3281,14 @@ function Mrend(options) {
         ////console.log((indexes)
         return new Promise(function (resolve, reject) {
 
-            globalThis.db.close()  //.then(function () {
+            mrendThis.db.close()  //.then(function () {
             var schemaConfig = {};
 
             schemaConfig[tableName] = indexes.join(",");
-            globalThis.db.version(1).stores(schemaConfig);
+            mrendThis.db.version(1).stores(schemaConfig);
 
             // Open the database
-            globalThis.db.open().then(function () {
+            mrendThis.db.open().then(function () {
                 // Resolve the database instance
                 resolve(db);
             }).catch(function (error) {
@@ -3225,7 +3303,7 @@ function Mrend(options) {
 
     function tablesHasRecords(db, tableName) {
 
-        return globalThis.db[tableName].count()
+        return mrendThis.db[tableName].count()
 
     }
 
@@ -3241,7 +3319,7 @@ function Mrend(options) {
 
                         if (count > 0) {
                             // If there are records, return all records
-                            return globalThis.db[tableName].toArray();
+                            return mrendThis.db[tableName].toArray();
                         } else {
                             // If no records, resolve with an object indicating that the data does not exist
                             resolve({ exists: false, data: null });
@@ -3258,7 +3336,7 @@ function Mrend(options) {
                         reject(new Error('Error while opening or checking record count: ' + error));
                     })
                     .finally(function () {
-                        // globalThis.db.close();
+                        // mrendThis.db.close();
                     });
             } else {
                 resolve({ exists: false, data: null });
@@ -3267,7 +3345,7 @@ function Mrend(options) {
     }
 
     function isTableExist(db, tableName) {
-        return globalThis.db.tables.has(tableName);
+        return mrendThis.db.tables.has(tableName);
     }
 
 
@@ -3390,11 +3468,16 @@ function Mrend(options) {
 
 
     function addNewRecords() {
-        if (globalThis.GNewRecords.length > 0) {
-            addBulkData(globalThis.db, globalThis.tableSourceName, globalThis.GNewRecords).then(function (data) {
-                globalThis.GNewRecords = []
+        if (mrendThis.GNewRecords.length > 0) {
+            addBulkData(mrendThis.db, mrendThis.tableSourceName, mrendThis.GNewRecords).then(function (data) {
+                mrendThis.GNewRecords = []
 
-                globalThis.GCellObjectsConfig = globalThis.GCellObjectsConfig.concat(globalThis.TMPCellObjectCOnfig);
+                mrendThis.GCellObjectsConfig = mrendThis.GCellObjectsConfig.concat(mrendThis.TMPCellObjectCOnfig);
+
+                if (mrendThis.reactiveData.cells) {
+                    console.log("Refreshing reactive cells after adding new records");
+                    mrendThis.refreshReactiveData()
+                }
 
             }).catch(function (err) {
                 //console.log(("ERROR ON INSERT NEW ROWS", err)
@@ -3488,7 +3571,7 @@ function Mrend(options) {
 
         var rowData = cell.getRow().getData();
 
-        var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+        var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
             return linha.rowid == rowData.rowid;
         });
         if (!renderedLinha) {
@@ -3508,7 +3591,7 @@ function Mrend(options) {
             throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
         }
 
-        var renderedColuna = globalThis.GRenderedColunas.find(function (coluna) {
+        var renderedColuna = mrendThis.GRenderedColunas.find(function (coluna) {
             return coluna.codigocoluna == cell.getField();
         });
 
@@ -3517,7 +3600,7 @@ function Mrend(options) {
             throw new Error("Coluna renderedColuna com codigocoluna " + cell.getField() + " não encontrada.");
         }
 
-        var celula = globalThis.reportConfig.config.celulas.find(function (celula) {
+        var celula = mrendThis.reportConfig.config.celulas.find(function (celula) {
             return celula.codigocoluna.trim() == renderedColuna.config.codigocoluna && celula.linhastamp.trim() == renderedLinha.config.linhastamp.trim();
         });
 
@@ -3550,20 +3633,29 @@ function Mrend(options) {
             return "";
         }
 
+        function ensureMinContent(content) {
+            // Se o conteúdo está vazio, nulo, undefined ou só espaços
+            if (!content || content.toString().trim() === "") {
+                return "&nbsp;"; // Espaço não-quebrado para manter altura
+            }
+            return content;
+        }
+
 
 
         switch (colunaConfig.tipo) {
 
             case "digit":
-
-                return formatNumber(cell.getValue(), colunaConfig);
+                var formattedValue = formatNumber(cell.getValue(), colunaConfig);
+                var content = ensureMinContent(formattedValue);
+                return "<div class='mrend-input-cell'>" + content + "</div>";
                 break;
 
             case "table":
 
                 if (renderedColuna.colfunc || celula.usafnpren) {
-
-                    return cell.getValue();
+                    var content = ensureMinContent(cell.getValue());
+                    return content;
                 }
 
                 if (renderedColuna.usaexpresstbjs && celula.localData.length == 0) {
@@ -3577,26 +3669,23 @@ function Mrend(options) {
                 });
 
                 if (selectedData) {
-
                     selectedLabel = selectedData[renderedColuna.nometb];
-
                 }
 
-                return selectedLabel;
-
+                var content = ensureMinContent(selectedLabel);
+                return "<div class='mrend-input-cell'>" + content + "</div>";
 
             default:
-
-                return cell.getValue();
+                var content = ensureMinContent(cell.getValue());
+                return "<div class='mrend-input-cell'>" + content + "</div>";
                 break;
-
         }
 
     }
 
     function handleEditor(coluna, colunaUIConfig) {
 
-        if (!globalThis.enableEdit) {
+        if (!mrendThis.enableEdit) {
             return {};
         }
         if (coluna.config.tipo === "digit") {
@@ -3699,7 +3788,7 @@ function Mrend(options) {
 
 
 
-                var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+                var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
                     return linha.rowid == rowData.rowid;
                 });
 
@@ -3707,7 +3796,7 @@ function Mrend(options) {
                     throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
                 }
 
-                var celula = globalThis.reportConfig.config.celulas.find(function (celula) {
+                var celula = mrendThis.reportConfig.config.celulas.find(function (celula) {
                     return celula.codigocoluna.trim() == renderedColuna.config.codigocoluna && celula.linhastamp.trim() == renderedLinha.config.linhastamp.trim();
                 });
 
@@ -3744,7 +3833,7 @@ function Mrend(options) {
                         }
                     } catch (error) {
 
-                        console.warn("ERRO NO VALOR POR DEFEITO PARA COLUNA", renderedColuna.codigocoluna,"Célula ",celula, error)
+                        console.warn("ERRO NO VALOR POR DEFEITO PARA COLUNA", renderedColuna.codigocoluna, "Célula ", celula, error)
                     }
 
 
@@ -3819,7 +3908,7 @@ function Mrend(options) {
 
     function updateCellObjectConfig(coluna, rowData) {
 
-        var cellObjectConfig = globalThis.GCellObjectsConfig.find(function (obj) {
+        var cellObjectConfig = mrendThis.GCellObjectsConfig.find(function (obj) {
             return obj.codigocoluna == coluna && obj.rowid == rowData.rowid;
         });
 
@@ -3832,13 +3921,13 @@ function Mrend(options) {
 
     function deleteRowById(rowid) {
 
-        var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+        var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
             return linha.rowid == rowid;
         });
 
         if (renderedLinha) {
 
-            globalThis.GRenderedLinhas = globalThis.GRenderedLinhas.filter(function (linha) {
+            mrendThis.GRenderedLinhas = mrendThis.GRenderedLinhas.filter(function (linha) {
                 return linha.rowid != rowid
             })
 
@@ -3849,7 +3938,7 @@ function Mrend(options) {
 
     function addLinhaFilha(rowid) {
 
-        var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+        var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
             return linha.rowid == rowid;
         });
 
@@ -3924,7 +4013,7 @@ function Mrend(options) {
                     }
 
                     var rowData = cell.getRow().getData();
-                    var renderedColuna = globalThis.GRenderedColunas.find(function (coluna) {
+                    var renderedColuna = mrendThis.GRenderedColunas.find(function (coluna) {
                         return coluna.codigocoluna == cell.getField();
                     });
 
@@ -3950,7 +4039,7 @@ function Mrend(options) {
             colunaUIConfig.editable = function (cell) {
 
                 var rowData = cell.getRow().getData()
-                var renderedColuna = globalThis.GRenderedColunas.find(function (coluna) {
+                var renderedColuna = mrendThis.GRenderedColunas.find(function (coluna) {
                     return coluna.codigocoluna == cell.getField();
                 });
 
@@ -3959,7 +4048,7 @@ function Mrend(options) {
                     throw new Error("Coluna renderedColuna set editable com codigocoluna " + cell.getField() + " não encontrada.");
                 }
 
-                var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+                var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
                     return linha.rowid == rowData.rowid;
                 });
 
@@ -4015,9 +4104,10 @@ function Mrend(options) {
     }
 
 
+
     function handleRowEvent(row, operation) {
         var rowData = row.getData();
-        var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+        var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
             return linha.rowid == rowData.rowid;
         });
         if (!renderedLinha) {
@@ -4054,7 +4144,7 @@ function Mrend(options) {
 
         addNewRecords()
 
-        globalThis.GCellObjectsConfig = globalThis.GCellObjectsConfig.concat(globalThis.TMPCellObjectCOnfig);
+        mrendThis.GCellObjectsConfig = mrendThis.GCellObjectsConfig.concat(mrendThis.TMPCellObjectCOnfig);
 
         var columns = [
             {
@@ -4066,11 +4156,12 @@ function Mrend(options) {
 
             {
                 title: "Ações",
+                
                 formatter: function (cell, formatterParams) {
 
                     var rowData = cell.getRow().getData()
 
-                    var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+                    var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
 
                         return linha.rowid == rowData.rowid;
                     });
@@ -4081,7 +4172,7 @@ function Mrend(options) {
                     }
 
 
-                    if (!globalThis.enableEdit) {
+                    if (!mrendThis.enableEdit) {
                         return "";
                     }
 
@@ -4092,13 +4183,13 @@ function Mrend(options) {
 
                     if (renderedLinha.config.addfilho) {
 
-                        botãoAddFilho = "<div ><i style='color:#0765b7' class='fa fa-plus-circle action-btn add-child' title='Adicionar Filho'></i> </div>"
+                        botãoAddFilho = "<button type='button' class='btn btn-primary btn-sm' ><span class='glyphicon glyphicon-plus action-btn add-child' title='Adicionar Filho'></span> </button>"
                     }
 
 
                     if (renderedLinha.config.modelo || renderedLinha.isInstance) {
 
-                        botaoRemover = "<div ><i style='color:#d9534f!important;' class='fa fa-trash action-btn remove-row' title='Remover Linha'></i> </div>"
+                        botaoRemover = "<button type='button' style='background:#d9534f;color:white' class='btn btn-danger btn-sm' ><span class='glyphicon glyphicon-trash action-btn remove-row' title='Remover Linha'></span> </button>"
                     }
 
                     var globalBotoes = "<div style='display:flex;column-gap:0.3em'>" + botãoAddFilho + botaoRemover + "</div>";
@@ -4118,7 +4209,7 @@ function Mrend(options) {
                         var addFilhaResult = addLinhaFilha(row.getData().rowid);
                         row.addTreeChild(addFilhaResult.UIObject);
                         row.treeExpand();
-                        globalThis.applyTabulatorStylesWithJquery(globalThis);
+                        mrendThis.applyTabulatorStylesWithJquery(mrendThis);
                         handleRowEvent(row, "add");
 
 
@@ -4130,6 +4221,7 @@ function Mrend(options) {
                         var children = row.getTreeChildren();
 
                         deleteRowById(row.getData().rowid);
+                        mrendThis.refreshReactiveData();
                         if (children.length > 0) {
                             if (confirm("Esta linha tem filhos. Deseja remover tudo?")) {
                                 deleteRowAndChildren(row);
@@ -4145,7 +4237,7 @@ function Mrend(options) {
 
         ];
 
-        addTabulatorColumns(globalThis.GRenderedColunas, columns);
+        addTabulatorColumns(mrendThis.GRenderedColunas, columns);
 
         function observeTabulatorChanges() {
             var tabulatorContainer = document.querySelector(".tabulator");
@@ -4155,7 +4247,7 @@ function Mrend(options) {
             var observer = new MutationObserver(function (mutationsList, observer) {
                 // Sempre que houver alteração, reaplica os estilos
                 /////console.log(("Tabulator styles changed, reapplying styles...");
-                globalThis.applyTabulatorStylesWithJquery(globalThis);
+                mrendThis.applyTabulatorStylesWithJquery(mrendThis);
             });
 
             // Configura para observar alterações em filhos e subárvores
@@ -4175,13 +4267,60 @@ function Mrend(options) {
         
         */
 
-        $(globalThis.containerToRender).css({
+        $(mrendThis.containerToRender).css({
             "font-family": "Nunito, sans-serif",
-            /*"color": "#626e78"*/
-        })
+            "color": "#161616",
+            "zoom": "0.75",
+            //"transform-origin": "top left",
+        });
 
-        globalThis.GTable = new Tabulator(globalThis.containerToRender, {
-            data: globalThis.GGridData,
+        var botaoId = "btn-zoom-in-" + generateUUID();
+        var buttonZoomIn = {
+            style: "",
+            buttonId: botaoId,
+            classes: "btn btn-primary btn-sm btn-zoom-in btn-zoom-mrend",
+            customData: "  type='button' data-zoom-scale='0.75' data-zoomin='true' data-container='" + mrendThis.containerToRender + "'",
+            label: " <span class='glyphicon glyphicon-plus'></span>",
+            onClick: "handleZoomMrend(this, \"" + mrendThis.dbTableToMrendObject.dbName + "\", \"" + mrendThis.tableSourceName + "\");",
+        };
+        var buttonZoomInHtml = generateButton(buttonZoomIn);
+
+        var botaoIdZoomOut = "btn-zoom-out-" + generateUUID();
+        var buttonZoomOut = {
+            style: "",
+            buttonId: botaoIdZoomOut,
+            classes: "btn btn-default btn-sm btn-zoom-out btn-zoom-mrend",
+            customData: " type='button' data-zoomout='true' data-zoom-scale='0.75' data-container='" + mrendThis.containerToRender + "'",
+            label: "<span class='glyphicon glyphicon-minus'></span>",
+            onClick: "handleZoomMrend(this, \"" + mrendThis.dbTableToMrendObject.dbName + "\", \"" + mrendThis.tableSourceName + "\");",
+        };
+        var buttonZoomOutHtml = generateButton(buttonZoomOut);
+
+        /* $(document).off("click", ".btn-zoom-mrend").on("click", ".btn-zoom-mrend", function (e) {
+ 
+             e.preventDefault();
+             e.stopPropagation();
+             handleZoomMrend(this, mrendThis);
+ 
+ 
+         })*/
+
+
+
+
+
+
+        var zoomAreaContainerButtons = "<div style='display:flex;column-gap:0.3em;justify-content:right;margin-bottom:0.5em'>"
+        zoomAreaContainerButtons += " " + buttonZoomInHtml
+        zoomAreaContainerButtons += " " + buttonZoomOutHtml
+
+        zoomAreaContainerButtons += "</div>"
+        $(mrendThis.containerToRender).before(zoomAreaContainerButtons);
+
+
+
+        mrendThis.GTable = new Tabulator(mrendThis.containerToRender, {
+            data: mrendThis.GGridData,
             dataTree: true,
             dataTreeStartExpanded: true,
             dataTreeChildIndent: 25,
@@ -4195,7 +4334,7 @@ function Mrend(options) {
                 if (row.getTreeParent()) {
                     row.getElement().style.backgroundColor = "#f8fafc";
                 }
-                var renderedLinha = globalThis.GRenderedLinhas.find(function (linha) {
+                var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
                     return linha.rowid == data.rowid;
                 });
 
@@ -4229,7 +4368,7 @@ function Mrend(options) {
 
         });
 
-        globalThis.GTable.on("cellEdited", function (cell) {
+        mrendThis.GTable.on("cellEdited", function (cell) {
             var rowData = cell.getRow().getData();
 
             var columnField = cell.getField(); // <-- Aqui você pega o nome/campo da coluna editada
@@ -4246,33 +4385,65 @@ function Mrend(options) {
         });
 
 
-        globalThis.GTable.on("dataTreeRowExpanded", function (row, level) {
-            globalThis.applyTabulatorStylesWithJquery(globalThis);
+        mrendThis.GTable.on("dataTreeRowExpanded", function (row, level) {
+            mrendThis.applyTabulatorStylesWithJquery(mrendThis);
         });
 
 
-        globalThis.GTable.on("dataTreeRowCollapsed", function (row, level) {
+        mrendThis.GTable.on("dataTreeRowCollapsed", function (row, level) {
 
-            globalThis.applyTabulatorStylesWithJquery(globalThis);
+            mrendThis.applyTabulatorStylesWithJquery(mrendThis);
         });
 
 
 
         var tableBuiltEvent = function (data) {
+            var currentScale = 0.75;
+            var UIConfig = localStorage.getItem("UICONFIG_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName);
+            if (UIConfig) {
 
-            globalThis.applyTabulatorStylesWithJquery(globalThis);
+                try {
+                    var parsedConfig = JSON.parse(UIConfig);
+
+                    if (parsedConfig.zoomScale) {
+                        currentScale = parsedConfig.zoomScale;
+                    }
+
+                    $(mrendThis.containerToRender).css({
+                        "font-family": "Nunito, sans-serif",
+                        "color": "#161616",
+                        "zoom": currentScale
+                    });
+
+
+                } catch (e) {
+                    console.error("Erro ao analisar UIConfig:", e);
+                }
+            }
+            $(mrendThis.containerToRender).attr("data-zoom-scale", currentScale);
+
+            mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+
+            var cells = JSON.parse(JSON.stringify(mrendThis.GCellObjectsConfig));
+
+            mrendThis.reactiveData = PetiteVue.reactive({
+                global: mrendThis,
+                cells: cells
+            });
+
 
             /* setInterval(function () {
               //   applyTabulatorStylesWithJquery();
              }, 1000);*/
         }
 
-        globalThis.GTable.on("rowAdded", function (row) {
+        mrendThis.GTable.on("rowAdded", function (row) {
             //row - row component
             handleRowEvent(row, "add");
+
         });
 
-        globalThis.GTable.on("rowDeleted", function (row) {
+        mrendThis.GTable.on("rowDeleted", function (row) {
 
             /* setTimeout(function () {
  
@@ -4284,10 +4455,11 @@ function Mrend(options) {
 
 
 
-        globalThis.GTable.on("tableBuilt", tableBuiltEvent);
+        mrendThis.GTable.on("tableBuilt", tableBuiltEvent);
+
 
         setTimeout(function () {
-            globalThis.applyTabulatorStylesWithJquery(globalThis);
+            mrendThis.applyTabulatorStylesWithJquery(mrendThis);
         }, 500);
 
 
@@ -4354,7 +4526,7 @@ function Mrend(options) {
             return
         }
 
-        var celulas = globalThis.GCellObjectsConfig.filter(function (cellObj) { return cellObj.events.length > 0 });
+        var celulas = mrendThis.GCellObjectsConfig.filter(function (cellObj) { return cellObj.events.length > 0 });
 
 
         celulas.forEach(function (cellObjectConfig) {
@@ -4365,16 +4537,16 @@ function Mrend(options) {
     }
 
     function handleTotais() {
-        if (globalThis.reportConfig.config.relatorio.totalcoluna) {
+        if (mrendThis.reportConfig.config.relatorio.totalcoluna) {
 
-            globalThis.GRenderedLinhas.forEach(function (linha) {
+            mrendThis.GRenderedLinhas.forEach(function (linha) {
 
                 linha.actualizarTotalLinha();
             })
         }
 
         calcularSubtotais();
-        if (globalThis.reportConfig.config.relatorio.totalrelatorio) {
+        if (mrendThis.reportConfig.config.relatorio.totalrelatorio) {
 
             GTableData.calcularTotalRelatorio();
 
@@ -4394,7 +4566,7 @@ function Mrend(options) {
 
 
 
-        var linhasToRender = globalThis.reportConfig.config.linhas;
+        var linhasToRender = mrendThis.reportConfig.config.linhas;
 
         linhasToRender.sort(function (a, b) {
             return (a.ordem || 0) - (b.ordem || 0);
@@ -4457,7 +4629,7 @@ function Mrend(options) {
 
             }
             else {
-                var isFilhaRendered = globalThis.GTMPFilhas.find(function (filha) {
+                var isFilhaRendered = mrendThis.GTMPFilhas.find(function (filha) {
 
                     return filha.codigo.trim() == linhaToRender.codigo.trim();
                 });
@@ -4473,7 +4645,7 @@ function Mrend(options) {
 
                     var linhasFilhas = [];
 
-                    linhasFilhas = globalThis.reportConfig.config.linhas.filter(function (linha) {
+                    linhasFilhas = mrendThis.reportConfig.config.linhas.filter(function (linha) {
                         return linha.linkstamp == linhaToRender.linhastamp
                     });
 
@@ -4501,9 +4673,9 @@ function Mrend(options) {
 
 
         var tmpGrData = []
-        globalThis.GGridData = globalThis.GRenderedLinhas.map(function (lin) {
+        mrendThis.GGridData = mrendThis.GRenderedLinhas.map(function (lin) {
 
-            var someCellObjectConfig = globalThis.GCellObjectsConfig.find(function (cellObj) {
+            var someCellObjectConfig = mrendThis.GCellObjectsConfig.find(function (cellObj) {
                 return cellObj.rowid.trim() == lin.rowid.trim()
             })
 
@@ -4512,8 +4684,8 @@ function Mrend(options) {
             }
         });
 
-        globalThis.GGridData = tmpGrData;
-        globalThis.GTMPFilhas = []
+        mrendThis.GGridData = tmpGrData;
+        mrendThis.GTMPFilhas = []
 
 
         return renderedLinhas;
@@ -4522,7 +4694,7 @@ function Mrend(options) {
 
 
     function processFilhasRecursivo(linhaPai, rowidPai, renderedLinhas, novoRegisto) {
-        var linhasFilhas = globalThis.reportConfig.config.linhas.filter(function (linha) {
+        var linhasFilhas = mrendThis.reportConfig.config.linhas.filter(function (linha) {
             return linha.linkstamp == linhaPai.linhastamp;
         });
 
@@ -4539,7 +4711,7 @@ function Mrend(options) {
             };
 
             addLinha(dstRowFilha, [], linhaFilha, renderedLinhas, true, linhaFilha.modelo != true, novoRegisto);
-            globalThis.GTMPFilhas.push(linhaFilha);
+            mrendThis.GTMPFilhas.push(linhaFilha);
             processFilhasRecursivo(linhaFilha, rowidFilha, renderedLinhas, novoRegisto);
 
 
@@ -4549,7 +4721,7 @@ function Mrend(options) {
 
     function addLinha(distinctRow, linhaRecords, linhModelo, renderedLinhas, isParent, renderCelula, novoRegisto) {
 
-        var linhaAdicionada = globalThis.GRenderedLinhas.find(function (linha) {
+        var linhaAdicionada = mrendThis.GRenderedLinhas.find(function (linha) {
             return linha.rowid == distinctRow.rowid
         });
         if (linhaAdicionada) {
@@ -4578,7 +4750,7 @@ function Mrend(options) {
 
         if (!rendered.linkid && linha.linkstamp) {
 
-            var configuracaoLinha = globalThis.reportConfig.config.linhas.find(function (linhaC) {
+            var configuracaoLinha = mrendThis.reportConfig.config.linhas.find(function (linhaC) {
                 return linhaC.linhastamp == linha.linkstamp
 
             });
@@ -4622,12 +4794,12 @@ function Mrend(options) {
         initTableDataAndContainer();
 
 
-        globalThis.GRenderedColunas = setColunasRender(globalThis.reportConfig.config.colunas, records);
+        mrendThis.GRenderedColunas = setColunasRender(mrendThis.reportConfig.config.colunas, records);
 
 
         var renderedLinhas = getRenderedLinhas(records);
 
-        globalThis.GRenderedLinhas = renderedLinhas
+        mrendThis.GRenderedLinhas = renderedLinhas
 
         RenderSourceTable();
 
@@ -4636,7 +4808,7 @@ function Mrend(options) {
 
     function getCellObjectConfigByCellId(cellId) {
 
-        return globalThis.GCellObjectsConfig.find(function (obj) {
+        return mrendThis.GCellObjectsConfig.find(function (obj) {
             return obj.cellid == cellId
         });
     }
@@ -4765,13 +4937,13 @@ function Mrend(options) {
         $(document).off("click", ".removeTableRow").on("click", ".removeTableRow", function () {
 
             var rowId = $(this).closest("tr").attr("id");
-            var row = globalThis.GRenderedLinhas.find(function (linha) {
+            var row = mrendThis.GRenderedLinhas.find(function (linha) {
                 return linha.rowid == rowId
             });
 
             if (row) {
 
-                globalThis.GRenderedLinhas = globalThis.GRenderedLinhas.filter(function (linha) {
+                mrendThis.GRenderedLinhas = mrendThis.GRenderedLinhas.filter(function (linha) {
                     return linha.rowid != rowId
                 })
 
@@ -4783,7 +4955,7 @@ function Mrend(options) {
 
         $(document).off("click", ".addFilho").on("click", ".addFilho", function () {
             var rowId = $(this).closest("tr").attr("id");
-            var linha = globalThis.GRenderedLinhas.find(function (linha) {
+            var linha = mrendThis.GRenderedLinhas.find(function (linha) {
                 return linha.rowid == rowId
             });
 
@@ -4803,35 +4975,35 @@ function Mrend(options) {
 
     function handleReportRecords() {
         return new Promise(function (resolve, reject) {
-            var stampAtual = (globalThis.recordData.stamp || "").trim();
+            var stampAtual = (mrendThis.recordData.stamp || "").trim();
             var stampArmazenado = getSourceStamp().trim();
 
 
 
-            return databaseAndTableHasRecords(globalThis.db, globalThis.tableSourceName)
+            return databaseAndTableHasRecords(mrendThis.db, mrendThis.tableSourceName)
                 .then(function (result) {
 
                     if (stampAtual === stampArmazenado) {
-                        globalThis.records = result.data || [];
+                        mrendThis.records = result.data || [];
                         return resolve({ refetchDb: false, records: result.data || [] });
                     }
 
-                    storeDataSourceStamp(globalThis.recordData.stamp);
+                    storeDataSourceStamp(mrendThis.recordData.stamp);
 
-                    //console.log(("Source stamp updated or local DB empty, refetching data...", globalThis.recordData.stamp, stampArmazenado);
+                    //console.log(("Source stamp updated or local DB empty, refetching data...", mrendThis.recordData.stamp, stampArmazenado);
 
-                    if (globalThis.remoteFetch === true) {
+                    if (mrendThis.remoteFetch === true) {
 
                         return getDataFromRemote()
                             .then(function (remoteData) {
                                 console.log("Remote data fetched successfully.........DNELSE", remoteData);
-                                globalThis.records = remoteData && remoteData.data ? remoteData.data : [];
-                                return resolve({ refetchDb: true, records: globalThis.records, remoteFetch: true });
+                                mrendThis.records = remoteData && remoteData.data ? remoteData.data : [];
+                                return resolve({ refetchDb: true, records: mrendThis.records, remoteFetch: true });
                             })
                             .catch(reject);
                     }
 
-                    resolve({ refetchDb: true, records: globalThis.records });
+                    resolve({ refetchDb: true, records: mrendThis.records });
                 })
                 .catch(reject);
         }).then(function (result) {
@@ -4839,11 +5011,11 @@ function Mrend(options) {
             return new Promise(function (resolve, reject) {
 
                 if (result.refetchDb) {
-                    return deleteAllRecords(globalThis.table).then(function (data) {
+                    return deleteAllRecords(mrendThis.table).then(function (data) {
 
-                        var dbConverstion = ConvertDbTableToMrendObject(globalThis.records, globalThis.dbTableToMrendObject);
-                        globalThis.records = dbConverstion;
-                        return addBulkData(globalThis.db, globalThis.table, dbConverstion).then(function (data) {
+                        var dbConverstion = ConvertDbTableToMrendObject(mrendThis.records, mrendThis.dbTableToMrendObject);
+                        mrendThis.records = dbConverstion;
+                        return addBulkData(mrendThis.db, mrendThis.table, dbConverstion).then(function (data) {
                             return resolve(result);
                         })
                     })
@@ -4854,7 +5026,7 @@ function Mrend(options) {
     }
     this.clearSourceStamp = function () {
 
-        localStorage.removeItem("sourcestamp_" + globalThis.dbTableToMrendObject.dbName + "_" + globalThis.tableSourceName);
+        localStorage.removeItem("sourcestamp_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName);
 
 
     }
@@ -4863,7 +5035,7 @@ function Mrend(options) {
     function addLinhaByModelo(modelo) {
 
 
-        var linhaModelo = globalThis.reportConfig.config.linhas.find(function (linha) {
+        var linhaModelo = mrendThis.reportConfig.config.linhas.find(function (linha) {
 
             return linha.codigo == modelo
         });
@@ -4897,20 +5069,20 @@ function Mrend(options) {
     }
     function generateTableButtons() {
 
-        if (!globalThis.enableEdit) {
+        if (!mrendThis.enableEdit) {
             return;
         }
 
 
-        var tableButtonsId = "tableButtons" + globalThis.table;
+        var tableButtonsId = "tableButtons" + mrendThis.table;
         var tableButtons = $("<div id='" + tableButtonsId + "' class='col-md-12 pull-left tableButtons'></div>");
-        $(globalThis.containerToRender).after(tableButtons);
+        $(mrendThis.containerToRender).after(tableButtons);
 
-        globalThis.reportConfig.config.relatorio.modelos.forEach(function (modelo) {
+        mrendThis.reportConfig.config.relatorio.modelos.forEach(function (modelo) {
 
 
             var botaoId = "btnAdd" + modelo;
-            var configuracaoLinha = globalThis.reportConfig.config.linhas.find(function (linha) {
+            var configuracaoLinha = mrendThis.reportConfig.config.linhas.find(function (linha) {
                 return linha.codigo == modelo
 
             });
@@ -4939,9 +5111,9 @@ function Mrend(options) {
                 var linhaByModeloResult = addLinhaByModelo(modelo);
 
                 // //console.log(("Linha adicionada por modelo", linhaByModeloResult)
-                globalThis.GTable.addRow(linhaByModeloResult.UIObject, false).then(function (row) {
+                mrendThis.GTable.addRow(linhaByModeloResult.UIObject, false).then(function (row) {
                     row.treeExpand();
-                    globalThis.applyTabulatorStylesWithJquery(globalThis);
+                    mrendThis.applyTabulatorStylesWithJquery(mrendThis);
 
                 });
 
@@ -4958,15 +5130,15 @@ function Mrend(options) {
 
 
 
-        var colunasModelos = globalThis.reportConfig.config.colunas.filter(function (coluna) {
+        var colunasModelos = mrendThis.reportConfig.config.colunas.filter(function (coluna) {
             return coluna.modelo == true;
         })
 
         if (colunasModelos.length > 0) {
 
-            var tableButtonsColId = "tableButtonsCol" + globalThis.table;
+            var tableButtonsColId = "tableButtonsCol" + mrendThis.table;
             var tableButtonsCol = $("<div id='" + tableButtonsColId + "' class='col-md-12 pull-left tableButtonsCol'></div>");
-            $(globalThis.containerToRender).before(tableButtonsCol);
+            $(mrendThis.containerToRender).before(tableButtonsCol);
 
         }
 
@@ -4991,7 +5163,7 @@ function Mrend(options) {
                 $("#" + tableButtonsColId).append(buttonHtml);
                 $("#" + botaoId).on("click", function () {
                     var modelo = $(this).data("modelo");
-                    globalThis.openAddColunaModal(modelo);
+                    mrendThis.openAddColunaModal(modelo);
 
                 });
 
@@ -5090,13 +5262,13 @@ function Mrend(options) {
         $("#modalAddColuna").modal("show");
 
 
-        var dadosColunaConfig = globalThis.reportConfig.config.colunas.find(function (coluna) {
+        var dadosColunaConfig = mrendThis.reportConfig.config.colunas.find(function (coluna) {
             return coluna.codigocoluna == modelo;
         });
 
         var colConfig = new Coluna(dadosColunaConfig);
 
-        var maxOrdemColuna = globalThis.GRenderedColunas.reduce(function (max, col) {
+        var maxOrdemColuna = mrendThis.GRenderedColunas.reduce(function (max, col) {
             return Math.max(max, col.ordem || 0);
         }, 0);
 
@@ -5109,30 +5281,30 @@ function Mrend(options) {
             config: colConfig
         });
 
-        globalThis.colunaTmpSetup = colunaToRender
+        mrendThis.colunaTmpSetup = colunaToRender
 
         PetiteVue.createApp({
-            colunaTmpSetup: globalThis.colunaTmpSetup
+            colunaTmpSetup: mrendThis.colunaTmpSetup
         }).mount('#maincontent');
 
 
         $("#btnAddColunaDyn").off("click").on("click", function () {
 
-            var desccoluna = globalThis.colunaTmpSetup.desccoluna || "Coluna";
+            var desccoluna = mrendThis.colunaTmpSetup.desccoluna || "Coluna";
             if (!desccoluna) {
                 alert("Descrição da coluna é obrigatória");
                 return;
             }
 
-            var newColuna = globalThis.colunaTmpSetup;
+            var newColuna = mrendThis.colunaTmpSetup;
 
             var colunas = [newColuna]
 
-            globalThis.addColunasByModelo(colunas);
+            mrendThis.addColunasByModelo(colunas);
 
 
             $("#modalAddColuna").modal("hide");
-            globalThis.colunaTmpSetup = new RenderedColuna({})
+            mrendThis.colunaTmpSetup = new RenderedColuna({})
 
 
 
@@ -5142,7 +5314,7 @@ function Mrend(options) {
     }
 
     this.deleteColuna = function (codigocoluna) {
-        var colunaToDelete = globalThis.GRenderedColunas.find(function (coluna) {
+        var colunaToDelete = mrendThis.GRenderedColunas.find(function (coluna) {
             return coluna.codigocoluna == codigocoluna;
         });
 
@@ -5150,16 +5322,16 @@ function Mrend(options) {
             throw new Error("Coluna para remover com código " + codigocoluna + " não encontrada.");
         }
 
-        globalThis.GRenderedColunas = globalThis.GRenderedColunas.filter(function (coluna) {
+        mrendThis.GRenderedColunas = mrendThis.GRenderedColunas.filter(function (coluna) {
             return coluna.codigocoluna != codigocoluna;
         });
 
-        globalThis.GTable.deleteColumn(colunaToDelete.codigocoluna, false);
-        globalThis.GCellObjectsConfig = globalThis.GCellObjectsConfig.filter(function (cellObj) {
+        mrendThis.GTable.deleteColumn(colunaToDelete.codigocoluna, false);
+        mrendThis.GCellObjectsConfig = mrendThis.GCellObjectsConfig.filter(function (cellObj) {
             return cellObj.codigocoluna != codigocoluna;
         });
 
-        globalThis.db[globalThis.table].where("coluna").equals(codigocoluna).delete().then(function () {
+        mrendThis.db[mrendThis.table].where("coluna").equals(codigocoluna).delete().then(function () {
             //console.log(("Coluna deletada com sucesso:", codigocoluna);
         });
     }
@@ -5169,7 +5341,7 @@ function Mrend(options) {
 
         colunas.forEach(function (coluna) {
 
-            var renderedLinhas = globalThis.GRenderedLinhas.filter(function (linha) {
+            var renderedLinhas = mrendThis.GRenderedLinhas.filter(function (linha) {
 
                 return linha.config.modelo != true;
             });
@@ -5179,7 +5351,7 @@ function Mrend(options) {
                 setCelula({}, linha, coluna, [], coluna.config.categoria, "", {})
             })
 
-            globalThis.GRenderedColunas.push(coluna);
+            mrendThis.GRenderedColunas.push(coluna);
             lastRendered = coluna.codigocoluna;
             addNewRecords();
 
@@ -5188,7 +5360,7 @@ function Mrend(options) {
         addTabulatorColumns(colunas, columns);
         columns.forEach(function (col) {
 
-            globalThis.GTable.addColumn(col, false).then(function () {
+            mrendThis.GTable.addColumn(col, false).then(function () {
                 ////console.log(("Coluna adicionada:", col);
             });
 
@@ -5196,7 +5368,7 @@ function Mrend(options) {
 
         });
 
-        var colunasSetFim = globalThis.GRenderedColunas.filter(function (coluna) {
+        var colunasSetFim = mrendThis.GRenderedColunas.filter(function (coluna) {
 
             return coluna.config.setfim == true;
         });
@@ -5208,17 +5380,17 @@ function Mrend(options) {
         // //console.log(("colunasSetFim", colunasSetFim)
         colunasSetFim.forEach(function (coluna) {
 
-            var columnExists = globalThis.GTable.getColumn(lastRendered.trim())
+            var columnExists = mrendThis.GTable.getColumn(lastRendered.trim())
             if (columnExists) {
 
-                globalThis.GTable.moveColumn(coluna.codigocoluna.trim(), lastRendered.trim(), true);
+                mrendThis.GTable.moveColumn(coluna.codigocoluna.trim(), lastRendered.trim(), true);
             }
 
         })
 
 
 
-        globalThis.applyTabulatorStylesWithJquery(globalThis);
+        mrendThis.applyTabulatorStylesWithJquery(mrendThis);
     }
 
     function findRowByIdColuna(rowid, coluna, value) {
@@ -5243,7 +5415,7 @@ function Mrend(options) {
 
                     updateData[coluna] = value;
 
-                    var cellObjectConfig = globalThis.GCellObjectsConfig.find(function (obj) {
+                    var cellObjectConfig = mrendThis.GCellObjectsConfig.find(function (obj) {
                         return obj.rowid == rowid && obj.codigocoluna == coluna;
                     });
 
@@ -5271,7 +5443,7 @@ function Mrend(options) {
             })
             return null;
         }
-        return search(globalThis.GTable.getRows());
+        return search(mrendThis.GTable.getRows());
     }
 
     function findRowById(rowid, coluna) {
@@ -5293,7 +5465,7 @@ function Mrend(options) {
 
                     });
 
-                    var cellObjectConfig = globalThis.GCellObjectsConfig.find(function (obj) {
+                    var cellObjectConfig = mrendThis.GCellObjectsConfig.find(function (obj) {
                         return obj.rowid == rowid && obj.codigocoluna == coluna;
                     });
 
@@ -5318,7 +5490,7 @@ function Mrend(options) {
             })
             return null;
         }
-        return search(globalThis.GTable.getRows());
+        return search(mrendThis.GTable.getRows());
     }
     this.updateTableRow = function (rowid, rowData, coluna) {
 
@@ -5418,21 +5590,27 @@ function Mrend(options) {
 
         // Header
         $(".tabulator .tabulator-header").css({
-            "background-color": customStyles.headerBackground ? customStyles.headerBackground : "#0765b7",
+            "background-color": customStyles.headerBackground ? customStyles.headerBackground : getColorByType("primary").background,
             "border-bottom": "none",
             "border-radius": "10px 10px 0 0",
-            "padding": "13px"
+            "padding": "0px",
+            "font-size": "14px",
+            "font-family": "Nunito, sans-serif",
+            "font-weight": "bold"
+            //"height": "70px",
         });
+
 
         // Header columns
         $(".tabulator .tabulator-header .tabulator-col").css({
-            "background-color": customStyles.headerBackground ? customStyles.headerBackground : "#0765b7",
+            "background-color": customStyles.headerBackground ? customStyles.headerBackground : getColorByType("primary").background,
             "color": "white",
             "border-right": "none",
             "border-right": "1px solid rgba(255, 255, 255, 0.2)",
             /*  "padding": "12px 15px",*/
             "font-weight": "500"
         });
+
 
 
         /* $(".tabulator .tabulator-header .tabulator-col").css({
@@ -5453,7 +5631,7 @@ function Mrend(options) {
 
         // Rows
         $(".tabulator-row").css({
-            "border-bottom": "1px solid #e0e6ed",
+            "border-bottom": "0px solid #e0e6ed",
             "transition": "background-color 0.2s ease"
         });
 
@@ -5467,58 +5645,58 @@ function Mrend(options) {
         });
 
         // Botão adicionar
-        $(".btn-add").css({
-            "margin": "0 0 15px 0",
-            "padding": "10px 18px",
-            "background-color": "#0765b7",
-            "color": "white",
-            "border": "none",
-            "border-radius": "6px",
-            "cursor": "pointer",
-            "font-weight": "500",
-            "font-size": "14px",
-            "transition": "all 0.2s ease",
-            "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
-        }).hover(
-            function () {
-                $(this).css({
-                    "background-color": "#06539e",
-                    "transform": "translateY(-1px)",
-                    "box-shadow": "0 4px 12px rgba(7, 101, 183, 0.3)"
-                });
-            },
-            function () {
-                $(this).css({
-                    "background-color": "#0765b7",
-                    "transform": "",
-                    "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
-                });
-            }
-        );
-
-        $(".btn-add i").css("margin-right", "6px");
-
-        // Botões de ação
-        $(".action-btn").css({
-            "background": "none",
-            "border": "none",
-            "cursor": "pointer",
-            "font-size": "15px",
-            "margin": "0 5px",
-            "transition": "all 0.2s ease"
-        }).hover(
-            function () {
-                $(this).css({
-                    "transform": "scale(1.1)"
-                });
-            },
-            function () {
-                $(this).css({
-                    "transform": ""
-                });
-            }
-        );
-
+        /*  $(".btn-add").css({
+              "margin": "0 0 15px 0",
+              "padding": "10px 18px",
+              "background-color": "#0765b7",
+              "color": "white",
+              "border": "none",
+              "border-radius": "6px",
+              "cursor": "pointer",
+              "font-weight": "500",
+              "font-size": "14px",
+              "transition": "all 0.2s ease",
+              "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
+          }).hover(
+              function () {
+                  $(this).css({
+                      "background-color": "#06539e",
+                      "transform": "translateY(-1px)",
+                      "box-shadow": "0 4px 12px rgba(7, 101, 183, 0.3)"
+                  });
+              },
+              function () {
+                  $(this).css({
+                      "background-color": "#0765b7",
+                      "transform": "",
+                      "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
+                  });
+              }
+          );
+  
+          $(".btn-add i").css("margin-right", "6px");
+  
+          // Botões de ação
+          $(".action-btn").css({
+              "background": "none",
+              "border": "none",
+              "cursor": "pointer",
+              "font-size": "15px",
+              "margin": "0 5px",
+              "transition": "all 0.2s ease"
+          }).hover(
+              function () {
+                  $(this).css({
+                      "transform": "scale(1.1)"
+                  });
+              },
+              function () {
+                  $(this).css({
+                      "transform": ""
+                  });
+              }
+          );
+  */
         // Tree/indent
         $(".tabulator-row .tabulator-cell.tabulator-tree-col").css("padding-left", "15px");
         $(".tabulator-tree-branch").css({
@@ -5585,12 +5763,12 @@ function Mrend(options) {
         return loadAssetsPromiseAll().then(function () {
 
 
-            return InitDB(globalThis.dbTableToMrendObject.dbName, globalThis.schemas).then(function (initDBResult) {
-                if (globalThis.resetSourceStamp) {
-                    globalThis.clearSourceStamp();
+            return InitDB(mrendThis.dbTableToMrendObject.dbName, mrendThis.schemas).then(function (initDBResult) {
+                if (mrendThis.resetSourceStamp) {
+                    mrendThis.clearSourceStamp();
                 }
                 handleReportRecords().then(function (reportRecordResult) {
-                    RenderHandler(globalThis.records)
+                    RenderHandler(mrendThis.records)
                 })
             });
         });
@@ -5599,7 +5777,7 @@ function Mrend(options) {
     this.getDbData = function () {
 
         return new Promise(function (resolve, reject) {
-            globalThis.db[globalThis.tableSourceName].toArray().then(function (records) {
+            mrendThis.db[mrendThis.tableSourceName].toArray().then(function (records) {
 
                 var recordsConverted = ConvertMrendObjectToTable(records)
 
@@ -5618,8 +5796,40 @@ function Mrend(options) {
 
 
 }
+function handleZoomMrend(button, dbName, tableName) {
+    var $button = $(button);
+    var $container = $($button.data("container"));
+    var zoomIn = $button.data("zoomin");
+    var zoomOut = $button.data("zoomout");
 
+    var currentScale = parseFloat($container.attr("data-zoom-scale")) || 1.0;
+    var change = zoomIn ? 0.05 : zoomOut ? -0.05 : 0;
+    var newScale = currentScale + change;
 
+    console.log("newScale", newScale)
+    if (newScale < 0.25 || newScale > 1.0) return;
+
+    animateZoom($container, currentScale, newScale, 200);
+    $container.attr("data-zoom-scale", newScale);
+
+    localStorage.setItem("UICONFIG_" + dbName + "_" + tableName, JSON.stringify({
+        zoomScale: newScale
+    }));
+}
+
+function animateZoom($container, from, to, duration) {
+    var start = null;
+    var step = function (timestamp) {
+        if (!start) start = timestamp;
+        var progress = Math.min((timestamp - start) / duration, 1);
+        var scale = from + (to - from) * progress;
+        $container.css("zoom", scale);
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        }
+    };
+    requestAnimationFrame(step);
+}
 
 function loadAssetsWithGetScript() {
 
@@ -5668,7 +5878,23 @@ function loadAssetsWithGetScript() {
 
 
 $(document).ready(function () {
+    var cssContent = "";
+    cssContent += ".mrend-input-cell{";
+    cssContent += "    background: rgb(239, 240, 241) !important;";
+    cssContent += "    text-align: right;";
+    cssContent += "    padding: 5px 15px 5px 5px;";
+    cssContent += "    border-radius: 4px;";
+    cssContent += "     overflow: auto; ";
+    cssContent += "    width: 100%;";
+    cssContent += "    }";
+    cssContent += ".tabulator-row {";
+    cssContent += "    border-bottom: 0px solid #e0e6ed!important;";
+    cssContent += "    transition: background-color 0.2s ease!important;";
+    cssContent += "    background-color: white;";
+    cssContent += "}";
 
+
+    $('head').append('<style>' + cssContent + '</style>');
     loadAssetsWithGetScript();
     // loadMrendAssets()
 
@@ -5695,6 +5921,8 @@ function assetExists(type, url) {
 }
 
 function loadMrendAssets() {
+
+
 
     var assets = [
 
@@ -5737,9 +5965,9 @@ function applyTabulatorStylesWithJquery() {
 
     var customStyles = {}
 
-    //console.log(("globalThis.reportConfig", globalThis.reportConfig)
-    if (globalThis.reportConfig.config.extra) {
-        customStyles = globalThis.reportConfig.config.extra.customStyles || {};
+    //console.log(("mrendThis.reportConfig", mrendThis.reportConfig)
+    if (mrendThis.reportConfig.config.extra) {
+        customStyles = mrendThis.reportConfig.config.extra.customStyles || {};
     }
     // Tabulator container
     $(".tabulator").css({

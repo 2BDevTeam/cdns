@@ -562,12 +562,12 @@ function generateButton(button) {
 
 function generateCollapseHTML(collapseData) {
     // Start building up the collapse HTML string with the opening div
-    var collapseHTML = '<div class="home-collapse" id="' + collapseData.id + '">';
+    var collapseHTML = '<div style="padding: 20px 20px 5px 20px" class="home-collapse" id="' + collapseData.id + '">';
 
     // Add the collapse header
     collapseHTML += '<div class="home-collapse-header mainformcptitulo">';
     collapseHTML += '<p style="font-family:Nunito, sans-serif;"><span class="glyphicon glyphicon-triangle-right"></span> ' + collapseData.title + '</p>';
-    collapseHTML += '<div class="row"><span class="collapse-content">' + collapseData.headerContent + '</span></div>';
+   // collapseHTML += '<div class="row"><span class="collapse-content">' + collapseData.headerContent + '</span></div>';
     collapseHTML += '</div>';
 
     // Add the collapse body with the provided content
