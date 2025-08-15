@@ -789,7 +789,7 @@ function generateModalHTML(modalData) {
 
 
     // Start building up the modal HTML string with the opening div
-    var modalHTML = '<div "' + modalData.customData + '"   class="modal ' + modalData.otherclassess + '" id="' + modalData.id + '" tabindex="-1">';
+    var modalHTML = '<div "' + modalData.customData + '"   class="modal ' + modalData.otherclassess + '" id="' + modalData.id + '">';
 
     // Add the modal dialog and content divs
     modalHTML += '<div class="modal-dialog ' + (modalData.title ? '' : 'modal-dialog-centered') + '">';

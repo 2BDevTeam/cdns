@@ -46,6 +46,7 @@ function Mrend(options) {
     });
 
     this.refreshReactiveData = function () {
+      //  return 
         mrendThis.reactiveData.cells = JSON.parse(JSON.stringify(mrendThis.GCellObjectsConfig));
     }
 
@@ -3613,6 +3614,18 @@ function Mrend(options) {
 
     }
 
+
+    function generateMrendCellContainer(cell, colunaConfig, colunaUIConfig,content) {
+        
+        var styles=""
+        if(colunaConfig.atributo=="readonly"||colunaConfig.colfunc){
+
+            styles="background:#dee5eb;"
+        }
+
+       return "<div style='" + styles + "' class='mrend-input-cell'>" + content + "</div>";
+    }
+
     function handleColFormatter(cell, colunaConfig, colunaUIConfig) {
 
 
@@ -3648,14 +3661,14 @@ function Mrend(options) {
             case "digit":
                 var formattedValue = formatNumber(cell.getValue(), colunaConfig);
                 var content = ensureMinContent(formattedValue);
-                return "<div class='mrend-input-cell'>" + content + "</div>";
+                return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig,content)
                 break;
 
             case "table":
 
                 if (renderedColuna.colfunc || celula.usafnpren) {
                     var content = ensureMinContent(cell.getValue());
-                    return content;
+                    return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig,content)
                 }
 
                 if (renderedColuna.usaexpresstbjs && celula.localData.length == 0) {
@@ -3673,11 +3686,11 @@ function Mrend(options) {
                 }
 
                 var content = ensureMinContent(selectedLabel);
-                return "<div class='mrend-input-cell'>" + content + "</div>";
+                return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig,content);
 
             default:
                 var content = ensureMinContent(cell.getValue());
-                return "<div class='mrend-input-cell'>" + content + "</div>";
+                return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig,content);
                 break;
         }
 
@@ -3695,7 +3708,7 @@ function Mrend(options) {
             };
         }
         if (coluna.config.tipo === "text") {
-            return { editor: "input" };
+            return { editor: "textarea" };
         }
 
         if (coluna.config.tipo === "table") {
@@ -4183,13 +4196,13 @@ function Mrend(options) {
 
                     if (renderedLinha.config.addfilho) {
 
-                        botãoAddFilho = "<button type='button' class='btn btn-primary btn-sm' ><span class='glyphicon glyphicon-plus action-btn add-child' title='Adicionar Filho'></span> </button>"
+                        botãoAddFilho = "<div class='btn btn-primary btn-sm action-btn add-child' ><span class='glyphicon glyphicon-plus action-btn add-child' title='Adicionar Filho'></span> </div>"
                     }
 
 
                     if (renderedLinha.config.modelo || renderedLinha.isInstance) {
 
-                        botaoRemover = "<button type='button' style='background:#d9534f;color:white' class='btn btn-danger btn-sm' ><span class='glyphicon glyphicon-trash action-btn remove-row' title='Remover Linha'></span> </button>"
+                        botaoRemover = "<div style='background:#d9534f;color:white' class='btn btn-danger btn-sm action-btn remove-row' ><span class='glyphicon glyphicon-trash action-btn remove-row' title='Remover Linha'></span> </div>"
                     }
 
                     var globalBotoes = "<div style='display:flex;column-gap:0.3em'>" + botãoAddFilho + botaoRemover + "</div>";
@@ -4202,7 +4215,7 @@ function Mrend(options) {
                 cellClick: function (e, cell) {
                     var row = cell.getRow();
                     var target = e.target;
-
+                  //  console.log("target.classList",target.classList)
                     if (target.classList.contains("add-child")) {
 
 
@@ -4221,7 +4234,6 @@ function Mrend(options) {
                         var children = row.getTreeChildren();
 
                         deleteRowById(row.getData().rowid);
-                        mrendThis.refreshReactiveData();
                         if (children.length > 0) {
                             if (confirm("Esta linha tem filhos. Deseja remover tudo?")) {
                                 deleteRowAndChildren(row);
@@ -4229,6 +4241,7 @@ function Mrend(options) {
                         } else {
                             row.delete();
                         }
+                        mrendThis.refreshReactiveData();
 
 
                     }
@@ -4398,6 +4411,8 @@ function Mrend(options) {
 
 
         var tableBuiltEvent = function (data) {
+
+            
             var currentScale = 0.75;
             var UIConfig = localStorage.getItem("UICONFIG_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName);
             if (UIConfig) {
@@ -5880,12 +5895,16 @@ function loadAssetsWithGetScript() {
 $(document).ready(function () {
     var cssContent = "";
     cssContent += ".mrend-input-cell{";
-    cssContent += "    background: rgb(239, 240, 241) !important;";
+    cssContent += "    background: rgb(239, 240, 241);";
     cssContent += "    text-align: right;";
     cssContent += "    padding: 5px 15px 5px 5px;";
     cssContent += "    border-radius: 4px;";
     cssContent += "     overflow: auto; ";
     cssContent += "    width: 100%;";
+    cssContent += "    resize: none;";                /* evita resize manual */
+    cssContent += "    overflow: hidden;";            /* esconde scrollbar */
+    cssContent += "    white-space: pre-wrap;";        /* mantém quebras de linha */
+    cssContent += "    word-wrap: break-word;";        /* quebra palavras grandes */
     cssContent += "    }";
     cssContent += ".tabulator-row {";
     cssContent += "    border-bottom: 0px solid #e0e6ed!important;";
