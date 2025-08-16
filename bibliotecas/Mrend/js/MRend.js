@@ -46,7 +46,7 @@ function Mrend(options) {
     });
 
     this.refreshReactiveData = function () {
-      //  return 
+        //  return 
         mrendThis.reactiveData.cells = JSON.parse(JSON.stringify(mrendThis.GCellObjectsConfig));
     }
 
@@ -1301,8 +1301,8 @@ function Mrend(options) {
 
 
         var renderedLinha = this;
-        
-        var celulasLinha=this.getLinhaCellObjects();
+
+        var celulasLinha = this.getLinhaCellObjects();
         return celulasLinha.find(function (cellObject) {
 
             return cellObject.codigocoluna == coluna && cellObject.rowid == renderedLinha.rowid
@@ -3615,15 +3615,21 @@ function Mrend(options) {
     }
 
 
-    function generateMrendCellContainer(cell, colunaConfig, colunaUIConfig,content) {
-        
-        var styles=""
-        if(colunaConfig.atributo=="readonly"||colunaConfig.colfunc){
+    function generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content) {
 
-            styles="background:#dee5eb;"
+        var styles = ""
+        if (colunaConfig.atributo == "readonly" || colunaConfig.colfunc) {
+
+            styles = "background:#dee5eb;"
         }
 
-       return "<div style='" + styles + "' class='mrend-input-cell'>" + content + "</div>";
+        if (colunaConfig.tipo == "textarea") {
+           
+            styles+=" resize: none; overflow: hidden; white-space: pre-wrap; word-wrap: break-word;"
+
+        }
+
+        return "<div style='" + styles + "' class='mrend-input-cell'>" + content + "</div>";
     }
 
     function handleColFormatter(cell, colunaConfig, colunaUIConfig) {
@@ -3661,14 +3667,14 @@ function Mrend(options) {
             case "digit":
                 var formattedValue = formatNumber(cell.getValue(), colunaConfig);
                 var content = ensureMinContent(formattedValue);
-                return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig,content)
+                return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content)
                 break;
 
             case "table":
 
                 if (renderedColuna.colfunc || celula.usafnpren) {
                     var content = ensureMinContent(cell.getValue());
-                    return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig,content)
+                    return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content)
                 }
 
                 if (renderedColuna.usaexpresstbjs && celula.localData.length == 0) {
@@ -3686,11 +3692,11 @@ function Mrend(options) {
                 }
 
                 var content = ensureMinContent(selectedLabel);
-                return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig,content);
+                return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content);
 
             default:
                 var content = ensureMinContent(cell.getValue());
-                return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig,content);
+                return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content);
                 break;
         }
 
@@ -3707,7 +3713,12 @@ function Mrend(options) {
                 editorParams: { colunaConfig: coluna.config }
             };
         }
+
         if (coluna.config.tipo === "text") {
+            return { editor: "input" };
+        }
+
+        if (coluna.config.tipo === "textarea") {
             return { editor: "textarea" };
         }
 
@@ -4169,7 +4180,7 @@ function Mrend(options) {
 
             {
                 title: "Ações",
-                
+
                 formatter: function (cell, formatterParams) {
 
                     var rowData = cell.getRow().getData()
@@ -4212,10 +4223,11 @@ function Mrend(options) {
                 width: 110,
                 hozAlign: "center",
                 headerSort: false,
+                visible: mrendThis.enableEdit,
                 cellClick: function (e, cell) {
                     var row = cell.getRow();
                     var target = e.target;
-                  //  console.log("target.classList",target.classList)
+                    //  console.log("target.classList",target.classList)
                     if (target.classList.contains("add-child")) {
 
 
@@ -4412,7 +4424,7 @@ function Mrend(options) {
 
         var tableBuiltEvent = function (data) {
 
-            
+
             var currentScale = 0.75;
             var UIConfig = localStorage.getItem("UICONFIG_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName);
             if (UIConfig) {
@@ -5891,7 +5903,6 @@ function loadAssetsWithGetScript() {
 
 
 
-
 $(document).ready(function () {
     var cssContent = "";
     cssContent += ".mrend-input-cell{";
@@ -5901,10 +5912,10 @@ $(document).ready(function () {
     cssContent += "    border-radius: 4px;";
     cssContent += "     overflow: auto; ";
     cssContent += "    width: 100%;";
-    cssContent += "    resize: none;";                /* evita resize manual */
-    cssContent += "    overflow: hidden;";            /* esconde scrollbar */
-    cssContent += "    white-space: pre-wrap;";        /* mantém quebras de linha */
-    cssContent += "    word-wrap: break-word;";        /* quebra palavras grandes */
+    //cssContent += "    resize: none;";                /* evita resize manual */
+    //cssContent += "    overflow: hidden;";            /* esconde scrollbar */
+    //cssContent += "    white-space: pre-wrap;";        /* mantém quebras de linha */
+    //cssContent += "    word-wrap: break-word;";        /* quebra palavras grandes */
     cssContent += "    }";
     cssContent += ".tabulator-row {";
     cssContent += "    border-bottom: 0px solid #e0e6ed!important;";
