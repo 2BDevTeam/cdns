@@ -194,6 +194,12 @@ function createDynamicSchemaGrafico(data) {
                         title: "Tipo",
                         'enum': ["category", "value", "time", "log"],
                         'default': "value"
+                    },
+                    dataField: {
+                        type: "string",
+                        title: "Campo para Eixo Y",
+                        'enum': availableFields,
+                        'default': "mes"
                     }
                 }
             },
@@ -296,7 +302,10 @@ function updateChartOnContainer(chart, config, data) {
                 })
             },
             yAxis: {
-                type: config.yAxis.type
+                type: config.yAxis.type,
+                data: data.map(function (item) {
+                    return item[config.xAxis.dataField];
+                })
             },
             series: config.series ? config.series.map(function (serie) {
                 var serieConfig = {
@@ -687,6 +696,13 @@ function getTiposObjectoConfig() {
                                 title: "Código da Moeda",
                                 'default': "EUR",
                                 description: "Para tipo currency: EUR, USD, GBP, BRL"
+                            },
+                            currencyPosition: {
+                                type: "string",
+                                title: "Posição da Moeda",
+                                'enum': ["left", "right"],
+                                'default': "right",
+                                description: "Posição do símbolo da moeda"
                             },
                             minimumFractionDigits: {
                                 type: "integer",
@@ -1105,14 +1121,26 @@ function formatDataValue(value, formatConfig) {
                 break;
 
             case "currency":
+                console.log("")
                 var num = parseFloat(value);
                 if (!isNaN(num)) {
                     formattedValue = new Intl.NumberFormat(formatConfig.locale || "pt-PT", {
                         style: "currency",
                         currency: formatConfig.currency || "EUR",
                         minimumFractionDigits: formatConfig.minimumFractionDigits || 2,
-                        maximumFractionDigits: formatConfig.maximumFractionDigits || 2
+                        maximumFractionDigits: formatConfig.maximumFractionDigits || 2,
+                        currencyDisplay: 'symbol'
                     }).format(num);
+
+                    // Mover símbolo da moeda para a direita
+                    if (formatConfig.currencyPosition === 'right') {
+                        var parts = formattedValue.match(/^([^\d]*)([\d\s.,]+)([^\d]*)$/);
+                        if (parts) {
+                            var symbol = parts[1] || parts[3];
+                            var number = parts[2];
+                            formattedValue = number.trim() + ' ' + symbol.trim();
+                        }
+                    }
                 }
                 break;
 
@@ -1175,6 +1203,8 @@ function updatePie(containerSelector, itemObject, config, data) {
     var chartId = 'pie_chart_' + itemObject.mdashcontaineritemobjectstamp;
 
     // Preparar container do gráfico
+    //vendaunt
+    //vndsmcom
     var chartContainer = '<div id="' + chartId + '" style="width: ' +
         (100) + '%; height: ' +
         (config.dimensions.height || 400) + 'px;"></div>';
@@ -1482,7 +1512,7 @@ function createTableSchema(data) {
                         formatter: {
                             type: "string",
                             title: "Formatador",
-                            'enum': ["plaintext", "textarea", "html", "money", "link", "datetime", "datetimediff", "tickCross", "color", "star", "traffic", "progress", "lookup", "buttonTick", "buttonCross", "rownum", "handle"],
+                            'enum': ["plaintext", "textarea","number", "html", "money", "link", "datetime", "datetimediff", "tickCross", "color", "star", "traffic", "progress", "lookup", "buttonTick", "buttonCross", "rownum", "handle"],
                             'default': "plaintext"
                         },
                         formatterParams: {
@@ -1662,6 +1692,7 @@ function updateTable(containerSelector, itemObject, config, data) {
             // Configurar formatador com parâmetros
             if (col.formatter === "money" && col.formatterParams) {
                 column.formatterParams = col.formatterParams;
+                column.formatterParams.symbolAfter = true;
             }
 
             return column;

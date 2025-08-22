@@ -13,6 +13,26 @@ CREATE TABLE MRendRelatorio
     MRendRelatorioSTAMP VARCHAR(25) PRIMARY KEY
 );
 
+CREATE TABLE MrendGrupoColuna(
+
+    grupocolunastamp VARCHAR(25) PRIMARY KEY,
+    relatoriostamp VARCHAR(25) DEFAULT '',
+    codigogrupo VARCHAR(100) DEFAULT '',
+    descgrupo VARCHAR(250) DEFAULT '',
+    ordem INT DEFAULT 0,
+    extras TEXT DEFAULT ''
+);
+
+CREATE TABLE MrendGrupoColunaItem(
+
+    grupocolunaitemstamp VARCHAR(25) PRIMARY KEY,
+    grupocolunastamp VARCHAR(25) DEFAULT '',
+    relatoriostamp VARCHAR(25) DEFAULT '',
+    colunastamp VARCHAR(25) DEFAULT '',
+    ordem INT DEFAULT 0,
+    extras TEXT DEFAULT ''
+);
+
 CREATE TABLE MrendLinha
 (
     linhastamp VARCHAR(25) PRIMARY KEY,

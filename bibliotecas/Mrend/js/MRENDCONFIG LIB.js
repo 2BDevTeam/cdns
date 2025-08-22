@@ -113,8 +113,6 @@ function getLinhaUIObjectFormConfigAndSourceValues() {
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMrendConfigLinhas", idField: "linhastamp" };
 }
 
-
-
 function ColunaMrenderConfig(data) {
 
     this.colunastamp = data.colunastamp || "";
@@ -278,6 +276,123 @@ function handleRelationDataByComponente(componente, componentestamp, componenteD
 
 
 }
+
+
+function MrendGrupoColuna(data) {
+
+    this.grupocolunastamp = data.grupocolunastamp || generateUUID();
+    this.relatoriostamp = data.relatoriostamp || "";
+    this.codigogrupo = data.codigogrupo || "";
+    this.descgrupo = data.descgrupo || "";
+    this.ordem = data.ordem || 0;
+    this.extras = data.extras || "";
+    this.bindData = new BindData(data.bindData ? data.bindData : {});
+    this.localsource = data.localsource || "";
+    this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+    this.ligacoes = [];
+    this.relationRecords = handleRelationDataByComponente("GrupoColuna", this.grupocolunastamp, this);
+}
+
+function getMrendGrupoColunaUIObjectFormConfigAndSourceValues() {
+    var objectsUIFormConfig = [
+        new UIObjectFormConfig({
+            colSize: 6,
+            campo: "codigogrupo",
+            tipo: "text",
+            titulo: "Código do Grupo",
+            classes: "form-control input-source-form input-sm",
+            contentType: "input"
+        }),
+        new UIObjectFormConfig({
+            colSize: 6,
+            campo: "descgrupo",
+            tipo: "text",
+            titulo: "Descrição do Grupo",
+            classes: "form-control input-source-form input-sm",
+            contentType: "input"
+        }),
+        new UIObjectFormConfig({
+            colSize: 6,
+            campo: "ordem",
+            tipo: "digit",
+            titulo: "Ordem",
+            classes: "form-control input-source-form input-sm",
+            contentType: "input"
+        }),
+        /*  new UIObjectFormConfig({
+              colSize: 12,
+              campo: "extras",
+              tipo: "textarea",
+              titulo: "Extras",
+              classes: "form-control input-source-form input-sm",
+              contentType: "input"
+          })*/
+    ];
+
+    return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMrendGrupoColunas", idField: "grupocolunastamp" };
+}
+
+function MrendGrupoColunaItem(data) {
+    this.grupocolunaitemstamp = data.grupocolunaitemstamp || generateUUID();
+    this.grupocolunastamp = data.grupocolunastamp || "";
+    this.relatoriostamp = data.relatoriostamp || "";
+    this.colunastamp = data.colunastamp || "";
+    this.ordem = data.ordem || 0;
+    this.extras = data.extras || "";
+    this.bindData = new BindData(data.bindData ? data.bindData : {});
+    this.localsource = data.localsource || "";
+    this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+    this.ligacoes = [];
+    this.relationRecords = handleRelationDataByComponente("GrupoColunaItem", this.grupocolunaitemstamp, this);
+}
+
+function getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues() {
+    var objectsUIFormConfig = [
+        new UIObjectFormConfig({
+            colSize: 6,
+            campo: "grupocolunastamp",
+            tipo: "select",
+            titulo: "Grupo de Coluna",
+            fieldToOption: "descgrupo",
+            contentType: "select",
+            fieldToValue: "grupocolunastamp",
+            classes: "form-control input-source-form input-sm",
+            selectValues: [] // Será preenchido dinamicamente com GMrendGrupoColunas
+        }),
+        new UIObjectFormConfig({
+            colSize: 6,
+            campo: "colunastamp",
+            tipo: "select",
+            titulo: "Coluna",
+            fieldToOption: "desccoluna",
+            contentType: "select",
+            fieldToValue: "colunastamp",
+            classes: "form-control input-source-form input-sm",
+            selectValues: [] // Será preenchido dinamicamente com GMrendConfigColunas
+        }),
+        new UIObjectFormConfig({
+            colSize: 6,
+            campo: "ordem",
+            tipo: "digit",
+            titulo: "Ordem",
+            classes: "form-control input-source-form input-sm",
+            contentType: "input"
+        }),
+        /* new UIObjectFormConfig({
+             colSize: 12,
+             campo: "extras",
+             tipo: "textarea",
+             titulo: "Extras",
+             classes: "form-control input-source-form input-sm",
+             contentType: "input"
+         })*/
+    ];
+
+    return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMrendGrupoColunaItems", idField: "grupocolunaitemstamp" };
+}
+
+
+
 
 
 function Mrendconfigligacao(data) {
@@ -515,6 +630,12 @@ GMrendLigacoesExistentes = [];
 
 var GMrendLigacoesPredefinidas = [new Mrendconfigligacao({})];
 
+var GMrendGrupoColunas = [new MrendGrupoColuna({})];
+GMrendGrupoColunas = [];
+
+var GMrendGrupoColunaItems = [new MrendGrupoColunaItem({})];
+GMrendGrupoColunaItems = [];
+
 var GRendConfigTableHtml = {
     tableId: "dd",
     classes: "table table-hover config-input-report-table ",
@@ -633,8 +754,9 @@ function initTabelaConfiguracaoMrender(config) {
     //GRendConfigTableHtml.header.row.style = "background:#033076!important"
     GRendConfigTableHtml.header.row.cols = []
 
-    var colunaHtmlButtonAddRubrica = "<div  class='col-md-12 pull-left'>"
-    colunaHtmlButtonAddRubrica += "    <button  type='button' id='addColunaBtn' class='btn btn-primary'>Adicionar Coluna</button>"
+    var colunaHtmlButtonAddRubrica = "<div style='display:flex;column-gap:0.5em' class=''>"
+    colunaHtmlButtonAddRubrica += "      <div>    <button  type='button' id='addColunaBtn' class='btn btn-primary'>Adicionar Coluna</button> </div>"
+    colunaHtmlButtonAddRubrica += "<div>    <button  type='button' id='addGrupoColunaBtn' class='btn btn-default'>Adicionar Grupo de colunas</button> </div>"
 
     colunaHtmlButtonAddRubrica += "  </div>"
 
@@ -1101,6 +1223,90 @@ function registerListenersMrender() {
         addColunaMrenderConfig(coluna, colunaUIObjectFormConfigResult);
     });
 
+
+    $(document).off("click", "#addGrupoColunaBtn").on("click", "#addGrupoColunaBtn", function (e) {
+
+        $("#modalRendConfigItem").remove();
+        var containerId = "grupoColunaItem";
+        var sufixoForm = "GrupoColuna";
+
+        var mrendConfigItem = GMrendGrupoColunas.find(function (obj) {
+            return obj. == idValue;
+        });
+        var objectsUIFormConfig = [new UIObjectFormConfig({})]
+        if (mrendConfigItem) {
+
+            objectsUIFormConfig = mrendConfigItem.objectsUIFormConfig;
+
+            var sufixoForm = localsource;
+            var containerId = "Container" + localsource;
+
+            var sourceData = {
+                sourceTable: localsource,
+                sourceKey: localsource
+            }
+            var containers = [];
+
+            objectsUIFormConfig.forEach(function (obj) {
+
+                containers.push({
+                    colSize: obj.colSize,
+                    style: "margin-bottom:0.5em; " + (obj.tipo == "checkbox" ? "display:flex;flex-direction:column" : ""),
+                    content: {
+                        contentType: obj.contentType,
+                        type: obj.tipo,
+                        id: obj.campo,
+                        classes: obj.classes + " mrendconfig-item-input",
+                        customData: obj.customData + " v-model='mrendConfigItem." + obj.campo + "'",
+                        style: obj.style,
+                        selectCustomData: obj.customData + " v-model='mrendConfigItem." + obj.campo + "'",
+                        fieldToOption: obj.fieldToOption,
+                        fieldToValue: obj.fieldToValue,
+                        label: obj.titulo,
+                        selectData: obj.selectValues,
+                        value: mrendConfigItem[obj.campo],
+                        event: "",
+                        placeholder: "",
+
+                    }
+                })
+
+
+
+            });
+
+
+            var containerData = {
+                containerId: containerId,
+                spinnerId: "overlay" + sufixoForm,
+                hasSpinner: false,
+                customData: "",
+                sourceData: sourceData,
+                items: containers
+            }
+            var formContainerResult = GenerateCustomFormContainer(containerData);
+
+            var modalBodyHtml = ""
+            modalBodyHtml += formContainerResult;
+
+            var modalRendConfigItem = {
+                title: "Configuração ",
+                id: "modalRendConfigItem",
+                customData: "",
+                otherclassess: "",
+                body: modalBodyHtml,
+                footerContent: "",
+            };
+            var modalHTML = generateModalHTML(modalRendConfigItem);
+
+            $("#maincontent").append(modalHTML);
+
+            $("#modalRendConfigItem").modal("show");
+            PetiteVue.createApp({
+                mrendConfigItem: mrendConfigItem,
+            }).mount('#maincontent');
+
+        })
     $(document).off("click", "#addLinhaBtn").on("click", "#addLinhaBtn", function (e) {
 
         var dadosNovaLinha = setNovaLinha("Grupo");

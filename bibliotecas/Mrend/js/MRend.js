@@ -4344,6 +4344,9 @@ function Mrend(options) {
 
 
 
+
+        console.log("Columns definition",columns)
+
         mrendThis.GTable = new Tabulator(mrendThis.containerToRender, {
             data: mrendThis.GGridData,
             dataTree: true,
@@ -4368,9 +4371,6 @@ function Mrend(options) {
                 if (!renderedLinha) {
                     throw new Error("Linha com rowid " + data.rowid + " não encontrada.");
                 }
-
-
-
 
                 var customStyles = {
                     backgroundColor: renderedLinha.config.cor || "#f8fafc",

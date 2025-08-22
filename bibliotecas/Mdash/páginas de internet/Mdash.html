@@ -753,7 +753,7 @@
 
           <!-- Aqui usamos os grupos de rows -->
           <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)" :key="'row-' + rowIndex"
-            class="gr-row m-dash-container-item-row " style="margin-bottom: 0.8em;">
+            class="gr-row m-dash-container-item-row " style="margin-top: 1em!important;">
 
             <div style="height: 100%!important;" v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
               :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area', 
@@ -1213,7 +1213,7 @@
 
         var localQueryResult = alasql(self.queryConfig.generatedSQL, [containerItem.records]);
 
-        console.log("localQueryResult", self.queryConfig.generatedSQL, localQueryResult);
+        //console.log("localQueryResult", self.queryConfig.generatedSQL, localQueryResult);
 
         self.objectoConfig.renderObject({
           containerSelector: containerSelector,
@@ -1223,6 +1223,12 @@
           containerItem: containerItem,
           data: containerItem.records || [],
         })
+      }else{
+
+       // containerItem.renderBodyLayout("<h4 class='m-dash-item-text'>Sem registos</h4>");
+        $(containerSelector).append("<p style='font-size:18px!important;font-weight:bold;margin-top:7em' class='m-dash-item-text'>Sem registos</p>")
+
+
       }
 
 
