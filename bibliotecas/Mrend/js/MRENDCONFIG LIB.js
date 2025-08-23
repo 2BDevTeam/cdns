@@ -367,10 +367,11 @@ function getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues() {
             fieldToOption: "desccoluna",
             contentType: "select",
             fieldToValue: "colunastamp",
-            selectCustomData: "v-for='coluna in GMrendConfigColunas' :key='coluna.colunastamp'",
-            selectValues: "GMrendConfigColunas",
-            classes: "form-control input-source-form input-sm",
-            selectValues: GMrendConfigColunas
+            selectCustomData: "",
+            selectVariable:"GMrendConfigColunas",
+            isReactive:true,
+            selectValues: [],
+            classes: "form-control input-source-form input-sm"
         }),
         new UIObjectFormConfig({
             colSize: 4,
@@ -907,6 +908,8 @@ function setColunaGrupoReactive() {
                 style: obj.style,
                 selectCustomData: obj.customData + " v-model='colunaGrupoItem." + obj.campo + "'",
                 fieldToOption: obj.fieldToOption,
+                isReactive: obj.isReactive,
+                selectVariable: obj.selectVariable,
                 fieldToValue: obj.fieldToValue,
                 label: obj.tipo == "button" ? obj.titulo : "",
                 selectData: obj.selectValues,

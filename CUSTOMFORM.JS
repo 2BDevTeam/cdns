@@ -216,6 +216,7 @@ function HandlerCustomContainerContentGenerator(content) {
             return generateTextarea(content);
         case "select":
             if (content.isReactive) {
+                console.log("generating reactive select")
                 return generateReactiveSelectPetiteVue(content.selectData, content.classes, content.style, content.selectCustomData, content.fieldToOption, content.fieldToValue, content.label, content.selectVariable);
             }
             return generateSelect(content.selectData, content.classes, content.style, content.selectCustomData, content.fieldToOption, content.fieldToValue, content.label);
