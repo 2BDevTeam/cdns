@@ -434,6 +434,8 @@ function UIObjectFormConfig(data) {
     this.style = data.style || "";
     this.selectValues = data.selectValues || [];
     this.colSize = data.colSize || "4";
+    this.isReactive = data.isReactive || false;
+    this.selectVariable = data.selectVariable || "";
     this.fieldToOption = data.fieldToOption || "";
     this.fieldToValue = data.fieldToValue || "";
     this.contentType = data.contentType || "input";

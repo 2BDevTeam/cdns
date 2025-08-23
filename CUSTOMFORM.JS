@@ -237,7 +237,7 @@ function generateReactiveSelectPetiteVue(selectData, classes, style, selectCusto
     if (classes) selectHTML += " class='" + classes + "'";
     if (selectCustomData) selectHTML += " " + selectCustomData;
     selectHTML += ">"
-    selectHTML += "<option v-for='selectDt in " + selectVariable + "' :key='field' :value='selectDt." + fieldToValue + "'>{{ selectDt." + fieldToOption + " }}</option>";
+    selectHTML += "<option v-for='selectDt in " + selectVariable + "' :key='selectDt' :value='selectDt." + fieldToValue + "'>{{ selectDt." + fieldToOption + " }}</option>";
 
     selectHTML += '</select>';
 
