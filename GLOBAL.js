@@ -430,6 +430,23 @@ function buildAlert(alertClass, alertText) {
 
     return alerta
 }
+
+function generateReactiveSelectPetiteVue(selectData, classes, style, selectCustomData, fieldToOption, fieldToValue, label,selectVariable){
+    var selectHTML = "";
+    if (label) {
+        selectHTML += "<label >" + label + "</label>";
+    }
+    selectHTML += "<select";
+    if (style) selectHTML += " style='" + style + "'";
+    if (classes) selectHTML += " class='" + classes + "'";
+    if (selectCustomData) selectHTML += " " + selectCustomData;
+    selectHTML += ">"
+    selectHTML += "<option v-for='selectDt in " + selectVariable + "' :key='field' :value='selectDt." + fieldToValue + "'>{{ selectDt." + fieldToOption + " }}</option>";
+
+    selectHTML += '</select>';
+
+    return selectHTML;
+}
 function generateSelect(selectData, classes, style, selectCustomData, fieldToOption, fieldToValue, label) {
     // Replace keys based on arguments
     var options = selectData.map(function (n) {

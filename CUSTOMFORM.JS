@@ -114,6 +114,8 @@ function FormContent(data) {
     this.selectCustomData = data.selectCustomData || "";
     this.fieldToOption = data.fieldToOption || "";
     this.fieldToValue = data.fieldToValue || "";
+    this.selectVariable = data.selectVariable || "selectValues";
+    this.isReactive = data.isReactive || false;
     this.label = data.label || "";
     this.cols = data.cols || 12;
     this.rows = data.rows || 10;
@@ -213,6 +215,9 @@ function HandlerCustomContainerContentGenerator(content) {
         case "textarea":
             return generateTextarea(content);
         case "select":
+            if (content.isReactive) {
+                return generateReactiveSelectPetiteVue(content.selectData, content.classes, content.style, content.selectCustomData, content.fieldToOption, content.fieldToValue, content.label, content.selectVariable);
+            }
             return generateSelect(content.selectData, content.classes, content.style, content.selectCustomData, content.fieldToOption, content.fieldToValue, content.label);
         case "button":
             return generateButton(content);
@@ -220,6 +225,24 @@ function HandlerCustomContainerContentGenerator(content) {
             return generateDiv(content);
     }
 }
+
+function generateReactiveSelectPetiteVue(selectData, classes, style, selectCustomData, fieldToOption, fieldToValue, label,selectVariable){
+    var selectHTML = "";
+    if (label) {
+        selectHTML += "<label >" + label + "</label>";
+    }
+    selectHTML += "<select";
+    if (style) selectHTML += " style='" + style + "'";
+    if (classes) selectHTML += " class='" + classes + "'";
+    if (selectCustomData) selectHTML += " " + selectCustomData;
+    selectHTML += ">"
+    selectHTML += "<option v-for='selectDt in " + selectVariable + "' :key='field' :value='selectDt." + fieldToValue + "'>{{ selectDt." + fieldToOption + " }}</option>";
+
+    selectHTML += '</select>';
+
+    return selectHTML;
+}
+
 
 function generateDiv(content) {
     var html = "";

@@ -281,10 +281,15 @@ function handleRelationDataByComponente(componente, componentestamp, componenteD
 function MrendGrupoColuna(data) {
 
     this.grupocolunastamp = data.grupocolunastamp || generateUUID();
-    this.relatoriostamp = data.relatoriostamp || "";
+    this.relatoriostamp = data.relatoriostamp || GRelatorioStamp || "";
     this.codigogrupo = data.codigogrupo || "";
     this.descgrupo = data.descgrupo || "";
-    this.ordem = data.ordem || 0;
+    this.ordem = data.ordem || (function () {
+        var maxOrdem = (GMrendGrupoColunas || []).reduce(function (max, item) {
+            return Math.max(max, item.ordem || 0);
+        }, 0);
+        return maxOrdem + 1;
+    })();
     this.extras = data.extras || "";
     this.bindData = new BindData(data.bindData ? data.bindData : {});
     this.localsource = data.localsource || "";
@@ -296,7 +301,7 @@ function MrendGrupoColuna(data) {
 function getMrendGrupoColunaUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
         new UIObjectFormConfig({
-            colSize: 6,
+            colSize: 4,
             campo: "codigogrupo",
             tipo: "text",
             titulo: "Código do Grupo",
@@ -304,7 +309,7 @@ function getMrendGrupoColunaUIObjectFormConfigAndSourceValues() {
             contentType: "input"
         }),
         new UIObjectFormConfig({
-            colSize: 6,
+            colSize: 4,
             campo: "descgrupo",
             tipo: "text",
             titulo: "Descrição do Grupo",
@@ -312,7 +317,7 @@ function getMrendGrupoColunaUIObjectFormConfigAndSourceValues() {
             contentType: "input"
         }),
         new UIObjectFormConfig({
-            colSize: 6,
+            colSize: 4,
             campo: "ordem",
             tipo: "digit",
             titulo: "Ordem",
@@ -335,9 +340,14 @@ function getMrendGrupoColunaUIObjectFormConfigAndSourceValues() {
 function MrendGrupoColunaItem(data) {
     this.grupocolunaitemstamp = data.grupocolunaitemstamp || generateUUID();
     this.grupocolunastamp = data.grupocolunastamp || "";
-    this.relatoriostamp = data.relatoriostamp || "";
+    this.relatoriostamp = data.relatoriostamp || GRelatorioStamp || "";
     this.colunastamp = data.colunastamp || "";
-    this.ordem = data.ordem || 0;
+    this.ordem = data.ordem || (function () {
+        var maxOrdem = (GMrendGrupoColunaItems || []).reduce(function (max, item) {
+            return Math.max(max, Number(isNumber(item.ordem) ? item.ordem : 0) || 0);
+        }, 0);
+        return maxOrdem + 1;
+    })();
     this.extras = data.extras || "";
     this.bindData = new BindData(data.bindData ? data.bindData : {});
     this.localsource = data.localsource || "";
@@ -348,35 +358,37 @@ function MrendGrupoColunaItem(data) {
 
 function getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
+
         new UIObjectFormConfig({
-            colSize: 6,
-            campo: "grupocolunastamp",
-            tipo: "select",
-            titulo: "Grupo de Coluna",
-            fieldToOption: "descgrupo",
-            contentType: "select",
-            fieldToValue: "grupocolunastamp",
-            classes: "form-control input-source-form input-sm",
-            selectValues: [] // Será preenchido dinamicamente com GMrendGrupoColunas
-        }),
-        new UIObjectFormConfig({
-            colSize: 6,
+            colSize: 4,
             campo: "colunastamp",
             tipo: "select",
             titulo: "Coluna",
             fieldToOption: "desccoluna",
             contentType: "select",
             fieldToValue: "colunastamp",
+            selectCustomData: "v-for='coluna in GMrendConfigColunas' :key='coluna.colunastamp'",
+            selectValues: "GMrendConfigColunas",
             classes: "form-control input-source-form input-sm",
-            selectValues: [] // Será preenchido dinamicamente com GMrendConfigColunas
+            selectValues: GMrendConfigColunas
         }),
         new UIObjectFormConfig({
-            colSize: 6,
+            colSize: 4,
             campo: "ordem",
             tipo: "digit",
             titulo: "Ordem",
             classes: "form-control input-source-form input-sm",
             contentType: "input"
+        }),
+        new UIObjectFormConfig({
+            colSize: 4,
+            campo: "grupocolunaitemstamp",
+            tipo: "button",
+            style: "background:#d9534f!important;color:white",
+            titulo: "<span class='glyphicon glyphicon-trash'></span>",
+            customData: "type='button' @click='removeGrupoColunaItem(colunaGrupoItem)'",
+            classes: "btn btn-sm btn-danger",
+            contentType: "button"
         }),
         /* new UIObjectFormConfig({
              colSize: 12,
@@ -754,13 +766,21 @@ function initTabelaConfiguracaoMrender(config) {
     //GRendConfigTableHtml.header.row.style = "background:#033076!important"
     GRendConfigTableHtml.header.row.cols = []
 
-    var colunaHtmlButtonAddRubrica = "<div style='display:flex;column-gap:0.5em' class=''>"
-    colunaHtmlButtonAddRubrica += "      <div>    <button  type='button' id='addColunaBtn' class='btn btn-primary'>Adicionar Coluna</button> </div>"
-    colunaHtmlButtonAddRubrica += "<div>    <button  type='button' id='addGrupoColunaBtn' class='btn btn-default'>Adicionar Grupo de colunas</button> </div>"
+    var colunaHtmlButtonAddRubrica = "<div id='colunaGrupoContainer'  class='row'>"
+    colunaHtmlButtonAddRubrica += "   <div class='col-md-12'><div style='display:flex;column-gap:0.5em' >"
+    colunaHtmlButtonAddRubrica += "      <div><button  type='button' id='addColunaBtn' class='btn btn-primary'>Adicionar Coluna</button></div>"
+    colunaHtmlButtonAddRubrica += "      <div><button @click='addGrupoColuna' type='button' id='addGrupoColunaBtn' class='btn btn-default'>Adicionar Grupo de colunas</button></div>"
+    colunaHtmlButtonAddRubrica += "      </div>"
+    colunaHtmlButtonAddRubrica += "   </div>"
+
+    colunaHtmlButtonAddRubrica += "<div  style='margin-top:0.9em' class='coluna-grupo-container col-md-12'></div>"
 
     colunaHtmlButtonAddRubrica += "  </div>"
 
-    var tableHtml = colunaHtmlButtonAddRubrica
+
+
+
+    var tableHtml = colunaHtmlButtonAddRubrica;
 
     tableHtml += "<div style='margin-top:2em' class='col-md-12' >" + generateTableV2(GRendConfigTableHtml) + "</div>"
     tableHtml += "<div  class='col-md-12 pull-left'>"
@@ -770,7 +790,243 @@ function initTabelaConfiguracaoMrender(config) {
     tableHtml += "  </div>"
     $("#campos > .row:last").after("<div style='margin-top:2.5em' class='row table-responsive  sourceTabletableContainer'>" + tableHtml + "</div>");
 
-    fetchConfigMrender(GConfigCodigo)
+    fetchConfigMrender(GConfigCodigo);
+
+
+
+
+}
+
+function setColunaGrupoReactive() {
+
+    var $colunaGrupoContainer = $(".coluna-grupo-container");
+    $colunaGrupoContainer.empty(); // Clear existing content
+
+    var colunaGrupoCollapse = "<div v-for='grupoColuna in GMrendGrupoColunas'>";
+    // Create a new collapse element
+    colunaGrupoCollapse += '<div style="padding: 20px 20px 5px 20px" class="home-collapse" :id="grupoColuna.codigogrupo">';
+
+    // Add the collapse header
+    colunaGrupoCollapse += '<div class="home-collapse-header mainformcptitulo">';
+    colunaGrupoCollapse += '<p style="font-family:Nunito, sans-serif;"><span class="glyphicon glyphicon-triangle-right"></span> {{ grupoColuna.descgrupo}}</p>';
+    // collapseHTML += '<div class="row"><span class="collapse-content">' + collapseData.headerContent + '</span></div>';
+    colunaGrupoCollapse += '</div>';
+
+    // Add the collapse body with the provided content
+    colunaGrupoCollapse += '<div class="home-collapse-body hidden">';
+
+    var objectsUIFormConfig = getMrendGrupoColunaUIObjectFormConfigAndSourceValues().objectsUIFormConfig
+
+    var id = generateUUID();
+    var sufixoForm = "Container" + id;
+    var containerId = "Container" + id;
+
+    var sourceData = {
+        sourceTable: "MrendGrupoColunas",
+        sourceKey: "grupocolunastamp"
+    }
+    var containers = [];
+
+    objectsUIFormConfig.forEach(function (obj) {
+
+        containers.push({
+            colSize: obj.colSize,
+            style: " margin-bottom:0.5em; " + (obj.tipo == "checkbox" ? "display:flex;flex-direction:column" : ""),
+            content: {
+                contentType: obj.contentType,
+                type: obj.tipo,
+                id: obj.campo,
+                classes: obj.classes + " mrendconfig-item-input ",
+                customData: obj.customData + " v-model='grupoColuna." + obj.campo + "'",
+                style: obj.style,
+                selectCustomData: obj.customData + " v-model='grupoColuna." + obj.campo + "'",
+                fieldToOption: obj.fieldToOption,
+                fieldToValue: obj.fieldToValue,
+                label: obj.titulo,
+                selectData: obj.selectValues,
+                value: "",
+                event: "",
+                placeholder: "",
+
+            }
+        })
+
+
+
+    });
+
+    var containerData = {
+        containerId: containerId,
+        spinnerId: "overlay" + sufixoForm,
+        hasSpinner: false,
+        customData: "",
+        sourceData: sourceData,
+        items: containers
+    }
+    var formContainerResult = GenerateCustomFormContainer(containerData);
+
+    colunaGrupoCollapse += formContainerResult;
+    colunaGrupoCollapse += "<div class='grupo-coluna-items-container'>"
+    colunaGrupoCollapse += "<div class='grupo-coluna-items-options' style='display:flex;column-gap:0.5em;'>"
+    colunaGrupoCollapse += "<button @click='addGrupoColunaItem(grupoColuna)' type='button' class='btn btn-default'>Adicionar Item ao Grupo</button>"
+    colunaGrupoCollapse += "</div>"
+    colunaGrupoCollapse += "<div style='margin-top:1em' class='grupo-coluna-items-list'>"
+    var colunaGrupoItemobjectsUIFormConfig = getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    var headerCols = [{
+        style: "",
+        colId: "",
+        classes: "",
+        content: "<span>{{ colunaGrupoItem.titulo }}</span>",
+        customData: "",
+    }];
+
+    var cols = [{
+        style: "",
+        colId: "",
+        classes: "",
+        content: "<span>{{ colunaGrupoItem.titulo }}</span>",
+        customData: "",
+    }];
+
+    headerCols = [];
+    cols = [];
+    var containersGrupoItem = [];
+
+
+    colunaGrupoItemobjectsUIFormConfig.forEach(function (obj) {
+
+        var frmItem = {
+            colSize: obj.colSize,
+            style: " margin-bottom:0.5em; " + (obj.tipo == "checkbox" ? "display:flex;flex-direction:column" : ""),
+            content: {
+                contentType: obj.contentType,
+                type: obj.tipo,
+                id: obj.campo,
+                classes: obj.classes + " mrendconfig-item-input ",
+                customData: obj.customData + " v-model='colunaGrupoItem." + obj.campo + "'",
+                style: obj.style,
+                selectCustomData: obj.customData + " v-model='colunaGrupoItem." + obj.campo + "'",
+                fieldToOption: obj.fieldToOption,
+                fieldToValue: obj.fieldToValue,
+                label: obj.tipo == "button" ? obj.titulo : "",
+                selectData: obj.selectValues,
+                value: "",
+                event: "",
+                placeholder: "",
+
+            }
+        }
+        var formItem = new FormItem(frmItem);
+        formItem.content.classes = formItem.content.classes ? formItem.content.classes + " custom-form-item" : "custom-form-item";
+
+        cols.push({
+            style: "",
+            colId: "",
+            classes: "",
+            content: GenerateCustomContainerCol(formItem),
+            customData: "",
+        });
+
+        headerCols.push({
+            style: "",
+            colId: "",
+            classes: "",
+            content: obj.tipo != "button" ? obj.titulo : "",
+            customData: "",
+        });
+
+    })
+
+    var tableData = {
+        tableId: "dd",
+        classes: "table ",
+        customData: "",
+        style: "",
+        header: {
+            rows: [
+                {
+                    style: "",
+                    rowId: "",
+                    classes: "defgridheader",
+                    customData: "",
+                    cols: headerCols
+                },
+
+            ],
+        },
+        body: {
+            customData: "",
+            rows: [
+                {
+                    style: "",
+                    rowId: "",
+                    classes: "",
+                    customData: 'v-for="colunaGrupoItem in GMrendGrupoColunaItems"',
+                    cols: cols
+                }
+
+            ],
+        },
+    };
+
+
+    tableData.tableId = "tabelaAprovacaoProposta"
+    tableData.customData = ""
+    tableData.classes = "table  "
+
+    //tableData.header.rows = []
+
+
+    var tableHtml = generateTableV2(tableData);
+    colunaGrupoCollapse += tableHtml;
+
+    colunaGrupoCollapse += "</div>"
+    colunaGrupoCollapse += "</div>"
+    colunaGrupoCollapse += '</div>';
+
+    colunaGrupoCollapse += ' </div>';
+    // Close the collapse div
+    colunaGrupoCollapse += '</div>';
+
+    $colunaGrupoContainer.append(colunaGrupoCollapse);
+
+    PetiteVue.createApp({
+        GMrendGrupoColunas: GMrendGrupoColunas,
+        GMrendGrupoColunaItems: GMrendGrupoColunaItems,
+        GMrendConfigColunas:GMrendConfigColunas,
+        addGrupoColuna: function () {
+            var grupoColuna = new MrendGrupoColuna({
+                codigogrupo: generateUUID(),
+                descgrupo: "Grupo " + (GMrendGrupoColunas.length + 1)
+            });
+
+            this.GMrendGrupoColunas.push(grupoColuna);
+
+        },
+        removeGrupoColuna: function (grupoColuna) {
+            this.GMrendGrupoColunas = this.GMrendGrupoColunas.filter(function (gc) {
+                return gc.grupocolunastamp !== grupoColuna.grupocolunastamp;
+            });
+
+            GMrendGrupoColunas=this.GMrendGrupoColunas;
+
+        },
+        addGrupoColunaItem: function (grupoColuna) {
+            var grupoColunaItem = new MrendGrupoColunaItem({
+                grupocolunastamp: grupoColuna.grupocolunastamp,
+                colunastamp: ""
+            });
+            this.GMrendGrupoColunaItems.push(grupoColunaItem);
+        },
+        removeGrupoColunaItem: function (grupoColunaItem) {
+            this.GMrendGrupoColunaItems = this.GMrendGrupoColunaItems.filter(function (gci) {
+                return gci.grupocolunaitemstamp !== grupoColunaItem.grupocolunaitemstamp;
+            });
+            GMrendGrupoColunaItems=this.GMrendGrupoColunaItems
+        }
+
+    }).mount('#colunaGrupoContainer');
+
 
 
 
@@ -931,6 +1187,7 @@ function renderConfigMrender(config) {
     });
 
     handleTableReactive();
+    setColunaGrupoReactive();
 
 
 
@@ -1224,89 +1481,6 @@ function registerListenersMrender() {
     });
 
 
-    $(document).off("click", "#addGrupoColunaBtn").on("click", "#addGrupoColunaBtn", function (e) {
-
-        $("#modalRendConfigItem").remove();
-        var containerId = "grupoColunaItem";
-        var sufixoForm = "GrupoColuna";
-
-        var mrendConfigItem = GMrendGrupoColunas.find(function (obj) {
-            return obj. == idValue;
-        });
-        var objectsUIFormConfig = [new UIObjectFormConfig({})]
-        if (mrendConfigItem) {
-
-            objectsUIFormConfig = mrendConfigItem.objectsUIFormConfig;
-
-            var sufixoForm = localsource;
-            var containerId = "Container" + localsource;
-
-            var sourceData = {
-                sourceTable: localsource,
-                sourceKey: localsource
-            }
-            var containers = [];
-
-            objectsUIFormConfig.forEach(function (obj) {
-
-                containers.push({
-                    colSize: obj.colSize,
-                    style: "margin-bottom:0.5em; " + (obj.tipo == "checkbox" ? "display:flex;flex-direction:column" : ""),
-                    content: {
-                        contentType: obj.contentType,
-                        type: obj.tipo,
-                        id: obj.campo,
-                        classes: obj.classes + " mrendconfig-item-input",
-                        customData: obj.customData + " v-model='mrendConfigItem." + obj.campo + "'",
-                        style: obj.style,
-                        selectCustomData: obj.customData + " v-model='mrendConfigItem." + obj.campo + "'",
-                        fieldToOption: obj.fieldToOption,
-                        fieldToValue: obj.fieldToValue,
-                        label: obj.titulo,
-                        selectData: obj.selectValues,
-                        value: mrendConfigItem[obj.campo],
-                        event: "",
-                        placeholder: "",
-
-                    }
-                })
-
-
-
-            });
-
-
-            var containerData = {
-                containerId: containerId,
-                spinnerId: "overlay" + sufixoForm,
-                hasSpinner: false,
-                customData: "",
-                sourceData: sourceData,
-                items: containers
-            }
-            var formContainerResult = GenerateCustomFormContainer(containerData);
-
-            var modalBodyHtml = ""
-            modalBodyHtml += formContainerResult;
-
-            var modalRendConfigItem = {
-                title: "Configuração ",
-                id: "modalRendConfigItem",
-                customData: "",
-                otherclassess: "",
-                body: modalBodyHtml,
-                footerContent: "",
-            };
-            var modalHTML = generateModalHTML(modalRendConfigItem);
-
-            $("#maincontent").append(modalHTML);
-
-            $("#modalRendConfigItem").modal("show");
-            PetiteVue.createApp({
-                mrendConfigItem: mrendConfigItem,
-            }).mount('#maincontent');
-
-        })
     $(document).off("click", "#addLinhaBtn").on("click", "#addLinhaBtn", function (e) {
 
         var dadosNovaLinha = setNovaLinha("Grupo");
