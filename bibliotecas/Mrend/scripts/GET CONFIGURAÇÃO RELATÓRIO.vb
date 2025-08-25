@@ -63,16 +63,24 @@ Try
     sqlParametersLigacao.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
     Dim queryResultLigacao as DataTable= ExecuteQuery(queryLigacoes,sqlParametersLigacao)
 
+    Dim queryGrupoColunas as String="select MrendGrupoColuna.* from MrendGrupoColuna join u_mrendrel on u_mrendrel.u_mrendrelstamp=MrendGrupoColuna.relatoriostamp where u_mrendrel.codigo=@codigo"
+    Dim sqlParametersGrupoColunas as new List(Of System.Data.SqlClient.SqlParameter)
+    sqlParametersGrupoColunas.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
+    Dim queryResultGrupoColunas as DataTable= ExecuteQuery(queryGrupoColunas,sqlParametersGrupoColunas)
 
-
-
+    Dim queryGrupoColunaItems as String="select MrendGrupoColunaItem.* from MrendGrupoColunaItem  join u_mrendrel on u_mrendrel.u_mrendrelstamp=MrendGrupoColunaItem.relatoriostamp where u_mrendrel.codigo=@codigo"
+    Dim sqlParametersGrupoColunaItems as new List(Of System.Data.SqlClient.SqlParameter)
+    sqlParametersGrupoColunaItems.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
+    Dim queryResultGrupoColunaItems as DataTable= ExecuteQuery(queryGrupoColunaItems,sqlParametersGrupoColunaItems)
 
    Dim dadosRelatorio=new With{
     .relatorio=queryResultRelatorio,
     .linhas=queryResultLinha,
     .colunas=queryResultColuna,
     .celulas=queryResultCelula,
-    .ligacoes=queryResultLigacao
+    .ligacoes=queryResultLigacao,
+    .grupocolunas=queryResultGrupoColunas,
+    .grupocolunaItems=queryResultGrupoColunaItems
    }
 
    Dim responseDTO= New With {.cod ="0000" ,.codDesc="Success",.message="Success",.data=dadosRelatorio}

@@ -19,6 +19,7 @@ CREATE TABLE MrendGrupoColuna(
     relatoriostamp VARCHAR(25) DEFAULT '',
     codigogrupo VARCHAR(100) DEFAULT '',
     descgrupo VARCHAR(250) DEFAULT '',
+    fixa BIT DEFAULT 0,
     ordem INT DEFAULT 0,
     extras TEXT DEFAULT ''
 );

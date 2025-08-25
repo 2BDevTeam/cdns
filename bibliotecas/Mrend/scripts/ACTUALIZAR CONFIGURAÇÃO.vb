@@ -276,7 +276,7 @@ Try
 Catch ex as Exception
 
    mpage.Response.ContentType = "application/json"
-   Dim responseDTO= New With {.cod ="0007" ,.codDesc="Error",.message=ex.toString()}
+   Dim responseDTO= New With {.cod ="0007" ,.codDesc="Error",.message=ex.toString(),.query=dynamicGlobalQuery}
    mpage.Response.Write(Newtonsoft.Json.JsonConvert.SerializeObject(responseDTO))
 
 

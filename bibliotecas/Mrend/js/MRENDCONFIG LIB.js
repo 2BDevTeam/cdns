@@ -284,6 +284,7 @@ function MrendGrupoColuna(data) {
     this.relatoriostamp = data.relatoriostamp || GRelatorioStamp || "";
     this.codigogrupo = data.codigogrupo || "";
     this.descgrupo = data.descgrupo || "";
+    this.fixa = data.fixa ||false;
     this.ordem = data.ordem || (function () {
         var maxOrdem = (GMrendGrupoColunas || []).reduce(function (max, item) {
             return Math.max(max, item.ordem || 0);
@@ -301,7 +302,7 @@ function MrendGrupoColuna(data) {
 function getMrendGrupoColunaUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
         new UIObjectFormConfig({
-            colSize: 4,
+            colSize: 3,
             campo: "codigogrupo",
             tipo: "text",
             titulo: "Código do Grupo",
@@ -309,15 +310,23 @@ function getMrendGrupoColunaUIObjectFormConfigAndSourceValues() {
             contentType: "input"
         }),
         new UIObjectFormConfig({
-            colSize: 4,
+            colSize: 3,
             campo: "descgrupo",
             tipo: "text",
             titulo: "Descrição do Grupo",
             classes: "form-control input-source-form input-sm",
             contentType: "input"
         }),
+         new UIObjectFormConfig({
+            colSize: 3,
+            campo: "fixa",
+            tipo: "checkbox",
+            titulo: "Fixa",
+            classes: "input-source-form",
+            contentType: "input"
+        }),
         new UIObjectFormConfig({
-            colSize: 4,
+            colSize: 3,
             campo: "ordem",
             tipo: "digit",
             titulo: "Ordem",
@@ -360,7 +369,7 @@ function getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
 
         new UIObjectFormConfig({
-            colSize: 4,
+            colSize: 12,
             campo: "colunastamp",
             tipo: "select",
             titulo: "Coluna",
@@ -374,7 +383,7 @@ function getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues() {
             classes: "form-control input-source-form input-sm"
         }),
         new UIObjectFormConfig({
-            colSize: 4,
+            colSize: 12,
             campo: "ordem",
             tipo: "digit",
             titulo: "Ordem",
@@ -382,7 +391,7 @@ function getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues() {
             contentType: "input"
         }),
         new UIObjectFormConfig({
-            colSize: 4,
+            colSize: 12,
             campo: "grupocolunaitemstamp",
             tipo: "button",
             style: "background:#d9534f!important;color:white",
@@ -1132,12 +1141,33 @@ function fetchConfigMrender(codigo) {
 
 function renderConfigMrender(config) {
 
+    GMrendConfigColunas = [];
+    GMrendConfigLinhas = [];
+    GMrendConfigCelulas = [];
+    GMrendGrupoColunas = [];
+    GMrendGrupoColunaItems = [];
     var colunas = [new ColunaMrenderConfig({})]
     colunas = config.colunas || [];
     var linhas = [new LinhaMrenderConfig({})];
     linhas = config.linhas || [];
     var celulas = [new CelulaMrenderConfig({})];
     celulas = config.celulas || [];
+
+    GMrendGrupoColunas = config.grupocolunas.map(function (grupoColuna) {
+        return new MrendGrupoColuna(grupoColuna);
+    });
+
+    GMrendGrupoColunas.sort(function (a, b) {
+        return a.ordem - b.ordem;
+    });
+
+    GMrendGrupoColunaItems = config.grupocolunaItems.map(function (grupoColunaItem) {
+        return new MrendGrupoColunaItem(grupoColunaItem);
+    });
+
+    GMrendGrupoColunaItems.sort(function (a, b) {
+        return a.ordem - b.ordem;
+    });
 
     colunasSetInicio = colunas.filter(function (coluna) {
         return coluna.setinicio;
@@ -1947,7 +1977,18 @@ function actualizarConfiguracaoMrender() {
         sourceTable: "Mrendconfigligacao",
         sourceKey: "mrendligacoesstamp",
         records: GMrendLigacoes
-    }];
+    },
+    {
+        sourceTable:"MrendGrupoColuna",
+        sourceKey:"grupocolunastamp",
+        records:GMrendGrupoColunas
+    },
+    {
+        sourceTable: "MrendGrupoColunaItem",
+        sourceKey: "grupocolunaitemstamp",
+        records: GMrendGrupoColunaItems
+    }
+];
 
 
     var extraRecordsColunas = groupRecordsBySource(GMrendConfigColunas, "relationRecords");
