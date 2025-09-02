@@ -208,8 +208,7 @@ function CustomFormData(containerId) {
 }
 
 function HandlerCustomContainerContentGenerator(content) {
-
-    switch (content.contentType) {
+    switch (content) {
         case "input":
             return generateInput(content);
         case "textarea":
@@ -223,6 +222,7 @@ function HandlerCustomContainerContentGenerator(content) {
         case "button":
             return generateButton(content);
         case "div":
+            console.log("Generating content for type: divvvv " + content.contentType);
             return generateDiv(content);
     }
 }

@@ -33,7 +33,7 @@ function Mrend(options) {
     this.db = undefined;
     this.db = undefined;
     this.reactiveData = PetiteVue.reactive({
-        customTotal: customTotal,
+        customTotal: 0,
         // Pode adicionar outros totais aqui
         totalPcusto: 0,
         totalVenda: 0,
@@ -46,6 +46,24 @@ function Mrend(options) {
             { codigocoluna: 'u_equipprc', valor: 0, label: 'Valor da comissão' }
         ]
     });
+
+
+    this.addLinhaComRegistos = function (modelo, registo) {
+
+
+
+        var linhaByModeloResult = addLinhaByModelo(modelo, registo);
+
+         mrendThis.GTable.addRow(registo, false).then(function (row) {
+              linhaByModeloResult
+              row.treeExpand();
+              mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+  
+          });
+
+
+    }
+
 
     this.refreshReactiveData = function () {
         //  return 
@@ -249,6 +267,8 @@ function Mrend(options) {
         this.bindData = new BindData(data.bindData ? data.bindData : {});
 
     }
+
+
 
     function Coluna(data) {
 
@@ -1165,6 +1185,7 @@ function Mrend(options) {
 
 
         mrendThis.GRenderedLinhas.push(this);
+
 
         if (renderCelula) {
             var recFlt = linhaRecords.filter(function (rec) {
@@ -2950,6 +2971,7 @@ function Mrend(options) {
             var recFlt = records.filter(function (rec) {
                 return rec.coluna == coluna.codigocoluna
             });
+            
             setCelula({}, linha, coluna, recFlt, coluna.config.categoria, "", {})
 
         });
@@ -3306,7 +3328,7 @@ function Mrend(options) {
                 url: mrendThis.remoteFetchData.url,
                 data: mrendThis.remoteFetchData.data,
                 success: function (response) {
-
+                   
                     resolve(response);
                 },
                 error: function (error) {
@@ -4308,7 +4330,7 @@ function Mrend(options) {
         }
         {title:"Eye Colour", field:"eyes"},
         {title:"Height", field:"height", frozen:true}, //frozen column on right of table
-    ]
+        ]
         
         */
         var grupoColuna = mrendThis.reportConfig.config.grupocolunas;
@@ -4325,13 +4347,13 @@ function Mrend(options) {
                 title: "#",
                 field: "idx",
                 width: 120,
-                frozen:true
+                frozen: true
 
             },
 
             {
                 title: "Ações",
-                frozen:true,
+                frozen: true,
                 formatter: function (cell, formatterParams) {
 
                     var rowData = cell.getRow().getData()
@@ -4479,7 +4501,7 @@ function Mrend(options) {
             dataTreeStartExpanded: true,
             dataTreeChildIndent: 25,
             popupContainer: "body",
-            layout: "fitDataFill",
+            layout: "fitColumns",
             height: "400px", // altura fixa para ativar scroll e fixar cabeçalho
             rowFormatter: function (row) {
 
@@ -5185,7 +5207,7 @@ function Mrend(options) {
     }
 
 
-    function addLinhaByModelo(modelo) {
+    function addLinhaByModelo(modelo, record) {
 
 
         var linhaModelo = mrendThis.reportConfig.config.linhas.find(function (linha) {
@@ -5193,21 +5215,39 @@ function Mrend(options) {
             return linha.codigo == modelo
         });
 
+        var rowid = generateUUID();
+        if (Object.keys(record || {}).length > 0) {
+
+            rowid = record.rowid || generateUUID();
+        }
+
         var renderedLinha
         if (linhaModelo) {
 
             var codigo = linhaModelo.codigo + "___" + generateTimestampNumber(10);
             var ordem = generateLinhaOrdem();
-            renderedLinha = new RenderedLinha({ ordem: ordem, codigo: codigo, novoregisto: true, rowid: generateUUID(), linkid: "", parentid: "", config: linhaModelo })
 
-            renderedLinha.UIObject = {
-                rowid: renderedLinha.rowid,
-                id: renderedLinha.rowid
+            var records = [];
+            var UIObject = {
+                rowid: rowid,
+                id: rowid
             };
 
 
-            renderedLinha.addToLocalRenderedLinhasList([], "", {}, true, true);
+            if (Object.keys(record || {}).length > 0) {
+                records.push(record);
+                UIObject = record;
+               
+            }
 
+            renderedLinha = new RenderedLinha({ UIObject: UIObject, ordem: ordem, codigo: codigo, novoregisto: true, rowid: rowid, linkid: "", parentid: "", config: linhaModelo })
+
+            
+            var dbConverstion = ConvertDbTableToMrendObject(records, mrendThis.dbTableToMrendObject);
+            
+            renderedLinha.addToLocalRenderedLinhasList(dbConverstion, { rowid: rowid }, {}, true, true);
+            
+            mrendThis.GNewRecords=dbConverstion.concat(mrendThis.GNewRecords);
 
 
 
@@ -5261,7 +5301,7 @@ function Mrend(options) {
 
 
 
-                var linhaByModeloResult = addLinhaByModelo(modelo);
+                var linhaByModeloResult = addLinhaByModelo(modelo, {});
 
                 // //console.log(("Linha adicionada por modelo", linhaByModeloResult)
                 mrendThis.GTable.addRow(linhaByModeloResult.UIObject, false).then(function (row) {
@@ -5676,7 +5716,7 @@ function Mrend(options) {
         var scripts = [
             'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js',
             'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js',
-            'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
+           // 'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
             'https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js',
             'https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js',
             'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS',
@@ -5998,10 +6038,10 @@ function loadAssetsWithGetScript() {
     var scripts = [
         'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js',
         'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js',
-        'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
+        //'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
         'https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js',
         'https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js',
-        'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS',
+        //'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS',
         'https://unpkg.com/petite-vue',
         'https://uicdn.toast.com/tui-grid/latest/tui-grid.min.js',
         'https://cdn.jsdelivr.net/npm/observable-slim@0.1.6/observable-slim.min.js',
@@ -6117,11 +6157,11 @@ function loadMrendAssets() {
 
         { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js' },
         { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js' },
-        { type: 'script', src: 'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js' },
+        //{ type: 'script', src: 'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js' },
         { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js' },
         { type: 'link', href: 'https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css', rel: 'stylesheet' },
         { type: 'script', src: 'https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js' },
-        { type: 'script', src: 'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS' },
+       // { type: 'script', src: 'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS' },
         { type: 'script', src: 'https://unpkg.com/petite-vue' },
         { type: 'script', src: 'https://cdn.jsdelivr.net/npm/observable-slim@0.1.6/observable-slim.min.js' },
         { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/imask/7.6.1/imask.js' }

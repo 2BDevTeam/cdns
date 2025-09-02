@@ -14,7 +14,6 @@ CREATE TABLE MRendRelatorio
 );
 
 CREATE TABLE MrendGrupoColuna(
-
     grupocolunastamp VARCHAR(25) PRIMARY KEY,
     relatoriostamp VARCHAR(25) DEFAULT '',
     codigogrupo VARCHAR(100) DEFAULT '',
@@ -25,7 +24,6 @@ CREATE TABLE MrendGrupoColuna(
 );
 
 CREATE TABLE MrendGrupoColunaItem(
-
     grupocolunaitemstamp VARCHAR(25) PRIMARY KEY,
     grupocolunastamp VARCHAR(25) DEFAULT '',
     relatoriostamp VARCHAR(25) DEFAULT '',

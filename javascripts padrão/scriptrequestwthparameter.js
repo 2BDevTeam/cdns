@@ -23,9 +23,3 @@ $.ajax({
         //  javascript:__doPostBack('','')
     }
 })
-
-
-
-"System.InvalidCastException: Conversion from type 'DataTable' to type 'String' is not valid.
-   at Microsoft.VisualBasic.CompilerServices.Conversions.ToString(Object Value)
-   at eClass.eMetodo(Page mPage, String mStamp, DataSet MainFormDataSet, Object ObjPara, Object PhcVars)"
