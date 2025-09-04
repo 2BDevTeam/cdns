@@ -42,7 +42,7 @@ Dim BuildDynamicInsertDatarowQueryWithoutParameters=Function(ByVal dataRow As Da
             Throw New Exception("A string de conexão contém uma keyword de escrita")
         End If
 
-        Dim valueToSet = "'" & dataRow(column.ColumnName).ToString() & "'"
+        Dim valueToSet = "'" & dataRow(column.ColumnName).ToString().Replace("'", "''") & "'"
         values.Add(valueToSet)
         updateSet.Add($"{column.ColumnName} = {valueToSet}")
     Next

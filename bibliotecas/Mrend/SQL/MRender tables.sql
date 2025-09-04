@@ -95,6 +95,7 @@ CREATE TABLE MrendColuna
     campovalid VARCHAR(100) DEFAULT '',
     temlinhadesc BIT DEFAULT 0,
     condicaovalidacao VARCHAR(250) DEFAULT '',
+    botaohtml TEXT DEFAULT '',
     validacoluna BIT DEFAULT 0,
     expresscolfun TEXT DEFAULT '',
     expressaodb TEXT DEFAULT '',
@@ -103,6 +104,7 @@ CREATE TABLE MrendColuna
     condicfunc BIT DEFAULT 0,
     eventoclique BIT DEFAULT 0,
     expressaoclique TEXT DEFAULT '',
+    localdata BIT default 0,
     ordem INT DEFAULT 0,
     setinicio BIT DEFAULT 0,
     setfim BIT DEFAULT 0,
@@ -210,21 +212,5 @@ CREATE TABLE u_reportl (
 );
 
 
-alter table MrendLinha
-    add  leitura BIT DEFAULT 0;
-
-alter table MrendColuna
-    add  temlinhadesc BIT DEFAULT 0;
 
 
-alter table MrendCelula
-    add  valordefeito BIT DEFAULT 0;
-
-alter table MrendCelula
-    add  valordefeitoexpr TEXT DEFAULT '';
-
-alter table u_reportl
-    add  mvalor TEXT DEFAULT '';
-
-alter table u_reportl
-    add  dvalor Date DEFAULT '1900-01-01';

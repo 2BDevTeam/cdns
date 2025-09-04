@@ -54,12 +54,12 @@ function Mrend(options) {
 
         var linhaByModeloResult = addLinhaByModelo(modelo, registo);
 
-         mrendThis.GTable.addRow(registo, false).then(function (row) {
-              linhaByModeloResult
-              row.treeExpand();
-              mrendThis.applyTabulatorStylesWithJquery(mrendThis);
-  
-          });
+        mrendThis.GTable.addRow(registo, false).then(function (row) {
+            linhaByModeloResult
+            row.treeExpand();
+            mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+
+        });
 
 
     }
@@ -285,6 +285,7 @@ function Mrend(options) {
         this.sourceKey = data.sourceKey || "";
         this.validacoluna = data.validacoluna || false;
         this.expresscolfun = data.expresscolfun || "";
+        this.botaohtml = data.botaohtml || "";
         this.temlinhadesc = data.temlinhadesc || false;
         this.colfunc = data.colfunc || false;
         this.eventoclique = data.eventoclique || false;
@@ -2971,7 +2972,7 @@ function Mrend(options) {
             var recFlt = records.filter(function (rec) {
                 return rec.coluna == coluna.codigocoluna
             });
-            
+
             setCelula({}, linha, coluna, recFlt, coluna.config.categoria, "", {})
 
         });
@@ -3328,7 +3329,7 @@ function Mrend(options) {
                 url: mrendThis.remoteFetchData.url,
                 data: mrendThis.remoteFetchData.data,
                 success: function (response) {
-                   
+
                     resolve(response);
                 },
                 error: function (error) {
@@ -3586,6 +3587,8 @@ function Mrend(options) {
         });
         cleave.setRawValue(value || 0);
         return input.value;
+
+
     }
 
     function numberFormatCustomEditor(cell, onRendered, success, cancel, editorParams) {
@@ -3623,6 +3626,32 @@ function Mrend(options) {
         input.addEventListener("keydown", function (e) {
             if (e.key === "Enter") input.blur();
             else if (e.key === "Escape") cancel();
+        });
+
+        return input;
+    }
+
+    function jqueryDateEditor(cell, onRendered, success, cancel) {
+        // cria o input
+        var input = document.createElement("input");
+        input.setAttribute("type", "text");
+
+        input.setAttribute("data-language", "pt");
+
+        input.value = cell.getValue() || "";
+
+        onRendered(function () {
+            $(input).datepicker({
+                dateFormat: "dd.mm.yyyy",   // formato da data
+                onSelect: function (dateText) {
+                    success(dateText);    // devolve o valor selecionado ao Tabulator
+                },
+                onClose: function () {
+                    cancel();             // fecha edição
+                }
+            }).datepicker("show");
+
+            input.focus();
         });
 
         return input;
@@ -3730,6 +3759,29 @@ function Mrend(options) {
                 var content = ensureMinContent(formattedValue);
                 return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content)
                 break;
+            case "logic":
+                return "<div style='text-align:center'><input type='checkbox' disabled " + (cell.getValue() ? "checked" : "") + " /></div>";
+
+            case "button":
+                return colunaConfig.botaohtml;
+            case "date":
+
+                try {
+
+                    var date = new Date(cell.getValue());
+
+                    var formatter = new Intl.DateTimeFormat("de-DE", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric"
+                    });
+                    var formattedValue = formatter.format(date)
+                    var content = ensureMinContent(formattedValue);
+                    return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content);
+                } catch (error) {
+                    var content = ensureMinContent(cell.getValue());
+                    return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content);
+                }
 
             case "table":
 
@@ -3773,6 +3825,48 @@ function Mrend(options) {
                 editor: numberFormatCustomEditor,
                 editorParams: { colunaConfig: coluna.config }
             };
+        }
+
+        if (coluna.config.tipo === "date") {
+            return {
+                editor: jqueryDateEditor,
+                editorParams: { colunaConfig: coluna.config }
+            };
+        }
+
+        if (coluna.config.tipo === "logic") {
+
+            return { editor: true }
+
+        }
+        if (coluna.config.tipo === "button") {
+
+            return {
+                editor: function (cell, onRendered, success, cancel) {
+                    // Cria o botão editor
+                    // var botaoHtml = coluna.config.botaohtml
+                    var botaoHtml = coluna.config.botaohtml;
+                    var epress
+                    var $btn = $(botaoHtml)
+                        .on("click", function () {
+                            // Pega os dados da célula/linha
+                             var rowData = cell.getRow().getData();
+                             eval(coluna.config.expressaoclique)
+
+
+                        });
+
+                    onRendered(function () {
+                        // Foca no botão se necessário
+                        var rowData = cell.getRow().getData();
+                        $btn.focus();
+                         eval(coluna.config.expressaoclique)
+                    });
+
+                    return $btn[0];
+                }
+            }
+
         }
 
         if (coluna.config.tipo === "text") {
@@ -4098,6 +4192,7 @@ function Mrend(options) {
                     }
 
                     var rowData = cell.getRow().getData();
+                    console.
                     var renderedColuna = mrendThis.GRenderedColunas.find(function (coluna) {
                         return coluna.codigocoluna == cell.getField();
                     });
@@ -4107,8 +4202,11 @@ function Mrend(options) {
                         throw new Error("Coluna renderedColuna com codigocoluna " + cell.getField() + " não encontrada.");
                     }
 
+                    
+                    if(coluna.config.tipo!="button"){
+                        eval(renderedColuna.config.expressaoclique)
 
-                    eval(renderedColuna.config.expressaoclique)
+                    }
 
 
 
@@ -4501,7 +4599,7 @@ function Mrend(options) {
             dataTreeStartExpanded: true,
             dataTreeChildIndent: 25,
             popupContainer: "body",
-            layout: "fitColumns",
+            layout: "fitDataStretch",
             height: "400px", // altura fixa para ativar scroll e fixar cabeçalho
             rowFormatter: function (row) {
 
@@ -5237,17 +5335,17 @@ function Mrend(options) {
             if (Object.keys(record || {}).length > 0) {
                 records.push(record);
                 UIObject = record;
-               
+
             }
 
             renderedLinha = new RenderedLinha({ UIObject: UIObject, ordem: ordem, codigo: codigo, novoregisto: true, rowid: rowid, linkid: "", parentid: "", config: linhaModelo })
 
-            
+
             var dbConverstion = ConvertDbTableToMrendObject(records, mrendThis.dbTableToMrendObject);
-            
+
             renderedLinha.addToLocalRenderedLinhasList(dbConverstion, { rowid: rowid }, {}, true, true);
-            
-            mrendThis.GNewRecords=dbConverstion.concat(mrendThis.GNewRecords);
+
+            mrendThis.GNewRecords = dbConverstion.concat(mrendThis.GNewRecords);
 
 
 
@@ -5716,7 +5814,7 @@ function Mrend(options) {
         var scripts = [
             'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js',
             'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js',
-           // 'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
+            // 'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
             'https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js',
             'https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js',
             'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS',
@@ -6161,7 +6259,7 @@ function loadMrendAssets() {
         { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js' },
         { type: 'link', href: 'https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css', rel: 'stylesheet' },
         { type: 'script', src: 'https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js' },
-       // { type: 'script', src: 'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS' },
+        // { type: 'script', src: 'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS' },
         { type: 'script', src: 'https://unpkg.com/petite-vue' },
         { type: 'script', src: 'https://cdn.jsdelivr.net/npm/observable-slim@0.1.6/observable-slim.min.js' },
         { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/imask/7.6.1/imask.js' }

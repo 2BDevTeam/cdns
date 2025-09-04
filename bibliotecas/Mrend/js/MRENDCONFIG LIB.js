@@ -127,6 +127,7 @@ function ColunaMrenderConfig(data) {
     this.expressaodb = data.expressaodb || "";
     this.relatoriostamp = data.relatoriostamp || "";
     this.condicaovalidacao = data.condicaovalidacao || "";
+    this.botaohtml = data.botaohtml || "";
     this.validacoluna = data.validacoluna || false;
     this.expresscolfun = data.expresscolfun || "";
     this.colfunc = data.colfunc || false;
@@ -508,8 +509,18 @@ function getColunaUIObjectFormConfigAndSourceValues() {
                 { option: "Lógico", value: "logic" },
                 { option: "Textarea", value: "textarea" },
                 { option: "Tabela", value: "table" },
+                { option: "Botão", value: "button" },
                 { option: "Data", value: "date" }
             ]
+        }),
+
+        new UIObjectFormConfig({
+            colSize: 12,
+            campo: "botaohtml",
+            tipo: "textarea",
+            titulo: "Botão HTML",
+            classes: "form-control input-source-form  input-sm ",
+            contentType: "textarea"
         }),
         new UIObjectFormConfig({
             colSize: 6,
