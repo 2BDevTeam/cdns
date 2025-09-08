@@ -6,6 +6,9 @@ function Mrend(options) {
     var mrendThis = this;
 
     this.GTable = {};
+
+
+
     this.GDefaultConfig = undefined;
     this.GRenderData = {};
     this.GReportConfig = new ReportConfig({});
@@ -46,7 +49,16 @@ function Mrend(options) {
             { codigocoluna: 'u_equipprc', valor: 0, label: 'Valor da comissão' }
         ]
     });
+    this.global = {};
 
+    this.setTableEditable = function (editable) {
+
+        mrendThis.GTable.getColumns().forEach(function (col) {
+            col.updateDefinition({
+                editable: editable,   // pode ser true/false ou até função
+            });
+        });
+    }
 
     this.addLinhaComRegistos = function (modelo, registo) {
 
@@ -3850,8 +3862,8 @@ function Mrend(options) {
                     var $btn = $(botaoHtml)
                         .on("click", function () {
                             // Pega os dados da célula/linha
-                             var rowData = cell.getRow().getData();
-                             eval(coluna.config.expressaoclique)
+                            var rowData = cell.getRow().getData();
+                            eval(coluna.config.expressaoclique)
 
 
                         });
@@ -3860,7 +3872,7 @@ function Mrend(options) {
                         // Foca no botão se necessário
                         var rowData = cell.getRow().getData();
                         $btn.focus();
-                         eval(coluna.config.expressaoclique)
+                        eval(coluna.config.expressaoclique)
                     });
 
                     return $btn[0];
@@ -3898,7 +3910,7 @@ function Mrend(options) {
                             celula.localData = eval(coluna.config.expressaotbjs);
 
                         }
-
+                        
                         list = celula.localData || [];
 
                         return (list || []).map(function (item) {
@@ -4192,7 +4204,7 @@ function Mrend(options) {
                     }
 
                     var rowData = cell.getRow().getData();
-                    console.
+
                     var renderedColuna = mrendThis.GRenderedColunas.find(function (coluna) {
                         return coluna.codigocoluna == cell.getField();
                     });
@@ -4202,8 +4214,8 @@ function Mrend(options) {
                         throw new Error("Coluna renderedColuna com codigocoluna " + cell.getField() + " não encontrada.");
                     }
 
-                    
-                    if(coluna.config.tipo!="button"){
+
+                    if (coluna.config.tipo != "button") {
                         eval(renderedColuna.config.expressaoclique)
 
                     }
