@@ -296,6 +296,7 @@ function Mrend(options) {
         this.sourceTable = data.sourceTable || "";
         this.sourceKey = data.sourceKey || "";
         this.validacoluna = data.validacoluna || false;
+        this.forcaeditavel = data.forcaeditavel || false;
         this.expresscolfun = data.expresscolfun || "";
         this.botaohtml = data.botaohtml || "";
         this.temlinhadesc = data.temlinhadesc || false;
@@ -3731,7 +3732,7 @@ function Mrend(options) {
 
         }
 
-        return "<div style='" + styles + "' class='mrend-input-cell'>" + content + "</div>";
+        return "<div style='" + styles + ";text-align:" + colunaConfig.alinhamento + "' class='mrend-input-cell'>" + content + "</div>";
     }
 
     function handleColFormatter(cell, colunaConfig, colunaUIConfig) {
@@ -3772,7 +3773,7 @@ function Mrend(options) {
                 return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content)
                 break;
             case "logic":
-                return "<div style='text-align:center'><input type='checkbox' disabled " + (cell.getValue() ? "checked" : "") + " /></div>";
+                return "<div style='text-align:" + colunaConfig.alinhamento + "'><input type='checkbox' disabled " + (cell.getValue() ? "checked" : "") + " /></div>";
 
             case "button":
                 return colunaConfig.botaohtml;
@@ -3829,7 +3830,7 @@ function Mrend(options) {
 
     function handleEditor(coluna, colunaUIConfig) {
 
-        if (!mrendThis.enableEdit) {
+        if (!mrendThis.enableEdit && coluna.config.forcaeditavel == false) {
             return {};
         }
         if (coluna.config.tipo === "digit") {
@@ -3910,7 +3911,7 @@ function Mrend(options) {
                             celula.localData = eval(coluna.config.expressaotbjs);
 
                         }
-                        
+
                         list = celula.localData || [];
 
                         return (list || []).map(function (item) {
@@ -4165,6 +4166,7 @@ function Mrend(options) {
                 field: coluna.codigocoluna,
                 width: coluna.config.tamanho,
                 hozAlign: coluna.config.alinhamento,
+                headerHozAlign: coluna.config.alinhamento,
                 frozen: coluna.config.fixacoluna,
                 headerTooltip: function (e, cell, onRendered) {
                     //e - mouseover event
@@ -6072,17 +6074,19 @@ function Mrend(options) {
     };
 
     this.render = function () {
-        return loadAssetsPromiseAll().then(function () {
+        /*  return loadAssetsPromiseAll().then(function () {
+  
+  
+            
+          });*/
 
-
-            return InitDB(mrendThis.dbTableToMrendObject.dbName, mrendThis.schemas).then(function (initDBResult) {
-                if (mrendThis.resetSourceStamp) {
-                    mrendThis.clearSourceStamp();
-                }
-                handleReportRecords().then(function (reportRecordResult) {
-                    RenderHandler(mrendThis.records)
-                })
-            });
+        return InitDB(mrendThis.dbTableToMrendObject.dbName, mrendThis.schemas).then(function (initDBResult) {
+            if (mrendThis.resetSourceStamp) {
+                mrendThis.clearSourceStamp();
+            }
+            handleReportRecords().then(function (reportRecordResult) {
+                RenderHandler(mrendThis.records)
+            })
         });
     }
 

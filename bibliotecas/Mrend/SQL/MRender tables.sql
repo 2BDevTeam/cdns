@@ -93,6 +93,7 @@ CREATE TABLE MrendColuna
     tipo VARCHAR(50) DEFAULT '',
     atributo VARCHAR(100) DEFAULT '',
     campovalid VARCHAR(100) DEFAULT '',
+    forcaeditavel BIT DEFAULT 0,
     temlinhadesc BIT DEFAULT 0,
     condicaovalidacao VARCHAR(250) DEFAULT '',
     botaohtml TEXT DEFAULT '',

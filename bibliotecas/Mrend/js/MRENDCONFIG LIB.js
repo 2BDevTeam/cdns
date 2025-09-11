@@ -129,6 +129,7 @@ function ColunaMrenderConfig(data) {
     this.condicaovalidacao = data.condicaovalidacao || "";
     this.botaohtml = data.botaohtml || "";
     this.validacoluna = data.validacoluna || false;
+    this.forcaeditavel = data.forcaeditavel || false;
     this.expresscolfun = data.expresscolfun || "";
     this.colfunc = data.colfunc || false;
     this.ordem = data.ordem || 0;
@@ -538,6 +539,7 @@ function getColunaUIObjectFormConfigAndSourceValues() {
                 { option: "Somente leitura", value: "readonly" }
             ]
         }),
+        new UIObjectFormConfig({ colSize: 6, campo: "forcaeditavel", tipo: "checkbox", titulo: "Força coluna para ser editável", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "validacoluna", tipo: "checkbox", titulo: "Valida Coluna", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "campovalid", tipo: "text", titulo: "Campo Validação", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
         new UIObjectFormConfig({ campo: "condicaovalidacao", tipo: "text", titulo: "Condição Validação", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
