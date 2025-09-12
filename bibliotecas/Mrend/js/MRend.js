@@ -60,7 +60,9 @@ function Mrend(options) {
         });
     }
 
+
     this.addLinhaComRegistos = function (modelo, registo) {
+
 
 
 
@@ -2349,6 +2351,144 @@ function Mrend(options) {
     }
 
 
+    this.ConvertDbTableToMrendObject = function (data, MrendConversionConfig) {
+        if (!data[0]) {
+
+            return []
+        }
+        var keys = Object.keys(data[0]);
+        var mrendObjects = []
+
+
+        if (MrendConversionConfig.chunkMapping == false) {
+
+            distinctKey = getDistinctWithKeys(data, MrendConversionConfig.extras.colunaField);
+
+            keys = distinctKey.map(function (obj) {
+                return obj[MrendConversionConfig.extras.colunaField];
+            });
+
+            console.log(" mrendThis.reportConfig.config.colunas", mrendThis.reportConfig.config.colunas)
+            data.forEach(function (record) {
+
+                var mrendObject = new MrendObject({});
+
+                mrendObject = mapRecordToMrendObject(record, MrendConversionConfig);
+
+
+
+                var colunaInstance = mrendObject.coluna.split("___")[0];
+
+                var colunaConfig = mrendThis.reportConfig.config.colunas.filter(function (coluna) {
+                    return coluna.codigocoluna == colunaInstance || coluna.codigocoluna == mrendObject.coluna;
+                });
+
+                if (colunaConfig.length > 0) {
+
+                    mrendObject.campo = colunaConfig[0].campo;
+                    mrendObject[colunaConfig[0].campo] = record[colunaConfig[0].campo];
+
+
+                    if (!mrendObject.tipocol) {
+                        mrendObject.tipocol = colunaConfig[0].tipo || "text";
+                    }
+
+                }
+
+                mrendObjects.push(mrendObject);
+
+
+            });
+
+
+
+            return mrendObjects;
+
+        }
+
+
+
+
+
+
+
+        data.forEach(function (record) {
+            var mrendObject = new MrendObject({});
+            keys.forEach(function (key) {
+
+                var configCol = mrendThis.reportConfig.config.colunas.find(function (coluna) {
+                    return coluna.codigocoluna == key
+                })
+
+                if (MrendConversionConfig.chunkMapping == true) {
+
+                    mrendObject = new MrendObject({});
+                }
+
+                if (MrendConversionConfig.tableKey != key && configCol) {
+
+
+                    var rowid = record[MrendConversionConfig.tableKey]
+
+                    // //console.log((configCol.campo, record[configCol.campo])
+                    mrendObject.campo = MrendConversionConfig.chunkMapping == true ? key : configCol.campo;
+                    mrendObject[configCol.campo] = MrendConversionConfig.chunkMapping == true ? record[key] : record[configCol.campo];
+                    mrendObject.coluna = key;
+                    mrendObject.rowid = rowid;
+                    mrendObject.codigolinha = MrendConversionConfig.table;
+                    mrendObject.cellId = key + "COLUNA___LINHA" + rowid.trim();
+                    mrendObject.ordemField = MrendConversionConfig.extras.ordemField;
+                    mrendObject.tipocolField = MrendConversionConfig.extras.tipocolField;
+                    mrendObject.tipocol = configCol.tipo || "text";
+
+
+                    mrendObject.ordem = record[MrendConversionConfig.extras.ordemField] || 0;
+
+                    mrendObject.sourceTable = MrendConversionConfig.table
+                    mrendObject.sourceKey = MrendConversionConfig.tableKey;
+                    mrendObject.sourceKeyValue = record[MrendConversionConfig.tableKey];
+                    mrendObject.codigocoluna = configCol.codigocoluna;
+
+                    if (configCol.sourceTable) {
+                        mrendObject.sourceTable = configCol.sourceTable;
+                        mrendObject.sourceKey = configCol.sourceKey;
+                        mrendObject.sourceKeyValue = record[configCol.sourceKey];
+                    }
+
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "linkField", "linkid");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "cellIdField", "cellId");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "colunaField", "codigocoluna");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "ordemColunaField", "ordemcoluna");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "rowIdField", "rowid");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "linhaField", "codigolinha");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "tipocolField", "tipocol");
+
+
+                    if (MrendConversionConfig.chunkMapping == true) {
+
+                        mrendObjects.push(mrendObject)
+                    }
+
+                }
+
+            })
+
+            if (MrendConversionConfig.chunkMapping == false) {
+
+                mrendObjects.push(mrendObject)
+            }
+
+        })
+
+        //  //console.log(("ConvertDbTableToMrendObject Final", mrendObjects)
+
+
+        return mrendObjects;
+
+
+
+    }
+
     function ConvertDbTableToMrendObject(data, MrendConversionConfig) {
         if (!data[0]) {
 
@@ -3735,6 +3875,44 @@ function Mrend(options) {
         return "<div style='" + styles + ";text-align:" + colunaConfig.alinhamento + "' class='mrend-input-cell'>" + content + "</div>";
     }
 
+
+    function isInactivo(cell,renderedColuna,colunaUIConfig) {
+
+        var condicAttrResult = ""
+        if (renderedColuna.condicattr) {
+
+            condicAttrResult = eval(renderedColuna.condicattrexpr);
+
+        }
+
+        if (condicAttrResult == "readonly" || condicAttrResult == "disabled") {
+            return true;
+        }
+
+        if (renderedColuna.atributo == "readonly" || renderedColuna.atributo == "disabled") {
+            return true;
+        }
+
+        var celula = getCelulaConfigFromTabulator(cell, renderedColuna, colunaUIConfig);
+
+        if (celula.atributo == "readonly" || celula.atributo == "disabled") {
+            return true;
+        }
+
+        var condicinactivo = celula.condicinactivo;
+        if (condicinactivo) {
+            var resultCondicInactivo = eval(celula.condicinactexpr);
+            if (resultCondicInactivo) {
+                return true
+            }
+        }
+
+        if (celula.inactivo && condicinactivo == false) {
+            return true;
+        }
+
+    }
+
     function handleColFormatter(cell, colunaConfig, colunaUIConfig) {
 
 
@@ -3773,7 +3951,39 @@ function Mrend(options) {
                 return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content)
                 break;
             case "logic":
-                return "<div style='text-align:" + colunaConfig.alinhamento + "'><input type='checkbox' disabled " + (cell.getValue() ? "checked" : "") + " /></div>";
+
+                var checkboxContainer = document.createElement("div");
+                checkboxContainer.style.textAlign = colunaConfig.alinhamento;
+                var inactivo= isInactivo(cell,colunaConfig,colunaUIConfig);
+
+                var checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.className = "formatted-checkbox";
+                checkbox.checked = cell.getValue() ? true : false;
+                checkbox.disabled = inactivo 
+                // Adiciona o evento diretamente ao checkbox
+                checkbox.addEventListener("change", function () {
+                    var rowData = cell.getRow().getData();
+
+                    var columnField = cell.getField(); // <-- Aqui você pega o nome/campo da coluna editada
+                    var updateData = {};
+                    Object.keys(rowData).forEach(function (key) {
+                        if (key !== "_children" && key !== "id") {
+                            updateData[key] = rowData[key];
+                        }
+                    });
+
+                    updateData[columnField] = checkbox.checked;
+                    cell.getRow().update(updateData);
+
+                    updateCellObjectConfig(columnField, rowData);
+
+                });
+
+                // Adiciona o checkbox ao container
+                checkboxContainer.appendChild(checkbox);
+
+                return checkboxContainer;
 
             case "button":
                 return colunaConfig.botaohtml;
@@ -3828,6 +4038,31 @@ function Mrend(options) {
 
     }
 
+    function checkboxCustomEditor(cell, onRendered, success, cancel) {
+        // Cria o elemento checkbox
+        var checkbox = document.createElement("input");
+        checkbox.setAttribute("type", "checkbox");
+        checkbox.checked = cell.getValue() === true;
+
+        // Adiciona eventos ao checkbox
+        checkbox.addEventListener("change", function () {
+            success(checkbox.checked); // Retorna o novo valor ao Tabulator
+        });
+
+        checkbox.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+                cancel(); // Cancela a edição
+            }
+        });
+
+        // Foca no checkbox quando renderizado
+        onRendered(function () {
+            checkbox.focus();
+        });
+
+        return checkbox;
+    }
+
     function handleEditor(coluna, colunaUIConfig) {
 
         if (!mrendThis.enableEdit && coluna.config.forcaeditavel == false) {
@@ -3849,7 +4084,9 @@ function Mrend(options) {
 
         if (coluna.config.tipo === "logic") {
 
-            return { editor: true }
+            return {
+
+            };
 
         }
         if (coluna.config.tipo === "button") {
@@ -5816,9 +6053,9 @@ function Mrend(options) {
 
     }
 
-    this.updateTableRowColumnValue = function (rowid, rowData, coluna, value) {
+    this.updateTableRowColumnValue = function (rowid, coluna, value) {
 
-        var row = findRowByIdColuna(rowid, coluna, value);
+        console.log("Updating row:", rowid, "column:", coluna, "with value:", value);
 
 
     }
@@ -6112,6 +6349,13 @@ function Mrend(options) {
 
 
 }
+
+
+
+
+
+
+
 function handleZoomMrend(button, dbName, tableName) {
     var $button = $(button);
     var $container = $($button.data("container"));
@@ -6235,6 +6479,13 @@ $(document).ready(function () {
     cssContent += ".tabulator-cell:hover .tabulator-col-resize-handle {"
     cssContent += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
     cssContent += "}"
+
+    cssContent += ".tabulator-cell input[type='checkbox'] {";
+    cssContent + " -webkit-appearance: none!important;"
+    cssContent += "border: 1px solid " + getColorByType("primary").background + "!important;";
+    cssContent += "accent-color: " + getColorByType("warning").background + "!important;";
+    cssContent += "transform: scale(1.7)!important;";
+    cssContent += "}";
 
 
     $('head').append('<style>' + cssContent + '</style>');
