@@ -2,13 +2,8 @@
 
 function Mrend(options) {
 
-
     var mrendThis = this;
-
     this.GTable = {};
-
-
-
     this.GDefaultConfig = undefined;
     this.GRenderData = {};
     this.GReportConfig = new ReportConfig({});
@@ -3876,7 +3871,7 @@ function Mrend(options) {
     }
 
 
-    function isInactivo(cell,renderedColuna,colunaUIConfig) {
+    function isInactivo(cell, renderedColuna, colunaUIConfig,rowData) {
 
         var condicAttrResult = ""
         if (renderedColuna.condicattr) {
@@ -3921,8 +3916,10 @@ function Mrend(options) {
         var rowData = cell.getRow().getData();
 
         var condicinactivo = celula.condicinactivo;
+
         if (condicinactivo) {
             var resultCondicInactivo = eval(celula.condicinactexpr);
+            
             if (resultCondicInactivo) {
                 return ""
             }
@@ -3954,13 +3951,13 @@ function Mrend(options) {
 
                 var checkboxContainer = document.createElement("div");
                 checkboxContainer.style.textAlign = colunaConfig.alinhamento;
-                var inactivo= isInactivo(cell,colunaConfig,colunaUIConfig);
+                var inactivo = isInactivo(cell, colunaConfig, colunaUIConfig,rowData);
 
                 var checkbox = document.createElement("input");
                 checkbox.type = "checkbox";
                 checkbox.className = "formatted-checkbox";
                 checkbox.checked = cell.getValue() ? true : false;
-                checkbox.disabled = inactivo 
+                checkbox.disabled = inactivo
                 // Adiciona o evento diretamente ao checkbox
                 checkbox.addEventListener("change", function () {
                     var rowData = cell.getRow().getData();
@@ -6486,7 +6483,14 @@ $(document).ready(function () {
     cssContent += "accent-color: " + getColorByType("warning").background + "!important;";
     cssContent += "transform: scale(1.7)!important;";
     cssContent += "}";
-
+    cssContent+=".tabulator-data-tree-control{ "
+    cssContent+="width:20px!important;"
+    cssContent+="height:20px!important;"
+    cssContent+="}"
+    cssContent+=".tabulator-row .tabulator-cell .tabulator-data-tree-control .tabulator-data-tree-control-collapse:after{"
+    cssContent+="font-size:16px!important;"
+    cssContent+="color:#3f5670!important;";
+    cssContent+="}"
 
     $('head').append('<style>' + cssContent + '</style>');
     loadAssetsWithGetScript();
