@@ -17,7 +17,9 @@ GMDashFilters = [];
 var GMdashDeleteRecords = [];
 
 var GMDashStamp = "";
-
+var GTMPReactiveInstance
+var GTMPDragItem = null;
+var GTMPDragId = null;
 
 
 
@@ -92,7 +94,7 @@ function getMdashFilterUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 6, campo: "campovalor", tipo: "text", titulo: "Campo de Valor", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
-        new UIObjectFormConfig({ colSize: 12,style: "width: 100%; height: 200px;", campo: "valordefeito", tipo: "div", cols: 90, rows: 90, titulo: "Valor por Defeito", classes: "input-source-form m-editor", contentType: "div" })
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "valordefeito", tipo: "div", cols: 90, rows: 90, titulo: "Valor por Defeito", classes: "input-source-form m-editor", contentType: "div" })
     ];
 
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashFilters", idField: "mdashfilterstamp" };
@@ -316,6 +318,7 @@ $(document).ready(function () {
     getDashboardDefaultStyles(styles);
     getDashCardStyles(styles);
     getMeditorStyles(styles);
+    objectItemEditorStyles(styles);
 
 
     var globalStyle = ""
@@ -629,7 +632,7 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
 
     if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
 
-
+        console.log("self.config", self.config)
         self.objectoConfig.renderObject({
             containerSelector: containerSelector,
             itemObject: self,
@@ -1551,51 +1554,45 @@ function registerListenersMdash() {
         containersObjectsListDiv += "  </div>"; // home-collapse container-item-object
         containersObjectsListDiv += "</div>"; // v-for container           </div>";
 
+
+        var containerObjectEditor = '';
+
+        containerObjectEditor += '    <div v-if="!containerItem.templatelayout"  class="col-md-12">';
+        containerObjectEditor += "      <div class='alert alert-info' role='alert' style='margin-top:1em;'>Selecione um layout para o container</div>";
+        containerObjectEditor += '     </div>';
+        //#f3f7fe
+        containerObjectEditor += '<div >';
+        containerObjectEditor += '  <div v-if="containerItem.templatelayout" class="row g-3">';
+        containerObjectEditor += '    <!-- Sidebar -->';
+        containerObjectEditor += '    <div class="col-md-3">';
+        containerObjectEditor += '      <div class="m-dash-item ">';
+        containerObjectEditor += '        <h1 class="m-dash-item-title">Objetos</h1>';
+        containerObjectEditor += '        <div class="dashboard-object"  v-for="item in availableObjects" draggable="true" @dragstart="dragStart(item)">';
+        containerObjectEditor += '          <i style="color:' + "#3f5670" + '" :class="item.icon"></i> <span style="color:' + "#3f5670" + '">{{ item.label }}</span>';
+        containerObjectEditor += '        </div>';
+        containerObjectEditor += '      </div>';
+        containerObjectEditor += '    </div>';
+
+        containerObjectEditor += '    <!-- Preview -->';
+        containerObjectEditor += '    <div  id="objectPreview" class="col-md-6">';
+        containerObjectEditor += gerarConteudoEditorObjecto(containerItem);
+        containerObjectEditor += '    </div>';
+
+
+        containerObjectEditor += '    <!-- Propriedades -->';
+        containerObjectEditor += '    <div style="height:500px;overflow-y:auto;" class="col-md-3">';
+        containerObjectEditor += '      <div class="m-dash-item">';
+        containerObjectEditor += '        <h1 class="m-dash-item-title">Propriedades</h1>';
+        containerObjectEditor += '        <div class="objectEditor" :id="\'objectEditorContainer-\' + selectedObject.mdashcontaineritemobjectstamp"></div>';
+        containerObjectEditor += '      </div>';
+        containerObjectEditor += '    </div>';
+
+        containerObjectEditor += '  </div>';
+        containerObjectEditor += '</div>';
+
+
         containers = [
             {
-                colSize: 6,
-                style: "",
-                content: {
-                    contentType: "select",
-                    type: "select",
-                    id: "templatelayout",
-                    classes: "mdashconfig-item-input form-control input-source-form input-sm",
-                    customData: "",
-                    style: "width: 100%;",
-                    selectCustomData: "" + " v-model='containerItem.templatelayout' @change=handleTemplateLayoutChange(containerItem.templatelayout)",
-                    fieldToOption: "descricao",
-                    fieldToValue: "codigo",
-                    rows: 10,
-                    cols: 10,
-                    label: " Layout do container ",
-                    selectData: getTemplateLayoutOptions(),
-                    value: containerItem.templatelayout,
-                    event: "",
-                    placeholder: ""
-                }
-            }, {
-                colSize: 6,
-                style: "",
-                content: {
-                    contentType: "div",
-                    type: "div",
-                    id: "layoutdisplay",
-                    classes: "",
-                    customData: "",
-                    style: "",
-                    selectCustomData: "",
-                    fieldToOption: "",
-                    fieldToValue: "",
-                    rows: 10,
-                    cols: 10,
-                    label: "",
-                    selectData: "",
-                    value: "",
-                    event: "",
-                    placeholder: "",
-
-                }
-            }, {
                 colSize: 12,
                 style: "",
                 content: {
@@ -1665,23 +1662,23 @@ function registerListenersMdash() {
                 }
             },
             {
-                colSize: 12,
-                style: "",
+                colSize: 6,
+                style: "margin-bottom:0.8em;",
                 content: {
-                    contentType: "div",
-                    type: "actionsAddObjectContainerItem",
-                    id: "",
-                    classes: "pull-left",
+                    contentType: "select",
+                    type: "select",
+                    id: "templatelayout",
+                    classes: "mdashconfig-item-input form-control input-source-form input-sm",
                     customData: "",
-                    style: "margin-top:0.4em;",
-                    selectCustomData: "",
-                    fieldToOption: "",
-                    fieldToValue: "",
+                    style: "width: 100%; ",
+                    selectCustomData: "" + " v-model='containerItem.templatelayout' @change=handleTemplateLayoutChange(containerItem.templatelayout)",
+                    fieldToOption: "descricao",
+                    fieldToValue: "codigo",
                     rows: 10,
                     cols: 10,
-                    label: "",
-                    selectData: "",
-                    value: buttonHtml,
+                    label: " Layout do container ",
+                    selectData: getTemplateLayoutOptions(),
+                    value: containerItem.templatelayout,
                     event: "",
                     placeholder: ""
                 }
@@ -1703,7 +1700,7 @@ function registerListenersMdash() {
                     cols: 10,
                     label: "",
                     selectData: "",
-                    value: containersObjectsListDiv,
+                    value: containerObjectEditor,
                     event: "",
                     placeholder: ""
                 }
@@ -1751,35 +1748,101 @@ function registerListenersMdash() {
             return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
         });
 
+
+        setReactiveContainerItemOject(containerItem, filterValues, GMDashContainerItemObjects, filteredContainerItemObjects);
+
+
+
+        setTimeout(function () {
+
+            if (containerItem.templatelayout) {
+
+                containerItem.renderLayout("#layoutdisplay", true);
+            }
+        }, 100);
+
+
+        handleCodeEditor();
+    })
+
+    /*
+      containerItem: containerItem,
+            filterValues: filterValues,
+            GMDashContainerItemObjects: GMDashContainerItemObjects,
+            filteredContainerItemObjects: filteredContainerItemObjects,
+    */
+
+
+    function proxyToJSON(data) {
+
+        return JSON.parse(JSON.stringify(data))
+    }
+
+
+    function generateDummyDataForObject() {
+
+        var dummyData = [
+            { id: 1, categoria: "Gerente", salario: 3500, nome: "João Silva", dataNascimento: "1985-03-15", genero: "M" },
+            { id: 2, categoria: "Analista", salario: 2800, nome: "Maria Santos", dataNascimento: "1990-07-22", genero: "F" },
+            { id: 3, categoria: "Desenvolvedor", salario: 3200, nome: "Pedro Costa", dataNascimento: "1988-11-08", genero: "M" },
+            { id: 4, categoria: "Designer", salario: 2600, nome: "Ana Oliveira", dataNascimento: "1992-01-30", genero: "F" },
+            { id: 5, categoria: "Técnico", salario: 2200, nome: "Carlos Ferreira", dataNascimento: "1987-09-12", genero: "M" },
+            { id: 6, categoria: "Analista", salario: 2900, nome: "Sofia Rodrigues", dataNascimento: "1991-05-18", genero: "F" },
+            { id: 7, categoria: "Desenvolvedor", salario: 3100, nome: "Miguel Alves", dataNascimento: "1989-12-03", genero: "M" },
+            { id: 8, categoria: "Gerente", salario: 3800, nome: "Catarina Lima", dataNascimento: "1983-08-25", genero: "F" },
+            { id: 9, categoria: "Designer", salario: 2700, nome: "Ricardo Sousa", dataNascimento: "1990-04-14", genero: "M" },
+            { id: 10, categoria: "Técnico", salario: 2300, nome: "Isabel Martins", dataNascimento: "1993-10-07", genero: "F" },
+            { id: 11, categoria: "Desenvolvedor", salario: 3000, nome: "Nuno Pereira", dataNascimento: "1986-02-28", genero: "M" },
+            { id: 12, categoria: "Analista", salario: 2750, nome: "Teresa Gomes", dataNascimento: "1989-06-11", genero: "F" },
+            { id: 13, categoria: "Gerente", salario: 4000, nome: "António Dias", dataNascimento: "1982-12-20", genero: "M" },
+            { id: 14, categoria: "Designer", salario: 2550, nome: "Mariana Cunha", dataNascimento: "1994-03-09", genero: "F" }
+        ];
+
+
+        return dummyData;
+    }
+
+    function setReactiveContainerItemOject(containerItem, filterValues, GMDashContainerItemObjects, filteredContainerItemObjects) {
+
         PetiteVue.createApp({
             containerItem: containerItem,
             filterValues: filterValues,
             GMDashContainerItemObjects: GMDashContainerItemObjects,
             filteredContainerItemObjects: filteredContainerItemObjects,
-
+            selectedObject: {},
             initEditorObject: function (containerItemObject) {
 
                 var self = this;
 
                 setTimeout(function () {
                     self.updateObjectType(containerItemObject);
-                }, 200); // Atraso para garantir que o container está pronto
+                }, 200);
+
+
 
             },
+
             updateObjectType: function (containerItemObject) {
                 var self = this;
 
+                var contItem = JSON.parse(JSON.stringify(containerItemObject))
+
                 var tipoObjecto = getTiposObjectoConfig().find(function (tipo) {
-                    return tipo.tipo === containerItemObject.tipo;
+                    return tipo.tipo === contItem.tipo;
                 });
+
 
                 if (tipoObjecto) {
 
-                    var schemaEditor = tipoObjecto.createDynamicSchema(containerItemObject.queryConfig.lastResult)
+                    containerItemObjectJson = proxyToJSON(containerItemObject)
+                    var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
+
+                    this.containerItem.records = result;
+                    var schemaEditor = tipoObjecto.createDynamicSchema(result)
 
                     containerItemObject.objectoConfig = tipoObjecto
 
-                    console.log('Schema Editor: ', document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp));
+                    $(".objectEditor").empty();
 
                     var editor = new JSONEditor(document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp), {
                         schema: schemaEditor,
@@ -1792,8 +1855,6 @@ function registerListenersMdash() {
                         disable_array_delete_all_rows: true,  // Remove "Excluir todos"
                         disable_array_reorder: true           // Remove "Reordenar"
                     });
-
-
 
                     editor.on('ready', function () {
 
@@ -1839,16 +1900,27 @@ function registerListenersMdash() {
                                 "font-size": "14px",
                                 "font-weight": "bold"
                             }
-                        )
-                        self.containerItem.renderLayout(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, true);
+                        );
+
+                        var currentValue = editor.getValue();
+
+                        if (Object.keys(containerItemObject.config).length == 0) {
+                            containerItemObject.configjson = JSON.stringify(currentValue);
+
+                        }
+                        containerItemObject.config = containerItemObject.config || currentValue;
+
+                        containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, self.containerItem);
+
 
                     });
 
                     editor.on('change', function () {
                         var currentValue = editor.getValue();
-                        self.containerItem.renderLayout(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, true);
+                        //  self.containerItem.renderLayout(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, true);
                         containerItemObject.config = currentValue;
-                        self.containerItem.refreshContainerItem(".container-item-object-render");
+                        //self.containerItem.refreshContainerItem(".container-item-object-render");
+                        containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, self.containerItem);
                         containerItemObject.configjson = JSON.stringify(currentValue);
                         $(".card-title").css(
                             {
@@ -1910,9 +1982,23 @@ function registerListenersMdash() {
 
             handleTemplateLayoutChange: function (templateCode) {
 
-                this.containerItem.renderLayout("#layoutdisplay", true)
-                this.containerItem.renderLayout(".container-item-object-render", true);
-                this.containerItem.refreshContainerItem(".container-item-object-render");
+                //this.containerItem.renderLayout("#layoutdisplay", true)
+                //this.containerItem.renderLayout(".container-item-object-render", true);
+                //this.containerItem.refreshContainerItem(".container-item-object-render");
+
+                var card = gerarConteudoEditorObjecto(this.containerItem);
+                var self = this
+                GTMPReactiveInstance = this
+
+                //objectPreview
+                this.$nextTick(function () {
+                    $("#objectPreview").empty(); // Limpa o conteúdo anterior
+                    $("#objectPreview").append(card); // Adiciona o novo card
+
+                    setReactiveContainerItemOject(GTMPReactiveInstance.containerItem, GTMPReactiveInstance.filterValues, GTMPReactiveInstance.GMDashContainerItemObjects, GTMPReactiveInstance.filteredContainerItemObjects);
+                });
+
+
             },
             executarExpressaoDbListagem: function () {
                 var self = this;
@@ -2216,12 +2302,15 @@ function registerListenersMdash() {
 
             },
 
-            addObjectoContainerItem: function () {
+            addObjectoContainerItem: function (GTMPDragItem) {
+
+
                 var newObject = new MdashContainerItemObject({
                     mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
                     dashboardstamp: GMDashStamp,
-                    tipo: "",
+                    tipo: GTMPDragItem.tipo,
                     tamanho: 4,
+                    ordem: this.nextOrder++,
                     expressaoobjecto: "",
                     objectsUIFormConfig: getContainerItemObjectUIObjectFormConfigAndSourceValues().objectsUIFormConfig,
                     localsource: getContainerItemObjectUIObjectFormConfigAndSourceValues().localsource,
@@ -2241,22 +2330,138 @@ function registerListenersMdash() {
                 this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
                     return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
                 });
+            },
+            availableObjects: getTiposObjectoConfig(),
+            objects: [],
+            dragItem: GTMPDragItem,
+            dragId: GTMPDragId,
+            nextOrder: 1,
+
+            getObjectsSorted: function () {
+                return this.GMDashContainerItemObjects.slice().sort(function (a, b) {
+                    return a.ordem - b.ordem;
+                });
+            },
+
+            selectObject: function (obj) {
+                this.selectedObject = obj;
+
+                this.initEditorObject(obj);
+            },
+
+            dragStart: function (item) {
+                this.dragItem = item;
+                GTMPDragItem = item;
+
+                //  this.dragId = null;
+            },
+            dragExisting: function (id) {
+
+                this.dragId = id;
+                GTMPDragId = id;
+                this.dragItem = this.GMDashContainerItemObjects.filter(function (o) { return o.mdashcontaineritemobjectstamp === id; })[0] || null;
+                GTMPDragItem = this.dragItem;
+            },
+            drop: function (targetId) {
+
+                //console.log("BEFORE DROP:", this);
+                if (!GTMPDragItem) return;
+
+                var targetIndex = this.GMDashContainerItemObjects.length;
+                if (targetId) {
+                    targetIndex = this.GMDashContainerItemObjects.findIndex(function (o) { return o.mdashcontaineritemobjectstamp === targetId; });
+                }
+
+                if (GTMPDragId !== null) {
+                    // mover existente
+                    var index = this.GMDashContainerItemObjects.findIndex(function (o) { return o.mdashcontaineritemobjectstamp === this.dragId; }.bind(this));
+                    var dragged = this.GMDashContainerItemObjects[index];
+                    this.GMDashContainerItemObjects.splice(index, 1);
+                    this.GMDashContainerItemObjects.splice(targetIndex, 0, dragged);
+                } else {
+
+                    this.addObjectoContainerItem(GTMPDragItem);
+
+                }
+
+                this.GMDashContainerItemObjects.forEach(function (o, idx) { o.ordem = idx + 1; });
+
+                this.dragItem = null;
+                GTMPDragItem = null;
+                this.dragId = null;
+                GTMPDragId = null;
+            },
+            removeObject: function (id) {
+                var self = this;
+                Swal.fire({
+                    title: 'Tem certeza?',
+                    text: "Deseja remover este objeto?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sim, remover',
+                    cancelButtonText: 'Cancelar'
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+
+                        var containerItemObject = self.GMDashContainerItemObjects.find(function (obj) {
+                            return obj.mdashcontaineritemobjectstamp === id;
+                        });
+
+                        if (containerItemObject) {
+                            self.removeContainerObject(containerItemObject)
+                        }
+
+                    }
+                });
             }
 
         }).mount('#maincontent');
 
 
-        setTimeout(function () {
-
-            if (containerItem.templatelayout) {
-
-                containerItem.renderLayout("#layoutdisplay", true);
-            }
-        }, 100);
+    }
 
 
-        handleCodeEditor();
-    })
+    function gerarConteudoEditorObjecto(containerItem) {
+
+        var listaTemplates = getTemplateLayoutOptions();
+        var selectedTemplate = listaTemplates.find(function (template) {
+            return template.codigo === containerItem.templatelayout;
+        });
+
+        if (selectedTemplate) {
+
+            containerItem.dadosTemplate = selectedTemplate;
+            var containerObjectEditor = '';
+
+            containerObjectEditor += '        ';
+            containerObjectEditor += '        <div style="height:500px;overflow:auto;" class="dropzone" @dragover.prevent @drop="drop(null)">'; // Abre uma div
+            containerObjectEditor += '           <div  @click="selectObject(obj)" v-for="obj in getObjectsSorted()" :key="obj.mdashcontaineritemobjectstamp"  draggable="true" @dragstart="dragExisting(obj.mdashcontaineritemobjectstamp)" @drop.prevent="drop(obj.mdashcontaineritemobjectstamp)" @dragover.prevent>';
+            containerObjectEditor += '          <div class="dashboard-object-item-editor">';
+            containerObjectEditor += '             <div  :class="\' container-item-object-render-\' + obj.mdashcontaineritemobjectstamp" >     {{ obj.tipo }} (ID: {{ obj.mdashcontaineritemobjectstamp }}, Ordem: {{ obj.ordem }})';
+
+            containerObjectEditor += '             <button type="button" class="btn-remove" @click="removeObject(obj.mdashcontaineritemobjectstamp)">×</button>';
+            containerObjectEditor += "               </div>"
+            containerObjectEditor += "           </div>"
+            containerObjectEditor += '           </div>'; // Fecha a div do v-for
+            containerObjectEditor += '        </div>'; // Fecha a div da dropzone
+
+
+
+            var cardHtml = selectedTemplate.generateCard({
+                title: containerItem.titulo,
+                id: containerItem.mdashcontaineritemstamp,
+                tipo: selectedTemplate.UIData.tipo || "primary",
+                bodyContent: containerObjectEditor,
+            });
+
+
+            return cardHtml;
+
+        }
+
+    }
 
     function generateFilterVariablesHTML() {
         var filterVariablesHTML = "";
@@ -2689,6 +2894,8 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
 }
 
 
+
+
 function getMeditorStyles(styles) {
 
     return
@@ -2698,6 +2905,54 @@ function getMeditorStyles(styles) {
     meditorStyle += "}";
     styles.push(meditorStyle);
 
+}
+
+function objectItemEditorStyles(styles) {
+    var style = "";
+    style += ".dropzone {";
+    style += "  border: 2px dashed #4a6cf7;";
+    style += "  border-radius: 12px;";
+    style += "  min-height: 300px;";
+    style += "  padding: 15px;";
+    style += "}";
+    style += ".dashboard-object {";
+    style += "  background:  #dee2e6;";
+    style += "  border-radius: 10px;";
+    style += "  margin: 10px 0;";
+    style += "  padding: 15px;";
+    style += "  position: relative;";
+    style += "  text-align: center;";
+    style += "  cursor: grab;";
+    style += "}";
+    style += ".dashboard-object-item-editor {";
+    style += "  border: 1px dashed #dee2e6;";
+    style += "  border-radius: 10px;";
+    style += "  margin: 10px 0;";
+    style += "  padding: 15px;";
+    style += "  position: relative;";
+    style += "  text-align: center;";
+    style += "  cursor: grab;";
+    style += "}";
+    style += ".btn-remove {";
+    style += "  position: absolute;";
+    style += "  top: 6px;";
+    style += "  right: 6px;";
+    style += "  background: #dc3545;";
+    style += "  color: white;";
+    style += "  border: none;";
+    style += "  border-radius: 50%;";
+    style += "  width: 22px;";
+    style += "  height: 22px;";
+    style += "  font-size: 12px;";
+    style += "  cursor: pointer;";
+    style += "  display: none;";
+    style += "}";
+    style += ".dashboard-object-item-editor:hover .btn-remove {";
+    style += "  display: flex;";
+    style += "  align-items: center;";
+    style += "  justify-content: center;";
+    style += "}";
+    styles.push(style);
 }
 
 function getDashCardStyles(styles) {

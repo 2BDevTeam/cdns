@@ -20,6 +20,7 @@ Try
     scriptJs+="<script src='https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js'></script>"
     scriptCss+="<link rel='stylesheet' href='https://bossanova.uk/jspreadsheet/v5/jspreadsheet.css'/>"
     scriptCss+="<link rel='stylesheet' href='https://jsuites.net/v5/jsuites.css'/>"
+    scriptJs+="<script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>"
 
     scriptJs+="<script src='https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js'></script>"
     scriptCss+=" <link href='https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_bootstrap5.min.css' rel='stylesheet'>"

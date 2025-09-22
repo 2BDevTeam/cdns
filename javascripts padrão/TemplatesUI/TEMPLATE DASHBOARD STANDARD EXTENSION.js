@@ -10,6 +10,7 @@ $(document).ready(function () {
         globalStyle += style;
     });
     $('head').append('<style>' + globalStyle + '</style>');
+
 });
 
 
@@ -128,6 +129,25 @@ function generateDashCardStandard(cardData) {
 }
 
 
+function crateDynamicSchemaCustomCode(data) {
+    return {
+        type: "object",
+        title: "Configuração de gráficos",
+        properties: {
+            title: {
+                type: "object",
+                title: "Código JS",
+                properties: {
+                    text: {
+                        type: "string",
+                        title: "Código JS",
+                        'default': "// Exemplo de código\nconsole.log('Hello, World!');"
+                    },
+                }
+            }
+        }
+    };
+}
 function createDynamicSchemaGrafico(data) {
     var availableFields = Object.keys(data[0]);
 
@@ -348,14 +368,25 @@ function updateChartOnContainer(chart, config, data) {
 
 function getTiposObjectoConfig() {
 
+    /*
+     { tipo: 'chart', label: 'Gráfico', icon: '	fa fa-bar-chart' },
+                { tipo: 'pie', label: 'Pizza', icon: '	fa fa-pie-chart' },
+                { tipo: 'text', label: 'Texto', icon: 'fa fa-font' },
+                { tipo: 'table', label: 'Tabela', icon: 'fa fa-table' },
+                { tipo: 'customCode', label: 'Personalizado', icon: 'fa fa-code' }
+    */
     return [{
         tipo: "Gráfico",
         descricao: "Gráfico",
+        label: "Gráfico",
+        icon: "fa fa-bar-chart",
         createDynamicSchema: createDynamicSchemaGrafico,
         renderObject: renderObjectGrafico
     },
     {
         tipo: "Pie",
+        label: "Pizza",
+        icon: "fa fa-pie-chart",
         descricao: "Gráfico de Pizza",
         createDynamicSchema: function (data) {
             var fieldOptions = [];
@@ -629,6 +660,8 @@ function getTiposObjectoConfig() {
     {
         tipo: "Tabela",
         descricao: "Tabela",
+        label: "Tabela",
+        icon: "fa fa-table",
         createDynamicSchema: createTableSchema,
         renderObject: function (params) {
             var containerSelector = params.containerSelector;
@@ -647,6 +680,8 @@ function getTiposObjectoConfig() {
     {
         tipo: "Texto",
         descricao: "Elemento de Texto",
+        label: "Texto",
+        icon: "fa fa-font",
         createDynamicSchema: function (data) {
             var fieldOptions = [];
 
@@ -987,8 +1022,16 @@ function getTiposObjectoConfig() {
             updateTextElement(containerSelector, itemObject, config, data);
         }
     }
-
-
+        , {
+        tipo: "CustomCode",
+        descricao: "Código Personalizado",
+        label: "Personalizado",
+        icon: "fa fa-code",
+        createDynamicSchema: crateDynamicSchemaCustomCode,
+        renderObject: function (params) {
+            console.log("Renderizar código personalizado - não implementado");
+        }
+    }
     ]
 
 
@@ -1512,7 +1555,7 @@ function createTableSchema(data) {
                         formatter: {
                             type: "string",
                             title: "Formatador",
-                            'enum': ["plaintext", "textarea","number", "html", "money", "link", "datetime", "datetimediff", "tickCross", "color", "star", "traffic", "progress", "lookup", "buttonTick", "buttonCross", "rownum", "handle"],
+                            'enum': ["plaintext", "textarea", "number", "html", "money", "link", "datetime", "datetimediff", "tickCross", "color", "star", "traffic", "progress", "lookup", "buttonTick", "buttonCross", "rownum", "handle"],
                             'default': "plaintext"
                         },
                         formatterParams: {
