@@ -9,7 +9,8 @@ GMDashContainerItems = [];
 
 var GMDashContainerItemObjects = [new MdashContainerItemObject({})];
 GMDashContainerItemObjects = [];
-
+var GMDashContainerItemObjectDetails = [new MdashContainerItemObjectDetail({})];
+GMDashContainerItemObjectDetails = [];
 
 var GMDashFilters = [new MdashFilter({})];
 GMDashFilters = [];
@@ -119,6 +120,32 @@ function MdashContainer(data) {
     this.localsource = data.localsource || "";
     this.idfield = data.idfield || "mdashcontainerstamp";
 }
+
+
+function MdashContainerItemObjectDetail(data) {
+
+    var maxOrdem = 0;
+    if (Array.isArray(GMDashContainerItemObjectDetails) && GMDashContainerItemObjectDetails.length > 0) {
+        maxOrdem = GMDashContainerItemObjectDetails.reduce(function (max, item) {
+            return Math.max(max, item.ordem || 0);
+        }, 0);
+    }
+
+    this.mdashcontaineritemobjectdetailstamp = data.mdashcontaineritemobjectdetailstamp || generateUUID();
+    this.mdashcontaineritemobjectstamp = data.mdashcontaineritemobjectstamp || "";
+    this.dashboardstamp = data.dashboardstamp || "";
+    this.tipo = data.tipo || "";
+    this.tamanho = data.tamanho || 0;
+    this.ordem = data.ordem || (maxOrdem + 1);
+    this.expressaoobjecto = data.expressaoobjecto || "";
+    this.queryconfigjson = data.queryconfigjson || "";
+    this.temdetalhes = data.temdetalhes || false;
+    this.titulodetalhes = data.titulodetalhes || "";
+    this.titulobtndetalhes = data.titulobtndetalhes || "";
+}
+
+
+
 
 function getContainerUIObjectFormConfigAndSourceValues() {
 
@@ -289,7 +316,8 @@ function actualizarCOnfiguracaoMDashboard() {
                     alertify.error("Erro ao actualizar configuração", 9000)
                     return false
                 }
-                alertify.success("Dados actualizados com sucesso", 9000)
+                alertify.success("Dados actualizados com sucesso", 9000);
+                window.location.reload();
             } catch (error) {
                 console.log("Erro interno " + errorMessage, response, error)
                 //alertify.error("Erro interno " + errorMessage, 10000)
@@ -561,6 +589,12 @@ function MdashContainerItemObject(data) {
     this.tamanho = data.tamanho || 0;
     this.ordem = data.ordem || (maxOrdem + 1);
     this.expressaoobjecto = data.expressaoobjecto || "";
+    this.temdetalhes = data.temdetalhes || false;
+    this.detalhesqueryconfigjson = data.detalhesqueryconfigjson || "";
+    this.tipoobjectodetalhes = data.tipoobjectodetalhes || "";
+    this.titulodetalhes = data.titulodetalhes || "";
+    this.titulobtndetalhes = data.titulobtndetalhes || "";
+    this.categoria = data.categoria || "editor";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.localsource = data.localsource || "";
 
@@ -632,7 +666,7 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
 
     if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
 
-        console.log("self.config", self.config)
+
         self.objectoConfig.renderObject({
             containerSelector: containerSelector,
             itemObject: self,
@@ -977,7 +1011,7 @@ function generateReactiveQueryHTML() {
     queryHTML += "             </div>"; // Fim do home-collapse para Query Local
 
     // Segundo Collapse - Configuração do Objecto
-    queryHTML += "             <div v-if='containerItemObject.queryConfig.lastResult.length > 0' class='home-collapse object-config-collapse' style='margin-top: 1em;'>";
+    queryHTML += "             <div v-if='false' class='home-collapse object-config-collapse' style='margin-top: 1em;'>";
     queryHTML += "               <div class='home-collapse-header mainformcptitulo'>";
     queryHTML += "                 <span class='glyphicon glyphicon-triangle-right'></span>";
     queryHTML += "                 <span class='collapse-title'>Configuração do Objecto</span>";
@@ -999,7 +1033,7 @@ function generateReactiveQueryHTML() {
 
     queryHTML += "                 <div class='row'>";
     queryHTML += "                        <div class='col-md-6'>";
-    queryHTML += "{{initEditorObject(containerItemObject)}}"
+    // queryHTML += "{{initEditorObject(containerItemObject)}}"
     queryHTML += "                        <div :id='\"objectEditorContainer-\" + containerItemObject.mdashcontaineritemobjectstamp'></div>";
 
     queryHTML += "                        </div>";
@@ -1583,7 +1617,8 @@ function registerListenersMdash() {
         containerObjectEditor += '    <div style="height:500px;overflow-y:auto;" class="col-md-3">';
         containerObjectEditor += '      <div class="m-dash-item">';
         containerObjectEditor += '        <h1 class="m-dash-item-title">Propriedades</h1>';
-        containerObjectEditor += '        <div class="objectEditor" :id="\'objectEditorContainer-\' + selectedObject.mdashcontaineritemobjectstamp"></div>';
+        containerObjectEditor += '        <div v-if="selectedObject.queryConfig.lastResult.length == 0" class="alert alert-info" role="alert" style="margin-top:1em;">Atenção!Para editar as propiedades do objecto deve definir uma query para o mesmo.</div>';
+        containerObjectEditor += '        <div v-if="selectedObject.queryConfig.lastResult.length > 0" class="objectEditor" :id="\'objectEditorContainer-\' + selectedObject.mdashcontaineritemobjectstamp"></div>';
         containerObjectEditor += '      </div>';
         containerObjectEditor += '    </div>';
 
@@ -1592,75 +1627,6 @@ function registerListenersMdash() {
 
 
         containers = [
-            {
-                colSize: 12,
-                style: "",
-                content: {
-                    contentType: "div",
-                    type: "div",
-                    id: "expressaodblistagemccontainerobject",
-                    classes: "m-editor mdashconfig-item-input ",
-                    customData: "v-on:keyup='changeExpressaoDbListagemAndHandleFilters(\"" + "expressaodblistagemccontainerobject" + "\",\"expressaodblistagem\")'",
-                    style: "width: 100%; height: 50px;",
-                    selectCustomData: "",
-                    fieldToOption: "",
-                    fieldToValue: "",
-                    rows: 10,
-                    cols: 10,
-                    label: "Expressão de DB Listagem",
-                    selectData: "",
-                    value: containerItem.expressaodblistagem || "",
-                    event: "",
-                    placeholder: "",
-
-                }
-            },
-            {
-                colSize: 12,
-                style: "",
-                content: {
-                    contentType: "div",
-                    type: "div",
-                    id: "filtervariables",
-                    classes: "",
-                    customData: "",
-                    style: "",
-                    selectCustomData: "",
-                    fieldToOption: "",
-                    fieldToValue: "",
-                    rows: 10,
-                    cols: 10,
-                    label: "",
-                    selectData: "",
-                    value: generateFilterVariablesHTML(),
-                    event: "",
-                    placeholder: "",
-
-                }
-            },
-            {
-                colSize: 12,
-                style: "",
-                content: {
-                    contentType: "button",
-                    type: "button",
-                    id: "executarexpressaodblistagem",
-                    classes: "pull-left btn btn-primary btn-sm",
-                    customData: "v-on:click='executarExpressaoDbListagem()'",
-                    style: "margin-top:0.4em;",
-                    selectCustomData: "",
-                    fieldToOption: "",
-                    fieldToValue: "",
-                    rows: 10,
-                    cols: 10,
-                    label: "<span class='glyphicon glyphicon glyphicon-play' ></span>",
-                    selectData: "",
-                    value: "",
-                    event: "",
-                    placeholder: "",
-
-                }
-            },
             {
                 colSize: 6,
                 style: "margin-bottom:0.8em;",
@@ -1802,6 +1768,91 @@ function registerListenersMdash() {
         return dummyData;
     }
 
+
+    function setReactiveDetailsEditor(containerItemObject, selfContainterItem) {
+
+
+
+        PetiteVue.createApp({
+            containerItemObject: containerItemObject,
+            selfContainterItem: selfContainterItem,
+            tipoObjectos: getTiposObjectoConfig(),
+
+        });
+    }
+
+
+    function gerarConteudoDetailsEditor(containerItemObject, selfContainterItem) {
+
+
+
+        var containerId = "formConteudoDetailsEditor" + containerItemObject.mdashcontaineritemobjectstamp;
+        var sufixoForm = "formConteudoDetailsEditor";
+
+        var sourceData = {};
+        containers = [
+            {
+                colSize: 12,
+                style: "margin-bottom:0.8em;",
+                content: {
+                    contentType: "input",
+                    type: "text",
+                    id: "titulodetalhes",
+                    classes: "mdashconfig-item-input form-control input-source-form input-sm",
+                    customData: "",
+                    style: "width: 100%; ",
+                    selectCustomData: "" + " v-model='containerItemObject.titulodetalhes'",
+                    fieldToOption: "descricao",
+                    fieldToValue: "tipo",
+                    rows: 10,
+                    cols: 10,
+                    label: "Título do objeto ",
+                    selectData: [],
+                    value: containerItemObject.titulodetalhes,
+                    event: "",
+                    placeholder: ""
+                }
+            },
+            {
+                colSize: 12,
+                style: "margin-bottom:0.8em;",
+                content: {
+                    contentType: "select",
+                    type: "select",
+                    id: "tipoobjectodetalhes",
+                    classes: "mdashconfig-item-input form-control input-source-form input-sm",
+                    customData: "",
+                    style: "width: 100%; ",
+                    selectCustomData: "" + " v-model='containerItemObject.tipoobjectodetalhes' @change=handleTipoObjectoChange(containerItemObject.tipoobjectodetalhes)",
+                    fieldToOption: "descricao",
+                    fieldToValue: "tipo",
+                    rows: 10,
+                    cols: 10,
+                    label: " Tipo de objeto ",
+                    selectData: getTiposObjectoConfig(),
+                    value: containerItemObject.tipoobjectodetalhes,
+                    event: "",
+                    placeholder: ""
+                }
+            }
+        ];
+
+
+        var containerData = {
+            containerId: containerId,
+            spinnerId: "overlay" + sufixoForm,
+            hasSpinner: false,
+            customData: "",
+            sourceData: sourceData,
+            items: containers
+        }
+        var formContainerResult = GenerateCustomFormContainer(containerData);
+
+        return formContainerResult
+
+
+
+    }
     function setReactiveContainerItemOject(containerItem, filterValues, GMDashContainerItemObjects, filteredContainerItemObjects) {
 
         PetiteVue.createApp({
@@ -1822,6 +1873,122 @@ function registerListenersMdash() {
 
             },
 
+            initJSONEditor: function (containerItemObject, tipoObjecto) {
+
+                var self = this;
+                containerItemObjectJson = proxyToJSON(containerItemObject)
+                var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
+
+                this.containerItem.records = result;
+                var schemaEditor = tipoObjecto.createDynamicSchema(result)
+
+                containerItemObject.objectoConfig = tipoObjecto
+
+                $(".objectEditor").empty();
+
+                var editor = new JSONEditor(document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp), {
+                    schema: schemaEditor,
+                    theme: 'bootstrap4',
+                    iconlib: 'fontawesome4',
+                    disable_edit_json: true,      // Remove botão "JSON"
+                    disable_properties: true,     // Remove botão "Properties"
+                    no_additional_properties: true, // Evita propriedades adicionais
+                    disable_array_delete_last_row: true,  // Remove "Excluir último"
+                    disable_array_delete_all_rows: true,  // Remove "Excluir todos"
+                    disable_array_reorder: true           // Remove "Reordenar"
+                });
+
+                editor.on('ready', function () {
+
+
+                    if (containerItemObject.configjson && containerItemObject.configjson.trim() !== '') {
+                        try {
+
+                            var savedConfig = JSON.parse(containerItemObject.configjson);
+                            console.log('Carregando configuração salva:', savedConfig);
+                            editor.setValue(savedConfig);
+                        } catch (error) {
+                            console.warn('Erro ao carregar configuração salva:', error);
+                            console.log('configjson inválido:', containerItemObject.configjson);
+                            // Se não conseguir fazer parse, inicializar com configuração vazia
+
+                        }
+                    }
+
+
+
+                    $(".json-editor-btn-collapse").css({
+                        "background": "transparent",
+                        "color": getColorByType("primary").background
+                    });
+
+                    $(".tratamento-dadoscontainer-item-object input").addClass("form-control input-sm");
+                    $(".tratamento-dadoscontainer-item-object select").addClass("form-control input-sm");
+                    $(".tratamento-dadoscontainer-item-object").css({ color: "#626e78" })
+
+                    $(".json-editor-btntype-add").css({
+                        "margin-top": "0.9em"
+                    });
+
+                    $(".je-object__title").css(
+                        {
+                            "font-size": "14px",
+                            "font-weight": "bold"
+                        }
+                    )
+
+                    $(".card-title").css(
+                        {
+                            "font-size": "14px",
+                            "font-weight": "bold"
+                        }
+                    );
+
+                    var currentValue = editor.getValue();
+
+                    if (Object.keys(containerItemObject.config).length == 0) {
+                        containerItemObject.configjson = JSON.stringify(currentValue);
+
+                    }
+                    containerItemObject.config = containerItemObject.config || currentValue;
+
+                    containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, self.containerItem);
+
+
+                });
+
+                editor.on('change', function () {
+                    var currentValue = editor.getValue();
+                    //  self.containerItem.renderLayout(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, true);
+                    containerItemObject.config = currentValue;
+                    //self.containerItem.refreshContainerItem(".container-item-object-render");
+                    containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, self.containerItem);
+                    containerItemObject.configjson = JSON.stringify(currentValue);
+                    $(".card-title").css(
+                        {
+                            "font-size": "14px",
+                            "font-weight": "bold"
+                        }
+                    )
+                });
+
+
+            },
+            initDetailEditor: function (containerItemObject) {
+                var self = this;
+                containerItemObjectJson = proxyToJSON(containerItemObject)
+                var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
+
+
+                this.$nextTick(function () {
+                    var editorForm = gerarConteudoDetailsEditor(containerItemObject, self);
+                    $(".objectEditor").empty();
+                    $("#objectEditorContainer-" + containerItemObject.mdashcontaineritemobjectstamp).empty();
+                    $("#objectEditorContainer-" + containerItemObject.mdashcontaineritemobjectstamp).append(editorForm);
+                    setReactiveDetailsEditor(containerItemObject, self);
+                });
+
+            },
             updateObjectType: function (containerItemObject) {
                 var self = this;
 
@@ -1834,150 +2001,26 @@ function registerListenersMdash() {
 
                 if (tipoObjecto) {
 
-                    containerItemObjectJson = proxyToJSON(containerItemObject)
-                    var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
 
-                    this.containerItem.records = result;
-                    var schemaEditor = tipoObjecto.createDynamicSchema(result)
+                    switch (tipoObjecto.categoria) {
+                        case "editor":
+                            this.initJSONEditor(containerItemObject, tipoObjecto);
+                            break;
+                        case "custom":
 
-                    containerItemObject.objectoConfig = tipoObjecto
+                            break;
+                        case "detail":
+                            this.initDetailEditor(containerItemObject);
+                            break;
+                        default:
+                            alertify.error("Categoria de objecto n&atilde;o suportada: " + tipoObjecto.categoria);
 
-                    $(".objectEditor").empty();
-
-                    var editor = new JSONEditor(document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp), {
-                        schema: schemaEditor,
-                        theme: 'bootstrap4',
-                        iconlib: 'fontawesome4',
-                        disable_edit_json: true,      // Remove botão "JSON"
-                        disable_properties: true,     // Remove botão "Properties"
-                        no_additional_properties: true, // Evita propriedades adicionais
-                        disable_array_delete_last_row: true,  // Remove "Excluir último"
-                        disable_array_delete_all_rows: true,  // Remove "Excluir todos"
-                        disable_array_reorder: true           // Remove "Reordenar"
-                    });
-
-                    editor.on('ready', function () {
-
-
-                        if (containerItemObject.configjson && containerItemObject.configjson.trim() !== '') {
-                            try {
-
-                                var savedConfig = JSON.parse(containerItemObject.configjson);
-                                console.log('Carregando configuração salva:', savedConfig);
-                                editor.setValue(savedConfig);
-                            } catch (error) {
-                                console.warn('Erro ao carregar configuração salva:', error);
-                                console.log('configjson inválido:', containerItemObject.configjson);
-                                // Se não conseguir fazer parse, inicializar com configuração vazia
-
-                            }
-                        }
-
-
-
-                        $(".json-editor-btn-collapse").css({
-                            "background": "transparent",
-                            "color": getColorByType("primary").background
-                        });
-
-                        $(".tratamento-dadoscontainer-item-object input").addClass("form-control input-sm");
-                        $(".tratamento-dadoscontainer-item-object select").addClass("form-control input-sm");
-                        $(".tratamento-dadoscontainer-item-object").css({ color: "#626e78" })
-
-                        $(".json-editor-btntype-add").css({
-                            "margin-top": "0.9em"
-                        });
-
-                        $(".je-object__title").css(
-                            {
-                                "font-size": "14px",
-                                "font-weight": "bold"
-                            }
-                        )
-
-                        $(".card-title").css(
-                            {
-                                "font-size": "14px",
-                                "font-weight": "bold"
-                            }
-                        );
-
-                        var currentValue = editor.getValue();
-
-                        if (Object.keys(containerItemObject.config).length == 0) {
-                            containerItemObject.configjson = JSON.stringify(currentValue);
-
-                        }
-                        containerItemObject.config = containerItemObject.config || currentValue;
-
-                        containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, self.containerItem);
-
-
-                    });
-
-                    editor.on('change', function () {
-                        var currentValue = editor.getValue();
-                        //  self.containerItem.renderLayout(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, true);
-                        containerItemObject.config = currentValue;
-                        //self.containerItem.refreshContainerItem(".container-item-object-render");
-                        containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, self.containerItem);
-                        containerItemObject.configjson = JSON.stringify(currentValue);
-                        $(".card-title").css(
-                            {
-                                "font-size": "14px",
-                                "font-weight": "bold"
-                            }
-                        )
-                    });
-
-
-
-
-
-
-                }
-
-            },
-            changeExpressaoDbListagemAndHandleFilters: function (id, filtro) {
-                var self = this;
-                var value = $("#" + id).text();
-
-                var filterCodes = extractFiltersFromExpression(value);
-                var matchedFilters = [];
-                filterCodes.forEach(function (filterCode) {
-                    var filter = GMDashFilters.find(function (f) {
-                        return f.codigo === filterCode;
-                    });
-
-                    if (filter) {
-                        self.filterValues[filter.codigo] = ""
                     }
-                });
-
-                var editor = ace.edit(id);
-
-
-                self.containerItem.expressaodblistagem = editor.getValue();
 
 
 
-            },
-            getContainerRecords: function () {
-
-                if (this.containerItem.records && this.containerItem.records.length > 0) {
-                    return this.containerItem.records;
                 }
-                var defaultRecords = [
-                    { nome: "Ana", genero: "F", salario: 1200, departamento: "RH" },
-                    { nome: "João", genero: "M", salario: 1500, departamento: "TI" },
-                    { nome: "Carlos", genero: "M", salario: 1000, departamento: "RH" },
-                    { nome: "Maria", genero: "F", salario: 1300, departamento: "Marketing" },
-                    { nome: "Pedro", genero: "M", salario: 1600, departamento: "TI" }
-                ];
 
-                this.containerItem.records = defaultRecords;
-
-                return defaultRecords;
             },
 
             handleTemplateLayoutChange: function (templateCode) {
@@ -2000,289 +2043,6 @@ function registerListenersMdash() {
 
 
             },
-            executarExpressaoDbListagem: function () {
-                var self = this;
-                $.ajax({
-                    type: "POST",
-                    url: "../programs/gensel.aspx?cscript=executeexpressaolistagemdb",
-
-                    data: {
-                        '__EVENTARGUMENT': JSON.stringify([{ expressaodblistagem: self.containerItem.expressaodblistagem, filters: self.filterValues }]),
-                    },
-                    success: function (response) {
-
-                        var errorMessage = "ao trazer resultados da listagem . consulte no console do browser"
-                        try {
-                            console.log(response)
-                            if (response.cod != "0000") {
-
-                                console.log("Erro " + errorMessage, response)
-                                alertify.error("Erro " + errorMessage, 9000)
-                                return false
-                            }
-
-                            self.containerItem.records = response.data || [];
-
-                            var containersItemObjectsList = self.GMDashContainerItemObjects.filter(function (obj) {
-                                return obj.mdashcontaineritemstamp === self.containerItem.mdashcontaineritemstamp;
-                            });
-
-                            containersItemObjectsList.forEach(function (containerItemObject) {
-
-                                containerItemObject.queryConfig = {
-                                    selectFields: [],
-                                    filters: [],
-                                    groupBy: [],
-                                    orderBy: { field: "", direction: "ASC" },
-                                    limit: null,
-                                    generatedSQL: "",
-                                    lastResult: []
-                                };
-
-                                containerItemObject.queryconfigjson = JSON.stringify(containerItemObject.queryConfig);
-
-
-
-                            })
-
-
-
-
-                        } catch (error) {
-                            console.log("Erro interno " + errorMessage, response)
-                            alertify.error("Erro " + errorMessage, 9000)
-                            //alertify.error("Erro interno " + errorMessage, 10000)
-                        }
-
-                        //  javascript:__doPostBack('','')
-                    }
-                })
-
-            },
-
-            // Métodos para query local
-            getAvailableFields: function () {
-                var records = this.getContainerRecords();
-                if (records && records.length > 0) {
-                    return Object.keys(records[0]);
-                }
-                return [];
-            },
-
-            addSelectField: function (containerItemObject) {
-                var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
-                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
-                });
-
-                if (objectIndex !== -1) {
-                    this.GMDashContainerItemObjects[objectIndex].queryConfig.selectFields.push({
-                        operation: '',
-                        field: '',
-                        alias: ''
-                    });
-                }
-            },
-
-            removeSelectField: function (index, containerItemObject) {
-                this.GMDashContainerItemObjects.filter(function (obj) {
-                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
-                }).forEach(function (obj) {
-                    if (obj.queryConfig.selectFields[index]) {
-                        obj.queryConfig.selectFields.splice(index, 1);
-                    }
-                });
-            },
-
-            addFilter: function (containerItemObject) {
-                var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
-                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
-                });
-
-                if (objectIndex !== -1) {
-                    this.GMDashContainerItemObjects[objectIndex].queryConfig.filters.push({
-                        field: '',
-                        operator: '=',
-                        value: ''
-                    });
-                }
-            },
-
-            removeFilter: function (index, containerItemObject) {
-                this.GMDashContainerItemObjects.filter(function (obj) {
-                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
-                }).forEach(function (obj) {
-
-
-                    if (obj.queryConfig.filters[index]) {
-                        obj.queryConfig.filters.splice(index, 1);
-                    }
-                });
-            },
-
-            executeQuery: function (containerItemObject) {
-                var self = this;
-                var records = this.getContainerRecords();
-
-                // Encontrar o objeto atual
-                var currentObject = this.GMDashContainerItemObjects.find(function (obj) {
-                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
-                });
-
-                if (!currentObject || !records || records.length === 0) {
-                    console.warn("Nenhum dado disponível para executar a query");
-                    return;
-                }
-
-
-
-                try {
-
-
-
-                    if ($.fn.DataTable.isDataTable("#resultTableSql")) {
-                        $("#resultTableSql").DataTable().destroy();
-                        $("#resultTableSql").dataTable().fnDestroy();
-                    }
-
-                    var query = this.buildSQLQuery(currentObject.queryConfig, records);
-                    currentObject.queryConfig.generatedSQL = query.sql;
-
-                    var result = alasql(query.sql, query.params);
-
-                    currentObject.queryConfig.lastResult = result;
-
-                    containerItemObject.queryconfigjson = JSON.stringify(currentObject.queryConfig);
-                    containerItemObject.config = {};
-                    containerItemObject.configjson = "";
-                    containerItemObject.tipo = "";
-
-
-                } catch (error) {
-                    console.error("Erro ao executar query:", error);
-                    alert("Erro ao executar query: " + error.message);
-                }
-            },
-
-            addGroupBy: function (containerItemObject) {
-                var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
-                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
-                });
-
-                if (objectIndex !== -1) {
-                    this.GMDashContainerItemObjects[objectIndex].queryConfig.groupBy.push({
-                        field: ''
-                    });
-                }
-            },
-
-            removeGroupBy: function (index, containerItemObject) {
-                this.GMDashContainerItemObjects.filter(function (obj) {
-                    return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
-                }).forEach(function (obj) {
-                    if (obj.queryConfig.groupBy[index]) {
-                        obj.queryConfig.groupBy.splice(index, 1);
-                    }
-                });
-            },
-
-            // Atualizar o método buildSQLQuery para trabalhar com o novo formato do Group By
-            buildSQLQuery: function (queryConfig, records) {
-                var selects = [];
-                var stopLoop = false;
-
-                // Processar campos SELECT
-                queryConfig.selectFields.forEach(function (selectField) {
-                    if (stopLoop) return;
-
-                    var op = selectField.operation;
-                    var field = selectField.field;
-                    var alias = selectField.alias.trim();
-
-                    if (op === "TODOS") {
-                        var fields = Object.keys(records[0]);
-                        fields.forEach(function (f) {
-                            selects.push(f);
-                        });
-                        stopLoop = true;
-                        return;
-                    }
-
-                    if (op === "") {
-                        selects.push(alias ? field + " AS " + alias : field);
-                    } else if (op === "COUNT") {
-                        selects.push(alias ? "COUNT(*) AS " + alias : "COUNT(*)");
-                    } else if (["SUM", "AVG", "MIN", "MAX"].indexOf(op) !== -1) {
-                        selects.push(alias ? op + "(" + field + ") AS " + alias : op + "(" + field + ")");
-                    }
-                });
-
-                if (selects.length === 0) {
-                    var fields = Object.keys(records[0]);
-                    selects = fields;
-                }
-
-                // Processar filtros
-                var filtros = [];
-                queryConfig.filters.forEach(function (filter) {
-                    if (filter.field && filter.value.trim() !== "") {
-                        var value = filter.value.trim();
-                        if (isNaN(value)) {
-                            value = "'" + value.replace(/'/g, "\\'") + "'";
-                        }
-                        filtros.push(filter.field + " " + filter.operator + " " + value);
-                    }
-                });
-
-                // Processar Group By - Nova implementação
-                var groupByFields = [];
-                queryConfig.groupBy.forEach(function (groupField) {
-                    if (groupField.field && groupField.field.trim() !== "") {
-                        groupByFields.push(groupField.field);
-                    }
-                });
-
-                // Construir SQL
-                var sql = "SELECT " + selects.join(", ") + " FROM ?";
-
-                if (filtros.length > 0) {
-                    sql += " WHERE " + filtros.join(" AND ");
-                }
-
-                if (groupByFields.length > 0) {
-                    sql += " GROUP BY " + groupByFields.join(", ");
-                }
-
-                if (queryConfig.orderBy && queryConfig.orderBy.field) {
-                    sql += " ORDER BY " + queryConfig.orderBy.field + " " + queryConfig.orderBy.direction;
-                }
-
-                if (queryConfig.limit && queryConfig.limit > 0) {
-                    sql += " LIMIT " + queryConfig.limit;
-                }
-
-                return {
-                    sql: sql,
-                    params: [records]
-                };
-            },
-            getFilterByExpressaoDb: function (expressaoDb) {
-                if (!expressaoDb) return [];
-
-                var filterCodes = extractFiltersFromExpression(expressaoDb);
-                var matchedFilters = [];
-
-                filterCodes.forEach(function (filterCode) {
-                    var filter = GMDashFilters.find(function (f) {
-                        return f.codigo === filterCode;
-                    });
-
-                    if (filter) {
-                        matchedFilters.push(filter);
-                    }
-                });
-                return matchedFilters;
-            },
-
             // ... resto dos métodos existentes
             removeContainerObject: function (containerItemObject) {
                 this.GMDashContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
@@ -2391,6 +2151,400 @@ function registerListenersMdash() {
                 this.dragId = null;
                 GTMPDragId = null;
             },
+            abrirConfiguracaoDetalhe: function (containerItemObject) {
+
+                $("#modalConfiguracaoDetalhe").remove();
+
+
+            },
+            abrirEditorQuery: function (containerItemObject) {
+
+                $("#modalEditorQuery").remove()
+
+
+                var conteudoEditor = gerarConteudoEditorQuery(containerItemObject, this.containerItem);
+                var modalHtmlBody = "<div id='containerItemObjectQueryConfigContainer' >" + conteudoEditor + "</div>"
+
+                var modalData = {
+                    title: "Editor de query",
+                    id: "modalEditorQuery",
+                    customData: "",
+                    otherclassess: "",
+                    body: modalHtmlBody,
+                    footerContent: ""
+                };
+
+                var modalHTML = generateModalHTML(modalData);
+                var self = this;
+
+                $("#mainPage").append(modalHTML);
+                $("#modalEditorQuery").modal("show");
+
+                PetiteVue.createApp({
+                    containerItemObject: containerItemObject,
+                    containerItem: self.containerItem,
+                    filterValues: self.filterValues,
+                    GMDashContainerItemObjects: self.GMDashContainerItemObjects,
+                    mainQueryHasError: false,
+                    mainQueryError: "",
+                    queryJsonResult: "",
+
+                    // Métodos para query local
+                    getAvailableFields: function () {
+                        var records = this.getContainerRecords();
+                        if (records && records.length > 0) {
+                            return Object.keys(records[0]);
+                        }
+                        return [];
+                    },
+
+                    addSelectField: function (containerItemObject) {
+                        var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
+                            return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                        });
+
+                        if (objectIndex !== -1) {
+                            this.GMDashContainerItemObjects[objectIndex].queryConfig.selectFields.push({
+                                operation: '',
+                                field: '',
+                                alias: ''
+                            });
+                        }
+                    },
+
+                    removeSelectField: function (index, containerItemObject) {
+                        this.GMDashContainerItemObjects.filter(function (obj) {
+                            return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                        }).forEach(function (obj) {
+                            if (obj.queryConfig.selectFields[index]) {
+                                obj.queryConfig.selectFields.splice(index, 1);
+                            }
+                        });
+                    },
+
+                    addFilter: function (containerItemObject) {
+                        var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
+                            return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                        });
+
+                        if (objectIndex !== -1) {
+                            this.GMDashContainerItemObjects[objectIndex].queryConfig.filters.push({
+                                field: '',
+                                operator: '=',
+                                value: ''
+                            });
+                        }
+                    },
+
+                    removeFilter: function (index, containerItemObject) {
+                        this.GMDashContainerItemObjects.filter(function (obj) {
+                            return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                        }).forEach(function (obj) {
+
+
+                            if (obj.queryConfig.filters[index]) {
+                                obj.queryConfig.filters.splice(index, 1);
+                            }
+                        });
+                    },
+                    getContainerRecords: function () {
+
+                        if (this.containerItem.records && this.containerItem.records.length > 0) {
+                            return this.containerItem.records;
+                        }
+
+
+                        this.containerItem.records = [];
+
+                        return this.containerItem.records;
+                    },
+
+                    executeQuery: function (containerItemObject) {
+                        var self = this;
+                        var records = this.getContainerRecords();
+
+                        // Encontrar o objeto atual
+                        var currentObject = this.GMDashContainerItemObjects.find(function (obj) {
+                            return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                        });
+
+                        if (!currentObject || !records || records.length === 0) {
+                            console.warn("Nenhum dado disponível para executar a query");
+                            return;
+                        }
+
+
+
+                        try {
+
+
+
+                            if ($.fn.DataTable.isDataTable("#resultTableSql")) {
+                                $("#resultTableSql").DataTable().destroy();
+                                $("#resultTableSql").dataTable().fnDestroy();
+                            }
+
+                            var query = this.buildSQLQuery(currentObject.queryConfig, records);
+                            currentObject.queryConfig.generatedSQL = query.sql;
+
+                            var result = alasql(query.sql, query.params);
+
+                            currentObject.queryConfig.lastResult = result;
+
+                            containerItemObject.queryconfigjson = JSON.stringify(currentObject.queryConfig);
+                            containerItemObject.config = {};
+                            containerItemObject.configjson = "";
+
+                        } catch (error) {
+                            console.error("Erro ao executar query:", error);
+                            alert("Erro ao executar query: " + error.message);
+                        }
+                    },
+
+                    addGroupBy: function (containerItemObject) {
+                        var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
+                            return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                        });
+
+                        if (objectIndex !== -1) {
+                            this.GMDashContainerItemObjects[objectIndex].queryConfig.groupBy.push({
+                                field: ''
+                            });
+                        }
+                    },
+
+                    removeGroupBy: function (index, containerItemObject) {
+                        this.GMDashContainerItemObjects.filter(function (obj) {
+                            return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
+                        }).forEach(function (obj) {
+                            if (obj.queryConfig.groupBy[index]) {
+                                obj.queryConfig.groupBy.splice(index, 1);
+                            }
+                        });
+                    },
+
+                    // Atualizar o método buildSQLQuery para trabalhar com o novo formato do Group By
+                    buildSQLQuery: function (queryConfig, records) {
+                        var selects = [];
+                        var stopLoop = false;
+
+                        // Processar campos SELECT
+                        queryConfig.selectFields.forEach(function (selectField) {
+                            if (stopLoop) return;
+
+                            var op = selectField.operation;
+                            var field = selectField.field;
+                            var alias = selectField.alias.trim();
+
+                            if (op === "TODOS") {
+                                var fields = Object.keys(records[0]);
+                                fields.forEach(function (f) {
+                                    selects.push(f);
+                                });
+                                stopLoop = true;
+                                return;
+                            }
+
+                            if (op === "") {
+                                selects.push(alias ? field + " AS " + alias : field);
+                            } else if (op === "COUNT") {
+                                selects.push(alias ? "COUNT(*) AS " + alias : "COUNT(*)");
+                            } else if (["SUM", "AVG", "MIN", "MAX"].indexOf(op) !== -1) {
+                                selects.push(alias ? op + "(" + field + ") AS " + alias : op + "(" + field + ")");
+                            }
+                        });
+
+                        if (selects.length === 0) {
+                            var fields = Object.keys(records[0]);
+                            selects = fields;
+                        }
+
+                        // Processar filtros
+                        var filtros = [];
+                        queryConfig.filters.forEach(function (filter) {
+                            if (filter.field && filter.value.trim() !== "") {
+                                var value = filter.value.trim();
+                                if (isNaN(value)) {
+                                    value = "'" + value.replace(/'/g, "\\'") + "'";
+                                }
+                                filtros.push(filter.field + " " + filter.operator + " " + value);
+                            }
+                        });
+
+                        // Processar Group By - Nova implementação
+                        var groupByFields = [];
+                        queryConfig.groupBy.forEach(function (groupField) {
+                            if (groupField.field && groupField.field.trim() !== "") {
+                                groupByFields.push(groupField.field);
+                            }
+                        });
+
+                        // Construir SQL
+                        var sql = "SELECT " + selects.join(", ") + " FROM ?";
+
+                        if (filtros.length > 0) {
+                            sql += " WHERE " + filtros.join(" AND ");
+                        }
+
+                        if (groupByFields.length > 0) {
+                            sql += " GROUP BY " + groupByFields.join(", ");
+                        }
+
+                        if (queryConfig.orderBy && queryConfig.orderBy.field) {
+                            sql += " ORDER BY " + queryConfig.orderBy.field + " " + queryConfig.orderBy.direction;
+                        }
+
+                        if (queryConfig.limit && queryConfig.limit > 0) {
+                            sql += " LIMIT " + queryConfig.limit;
+                        }
+
+                        return {
+                            sql: sql,
+                            params: [records]
+                        };
+                    },
+
+                    executarExpressaoDbListagem: function () {
+                        var self = this;
+                        $.ajax({
+                            type: "POST",
+                            url: "../programs/gensel.aspx?cscript=executeexpressaolistagemdb",
+
+                            data: {
+                                '__EVENTARGUMENT': JSON.stringify([{ expressaodblistagem: self.containerItem.expressaodblistagem, filters: self.filterValues }]),
+                            },
+                            success: function (response) {
+
+                                var errorMessage = "ao trazer resultados da listagem . consulte no console do browser"
+                                try {
+                                    console.log(response)
+                                    if (response.cod != "0000") {
+
+                                        console.log("Erro " + errorMessage, response)
+                                        alertify.error("Erro " + errorMessage, 9000);
+                                        self.mainQueryError = JSON.stringify(response, null, 2);;
+                                        self.mainQueryHasError = true;
+                                        return false
+                                    }
+
+                                    self.containerItem.records = response.data || [];
+
+                                    var containersItemObjectsList = self.GMDashContainerItemObjects.filter(function (obj) {
+                                        return obj.mdashcontaineritemstamp === self.containerItem.mdashcontaineritemstamp;
+                                    });
+
+                                    /* containersItemObjectsList.forEach(function (containerItemObject) {
+ 
+                                         containerItemObject.queryConfig = {
+                                             selectFields: [],
+                                             filters: [],
+                                             groupBy: [],
+                                             orderBy: { field: "", direction: "ASC" },
+                                             limit: null,
+                                             generatedSQL: "",
+                                             lastResult: []
+                                         };
+ 
+                                         containerItemObject.queryconfigjson = JSON.stringify(containerItemObject.queryConfig);
+                                     });*/
+                                    self.queryJsonResult = JSON.stringify(self.containerItem.records)
+                                    //.replaceAll("total","tot");
+                                    self.mainQueryHasError = false;
+
+                                } catch (error) {
+                                    console.log("Erro interno " + errorMessage, response)
+                                    alertify.error("Erro " + errorMessage, 9000);
+                                    self.mainQueryError = "Erro interno " + errorMessage;
+                                    self.mainQueryHasError = true;
+                                    //alertify.error("Erro interno " + errorMessage, 10000)
+                                }
+
+                                //  javascript:__doPostBack('','')
+                            }
+                        })
+
+                    },
+                    abrirQueryJsonResult: function () {
+
+                        $("#queryJsonResultModal").remove()
+                        var formattedJson = JSON.stringify(JSON.parse(this.queryJsonResult), null, 2);
+                        var modalHtmlBody = "<pre id='queryJsonResultModalBody' style='background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto;'>" + formattedJson + "</pre>"
+                        var modalData = {
+                            title: "Resultado JSON",
+                            id: "queryJsonResultModal",
+                            customData: "",
+                            otherclassess: "",
+                            body: modalHtmlBody,
+                            footerContent: ""
+                        };
+
+                        var modalHTML = generateModalHTML(modalData);
+                        $("#mainPage").append(modalHTML);
+                        $("#queryJsonResultModal").modal("show");
+                    },
+                    abrirErroResult: function () {
+
+                        $("#queryErrorResultModal").remove();
+                        var formattedJson = this.mainQueryError
+                        var modalHtmlBody = "<pre id='queryErrorResultModalBody' style='background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto;'>" + formattedJson + "</pre>"
+                        var modalData = {
+                            title: "Erro na query",
+                            id: "queryErrorResultModal",
+                            customData: "",
+                            otherclassess: "",
+                            body: modalHtmlBody,
+                            footerContent: ""
+                        };
+                        var modalHTML = generateModalHTML(modalData);
+                        $("#mainPage").append(modalHTML);
+                        $("#queryErrorResultModal").modal("show");
+                    },
+                    getFilterByExpressaoDb: function (expressaoDb) {
+                        if (!expressaoDb) return [];
+
+                        var filterCodes = extractFiltersFromExpression(expressaoDb);
+                        var matchedFilters = [];
+
+                        filterCodes.forEach(function (filterCode) {
+                            var filter = GMDashFilters.find(function (f) {
+                                return f.codigo === filterCode;
+                            });
+
+                            if (filter) {
+                                matchedFilters.push(filter);
+                            }
+                        });
+                        return matchedFilters;
+                    },
+                    changeExpressaoDbListagemAndHandleFilters: function (id, filtro) {
+                        var self = this;
+                        var value = $("#" + id).text();
+
+                        var filterCodes = extractFiltersFromExpression(value);
+                        var matchedFilters = [];
+                        filterCodes.forEach(function (filterCode) {
+                            var filter = GMDashFilters.find(function (f) {
+                                return f.codigo === filterCode;
+                            });
+
+                            if (filter) {
+                                self.filterValues[filter.codigo] = ""
+                            }
+                        });
+
+                        var editor = ace.edit(id);
+
+
+                        self.containerItem.expressaodblistagem = editor.getValue();
+
+                    },
+                }).mount('#containerItemObjectQueryConfigContainer');
+                handleCodeEditor();
+                $("#modalEditorQuery .modal-dialog").css("width", "90%")
+
+
+
+            },
             removeObject: function (id) {
                 var self = this;
                 Swal.fire({
@@ -2423,6 +2577,170 @@ function registerListenersMdash() {
     }
 
 
+
+    function gerarConteudoEditorQuery(containerItemObject, containerItem) {
+
+        var containerId = "formContainerItemObjectQueryConfig";
+        var sufixoForm = "formContainerItemObjectQueryConfig";
+
+        var sourceData = {};
+        containers = [
+            {
+                colSize: 12,
+                style: "",
+                content: {
+                    contentType: "div",
+                    type: "div",
+                    id: "expressaodblistagemccontainerobject",
+                    classes: "m-editor mdashconfig-item-input ",
+                    customData: "v-on:keyup='changeExpressaoDbListagemAndHandleFilters(\"" + "expressaodblistagemccontainerobject" + "\",\"expressaodblistagem\")'",
+                    style: "width: 100%; height: 250px;overflow:auto;",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 120,
+                    cols: 10,
+                    label: "Expressão de DB Listagem",
+                    selectData: "",
+                    value: containerItem.expressaodblistagem || "",
+                    event: "",
+                    placeholder: "",
+
+                }
+            },
+            {
+                colSize: 12,
+                style: "",
+                content: {
+                    contentType: "div",
+                    type: "div",
+                    id: "filtervariables",
+                    classes: "",
+                    customData: "",
+                    style: "",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "",
+                    selectData: "",
+                    value: generateFilterVariablesHTML(),
+                    event: "",
+                    placeholder: "",
+
+                }
+            },
+            {
+                colSize: 1,
+                style: "",
+                content: {
+                    contentType: "button",
+                    type: "button",
+                    id: "executarexpressaodblistagem",
+                    classes: "pull-left btn btn-primary btn-sm",
+                    customData: "v-on:click='executarExpressaoDbListagem()'",
+                    style: "margin-top:0.4em;",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "<span class='glyphicon glyphicon glyphicon-play' ></span>",
+                    selectData: "",
+                    value: "",
+                    event: "",
+                    placeholder: "",
+
+                }
+            },
+            {
+                colSize: 1,
+                style: "",
+                content: {
+                    contentType: "button",
+                    type: "button",
+                    id: "queryjsonresultbtn",
+                    classes: "pull-left btn btn-default btn-sm",
+                    customData: " v-if='queryJsonResult &&mainQueryHasError==false' v-on:click='abrirQueryJsonResult()'",
+                    style: "margin-top:0.4em;margin-left:-4em;",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "<span class='glyphicon  glyphicon glyphicon-th-list' ></span>",
+                    selectData: "",
+                    value: "",
+                    event: "",
+                    placeholder: "",
+
+                }
+            },
+            {
+                colSize: 1,
+                style: "",
+                content: {
+                    contentType: "button",
+                    type: "button",
+                    id: "exportjsonresultbtn",
+                    classes: "pull-left btn btn-warning btn-sm",
+                    customData: " v-if='mainQueryHasError' v-on:click='abrirErroResult()'",
+                    style: "margin-top:0.4em;background: #dc3545!important;color:white;margin-left:-8em;",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "<span class='glyphicon  glyphicon glyphicon-info-sign' ></span>",
+                    selectData: "",
+                    value: "",
+                    event: "",
+                    placeholder: "",
+
+                }
+            },
+            {
+                colSize: 12,
+                style: "",
+                content: {
+                    contentType: "div",
+                    type: "div",
+                    id: "reactiveLocalQueryContainer",
+                    classes: "",
+                    customData: "",
+                    style: "margin-top:1em;",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "",
+                    selectData: "",
+                    value: generateReactiveQueryHTML(),
+                    event: "",
+                    placeholder: "",
+
+                }
+            }
+        ];
+
+
+        var containerData = {
+            containerId: containerId,
+            spinnerId: "overlay" + sufixoForm,
+            hasSpinner: false,
+            customData: "",
+            sourceData: sourceData,
+            items: containers
+        }
+        var formContainerResult = GenerateCustomFormContainer(containerData);
+
+        return formContainerResult
+
+    }
+
+
     function gerarConteudoEditorObjecto(containerItem) {
 
         var listaTemplates = getTemplateLayoutOptions();
@@ -2439,10 +2757,14 @@ function registerListenersMdash() {
             containerObjectEditor += '        <div style="height:500px;overflow:auto;" class="dropzone" @dragover.prevent @drop="drop(null)">'; // Abre uma div
             containerObjectEditor += '           <div  @click="selectObject(obj)" v-for="obj in getObjectsSorted()" :key="obj.mdashcontaineritemobjectstamp"  draggable="true" @dragstart="dragExisting(obj.mdashcontaineritemobjectstamp)" @drop.prevent="drop(obj.mdashcontaineritemobjectstamp)" @dragover.prevent>';
             containerObjectEditor += '          <div class="dashboard-object-item-editor">';
+            containerObjectEditor += "             <div style='display:flex;align-items:center;column-gap:0.4em;justify-content:end;margin-bottom:0.3em'>";
+            containerObjectEditor += '             <button type="button" class="btn btn-warning btn-sm" @click="abrirEditorQuery(obj)"><i class="fa fa-database" ></i></button>';
+            //containerObjectEditor += '             <button type="button" class="btn btn-primary btn-sm" @click="abrirConfiguracaoDetalhe(obj)"><span class="glyphicon glyphicon-option-horizontal" ></span></button>';
+            containerObjectEditor += '             <button  type="button" class="btn btn-warning btn-sm" style="background: #dc3545!important" @click="removeObject(obj.mdashcontaineritemobjectstamp)"><i class="fa fa-trash" ></i></button>';
+            containerObjectEditor += "             </div>"
             containerObjectEditor += '             <div  :class="\' container-item-object-render-\' + obj.mdashcontaineritemobjectstamp" >     {{ obj.tipo }} (ID: {{ obj.mdashcontaineritemobjectstamp }}, Ordem: {{ obj.ordem }})';
 
-            containerObjectEditor += '             <button type="button" class="btn-remove" @click="removeObject(obj.mdashcontaineritemobjectstamp)">×</button>';
-            containerObjectEditor += "               </div>"
+            containerObjectEditor += "            </div>"
             containerObjectEditor += "           </div>"
             containerObjectEditor += '           </div>'; // Fecha a div do v-for
             containerObjectEditor += '        </div>'; // Fecha a div da dropzone
@@ -2933,10 +3255,10 @@ function objectItemEditorStyles(styles) {
     style += "  text-align: center;";
     style += "  cursor: grab;";
     style += "}";
-    style += ".btn-remove {";
-    style += "  position: absolute;";
-    style += "  top: 6px;";
-    style += "  right: 6px;";
+    style += ".btn-remove-object-editor {";
+    // style += "  position: absolute;";
+    // style += "  top: 6px;";
+    //style += "  right: 6px;";
     style += "  background: #dc3545;";
     style += "  color: white;";
     style += "  border: none;";
@@ -2945,13 +3267,27 @@ function objectItemEditorStyles(styles) {
     style += "  height: 22px;";
     style += "  font-size: 12px;";
     style += "  cursor: pointer;";
-    style += "  display: none;";
+    style += "  display: block;";
     style += "}";
-    style += ".dashboard-object-item-editor:hover .btn-remove {";
-    style += "  display: flex;";
-    style += "  align-items: center;";
-    style += "  justify-content: center;";
+    style += ".btn-query-object-editor {";
+    // style += "  position: absolute;";
+    //style += "  top: 6px;";
+    //style += "  right: 6px;";
+    style += "  background: #deb22cff;";
+    style += "  color: white;";
+    style += "  border: none;";
+    style += "  border-radius: 50%;";
+    style += "  width: 22px;";
+    style += "  height: 22px;";
+    style += "  font-size: 12px;";
+    style += "  cursor: pointer;";
+    style += "  display: block;";
     style += "}";
+    /*  style += ".dashboard-object-item-editor:hover .btn-remove {";
+      style += "  display: flex;";
+      style += "  align-items: center;";
+      style += "  justify-content: center;";
+      style += "}";*/
     styles.push(style);
 }
 

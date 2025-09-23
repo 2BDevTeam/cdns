@@ -51,8 +51,30 @@ CREATE TABLE MdashContainerItemObject(
     tipo VARCHAR(100) DEFAULT '',
     tamanho INT DEFAULT 0,
     ordem INT DEFAULT 0,
+    categoria VARCHAR(100) DEFAULT '',
     expressaoobjecto TEXT DEFAULT '',
-    queryconfigjson TEXT DEFAULT ''
+    configjson TEXT DEFAULT '',
+    queryconfigjson TEXT DEFAULT '',
+    temdetalhes BIT DEFAULT 0,
+    detalhesqueryconfigjson TEXT DEFAULT '',
+    tipoobjectodetalhes VARCHAR(100) DEFAULT '',
+    titulodetalhes VARCHAR(250) DEFAULT '',
+    titulobtndetalhes VARCHAR(250) DEFAULT ''
+)
+
+CREATE TABLE MdashContainerItemObjectDetail(
+
+    mdashcontaineritemobjectdetailstamp VARCHAR(25) PRIMARY KEY,
+    mdashcontaineritemobjectstamp VARCHAR(25) DEFAULT '',
+    dashboardstamp VARCHAR(25) DEFAULT '',
+    tipo VARCHAR(100) DEFAULT '',
+    tamanho INT DEFAULT 0,
+    ordem INT DEFAULT 0,
+    expressaoobjecto TEXT DEFAULT '',
+    queryconfigjson TEXT DEFAULT '',
+    temdetalhes BIT DEFAULT 0,
+    titulodetalhes VARCHAR(250) DEFAULT '',
+    titulobtndetalhes VARCHAR(250) DEFAULT ''
 )
 
 

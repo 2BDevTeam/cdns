@@ -380,6 +380,7 @@ function getTiposObjectoConfig() {
         descricao: "Gráfico",
         label: "Gráfico",
         icon: "fa fa-bar-chart",
+        categoria: "editor",
         createDynamicSchema: createDynamicSchemaGrafico,
         renderObject: renderObjectGrafico
     },
@@ -387,6 +388,7 @@ function getTiposObjectoConfig() {
         tipo: "Pie",
         label: "Pizza",
         icon: "fa fa-pie-chart",
+        categoria: "editor",
         descricao: "Gráfico de Pizza",
         createDynamicSchema: function (data) {
             var fieldOptions = [];
@@ -662,6 +664,7 @@ function getTiposObjectoConfig() {
         descricao: "Tabela",
         label: "Tabela",
         icon: "fa fa-table",
+        categoria: "editor",
         createDynamicSchema: createTableSchema,
         renderObject: function (params) {
             var containerSelector = params.containerSelector;
@@ -682,6 +685,7 @@ function getTiposObjectoConfig() {
         descricao: "Elemento de Texto",
         label: "Texto",
         icon: "fa fa-font",
+        categoria: "editor",
         createDynamicSchema: function (data) {
             var fieldOptions = [];
 
@@ -1021,12 +1025,24 @@ function getTiposObjectoConfig() {
 
             updateTextElement(containerSelector, itemObject, config, data);
         }
-    }
-        , {
+    },
+    {
         tipo: "CustomCode",
         descricao: "Código Personalizado",
         label: "Personalizado",
+        categoria: "custom",
         icon: "fa fa-code",
+        createDynamicSchema: crateDynamicSchemaCustomCode,
+        renderObject: function (params) {
+            console.log("Renderizar código personalizado - não implementado");
+        }
+    },
+    {
+        tipo: "Detail",
+        descricao: "Detalhe",
+        label: "Detalhe",
+        categoria: "detail",
+        icon: "fa fa-ellipsis-h",
         createDynamicSchema: crateDynamicSchemaCustomCode,
         renderObject: function (params) {
             console.log("Renderizar código personalizado - não implementado");
@@ -1041,12 +1057,12 @@ function getTiposObjectoConfig() {
 
 
 
-function updateTextElement(containerSelector, itemObject, config, data) {
+function updateTextElement(containerSelector, itemObject, config, data, isConfig) {
     var textId = 'text_element_' + itemObject.mdashcontaineritemobjectstamp;
 
     // Limpar container
     $(containerSelector).html('');
-
+    //$(textId).remove();
     // PREPARAR CONTEÚDO DOS DADOS - IGUAL AOS OUTROS OBJETOS
     var content = "";
 
@@ -1140,9 +1156,9 @@ function updateTextElement(containerSelector, itemObject, config, data) {
     textElement += '</div>';
 
     // Adicionar ao container
-    $(containerSelector).html(textElement);
+    $(containerSelector).append(textElement);
 
-    console.log('Elemento de texto renderizado:', textId);
+    console.log(containerSelector, 'Elemento de texto renderizado:', textId);
 }
 
 // FUNÇÃO AUXILIAR PARA FORMATAÇÃO DE DADOS

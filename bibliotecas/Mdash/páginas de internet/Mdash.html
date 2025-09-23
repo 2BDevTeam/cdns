@@ -1001,7 +1001,11 @@
 
 
         containerItemObjects.forEach(function (itemObject) {
-          itemObject.renderObjectByContainerItem("#" + containerItem.mdashcontaineritemstamp + " " + containerItem.dadosTemplate.containerSelectorToRender, containerItem);
+          var containerItemSelector = "#" + containerItem.mdashcontaineritemstamp + " " + containerItem.dadosTemplate.containerSelectorToRender;
+          var containerItemObject = "<div id=cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp + " class='cont-item-object-rendered'  ></div>";
+          $(containerItemSelector).append(containerItemObject);
+
+          itemObject.renderObjectByContainerItem("#cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp, containerItem);
         });
 
 
@@ -1210,9 +1214,10 @@
 
       if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
 
+        //  console.log("self.queryConfig.generatedSQ22", self.queryConfig.generatedSQL);
         var localQueryResult = alasql(self.queryConfig.generatedSQL, [containerItem.records]);
 
-        //console.log("localQueryResult", self.queryConfig.generatedSQL, localQueryResult);
+        console.log("localQueryResult", self.queryConfig.generatedSQL, localQueryResult);
 
         self.objectoConfig.renderObject({
           containerSelector: containerSelector,
@@ -1220,11 +1225,11 @@
           queryConfig: self.queryConfig,
           config: self.config,
           containerItem: containerItem,
-          data: containerItem.records || [],
-        })
-      }else{
+          data: localQueryResult || [],
+        });
+      } else {
 
-       // containerItem.renderBodyLayout("<h4 class='m-dash-item-text'>Sem registos</h4>");
+        // containerItem.renderBodyLayout("<h4 class='m-dash-item-text'>Sem registos</h4>");
         $(containerSelector).append("<p style='font-size:18px!important;font-weight:bold;margin-top:7em' class='m-dash-item-text'>Sem registos</p>")
 
 
