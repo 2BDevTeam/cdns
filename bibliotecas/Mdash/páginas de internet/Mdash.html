@@ -993,14 +993,34 @@
 
         containerItem.records = contentRecords;
 
+        console.log("this is content records", contentRecords)
+
 
 
         var containerItemObjects = globalThis.containerItemObjects.filter(function (itemObject) {
-          return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
+          return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp
+            && itemObject.categoria == "editor"
         });
 
+        var containerItemObjectsDetails = globalThis.containerItemObjects.filter(function (itemObject) {
+          return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp
+            && itemObject.categoria == "detail"
+        });
+
+        var containerItemObjectsCustom = globalThis.containerItemObjects.filter(function (itemObject) {
+          return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp
+            && itemObject.categoria == "custom"
+        });
 
         containerItemObjects.forEach(function (itemObject) {
+          var containerItemSelector = "#" + containerItem.mdashcontaineritemstamp + " " + containerItem.dadosTemplate.containerSelectorToRender;
+          var containerItemObject = "<div id=cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp + " class='cont-item-object-rendered'  ></div>";
+          $(containerItemSelector).append(containerItemObject);
+
+          itemObject.renderObjectByContainerItem("#cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp, containerItem);
+        });
+
+        containerItemObjectsCustom.forEach(function (itemObject) {
           var containerItemSelector = "#" + containerItem.mdashcontaineritemstamp + " " + containerItem.dadosTemplate.containerSelectorToRender;
           var containerItemObject = "<div id=cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp + " class='cont-item-object-rendered'  ></div>";
           $(containerItemSelector).append(containerItemObject);
@@ -1011,8 +1031,63 @@
 
         if (containerItem.expressaoapresentacaodados) {
 
+
           eval(containerItem.expressaoapresentacaodados);
         }
+
+        if (containerItemObjectsDetails.length > 0) {
+
+          var botaoDetalhe = {
+            style: "margin-top:1em",
+            buttonId: "botao-detalhe-" + containerItem.mdashcontaineritemstamp,
+            classes: "btn btn-sm btn-primary btn-detalhe",
+            customData: " type='button' data-tooltip='true' data-original-title='Ver detalhes' ",
+            label: "Detalhes",
+            onClick: "",
+          };
+
+          var buttonHtml = generateButton(botaoDetalhe);
+          var containerBtnDetalhes = "<div style='display:flex;justify-content:end;column-gap:0.4em;position:absolute;bottom:0;right:0;left:0;padding:0.5em;'>";
+          containerBtnDetalhes += buttonHtml
+          containerBtnDetalhes += "</div>"
+
+          $("#" + this.mdashcontaineritemstamp + " " + this.dadosTemplate.containerSelectorToRender).css(
+            {
+              "position": "relative",
+              "padding-bottom": "3em",
+            }
+          )
+          $("#" + this.mdashcontaineritemstamp + " " + this.dadosTemplate.containerSelectorToRender).append(containerBtnDetalhes);
+
+          var modalHtmlBody = "<div id='detalhe-container-body-" + this.mdashcontaineritemstamp + "' ></div>"
+          var modalData = {
+            title: "Detalhes-" + containerItem.titulo,
+            id: "detalhe-modal-" + this.mdashcontaineritemstamp,
+            customData: "",
+            otherclassess: "",
+            body: modalHtmlBody,
+            footerContent: ""
+          };
+
+          var modalHTML = generateModalHTML(modalData);
+          $("#mainPage").append(modalHTML);
+
+
+
+          $(document).off("click", "#" + botaoDetalhe.buttonId).on("click", "#" + botaoDetalhe.buttonId, function (e) {
+            e.preventDefault();
+            $("#detalhe-modal-" + containerItem.mdashcontaineritemstamp).modal("show");
+
+            containerItemObjectsDetails.forEach(function (itemObject) {
+              var containerItemObject = "<div id=cont-item-obj-detalhe-" + itemObject.mdashcontaineritemobjectstamp + " class='cont-item-object-rendered'  ></div>";
+              $("#detalhe-container-body-" + containerItem.mdashcontaineritemstamp).append(containerItemObject);
+
+              itemObject.renderObjectByContainerItem("#cont-item-obj-detalhe-" + itemObject.mdashcontaineritemobjectstamp, containerItem);
+            });
+
+          })
+        }
+
 
         containerItem.hideSkeleton();
 
@@ -1125,6 +1200,12 @@
       this.tipo = data.tipo || "";
       this.tamanho = data.tamanho || 0;
       this.ordem = data.ordem || 0;
+      this.categoria = data.categoria || "editor"; // editor, datasource, filter
+      this.temdetalhes = data.temdetalhes || false;
+      this.detalhesqueryconfigjson = data.detalhesqueryconfigjson || "";
+      this.tipoobjectodetalhes = data.tipoobjectodetalhes || "";
+      this.titulodetalhes = data.titulodetalhes || "";
+      this.titulobtndetalhes = data.titulobtndetalhes || "";
       this.expressaoobjecto = data.expressaoobjecto || "";
       this.objectsUIFormConfig = data.objectsUIFormConfig || [];
       this.localsource = data.localsource || "";
@@ -1212,28 +1293,75 @@
 
       var self = this;
 
-      if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
+      //  console.log("SELLLF", self);
 
-        //  console.log("self.queryConfig.generatedSQ22", self.queryConfig.generatedSQL);
-        var localQueryResult = alasql(self.queryConfig.generatedSQL, [containerItem.records]);
+      if (Object.keys(self.objectoConfig).length == 0 || containerItem.records.length == 0) {
 
-        console.log("localQueryResult", self.queryConfig.generatedSQL, localQueryResult);
-
-        self.objectoConfig.renderObject({
-          containerSelector: containerSelector,
-          itemObject: self,
-          queryConfig: self.queryConfig,
-          config: self.config,
-          containerItem: containerItem,
-          data: localQueryResult || [],
-        });
-      } else {
-
-        // containerItem.renderBodyLayout("<h4 class='m-dash-item-text'>Sem registos</h4>");
         $(containerSelector).append("<p style='font-size:18px!important;font-weight:bold;margin-top:7em' class='m-dash-item-text'>Sem registos</p>")
-
-
+        return;
       }
+
+      var alasqlData = JSON.parse(JSON.stringify(containerItem.records || []).replaceAll("total", "tot"));
+
+      var localQueryResult = alasql(self.queryConfig.generatedSQL, [alasqlData]);
+      var contentRecords = localQueryResult;
+      switch (self.categoria) {
+        case "editor":
+
+
+          self.objectoConfig.renderObject({
+            containerSelector: containerSelector,
+            itemObject: self,
+            queryConfig: self.queryConfig,
+            config: self.config,
+            containerItem: containerItem,
+            data: localQueryResult || [],
+          });
+
+          break;
+
+        case "detail":
+
+
+          var tipoObjecto = self.tipoobjectodetalhes;
+          var tipoObjecto = getTiposObjectoConfig().find(function (tipo) {
+            return tipo.tipo === tipoObjecto;
+          });
+
+          if (tipoObjecto) {
+            tipoObjecto.renderObject({
+              containerSelector: containerSelector,
+              itemObject: self,
+              queryConfig: self.queryConfig,
+              config: self.config,
+              containerItem: containerItem,
+              data: localQueryResult || [],
+            });
+          }
+
+          break;
+        case "custom":
+          console.log("EXECUTING EXPRESSAOOBJECTO", self.expressaoobjecto)
+          if (self.expressaoobjecto) {
+            try {
+
+              eval(self.expressaoobjecto);
+            } catch (error) {
+
+              console.error("Erro ao executar expressão do objeto:", error);
+              // alertify.error("Erro ao executar expressão do objeto. Verifique o console para mais detalhes.", 4000);
+            }
+
+
+
+          }
+          break;
+
+        default:
+          break;
+      }
+
+
 
 
     }

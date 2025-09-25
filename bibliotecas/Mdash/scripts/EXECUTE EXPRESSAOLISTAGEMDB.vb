@@ -70,7 +70,7 @@ Try
    queryComFiltros  = expressaodblistagem
 
    Dim queryResult As DataTable
-   
+   Dim querySchemaResult As DataTable
     if not String.IsNullOrEmpty(queryComFiltros) and not  String.IsNullOrWhiteSpace(expressaodblistagem)  Then
     
          Dim filtros As Newtonsoft.Json.Linq.JObject = requestJObject("filters").ToObject(Of Newtonsoft.Json.Linq.JObject)()
@@ -99,8 +99,15 @@ Try
          If Not querySanitized(queryComFiltros) Then
              Throw New Exception("A consulta contém palavras-chave de escrita proibidas.")
          End If
-     
+
          queryResult = ExecuteQuery(queryComFiltros, Nothing)
+         querySchemaResult=ExecuteQuery($"SELECT 
+                             name, 
+                             system_type_name
+                             FROM sys.dm_exec_describe_first_result_set(
+                             N'{queryComFiltros}',
+                             NULL, NULL);
+                               ",Nothing)
 
     End If
 
@@ -111,7 +118,8 @@ Try
         .cod = "0000",
         .codDesc = "Success",
         .message = "Success",
-        .data = queryResult
+        .data = queryResult,
+        .schema = querySchemaResult
     }
     mpage.Response.ContentType = "application/json"
     mpage.Response.Write(Newtonsoft.Json.JsonConvert.SerializeObject(responseDTO))

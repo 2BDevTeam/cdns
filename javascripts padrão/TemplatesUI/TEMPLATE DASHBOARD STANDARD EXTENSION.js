@@ -10,6 +10,7 @@ $(document).ready(function () {
         globalStyle += style;
     });
     $('head').append('<style>' + globalStyle + '</style>');
+    applyTabulatorStylesWithJqueryMdash()
 
 });
 
@@ -56,13 +57,13 @@ function addTabulatorStyles(styles) {
     tabulatorCSS += "}";
 
     tabulatorCSS += ".tabulator .tabulator-header {";
-    tabulatorCSS += "    background-color: #0765b7;";
+    tabulatorCSS += "    background-color:" + getColorByType("primary").background + ";";
     tabulatorCSS += "    border-bottom: none;";
     tabulatorCSS += "    border-radius: 10px 10px 0 0;";
     tabulatorCSS += "}";
 
     tabulatorCSS += ".tabulator .tabulator-header .tabulator-col {";
-    tabulatorCSS += "    background-color: #0765b7;";
+    tabulatorCSS += "    background-color:" + getColorByType("primary").background;
     tabulatorCSS += "    color: white;";
     tabulatorCSS += "    border-right: none;";
     tabulatorCSS += "    padding: 12px 15px;";
@@ -95,8 +96,249 @@ function addTabulatorStyles(styles) {
     tabulatorCSS += "    border-right: none;";
     tabulatorCSS += "}";
 
+    var tabulatorCSS = "";
+    tabulatorCSS += ".mrend-input-cell{";
+    tabulatorCSS += "    background: rgb(239, 240, 241);";
+    tabulatorCSS += "    text-align: right;";
+    tabulatorCSS += "    padding: 5px 15px 5px 5px;";
+    tabulatorCSS += "    border-radius: 4px;";
+    tabulatorCSS += "     overflow: auto; ";
+    tabulatorCSS += "    width: 100%;";
+    //tabulatorCSS += "    resize: none;";                /* evita resize manual */
+    //tabulatorCSS += "    overflow: hidden;";            /* esconde scrollbar */
+    //tabulatorCSS += "    white-space: pre-wrap;";        /* mantém quebras de linha */
+    //tabulatorCSS += "    word-wrap: break-word;";        /* quebra palavras grandes */
+    tabulatorCSS += "    }";
+    tabulatorCSS += ".tabulator-row {";
+    tabulatorCSS += "    border-bottom: 0px solid #e0e6ed!important;";
+    tabulatorCSS += "    transition: background-color 0.2s ease!important;";
+    tabulatorCSS += "    background-color: white;";
+    tabulatorCSS += "}";
+
+    tabulatorCSS += ".tabulator .tabulator-col-resize-handle:hover {"
+    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "}"
+
+    tabulatorCSS += ".tabulator .tabulator-col-resize-handle:hover {"
+    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "}"
+    tabulatorCSS += ".tabulator-col:hover .tabulator-col-resize-handle {"
+    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "}"
+    tabulatorCSS += ".tabulator-cell:hover .tabulator-col-resize-handle {"
+    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "}"
+
+    /* tabulatorCSS += ".tabulator-cell:hover ~ .tabulator-col-resize-handle {"
+     tabulatorCSS += "border:6px solid " + getColorByType("primary").background + "!important;"
+     tabulatorCSS += "}"*/
+    tabulatorCSS += ".tabulator-cell:hover + .tabulator-col-resize-handle {"
+    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "}"
+    tabulatorCSS += ".tabulator-cell:hover .tabulator-col-resize-handle {"
+    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "}"
+
+    tabulatorCSS += ".tabulator-cell input[type='checkbox'] {";
+    tabulatorCSS + " -webkit-appearance: none!important;"
+    tabulatorCSS += "border: 1px solid " + getColorByType("primary").background + "!important;";
+    tabulatorCSS += "accent-color: " + getColorByType("warning").background + "!important;";
+    tabulatorCSS += "transform: scale(1.7)!important;";
+    tabulatorCSS += "}";
+    tabulatorCSS += ".tabulator-data-tree-control{ "
+    tabulatorCSS += "width:20px!important;"
+    tabulatorCSS += "height:20px!important;"
+    tabulatorCSS += "}"
+    tabulatorCSS += ".tabulator-row .tabulator-cell .tabulator-data-tree-control .tabulator-data-tree-control-collapse:after{"
+    tabulatorCSS += "font-size:16px!important;"
+    tabulatorCSS += "color:#3f5670!important;";
+    tabulatorCSS += "}"
+    tabulatorCSS += ".tabulator-paginator{"
+    tabulatorCSS += "     display:flex!important;"
+    tabulatorCSS += "     justify-content: center;"
+    tabulatorCSS += "     align-items: center;"
+    tabulatorCSS += "}"
+    tabulatorCSS += ".tabulator .tabulator-footer .tabulator-page.active {";
+    tabulatorCSS += "    border-color: " + getColorByType("primary").background + "!important;";
+    tabulatorCSS += "    background-color: " + getColorByType("primary").background + "!important;";
+    tabulatorCSS += "    color: #fff!important;";
+    tabulatorCSS += "}";
+
+
     styles.push(tabulatorCSS);
 }
+
+function applyTabulatorStylesWithJqueryMdash() {
+
+    var customStyles = {}
+
+    //console.log(("mrendThis.reportConfig", mrendThis.reportConfig)
+
+    // Tabulator container
+    $(".tabulator").css({
+        "background-color": "white",
+        "border-radius": "10px",
+        "box-shadow": "0 4px 20px rgba(0, 0, 0, 0.08)",
+        "border": "none"
+    });
+
+    // Header
+    $(".tabulator .tabulator-header").css({
+        "background-color": customStyles.headerBackground ? customStyles.headerBackground : getColorByType("primary").background,
+        "border-bottom": "none",
+        "border-radius": "10px 10px 0 0",
+        "padding": "13px"
+    });
+
+    // Header columns
+    $(".tabulator .tabulator-header .tabulator-col").css({
+        "background-color": customStyles.headerBackground ? customStyles.headerBackground : getColorByType("primary").background,
+        "color": "white",
+        "border-right": "none",
+        /*  "padding": "12px 15px",*/
+        "font-weight": "500"
+    });
+
+    $(".tabulator .tabulator-header .tabulator-col:first-child").css("border-top-left-radius", "10px");
+    $(".tabulator .tabulator-header .tabulator-col:last-child").css("border-top-right-radius", "10px");
+
+    // Rows
+    $(".tabulator-row").css({
+        "border-bottom": "1px solid #e0e6ed",
+        "transition": "background-color 0.2s ease"
+    });
+    // $(".tabulator-row.tabulator-row-even").css("background-color", "#fcfdfe");
+    $(".tabulator-row")/*.hover(
+        function () { $(this).css("background-color", "#f5f9ff"); },
+        function () { $(this).css("background-color", ""); }
+    );*/
+
+    $(".tabulator .tabulator-header .tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid red");
+    $(".tabulator-row .tabulator-cell.tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid #0000");
+
+
+    // Cells
+    $(".tabulator-cell").css({
+        "padding": "12px 15px",
+        "border-right": "none"
+    });
+
+    // Botão adicionar
+    $(".btn-add").css({
+        "margin": "0 0 15px 0",
+        "padding": "10px 18px",
+        "background-color": getColorByType("primary").background,
+        "color": "white",
+        "border": "none",
+        "border-radius": "6px",
+        "cursor": "pointer",
+        "font-weight": "500",
+        "font-size": "14px",
+        "transition": "all 0.2s ease",
+        "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
+    }).hover(
+        function () {
+            $(this).css({
+                "background-color": "#06539e",
+                "transform": "translateY(-1px)",
+                "box-shadow": "0 4px 12px rgba(7, 101, 183, 0.3)"
+            });
+        },
+        function () {
+            $(this).css({
+                "background-color": getColorByType("primary").background,
+                "transform": "",
+                "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
+            });
+        }
+    );
+
+    $(".btn-add i").css("margin-right", "6px");
+
+    // Botões de ação
+    $(".action-btn").css({
+        "background": "none",
+        "border": "none",
+        //  "color": "#5a8de6",
+        "cursor": "pointer",
+        "font-size": "15px",
+        "margin": "0 5px",
+        "transition": "all 0.2s ease"
+    }).hover(
+        function () {
+            $(this).css({
+                //   "color": getColorByType("primary").background ,
+                "transform": "scale(1.1)"
+            });
+        },
+        function () {
+            $(this).css({
+                //   "color": "#5a8de6",
+                "transform": ""
+            });
+        }
+    );
+
+    // Tree/indent
+    $(".tabulator-row .tabulator-cell.tabulator-tree-col").css("padding-left", "15px");
+    $(".tabulator-tree-branch").css({
+        "border-left": "2px solid #d1e3ff",
+        "margin-left": "7.5px"
+    });
+    $(".tabulator-tree-level-1 .tabulator-cell.tabulator-tree-col").css("padding-left", "30px");
+    $(".tabulator-tree-level-2 .tabulator-cell.tabulator-tree-col").css("padding-left", "45px");
+    $(".tabulator-tree-level-3 .tabulator-cell.tabulator-tree-col").css("padding-left", "60px");
+
+    // Tree controls
+    $(".tabulator-row .tabulator-cell .tabulator-data-tree-control").css({
+        "align-items": "center",
+        "background": "rgb(255 255 255 / 10%)",
+        "border": "1px solid #2975dd",
+        "border-radius": "2px",
+        "display": "inline-flex",
+        "height": "11px",
+        "justify-content": "center",
+        "margin-right": "5px",
+        "overflow": "hidden",
+        "vertical-align": "middle",
+        "width": "11px"
+    });
+
+    $(".tabulator-tree-collapse, .tabulator-tree-expand").css({
+        "color": getColorByType("primary").background,
+        "border-radius": "50%",
+        "width": "18px",
+        "height": "18px",
+        "display": "inline-flex",
+        "align-items": "center",
+        "justify-content": "center",
+        "margin-right": "8px",
+        "transition": "all 0.2s ease"
+    }).hover(
+        function () { $(this).css("background-color", "rgba(7, 101, 183, 0.1)"); },
+        function () { $(this).css("background-color", ""); }
+    );
+
+    // Edit list
+    $(".tabulator-edit-list").css({
+        "z-index": "9999",
+        "position": "absolute",
+        "border-radius": "6px",
+        "box-shadow": "0 5px 15px rgba(0, 0, 0, 0.1)",
+        "border": "1px solid #e0e6ed"
+    });
+    $(".tabulator-edit-list .tabulator-edit-list-item").css("padding", "8px 15px");
+    $(".tabulator-edit-list .tabulator-edit-list-item.active").css({
+        "background-color": "rgba(7, 101, 183, 0.1)",
+        "color": getColorByType("primary").background
+    });
+
+    // Scrollbar (apenas para webkit browsers)
+    // $("body").append('<style>::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; } ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }</style>');
+}
+
+
+
 
 // ...existing code...
 
@@ -122,7 +364,7 @@ function generateDashCardStandard(cardData) {
     cardHTML += '  <h1 class="m-dash-item-title">' + (dashCard.title || "Gráfico") + '</h1>';
 
     cardHTML += "<div class='m-dash-standard-card-body' >" + (dashCard.bodyContent || "") + "</div>";
-    cardHTML += '  </div>';
+
     cardHTML += '</div>';
 
     return cardHTML;
@@ -1463,7 +1705,7 @@ function createTableSchema(data) {
                         type: "string",
                         title: "Cor de Fundo do Cabeçalho",
                         format: "color",
-                        'default': "#0765b7"
+                        'default': getColorByType("primary").background
                     },
                     headerTextColor: {
                         type: "string",
@@ -1796,6 +2038,48 @@ function updateTable(containerSelector, itemObject, config, data) {
 
         tableContainer.append('<div id="' + tabelaId + '"></div>');
 
+        tabulatorConfig.langs = {
+            "pt-br": {
+                "columns": {
+                    "name": "Nome", //substitui o título da coluna name pelo valor "Nome"
+                },
+                "data": {
+                    "loading": "Carregando", //texto do carregador de dados
+                    "error": "Erro", //texto de erro de dados
+                },
+                "groups": { //texto para a contagem automática de itens no cabeçalho do grupo
+                    "item": "item", //singular para item
+                    "items": "itens", //plural para itens
+                },
+                "pagination": {
+                    "page_size": "Tamanho da Página", //rótulo para o elemento select de tamanho da página
+                    "page_title": "Mostrar Página", //texto de tooltip para o botão de página numérica, aparece antes do número da página (ex: "Mostrar Página" resultará em tooltip "Mostrar Página 1" no botão da página 1)
+                    "first": "Primeira", //texto para o botão da primeira página
+                    "first_title": "Primeira Página", //texto de tooltip para o botão da primeira página
+                    "last": "Última",
+                    "last_title": "Última Página",
+                    "prev": "Anterior",
+                    "prev_title": "Página Anterior",
+                    "next": "Próxima",
+                    "next_title": "Próxima Página",
+                    "all": "Todos",
+                    "counter": {
+                        "showing": "Mostrando",
+                        "of": "de",
+                        "rows": "linhas",
+                        "pages": "páginas",
+                    }
+                },
+                "headerFilters": {
+                    "default": "filtrar coluna...", //texto padrão do placeholder do filtro de cabeçalho
+                    "columns": {
+                        "name": "filtrar nome...", //substitui o texto padrão do filtro de cabeçalho para a coluna name
+                    }
+                }
+            }
+        },
+
+            tabulatorConfig.locale = "pt-br";
         // Inicializar Tabulator
         new Tabulator('#' + tabelaId, tabulatorConfig);
 

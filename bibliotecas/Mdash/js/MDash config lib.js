@@ -225,8 +225,8 @@ MdashContainerItem.prototype.refreshContainerItem = function (masterContent) {
 
     if (!dadosTemplate.containerSelectorToRender) {
 
-        console.error("Container selector to render is not defined in the template data.");
-        alertify.error("Erro ao renderizar item do container. Verifique o template.", 4000);
+        console.warn("Container selector to render is not defined in the template data.");
+        // alertify.error("Erro ao renderizar item do container. Verifique o template.", 4000);
         return;
     }
 
@@ -270,7 +270,7 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
 
 
 
-function actualizarCOnfiguracaoMDashboard() {
+function actualizarConfiguracaoMDashboard() {
 
     var configData = [
         {
@@ -295,13 +295,15 @@ function actualizarCOnfiguracaoMDashboard() {
         }
     ];
 
-
+    //console.log("configdata", configData)
     // console.log([{ mdashstamp: GMDashStamp, config: configData }])
+
+
 
     $.ajax({
         type: "POST",
         url: "../programs/gensel.aspx?cscript=actualizaconfiguracaomrelatorio",
-
+        async: false,
         data: {
             '__EVENTARGUMENT': JSON.stringify([{ relatoriostamp: GMDashStamp, config: configData, recordsToDelete: GMdashDeleteRecords }]),
         },
@@ -417,7 +419,7 @@ function handleCodeEditor() {
         if (!el.id) el.id = 'm-editor' + idx;
         var aceEditor = ace.edit(el.id);
         aceEditor.setTheme("ace/theme/monokai");
-        aceEditor.session.setMode("ace/mode/sql");
+        aceEditor.session.setMode("ace/mode/javascript");
         editors.push(aceEditor);
     });
 
@@ -663,10 +665,11 @@ function MdashContainerItemObject(data) {
 MdashContainerItemObject.prototype.renderObjectByContainerItem = function (containerSelector, containerItem) {
 
     var self = this;
+    var contentRecords = containerItem.records || [];
 
     if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
 
-
+        ///  console.log("SELLLF",  containerItem.records)
         self.objectoConfig.renderObject({
             containerSelector: containerSelector,
             itemObject: self,
@@ -675,6 +678,20 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
             containerItem: containerItem,
             data: containerItem.records || [],
         })
+    }
+
+    if (self.expressaoobjecto) {
+        try {
+
+            eval(self.expressaoobjecto);
+        } catch (error) {
+
+            console.error("Erro ao executar expressão do objeto:", error);
+            // alertify.error("Erro ao executar expressão do objeto. Verifique o console para mais detalhes.", 4000);
+        }
+
+
+
     }
 
 
@@ -852,16 +869,16 @@ function generateReactiveQueryHTML2() {
     queryHTML += "             </div>";
 
     queryHTML += "             <div class='mb-3'>";
-    queryHTML += "               <label><strong>Resultado ({{ containerItemObject.queryConfig.lastResult.length }} registros):</strong></label>";
+    queryHTML += "               <label><strong>Resultado ({{ containerItemObject?.queryConfig?.lastResult.length }} registros):</strong></label>";
     queryHTML += "               <div class='table-responsive' style='max-height: 300px; overflow-y: auto;'>";
-    queryHTML += "                 <table id='resultTableSql' v-if='containerItemObject.queryConfig.lastResult.length > 0' class='table table-sm  table-striped'>";
+    queryHTML += "                 <table id='resultTableSql' v-if='containerItemObject?.queryConfig?.lastResult.length > 0' class='table table-sm  table-striped'>";
     queryHTML += "                   <thead>";
     queryHTML += "                     <tr class='defgridheader' >";
-    queryHTML += "                       <th v-for='(value, key) in containerItemObject.queryConfig.lastResult[0]' :key='key'>{{ key }}</th>";
+    queryHTML += "                       <th v-for='(value, key) in containerItemObject?.queryConfig?.lastResult[0]' :key='key'>{{ key }}</th>";
     queryHTML += "                     </tr>";
     queryHTML += "                   </thead>";
     queryHTML += "                   <tbody>";
-    queryHTML += "                     <tr v-for='(row, index) in containerItemObject.queryConfig.lastResult' :key='index'>";
+    queryHTML += "                     <tr v-for='(row, index) in containerItemObject?.queryConfig?.lastResult' :key='index'>";
     queryHTML += "                       <td v-for='(value, key) in row' :key='key'>{{ value }}</td>";
     queryHTML += "                     </tr>";
     queryHTML += "                   </tbody>";
@@ -1595,10 +1612,10 @@ function registerListenersMdash() {
         containerObjectEditor += "      <div class='alert alert-info' role='alert' style='margin-top:1em;'>Selecione um layout para o container</div>";
         containerObjectEditor += '     </div>';
         //#f3f7fe
-        containerObjectEditor += '<div >';
-        containerObjectEditor += '  <div v-if="containerItem.templatelayout" class="row g-3">';
+        containerObjectEditor += '';
+        containerObjectEditor += '  <div v-if="containerItem.templatelayout" class="row ">';
         containerObjectEditor += '    <!-- Sidebar -->';
-        containerObjectEditor += '    <div class="col-md-3">';
+        containerObjectEditor += '    <div class="col-md-2">';
         containerObjectEditor += '      <div class="m-dash-item ">';
         containerObjectEditor += '        <h1 class="m-dash-item-title">Objetos</h1>';
         containerObjectEditor += '        <div class="dashboard-object"  v-for="item in availableObjects" draggable="true" @dragstart="dragStart(item)">';
@@ -1614,16 +1631,16 @@ function registerListenersMdash() {
 
 
         containerObjectEditor += '    <!-- Propriedades -->';
-        containerObjectEditor += '    <div style="height:500px;overflow-y:auto;" class="col-md-3">';
+        containerObjectEditor += '    <div style="height:500px;overflow-y:auto;" class="col-md-4">';
         containerObjectEditor += '      <div class="m-dash-item">';
         containerObjectEditor += '        <h1 class="m-dash-item-title">Propriedades</h1>';
-        containerObjectEditor += '        <div v-if="selectedObject.queryConfig.lastResult.length == 0" class="alert alert-info" role="alert" style="margin-top:1em;">Atenção!Para editar as propiedades do objecto deve definir uma query para o mesmo.</div>';
-        containerObjectEditor += '        <div v-if="selectedObject.queryConfig.lastResult.length > 0" class="objectEditor" :id="\'objectEditorContainer-\' + selectedObject.mdashcontaineritemobjectstamp"></div>';
+        containerObjectEditor += '        <div v-if="selectedObject?.queryConfig?.lastResult.length == 0" class="alert alert-info" role="alert" style="margin-top:1em;">Atenção!Para editar as propiedades do objecto deve definir uma query para o mesmo.</div>';
+        containerObjectEditor += '        <div v-if="selectedObject?.queryConfig?.lastResult.length > 0" class="objectEditor" :id="\'objectEditorContainer-\' + selectedObject.mdashcontaineritemobjectstamp"></div>';
         containerObjectEditor += '      </div>';
         containerObjectEditor += '    </div>';
 
         containerObjectEditor += '  </div>';
-        containerObjectEditor += '</div>';
+        containerObjectEditor += '';
 
 
         containers = [
@@ -1769,19 +1786,244 @@ function registerListenersMdash() {
     }
 
 
+    function setReactiveCustomEditorObjecto(containerItemObject, selfContainterItem) {
+
+        PetiteVue.createApp({
+            containerItemObject: containerItemObject,
+            selfContainterItem: selfContainterItem,
+            renderCustomEditorObjecto: function () {
+                var containerItem = this.selfContainterItem.containerItem;
+                var containerItemObjectJson = proxyToJSON(this.containerItemObject)
+
+
+                var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
+
+                containerItem.records = result;
+                this.containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + this.containerItemObject.mdashcontaineritemobjectstamp, containerItem);
+            },
+            initCustomEditorRender: function () {
+                var self = this;
+                setTimeout(function () {
+                    self.renderCustomEditorObjecto();
+                }, 200)
+            },
+            changeDivContent: function (e) {
+                var editor = ace.edit(e);
+                var self = this;
+                this.containerItemObject[e] = editor.getValue();
+                this.renderCustomEditorObjecto();
+
+            }
+        }).mount("#formConteudoCustomEditorObjecto" + containerItemObject.mdashcontaineritemobjectstamp);
+    }
     function setReactiveDetailsEditor(containerItemObject, selfContainterItem) {
 
-
+        // console.log("inited", $("#formConteudoDetailsEditor" + containerItemObject.mdashcontaineritemobjectstamp).length);
 
         PetiteVue.createApp({
             containerItemObject: containerItemObject,
             selfContainterItem: selfContainterItem,
             tipoObjectos: getTiposObjectoConfig(),
+            initDetalheEditor: function () {
 
-        });
+                var self = this;
+                setTimeout(function () {
+                    self.handleTipoObjectoDetalheChange(false);
+                }, 200)
+            },
+            handleTipoObjectoDetalheChange: function (resetConfig) {
+
+                var tipoObjecto = this.containerItemObject.tipoobjectodetalhes;
+                var tipoObjecto = getTiposObjectoConfig().find(function (tipo) {
+                    return tipo.tipo === tipoObjecto;
+                });
+                var self = this;
+                var containerItemObject = this.containerItemObject;
+                var containerItemObjectJson = {};
+                var containerItem = this.selfContainterItem.containerItem;
+
+                if (tipoObjecto) {
+
+                    if (resetConfig) {
+                        containerItemObject.configjson = ""
+                        containerItemObject.config = {}
+                    }
+                    containerItemObject.objectoConfig = tipoObjecto
+
+                    containerItemObjectJson = proxyToJSON(containerItemObject)
+                    var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
+
+                    containerItem.records = result;
+                    var schemaEditor = tipoObjecto.createDynamicSchema(result)
+
+                    containerItemObject.objectoConfig = tipoObjecto
+
+                    $(".object-editor-details-container").empty();
+
+                    if(!document.getElementById('objectEditorDetailsContainer-' + containerItemObject.mdashcontaineritemobjectstamp)){
+                        return ;
+                    }
+                    var editor = new JSONEditor(document.getElementById('objectEditorDetailsContainer-' + containerItemObject.mdashcontaineritemobjectstamp), {
+                        schema: schemaEditor,
+                        theme: 'bootstrap4',
+                        iconlib: 'fontawesome4',
+                        disable_edit_json: true,      // Remove botão "JSON"
+                        disable_properties: true,     // Remove botão "Properties"
+                        no_additional_properties: true, // Evita propriedades adicionais
+                        disable_array_delete_last_row: true,  // Remove "Excluir último"
+                        disable_array_delete_all_rows: true,  // Remove "Excluir todos"
+                        disable_array_reorder: true           // Remove "Reordenar"
+                    });
+
+                    editor.on('ready', function () {
+
+
+                        if (containerItemObject.configjson && containerItemObject.configjson.trim() !== '') {
+                            try {
+
+                                var savedConfig = JSON.parse(containerItemObject.configjson);
+
+                                editor.setValue(savedConfig);
+                            } catch (error) {
+                                console.warn('Erro ao carregar configuração salva:', error);
+                                console.log('configjson inválido:', containerItemObject.configjson);
+                                // Se não conseguir fazer parse, inicializar com configuração vazia
+
+                            }
+                        }
+
+
+
+                        $(".json-editor-btn-collapse").css({
+                            "background": "transparent",
+                            "color": getColorByType("primary").background
+                        });
+
+                        $(".tratamento-dadoscontainer-item-object input").addClass("form-control input-sm");
+                        $(".tratamento-dadoscontainer-item-object select").addClass("form-control input-sm");
+                        $(".tratamento-dadoscontainer-item-object").css({ color: "#626e78" })
+
+                        $(".json-editor-btntype-add").css({
+                            "margin-top": "0.9em"
+                        });
+
+                        $(".je-object__title").css(
+                            {
+                                "font-size": "14px",
+                                "font-weight": "bold"
+                            }
+                        )
+
+                        $(".card-title").css(
+                            {
+                                "font-size": "14px",
+                                "font-weight": "bold"
+                            }
+                        );
+
+                        var currentValue = editor.getValue();
+
+                        if (Object.keys(containerItemObject.config).length == 0) {
+                            containerItemObject.configjson = JSON.stringify(currentValue);
+                            containerItemObject.config = currentValue
+
+                        }
+
+                        $(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp).empty();
+                        containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, containerItem);
+
+
+                    });
+
+                    editor.on('change', function () {
+                        var currentValue = editor.getValue();
+                        //  self.containerItem.renderLayout(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, true);
+                        containerItemObject.config = currentValue;
+                        //self.containerItem.refreshContainerItem(".container-item-object-render");
+                        containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, containerItem);
+                        containerItemObject.configjson = JSON.stringify(currentValue);
+                        $(".card-title").css(
+                            {
+                                "font-size": "14px",
+                                "font-weight": "bold"
+                            }
+                        )
+                    });
+
+
+                }
+
+
+
+            }
+
+        }).mount("#formConteudoDetailsEditor" + containerItemObject.mdashcontaineritemobjectstamp);
     }
 
+    function gerarConteudoCustomEditorObjecto(containerItemObject, selfContainterItem) {
 
+        var containerId = "formConteudoCustomEditorObjecto" + containerItemObject.mdashcontaineritemobjectstamp;
+        var sufixoForm = "formConteudoCustomEditorObjecto";
+        var sourceData = {};
+        containers = [
+            {
+                colSize: 12,
+                style: "margin-bottom:0.8em;",
+                content: {
+                    contentType: "div",
+                    type: "div",
+                    id: "expressaoobjecto",
+                    classes: "m-editor",
+                    customData: " v-on:keyup='changeDivContent(\"" + "expressaoobjecto" + "\")'",
+                    style: "width: 100%; height:300px;overflow:auto; ",
+                    selectCustomData: "" + " ",
+                    fieldToOption: "descricao",
+                    fieldToValue: "tipo",
+                    rows: 10,
+                    cols: 10,
+                    label: "Expressão do objeto ",
+                    selectData: [],
+                    value: "{{containerItemObject.expressaoobjecto}}",
+                    event: "",
+                    placeholder: ""
+                }
+            },
+            {
+                colSize: 12,
+                style: "margin-bottom:0.8em;",
+                content: {
+                    contentType: "div",
+                    type: "div",
+                    id: "customEditorIniter",
+                    classes: "m-editor",
+                    customData: " ",
+                    style: "",
+                    selectCustomData: "" + " ",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: " ",
+                    selectData: [],
+                    value: "{{initCustomEditorRender()}}",
+                    event: "",
+                    placeholder: ""
+                }
+            }
+        ];
+
+        var containerData = {
+            containerId: containerId,
+            spinnerId: "overlay" + sufixoForm,
+            hasSpinner: false,
+            customData: "",
+            sourceData: sourceData,
+            items: containers
+        }
+        var formContainerResult = GenerateCustomFormContainer(containerData);
+        return formContainerResult;
+
+    }
     function gerarConteudoDetailsEditor(containerItemObject, selfContainterItem) {
 
 
@@ -1799,9 +2041,9 @@ function registerListenersMdash() {
                     type: "text",
                     id: "titulodetalhes",
                     classes: "mdashconfig-item-input form-control input-source-form input-sm",
-                    customData: "",
+                    customData: "v-model='containerItemObject.titulodetalhes'",
                     style: "width: 100%; ",
-                    selectCustomData: "" + " v-model='containerItemObject.titulodetalhes'",
+                    selectCustomData: "" + " ",
                     fieldToOption: "descricao",
                     fieldToValue: "tipo",
                     rows: 10,
@@ -1823,7 +2065,7 @@ function registerListenersMdash() {
                     classes: "mdashconfig-item-input form-control input-source-form input-sm",
                     customData: "",
                     style: "width: 100%; ",
-                    selectCustomData: "" + " v-model='containerItemObject.tipoobjectodetalhes' @change=handleTipoObjectoChange(containerItemObject.tipoobjectodetalhes)",
+                    selectCustomData: "" + " v-model='containerItemObject.tipoobjectodetalhes' @change=handleTipoObjectoDetalheChange(true)",
                     fieldToOption: "descricao",
                     fieldToValue: "tipo",
                     rows: 10,
@@ -1831,6 +2073,28 @@ function registerListenersMdash() {
                     label: " Tipo de objeto ",
                     selectData: getTiposObjectoConfig(),
                     value: containerItemObject.tipoobjectodetalhes,
+                    event: "",
+                    placeholder: ""
+                }
+            },
+            {
+                colSize: 12,
+                style: "margin-bottom:0.8em;",
+                content: {
+                    contentType: "div",
+                    type: "div",
+                    id: "objectEditorDetailsContainer-" + containerItemObject.mdashcontaineritemobjectstamp,
+                    classes: "object-editor-details-container",
+                    customData: "",
+                    style: "width: 100%; ",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: " ",
+                    selectData: [],
+                    value: "{{initDetalheEditor()}}",
                     event: "",
                     placeholder: ""
                 }
@@ -1885,6 +2149,9 @@ function registerListenersMdash() {
                 containerItemObject.objectoConfig = tipoObjecto
 
                 $(".objectEditor").empty();
+                if(!document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp)){
+                    return ;
+                }
 
                 var editor = new JSONEditor(document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp), {
                     schema: schemaEditor,
@@ -1989,6 +2256,20 @@ function registerListenersMdash() {
                 });
 
             },
+            initCustomEditor: function (containerItemObject) {
+                var self = this;
+                containerItemObjectJson = proxyToJSON(containerItemObject)
+                var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
+
+                this.$nextTick(function () {
+                    var editorForm = gerarConteudoCustomEditorObjecto(containerItemObject, self);
+                    $(".objectEditor").empty();
+                    $("#objectEditorContainer-" + containerItemObject.mdashcontaineritemobjectstamp).empty();
+                    $("#objectEditorContainer-" + containerItemObject.mdashcontaineritemobjectstamp).append(editorForm);
+                    setReactiveCustomEditorObjecto(containerItemObject, self);
+                    handleCodeEditor();
+                });
+            },
             updateObjectType: function (containerItemObject) {
                 var self = this;
 
@@ -2007,7 +2288,7 @@ function registerListenersMdash() {
                             this.initJSONEditor(containerItemObject, tipoObjecto);
                             break;
                         case "custom":
-
+                            this.initCustomEditor(containerItemObject);
                             break;
                         case "detail":
                             this.initDetailEditor(containerItemObject);
@@ -2045,14 +2326,14 @@ function registerListenersMdash() {
             },
             // ... resto dos métodos existentes
             removeContainerObject: function (containerItemObject) {
-                this.GMDashContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
-                    return obj.mdashcontaineritemobjectstamp !== containerItemObject.mdashcontaineritemobjectstamp;
-                });
-                GMDashContainerItemObjects = this.GMDashContainerItemObjects;
 
-                this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
-                    return obj.mdashcontaineritemstamp === containerItemObject.mdashcontaineritemstamp;
+
+                this.GMDashContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
+                    return obj.mdashcontaineritemobjectstamp != containerItemObject.mdashcontaineritemobjectstamp;
                 });
+                //GMDashContainerItemObjects = this.GMDashContainerItemObjects;
+
+
 
                 GMdashDeleteRecords.push({
                     table: "MdashContainerItemObject",
@@ -2060,15 +2341,22 @@ function registerListenersMdash() {
                     tableKey: "mdashcontaineritemobjectstamp"
                 });
 
+                this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
+                    return obj.mdashcontaineritemstamp != containerItemObject.mdashcontaineritemstamp;
+                });
+                
+
             },
 
             addObjectoContainerItem: function (GTMPDragItem) {
 
 
                 var newObject = new MdashContainerItemObject({
+                    mdashcontaineritemobjectstamp: generateUUID(),
                     mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
                     dashboardstamp: GMDashStamp,
                     tipo: GTMPDragItem.tipo,
+                    categoria: GTMPDragItem.categoria,
                     tamanho: 4,
                     ordem: this.nextOrder++,
                     expressaoobjecto: "",
@@ -2086,10 +2374,14 @@ function registerListenersMdash() {
                 });
 
                 this.GMDashContainerItemObjects.push(newObject);
+                this.filteredContainerItemObjects.push(newObject);
+                GMDashContainerItemObjects.push(newObject)
 
-                this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
+                console.log("New object added:", newObject);
+
+                /*this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
                     return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
-                });
+                });*/
             },
             availableObjects: getTiposObjectoConfig(),
             objects: [],
@@ -2417,6 +2709,7 @@ function registerListenersMdash() {
 
                                 var errorMessage = "ao trazer resultados da listagem . consulte no console do browser"
                                 try {
+
                                     console.log(response)
                                     if (response.cod != "0000") {
 
@@ -2427,28 +2720,16 @@ function registerListenersMdash() {
                                         return false
                                     }
 
-                                    self.containerItem.records = response.data || [];
 
                                     var containersItemObjectsList = self.GMDashContainerItemObjects.filter(function (obj) {
                                         return obj.mdashcontaineritemstamp === self.containerItem.mdashcontaineritemstamp;
                                     });
 
-                                    /* containersItemObjectsList.forEach(function (containerItemObject) {
- 
-                                         containerItemObject.queryConfig = {
-                                             selectFields: [],
-                                             filters: [],
-                                             groupBy: [],
-                                             orderBy: { field: "", direction: "ASC" },
-                                             limit: null,
-                                             generatedSQL: "",
-                                             lastResult: []
-                                         };
- 
-                                         containerItemObject.queryconfigjson = JSON.stringify(containerItemObject.queryConfig);
-                                     });*/
-                                    self.queryJsonResult = JSON.stringify(self.containerItem.records)
-                                    //.replaceAll("total","tot");
+                                    
+                                    var queryResult=response.data.length>0?response.data:generateDummyDataForSchema(response.schema,3);
+
+                                    self.queryJsonResult = JSON.stringify(queryResult).replaceAll("total", "tot");
+                                    self.containerItem.records = JSON.parse(self.queryJsonResult);
                                     self.mainQueryHasError = false;
 
                                 } catch (error) {
@@ -2576,6 +2857,54 @@ function registerListenersMdash() {
 
     }
 
+
+    function generateDummyDataForSchema(columns, numRecords) {
+        if (!numRecords) numRecords = 3;
+
+        var randomString = function (len) {
+            if (!len) len = 5;
+            var text = "";
+            for (var i = 0; i < len; i++) {
+                text += String.fromCharCode(97 + Math.floor(Math.random() * 26));
+            }
+            return text;
+        };
+
+        var randomInt = function (min, max) {
+            if (typeof min === "undefined") min = 0;
+            if (typeof max === "undefined") max = 200;
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        };
+
+        var randomDate = function () {
+            var start = new Date(2000, 0, 1).getTime();
+            var end = new Date(2025, 11, 31).getTime();
+            var date = new Date(start + Math.random() * (end - start));
+            return date.toISOString().split("T")[0] + " " + date.toTimeString().split(" ")[0];
+        };
+
+        var getValueByType = function (type) {
+            var t = type.toLowerCase();
+            if (t.indexOf("char") !== -1) return randomString(randomInt(3, 10));
+            if (t.indexOf("numeric") !== -1 || t.indexOf("int") !== -1) return randomInt();
+            if (t.indexOf("bit") !== -1) return true;
+            if (t.indexOf("date") !== -1) return randomDate();
+            if (t.indexOf("text") !== -1) return "lorem ipsum " + randomString(10);
+            return null;
+        };
+
+        var records = [];
+        for (var i = 0; i < numRecords; i++) {
+            var record = {};
+            for (var j = 0; j < columns.length; j++) {
+                var col = columns[j];
+                record[col.name] = getValueByType(col.system_type_name);
+            }
+            records.push(record);
+        }
+
+        return records;
+    }
 
 
     function gerarConteudoEditorQuery(containerItemObject, containerItem) {
@@ -2752,22 +3081,20 @@ function registerListenersMdash() {
 
             containerItem.dadosTemplate = selectedTemplate;
             var containerObjectEditor = '';
-
-            containerObjectEditor += '        ';
-            containerObjectEditor += '        <div style="height:500px;overflow:auto;" class="dropzone" @dragover.prevent @drop="drop(null)">'; // Abre uma div
+            // ...existing code...
+            containerObjectEditor += '        <div style="height:500px;overflow:auto;" class="dropzone" @dragover.prevent @drop="drop(null)">';
             containerObjectEditor += '           <div  @click="selectObject(obj)" v-for="obj in getObjectsSorted()" :key="obj.mdashcontaineritemobjectstamp"  draggable="true" @dragstart="dragExisting(obj.mdashcontaineritemobjectstamp)" @drop.prevent="drop(obj.mdashcontaineritemobjectstamp)" @dragover.prevent>';
-            containerObjectEditor += '          <div class="dashboard-object-item-editor">';
-            containerObjectEditor += "             <div style='display:flex;align-items:center;column-gap:0.4em;justify-content:end;margin-bottom:0.3em'>";
-            containerObjectEditor += '             <button type="button" class="btn btn-warning btn-sm" @click="abrirEditorQuery(obj)"><i class="fa fa-database" ></i></button>';
-            //containerObjectEditor += '             <button type="button" class="btn btn-primary btn-sm" @click="abrirConfiguracaoDetalhe(obj)"><span class="glyphicon glyphicon-option-horizontal" ></span></button>';
-            containerObjectEditor += '             <button  type="button" class="btn btn-warning btn-sm" style="background: #dc3545!important" @click="removeObject(obj.mdashcontaineritemobjectstamp)"><i class="fa fa-trash" ></i></button>';
-            containerObjectEditor += "             </div>"
-            containerObjectEditor += '             <div  :class="\' container-item-object-render-\' + obj.mdashcontaineritemobjectstamp" >     {{ obj.tipo }} (ID: {{ obj.mdashcontaineritemobjectstamp }}, Ordem: {{ obj.ordem }})';
-
-            containerObjectEditor += "            </div>"
-            containerObjectEditor += "           </div>"
-            containerObjectEditor += '           </div>'; // Fecha a div do v-for
-            containerObjectEditor += '        </div>'; // Fecha a div da dropzone
+            containerObjectEditor += '              <div class="dashboard-object-item-editor">';
+            containerObjectEditor += "                 <div style='display:flex;align-items:center;column-gap:0.4em;justify-content:end;margin-bottom:0.3em'>";
+            containerObjectEditor += '                  <button type="button" class="btn btn-warning btn-sm" @click="abrirEditorQuery(obj)"><i class="fa fa-database" ></i></button>';
+            containerObjectEditor += '                  <button  type="button" class="btn btn-warning btn-sm" style="background: #dc3545!important" @click="removeObject(obj.mdashcontaineritemobjectstamp)"><i class="fa fa-trash" ></i></button>';
+            containerObjectEditor += "                 </div>";
+            containerObjectEditor += '                 <div  :class="\' container-item-object-render-\' + obj.mdashcontaineritemobjectstamp" >     {{ obj.tipo }} (ID: {{ obj.mdashcontaineritemobjectstamp }}, Ordem: {{ obj.ordem }})';
+            containerObjectEditor += "                 </div>"; // Fecha a :class div
+            containerObjectEditor += "              </div>"; // Fecha a dashboard-object-item-editor
+            containerObjectEditor += '           </div>'; // Fecha a div do v-for - ESTA LINHA ESTAVA NA POSIÇÃO CORRETA
+            containerObjectEditor += '        </div>'; // Fecha a dropzone
+            // ...existing code...
 
 
 
@@ -3529,7 +3856,7 @@ function initConfiguracaoDashboard(config) {
         classes: "btn btn-sm btn-primary",
         customData: " type='button' data-tooltip='true' data-original-title='Actualizar configuração' ",
         label: "Actualizar configuração",
-        onClick: "actualizarCOnfiguracaoMDashboard()"
+        onClick: "actualizarConfiguracaoMDashboard()"
     });
     atualizarDashboardConfigContainer += atualizarButtonHtml;
     atualizarDashboardConfigContainer += "</div>";
