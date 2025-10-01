@@ -405,14 +405,14 @@
     align-items: center;
   }
 
-   .m-dash-horizonta-filter-container {
+  .m-dash-horizonta-filter-container {
 
     margin-bottom: 30px;
     background: #FFF;
     padding: 30px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-    
+
   }
 
   .m-dash-body {
@@ -696,9 +696,22 @@
       </button>
     </div>
 
-    <div v-if="mdash.dashboardconfig.filtrohorizont && mdash.dashboardconfig.temfiltro==true" class="m-dash-horizonta-filter-container">
+    <div v-if="mdash.dashboardconfig.filtrohorizont && mdash.dashboardconfig.temfiltro==true"
+      class="m-dash-horizonta-filter-container">
 
       <div class="gr-row">
+        <div class=" gr-col-md-12 gr-col-lg-12 gr-col-sm-12">
+          <div class="m-dash-filter-btn-group">
+            <div style="display: flex;column-gap: 0.4em;align-items: center;" class="">
+              <p class="m-dash-item-text">Refrescar</p>
+              <button @click="refreshDashboard()" type='button' id='btn-refrescar-filtro'
+                class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
         <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp"
           :class="[`gr-col-md-${filter.tamanho}`, `gr-col-sm-${filter.tamanho}`, `gr-col-lg-${filter.tamanho}`]">
           <div class="m-dash-dynamic-filters">
@@ -1644,7 +1657,7 @@
 
       configData.filterValues = filterValues;
 
-      document.title=dashboardconfig.descricao
+      document.title = dashboardconfig.descricao
 
 
       window.localStorage.setItem("mdashcachedFilters", JSON.stringify(configData.filterValues));
