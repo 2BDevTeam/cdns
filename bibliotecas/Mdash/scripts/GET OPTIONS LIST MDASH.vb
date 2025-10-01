@@ -55,7 +55,7 @@ End Function
 
 
 
-Dim mquery as String = ""
+
 
 Try
 
@@ -64,66 +64,34 @@ Try
    Dim requestJObject As Newtonsoft.Json.Linq.JObject = jArray(0)
 
    Dim queryComFiltros As String = ""
-   Dim expressaodblistagem As String = requestJObject("expressaodblistagem").ToString()
+   Dim mdashfilterstamp As String = requestJObject("mdashfilterstamp").ToString()
    Dim regexPattern As String = "\{(.*?)\}" ' Padrão para capturar texto dentro de {}
-   Dim matches As MatchCollection = Regex.Matches(expressaodblistagem, regexPattern)
-   queryComFiltros  = expressaodblistagem
+ 
+   Dim queryFiltro="SELECT expressaolistagem FROM MdashFilter WHERE mdashfilterstamp=@mdashfilterstamp"
+    Dim sqlParametersFiltro As New List(Of System.Data.SqlClient.SqlParameter)
+    sqlParametersFiltro.Add(New System.Data.SqlClient.SqlParameter("@mdashfilterstamp", mdashfilterstamp))
+    Dim queryResultFiltro As DataTable = ExecuteQuery(queryFiltro, sqlParametersFiltro)
+
+    if queryResultFiltro.rows.count=0 then
+        Throw New Exception("Filtro não encontrado.")
+    End If
 
    Dim queryResult As DataTable
    Dim querySchemaResult As DataTable
-    if not String.IsNullOrEmpty(queryComFiltros) and not  String.IsNullOrWhiteSpace(expressaodblistagem)  Then
-    
-         Dim filtros As Newtonsoft.Json.Linq.JObject = requestJObject("filters").ToObject(Of Newtonsoft.Json.Linq.JObject)()
-   
-         For Each match As Match In matches
-             Dim key As String = match.Groups(1).Value
-             
-             If filtros.ContainsKey(key) Then
-                 Dim valorFiltro As Newtonsoft.Json.Linq.JToken = filtros(key)
-         
-                 ' Verifica se o valor é booleano e converte para 1 ou 0
-                 Dim valorConvertido As String
-                 If valorFiltro.Type = Newtonsoft.Json.Linq.JTokenType.Boolean Then
-                     valorConvertido = If(valorFiltro.ToObject(Of Boolean)(), "1", "0")
-                 Else
-                     valorConvertido = valorFiltro.ToString()
-                 End If
-         
-                 ' Substitui o valor no queryComFiltros
-                 queryComFiltros = queryComFiltros.Replace("{" & key & "}", valorConvertido)
-             Else
-                 Throw New Exception($"Filtro '{key}' não encontrado nos filtros fornecidos")
-             End If
-         Next
-     
-         If Not querySanitized(queryComFiltros) Then
+  
+    If Not querySanitized(queryComFiltros) Then
              Throw New Exception("A consulta contém palavras-chave de escrita proibidas.")
-         End If
-         mquery = queryComFiltros    
-         queryResult = ExecuteQuery(queryComFiltros, Nothing)
-        Dim safeQuery As String = queryComFiltros.Replace("'", "''")
-
-        querySchemaResult = ExecuteQuery($"
-            SELECT 
-                name, 
-                system_type_name
-            FROM sys.dm_exec_describe_first_result_set(
-                N'{safeQuery}',
-                NULL, NULL);
-        ", Nothing)
-
     End If
 
+    queryResult = ExecuteQuery(queryResultFiltro.Rows(0).Item("expressaolistagem").ToString(), Nothing)
 
-  
+   
 
     Dim responseDTO = New With {
         .cod = "0000",
         .codDesc = "Success",
         .message = "Success",
-        .data = queryResult,
-        .schema = querySchemaResult,
-        .mquery = mquery
+        .data = queryResult
     }
     mpage.Response.ContentType = "application/json"
     mpage.Response.Write(Newtonsoft.Json.JsonConvert.SerializeObject(responseDTO))
@@ -133,7 +101,7 @@ Catch ex as Exception
  ' XcUtil.LogViewSource(mpage,e.toString())
 
    mpage.Response.ContentType = "application/json"
-   Dim responseDTO= New With {.cod ="0007" ,.codDesc="Error",.message=ex.toString(),.mquery = mquery}
+   Dim responseDTO= New With {.cod ="0007" ,.codDesc="Error",.message=ex.toString()}
    mpage.Response.Write(Newtonsoft.Json.JsonConvert.SerializeObject(responseDTO))
 
 

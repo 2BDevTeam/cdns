@@ -3,7 +3,7 @@
 
 var GMDashContainers = [new MdashContainer({})];
 GMDashContainers = []
-
+var Greactive
 var GMDashContainerItems = [new MdashContainerItem({})];
 GMDashContainerItems = [];
 
@@ -11,7 +11,7 @@ var GMDashContainerItemObjects = [new MdashContainerItemObject({})];
 GMDashContainerItemObjects = [];
 var GMDashContainerItemObjectDetails = [new MdashContainerItemObjectDetail({})];
 GMDashContainerItemObjectDetails = [];
-
+var selectedObject = {};
 var GMDashFilters = [new MdashFilter({})];
 GMDashFilters = [];
 
@@ -258,7 +258,7 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 4, campo: "layoutcontaineritemdefault", tipo: "checkbox", titulo: "Usa layout default para item do container", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolayoutcontaineritem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de layout do item do container", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "urlfetch", tipo: "text", titulo: "URL de Fetch", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaodblistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de DB Listagem", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaodblistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de DB Listagem", classes: "m-editor input-source-form", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "fontelocal", tipo: "checkbox", titulo: "Fonte local", classes: "input-source-form", contentType: "input" })
     ]
@@ -295,7 +295,7 @@ function actualizarConfiguracaoMDashboard() {
         }
     ];
 
-    //console.log("configdata", configData)
+    // console.log("configdata", configData)
     // console.log([{ mdashstamp: GMDashStamp, config: configData }])
 
 
@@ -419,7 +419,7 @@ function handleCodeEditor() {
         if (!el.id) el.id = 'm-editor' + idx;
         var aceEditor = ace.edit(el.id);
         aceEditor.setTheme("ace/theme/monokai");
-        aceEditor.session.setMode("ace/mode/javascript");
+        aceEditor.session.setMode("ace/mode/sql");
         editors.push(aceEditor);
     });
 
@@ -1527,11 +1527,10 @@ function registerListenersMdash() {
 
 
 
-    })
+    });
 
-    $(document).off("click", ".add-container-item-object-btn").on("click", ".add-container-item-object-btn", function (e) {
+    function refreshAllEditor(containerItemId, contToRender) {
 
-        var containerItemId = $(this).attr("containeritemId");
 
         var containerItem = GMDashContainerItems.find(function (item) {
             return item.mdashcontaineritemstamp === containerItemId;
@@ -1566,45 +1565,6 @@ function registerListenersMdash() {
         };
 
         var buttonHtml = generateButton(addObjectoContainerItem);
-        var containersObjectsListDiv = "";
-
-        // Container principal com v-for para iterar pelos objetos
-        containersObjectsListDiv += "<div class='container-item-objects-main' v-for='containerItemObject in filteredContainerItemObjects' :key='containerItemObject.mdashcontaineritemobjectstamp'>";
-
-        // Estrutura do collapse baseada em generateCollapseHTML
-        containersObjectsListDiv += "  <div class='home-collapse container-item-object' :id='\"object-collapse-\" + containerItemObject.mdashcontaineritemobjectstamp'>";
-
-        // Header do collapse
-        containersObjectsListDiv += "    <div class='home-collapse-header mainformcptitulo'>";
-        containersObjectsListDiv += "      <span class='glyphicon glyphicon-triangle-right'>{{ containerItemObject.tipo || 'Objeto' }} {{ containerItemObject.ordem }}</span>";
-        containersObjectsListDiv += "          <button v-on:click='removeContainerObject(containerItemObject)' type='button' class='btn btn-xs btn-danger remover-container-object-btn'";
-        containersObjectsListDiv += "                  :data-object-id='containerItemObject.mdashcontaineritemobjectstamp'";
-        containersObjectsListDiv += "                  data-tooltip='true' data-original-title='Remover objeto'>";
-        containersObjectsListDiv += "            <i style='font-size:17px' class='fa fa-trash'></i>";
-        containersObjectsListDiv += "          </button>";
-        containersObjectsListDiv += "      <div class='row'><span class='collapse-content'></span></div>";
-        containersObjectsListDiv += "    </div>";
-
-        // Body do collapse
-        containersObjectsListDiv += "    <div class='home-collapse-body hidden'>";
-        containersObjectsListDiv += "      <div :id='\"object-\" + containerItemObject.mdashcontaineritemobjectstamp' class='container-item-object-body'>";
-
-
-        // Container para o tratamento de dados (dentro do collapse body)
-        containersObjectsListDiv += "        <div :id='\"tratamento-dadoscontainer-\" + containerItemObject.mdashcontaineritemobjectstamp' class='col-md-12 tratamento-dadoscontainer-item-object'>";
-
-        containersObjectsListDiv += "          <div class='row'>";
-        containersObjectsListDiv += "            <div class='col-md-12'>";
-        containersObjectsListDiv += generateReactiveQueryHTML();
-        containersObjectsListDiv += "            </div>";
-
-        containersObjectsListDiv += "          </div>"; // row
-        // Fechamento das divs
-        containersObjectsListDiv += "      </div>"; // container-item-object-body
-        containersObjectsListDiv += "    </div>"; // home-collapse-body
-        containersObjectsListDiv += "  </div>"; // home-collapse container-item-object
-        containersObjectsListDiv += "</div>"; // v-for container           </div>";
-
 
         var containerObjectEditor = '';
 
@@ -1635,6 +1595,7 @@ function registerListenersMdash() {
         containerObjectEditor += '      <div class="m-dash-item">';
         containerObjectEditor += '        <h1 class="m-dash-item-title">Propriedades</h1>';
         containerObjectEditor += '        <div v-if="selectedObject?.queryConfig?.lastResult.length == 0" class="alert alert-info" role="alert" style="margin-top:1em;">Atenção!Para editar as propiedades do objecto deve definir uma query para o mesmo.</div>';
+        //containerObjectEditor += "objectEditorContainer-{{selectedObject.mdashcontaineritemobjectstamp}}"
         containerObjectEditor += '        <div v-if="selectedObject?.queryConfig?.lastResult.length > 0" class="objectEditor" :id="\'objectEditorContainer-\' + selectedObject.mdashcontaineritemobjectstamp"></div>';
         containerObjectEditor += '      </div>';
         containerObjectEditor += '    </div>';
@@ -1689,7 +1650,6 @@ function registerListenersMdash() {
                 }
             }];
 
-        $("#modalContainerItemObjectConfig").remove()
         var containerData = {
             containerId: containerId,
             spinnerId: "overlay" + sufixoForm,
@@ -1699,24 +1659,12 @@ function registerListenersMdash() {
             items: containers
         }
         var formContainerResult = GenerateCustomFormContainer(containerData);
+        $(contToRender).empty();
+        $(contToRender).append(formContainerResult)
 
-        var modalBodyHtml = ""
-        modalBodyHtml += formContainerResult;
+       
 
-        var modalContainerItemObjectConfig = {
-            title: "Configuração ",
-            id: "modalContainerItemObjectConfig",
-            customData: "",
-            otherclassess: "",
-            body: modalBodyHtml,
-            footerContent: "",
-        };
-        var modalHTML = generateModalHTML(modalContainerItemObjectConfig);
 
-        $("#maincontent").append(modalHTML);
-
-        $("#modalContainerItemObjectConfig").modal("show");
-        $("#modalContainerItemObjectConfig .modal-dialog").css("width", "90%")
 
         var filterValues = {};
 
@@ -1746,6 +1694,33 @@ function registerListenersMdash() {
 
 
         handleCodeEditor();
+
+    }
+
+    $(document).off("click", ".add-container-item-object-btn").on("click", ".add-container-item-object-btn", function (e) {
+
+        var containerItemId = $(this).attr("containeritemId");
+         $("#modalContainerItemObjectConfig").remove()
+
+        var modalBodyHtml = "<div id='modalBodyHtmlContainerItemObjectConfig'>";
+        modalBodyHtml += "</div>";
+        var modalContainerItemObjectConfig = {
+            title: "Configuração ",
+            id: "modalContainerItemObjectConfig",
+            customData: "",
+            otherclassess: "",
+            body: modalBodyHtml,
+            footerContent: "",
+        };
+        var modalHTML = generateModalHTML(modalContainerItemObjectConfig);
+
+        $("#maincontent").append(modalHTML);
+        $("#modalContainerItemObjectConfig").modal("show");
+        $("#modalContainerItemObjectConfig .modal-dialog").css("width", "90%")
+
+
+        refreshAllEditor(containerItemId,"#modalBodyHtmlContainerItemObjectConfig");
+
     })
 
     /*
@@ -1860,8 +1835,8 @@ function registerListenersMdash() {
 
                     $(".object-editor-details-container").empty();
 
-                    if(!document.getElementById('objectEditorDetailsContainer-' + containerItemObject.mdashcontaineritemobjectstamp)){
-                        return ;
+                    if (!document.getElementById('objectEditorDetailsContainer-' + containerItemObject.mdashcontaineritemobjectstamp)) {
+                        return;
                     }
                     var editor = new JSONEditor(document.getElementById('objectEditorDetailsContainer-' + containerItemObject.mdashcontaineritemobjectstamp), {
                         schema: schemaEditor,
@@ -2119,15 +2094,16 @@ function registerListenersMdash() {
     }
     function setReactiveContainerItemOject(containerItem, filterValues, GMDashContainerItemObjects, filteredContainerItemObjects) {
 
-        PetiteVue.createApp({
+        Greactive = PetiteVue.createApp({
             containerItem: containerItem,
             filterValues: filterValues,
             GMDashContainerItemObjects: GMDashContainerItemObjects,
             filteredContainerItemObjects: filteredContainerItemObjects,
-            selectedObject: {},
+            selectedObject: selectedObject,
             initEditorObject: function (containerItemObject) {
 
                 var self = this;
+                //console.log("inited" )
 
                 setTimeout(function () {
                     self.updateObjectType(containerItemObject);
@@ -2148,9 +2124,12 @@ function registerListenersMdash() {
 
                 containerItemObject.objectoConfig = tipoObjecto
 
+                console.log("before", document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp))
                 $(".objectEditor").empty();
-                if(!document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp)){
-                    return ;
+
+                console.log("after", document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp))
+                if (!document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp)) {
+                    return;
                 }
 
                 var editor = new JSONEditor(document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp), {
@@ -2280,6 +2259,9 @@ function registerListenersMdash() {
                 });
 
 
+
+
+
                 if (tipoObjecto) {
 
 
@@ -2318,8 +2300,9 @@ function registerListenersMdash() {
                 this.$nextTick(function () {
                     $("#objectPreview").empty(); // Limpa o conteúdo anterior
                     $("#objectPreview").append(card); // Adiciona o novo card
-
-                    setReactiveContainerItemOject(GTMPReactiveInstance.containerItem, GTMPReactiveInstance.filterValues, GTMPReactiveInstance.GMDashContainerItemObjects, GTMPReactiveInstance.filteredContainerItemObjects);
+                    // refreshAllEditor(containerItemId,"#modalBodyHtmlContainerItemObjectConfig");
+                    refreshAllEditor(self.containerItem.mdashcontaineritemstamp,"#modalBodyHtmlContainerItemObjectConfig");
+                    //setReactiveContainerItemOject(GTMPReactiveInstance.containerItem, GTMPReactiveInstance.filterValues, GTMPReactiveInstance.GMDashContainerItemObjects, GTMPReactiveInstance.filteredContainerItemObjects);
                 });
 
 
@@ -2344,7 +2327,7 @@ function registerListenersMdash() {
                 this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
                     return obj.mdashcontaineritemstamp != containerItemObject.mdashcontaineritemstamp;
                 });
-                
+
 
             },
 
@@ -2374,14 +2357,14 @@ function registerListenersMdash() {
                 });
 
                 this.GMDashContainerItemObjects.push(newObject);
-                this.filteredContainerItemObjects.push(newObject);
-                GMDashContainerItemObjects.push(newObject)
+                // this.filteredContainerItemObjects.push(newObject);
+                GMDashContainerItemObjects = this.GMDashContainerItemObjects
 
-                console.log("New object added:", newObject);
+                // console.log("New object added:", newObject);
 
-                /*this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
+                this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
                     return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
-                });*/
+                });
             },
             availableObjects: getTiposObjectoConfig(),
             objects: [],
@@ -2390,14 +2373,16 @@ function registerListenersMdash() {
             nextOrder: 1,
 
             getObjectsSorted: function () {
-                return this.GMDashContainerItemObjects.slice().sort(function (a, b) {
+                return this.filteredContainerItemObjects.slice().sort(function (a, b) {
                     return a.ordem - b.ordem;
                 });
             },
 
             selectObject: function (obj) {
+                console.log("Selected object:", obj);
                 this.selectedObject = obj;
 
+                console.log("Selected object after set:", this.selectedObject);
                 this.initEditorObject(obj);
             },
 
@@ -2416,7 +2401,7 @@ function registerListenersMdash() {
             },
             drop: function (targetId) {
 
-                //console.log("BEFORE DROP:", this);
+                console.log("BEFORE DROP:", this);
                 if (!GTMPDragItem) return;
 
                 var targetIndex = this.GMDashContainerItemObjects.length;
@@ -2725,13 +2710,13 @@ function registerListenersMdash() {
                                         return obj.mdashcontaineritemstamp === self.containerItem.mdashcontaineritemstamp;
                                     });
 
-                                    
-                                    var queryResult=response.data.length>0?response.data:generateDummyDataForSchema(response.schema,3);
+
+                                    var queryResult = response.data.length > 0 ? response.data : generateDummyDataForSchema(response.schema, 3);
 
                                     self.queryJsonResult = JSON.stringify(queryResult).replaceAll("total", "tot");
                                     self.containerItem.records = JSON.parse(self.queryJsonResult);
                                     self.mainQueryHasError = false;
-
+                                    alertify.success("Query executada com sucesso", 5000);
                                 } catch (error) {
                                     console.log("Erro interno " + errorMessage, response)
                                     alertify.error("Erro " + errorMessage, 9000);
@@ -3034,6 +3019,29 @@ function registerListenersMdash() {
                 style: "",
                 content: {
                     contentType: "div",
+                    type: "button",
+                    id: "numeroResultadosQuery",
+                    classes: "pull-left ",
+                    customData: " v-if='queryJsonResult &&mainQueryHasError==false' ",
+                    style: "margin-top:1em;",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "",
+                    selectData: "",
+                    value: "<span>Resultados: <strong>{{ containerItem.records.length }}</strong></span>",
+                    event: "",
+                    placeholder: "",
+
+                }
+            },
+            {
+                colSize: 12,
+                style: "",
+                content: {
+                    contentType: "div",
                     type: "div",
                     id: "reactiveLocalQueryContainer",
                     classes: "",
@@ -3158,6 +3166,8 @@ function registerListenersMdash() {
 
         return matches;
     }
+
+
 
     $(document).off("click", ".open-config-item-filter").on("click", ".open-config-item-filter", function (e) {
 

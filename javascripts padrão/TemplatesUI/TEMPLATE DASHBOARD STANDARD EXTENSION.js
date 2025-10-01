@@ -2368,11 +2368,15 @@ function addDashboardStyles(styles) {
     dashboardCSS += "}";
 
     dashboardCSS += ".c-dashboardInfo .c-dashboardInfo_primary:after {";
-    dashboardCSS += "    background: linear-gradient(82.59deg, #00897B 0%, #00a173 100%);";
+    //dashboardCSS += "    background: linear-gradient(82.59deg, #00897B 0%, #00a173 100%);";
+    dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
+
     dashboardCSS += "}";
 
     dashboardCSS += ".c-dashboardInfo .c-dashboardInfo_warning:after {";
-    dashboardCSS += "    background: linear-gradient(82.59deg, #f79523 0%, #d88627 100%);";
+    dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("warning").background + " 0%, " + getColorByType("warning").background + " 100%);";
+
+    // dashboardCSS += "    background: linear-gradient(82.59deg, #f79523 0%, #d88627 100%);";
     dashboardCSS += "}";
 
     dashboardCSS += ".c-dashboardInfo__title svg {";
@@ -2466,17 +2470,23 @@ function addDashboardStyles(styles) {
     dashboardCSS += "}";
 
     dashboardCSS += ".dashcard .dashcard-header-warning:not(.dashcard-header-icon):not(.dashcard-header-text) {";
-    dashboardCSS += "    background: linear-gradient(60deg, #f79523, #f79523);";
+    //dashboardCSS += "    background: linear-gradient(60deg, #f79523, #f79523);";
+    dashboardCSS += "    background: linear-gradient(60deg, " + getColorByType("warning").background + ", " + getColorByType("warning").background + ");";
+
     dashboardCSS += "    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .14), 0 7px 10px -5px rgba(187, 113, 16, 0.4);";
     dashboardCSS += "}";
 
     dashboardCSS += ".dashcard .dashcard-header-success:not(.dashcard-header-icon):not(.dashcard-header-text) {";
-    dashboardCSS += "    background: linear-gradient(60deg, #3ba94e, #3ba94e);";
+    // dashboardCSS += "    background: linear-gradient(60deg, #3ba94e, #3ba94e);";
+   // dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
+
     dashboardCSS += "    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .14), 0 7px 10px -5px rgba(55, 119, 26, 0.4);";
     dashboardCSS += "}";
 
     dashboardCSS += ".dashcard .dashcard-header-primary:not(.dashcard-header-icon):not(.dashcard-header-text) {";
-    dashboardCSS += "    background: linear-gradient(82.59deg, #00897B 0%, #00897B 100%);";
+    dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
+
+    // dashboardCSS += "    background: linear-gradient(82.59deg, #00897B 0%, #00897B 100%);";
     dashboardCSS += "    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .14), 0 7px 10px -5px rgba(39, 30, 126, 0.4);";
     dashboardCSS += "}";
 
@@ -2500,7 +2510,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "}";
 
     dashboardCSS += ".dashcard-fact-header {";
-    dashboardCSS += "    background: linear-gradient(to right, #033076, #033076);";
+    dashboardCSS += "    background: linear-gradient(to right, " + getColorByType("primary").background + ", " + getColorByType("primary").background + ");";
     dashboardCSS += "    color: white;";
     dashboardCSS += "    padding: 10px;";
     dashboardCSS += "    border-top-left-radius: 17px;";

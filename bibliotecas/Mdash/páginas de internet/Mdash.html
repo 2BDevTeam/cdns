@@ -405,6 +405,16 @@
     align-items: center;
   }
 
+   .m-dash-horizonta-filter-container {
+
+    margin-bottom: 30px;
+    background: #FFF;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    
+  }
+
   .m-dash-body {
     display: flex;
     flex-direction: column;
@@ -686,9 +696,54 @@
       </button>
     </div>
 
+    <div v-if="mdash.dashboardconfig.filtrohorizont && mdash.dashboardconfig.temfiltro==true" class="m-dash-horizonta-filter-container">
+
+      <div class="gr-row">
+        <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp"
+          :class="[`gr-col-md-${filter.tamanho}`, `gr-col-sm-${filter.tamanho}`, `gr-col-lg-${filter.tamanho}`]">
+          <div class="m-dash-dynamic-filters">
+
+            <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}</label>
+
+            <!-- text -->
+            <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- digit -->
+            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- list -->
+            <select @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
+              class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]">
+              <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
+                {{ opt[filter.campooption] }}
+              </option>
+            </select>
+
+            <!-- logic -->
+            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
+              class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- fallback -->
+            <input @change="updateFilter(filter,$event)" v-else type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+          </div>
+
+
+        </div>
+      </div>
+
+    </div>
+
     <div class="m-dash-body">
 
-      <div v-if="mdash.dashboardconfig.temfiltro" class="m-dash-filter">
+
+      <div v-if="mdash.dashboardconfig.temfiltro && mdash.dashboardconfig.filtrohorizont==false" class="m-dash-filter">
 
         <div class="m-dash-filter-btn-group">
 
@@ -861,6 +916,7 @@
     this.categoria = data.categoria || "";
     this.dashboardstamp = data.dashboardstamp || "";
     this.temfiltro = data.temfiltro || false;
+    this.filtrohorizont = data.filtrohorizont || false;
 
   }
 
@@ -904,7 +960,7 @@
       this.tamanho = data.tamanho || 4;
       this.campooption = data.campooption || "";
       this.campovalor = data.campovalor || "";
-      this.expressaolistagem = data.expressaolistagem || "";
+      //this.expressaolistagem = data.expressaolistagem || "";
       this.valordefeito = data.valordefeito || "";
       this.ordem = data.ordem || 0;
     }
@@ -1345,6 +1401,8 @@
           if (self.expressaoobjecto) {
             try {
 
+
+
               eval(self.expressaoobjecto);
             } catch (error) {
 
@@ -1424,7 +1482,42 @@
       mdash: GMainDashInstance,
       getOptions(filter) {
         try {
-          return eval(filter.expressaolistagem) || [];
+
+          var res = []
+          $.ajax({
+            type: "POST",
+            async: false,
+            url: "../programs/gensel.aspx?cscript=getoptionslistmdash",
+            data: {
+              '__EVENTARGUMENT': JSON.stringify([{ mdashfilterstamp: filter.mdashfilterstamp }]),
+            },
+            success: function (response) {
+
+              var errorMessage = "ao trazer resultados "
+              try {
+                console.log(response)
+                if (response.cod != "0000") {
+
+                  console.log("Erro " + errorMessage, response)
+                  return false
+                }
+                res = response.data || []
+              } catch (error) {
+                console.log("Erro interno " + errorMessage, response)
+                //alertify.error("Erro interno " + errorMessage, 10000)
+              }
+
+              //  javascript:__doPostBack('','')
+            }
+
+          });
+
+
+
+          var filtroResult = res
+
+
+          return filtroResult
         } catch (e) {
           console.warn('Erro em expressaolistagem', e);
           return [];
@@ -1550,6 +1643,9 @@
       });
 
       configData.filterValues = filterValues;
+
+      document.title=dashboardconfig.descricao
+
 
       window.localStorage.setItem("mdashcachedFilters", JSON.stringify(configData.filterValues));
 
