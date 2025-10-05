@@ -5,6 +5,7 @@ $(document).ready(function () {
 
     addDashboardStyles(styles);
     addTabulatorStyles(styles);
+    addBtnStyles(styles);
     var globalStyle = ""
     styles.forEach(function (style) {
         globalStyle += style;
@@ -2322,6 +2323,35 @@ MDashCard.prototype.appendToBody = function (content) {
 
 
 
+function addBtnStyles(styles) {
+
+    var cssContent = '';
+
+    cssContent += '.heartbeat-effect {';
+    cssContent += '  display: inline-block;';
+    cssContent += '  transform-origin: center;';
+    cssContent += '}';
+
+    cssContent += '@keyframes heartbeat {';
+    cssContent += '  0% { transform: scale(1); }';
+    cssContent += '  10% { transform: scale(1.25); }';
+    cssContent += '  20% { transform: scale(1); }';
+    cssContent += '  30% { transform: scale(1.25); }';
+    cssContent += '  40% { transform: scale(1); }';
+    cssContent += '  100% { transform: scale(1); }';
+    cssContent += '}';
+
+    cssContent += '.heartbeat-effect.is-beating {';
+    cssContent += '  animation: heartbeat 1.5s ease-in-out infinite;';
+    cssContent += '}';
+
+    cssContent += '@media (prefers-reduced-motion: reduce) {';
+    cssContent += '  .heartbeat-effect.is-beating { animation: none !important; }';
+    cssContent += '}';
+
+    styles.push(cssContent);
+}
+
 function addDashboardStyles(styles) {
     var dashboardCSS = "";
 
@@ -2478,7 +2508,7 @@ function addDashboardStyles(styles) {
 
     dashboardCSS += ".dashcard .dashcard-header-success:not(.dashcard-header-icon):not(.dashcard-header-text) {";
     // dashboardCSS += "    background: linear-gradient(60deg, #3ba94e, #3ba94e);";
-   // dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
+    // dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
 
     dashboardCSS += "    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .14), 0 7px 10px -5px rgba(55, 119, 26, 0.4);";
     dashboardCSS += "}";

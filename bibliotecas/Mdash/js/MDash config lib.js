@@ -28,18 +28,21 @@ var GMdashEntityCopyConfig = [
     new MdashEntityCopy({
         idfield: "mdashcontainerstamp",
         table: "MdashContainer",
+        entityToInstantiate: MdashContainer,
         localsource: "GMDashContainers",
         childs: ["MdashContainerItem"]
     }),
     new MdashEntityCopy({
         idfield: "mdashcontaineritemstamp",
         table: "MdashContainerItem",
+        entityToInstantiate: MdashContainerItem,
         localsource: "GMDashContainerItems",
         childs: ["MdashContainerItemObject"]
     }),
     new MdashEntityCopy({
         idfield: "mdashcontaineritemobjectstamp",
         table: "MdashContainerItemObject",
+        entityToInstantiate: MdashContainerItemObject,
         localsource: "GMDashContainerItemObjects",
         childs: []
     })
@@ -67,6 +70,7 @@ function MdashEntityCopy(data) {
     this.idfield = data.idfield || "";
     this.table = data.table || "";
     this.localsource = data.localsource || "";
+    this.entityToInstantiate = data.entityToInstantiate || function () { };
     this.childs = data.childs || [];
 }
 
@@ -1667,6 +1671,9 @@ function registerListenersMdash() {
         handleCodeEditor();
 
     }
+
+
+
 
     $(document).off("click", ".add-container-item-object-btn").on("click", ".add-container-item-object-btn", function (e) {
 
@@ -3269,6 +3276,20 @@ function registerListenersMdash() {
     })
 
 
+
+    function getMaxOrdemByLocalSource(localSource) {
+
+        var maxOrdem = 0;
+        if (Array.isArray(localSource) && localSource.length > 0) {
+            maxOrdem = localSource.reduce(function (max, item) {
+                return Math.max(max, item.ordem || 0);
+            }, 0);
+        }
+
+        return maxOrdem;
+    }
+
+
     function copyMdashComponent(componenteId, table, parentComponentId, parentIdField) {
 
         var componentCopyConfig = GMdashEntityCopyConfig.find(function (conf) {
@@ -3301,11 +3322,15 @@ function registerListenersMdash() {
             copiedComponent[parentIdField] = parentComponentId;
         }
 
+        copiedComponent.ordem = getMaxOrdemByLocalSource(localSource) + 1;
+
+
+
 
 
         var copiedData = {
             componentCopyConfig: componentCopyConfig,
-            componentData: copiedComponent
+            componentData: new componentCopyConfig.entityToInstantiate(copiedComponent)
         };
 
         GCopiedComponentData.push(copiedData);
@@ -3339,20 +3364,45 @@ function registerListenersMdash() {
 
     }
 
+    function handleRenderPastedUI(componenteType, componenteData) {
+
+        switch (componenteType) {
+            case "MdashContainer":
+                // Renderizar UI para MdashContainer
+
+                var containerUIObjectFormConfigResult = getContainerUIObjectFormConfigAndSourceValues();
+                addContainerMDashConfig(componenteData, containerUIObjectFormConfigResult);
+                break;
+            case "MdashContainerItem":
+
+                var containerUIObjectFormConfigResult = getContainerItemUIObjectFormConfigAndSourceValues();
+                addContainerItemMDashConfig(componenteData, containerUIObjectFormConfigResult);
+                break;
+            default:
+                break;
+        }
+
+        GCopiedComponentData = [];
+        $("#pasteContainerMDashBtn").hide()
+
+    }
     $(document).off("click", ".paste-m-dash-container-btn").on("click", ".paste-m-dash-container-btn", function (e) {
 
-       /* var copiedData = {
-            componentCopyConfig: componentCopyConfig,
-            componentData: copiedComponent
-        };*/
+        /* var copiedData = {
+             componentCopyConfig: componentCopyConfig,
+             componentData: copiedComponent
+         };*/
 
         GCopiedComponentData.forEach(function (copiedData) {
             // Aqui você pode usar copiedData para colar os componentes copiados
             var componentCopyConfig = copiedData.componentCopyConfig;
             var componentData = copiedData.componentData;
-            
+
             var localSource = eval(componentCopyConfig.localsource);
             localSource.push(componentData);
+
+            handleRenderPastedUI(componentData.table, componentData);
+            realTimeComponentSync(componentData, componentData.table, componentData.idfield);
         });
 
 
@@ -3364,33 +3414,21 @@ function registerListenersMdash() {
 
         $(".paste-m-dash-container-btn").show();
         copyMdashComponent(containerId, "MdashContainer", null, null);
-        /*
-        var mdashEntityCopyConfig = [
 
-    new MdashEntityCopy({
-        idfield: "mdashcontainerstamp",
-        table: "MdashContainer",
-        localsource: "GMDashContainers",
-        childs: ["MdashContainerItem"]
-    }),
-    new MdashEntityCopy({
-        idfield: "mdashcontaineritemstamp",
-        table: "MdashContainerItem",
-        localsource: "GMDashContainerItems",
-        childs: []
-    })
-];
-        
-        */
+
+    });
+
+    $(document).off("click", ".copy-container-item-btn").on("click", ".copy-container-item-btn", function (e) {
+
+        var containerItemId = $(this).data("mdashcontaineritemstamp");
+
+        $(".paste-m-dash-container-btn").text("Colar item")
+        $(".paste-m-dash-container-btn").show();
+        copyMdashComponent(containerItemId, "MdashContainerItem", null, null);
 
 
 
-
-
-
-
-
-    })
+    });
 
     $(document).off("click", ".open-config-container-btn").on("click", ".open-config-container-btn", function (e) {
 
@@ -3563,7 +3601,7 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
         style: "",
         buttonId: "removeItemContainerBtn_" + containerItem.mdashcontaineritemstamp,
         classes: "btn btn-xs btn-default  remover-item-container-btn",
-        customData: " type='button' data-tooltip='true' data-original-title='Remover item do container' ",
+        customData: " type='button' data-tooltip='Remover item do container' data-original-title='Remover item do container' ",
         label: "<span class='glyphicon glyphicon glyphicon-trash' ></span>",
         onClick: "",
     };
@@ -3590,6 +3628,17 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
         label: "<span class='glyphicon glyphicon-stats'></span>",
         onClick: "",
     };
+
+    var botaoCopyContainerItem = {
+        style: "",
+        buttonId: "copyContainerItemBtn_" + containerItem.mdashcontaineritemstamp,
+        classes: "btn btn-xs btn-default copy-container-item-btn",
+        customData: " data-mdashcontaineritemstamp='" + containerItem.mdashcontaineritemstamp + "' type='button' data-tooltip='true' data-original-title='Copiar item do container' ",
+        label: "<span class='glyphicon glyphicon-duplicate'></span>",
+        onClick: "",
+    };
+    var copyContainerItemHtml = generateButton(botaoCopyContainerItem);
+    actionsContainer += copyContainerItemHtml;
 
     var addContainerItemObjectHtml = generateButton(botaoAddContainerItemObject);
     actionsContainer += addContainerItemObjectHtml;
@@ -4007,7 +4056,7 @@ function initConfiguracaoDashboard(config) {
     var pasteContainerBtnData = {
         style: "margin-left:0.5em;display:none;",
         buttonId: "pasteContainerMDashBtn",
-        classes: "btn btn-sm btn-default paste-m-dash-container-btn",
+        classes: "heartbeat-effect is-beating btn btn-sm btn-default paste-m-dash-container-btn",
         customData: " type='button' data-tooltip='true' data-original-title='Colar container' ",
         label: "Colar container <span class='glyphicon glyphicon glyphicon-paste' ></span>",
         onClick: "",
