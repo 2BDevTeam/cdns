@@ -1056,7 +1056,7 @@ function getTiposObjectoConfig() {
                                 type: "string",
                                 title: "Peso da Fonte",
                                 'enum': ["normal", "bold", "lighter", "bolder", "100", "200", "300", "400", "500", "600", "700", "800", "900"],
-                                'default': "normal"
+                                'default': "bold"
                             },
                             fontStyle: {
                                 type: "string",
@@ -1074,7 +1074,7 @@ function getTiposObjectoConfig() {
                                 type: "string",
                                 title: "Alinhamento",
                                 'enum': ["left", "center", "right", "justify"],
-                                'default': "left"
+                                'default': "center"
                             },
                             lineHeight: {
                                 type: "number",
@@ -1102,7 +1102,7 @@ function getTiposObjectoConfig() {
                                 type: "string",
                                 title: "Cor de Fundo",
                                 format: "color",
-                                'default': "transparent"
+                                'default': "#ffffffff"
                             },
                             borderColor: {
                                 type: "string",

@@ -12,7 +12,7 @@ CREATE TABLE [dbo].[u_mdash](
 	[temfiltro] [bit] NOT NULL,
 	[codigo] [varchar](250) NOT NULL,
 	[descricao] [varchar](250) NOT NULL,
-    [filtrohorizontal] [bit] NOT  NULL,
+    [filtrohorizont] [bit] NOT  NULL,
 	[categoria] [varchar](250) NOT NULL,
 	[ousrinis] [varchar](30) NOT NULL,
 	[ousrdata] [datetime] NOT NULL,

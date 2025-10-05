@@ -21,8 +21,30 @@ var GMDashStamp = "";
 var GTMPReactiveInstance
 var GTMPDragItem = null;
 var GTMPDragId = null;
+var GCopiedComponentData = []
 
+var GMdashEntityCopyConfig = [
 
+    new MdashEntityCopy({
+        idfield: "mdashcontainerstamp",
+        table: "MdashContainer",
+        localsource: "GMDashContainers",
+        childs: ["MdashContainerItem"]
+    }),
+    new MdashEntityCopy({
+        idfield: "mdashcontaineritemstamp",
+        table: "MdashContainerItem",
+        localsource: "GMDashContainerItems",
+        childs: ["MdashContainerItemObject"]
+    }),
+    new MdashEntityCopy({
+        idfield: "mdashcontaineritemobjectstamp",
+        table: "MdashContainerItemObject",
+        localsource: "GMDashContainerItemObjects",
+        childs: []
+    })
+
+];
 
 function UIObjectFormConfig(data) {
 
@@ -38,6 +60,14 @@ function UIObjectFormConfig(data) {
     this.fieldToValue = data.fieldToValue || "";
     this.contentType = data.contentType || "input";
 
+}
+
+function MdashEntityCopy(data) {
+
+    this.idfield = data.idfield || "";
+    this.table = data.table || "";
+    this.localsource = data.localsource || "";
+    this.childs = data.childs || [];
 }
 
 
@@ -64,6 +94,7 @@ function MdashFilter(data) {
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.localsource = data.localsource || "";
     this.idfield = data.idfield || "mdashfilterstamp";
+    this.table = "MdashFilter"
 }
 
 function getMdashFilterUIObjectFormConfigAndSourceValues() {
@@ -119,6 +150,7 @@ function MdashContainer(data) {
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.localsource = data.localsource || "";
     this.idfield = data.idfield || "mdashcontainerstamp";
+    this.table = "MdashContainer";
 }
 
 
@@ -188,6 +220,8 @@ function MdashContainerItem(data) {
     this.dadosTemplate = data.dadosTemplate || {}
     this.localsource = data.localsource || "";
     this.idfield = data.idfield || "mdashcontainerstamp";
+    this.table = "MdashContainerItem";
+
 }
 
 MdashContainerItem.prototype.renderLayout = function (container, cleanContainer) {
@@ -469,6 +503,7 @@ function handleShowConfigContainer(data) {
     var localsource = data.localsource || "";
     var idField = data.idField || "";
     var componente = data.componente || "";
+
     var localSourceRes = getLocalSource(localsource);
 
     var mdashConfigItem = localSourceRes.find(function (obj) {
@@ -488,14 +523,16 @@ function handleShowConfigContainer(data) {
             sourceTable: localsource,
             sourceKey: localsource
         }
+
+        // console.log("sourceData", sourceData)
         var containers = [];
 
         objectsUIFormConfig.forEach(function (obj) {
 
             var isDiv = obj.contentType === "div";
-            var customData = obj.customData + " v-model='mdashConfigItem." + obj.campo + "'";
+            var customData = obj.customData + "  @change='handleChangeComponent'  v-model='mdashConfigItem." + obj.campo + "'";
             if (isDiv) {
-                console.log("Div detected for campo: " + obj.campo);
+                //console.log("Div detected for campo: " + obj.campo);
                 customData += " v-on:keyup='changeDivContent(\"" + obj.campo + "\")'";
             }
 
@@ -557,9 +594,16 @@ function handleShowConfigContainer(data) {
         $("#modalMdashConfigItem .modal-dialog").css("width", "90%")
         PetiteVue.createApp({
             mdashConfigItem: mdashConfigItem,
+            localsource: localsource,
+            handleChangeComponent: function () {
+
+                realTimeComponentSync(this.mdashConfigItem, this.mdashConfigItem.table, this.mdashConfigItem.idfield);
+            },
             changeDivContent: function (e) {
                 var editor = ace.edit(e);
                 this.mdashConfigItem[e] = editor.getValue();
+                realTimeComponentSync(this.mdashConfigItem, this.mdashConfigItem.table, this.mdashConfigItem.idfield);
+
             }
         }).mount('#maincontent');
 
@@ -570,11 +614,65 @@ function handleShowConfigContainer(data) {
 
 
 
+function realTimeComponentSync(recordData, table, idfield) {
+    var errorMessage = "ao actualizar componente em tempo real,verifique a conexão com a internet.Se o erro persistir contacte o administrador do sistema. "
+    try {
 
-//Schema
-//Configuração do Objeto
-//Handler de apresentação do objeto
-//
+
+        var configData = []
+
+
+        if (recordData) {
+            configData = [
+                {
+                    sourceTable: table,
+                    sourceKey: idfield,
+                    records: [recordData]
+                }
+            ];
+
+        }
+
+
+        $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=realtimecomponentsync",
+            async: false,
+            data: {
+                '__EVENTARGUMENT': JSON.stringify([{ config: configData, recordsToDelete: GMdashDeleteRecords }]),
+            },
+            success: function (response) {
+
+                try {
+                    console.log(response)
+                    if (response.cod != "0000") {
+
+                        console.log("Erro " + errorMessage, response);
+                        alertify.error("Erro " + errorMessage, 4000)
+                        return false
+                    }
+                    // alertify.success("Dados actualizados com sucesso", 9000);
+                } catch (error) {
+                    //alertify
+                    alertify.error("Erro interno " + errorMessage, 10000)
+                }
+
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                console.log("Erro " + errorMessage, xhr, thrownError);
+                alertify.error(".Erro " + errorMessage, 4000)
+            }
+        })
+
+    } catch (error) {
+        console.log("Erro interno " + errorMessage, response, error)
+
+    }
+
+
+}
+
+
 function MdashContainerItemObject(data) {
     // Calcula ordem máxima se não for fornecida
     var maxOrdem = 0;
@@ -614,6 +712,7 @@ function MdashContainerItemObject(data) {
     this.config = config || {}
     this.configjson = data.configjson || ""
     this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
+    this.table = "MdashContainerItemObject"
 
     this.objectoConfig = data.objectoConfig || {};
 
@@ -763,134 +862,6 @@ function getPreviewContainerItemData(containerItem) {
 
 
 
-
-
-// Gerar o HTML reativo para a query local
-function generateReactiveQueryHTML2() {
-    var queryHTML = "";
-
-    // Campos para SELECT / Agregações
-    queryHTML += "             <div class='mb-3'>";
-    queryHTML += "               <label><strong>Campos de Selecção / Agregações:</strong></label>";
-    queryHTML += "               <div class='selectFieldsContainer'>";
-    queryHTML += "                 <div v-for='(selectField, index) in containerItemObject.queryConfig.selectFields' :key='index' class='select-row mb-2' style='display: flex; align-items: center; gap: 0.8em;margin-bottom: 0.5em;'>";
-    queryHTML += "                   <select v-model='selectField.operation' class='form-control input-sm select-local-query' style='flex: 1;'>";
-    queryHTML += "                     <option value=''>Nenhuma</option>";
-    queryHTML += "                     <option value='TODOS'>Todos os campos</option>";
-    queryHTML += "                     <option value='COUNT'>COUNT(*)</option>";
-    queryHTML += "                     <option value='SUM'>SUM</option>";
-    queryHTML += "                     <option value='AVG'>AVG</option>";
-    queryHTML += "                     <option value='MIN'>MIN</option>";
-    queryHTML += "                     <option value='MAX'>MAX</option>";
-    queryHTML += "                   </select>";
-    queryHTML += "                   <select v-model='selectField.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
-    queryHTML += "                     <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
-    queryHTML += "                   </select>";
-    queryHTML += "                   <input v-model='selectField.alias' placeholder='Alias' class='form-control input-sm' style='flex: 1;' />";
-    queryHTML += "                   <button @click='removeSelectField(index, containerItemObject)' type='button' class='btn btn-danger btn-sm'>X</button>";
-    queryHTML += "                 </div>";
-    queryHTML += "               </div>";
-    queryHTML += "               <button @click='addSelectField(containerItemObject)' type='button' class='btn btn-primary btn-sm mt-2'>";
-    queryHTML += "                 + Adicionar campo/agregação";
-    queryHTML += "               </button>";
-    queryHTML += "             </div>";
-
-    // Filtros
-    queryHTML += "             <div class='mb-3'>";
-    queryHTML += "               <label><strong>Filtros:</strong></label>";
-    queryHTML += "               <div class='filtersContainer'>";
-    queryHTML += "                 <div v-for='(filter, index) in containerItemObject.queryConfig.filters' :key='index' class='filter-row mb-2' style='display: flex; align-items: center; gap: 0.8em;'>";
-    queryHTML += "                   <select v-model='filter.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
-    queryHTML += "                     <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
-    queryHTML += "                   </select>";
-    queryHTML += "                   <select v-model='filter.operator' class='form-control input-sm select-local-query' style='flex: 1;'>";
-    queryHTML += "                     <option value='='>=</option>";
-    queryHTML += "                     <option value='<'><</option>";
-    queryHTML += "                     <option value='>'>></option>";
-    queryHTML += "                     <option value='<='><=</option>";
-    queryHTML += "                     <option value='>='>>=</option>";
-    queryHTML += "                     <option value='<>'><></option>";
-    queryHTML += "                     <option value='LIKE'>LIKE</option>";
-    queryHTML += "                   </select>";
-    queryHTML += "                   <input v-model='filter.value' placeholder='Valor' class='form-control input-sm' style='flex: 1;' />";
-    queryHTML += "                   <button @click='removeFilter(index, containerItemObject)' type='button' class='btn btn-danger btn-sm'>X</button>";
-    queryHTML += "                 </div>";
-    queryHTML += "               </div>";
-    queryHTML += "               <button style='margin-top:0.4em' @click='addFilter(containerItemObject)' type='button' class='btn btn-primary btn-sm mt-2'>";
-    queryHTML += "                 + Adicionar filtro";
-    queryHTML += "               </button>";
-    queryHTML += "             </div>";
-
-    // Group By
-    queryHTML += "             <div class='mb-3'>";
-    queryHTML += "               <label><strong>Agrupamento:</strong></label>";
-    queryHTML += "               <div class='groupByContainer'>";
-    queryHTML += "                 <div v-for='(groupField, index) in containerItemObject.queryConfig.groupBy' :key='index' class='group-row mb-2' style='display: flex; align-items: center; gap: 0.8em;margin-bottom: 0.5em;'>";
-    queryHTML += "                   <select v-model='groupField.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
-    queryHTML += "                     <option value=''>-- Selecione o campo --</option>";
-    queryHTML += "                     <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
-    queryHTML += "                   </select>";
-    queryHTML += "                   <button @click='removeGroupBy(index, containerItemObject)' type='button' class='btn btn-danger btn-sm'>X</button>";
-    queryHTML += "                 </div>";
-    queryHTML += "               </div>";
-    queryHTML += "               <button style='margin-top:0.4em' @click='addGroupBy(containerItemObject)' type='button' class='btn btn-primary btn-sm'>";
-    queryHTML += "                 + Adicionar Agrupamento";
-    queryHTML += "               </button>";
-    queryHTML += "             </div>";
-    // Order By, Direção, Limit e Executar
-    queryHTML += "             <div class='form-row align-items-center mt-3 mb-3'>";
-    queryHTML += "               <div class='col-auto'>";
-    queryHTML += "                 <label><strong>Ordernar por:</strong></label>";
-    queryHTML += "                 <select v-model='containerItemObject.queryConfig.orderBy.field' class='form-control input-sm select-local-query'>";
-    queryHTML += "                   <option value=''>-- Nenhum --</option>";
-    queryHTML += "                   <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
-    queryHTML += "                 </select>";
-    queryHTML += "               </div>";
-    queryHTML += "               <div class='col-auto'>";
-    queryHTML += "                 <label><strong>Ordem:</strong></label>";
-    queryHTML += "                 <select v-model='containerItemObject.queryConfig.orderBy.direction' class='form-control input-sm'>";
-    queryHTML += "                   <option value='ASC'>Ascendente</option>";
-    queryHTML += "                   <option value='DESC'>Descendente</option>";
-    queryHTML += "                 </select>";
-    queryHTML += "               </div>";
-    queryHTML += "               <div class='col-auto'>";
-    queryHTML += "                 <label><strong>Limit:</strong></label>";
-    queryHTML += "                 <input v-model.number='containerItemObject.queryConfig.limit' type='number' min='1' placeholder='Ex: 10' class='form-control input-sm' />";
-    queryHTML += "               </div>";
-    queryHTML += "               <div style='margin-top:0.4em' class='col-auto mt-4'>";
-    queryHTML += "                 <button type='button' @click='executeQuery(containerItemObject)' class='btn btn-primary btn-sm'>Executar</button>";
-    queryHTML += "               </div>";
-    queryHTML += "             </div>";
-
-    // Resultado
-    queryHTML += "             <div class='mb-3'>";
-    queryHTML += "               <label><strong>SQL Gerado:</strong></label>";
-    queryHTML += "               <pre class='bg-light p-2 border rounded' style='font-size: 12px;'>{{ containerItemObject.queryConfig.generatedSQL || 'Nenhuma query executada ainda' }}</pre>";
-    queryHTML += "             </div>";
-
-    queryHTML += "             <div class='mb-3'>";
-    queryHTML += "               <label><strong>Resultado ({{ containerItemObject?.queryConfig?.lastResult.length }} registros):</strong></label>";
-    queryHTML += "               <div class='table-responsive' style='max-height: 300px; overflow-y: auto;'>";
-    queryHTML += "                 <table id='resultTableSql' v-if='containerItemObject?.queryConfig?.lastResult.length > 0' class='table table-sm  table-striped'>";
-    queryHTML += "                   <thead>";
-    queryHTML += "                     <tr class='defgridheader' >";
-    queryHTML += "                       <th v-for='(value, key) in containerItemObject?.queryConfig?.lastResult[0]' :key='key'>{{ key }}</th>";
-    queryHTML += "                     </tr>";
-    queryHTML += "                   </thead>";
-    queryHTML += "                   <tbody>";
-    queryHTML += "                     <tr v-for='(row, index) in containerItemObject?.queryConfig?.lastResult' :key='index'>";
-    queryHTML += "                       <td v-for='(value, key) in row' :key='key'>{{ value }}</td>";
-    queryHTML += "                     </tr>";
-    queryHTML += "                   </tbody>";
-    queryHTML += "                 </table>";
-    queryHTML += "                 <p v-else class='text-muted'><i>Nenhum resultado encontrado</i></p>";
-    queryHTML += "               </div>";
-    queryHTML += "             </div>";
-
-    return queryHTML;
-}
-
-
 // ...existing code...
 
 // Gerar o HTML reativo para a query local
@@ -910,7 +881,7 @@ function generateReactiveQueryHTML() {
     queryHTML += "                   <label><strong>Campos de Selecção / Agregações:</strong></label>";
     queryHTML += "                   <div class='selectFieldsContainer'>";
     queryHTML += "                     <div v-for='(selectField, index) in containerItemObject.queryConfig.selectFields' :key='index' class='select-row mb-2' style='display: flex; align-items: center; gap: 0.8em;margin-bottom: 0.5em;'>";
-    queryHTML += "                       <select v-model='selectField.operation' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                       <select @change='updateQueryLocalConfig' v-model='selectField.operation' class='form-control input-sm select-local-query' style='flex: 1;'>";
     queryHTML += "                         <option value=''>Nenhuma</option>";
     queryHTML += "                         <option value='TODOS'>Todos os campos</option>";
     queryHTML += "                         <option value='COUNT'>COUNT(*)</option>";
@@ -919,10 +890,10 @@ function generateReactiveQueryHTML() {
     queryHTML += "                         <option value='MIN'>MIN</option>";
     queryHTML += "                         <option value='MAX'>MAX</option>";
     queryHTML += "                       </select>";
-    queryHTML += "                       <select v-model='selectField.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                       <select @change='updateQueryLocalConfig' v-model='selectField.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
     queryHTML += "                         <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
     queryHTML += "                       </select>";
-    queryHTML += "                       <input v-model='selectField.alias' placeholder='Alias' class='form-control input-sm' style='flex: 1;' />";
+    queryHTML += "                       <input @change='updateQueryLocalConfig' v-model='selectField.alias' placeholder='Alias' class='form-control input-sm' style='flex: 1;' />";
     queryHTML += "                       <button @click='removeSelectField(index, containerItemObject)' type='button' class='btn btn-danger btn-sm'>X</button>";
     queryHTML += "                     </div>";
     queryHTML += "                   </div>";
@@ -936,10 +907,10 @@ function generateReactiveQueryHTML() {
     queryHTML += "                   <label><strong>Filtros:</strong></label>";
     queryHTML += "                   <div class='filtersContainer'>";
     queryHTML += "                     <div v-for='(filter, index) in containerItemObject.queryConfig.filters' :key='index' class='filter-row mb-2' style='display: flex; align-items: center; gap: 0.8em;'>";
-    queryHTML += "                       <select v-model='filter.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                       <select @change='updateQueryLocalConfig' v-model='filter.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
     queryHTML += "                         <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
     queryHTML += "                       </select>";
-    queryHTML += "                       <select v-model='filter.operator' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                       <select @change='updateQueryLocalConfig' v-model='filter.operator' class='form-control input-sm select-local-query' style='flex: 1;'>";
     queryHTML += "                         <option value='='>=</option>";
     queryHTML += "                         <option value='<'><</option>";
     queryHTML += "                         <option value='>'>></option>";
@@ -948,7 +919,7 @@ function generateReactiveQueryHTML() {
     queryHTML += "                         <option value='<>'><></option>";
     queryHTML += "                         <option value='LIKE'>LIKE</option>";
     queryHTML += "                       </select>";
-    queryHTML += "                       <input v-model='filter.value' placeholder='Valor' class='form-control input-sm' style='flex: 1;' />";
+    queryHTML += "                       <input @change='updateQueryLocalConfig' v-model='filter.value' placeholder='Valor' class='form-control input-sm' style='flex: 1;' />";
     queryHTML += "                       <button @click='removeFilter(index, containerItemObject)' type='button' class='btn btn-danger btn-sm'>X</button>";
     queryHTML += "                     </div>";
     queryHTML += "                   </div>";
@@ -962,7 +933,7 @@ function generateReactiveQueryHTML() {
     queryHTML += "                   <label><strong>Agrupamento:</strong></label>";
     queryHTML += "                   <div class='groupByContainer'>";
     queryHTML += "                     <div v-for='(groupField, index) in containerItemObject.queryConfig.groupBy' :key='index' class='group-row mb-2' style='display: flex; align-items: center; gap: 0.8em;margin-bottom: 0.5em;'>";
-    queryHTML += "                       <select v-model='groupField.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
+    queryHTML += "                       <select @change='updateQueryLocalConfig' v-model='groupField.field' class='form-control input-sm select-local-query' style='flex: 1;'>";
     queryHTML += "                         <option value=''>-- Selecione o campo --</option>";
     queryHTML += "                         <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
     queryHTML += "                       </select>";
@@ -978,21 +949,21 @@ function generateReactiveQueryHTML() {
     queryHTML += "                 <div class='form-row align-items-center mt-3 mb-3'>";
     queryHTML += "                   <div class='col-auto'>";
     queryHTML += "                     <label><strong>Ordernar por:</strong></label>";
-    queryHTML += "                     <select v-model='containerItemObject.queryConfig.orderBy.field' class='form-control input-sm select-local-query'>";
+    queryHTML += "                     <select @change='updateQueryLocalConfig' v-model='containerItemObject.queryConfig.orderBy.field' class='form-control input-sm select-local-query'>";
     queryHTML += "                       <option value=''>-- Nenhum --</option>";
     queryHTML += "                       <option v-for='field in getAvailableFields()' :key='field' :value='field'>{{ field }}</option>";
     queryHTML += "                     </select>";
     queryHTML += "                   </div>";
     queryHTML += "                   <div class='col-auto'>";
     queryHTML += "                     <label><strong>Ordem:</strong></label>";
-    queryHTML += "                     <select v-model='containerItemObject.queryConfig.orderBy.direction' class='form-control input-sm'>";
+    queryHTML += "                     <select  @change='updateQueryLocalConfig' v-model='containerItemObject.queryConfig.orderBy.direction' class='form-control input-sm'>";
     queryHTML += "                       <option value='ASC'>Ascendente</option>";
     queryHTML += "                       <option value='DESC'>Descendente</option>";
     queryHTML += "                     </select>";
     queryHTML += "                   </div>";
     queryHTML += "                   <div class='col-auto'>";
     queryHTML += "                     <label><strong>Limit:</strong></label>";
-    queryHTML += "                     <input v-model.number='containerItemObject.queryConfig.limit' type='number' min='1' placeholder='Ex: 10' class='form-control input-sm' />";
+    queryHTML += "                     <input  @change='updateQueryLocalConfig' v-model.number='containerItemObject.queryConfig.limit' type='number' min='1' placeholder='Ex: 10' class='form-control input-sm' />";
     queryHTML += "                   </div>";
     queryHTML += "                   <div style='margin-top:0.4em' class='col-auto mt-4'>";
     queryHTML += "                     <button type='button' @click='executeQuery(containerItemObject)' class='btn btn-primary btn-sm'>Executar</button>";
@@ -1662,7 +1633,7 @@ function registerListenersMdash() {
         $(contToRender).empty();
         $(contToRender).append(formContainerResult)
 
-       
+
 
 
 
@@ -1700,7 +1671,7 @@ function registerListenersMdash() {
     $(document).off("click", ".add-container-item-object-btn").on("click", ".add-container-item-object-btn", function (e) {
 
         var containerItemId = $(this).attr("containeritemId");
-         $("#modalContainerItemObjectConfig").remove()
+        $("#modalContainerItemObjectConfig").remove()
 
         var modalBodyHtml = "<div id='modalBodyHtmlContainerItemObjectConfig'>";
         modalBodyHtml += "</div>";
@@ -1719,7 +1690,7 @@ function registerListenersMdash() {
         $("#modalContainerItemObjectConfig .modal-dialog").css("width", "90%")
 
 
-        refreshAllEditor(containerItemId,"#modalBodyHtmlContainerItemObjectConfig");
+        refreshAllEditor(containerItemId, "#modalBodyHtmlContainerItemObjectConfig");
 
     })
 
@@ -2124,10 +2095,8 @@ function registerListenersMdash() {
 
                 containerItemObject.objectoConfig = tipoObjecto
 
-                console.log("before", document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp))
                 $(".objectEditor").empty();
 
-                console.log("after", document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp))
                 if (!document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp)) {
                     return;
                 }
@@ -2201,6 +2170,9 @@ function registerListenersMdash() {
                     containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, self.containerItem);
 
 
+
+
+
                 });
 
                 editor.on('change', function () {
@@ -2216,16 +2188,19 @@ function registerListenersMdash() {
                             "font-weight": "bold"
                         }
                     )
+
+                    setTimeout(function () {
+                        realTimeComponentSync(containerItemObject, containerItemObject.table, containerItemObject.idfield)
+                    }, 0);
                 });
 
 
             },
             initDetailEditor: function (containerItemObject) {
+
                 var self = this;
                 containerItemObjectJson = proxyToJSON(containerItemObject)
                 var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
-
-
                 this.$nextTick(function () {
                     var editorForm = gerarConteudoDetailsEditor(containerItemObject, self);
                     $(".objectEditor").empty();
@@ -2258,10 +2233,6 @@ function registerListenersMdash() {
                     return tipo.tipo === contItem.tipo;
                 });
 
-
-
-
-
                 if (tipoObjecto) {
 
 
@@ -2288,9 +2259,6 @@ function registerListenersMdash() {
 
             handleTemplateLayoutChange: function (templateCode) {
 
-                //this.containerItem.renderLayout("#layoutdisplay", true)
-                //this.containerItem.renderLayout(".container-item-object-render", true);
-                //this.containerItem.refreshContainerItem(".container-item-object-render");
 
                 var card = gerarConteudoEditorObjecto(this.containerItem);
                 var self = this
@@ -2300,11 +2268,10 @@ function registerListenersMdash() {
                 this.$nextTick(function () {
                     $("#objectPreview").empty(); // Limpa o conteúdo anterior
                     $("#objectPreview").append(card); // Adiciona o novo card
-                    // refreshAllEditor(containerItemId,"#modalBodyHtmlContainerItemObjectConfig");
-                    refreshAllEditor(self.containerItem.mdashcontaineritemstamp,"#modalBodyHtmlContainerItemObjectConfig");
-                    //setReactiveContainerItemOject(GTMPReactiveInstance.containerItem, GTMPReactiveInstance.filterValues, GTMPReactiveInstance.GMDashContainerItemObjects, GTMPReactiveInstance.filteredContainerItemObjects);
+                    refreshAllEditor(self.containerItem.mdashcontaineritemstamp, "#modalBodyHtmlContainerItemObjectConfig");
                 });
 
+                realTimeComponentSync(this.containerItem, this.containerItem.table, this.containerItem.idfield)
 
             },
             // ... resto dos métodos existentes
@@ -2314,10 +2281,9 @@ function registerListenersMdash() {
                 this.GMDashContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
                     return obj.mdashcontaineritemobjectstamp != containerItemObject.mdashcontaineritemobjectstamp;
                 });
-                //GMDashContainerItemObjects = this.GMDashContainerItemObjects;
 
 
-
+                console.log("this.GMDashContainerItemObjects", this.GMDashContainerItemObjects)
                 GMdashDeleteRecords.push({
                     table: "MdashContainerItemObject",
                     stamp: containerItemObject.mdashcontaineritemobjectstamp,
@@ -2325,8 +2291,10 @@ function registerListenersMdash() {
                 });
 
                 this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
-                    return obj.mdashcontaineritemstamp != containerItemObject.mdashcontaineritemstamp;
+                    return obj.mdashcontaineritemstamp == containerItemObject.mdashcontaineritemstamp;
                 });
+
+                console.log("Filtered", this.filteredContainerItemObjects)
 
 
             },
@@ -2365,6 +2333,8 @@ function registerListenersMdash() {
                 this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
                     return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
                 });
+
+                realTimeComponentSync(newObject, newObject.table, newObject.idfield)
             },
             availableObjects: getTiposObjectoConfig(),
             objects: [],
@@ -2401,7 +2371,7 @@ function registerListenersMdash() {
             },
             drop: function (targetId) {
 
-                console.log("BEFORE DROP:", this);
+
                 if (!GTMPDragItem) return;
 
                 var targetIndex = this.GMDashContainerItemObjects.length;
@@ -2415,6 +2385,8 @@ function registerListenersMdash() {
                     var dragged = this.GMDashContainerItemObjects[index];
                     this.GMDashContainerItemObjects.splice(index, 1);
                     this.GMDashContainerItemObjects.splice(targetIndex, 0, dragged);
+
+
                 } else {
 
                     this.addObjectoContainerItem(GTMPDragItem);
@@ -2423,6 +2395,17 @@ function registerListenersMdash() {
 
                 this.GMDashContainerItemObjects.forEach(function (o, idx) { o.ordem = idx + 1; });
 
+
+
+               /* Promise.resolve().then(function () {
+
+                   
+                })
+*/             this.filteredContainerItemObjects.forEach(function (itmObj) {
+
+                    realTimeComponentSync(itmObj, itmObj.table, itmObj.idfield)
+
+                });
                 this.dragItem = null;
                 GTMPDragItem = null;
                 this.dragId = null;
@@ -2465,6 +2448,12 @@ function registerListenersMdash() {
                     mainQueryHasError: false,
                     mainQueryError: "",
                     queryJsonResult: "",
+                    updateQueryLocalConfig: function () {
+
+
+                        this.containerItemObject.queryconfigjson = JSON.stringify(this.containerItemObject.queryConfig);
+                        realTimeComponentSync(this.containerItemObject, this.containerItemObject.table, this.containerItemObject.idfield);
+                    },
 
                     // Métodos para query local
                     getAvailableFields: function () {
@@ -2487,6 +2476,7 @@ function registerListenersMdash() {
                                 alias: ''
                             });
                         }
+                        this.updateQueryLocalConfig()
                     },
 
                     removeSelectField: function (index, containerItemObject) {
@@ -2497,6 +2487,8 @@ function registerListenersMdash() {
                                 obj.queryConfig.selectFields.splice(index, 1);
                             }
                         });
+
+                        this.updateQueryLocalConfig()
                     },
 
                     addFilter: function (containerItemObject) {
@@ -2511,6 +2503,7 @@ function registerListenersMdash() {
                                 value: ''
                             });
                         }
+                        this.updateQueryLocalConfig()
                     },
 
                     removeFilter: function (index, containerItemObject) {
@@ -2523,6 +2516,7 @@ function registerListenersMdash() {
                                 obj.queryConfig.filters.splice(index, 1);
                             }
                         });
+                        this.updateQueryLocalConfig()
                     },
                     getContainerRecords: function () {
 
@@ -2571,6 +2565,7 @@ function registerListenersMdash() {
                             containerItemObject.queryconfigjson = JSON.stringify(currentObject.queryConfig);
                             containerItemObject.config = {};
                             containerItemObject.configjson = "";
+                            realTimeComponentSync(containerItemObject, containerItemObject.table, containerItemObject.idfield);
 
                         } catch (error) {
                             console.error("Erro ao executar query:", error);
@@ -2588,6 +2583,7 @@ function registerListenersMdash() {
                                 field: ''
                             });
                         }
+                        this.updateQueryLocalConfig();
                     },
 
                     removeGroupBy: function (index, containerItemObject) {
@@ -2598,6 +2594,8 @@ function registerListenersMdash() {
                                 obj.queryConfig.groupBy.splice(index, 1);
                             }
                         });
+
+                        this.updateQueryLocalConfig()
                     },
 
                     // Atualizar o método buildSQLQuery para trabalhar com o novo formato do Group By
@@ -2716,6 +2714,7 @@ function registerListenersMdash() {
                                     self.queryJsonResult = JSON.stringify(queryResult).replaceAll("total", "tot");
                                     self.containerItem.records = JSON.parse(self.queryJsonResult);
                                     self.mainQueryHasError = false;
+                                    realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield);
                                     alertify.success("Query executada com sucesso", 5000);
                                 } catch (error) {
                                     console.log("Erro interno " + errorMessage, response)
@@ -2802,6 +2801,16 @@ function registerListenersMdash() {
 
 
                         self.containerItem.expressaodblistagem = editor.getValue();
+                        // realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield)
+                        /*  Promise.resolve().then(function () {
+  
+                              realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield);
+                          }
+                          );*/
+
+                        setTimeout(function () {
+                            realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield);
+                        }, 0);
 
                     },
                 }).mount('#containerItemObjectQueryConfigContainer');
@@ -2813,6 +2822,8 @@ function registerListenersMdash() {
             },
             removeObject: function (id) {
                 var self = this;
+
+
                 Swal.fire({
                     title: 'Tem certeza?',
                     text: "Deseja remover este objeto?",
@@ -3217,6 +3228,8 @@ function registerListenersMdash() {
 
         addFilterMDashConfig(mdashFilter, mdashFilterUIObjectFormConfigResult);
 
+        realTimeComponentSync(mdashFilter, mdashFilter.table, mdashFilter.idfield);
+
 
 
     })
@@ -3250,6 +3263,130 @@ function registerListenersMdash() {
             idField: idField,
             componente: componente
         });
+
+
+
+    })
+
+
+    function copyMdashComponent(componenteId, table, parentComponentId, parentIdField) {
+
+        var componentCopyConfig = GMdashEntityCopyConfig.find(function (conf) {
+            return conf.table == table
+        });
+
+        if (!componentCopyConfig) {
+
+            throw new Error("Configuração de cópia não encontrada para o componente: " + table);
+        }
+
+        var localSource = eval(componentCopyConfig.localsource);
+
+        var componentData = localSource.find(function (item) {
+            return item[componentCopyConfig.idfield] === componenteId;
+        });
+
+        if (!componentData) {
+            throw new Error("Componente não encontrado na fonte local: " + table);
+        }
+
+        var originalId = componentData[componentCopyConfig.idfield];
+
+        var newComponentId = generateUUID();
+
+        var copiedComponent = Object.assign({}, componentData);
+        copiedComponent[componentCopyConfig.idfield] = newComponentId;
+
+        if (parentComponentId && parentIdField) {
+            copiedComponent[parentIdField] = parentComponentId;
+        }
+
+
+
+        var copiedData = {
+            componentCopyConfig: componentCopyConfig,
+            componentData: copiedComponent
+        };
+
+        GCopiedComponentData.push(copiedData);
+
+        if (componentCopyConfig.childs && componentCopyConfig.childs.length > 0) {
+            componentCopyConfig.childs.forEach(function (childTable) {
+                // Encontrar configuração do filho
+                var childConfig = GMdashEntityCopyConfig.find(function (conf) {
+                    return conf.table == childTable;
+                });
+
+                if (childConfig) {
+                    // Encontrar todos os filhos do componente original
+                    var childLocalSource = eval(childConfig.localsource);
+                    var children = childLocalSource.filter(function (child) {
+                        return child[componentCopyConfig.idfield] === originalId;
+                    });
+
+                    // Copiar cada filho recursivamente
+                    children.forEach(function (child) {
+                        copyMdashComponent(
+                            child[childConfig.idfield],
+                            childTable,
+                            newComponentId,
+                            componentCopyConfig.idfield
+                        );
+                    });
+                }
+            });
+        }
+
+    }
+
+    $(document).off("click", ".paste-m-dash-container-btn").on("click", ".paste-m-dash-container-btn", function (e) {
+
+       /* var copiedData = {
+            componentCopyConfig: componentCopyConfig,
+            componentData: copiedComponent
+        };*/
+
+        GCopiedComponentData.forEach(function (copiedData) {
+            // Aqui você pode usar copiedData para colar os componentes copiados
+            var componentCopyConfig = copiedData.componentCopyConfig;
+            var componentData = copiedData.componentData;
+            
+            var localSource = eval(componentCopyConfig.localsource);
+            localSource.push(componentData);
+        });
+
+
+
+    })
+    $(document).off("click", ".copy-container-btn").on("click", ".copy-container-btn", function (e) {
+
+        var containerId = $(this).data("mdashcontainerstamp");
+
+        $(".paste-m-dash-container-btn").show();
+        copyMdashComponent(containerId, "MdashContainer", null, null);
+        /*
+        var mdashEntityCopyConfig = [
+
+    new MdashEntityCopy({
+        idfield: "mdashcontainerstamp",
+        table: "MdashContainer",
+        localsource: "GMDashContainers",
+        childs: ["MdashContainerItem"]
+    }),
+    new MdashEntityCopy({
+        idfield: "mdashcontaineritemstamp",
+        table: "MdashContainerItem",
+        localsource: "GMDashContainerItems",
+        childs: []
+    })
+];
+        
+        */
+
+
+
+
+
 
 
 
@@ -3316,6 +3453,8 @@ function registerListenersMdash() {
 
         GMDashContainers.push(mdashContainer);
 
+        realTimeComponentSync(mdashContainer, mdashContainer.table, mdashContainer.idfield);
+
         addContainerMDashConfig(mdashContainer, containerUIObjectFormConfigResult);
 
     })
@@ -3352,6 +3491,7 @@ function registerListenersMdash() {
             GMDashContainerItems.push(newItem);
 
             addContainerItemMDashConfig(newItem, containerUIObjectFormConfigResult);
+            realTimeComponentSync(newItem, newItem.table, newItem.idfield);
 
 
         }
@@ -3533,10 +3673,21 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
     };
     var openConfigButtonHtml = generateButton(openConfigContainerBtn);
 
+    var copiarContainerBtn = {
+        style: "",
+        buttonId: "copyContainerBtn_" + container.mdashcontainerstamp,
+        classes: "btn btn-xs btn-default copy-container-btn",
+        customData: " data-mdashcontainerstamp='" + container.mdashcontainerstamp + "' type='button' data-tooltip='true' data-original-title='Copiar container' ",
+        label: "<span class='glyphicon glyphicon-duplicate'></span>",
+        onClick: "",
+    };
+    var copyContainerHtml = generateButton(copiarContainerBtn);
+
     var actionsContainer = "<div style='display:flex;column-gap:0.5em'>"
     actionsContainer += addItemButtonHtml;
     actionsContainer += removerContainerHtml
     actionsContainer += openConfigButtonHtml;
+    actionsContainer += copyContainerHtml;
     actionsContainer += "</div>"
 
     mdashContainerHTML += "<div class='m-dash-container-actions'>" + actionsContainer + "</div>";
@@ -3852,8 +4003,20 @@ function initConfiguracaoDashboard(config) {
     };
     var addContainerButtonHtml = generateButton(addContainerBtnData);
 
-    dashboardContainer += "<div class='row'>";
-    dashboardContainer += "<div class='col-md-12'>" + addContainerButtonHtml + "</div>";
+
+    var pasteContainerBtnData = {
+        style: "margin-left:0.5em;display:none;",
+        buttonId: "pasteContainerMDashBtn",
+        classes: "btn btn-sm btn-default paste-m-dash-container-btn",
+        customData: " type='button' data-tooltip='true' data-original-title='Colar container' ",
+        label: "Colar container <span class='glyphicon glyphicon glyphicon-paste' ></span>",
+        onClick: "",
+    };
+    var pasteContainerButtonHtml = generateButton(pasteContainerBtnData);
+
+    dashboardContainer += "<div style='display:flex;column-gap:0.5em;margin-righ:0.3em;margin-bottom:0.5em'>";
+    dashboardContainer += "<div >" + addContainerButtonHtml + "</div>";
+    dashboardContainer += "<div >" + pasteContainerButtonHtml + "</div>";
     dashboardContainer += "</div>";
     dashboardContainer += "<div id='m-dash-containers' class='m-dash-containers'></div>";
     dashboardContainer += "</div>";
