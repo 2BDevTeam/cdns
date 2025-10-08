@@ -103,9 +103,12 @@ CREATE TABLE MdashFilter(
     descricao VARCHAR(250) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
     campooption VARCHAR(250) DEFAULT '',
+    eventochange BIT DEFAULT 0,
+    expressaochange TEXT DEFAULT '',
     campovalor VARCHAR(250) DEFAULT '',
     tamanho INT DEFAULT 0,
     expressaolistagem TEXT DEFAULT '',
+    expressaojslistagem TEXT DEFAULT '',
     valordefeito TEXT DEFAULT '',
     ordem INT DEFAULT 0
 );

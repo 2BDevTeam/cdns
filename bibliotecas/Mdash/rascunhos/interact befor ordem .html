@@ -1,205 +1,52 @@
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-<meta charset="UTF-8">
-<title>Dashboard ES5 + petite-vue</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="https://cdn.jsdelivr.net/npm/petite-vue@0.4.1/dist/petite-vue.iife.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<style>
-  .dropzone {
-    border: 2px dashed #4a6cf7;
-    border-radius: 12px;
-    min-height: 300px;
-    padding: 15px;
-  }
-  .dashboard-object {
-    background: #dee2e6;
-    border-radius: 10px;
-    margin: 10px 0;
-    padding: 15px;
-    position: relative;
-    text-align: center;
-    cursor: grab;
-  }
-  .btn-remove {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 22px;
-    height: 22px;
-    font-size: 12px;
-    cursor: pointer;
-    display: none;
-  }
-  .dashboard-object:hover .btn-remove {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-</style>
-</head>
-<body>
+<!-- PetiteVue -->
+<script src="https://unpkg.com/petite-vue" defer init></script>
 
-<div id="app" v-scope="dashboardApp">
-  <div class="row g-3">
-    <!-- Sidebar -->
-    <div class="col-md-3">
-      <div class="p-3 bg-white rounded shadow-sm">
-        <h5>Objetos</h5>
-        <div class="object-item mb-2 p-2 border rounded bg-light"
-             v-for="item in availableObjects"
-             draggable="true"
-             @dragstart="dragStart(item)">
-          <i :class="item.icon"></i> {{ item.label }}
-        </div>
-      </div>
-    </div>
+<!-- Air Datepicker -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker@3.4.0/air-datepicker.css">
+<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.4.0/air-datepicker.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.4.0/js/i18n/datepicker.pt.js"></script>
 
-    <!-- Preview -->
-    <div class="col-md-6">
-      <div class="p-3 bg-white rounded shadow-sm">
-        <h5>Pré-visualização</h5>
-        <div class="dropzone"
-             @dragover.prevent
-             @drop="drop(null, $event)">
-          <div v-for="obj in getObjectsSorted()" 
-               :key="obj.id"
-               class="dashboard-object"
-               draggable="true"
-               @dragstart="dragExisting(obj.id)"
-               @drop.prevent="drop(obj.id, $event)"
-               @dragover.prevent>
-            {{ obj.type }} (ID: {{ obj.id }}, Ordem: {{ obj.order }})
-            <button class="btn-remove" @click="removeObject(obj.id)">×</button>
-          </div>
-        </div>
-      </div>
-    </div>
+<div v-scope="App">
+  <label>Escolha uma data:</label><br>
+  
+  <input type="text"
+         class="form-control input-sm input-mdash-filter"
+         id="dataFiltro"
+         v-model="filterValue"
+         @change="updateFilter($event)"
+         data-language="pt" />
 
-    <!-- Propriedades -->
-    <div class="col-md-3">
-      <div class="p-3 bg-white rounded shadow-sm">
-        <h5>Propriedades</h5>
-        <pre>{{ objects }}</pre>
-      </div>
-    </div>
-  </div>
+  <p>📅 Data selecionada: {{ filterValue }}</p>
 </div>
 
 <script>
-var dashboardApp = {
-  availableObjects: [
-    { type: 'chart', label: 'Gráfico', icon: 'fa-solid fa-chart-column' },
-    { type: 'pie', label: 'Pizza', icon: 'fa-solid fa-chart-pie' },
-    { type: 'text', label: 'Texto', icon: 'fa-solid fa-font' },
-    { type: 'table', label: 'Tabela', icon: 'fa-solid fa-table' }
-  ],
-  objects: [],
-  dragItem: null,
-  dragId: null,
-  nextOrder: 1,
+function App() {
+  return {
+    filterValue: '',
 
-  getObjectsSorted: function() {
-    return this.objects.slice().sort(function(a, b) {
-      return a.order - b.order;
-    });
-  },
+    mounted() {
+      // Inicializa o Air Datepicker
+      const picker = new AirDatepicker('#dataFiltro', {
+        locale: AirDatepicker.locales.pt,
+        dateFormat: 'yyyy-MM-dd',
+        onSelect: ({ formattedDate }) => {
+          // Atualiza o modelo
+          this.filterValue = formattedDate;
 
-  dragStart: function(item) {
-    this.dragItem = item;
-    this.dragId = null;
-  },
-
-  dragExisting: function(id) {
-    this.dragId = id;
-    for (var i = 0; i < this.objects.length; i++) {
-      if (this.objects[i].id === id) {
-        this.dragItem = this.objects[i];
-        break;
-      }
-    }
-  },
-
-  drop: function(targetId, event) {
-    if (!this.dragItem) return;
-
-    var targetIndex = targetId ? -1 : this.objects.length;
-    if (targetId) {
-      for (var i = 0; i < this.objects.length; i++) {
-        if (this.objects[i].id === targetId) {
-          targetIndex = i;
-          break;
+          // Dispara manualmente o evento change (compatível com @change)
+          const event = new Event('change', { bubbles: true });
+          document.getElementById('dataFiltro').dispatchEvent(event);
         }
-      }
-    }
-
-    if (this.dragId !== null) {
-      // Reordenar existente
-      var dragged;
-      for (var j = 0; j < this.objects.length; j++) {
-        if (this.objects[j].id === this.dragId) {
-          dragged = this.objects[j];
-          this.objects.splice(j, 1);
-          break;
-        }
-      }
-      this.objects.splice(targetIndex, 0, dragged);
-    } else {
-      // Novo objeto
-      this.objects.splice(targetIndex, 0, {
-        id: new Date().getTime(),
-        type: this.dragItem.type,
-        order: this.nextOrder++
       });
+    },
+
+    updateFilter(e) {
+      console.log("Data mudou para:", this.filterValue);
+      // Aqui você pode chamar sua função original, tipo:
+      // updateFilter(filter, e)
     }
-
-    // Atualiza ordem
-    for (var k = 0; k < this.objects.length; k++) {
-      this.objects[k].order = k + 1;
-    }
-
-    this.dragItem = null;
-    this.dragId = null;
-  },
-
-  removeObject: function(id) {
-    var self = this;
-    Swal.fire({
-      title: 'Tem certeza?',
-      text: "Deseja remover este objeto?",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Sim, remover',
-      cancelButtonText: 'Cancelar'
-    }).then(function(result) {
-      if (result.isConfirmed) {
-        var novaLista = [];
-        for (var i = 0; i < self.objects.length; i++) {
-          if (self.objects[i].id !== id) {
-            novaLista.push(self.objects[i]);
-          }
-        }
-        self.objects = novaLista;
-        for (var j = 0; j < self.objects.length; j++) {
-          self.objects[j].order = j + 1;
-        }
-        Swal.fire('Removido!', 'O objeto foi removido.', 'success');
-      }
-    });
   }
-};
+}
 
-PetiteVue.createApp({ dashboardApp: dashboardApp }).mount("#app");
+PetiteVue.createApp(App).mount();
 </script>
-
-</body>
-</html>

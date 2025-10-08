@@ -10,6 +10,11 @@
 <script src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
 <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<!-- Flatpickr Portuguese localization -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
 
 <style>
   /* CONTAINER RESPONSIVO */
@@ -699,6 +704,8 @@
     <div v-if="mdash.dashboardconfig.filtrohorizont && mdash.dashboardconfig.temfiltro==true"
       class="m-dash-horizonta-filter-container">
 
+      {{initDomObjects()}}
+
       <div class="gr-row">
         <div class=" gr-col-md-12 gr-col-lg-12 gr-col-sm-12">
           <div class="m-dash-filter-btn-group">
@@ -726,6 +733,10 @@
             <!-- digit -->
             <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
               class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <input data-language="pt" @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'date'"
+              type="text" class="form-control input-sm input-mdash-filter" :id="filter.codigo"
               v-model="mdash.filterValues[filter.codigo]" />
 
             <!-- list -->
@@ -781,6 +792,10 @@
             <!-- digit -->
             <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
               class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <input data-language="pt" @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'date'"
+              type="text" class="form-control input-sm input-mdash-filter" :id="filter.codigo"
               v-model="mdash.filterValues[filter.codigo]" />
 
             <!-- list -->
@@ -973,6 +988,9 @@
       this.tamanho = data.tamanho || 4;
       this.campooption = data.campooption || "";
       this.campovalor = data.campovalor || "";
+      this.expressaojslistagem = data.expressaojslistagem || "";
+      this.eventochange = data.eventochange || false;
+      this.expressaochange = data.expressaochange || "";
       //this.expressaolistagem = data.expressaolistagem || "";
       this.valordefeito = data.valordefeito || "";
       this.ordem = data.ordem || 0;
@@ -1034,6 +1052,7 @@
           return;
         }
 
+        console.log("globalThis.filterValues ", globalThis.filterValues)
         containerItem.handleLayout();
         var requestData = {
           codigo: globalThis.dashboardconfig.codigo,
@@ -1366,6 +1385,7 @@
 
       if (Object.keys(self.objectoConfig).length == 0 || containerItem.records.length == 0) {
 
+        
         $(containerSelector).append("<p style='font-size:18px!important;font-weight:bold;margin-top:7em' class='m-dash-item-text'>Sem registos</p>")
         return;
       }
@@ -1462,6 +1482,7 @@
       case "text":
 
         return valor ? valor : "";
+
       default:
         return valor;
     }
@@ -1485,7 +1506,21 @@
 
   }
 
+  function initFlatpickr(element, options) {
+    const defaultOptions = {
+      dateFormat: 'Y-m-d',
+      onChange: function (selectedDates, dateStr, instance) {
+        // Encontrar o escopo Petite-Vue mais próximo
+        console.log(dateStr)
+      }
+    };
 
+    // Mesclar opções padrão com opções personalizadas
+    const mergedOptions = { ...defaultOptions, ...options };
+
+    // Inicializar Flatpickr
+    return flatpickr(element, mergedOptions);
+  }
 
 
   var GConfigDash = null;
@@ -1493,6 +1528,59 @@
 
     var state = PetiteVue.reactive({
       mdash: GMainDashInstance,
+      initFlatpickr,
+      initDomObjects() {
+
+        var self = this;
+
+        setTimeout(function () {
+
+          $('[data-language]').datepicker({
+            dateFormat: "yyyy-mm-dd",
+            onSelect: function (dateText, date, inst) {
+              //console.log("CHANGEDFGHJKl")
+              var codigo = $(inst.el).attr('id');
+              $(codigo).trigger("change");
+              // dispara evento change manualmente para PetiteVue
+              const event = new Event('change', { bubbles: true });
+              inst.el.dispatchEvent(event);
+
+              /*  self.mdash.filterValues[codigo] = dateText;
+              var codigo = $(inst.el).attr('id');
+              var containerItemsThatContainFilter = []
+
+              self.mdash.containerItems.map(function (item) {
+
+                var filterFound = item.filters.find(function (f) {
+                  return f == codigo
+                })
+
+
+                if (filterFound) {
+                  containerItemsThatContainFilter.push(item);
+                }
+
+              })
+
+              containerItemsThatContainFilter.forEach(function (itemWithFilter) {
+
+                itemWithFilter.refreshContent();
+
+              })
+            
+
+              // $(inst.el).css("background-color","red")
+              console.log("self.mdash.filterValues",self.mdash.filterValues)
+              window.localStorage.setItem("mdashcachedFilters", JSON.stringify(self.mdash.filterValues));*/
+            }
+          });
+
+
+        }, 1000);
+
+
+
+      },
       getOptions(filter) {
         try {
 
@@ -1537,6 +1625,7 @@
         }
       },
       getRowGroups(containerStamp) {
+        this.initDomObjects();
         // Filtra os items do container específico
         var containerItems = this.mdash.containerItems.filter(function (item) {
           return item.mdashcontainerstamp === containerStamp;
@@ -1558,7 +1647,20 @@
       },
       updateFilter(filtro, event) {
 
+        //console.log("Testo update filter:" + event.target.value)
         var containerItemsThatContainFilter = []
+
+        this.mdash.filterValues[filtro.codigo] = event.target.value;
+        var filtroValue = event.target.value;
+        if (filtro.eventochange && filtro.expressaochange) {
+          try {
+            eval(filtro.expressaochange);
+          } catch (error) {
+            console.error("Erro ao executar expressão de mudança do filtro:", error);
+          }
+        }
+
+        window.localStorage.setItem("mdashcachedFilters", JSON.stringify(this.mdash.filterValues));
 
         this.mdash.containerItems.map(function (item) {
 
@@ -1579,8 +1681,7 @@
 
         })
 
-        this.mdash.filterValues[filtro.codigo] = event.target.value;
-        window.localStorage.setItem("mdashcachedFilters", JSON.stringify(this.mdash.filterValues));
+
 
       }
     });
@@ -1663,6 +1764,10 @@
       window.localStorage.setItem("mdashcachedFilters", JSON.stringify(configData.filterValues));
 
       window.mdashAppState.mdash = configData;
+
+      setTimeout(function () {
+        // $("[data-language]").datepicker()
+      }, 1000)
 
       GConfigDash = configData;
 

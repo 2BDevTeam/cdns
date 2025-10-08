@@ -339,7 +339,69 @@ function applyTabulatorStylesWithJqueryMdash() {
 }
 
 
+function generateMDashCardSnapV2(cardData) {
+    var dashCard = new MDashCard(cardData);
+    var cardHTML = "";
 
+    cardHTML += '<div id="' + (dashCard.id || 'snap-' + generateUUID()) + '" ';
+    cardHTML += 'class="m-dash-card-snap-v2 ' + (dashCard.classes || '') + '" ';
+    cardHTML += 'style="' + (dashCard.styles || '') + '">';
+
+    // Conteúdo principal
+    cardHTML += '  <div class="m-dash-card-snap-v2-content">';
+    cardHTML += '    <div class="m-dash-card-snap-v2-icon bg-' + (dashCard.tipo || 'primary') + '">';
+    cardHTML += '      <i class="material-symbols-rounded">' + (dashCard.icon || 'analytics') + '</i>';
+    cardHTML += '    </div>';
+    cardHTML += '    <div style="display:flex!important;flex-direction:column!important" class="m-dash-card-snap-v2-info">';
+    cardHTML += ' <div>     <h4 class="m-dash-card-snap-v2-title">' + (dashCard.title || 'Card Title') + '</h4></div>';
+    cardHTML += '      <div class="m-dash-card-snap-v2-value">' + (dashCard.bodyContent || '0') + '</div>';
+    cardHTML += '    </div>';
+    cardHTML += '  </div>';
+
+    // Rodapé
+    cardHTML += '  <div class="m-dash-card-snap-v2-footer">';
+    cardHTML += '    ' + (dashCard.footer || '<span class="text-success">+0%</span> em relação ao período anterior');
+    cardHTML += '  </div>';
+
+    cardHTML += '</div>';
+
+    return cardHTML;
+}
+
+
+
+
+function generateMDashCardSnap(cardData) {
+    var dashCard = new MDashCard(cardData);
+    var cardHTML = "";
+
+    cardHTML += '<div id="' + (dashCard.id || 'snap-' + generateUUID()) + '" class="m-dash-card-snap ' + (dashCard.classes || '') + '" style="height: 100%!important;' + (dashCard.styles || '') + '">';
+
+    // Header
+    cardHTML += '  <div class="m-dash-card-snap-header p-2 ps-3">';
+    cardHTML += '    <div class="d-flex justify-content-between">';
+    cardHTML += '        <h4 class="">' + (dashCard.title || "Card Title") + '</h4>';
+    cardHTML += '      <div class="m-dash-snap-card-body" >';
+    cardHTML += '        <h4 class="mb-0">' + (dashCard.bodyContentX || "110") + '</h4>';
+    cardHTML += '      </div>';
+    cardHTML += '      <div class="m-dash-icon-snap m-dash-icon-snap-md m-dash-icon-snap-shape bg-gradient-' + (dashCard.tipo || 'dark') + ' shadow-' + (dashCard.tipo || 'dark') + ' shadow text-center border-radius-lg">';
+    cardHTML += '        <i class="material-symbols-rounded opacity-10">' + (dashCard.icon || 'analytics') + '</i>';
+    cardHTML += '      </div>';
+    cardHTML += '    </div>';
+    cardHTML += '  </div>';
+
+    // Separator
+    cardHTML += '  <hr class="dark horizontal my-0">';
+
+    // Footer
+    cardHTML += '  <div class="m-dash-card-snap-footer p-2 ps-3">';
+    cardHTML += '    <p class="mb-0 text-sm">' + (dashCard.footer || '<span class="text-success font-weight-bolder">+0% </span>than last period') + '</p>';
+    cardHTML += '  </div>';
+
+    cardHTML += '</div>';
+
+    return cardHTML;
+}
 
 // ...existing code...
 
@@ -1068,8 +1130,8 @@ function getTiposObjectoConfig() {
                             fontFamily: {
                                 type: "string",
                                 title: "Família da Fonte",
-                                'enum': ["Arial", "Helvetica", "Times New Roman", "Georgia", "Verdana", "Courier New", "Comic Sans MS", "Impact", "Trebuchet MS", "Arial Black"],
-                                'default': "Arial"
+                                'enum': ["Arial", "Nunito, sans-serif", "Helvetica", "Times New Roman", "Georgia", "Verdana", "Courier New", "Comic Sans MS", "Impact", "Trebuchet MS", "Arial Black"],
+                                'default': "Nunito, sans-serif"
                             },
                             textAlign: {
                                 type: "string",
@@ -1103,7 +1165,7 @@ function getTiposObjectoConfig() {
                                 type: "string",
                                 title: "Cor de Fundo",
                                 format: "color",
-                                'default': "#ffffffff"
+                                'default': "#fff"
                             },
                             borderColor: {
                                 type: "string",
@@ -1350,10 +1412,10 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
 
     if (config.spacing) {
         styles += "padding: " +
-            (config.spacing.paddingTop || 10) + "px " +
-            (config.spacing.paddingRight || 10) + "px " +
-            (config.spacing.paddingBottom || 10) + "px " +
-            (config.spacing.paddingLeft || 10) + "px;";
+            (config.spacing.paddingTop || 0) + "px " +
+            (config.spacing.paddingRight || 0) + "px " +
+            (config.spacing.paddingBottom || 0) + "px " +
+            (config.spacing.paddingLeft || 0) + "px;";
         styles += "margin: " +
             (config.spacing.marginTop || 0) + "px 0 " +
             (config.spacing.marginBottom || 0) + "px 0;";
@@ -2140,6 +2202,46 @@ function getTemplateLayoutOptions() {
             containerSelectorToRender: ".stats-card-body"
         },
         {
+            descricao: "Snap card Warning",
+            codigo: "snapshot_card_warning",
+            tipo: "snapshot",
+            UIData: {
+                tipo: "warning"
+            },
+            generateCard: generateMDashCardSnapV2,
+            containerSelectorToRender: ".m-dash-card-snap-v2-value"
+        },
+        {
+            descricao: "Snap Card",
+            codigo: "snap_card",
+            tipo: "snapshot",
+            UIData: {
+                tipo: "primary"
+            },
+            generateCard: generateMDashCardSnapV2,
+            containerSelectorToRender: ".m-dash-card-snap-v2-value"
+        },
+        {
+            descricao: "Snap Card Success",
+            codigo: "snap_card_success",
+            tipo: "snapshot",
+            UIData: {
+                tipo: "success"
+            },
+            generateCard: generateMDashCardSnapV2,
+            containerSelectorToRender: ".m-dash-card-snap-v2-value"
+        },
+        {
+            descricao: "Snap card Danger",
+            codigo: "snapshot_card_danger",
+            tipo: "snapshot",
+            UIData: {
+                tipo: "danger"
+            },
+            generateCard: generateMDashCardSnapV2,
+            containerSelectorToRender: ".m-dash-card-snap-v2-value"
+        },
+        {
             descricao: "Card standard",
             codigo: "card_standard",
             tipo: "card",
@@ -2661,6 +2763,88 @@ function addDashboardStyles(styles) {
     dashboardCSS += "        gap: 30px;";
     dashboardCSS += "    }";
     dashboardCSS += "}";
+
+    var color = getColorByType("primary").background;
+
+
+    dashboardCSS += ".m-dash-card-snap-v2 {";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "flex-direction:column;";
+    dashboardCSS += "justify-content:space-between;";
+    dashboardCSS += "background:#fff;";
+    dashboardCSS += "border-radius:20px;";
+    dashboardCSS += "box-shadow:0 4px 15px rgba(0,0,0,0.08);";
+    dashboardCSS += "padding:1.5rem;";
+    dashboardCSS += "transition:transform 0.3s ease, box-shadow 0.3s ease;";
+    dashboardCSS += "height:100%;";
+    dashboardCSS += "max-width:320px;";
+    dashboardCSS += "cursor:pointer;";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2:hover{";
+    dashboardCSS += "transform:translateY(-6px);";
+    dashboardCSS += "box-shadow:0 10px 25px rgba(0,0,0,0.12);";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-content{";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "align-items:center;";
+    dashboardCSS += "gap:1.2rem;";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-icon{";
+    dashboardCSS += "width:60px;";
+    dashboardCSS += "height:60px;";
+    dashboardCSS += "border-radius:16px;";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "align-items:center;";
+    dashboardCSS += "justify-content:center;";
+    dashboardCSS += "color:#fff;";
+    dashboardCSS += "font-size:30px;";
+    dashboardCSS += "flex-shrink:0;";
+    dashboardCSS += "box-shadow:0 6px 12px rgba(0,0,0,0.15);";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-info{flex-grow:1;}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-title{";
+    //dashboardCSS += "font-size:0.95rem;";
+    dashboardCSS += "color:#6c757d;";
+    dashboardCSS += "margin:0;";
+    dashboardCSS += "text-transform:capitalize;";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-value{";
+    dashboardCSS += "font-size:2rem;";
+    dashboardCSS += "font-weight:700;";
+    dashboardCSS += "color:#344767;";
+    dashboardCSS += "margin:0.2rem 0 0;";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-footer{";
+    dashboardCSS += "font-size:1.3rem;";
+    dashboardCSS += "color:#7b809a;";
+    dashboardCSS += "margin-top:1rem;";
+    dashboardCSS += "border-top:1px solid #eaeaea;";
+    dashboardCSS += "padding-top:0.8rem;";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-footer .text-success{";
+    dashboardCSS += "color:#2ecc71;";
+    dashboardCSS += "font-weight:600;";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".bg-primary{background:linear-gradient(135deg," + getColorByType("primary").background + "," + getColorByType("primary").background + ");}";
+    dashboardCSS += ".bg-success{background:linear-gradient(135deg,#16a34a,#15803d);}";
+    dashboardCSS += ".bg-warning{background:linear-gradient(135deg," + getColorByType("warning").background + "," + getColorByType("warning").background + ");}";
+    dashboardCSS += ".bg-danger{background:linear-gradient(135deg,#ef4444,#b91c1c);}";
+    dashboardCSS += ".bg-dark{background:linear-gradient(135deg,#334155,#0f172a);}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-icon i{transition:transform 0.4s ease;}";
+    dashboardCSS += ".m-dash-card-snap-v2:hover .m-dash-card-snap-v2-icon i{transform:scale(1.15) rotate(5deg);}";
+
+
+
 
     styles.push(dashboardCSS);
 }

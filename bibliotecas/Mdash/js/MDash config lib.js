@@ -1,6 +1,3 @@
-
-
-
 var GMDashContainers = [new MdashContainer({})];
 GMDashContainers = []
 var Greactive
@@ -30,21 +27,30 @@ var GMdashEntityCopyConfig = [
         table: "MdashContainer",
         entityToInstantiate: MdashContainer,
         localsource: "GMDashContainers",
-        childs: ["MdashContainerItem"]
+        childs: ["MdashContainerItem"],
+        extraConfig:{
+            generateOrder:true
+        }
     }),
     new MdashEntityCopy({
         idfield: "mdashcontaineritemstamp",
         table: "MdashContainerItem",
         entityToInstantiate: MdashContainerItem,
         localsource: "GMDashContainerItems",
-        childs: ["MdashContainerItemObject"]
+        childs: ["MdashContainerItemObject"],
+          extraConfig:{
+            generateOrder:true
+        }
     }),
     new MdashEntityCopy({
         idfield: "mdashcontaineritemobjectstamp",
         table: "MdashContainerItemObject",
         entityToInstantiate: MdashContainerItemObject,
         localsource: "GMDashContainerItemObjects",
-        childs: []
+        childs: [],
+        extraConfig:{
+            generateOrder:false
+        }
     })
 
 ];
@@ -72,6 +78,7 @@ function MdashEntityCopy(data) {
     this.localsource = data.localsource || "";
     this.entityToInstantiate = data.entityToInstantiate || function () { };
     this.childs = data.childs || [];
+    this.extraConfig = data.extraConfig || {};
 }
 
 
@@ -91,6 +98,9 @@ function MdashFilter(data) {
     this.tipo = data.tipo || "text";
     this.tamanho = data.tamanho || 4;
     this.expressaolistagem = data.expressaolistagem || "";
+    this.expressaojslistagem = data.expressaojslistagem || "";
+    this.eventochange = data.eventochange || false;
+    this.expressaochange = data.expressaochange || "";
     this.valordefeito = data.valordefeito || "";
     this.campooption = data.campooption || "";
     this.campovalor = data.campovalor || "";
@@ -130,7 +140,10 @@ function getMdashFilterUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 6, campo: "campovalor", tipo: "text", titulo: "Campo de Valor", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
-        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "valordefeito", tipo: "div", cols: 90, rows: 90, titulo: "Valor por Defeito", classes: "input-source-form m-editor", contentType: "div" })
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaojslistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem JS", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "valordefeito", tipo: "div", cols: 90, rows: 90, titulo: "Valor por Defeito", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "eventochange", tipo: "checkbox", titulo: "Tem evento change", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaochange", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Change", classes: "input-source-form m-editor", contentType: "div" }),
     ];
 
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashFilters", idField: "mdashfilterstamp" };
@@ -287,9 +300,11 @@ MdashContainerItem.prototype.refreshContainerItem = function (masterContent) {
 
 }
 
-function getContainerItemUIObjectFormConfigAndSourceValues() {
 
+function getContainerItemUIObjectFormConfigAndSourceValues() {
+ 
     var objectsUIFormConfig = [
+        new UIObjectFormConfig({ colSize: 12, campo: "ordem", tipo: "text", titulo: "Ordem", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
@@ -300,10 +315,12 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "fontelocal", tipo: "checkbox", titulo: "Fonte local", classes: "input-source-form", contentType: "input" })
     ]
-
+ 
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashContainerItems", idField: "mdashcontaineritemstamp" };
-
+ 
 }
+
+
 
 
 
@@ -478,6 +495,7 @@ function handleCodeEditor() {
     });
 
     function formatCode(editorInstance) {
+        return;
         var code = editorInstance.getValue();
         try {
             var formatted = prettier.format(code, {
@@ -486,7 +504,7 @@ function handleCodeEditor() {
             });
             editorInstance.setValue(formatted, -1);
         } catch (err) {
-            alert("Erro ao formatar: " + err.message);
+            //alert("Erro ao formatar: " + err.message);
         }
     }
 
@@ -1604,6 +1622,28 @@ function registerListenersMdash() {
             },
             {
                 colSize: 12,
+                style: "margin-bottom:0.8em;",
+                content: {
+                    contentType: "button",
+                    type: "button",
+                    id: "buttonPasteContainerItemObject",
+                    classes: "btn btn-default btn-sm pull-left heartbeat-effect is-beating",
+                    customData: " v-on:click='pasteObjectoContainerItemObject()' ",
+                    style: "display:none",
+                    selectCustomData: "",
+                    fieldToOption: "",
+                    fieldToValue: "",
+                    rows: 10,
+                    cols: 10,
+                    label: "Colar Objecto",
+                    selectData: [],
+                    value: "Colar Objecto",
+                    event: "",
+                    placeholder: ""
+                }
+            },
+            {
+                colSize: 12,
                 style: "",
                 content: {
                     contentType: "div",
@@ -1765,6 +1805,9 @@ function registerListenersMdash() {
                 var self = this;
                 this.containerItemObject[e] = editor.getValue();
                 this.renderCustomEditorObjecto();
+                 var editor = ace.edit(e);
+     
+                realTimeComponentSync(this.containerItemObject, this.containerItemObject.table, this.containerItemObject.idfield);
 
             }
         }).mount("#formConteudoCustomEditorObjecto" + containerItemObject.mdashcontaineritemobjectstamp);
@@ -2077,6 +2120,7 @@ function registerListenersMdash() {
             filterValues: filterValues,
             GMDashContainerItemObjects: GMDashContainerItemObjects,
             filteredContainerItemObjects: filteredContainerItemObjects,
+            GCopiedComponentData: GCopiedComponentData,
             selectedObject: selectedObject,
             initEditorObject: function (containerItemObject) {
 
@@ -2264,6 +2308,41 @@ function registerListenersMdash() {
 
             },
 
+            showPasteButton: function () {
+
+                var existingObjectsToPaste = GCopiedComponentData.filter(function (copied) {
+                    return copied.table === "MdashContainerItemObject";
+                }).length;
+                //console.log("existingObjectsToPaste", existingObjectsToPaste)
+                return existingObjectsToPaste > 0;
+            },
+            pasteObjectoContainerItemObject: function () {
+
+               
+                var filteredPasted = GCopiedComponentData.filter(function (copied) {
+                    return copied.componentCopyConfig.table === "MdashContainerItemObject";
+                });
+                self = this
+
+                filteredPasted.forEach(function (pasted) {
+
+
+                    self.GMDashContainerItemObjects.push(pasted.componentData);
+                    // this.filteredContainerItemObjects.push(newObject);
+                    GMDashContainerItemObjects = self.GMDashContainerItemObjects
+
+                    // console.log("New object added:", newObject);
+
+                    self.filteredContainerItemObjects = self.GMDashContainerItemObjects.filter(function (obj) {
+                        return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
+                    });
+
+                    realTimeComponentSync(pasted.componentData, pasted.componentData.table, pasted.componentData.idfield)
+
+                });
+
+                $("#buttonPasteContainerItemObject").hide();
+            },
             handleTemplateLayoutChange: function (templateCode) {
 
 
@@ -2378,7 +2457,7 @@ function registerListenersMdash() {
             },
             drop: function (targetId) {
 
-
+                console.log("Dropping.....",targetId)
                 if (!GTMPDragItem) return;
 
                 var targetIndex = this.GMDashContainerItemObjects.length;
@@ -2422,6 +2501,12 @@ function registerListenersMdash() {
 
                 $("#modalConfiguracaoDetalhe").remove();
 
+
+            },
+            copiarObjeto: function (containerItemObject) {
+
+                copyMdashComponent(containerItemObject.mdashcontaineritemobjectstamp, "MdashContainerItemObject", null, null);
+                $("#buttonPasteContainerItemObject").show();
 
             },
             abrirEditorQuery: function (containerItemObject) {
@@ -2570,8 +2655,8 @@ function registerListenersMdash() {
                             currentObject.queryConfig.lastResult = result;
 
                             containerItemObject.queryconfigjson = JSON.stringify(currentObject.queryConfig);
-                            containerItemObject.config = {};
-                            containerItemObject.configjson = "";
+                          //  containerItemObject.config = {};
+                          //  containerItemObject.configjson = "";
                             realTimeComponentSync(containerItemObject, containerItemObject.table, containerItemObject.idfield);
 
                         } catch (error) {
@@ -3113,6 +3198,8 @@ function registerListenersMdash() {
             containerObjectEditor += '              <div class="dashboard-object-item-editor">';
             containerObjectEditor += "                 <div style='display:flex;align-items:center;column-gap:0.4em;justify-content:end;margin-bottom:0.3em'>";
             containerObjectEditor += '                  <button type="button" class="btn btn-warning btn-sm" @click="abrirEditorQuery(obj)"><i class="fa fa-database" ></i></button>';
+            containerObjectEditor += '                  <button type="button" class="btn btn-default btn-sm" @click="copiarObjeto(obj)"><i class="fa fa-copy" ></i></button>';
+
             containerObjectEditor += '                  <button  type="button" class="btn btn-warning btn-sm" style="background: #dc3545!important" @click="removeObject(obj.mdashcontaineritemobjectstamp)"><i class="fa fa-trash" ></i></button>';
             containerObjectEditor += "                 </div>";
             containerObjectEditor += '                 <div  :class="\' container-item-object-render-\' + obj.mdashcontaineritemobjectstamp" >     {{ obj.tipo }} (ID: {{ obj.mdashcontaineritemobjectstamp }}, Ordem: {{ obj.ordem }})';
@@ -3322,7 +3409,10 @@ function registerListenersMdash() {
             copiedComponent[parentIdField] = parentComponentId;
         }
 
-        copiedComponent.ordem = getMaxOrdemByLocalSource(localSource) + 1;
+        if(componentCopyConfig.extraConfig.generateOrder){
+
+            copiedComponent.ordem = getMaxOrdemByLocalSource(localSource) + 1;
+        }
 
 
 
@@ -3386,13 +3476,8 @@ function registerListenersMdash() {
         $("#pasteContainerMDashBtn").hide()
 
     }
-    $(document).off("click", ".paste-m-dash-container-btn").on("click", ".paste-m-dash-container-btn", function (e) {
 
-        /* var copiedData = {
-             componentCopyConfig: componentCopyConfig,
-             componentData: copiedComponent
-         };*/
-
+    function pasteComponents() {
         GCopiedComponentData.forEach(function (copiedData) {
             // Aqui você pode usar copiedData para colar os componentes copiados
             var componentCopyConfig = copiedData.componentCopyConfig;
@@ -3404,6 +3489,16 @@ function registerListenersMdash() {
             handleRenderPastedUI(componentData.table, componentData);
             realTimeComponentSync(componentData, componentData.table, componentData.idfield);
         });
+    }
+    $(document).off("click", ".paste-m-dash-container-btn").on("click", ".paste-m-dash-container-btn", function (e) {
+
+        /* var copiedData = {
+             componentCopyConfig: componentCopyConfig,
+             componentData: copiedComponent
+         };*/
+
+        pasteComponents()
+
 
 
 
@@ -3994,8 +4089,6 @@ function fetchDadosMDash(config, dados) {
         GMDashFilters.push(mdashFilter);
         addFilterMDashConfig(mdashFilter, mdashFilterUIObjectFormConfigResult);
 
-
-
     })
 
     containerItemObjects.forEach(function (itemObject) {
@@ -4010,8 +4103,6 @@ function fetchDadosMDash(config, dados) {
         GMDashContainerItemObjects.push(mdashContainerItemObject);
 
     });
-
-
 }
 
 
@@ -4115,9 +4206,3 @@ function initConfiguracaoDashboard(config) {
         }
     });
 }
-
-
-
-
-
-

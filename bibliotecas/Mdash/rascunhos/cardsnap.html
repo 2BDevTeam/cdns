@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MDash Card Snap V2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+</head>
+<body>
+
+  <h1 style="text-align:center;color:#344767;margin-bottom:2rem;">Dashboard Cards (MDash V2)</h1>
+  <div id="dashboard-container" style="display:flex;flex-wrap:wrap;gap:1.5rem;justify-content:center;"></div>
+
+  <script>
+    // =========================
+    // Mock das dependências
+    // =========================
+    function MDashCard(data) { Object.assign(this, data); }
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    // =========================
+    // Função principal do Card
+    // =========================
+    function generateMDashCardSnapV2(cardData) {
+      var dashCard = new MDashCard(cardData);
+      var cardHTML = "";
+
+      cardHTML += '<div id="' + (dashCard.id || 'snap-' + generateUUID()) + '" ';
+      cardHTML += 'class="m-dash-card-snap-v2 ' + (dashCard.classes || '') + '" ';
+      cardHTML += 'style="' + (dashCard.styles || '') + '">';
+
+      // Conteúdo principal
+      cardHTML += '  <div class="m-dash-card-snap-v2-content">';
+      cardHTML += '    <div class="m-dash-card-snap-v2-icon bg-' + (dashCard.tipo || 'primary') + '">';
+      cardHTML += '      <i class="material-symbols-rounded">' + (dashCard.icon || 'analytics') + '</i>';
+      cardHTML += '    </div>';
+      cardHTML += '    <div class="m-dash-card-snap-v2-info">';
+      cardHTML += '      <p class="m-dash-card-snap-v2-title">' + (dashCard.title || 'Card Title') + '</p>';
+      cardHTML += '      <h3 class="m-dash-card-snap-v2-value">' + (dashCard.bodyContent || '0') + '</h3>';
+      cardHTML += '    </div>';
+      cardHTML += '  </div>';
+
+      // Rodapé
+      cardHTML += '  <div class="m-dash-card-snap-v2-footer">';
+      cardHTML += '    ' + (dashCard.footer || '<span class="text-success">+0%</span> em relação ao período anterior');
+      cardHTML += '  </div>';
+
+      cardHTML += '</div>';
+
+      return cardHTML;
+    }
+
+    // =========================
+    // CSS concatenado
+    // =========================
+    var dashboardCSS = "";
+
+    dashboardCSS += ".m-dash-card-snap-v2 {";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "flex-direction:column;";
+    dashboardCSS += "justify-content:space-between;";
+    dashboardCSS += "background:#fff;";
+    dashboardCSS += "border-radius:20px;";
+    dashboardCSS += "box-shadow:0 4px 15px rgba(0,0,0,0.08);";
+    dashboardCSS += "padding:1.5rem;";
+    dashboardCSS += "transition:transform 0.3s ease, box-shadow 0.3s ease;";
+    dashboardCSS += "height:100%;";
+    dashboardCSS += "max-width:320px;";
+    dashboardCSS += "cursor:pointer;";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2:hover{";
+    dashboardCSS += "transform:translateY(-6px);";
+    dashboardCSS += "box-shadow:0 10px 25px rgba(0,0,0,0.12);";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-content{";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "align-items:center;";
+    dashboardCSS += "gap:1.2rem;";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-icon{";
+    dashboardCSS += "width:60px;";
+    dashboardCSS += "height:60px;";
+    dashboardCSS += "border-radius:16px;";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "align-items:center;";
+    dashboardCSS += "justify-content:center;";
+    dashboardCSS += "color:#fff;";
+    dashboardCSS += "font-size:30px;";
+    dashboardCSS += "flex-shrink:0;";
+    dashboardCSS += "box-shadow:0 6px 12px rgba(0,0,0,0.15);";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-info{flex-grow:1;}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-title{";
+    dashboardCSS += "font-size:0.95rem;";
+    dashboardCSS += "color:#6c757d;";
+    dashboardCSS += "margin:0;";
+    dashboardCSS += "text-transform:capitalize;";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-value{";
+    dashboardCSS += "font-size:2rem;";
+    dashboardCSS += "font-weight:700;";
+    dashboardCSS += "color:#344767;";
+    dashboardCSS += "margin:0.2rem 0 0;";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-footer{";
+    dashboardCSS += "font-size:0.9rem;";
+    dashboardCSS += "color:#7b809a;";
+    dashboardCSS += "margin-top:1rem;";
+    dashboardCSS += "border-top:1px solid #eaeaea;";
+    dashboardCSS += "padding-top:0.8rem;";
+    dashboardCSS += "}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-footer .text-success{";
+    dashboardCSS += "color:#2ecc71;";
+    dashboardCSS += "font-weight:600;";
+    dashboardCSS += "}";
+
+    var color=getColorByType("primary").background;
+    dashboardCSS += ".bg-primary{background:linear-gradient(135deg,"+color+","+color+");}";
+    dashboardCSS += ".bg-success{background:linear-gradient(135deg,#16a34a,#15803d);}";
+    dashboardCSS += ".bg-warning{background:linear-gradient(135deg,#f59e0b,#d97706);}";
+    dashboardCSS += ".bg-danger{background:linear-gradient(135deg,#ef4444,#b91c1c);}";
+    dashboardCSS += ".bg-dark{background:linear-gradient(135deg,#334155,#0f172a);}";
+
+    dashboardCSS += ".m-dash-card-snap-v2-icon i{transition:transform 0.4s ease;}";
+    dashboardCSS += ".m-dash-card-snap-v2:hover .m-dash-card-snap-v2-icon i{transform:scale(1.15) rotate(5deg);}";
+
+    // Injetar CSS no documento
+    var styleTag = document.createElement("style");
+    styleTag.textContent = dashboardCSS;
+    document.head.appendChild(styleTag);
+
+    // =========================
+    // Exemplo de uso
+    // =========================
+    var cards = [
+      {
+        id: "card1",
+        title: "Vendas Totais",
+        bodyContent: "$12,340",
+        footer: '<span class="text-success">+8.5%</span> em relação à semana passada',
+        icon: "trending_up",
+        tipo: "success"
+      },
+      {
+        id: "card2",
+        title: "Novos Usuários",
+        bodyContent: "1,243",
+        footer: '<span class="text-success">+12%</span> este mês',
+        icon: "group_add",
+        tipo: "primary"
+      },
+      {
+        id: "card3",
+        title: "Taxa de Retorno",
+        bodyContent: "74%",
+        footer: '<span class="text-success">+3%</span> em comparação ao mês passado',
+        icon: "refresh",
+        tipo: "warning"
+      },
+      {
+        id: "card4",
+        title: "Erros do Sistema",
+        bodyContent: "23",
+        footer: '<span class="text-success">-15%</span> desde ontem',
+        icon: "error_outline",
+        tipo: "danger"
+      }
+    ];
+
+    var container = document.getElementById("dashboard-container");
+    cards.forEach(function(c) {
+      container.innerHTML += generateMDashCardSnapV2(c);
+    });
+  </script>
+
+</body>
+</html>
