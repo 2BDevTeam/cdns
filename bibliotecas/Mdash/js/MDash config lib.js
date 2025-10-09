@@ -28,8 +28,8 @@ var GMdashEntityCopyConfig = [
         entityToInstantiate: MdashContainer,
         localsource: "GMDashContainers",
         childs: ["MdashContainerItem"],
-        extraConfig:{
-            generateOrder:true
+        extraConfig: {
+            generateOrder: true
         }
     }),
     new MdashEntityCopy({
@@ -38,8 +38,8 @@ var GMdashEntityCopyConfig = [
         entityToInstantiate: MdashContainerItem,
         localsource: "GMDashContainerItems",
         childs: ["MdashContainerItemObject"],
-          extraConfig:{
-            generateOrder:true
+        extraConfig: {
+            generateOrder: true
         }
     }),
     new MdashEntityCopy({
@@ -48,8 +48,8 @@ var GMdashEntityCopyConfig = [
         entityToInstantiate: MdashContainerItemObject,
         localsource: "GMDashContainerItemObjects",
         childs: [],
-        extraConfig:{
-            generateOrder:false
+        extraConfig: {
+            generateOrder: false
         }
     })
 
@@ -302,7 +302,7 @@ MdashContainerItem.prototype.refreshContainerItem = function (masterContent) {
 
 
 function getContainerItemUIObjectFormConfigAndSourceValues() {
- 
+
     var objectsUIFormConfig = [
         new UIObjectFormConfig({ colSize: 12, campo: "ordem", tipo: "text", titulo: "Ordem", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
@@ -315,12 +315,10 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "fontelocal", tipo: "checkbox", titulo: "Fonte local", classes: "input-source-form", contentType: "input" })
     ]
- 
+
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashContainerItems", idField: "mdashcontaineritemstamp" };
- 
+
 }
-
-
 
 
 
@@ -1805,8 +1803,8 @@ function registerListenersMdash() {
                 var self = this;
                 this.containerItemObject[e] = editor.getValue();
                 this.renderCustomEditorObjecto();
-                 var editor = ace.edit(e);
-     
+                var editor = ace.edit(e);
+
                 realTimeComponentSync(this.containerItemObject, this.containerItemObject.table, this.containerItemObject.idfield);
 
             }
@@ -2318,7 +2316,7 @@ function registerListenersMdash() {
             },
             pasteObjectoContainerItemObject: function () {
 
-               
+
                 var filteredPasted = GCopiedComponentData.filter(function (copied) {
                     return copied.componentCopyConfig.table === "MdashContainerItemObject";
                 });
@@ -2338,7 +2336,7 @@ function registerListenersMdash() {
                     });
 
                     realTimeComponentSync(pasted.componentData, pasted.componentData.table, pasted.componentData.idfield)
-
+                    GCopiedComponentData=[];
                 });
 
                 $("#buttonPasteContainerItemObject").hide();
@@ -2457,7 +2455,7 @@ function registerListenersMdash() {
             },
             drop: function (targetId) {
 
-                console.log("Dropping.....",targetId)
+                console.log("Dropping.....", targetId)
                 if (!GTMPDragItem) return;
 
                 var targetIndex = this.GMDashContainerItemObjects.length;
@@ -2655,8 +2653,8 @@ function registerListenersMdash() {
                             currentObject.queryConfig.lastResult = result;
 
                             containerItemObject.queryconfigjson = JSON.stringify(currentObject.queryConfig);
-                          //  containerItemObject.config = {};
-                          //  containerItemObject.configjson = "";
+                            //  containerItemObject.config = {};
+                            //  containerItemObject.configjson = "";
                             realTimeComponentSync(containerItemObject, containerItemObject.table, containerItemObject.idfield);
 
                         } catch (error) {
@@ -3409,11 +3407,19 @@ function registerListenersMdash() {
             copiedComponent[parentIdField] = parentComponentId;
         }
 
-        if(componentCopyConfig.extraConfig.generateOrder){
+        if (componentCopyConfig.extraConfig.generateOrder) {
 
             copiedComponent.ordem = getMaxOrdemByLocalSource(localSource) + 1;
         }
 
+        var copiedData = {
+            componentCopyConfig: componentCopyConfig,
+            originalId: originalId,
+            componentData: new componentCopyConfig.entityToInstantiate(copiedComponent)
+        };
+        var existingIndex = GCopiedComponentData.findIndex(function (item) {
+            return item.originalId == originalId
+        });
 
 
 
@@ -3423,6 +3429,17 @@ function registerListenersMdash() {
             componentData: new componentCopyConfig.entityToInstantiate(copiedComponent)
         };
 
+        var existingIndex = GCopiedComponentData.findIndex(function (item) {
+            return item.componentData[item.componentCopyConfig.idfield] === copiedData.componentData[copiedData.componentCopyConfig.idfield] &&
+                item.componentCopyConfig.table === copiedData.componentCopyConfig.table;
+        });
+
+        if (existingIndex === -1) {
+            GCopiedComponentData.push(copiedData);
+        } else {
+            // Opcionalmente, substituir o elemento existente
+            GCopiedComponentData[existingIndex] = copiedData;
+        }
         GCopiedComponentData.push(copiedData);
 
         if (componentCopyConfig.childs && componentCopyConfig.childs.length > 0) {

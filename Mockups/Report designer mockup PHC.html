@@ -25,14 +25,7 @@
             --warning-color: #f72585;
             --info-color: #7209b7;
         }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fb;
-            color: var(--dark-color);
-            overflow-x: hidden;
-        }
-        
+         
         .app-header {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
@@ -46,7 +39,7 @@
             margin: 0;
         }
         
-        .sidebar {
+        .m-report-side-bar {
             background-color: white;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -206,7 +199,7 @@
             color: #dee2e6;
         }
         
-        .form-label {
+        .m-report-form-label {
             font-weight: 500;
             margin-bottom: 5px;
         }
@@ -242,18 +235,20 @@
         .badge-primary {
             background-color: var(--primary-color);
         }
+
+
     </style>
 </head>
 <body>
-    <div id="app" >
+    <div id="reportDesignerContainer" >
         <!-- Header -->        
         <!-- Main Content -->
         <div class="container-fluid mt-4">
             <div class="row g-4">
-                <!-- Left Sidebar - Components -->
+                <!-- Left m-report-side-bar - Components -->
                 <div class="col-md-3">
-                    <div class="sidebar">
-                        <h5 class="section-title"><i class="fas fa-shapes me-2"></i>Componentes</h5>
+                    <div class="m-report-side-bar">
+                        <h5 class="section-title"><i class="fas fa-shapes me-2"></i>Objectos</h5>
                         
                         <div class="component-item" 
                              v-for="component in components" 
@@ -278,7 +273,7 @@
                                     </button>
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label">Tipo</label>
+                                    <label class="m-report-form-label">Tipo</label>
                                     <select class="form-select form-select-sm" v-model="filter.type">
                                         <option value="text">Texto</option>
                                         <option value="number">Numérico</option>
@@ -287,11 +282,11 @@
                                     </select>
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label">Ordem</label>
+                                    <label class="m-report-form-label">Ordem</label>
                                     <input type="number" class="form-control form-control-sm" v-model="filter.order">
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label">Tamanho (1-12)</label>
+                                    <label class="m-report-form-label">Tamanho (1-12)</label>
                                     <input type="number" min="1" max="12" class="form-control form-control-sm" v-model="filter.size">
                                 </div>
                             </div>
@@ -312,14 +307,14 @@
                                     </button>
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label">Tipo</label>
+                                    <label class="m-report-form-label">Tipo</label>
                                     <select class="form-select form-select-sm" v-model="source.type">
                                         <option value="query">Query SQL</option>
                                         <option value="api">API REST</option>
                                     </select>
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label">Query/URL</label>
+                                    <label class="m-report-form-label">Query/URL</label>
                                     <textarea class="form-control form-control-sm" rows="3" v-model="source.query"></textarea>
                                 </div>
                             </div>
@@ -331,8 +326,8 @@
                 <div class="col-md-6">
                     <div class="main-content">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="section-title mb-0"><i class="fas fa-palette me-2"></i>Área de Design</h5>
-                            <div>
+                            <h5 class="section-title mb-0"><i class="fas fa-palette me-2"></i>Desenho do relatório</h5>
+                            <div style="display:none">
                                 <button  type="button" class="btn btn-sm btn-outline-secondary me-2">
                                     <i class="fas fa-plus me-1"></i> Página
                                 </button>
@@ -399,19 +394,19 @@
                     </div>
                 </div>
                 
-                <!-- Right Sidebar - Properties -->
+                <!-- Right m-report-side-bar - Properties -->
                 <div class="col-md-3">
                     <div class="properties-panel">
                         <h5 class="section-title"><i class="fas fa-sliders-h me-2"></i>Propriedades</h5>
                         
                         <div v-if="selectedObject">
                             <div class="mb-3">
-                                <label class="form-label">Nome</label>
+                                <label class="m-report-form-label">Nome</label>
                                 <input type="text" class="form-control" v-model="selectedObject.name">
                             </div>
                             
                             <div class="mb-3" v-if="selectedObject.type === 'text'">
-                                <label class="form-label">Conteúdo</label>
+                                <label class="m-report-form-label">Conteúdo</label>
                                 <textarea class="form-control" rows="3" v-model="selectedObject.content"></textarea>
                                 <div class="form-text">
                                     Use {{ campo }} para inserir valores de campos de dados
@@ -419,7 +414,7 @@
                             </div>
                             
                             <div class="mb-3" v-if="selectedObject.type === 'table'">
-                                <label class="form-label">Fonte de Dados</label>
+                                <label class="m-report-form-label">Fonte de Dados</label>
                                 <select class="form-select" v-model="selectedObject.dataSource">
                                     <option v-for="source in dataSources" :key="source.id" :value="source.id">
                                         {{ source.name }}
@@ -428,7 +423,7 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label class="form-label">Posição e Tamanho</label>
+                                <label class="m-report-form-label">Posição e Tamanho</label>
                                 <div class="row g-2">
                                     <div class="col-6">
                                         <input type="number" class="form-control" placeholder="X" v-model="selectedObject.x">
@@ -446,7 +441,7 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label class="form-label">Estilo</label>
+                                <label class="m-report-form-label">Estilo</label>
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="boldCheck" v-model="selectedObject.bold">
                                     <label class="form-check-label" for="boldCheck">
@@ -462,12 +457,12 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label class="form-label">Cor do Texto</label>
+                                <label class="m-report-form-label">Cor do Texto</label>
                                 <input type="color" class="form-control form-control-color" v-model="selectedObject.textColor">
                             </div>
                             
                             <div class="mb-3">
-                                <label class="form-label">Cor de Fundo</label>
+                                <label class="m-report-form-label">Cor de Fundo</label>
                                 <input type="color" class="form-control form-control-color" v-model="selectedObject.backgroundColor">
                             </div>
                             
@@ -703,7 +698,7 @@
             var canvas = document.getElementById('report-canvas');
             
             // Inicializar petite-vue
-            PetiteVue.createApp(App).mount('#app');
+            PetiteVue.createApp(App).mount('#reportDesignerContainer');
             
             // Adicionar evento global de mousemove para redimensionamento
             document.addEventListener('mousemove', function(event) {
@@ -725,6 +720,8 @@
                 self.resizeObject = null;
             });
         });
-    </script>
+
+
+</script>
 </body>
 </html>
