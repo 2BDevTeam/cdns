@@ -1,0 +1,4371 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+
+<head>
+    <title>Report Builder - Designer de Relatórios Reativo</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="index,follow">
+    <meta name="generator" content="GrapesJS Studio">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&amp;display=swap" rel="stylesheet" />
+    <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
+    <script src='https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js'></script>
+   <link href='https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_bootstrap5.min.css' rel='stylesheet'>
+   <script src='https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js'></script>
+   <script src='https://unpkg.com/petite-vue'></script>
+   <script src='https://cdn.jsdelivr.net/npm/alasql'></script>
+   <script src='https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js'></script>
+</head>
+
+<style>
+    .table-skin .tabulator-header {
+        background: var(--rb-th-bg, #0f172a);
+        color: var(--rb-th-color, #e5e7eb);
+        border-bottom: 1px solid #1f2937;
+    }
+
+    .table-skin .tabulator-row {
+        background: var(--rb-row-even-bg, #0b1220);
+    }
+
+    .table-skin .tabulator-row.tabulator-row-odd {
+        background: var(--rb-row-odd-bg, #0c1624);
+    }
+
+    .table-skin .tabulator-footer {
+        background: #0b1220;
+        color: #cbd5e1;
+        border-top: 1px solid #1f2937;
+    }
+
+    *,
+    ::before,
+    ::after {
+        box-sizing: border-box;
+        undefined: undefined;
+        border-width: 0;
+        border-style: solid;
+        border-color: #e5e7eb;
+    }
+
+    html,
+    :host {
+        line-height: 1.5;
+        undefined: undefined;
+        -webkit-text-size-adjust: 100%;
+        -moz-tab-size: 4;
+        tab-size: 4;
+        font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        font-feature-settings: normal;
+        font-variation-settings: normal;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        margin: 0;
+        undefined: undefined;
+        line-height: inherit;
+    }
+
+    hr {
+        height: 0;
+        undefined: undefined;
+        color: inherit;
+        border-top-width: 1px;
+    }
+
+    abbr:where([title]) {
+        text-decoration: underline dotted;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-size: inherit;
+        font-weight: inherit;
+    }
+
+    a {
+        color: inherit;
+        text-decoration: inherit;
+    }
+
+    b,
+    strong {
+        font-weight: bolder;
+    }
+
+    code,
+    kbd,
+    samp,
+    pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        undefined: undefined;
+        font-feature-settings: normal;
+        font-variation-settings: normal;
+        font-size: 1em;
+    }
+
+    small {
+        font-size: 80%;
+    }
+
+    sub,
+    sup {
+        font-size: 75%;
+        line-height: 0;
+        position: relative;
+        vertical-align: baseline;
+    }
+
+    sub {
+        bottom: -0.25em;
+    }
+
+    sup {
+        top: -0.5em;
+    }
+
+    table {
+        text-indent: 0;
+        undefined: undefined;
+        border-color: inherit;
+        border-collapse: collapse;
+    }
+
+    button,
+    input,
+    optgroup,
+    select,
+    textarea {
+        font-family: inherit;
+        undefined: undefined;
+        font-feature-settings: inherit;
+        font-variation-settings: inherit;
+        font-size: 100%;
+        font-weight: inherit;
+        line-height: inherit;
+        letter-spacing: inherit;
+        color: inherit;
+        margin: 0;
+        padding: 0;
+    }
+
+    button,
+    select {
+        text-transform: none;
+    }
+
+    button,
+    input:where([type='button']),
+    input:where([type='reset']),
+    input:where([type='submit']) {
+        -webkit-appearance: button;
+        undefined: undefined;
+        background-color: transparent;
+        background-image: none;
+    }
+
+    :-moz-focusring {
+        outline: auto;
+    }
+
+    :-moz-ui-invalid {
+        box-shadow: none;
+    }
+
+    progress {
+        vertical-align: baseline;
+    }
+
+    ::-webkit-inner-spin-button,
+    ::-webkit-outer-spin-button {
+        height: auto;
+    }
+
+    [type='search'] {
+        -webkit-appearance: textfield;
+        undefined: undefined;
+        outline-offset: -2px;
+    }
+
+    ::-webkit-search-decoration {
+        -webkit-appearance: none;
+    }
+
+    ::-webkit-file-upload-button {
+        -webkit-appearance: button;
+        undefined: undefined;
+        font: inherit;
+    }
+
+    summary {
+        display: list-item;
+    }
+
+    blockquote,
+    dl,
+    dd,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    hr,
+    figure,
+    p,
+    pre {
+        margin: 0;
+    }
+
+    fieldset {
+        margin: 0;
+        padding: 0;
+    }
+
+    legend {
+        padding: 0;
+    }
+
+    ol,
+    ul,
+    menu {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    dialog {
+        padding: 0;
+    }
+
+    textarea {
+        resize: vertical;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        opacity: 1;
+        undefined: undefined;
+        color: #9ca3af;
+    }
+
+    button,
+    [role="button"] {
+        cursor: pointer;
+    }
+
+    :disabled {
+        cursor: default;
+    }
+
+    img,
+    svg,
+    video,
+    canvas,
+    audio,
+    iframe,
+    embed,
+    object {
+        display: block;
+        undefined: undefined;
+        vertical-align: middle;
+    }
+
+    img,
+    video {
+        max-width: 100%;
+        height: auto;
+    }
+
+    [hidden] {
+        display: none;
+    }
+
+    .app-shell {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .top-bar {
+        width: 100%;
+        border-bottom-width: 1px;
+        background-color: rgb(13 20 38 / 0.8);
+        backdrop-filter: blur(8px);
+    }
+
+    .top-bar-inner {
+        max-width: 1400px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .brand-block {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .brand-mark {
+        height: 2rem;
+        width: 2rem;
+        border-radius: 0.75rem;
+        background-color: var(--gjs-t-color-primary);
+    }
+
+    .brand-title {
+        font-weight: 600;
+    }
+
+    .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .open-data-sources-button {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .open-data-sources-button:hover {
+        opacity: 0.9;
+    }
+
+    .open-filters-button {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .open-filters-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .open-functions-button {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .open-functions-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .preview-button {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .preview-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .main-layout {
+        flex: 1 1 0%;
+    }
+
+    .main-container {
+        max-width: 1400px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        padding-top: 1.5rem;
+        padding-bottom: 1.5rem;
+        display: grid;
+        grid-template-columns: 280px 1fr 320px;
+        gap: 1rem;
+    }
+
+    .left-sidebar-palette {
+        background-color: rgb(15 23 42 / 1);
+        border-width: 1px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .palette-title {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .palette-items {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .palette-item-table {
+        cursor: grab;
+        user-select: none;
+        border-width: 1px;
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+        background-color: rgb(11 18 32 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+        text-align: center;
+    }
+
+    .palette-item-table:active {
+        cursor: grabbing;
+    }
+
+    .palette-item-table:hover {
+        background-color: rgb(11 18 32 / 0.7);
+    }
+
+    .palette-item-label {
+        font-weight: 500;
+    }
+
+    .palette-item-hint {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .palette-item-text {
+        cursor: grab;
+        user-select: none;
+        border-width: 1px;
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+        background-color: rgb(11 18 32 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+        text-align: center;
+    }
+
+    .palette-item-text:active {
+        cursor: grabbing;
+    }
+
+    .palette-item-text:hover {
+        background-color: rgb(11 18 32 / 0.7);
+    }
+
+    .palette-item-header {
+        cursor: grab;
+        user-select: none;
+        border-width: 1px;
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+        background-color: rgb(11 18 32 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+        text-align: center;
+    }
+
+    .palette-item-header:active {
+        cursor: grabbing;
+    }
+
+    .palette-item-header:hover {
+        background-color: rgb(11 18 32 / 0.7);
+    }
+
+    .palette-item-footer {
+        cursor: grab;
+        user-select: none;
+        border-width: 1px;
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+        background-color: rgb(11 18 32 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+        text-align: center;
+    }
+
+    .palette-item-footer:active {
+        cursor: grabbing;
+    }
+
+    .palette-item-footer:hover {
+        background-color: rgb(11 18 32 / 0.7);
+    }
+
+    .hints-block {
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .divider {
+        height: 1px;
+        background-color: rgb(31 41 55 / 1);
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .quick-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .add-dummy-table-quick {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+        text-align: left;
+    }
+
+    .add-dummy-table-quick:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .add-dummy-text-quick {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+        text-align: left;
+    }
+
+    .add-dummy-text-quick:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .canvas-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .filters-bar {
+        background-color: rgb(15 23 42 / 1);
+        border-width: 1px;
+        padding: 1rem;
+        border-radius: 0.75rem;
+    }
+
+    .filters-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .filters-title {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        font-weight: 600;
+        color: rgb(203 213 225 / 1);
+    }
+
+    .filter-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .manage-filters-button {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .manage-filters-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .clear-filters-button {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .clear-filters-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .canvas-wrapper {
+        position: relative;
+        border-width: 1px;
+        border-radius: 0.75rem;
+        background-color: rgb(11 18 32 / 1);
+        padding: 1rem;
+        overflow: hidden;
+    }
+
+    .canvas-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .canvas-title-block {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .canvas-title {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        font-weight: 600;
+        color: rgb(203 213 225 / 1);
+    }
+
+    .canvas-hint {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .canvas-tools {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .zoom-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .zoom-range {
+        width: 8rem;
+    }
+
+    .canvas-surface {
+        position: relative;
+        min-height: 700px;
+        background-color: rgb(12 22 36 / 1);
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+    }
+
+    .right-sidebar-properties {
+        background-color: rgb(15 23 42 / 1);
+        border-width: 1px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .properties-title {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .no-selection-state {
+        color: rgb(148 163 184 / 1);
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+
+    .selection-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .basic-section {
+        border-width: 1px;
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .basic-title {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+        margin-bottom: 0.5rem;
+    }
+
+    .basic-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .field-name {
+        grid-column: span 2 / span 2;
+    }
+
+    .label-name {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .input-name {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .field-x {
+        grid-column: span 1 / span 1;
+    }
+
+    .label-x {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .input-x {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .field-y {
+        grid-column: span 1 / span 1;
+    }
+
+    .label-y {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .input-y {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .field-width {
+        grid-column: span 1 / span 1;
+    }
+
+    .label-width {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .input-width {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .field-height {
+        grid-column: span 1 / span 1;
+    }
+
+    .label-height {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .input-height {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .text-properties-panel {
+        border-width: 1px;
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .text-props-title {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+        margin-bottom: 0.5rem;
+    }
+
+    .text-props-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .text-mode-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .text-mode-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .text-mode-select {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .text-ds-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .text-ds-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .text-ds-select {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .text-static-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .text-static-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .text-static-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .text-field-binding {
+        grid-column: span 2 / span 2;
+    }
+
+    .text-field-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .text-field-select {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .text-js-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .text-js-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .text-js-textarea {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .text-align-field {
+        grid-column: span 1 / span 1;
+    }
+
+    .text-align-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .text-align-select {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .text-color-field {
+        grid-column: span 1 / span 1;
+    }
+
+    .text-color-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .text-color-input {
+        width: 100%;
+        height: 38px;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .text-size-field {
+        grid-column: span 1 / span 1;
+    }
+
+    .text-size-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .text-size-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .text-weight-field {
+        grid-column: span 1 / span 1;
+    }
+
+    .text-weight-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .text-weight-select {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .band-properties-panel {
+        border-width: 1px;
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .band-props-title {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+        margin-bottom: 0.5rem;
+    }
+
+    .band-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .band-text-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .band-text-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .band-text-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .band-repeat-field {
+        grid-column: span 1 / span 1;
+    }
+
+    .band-repeat-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .band-repeat-select {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .band-align-field {
+        grid-column: span 1 / span 1;
+    }
+
+    .band-align-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .band-align-select {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .table-properties-panel {
+        border-width: 1px;
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .table-props-title {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+        margin-bottom: 0.5rem;
+    }
+
+    .table-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .table-ds-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .table-ds-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .table-ds-select {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .group-fields-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .group-fields-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .group-fields-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .row-colors-group {
+        grid-column: span 2 / span 2;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .odd-row-color-field {
+        grid-column: span 1 / span 1;
+    }
+
+    .odd-row-color-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .odd-row-color-input {
+        width: 100%;
+        height: 38px;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .even-row-color-field {
+        grid-column: span 1 / span 1;
+    }
+
+    .even-row-color-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .even-row-color-input {
+        width: 100%;
+        height: 38px;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .header-colors-group {
+        grid-column: span 2 / span 2;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .header-bg-field {
+        grid-column: span 1 / span 1;
+    }
+
+    .header-bg-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .header-bg-input {
+        width: 100%;
+        height: 38px;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .header-color-field {
+        grid-column: span 1 / span 1;
+    }
+
+    .header-color-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .header-color-input {
+        width: 100%;
+        height: 38px;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .columns-section {
+        grid-column: span 2 / span 2;
+    }
+
+    .columns-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .columns-title {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .columns-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .auto-columns-button {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .auto-columns-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .add-column-button {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .add-column-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .columns-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-height: 14rem;
+        overflow: auto;
+        padding-right: 0.5rem;
+    }
+
+    .column-item {
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .column-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .column-field-input {
+        grid-column: span 2 / span 2;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .column-title-input {
+        grid-column: span 2 / span 2;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .column-total-select {
+        grid-column: span 1 / span 1;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+        color: rgb(229 231 235 / 1);
+    }
+
+    .column-remove-button {
+        grid-column: span 1 / span 1;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        border-radius: 0.25rem;
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .column-remove-button:hover {
+        background-color: rgb(255 255 255 / 0.1);
+    }
+
+    .column-color-input {
+        grid-column: span 1 / span 1;
+        height: 32px;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .column-header-color-input {
+        grid-column: span 1 / span 1;
+        height: 32px;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .data-sources-modal-backdrop {
+        position: fixed;
+        inset: 0px;
+        background-color: rgb(0 0 0 / 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .data-sources-modal {
+        width: 100%;
+        max-width: 56rem;
+        background-color: rgb(15 23 42 / 1);
+        border-width: 1px;
+        border-radius: 0.75rem;
+        padding: 1rem;
+    }
+
+    .ds-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .ds-modal-title {
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+
+    .ds-modal-close {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+    }
+
+    .ds-modal-close:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .ds-modal-body {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .ds-list {
+        grid-column: span 4 / span 4;
+        border-width: 1px;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .ds-list-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .ds-list-title {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .add-ds-button {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+    }
+
+    .add-ds-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .ds-items {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .ds-select-button {
+        width: 100%;
+        text-align: left;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        border-radius: 0.375rem;
+    }
+
+    .ds-select-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .ds-editor {
+        grid-column: span 8 / span 8;
+        border-width: 1px;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    .ds-editor-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .ds-name-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .ds-name-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .ds-name-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .ds-type-field {
+        grid-column: span 1 / span 1;
+    }
+
+    .ds-type-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .ds-type-select {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .ds-query-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .ds-query-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .ds-query-textarea {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .ds-actions {
+        grid-column: span 2 / span 2;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .ds-test-button {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+
+    .ds-test-button:hover {
+        opacity: 0.9;
+    }
+
+    .ds-remove-button {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+    }
+
+    .ds-remove-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .ds-preview {
+        grid-column: span 2 / span 2;
+        border-width: 1px;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .ds-preview-title {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+        margin-bottom: 0.5rem;
+    }
+
+    .ds-preview-pre {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        overflow: auto;
+        max-height: 16rem;
+        background-color: rgb(11 18 32 / 1);
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+    }
+
+    .filters-modal-backdrop {
+        position: fixed;
+        inset: 0px;
+        background-color: rgb(0 0 0 / 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .filters-modal {
+        width: 100%;
+        max-width: 64rem;
+        background-color: rgb(15 23 42 / 1);
+        border-width: 1px;
+        border-radius: 0.75rem;
+        padding: 1rem;
+    }
+
+    .filters-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .filters-modal-title {
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+
+    .filters-modal-close {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+    }
+
+    .filters-modal-close:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .filters-modal-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .filters-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .filters-count {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .add-filter-button {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+    }
+
+    .add-filter-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .filters-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        max-height: 60vh;
+        overflow: auto;
+        padding-right: 0.25rem;
+    }
+
+    .filter-editor-card {
+        border-width: 1px;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .filter-editor-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .filter-label-field {
+        grid-column: span 3 / span 3;
+    }
+
+    .filter-label-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .filter-label-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .filter-key-field {
+        grid-column: span 3 / span 3;
+    }
+
+    .filter-key-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .filter-key-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .filter-type-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .filter-type-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .filter-type-select {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .filter-order-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .filter-order-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .filter-order-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .filter-size-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .filter-size-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .filter-size-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .filter-option-field-field {
+        grid-column: span 3 / span 3;
+    }
+
+    .filter-option-field-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .filter-option-field-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .filter-value-field-field {
+        grid-column: span 3 / span 3;
+    }
+
+    .filter-value-field-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .filter-value-field-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .filter-sql-field {
+        grid-column: span 6 / span 6;
+    }
+
+    .filter-sql-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .filter-sql-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .filter-js-field {
+        grid-column: span 6 / span 6;
+    }
+
+    .filter-js-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .filter-js-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .filter-editor-actions {
+        grid-column: span 12 / span 12;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 0.5rem;
+    }
+
+    .filter-preview-options {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .filter-remove-button {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.375rem;
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .filter-remove-button:hover {
+        background-color: rgb(255 255 255 / 0.1);
+    }
+
+    .filters-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-top: 0.5rem;
+    }
+
+    .filters-save-button {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .filters-save-button:hover {
+        opacity: 0.9;
+    }
+
+    .functions-modal-backdrop {
+        position: fixed;
+        inset: 0px;
+        background-color: rgb(0 0 0 / 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .functions-modal {
+        width: 100%;
+        max-width: 64rem;
+        background-color: rgb(15 23 42 / 1);
+        border-width: 1px;
+        border-radius: 0.75rem;
+        padding: 1rem;
+    }
+
+    .functions-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .functions-modal-title {
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+
+    .functions-modal-close {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+    }
+
+    .functions-modal-close:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .functions-modal-body {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .functions-list {
+        grid-column: span 4 / span 4;
+        border-width: 1px;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .functions-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .functions-count {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .add-function-button {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.375rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+    }
+
+    .add-function-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .functions-items {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .function-select-button {
+        width: 100%;
+        text-align: left;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        border-radius: 0.375rem;
+    }
+
+    .function-select-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .function-editor {
+        grid-column: span 8 / span 8;
+        border-width: 1px;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    .function-editor-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .function-name-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .function-name-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .function-name-input {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .function-body-field {
+        grid-column: span 2 / span 2;
+    }
+
+    .function-body-label {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    .function-body-textarea {
+        width: 100%;
+        margin-top: 0.25rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+        background-color: rgb(11 18 32 / 1);
+    }
+
+    .function-actions {
+        grid-column: span 2 / span 2;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .function-try-button {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+
+    .function-try-button:hover {
+        opacity: 0.9;
+    }
+
+    .function-remove-button {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        border-radius: 0.5rem;
+        border-width: 1px;
+        border-color: rgb(31 41 55 / 1);
+    }
+
+    .function-remove-button:hover {
+        background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .function-output {
+        grid-column: span 2 / span 2;
+        border-width: 1px;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .function-output-title {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+        margin-bottom: 0.25rem;
+    }
+
+    .function-output-pre {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        overflow: auto;
+        max-height: 12rem;
+        background-color: rgb(11 18 32 / 1);
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+    }
+
+    .footer-bar {
+        width: 100%;
+        border-top-width: 1px;
+        background-color: rgb(13 20 38 / 0.8);
+    }
+
+    .footer-inner {
+        max-width: 1400px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: rgb(148 163 184 / 1);
+    }
+
+    #report-builder-layout {
+        background: #0b1220;
+        border-width: 1px;
+    }
+
+    #report-builder-layout .rb-inner {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    #report-builder-layout .rb-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    #report-builder-layout .rb-head-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    #report-builder-layout .rb-head-title .rb-badge {
+        font-size: 12px;
+        line-height: 1;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #cbd5e1;
+    }
+
+    #report-builder-layout .rb-grid {
+        display: grid;
+        grid-template-columns: 280px 1fr 320px;
+        gap: 16px;
+    }
+
+    #report-builder-layout .rb-panel {
+        border-width: 1px;
+        border-radius: 12px;
+        border-color: #1f2937;
+        background: #0f172a;
+    }
+
+    #report-builder-layout .rb-panel-body {
+        padding: 16px;
+    }
+
+    #report-builder-layout .rb-panel-title {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #94a3b8;
+        margin-bottom: 12px;
+    }
+
+    #report-builder-layout .rb-palette-items {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    #report-builder-layout .rb-palette-item {
+        border-width: 1px;
+        border-color: #1f2937;
+        border-radius: 10px;
+        background: #0b1220;
+        padding: 12px;
+        text-align: center;
+        transition: transform 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+        cursor: grab;
+        user-select: none;
+        color: #e5e7eb;
+    }
+
+    #report-builder-layout .rb-palette-item:active {
+        cursor: grabbing;
+    }
+
+    #report-builder-layout .rb-palette-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+        transform: translateY(-1px);
+    }
+
+    #report-builder-layout .rb-palette-item .label {
+        font-weight: 600;
+        color: #e5e7eb;
+        margin-top: 8px;
+    }
+
+    #report-builder-layout .rb-palette-item .hint {
+        font-size: 12px;
+        color: #94a3b8;
+    }
+
+    #report-builder-layout .rb-canvas-wrap {
+        border-width: 1px;
+        border-color: #1f2937;
+        border-radius: 12px;
+        background: #0b1220;
+        padding: 16px;
+        overflow: hidden;
+    }
+
+    #report-builder-layout .rb-canvas-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+    #report-builder-layout .rb-canvas-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #cbd5e1;
+    }
+
+    #report-builder-layout .rb-canvas-hint {
+        font-size: 12px;
+        color: #94a3b8;
+    }
+
+    #report-builder-layout .rb-canvas-tools {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #report-builder-layout .rb-canvas {
+        position: relative;
+        min-height: 560px;
+        background: #0c1624;
+        border: 1px solid #1f2937;
+        border-radius: 8px;
+    }
+
+    #report-builder-layout .rb-obj {
+        position: absolute;
+        border: 1px solid #1f2937;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #0b1220;
+    }
+
+    #report-builder-layout .rb-obj.is-selected {
+        box-shadow: 0 0 0 2px #0ea5e9 inset;
+    }
+
+    #report-builder-layout .rb-obj-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 6px 8px;
+        background: #0f172a;
+        border-bottom: 1px solid #1f2937;
+    }
+
+    #report-builder-layout .rb-obj-name {
+        font-size: 12px;
+        color: #cbd5e1;
+        font-weight: 600;
+    }
+
+    #report-builder-layout .rb-obj-type {
+        color: #94a3b8;
+        margin-left: 6px;
+        font-weight: 400;
+    }
+
+    #report-builder-layout .rb-obj-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    #report-builder-layout .rb-obj-action {
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #e5e7eb;
+        transition: background-color 0.15s ease, opacity 0.15s ease;
+    }
+
+    #report-builder-layout .rb-obj-action:hover {
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    #report-builder-layout .rb-obj-body {
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 80px;
+        color: #e5e7eb;
+        text-align: center;
+    }
+
+    #report-builder-layout .rb-empty {
+        font-size: 14px;
+        color: #94a3b8;
+    }
+
+    #report-builder-layout .rb-field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    #report-builder-layout .rb-field-grid .span-2 {
+        grid-column: span 2;
+    }
+
+    #report-builder-layout .rb-label {
+        font-size: 12px;
+        color: #94a3b8;
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    #report-builder-layout .rb-input,
+    #report-builder-layout .rb-select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #1f2937;
+        background: #0b1220;
+        color: #e5e7eb;
+    }
+
+    #report-builder-layout .rb-range {
+        width: 120px;
+    }
+
+    #report-builder-layout .rb-ghost {
+        position: fixed;
+        z-index: 60;
+        pointer-events: none;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: #0ea5e9;
+        color: #0b1220;
+        font-size: 14px;
+    }
+
+    #report-builder-layout .rb-badge {
+        font-size: 12px;
+        line-height: 1;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #cbd5e1;
+    }
+
+    #report-builder-layout .rb-input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #1f2937;
+        background: #0b1220;
+        color: #e5e7eb;
+        transition: border-color 0.15s ease;
+    }
+
+    #report-builder-layout .rb-input:focus {
+        outline: none;
+        border-color: #0ea5e9;
+    }
+
+    @media (max-width: 992px) {
+        .main-container {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        #report-builder-layout .rb-grid {
+            grid-template-columns: 1fr;
+        }
+
+        #report-builder-layout .rb-inner {
+            padding: 24px;
+        }
+
+        #report-builder-layout .rb-range {
+            width: 110px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        #report-builder-layout .rb-inner {
+            padding: 16px;
+        }
+
+        #report-builder-layout .rb-range {
+            width: 100px;
+        }
+    }
+</style>
+
+<body class="gjs-t-body">
+    <div id="app" class="app-shell">
+        <header class="gjs-t-border top-bar" id="iqsrh">
+            <div class="top-bar-inner" id="ij10q">
+                <div class="brand-block" id="i1wuv">
+                    <div class="brand-mark" id="itb34"></div>
+                    <h1 class="gjs-t-h2 brand-title" id="i0rza">Report Builder</h1>
+                </div>
+                <div class="top-actions" id="idghh">
+                    <button type="button" @click="ui.showDataSources=true" class="gjs-t-button open-data-sources-button"
+                        id="ieflg">Fontes de Dados</button>
+                    <button type="button" @click="ui.showFilters=true" class="open-filters-button"
+                        id="idh8p">Filtros</button>
+                    <button type="button" @click="ui.showFunctions=true" class="open-functions-button"
+                        id="i7qbu">Funções</button>
+                    <button type="button" @click="actions.exportJSON" class="preview-button" id="ij9w6">Exportar
+                        JSON</button>
+                </div>
+            </div>
+        </header>
+        <main class="main-layout" id="iptjf">
+            <div class="main-container" id="imkul"><!-- Left Sidebar: Palette -->
+                <aside class="gjs-t-border left-sidebar-palette" id="icdrl">
+                    <h2 class="palette-title" id="i2ry1">Objetos</h2>
+                    <div class="palette-items" id="iifmf">
+                        <div data-type="table" v-scope="" @mousedown="drag.start('table',$event)"
+                            @touchstart.passive="drag.start('table',$event)" class="gjs-t-border palette-item-table"
+                            id="ijdbj">
+                            <div class="palette-item-label" id="igv4b">Tabela</div>
+                            <small class="palette-item-hint" id="ik11n">Tabulator</small>
+                        </div>
+                        <div data-type="text" v-scope="" @mousedown="drag.start('text',$event)"
+                            @touchstart.passive="drag.start('text',$event)" class="gjs-t-border palette-item-text"
+                            id="i0hma">
+                            <div class="palette-item-label" id="ifjbt">Texto</div>
+                            <small class="palette-item-hint" id="ik4fm">Estático / Binding</small>
+                        </div>
+                        <div data-type="header" v-scope="" @mousedown="drag.start('header',$event)"
+                            @touchstart.passive="drag.start('header',$event)" class="gjs-t-border palette-item-header"
+                            id="i2nmg">
+                            <div class="palette-item-label" id="izkkl">Header</div>
+                            <small class="palette-item-hint" id="i7qgk">Repetir</small>
+                        </div>
+                        <div data-type="footer" v-scope="" @mousedown="drag.start('footer',$event)"
+                            @touchstart.passive="drag.start('footer',$event)" class="gjs-t-border palette-item-footer"
+                            id="i37h4">
+                            <div class="palette-item-label" id="iydee">Footer</div>
+                            <small class="palette-item-hint" id="il5eh">Repetir</small>
+                        </div>
+                    </div>
+                    <div class="hints-block" id="idy6i">
+                        <p id="io0ey">Arraste para o centro. Redimensione e mova livremente. Tudo é reativo.</p>
+                    </div>
+                    <div class="divider" id="ihgzl"></div>
+                    <div class="quick-actions" id="iz6go">
+                        <button type="button" @click="actions.quickAddTable()" class="add-dummy-table-quick"
+                            id="idywc">Tabela (Dummy)</button>
+                        <button type="button" @click="actions.quickAddText()" class="add-dummy-text-quick"
+                            id="iufpf">Texto (Binding)</button>
+                    </div>
+                </aside><!-- Center: Canvas and Filters Row -->
+                <section class="canvas-section" id="irvs7">
+                    <div class="gjs-t-border filters-bar" id="ioigg">
+                        <div class="filters-header" id="i1jcx">
+                            <h3 class="filters-title" id="il5vd">Filtros</h3>
+                            <div class="filter-actions" id="igtbi">
+                                <button type="button" @click="ui.showFilters=true" class="manage-filters-button"
+                                    id="i2ye3">Gerir</button>
+                                <button type="button" @click="actions.clearFilters()" class="clear-filters-button"
+                                    id="ie51k">Limpar</button>
+                            </div>
+                        </div>
+                        <div class="filters-grid" id="ijbfz">
+                            <template v-for="f in filtersSorted" :key="f.id" id="i2ktk">
+                                <div :class="['col-span-'+(f.size||4)]" class="col-span-4" id="i8lww">
+                                    <label class="block text-xs text-[#94a3b8] mb-1" id="i7xy5">{{ f.label }}</label>
+                                    <div v-if="f.type==='numeric'" id="iffob">
+                                        <input type="number" v-model="f.value" @input="actions.onFilterChange()"
+                                            class="w-full px-3 py-2 rounded-lg border border-[#1f2937] bg-[#0b1220] text-[#e5e7eb]"
+                                            id="i3pba" />
+                                    </div>
+                                    <div v-else-if="f.type==='checkbox'" id="i9xuz">
+                                        <label class="inline-flex items-center gap-2" id="ilufu">
+                                            <input type="checkbox" v-model="f.value" @change="actions.onFilterChange()"
+                                                class="accent-[var(--gjs-t-color-primary)]" id="ih14n" />
+                                            <span class="text-sm text-[#e5e7eb]" id="i195k">Ativo</span>
+                                        </label>
+                                    </div>
+                                    <div v-else-if="f.type==='list'" id="i5c3l">
+                                        <select type="text" v-model="f.value" @change="actions.onFilterChange()"
+                                            class="w-full px-3 py-2 rounded-lg border border-[#1f2937] bg-[#0b1220] text-[#e5e7eb]"
+                                            id="izamn">
+                                            <option value="" id="iouud">-- selecione --</option>
+                                            <option v-for="opt in actions.getFilterOptions(f)" :key="opt.value"
+                                                :value="opt.value" id="iav6p">{{ opt.label }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="gjs-t-border canvas-wrapper" id="ijezbq">
+                        <div class="canvas-header" id="iaznd9">
+                            <div class="canvas-title-block" id="ih7q4l">
+                                <h3 class="canvas-title" id="izm5xp">Área do Relatório</h3>
+                                <span class="canvas-hint" id="ijgtei">Arraste objetos aqui</span>
+                            </div>
+                            <div class="canvas-tools" id="i4y0qn">
+                                <label class="zoom-label" id="im64uj">Zoom</label>
+                                <input type="range" min="0.5" max="1.5" step="0.1" v-model="ui.zoom"
+                                    @input="actions.applyZoom()" class="zoom-range" id="ikof6l" />
+                            </div>
+                        </div>
+                        <div id="canvas" class="canvas-surface">
+                            <template v-for="obj in objects" :key="obj.id" id="ij16mc">
+                                <div :id="'obj-'+obj.id"
+                                    :class="[selectedId===obj.id ? 'ring-2 ring-[var(--gjs-t-color-primary)]' : '']"
+                                    :style="{left: obj.x+'px', top: obj.y+'px', width: obj.w+'px', height: obj.h+'px'}"
+                                    @click.stop="actions.select(obj.id)"
+                                    class="canvas-item absolute rounded-lg border border-[#1f2937] overflow-hidden"
+                                    id="irfj98">
+                                    <div class="flex items-center justify-between px-2 py-1 bg-[#0f172a] border-b border-[#1f2937]"
+                                        id="iho93k">
+                                        <div class="text-xs text-[#cbd5e1] font-medium" id="i966z3">{{ obj.name }}
+                                            <span class="text-[#94a3b8]" id="iooggr">({{ obj.type }})</span>
+                                        </div>
+                                        <div class="flex items-center gap-2" id="ilj0xh">
+                                            <button type="button" @click.stop="actions.duplicateObject(obj.id)"
+                                                class="text-xs px-2 py-0.5 rounded bg-white/5 hover:bg-white/10"
+                                                id="im6xzk">Duplicar</button>
+                                            <button type="button" @click.stop="actions.deleteObject(obj.id)"
+                                                class="text-xs px-2 py-0.5 rounded bg-white/5 hover:bg-white/10"
+                                                id="i0rqjy">Remover</button>
+                                        </div>
+                                    </div>
+                                    <div class="w-full h-[calc(100%-32px)]" id="isebfx"><!-- Render by type -->
+                                        <div v-if="obj.type==='text'"
+                                            class="w-full h-full flex items-center justify-center p-3" id="izfwps">
+                                            <div :style="{color: obj.color, fontSize: obj.fontSize+'px', fontWeight: obj.fontWeight, textAlign: obj.align}"
+                                                class="w-full h-full flex items-center justify-center text-center"
+                                                id="i31h5s">
+                                                {{ actions.renderText(obj) }}
+                                            </div>
+                                        </div>
+                                        <div v-else-if="obj.type==='header' || obj.type==='footer'"
+                                            class="w-full h-full flex items-center justify-center p-3 bg-white/5"
+                                            id="itlox4">
+                                            <div :style="{textAlign: obj.align}"
+                                                class="w-full text-center font-semibold" id="ih0y6z">
+                                                {{ obj.text }} • {{ obj.repeatEachPage ? 'repetir por página' : 'uma
+                                                vez' }}
+                                            </div>
+                                        </div>
+                                        <div v-else-if="obj.type==='table'" class="w-full h-full" id="ijqlje">
+                                            <div :id="'tab-'+obj.id"
+                                                :style="{'--rb-th-bg': obj.headerColors.bg, '--rb-th-color': obj.headerColors.color, '--rb-row-even-bg': obj.rowColors.even, '--rb-row-odd-bg': obj.rowColors.odd}"
+                                                class="w-full h-full table-skin" id="i7wymq"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </section><!-- Right Sidebar: Properties -->
+                <aside class="gjs-t-border right-sidebar-properties" id="ileofv">
+                    <h2 class="properties-title" id="i8udon">Propriedades</h2>
+                    <div v-if="!selectedObject" class="no-selection-state" id="i3lhbp">
+                        Selecione um objeto para editar as propriedades.
+                    </div>
+                    <div v-else="" class="selection-panel" id="i80ulr">
+                        <div class="gjs-t-border basic-section" id="ihgyzl">
+                            <h3 class="basic-title" id="iswukk">Básico</h3>
+                            <div class="basic-grid" id="im6iww">
+                                <div class="field-name" id="igyyfd">
+                                    <label class="label-name" id="ift919">Nome</label>
+                                    <input type="text" v-model="selectedObject.name"
+                                        @input="actions.onObjectChanged(selectedObject)" class="input-name"
+                                        id="i8km5a" />
+                                </div>
+                                <div class="field-x" id="iw83kr">
+                                    <label class="label-x" id="io7vgp">X</label>
+                                    <input type="number" v-model.number="selectedObject.x"
+                                        @input="actions.onObjectChanged(selectedObject)" class="input-x" id="idfiwi" />
+                                </div>
+                                <div class="field-y" id="icbgcz">
+                                    <label class="label-y" id="iyjo6b">Y</label>
+                                    <input type="number" v-model.number="selectedObject.y"
+                                        @input="actions.onObjectChanged(selectedObject)" class="input-y" id="ioh3d8" />
+                                </div>
+                                <div class="field-width" id="iy873h">
+                                    <label class="label-width" id="ippacs">Largura</label>
+                                    <input type="number" v-model.number="selectedObject.w"
+                                        @input="actions.onObjectChanged(selectedObject)" class="input-width"
+                                        id="i9i796" />
+                                </div>
+                                <div class="field-height" id="igzjow">
+                                    <label class="label-height" id="i2l84i">Altura</label>
+                                    <input type="number" v-model.number="selectedObject.h"
+                                        @input="actions.onObjectChanged(selectedObject)" class="input-height"
+                                        id="iapvav" />
+                                </div>
+                            </div>
+                        </div><!-- Conditional panels -->
+                        <div v-if="selectedObject.type==='text'" class="gjs-t-border text-properties-panel" id="io7z1y">
+                            <h3 class="text-props-title" id="iuav2a">Texto</h3>
+                            <div class="text-props-grid" id="iq2nre">
+                                <div class="text-mode-field" id="iekthb">
+                                    <label class="text-mode-label" id="iilhm4">Modo</label>
+                                    <select type="text" v-model="selectedObject.mode"
+                                        @change="actions.onObjectChanged(selectedObject)" class="text-mode-select"
+                                        id="i5ogrq">
+                                        <option value="static" id="i67pkq">Estático</option>
+                                        <option value="field" id="i3z18l">Campo do DataSource</option>
+                                        <option value="js" id="ilv1zj">Expressão JS</option>
+                                    </select>
+                                </div>
+                                <div v-if="selectedObject.mode!=='static'" class="text-ds-field" id="i4ik3h">
+                                    <label class="text-ds-label" id="ih4gn7">Fonte de Dados</label>
+                                    <select type="text" v-model="selectedObject.dataSourceId"
+                                        @change="actions.onObjectChanged(selectedObject)" class="text-ds-select"
+                                        id="ieeqf4">
+                                        <option v-for="ds in dataSources" :key="ds.id" :value="ds.id" id="ig5y0h">{{
+                                            ds.name }}</option>
+                                    </select>
+                                </div>
+                                <div v-if="selectedObject.mode==='static'" class="text-static-field" id="iegzc5">
+                                    <label class="text-static-label" id="ia3a2w">Texto</label>
+                                    <input type="text" v-model="selectedObject.text"
+                                        @input="actions.onObjectChanged(selectedObject)" class="text-static-input"
+                                        id="ixfqtx" />
+                                </div>
+                                <div v-if="selectedObject.mode==='field'" class="text-field-binding" id="i1f1ep">
+                                    <label class="text-field-label" id="ivbr7w">Campo</label>
+                                    <select type="text" v-model="selectedObject.field"
+                                        @change="actions.onObjectChanged(selectedObject)" class="text-field-select"
+                                        id="iqetr5">
+                                        <option v-for="f in actions.fieldsForDS(selectedObject.dataSourceId)" :key="f"
+                                            :value="f" id="ihlzao">{{ f }}</option>
+                                    </select>
+                                </div>
+                                <div v-if="selectedObject.mode==='js'" class="text-js-field" id="i86gnl">
+                                    <label class="text-js-label" id="i7ky9f">Expressão JS (ctx)</label>
+                                    <textarea rows="3" v-model="selectedObject.js"
+                                        @input="actions.onObjectChanged(selectedObject)"
+                                        placeholder="return ctx?.row?.valor;" class="text-js-textarea"
+                                        id="i1ml1i"></textarea>
+                                </div>
+                                <div class="text-align-field" id="i7pzl6">
+                                    <label class="text-align-label" id="its2p9">Alinhamento</label>
+                                    <select type="text" v-model="selectedObject.align"
+                                        @change="actions.onObjectChanged(selectedObject)" class="text-align-select"
+                                        id="io5cm5">
+                                        <option value="left" id="i6ndcc">Esquerda</option>
+                                        <option value="center" id="i4pr3f">Centro</option>
+                                        <option value="right" id="i8e8vn">Direita</option>
+                                    </select>
+                                </div>
+                                <div class="text-color-field" id="i8ue77">
+                                    <label class="text-color-label" id="ih76o3">Cor</label>
+                                    <input type="color" v-model="selectedObject.color"
+                                        @input="actions.onObjectChanged(selectedObject)" class="text-color-input"
+                                        id="isv968" />
+                                </div>
+                                <div class="text-size-field" id="i3420m">
+                                    <label class="text-size-label" id="iaw6if">Tamanho</label>
+                                    <input type="number" v-model.number="selectedObject.fontSize"
+                                        @input="actions.onObjectChanged(selectedObject)" class="text-size-input"
+                                        id="ibagse" />
+                                </div>
+                                <div class="text-weight-field" id="ilrc0l">
+                                    <label class="text-weight-label" id="ins3yb">Peso</label>
+                                    <select type="text" v-model="selectedObject.fontWeight"
+                                        @change="actions.onObjectChanged(selectedObject)" class="text-weight-select"
+                                        id="iriciy">
+                                        <option value="400" id="iadmin">Normal</option>
+                                        <option value="600" id="ifgy6f">Semibold</option>
+                                        <option value="700" id="i70s3m">Bold</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="selectedObject.type==='header' || selectedObject.type==='footer'"
+                            class="gjs-t-border band-properties-panel" id="i9cxyk">
+                            <h3 class="band-props-title" id="iuzxg6">Cabeçalho / Rodapé</h3>
+                            <div class="band-grid" id="i91f5w">
+                                <div class="band-text-field" id="iog79k">
+                                    <label class="band-text-label" id="illqrz">Texto</label>
+                                    <input type="text" v-model="selectedObject.text"
+                                        @input="actions.onObjectChanged(selectedObject)" class="band-text-input"
+                                        id="i4dost" />
+                                </div>
+                                <div class="band-repeat-field" id="io5ize">
+                                    <label class="band-repeat-label" id="idfwsj">Repetir por página</label>
+                                    <select type="text" v-model="selectedObject.repeatEachPage"
+                                        @change="actions.onObjectChanged(selectedObject)" class="band-repeat-select"
+                                        id="itrrts">
+                                        <option :value="true" id="i3yrni">Sim</option>
+                                        <option :value="false" id="iof8ja">Não</option>
+                                    </select>
+                                </div>
+                                <div class="band-align-field" id="ila5wh">
+                                    <label class="band-align-label" id="imcwce">Alinhamento</label>
+                                    <select type="text" v-model="selectedObject.align"
+                                        @change="actions.onObjectChanged(selectedObject)" class="band-align-select"
+                                        id="i47fnk">
+                                        <option value="left" id="i5notz">Esquerda</option>
+                                        <option value="center" id="iwutsu">Centro</option>
+                                        <option value="right" id="i3ke54">Direita</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="selectedObject.type==='table'" class="gjs-t-border table-properties-panel"
+                            id="in0n05">
+                            <h3 class="table-props-title" id="ijwgc3">Tabela (Tabulator)</h3>
+                            <div class="table-grid" id="iu4mrl">
+                                <div class="table-ds-field" id="ij2opj">
+                                    <label class="table-ds-label" id="iwhsv2">Fonte de Dados</label>
+                                    <select type="text" v-model="selectedObject.dataSourceId"
+                                        @change="actions.autoColumnsFromDS(selectedObject)" class="table-ds-select"
+                                        id="ifj4nk">
+                                        <option v-for="ds in dataSources" :key="ds.id" :value="ds.id" id="iq8qek">{{
+                                            ds.name }}</option>
+                                    </select>
+                                </div>
+                                <div class="group-fields-field" id="ic4fag">
+                                    <label class="group-fields-label" id="izer6l">Campos de Agrupamento (n níveis,
+                                        separados por vírgula)</label>
+                                    <input type="text" :value="selectedObject.groupFields.join(',')"
+                                        @input="actions.updateGroupFields($event.target.value)"
+                                        class="group-fields-input" id="i4jl0d" />
+                                </div>
+                                <div class="row-colors-group" id="i68pve">
+                                    <div class="odd-row-color-field" id="iw814q">
+                                        <label class="odd-row-color-label" id="iahqng">Linha Ímpar</label>
+                                        <input type="color" v-model="selectedObject.rowColors.odd"
+                                            @input="actions.onObjectChanged(selectedObject)" class="odd-row-color-input"
+                                            id="i7d3cy" />
+                                    </div>
+                                    <div class="even-row-color-field" id="id7sn7">
+                                        <label class="even-row-color-label" id="ikj8se">Linha Par</label>
+                                        <input type="color" v-model="selectedObject.rowColors.even"
+                                            @input="actions.onObjectChanged(selectedObject)"
+                                            class="even-row-color-input" id="i00ev3" />
+                                    </div>
+                                </div>
+                                <div class="header-colors-group" id="ip3bc7">
+                                    <div class="header-bg-field" id="iwhsod">
+                                        <label class="header-bg-label" id="i11la4">Header BG</label>
+                                        <input type="color" v-model="selectedObject.headerColors.bg"
+                                            @input="actions.onObjectChanged(selectedObject)" class="header-bg-input"
+                                            id="iygj5d" />
+                                    </div>
+                                    <div class="header-color-field" id="itbpc5">
+                                        <label class="header-color-label" id="i0juzx">Header Cor</label>
+                                        <input type="color" v-model="selectedObject.headerColors.color"
+                                            @input="actions.onObjectChanged(selectedObject)" class="header-color-input"
+                                            id="id9gm1" />
+                                    </div>
+                                </div>
+                                <div class="columns-section" id="ip5iwe">
+                                    <div class="columns-header" id="irjdj2">
+                                        <span class="columns-title" id="ilis3r">Colunas</span>
+                                        <div class="columns-actions" id="im5yhr">
+                                            <button type="button" @click="actions.autoColumnsFromDS(selectedObject)"
+                                                class="auto-columns-button" id="itwaqe">Auto</button>
+                                            <button type="button" @click="actions.addColumn(selectedObject)"
+                                                class="add-column-button" id="irsi38">Adicionar</button>
+                                        </div>
+                                    </div>
+                                    <div class="columns-list" id="icxeu5">
+                                        <div v-for="(col, idx) in selectedObject.columns" :key="col.__id"
+                                            class="column-item" id="iqidgm">
+                                            <div class="column-grid" id="ia5yok">
+                                                <input type="text" placeholder="field" v-model="col.field"
+                                                    @input="actions.onObjectChanged(selectedObject)"
+                                                    class="column-field-input" id="iwfz92" />
+                                                <input type="text" placeholder="título" v-model="col.title"
+                                                    @input="actions.onObjectChanged(selectedObject)"
+                                                    class="column-title-input" id="igs9us" />
+                                                <select type="text" v-model="col.total"
+                                                    @change="actions.onObjectChanged(selectedObject)"
+                                                    class="column-total-select" id="imbx9r">
+                                                    <option value="" id="i93i9j">total</option>
+                                                    <option value="sum" id="i3yi8k">sum</option>
+                                                    <option value="avg" id="ipzeba">avg</option>
+                                                    <option value="count" id="iy7ej4">count</option>
+                                                    <option value="max" id="indcjp">max</option>
+                                                    <option value="min" id="izgthj">min</option>
+                                                </select>
+                                                <button type="button" @click="actions.removeColumn(selectedObject, idx)"
+                                                    class="column-remove-button" id="igu3q6">Rem</button>
+                                                <input type="color" v-model="col.color"
+                                                    @input="actions.onObjectChanged(selectedObject)"
+                                                    class="column-color-input" id="igp4kl" />
+                                                <input type="color" v-model="col.headerColor"
+                                                    @input="actions.onObjectChanged(selectedObject)"
+                                                    class="column-header-color-input" id="ijlthf" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </main><!-- Data Sources Modal -->
+        <div v-if="ui.showDataSources" class="data-sources-modal-backdrop" id="i2ik1w">
+            <div class="gjs-t-border data-sources-modal" id="iufq4e">
+                <div class="ds-modal-header" id="in0jli">
+                    <h3 class="gjs-t-h2 ds-modal-title" id="i5ln46">Fontes de Dados</h3>
+                    <button type="button" @click="ui.showDataSources=false" class="ds-modal-close"
+                        id="i493up">Fechar</button>
+                </div>
+                <div class="ds-modal-body" id="io5e1b">
+                    <div class="gjs-t-border ds-list" id="iposb1">
+                        <div class="ds-list-header" id="im7qyk">
+                            <span class="ds-list-title" id="itiao8">Lista</span>
+                            <button type="button" @click="actions.addDataSource()" class="add-ds-button"
+                                id="io2zsk">Adicionar</button>
+                        </div>
+                        <ul class="ds-items" id="i31a2c">
+                            <li v-for="ds in dataSources" :key="ds.id" id="icnhkp">
+                                <button type="button" :class="ui.selectedDsId===ds.id ? 'bg-white/10' : ''"
+                                    @click="ui.selectedDsId=ds.id" class="ds-select-button" id="iaf5ga">{{ ds.name
+                                    }}</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div v-if="selectedDS" class="gjs-t-border ds-editor" id="iuxa7z">
+                        <div class="ds-editor-grid" id="iqzyo7">
+                            <div class="ds-name-field" id="iphmk7">
+                                <label class="ds-name-label" id="ispb2g">Nome</label>
+                                <input type="text" v-model="selectedDS.name" class="ds-name-input" id="i0dwzt" />
+                            </div>
+                            <div class="ds-type-field" id="i2mmeu">
+                                <label class="ds-type-label" id="i4evp9">Tipo</label>
+                                <select type="text" v-model="selectedDS.type" class="ds-type-select" id="iwymj2">
+                                    <option value="query" id="iioy4o">Query</option>
+                                    <option value="rest" disabled id="ig61uc">REST (futuro)</option>
+                                </select>
+                            </div>
+                            <div class="ds-query-field" id="ik37xg">
+                                <label class="ds-query-label" id="ia7o1l">Query AlaSQL (array em ?)</label>
+                                <textarea rows="4" v-model="selectedDS.query"
+                                    placeholder="select * from ? where activo = true;" class="ds-query-textarea"
+                                    id="i6fcij"></textarea>
+                            </div>
+                            <div class="ds-actions" id="iizk41">
+                                <button type="button" @click="actions.testDataSource(selectedDS)"
+                                    class="gjs-t-button ds-test-button" id="il7xtl">Testar</button>
+                                <button type="button" @click="actions.removeDataSource(selectedDS.id)"
+                                    class="ds-remove-button" id="im1d8h">Remover</button>
+                            </div>
+                            <div class="gjs-t-border ds-preview" id="i85icj">
+                                <div class="ds-preview-title" id="izrteq">Pré-visualização (10)</div>
+                                <pre class="ds-preview-pre"
+                                    id="ipxnpt">{{ JSON.stringify(actions.previewDS(selectedDS).slice(0,10), null, 2) }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!-- Filters Modal -->
+        <div v-if="ui.showFilters" class="filters-modal-backdrop" id="i3meob">
+            <div class="gjs-t-border filters-modal" id="if60dr">
+                <div class="filters-modal-header" id="i2xn8n">
+                    <h3 class="gjs-t-h2 filters-modal-title" id="idkzic">Filtros</h3>
+                    <button type="button" @click="ui.showFilters=false" class="filters-modal-close"
+                        id="icnjsk">Fechar</button>
+                </div>
+                <div class="filters-modal-body" id="igajh4">
+                    <div class="filters-header-row" id="i14vbr">
+                        <div class="filters-count" id="ifmnrk">Total: {{ filters.length }}</div>
+                        <button type="button" @click="actions.addFilter()" class="add-filter-button"
+                            id="i9lyxs">Adicionar Filtro</button>
+                    </div>
+                    <div class="filters-list" id="ih64ug">
+                        <div v-for="f in filters" :key="f.id" class="gjs-t-border filter-editor-card" id="irze29">
+                            <div class="filter-editor-grid" id="ikhs8o">
+                                <div class="filter-label-field" id="izesml">
+                                    <label class="filter-label-label" id="iukrkw">Etiqueta</label>
+                                    <input type="text" v-model="f.label" class="filter-label-input" id="is3tlh" />
+                                </div>
+                                <div class="filter-key-field" id="i88gs4">
+                                    <label class="filter-key-label" id="i423sg">Campo</label>
+                                    <input type="text" v-model="f.key" class="filter-key-input" id="ic4ewt" />
+                                </div>
+                                <div class="filter-type-field" id="i2i8z5">
+                                    <label class="filter-type-label" id="ihx1bh">Tipo</label>
+                                    <select type="text" v-model="f.type" class="filter-type-select" id="ixjfvk">
+                                        <option value="numeric" id="irxosl">numérico</option>
+                                        <option value="checkbox" id="iwkucq">checkbox</option>
+                                        <option value="list" id="ib3jjw">lista</option>
+                                    </select>
+                                </div>
+                                <div class="filter-order-field" id="i1ovmz">
+                                    <label class="filter-order-label" id="i5x1cz">Ordem</label>
+                                    <input type="number" v-model.number="f.order" class="filter-order-input"
+                                        id="iim1nx" />
+                                </div>
+                                <div class="filter-size-field" id="ikcx3p">
+                                    <label class="filter-size-label" id="id58sj">Tamanho (1-12)</label>
+                                    <input type="number" min="1" max="12" v-model.number="f.size"
+                                        class="filter-size-input" id="ipkdtz" />
+                                </div>
+                                <div v-if="f.type==='list'" class="filter-option-field-field" id="i166bq">
+                                    <label class="filter-option-field-label" id="ikw7x2">Campo (label)</label>
+                                    <input type="text" v-model="f.optionField" class="filter-option-field-input"
+                                        id="ibrc6n" />
+                                </div>
+                                <div v-if="f.type==='list'" class="filter-value-field-field" id="io19ok">
+                                    <label class="filter-value-field-label" id="iobbm5">Campo (valor)</label>
+                                    <input type="text" v-model="f.valueField" class="filter-value-field-input"
+                                        id="irmyff" />
+                                </div>
+                                <div class="filter-sql-field" id="inurwh">
+                                    <label class="filter-sql-label" id="iocibb">Expressão SQL (AlaSQL) - opções</label>
+                                    <input type="text" v-model="f.expressaodb"
+                                        placeholder="select distinct nomecliente as label, nomecliente as value from ?"
+                                        class="filter-sql-input" id="imz11o" />
+                                </div>
+                                <div class="filter-js-field" id="i3f1jm">
+                                    <label class="filter-js-label" id="ioitru">Expressão JS (retorna
+                                        [{label,value}])</label>
+                                    <input type="text" v-model="f.expressaojs"
+                                        placeholder="return Array.from(new Set(data.map(r=&gt;r.nomecliente))).map(v=&gt;({label:v,value:v}))"
+                                        class="filter-js-input" id="ivnlf2" />
+                                </div>
+                                <div class="filter-editor-actions" id="i0n1nj">
+                                    <div class="filter-preview-options" id="i3rshu">Opções: {{
+                                        actions.getFilterOptions(f).length }}</div>
+                                    <button type="button" @click="actions.removeFilter(f.id)"
+                                        class="filter-remove-button" id="i0s1gr">Remover</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filters-footer" id="i3s4ye">
+                        <button type="button" @click="ui.showFilters=false; actions.onFilterChange()"
+                            class="gjs-t-button filters-save-button" id="i681u6">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        </div><!-- Functions Modal -->
+        <div v-if="ui.showFunctions" class="functions-modal-backdrop" id="ib9gyk">
+            <div class="gjs-t-border functions-modal" id="ism15g">
+                <div class="functions-modal-header" id="igohnh">
+                    <h3 class="gjs-t-h2 functions-modal-title" id="iixw35">Funções</h3>
+                    <button type="button" @click="ui.showFunctions=false" class="functions-modal-close"
+                        id="ia0y7b">Fechar</button>
+                </div>
+                <div class="functions-modal-body" id="izhmcr">
+                    <div class="gjs-t-border functions-list" id="i2gd8e">
+                        <div class="functions-header" id="itwy12">
+                            <span class="functions-count" id="iqfpvj">Total: {{ fxs.length }}</span>
+                            <button type="button" @click="actions.addFunction()" class="add-function-button"
+                                id="iee72i">Adicionar</button>
+                        </div>
+                        <ul class="functions-items" id="ie27ec">
+                            <li v-for="fx in fxs" :key="fx.id" id="itkj41">
+                                <button type="button" :class="ui.selectedFxId===fx.id ? 'bg-white/10' : ''"
+                                    @click="ui.selectedFxId=fx.id" class="function-select-button" id="i5w7gr">{{ fx.name
+                                    }}</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div v-if="selectedFX" class="gjs-t-border function-editor" id="ietd0f">
+                        <div class="function-editor-grid" id="iefm24">
+                            <div class="function-name-field" id="isnpdn">
+                                <label class="function-name-label" id="ixk0my">Nome</label>
+                                <input type="text" v-model="selectedFX.name" class="function-name-input" id="ihmnuw" />
+                            </div>
+                            <div class="function-body-field" id="iltlcj">
+                                <label class="function-body-label" id="ibx915">Corpo (ctx)</label>
+                                <textarea rows="8" v-model="selectedFX.body" placeholder="return ctx.value;"
+                                    class="function-body-textarea" id="iys3hk"></textarea>
+                            </div>
+                            <div class="function-actions" id="i5bkgi">
+                                <button type="button" @click="actions.testFunction(selectedFX)"
+                                    class="gjs-t-button function-try-button" id="is2ll8">Testar</button>
+                                <button type="button" @click="actions.removeFunction(selectedFX.id)"
+                                    class="function-remove-button" id="ijva0k">Remover</button>
+                            </div>
+                            <div class="gjs-t-border function-output" id="ih0h2m">
+                                <div class="function-output-title" id="i1oudh">Output</div>
+                                <pre class="function-output-pre" id="ix7wnc">{{ ui.fxOutput }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer class="gjs-t-border footer-bar" id="ihc2w7">
+            <div class="footer-inner" id="icqkxw">
+                Feito com Petite-Vue, Interact.js, Tabulator e AlaSQL. Tudo reativo.
+            </div>
+        </footer>
+    </div><!-- Vendors -->
+    <script src="https://cdn.jsdelivr.net/npm/alasql@1.7/dist/alasql.min.js" id="ipi5hz"></script>
+    <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js" id="iiubqr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@interactjs/interactjs/index.min.js" id="i0jf6t"></script>
+    <script src="https://unpkg.com/petite-vue/dist/petite-vue.iife.js" id="iprvwe"></script>
+    <script id="i792nh">
+        ;
+        (function () {
+            // Utils
+            function uid() {
+                return Math.random().toString(36).slice(2) + Date.now().toString(36);
+            }
+
+            // Models (function constructors)
+            function MreportFunction(data) {
+                this.id = uid();
+                this.name = data?.name || 'Função';
+                this.body = data?.body || 'return ctx;';
+            }
+
+            function MreportFilter(data) {
+                this.id = uid();
+                this.label = data?.label || 'Filtro';
+                this.key = data?.key || 'nomecliente';
+                this.type = data?.type || 'numeric'; // numeric | checkbox | list
+                this.order = data?.order || 0;
+                this.size = data?.size || 4; // 1..12
+                this.expressaodb = data?.expressaodb || '';
+                this.expressaojs = data?.expressaojs || '';
+                this.optionField = data?.optionField || this.key;
+                this.valueField = data?.valueField || this.key;
+                this.value = data?.value ?? (this.type === 'checkbox' ? false : '');
+            }
+
+            function MreportDataSource(data) {
+                this.id = uid();
+                this.name = data?.name || 'Fonte';
+                this.type = data?.type || 'query';
+                this.query = data?.query || '';
+                this.sample = Array.isArray(data?.sample) ? data.sample : [];
+                this.run = function (filters) {
+                    var out = this.sample.slice();
+                    if (this.query && this.query.trim()) {
+                        try {
+                            out = alasql(this.query, [this.sample]);
+                        } catch (e) {
+                            console.error('AlaSQL error', e);
+                        }
+                    }
+                    // simple filter application
+                    for (var i = 0; i < filters.length; i++) {
+                        var f = filters[i];
+                        if (f.type === 'numeric' && f.value !== '' && f.value != null) {
+                            out = out.filter(function (row) {
+                                return Number(row[f.key]) === Number(f.value);
+                            });
+                        } else if (f.type === 'checkbox') {
+                            if (f.value === true) {
+                                out = out.filter(function (row) {
+                                    return !!row[f.key];
+                                });
+                            }
+                        } else if (f.type === 'list' && f.value) {
+                            out = out.filter(function (row) {
+                                return String(row[f.key]) === String(f.value);
+                            });
+                        }
+                    }
+                    return out;
+                }
+            }
+
+            function MreportObjectBase(data) {
+                this.id = uid();
+                this.type = data.type;
+                this.name = data.name || (data.type.charAt(0).toUpperCase() + data.type.slice(1));
+                this.x = data.x || 24;
+                this.y = data.y || 24;
+                this.w = data.w || 520;
+                this.h = data.h || (data.type === 'text' ? 80 : 260);
+            }
+
+            function MreportTextObject(data) {
+                MreportObjectBase.call(this, Object.assign({}, data, {
+                    type: 'text'
+                }));
+                this.mode = data?.mode || 'static'; // static | field | js
+                this.text = data?.text || 'Texto do relatório';
+                this.field = data?.field || '';
+                this.js = data?.js || '';
+                this.align = data?.align || 'center';
+                this.color = data?.color || '#e5e7eb';
+                this.fontSize = data?.fontSize || 18;
+                this.fontWeight = data?.fontWeight || '600';
+                this.dataSourceId = data?.dataSourceId || null;
+            }
+
+            function MreportBandObject(data) {
+                MreportObjectBase.call(this, Object.assign({}, data, {
+                    type: data.type || 'header'
+                }));
+                this.text = data?.text || (this.type === 'header' ? 'Cabeçalho' : 'Rodapé');
+                this.repeatEachPage = data?.repeatEachPage ?? true;
+                this.align = data?.align || 'center';
+            }
+
+            function MreportTableObject(data) {
+                MreportObjectBase.call(this, Object.assign({}, data, {
+                    type: 'table'
+                }));
+                this.dataSourceId = data?.dataSourceId || null;
+                this.groupFields = Array.isArray(data?.groupFields) ? data.groupFields : [];
+                this.rowColors = data?.rowColors || {
+                    odd: '#0c1624',
+                    even: '#0b1220'
+                };
+                this.headerColors = data?.headerColors || {
+                    bg: '#0f172a',
+                    color: '#e5e7eb'
+                };
+                this.columns = (data?.columns || []).map(function (c) {
+                    c.__id = uid();
+                    return c;
+                });
+            }
+
+            // Dummy data: 30 faturas
+            function makeDummyInvoices() {
+                var nomes = ['Ana', 'Bruno', 'Carla', 'Duarte', 'Eva', 'Fábio', 'Gustavo', 'Helena', 'Igor', 'Joana', 'Katia', 'Luis', 'Mariana', 'Nuno', 'Olga', 'Paulo', 'Quica', 'Rui', 'Sofia', 'Tiago', 'Ursula', 'Vasco', 'Wilma', 'Xavier', 'Yuri', 'Zara', 'Alice', 'Beto', 'Cris', 'Diana'];
+                var moradas = ['Lisboa', 'Porto', 'Coimbra', 'Braga', 'Aveiro', 'Setúbal', 'Faro'];
+                var out = [];
+                for (var i = 1; i <= 30; i++) {
+                    var nome = nomes[i - 1];
+                    var valor = Math.round((Math.random() * 900 + 100) * 100) / 100;
+                    var activo = Math.random() > 0.3;
+                    var data = new Date(2023 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
+                    out.push({
+                        id: i,
+                        nomecliente: nome,
+                        nocliente: 1000 + i,
+                        valor: valor,
+                        data: data.toISOString().slice(0, 10),
+                        activo: activo,
+                        morada: moradas[Math.floor(Math.random() * moradas.length)]
+                    });
+                }
+                return out;
+            }
+
+            // Petite App
+            const App = {
+                // State
+                dataSources: [],
+                filters: [],
+                fxs: [],
+                objects: [],
+                tabulators: {},
+                selectedId: null,
+                ui: {
+                    showDataSources: false,
+                    showFilters: false,
+                    showFunctions: false,
+                    selectedDsId: null,
+                    selectedFxId: null,
+                    fxOutput: '',
+                    zoom: 1
+                },
+
+                // Computed
+                get selectedObject() {
+                    return this.objects.find(o => o.id === this.selectedId) || null;
+                },
+                get selectedDS() {
+                    return this.dataSources.find(d => d.id === this.ui.selectedDsId) || null;
+                },
+                get selectedFX() {
+                    return this.fxs.find(f => f.id === this.ui.selectedFxId) || null;
+                },
+                get filtersSorted() {
+                    return this.filters.slice().sort((a, b) => a.order - b.order);
+                },
+
+                // Actions
+                actions: {
+                    exportJSON: function () {
+                        const data = {
+                            dataSources: App.dataSources,
+                            filters: App.filters,
+                            functions: App.fxs,
+                            objects: App.objects
+                        };
+                        const blob = new Blob([JSON.stringify(data, null, 2)], {
+                            type: 'application/json'
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'report-builder.json';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    },
+                    onFilterChange: function () {
+                        // Refresh all tables
+                        App.objects.filter(o => o.type === 'table').forEach(function (o) {
+                            App.actions.refreshTable(o);
+                        });
+                    },
+                    clearFilters: function () {
+                        App.filters.forEach(function (f) {
+                            if (f.type === 'checkbox') {
+                                f.value = false;
+                            } else {
+                                f.value = '';
+                            }
+                        });
+                        this.onFilterChange();
+                    },
+                    getFilterOptions: function (filter) {
+                        // Determine base data
+                        var baseDS = App.dataSources[0];
+                        var data = baseDS ? baseDS.sample : [];
+                        try {
+                            if (filter.expressaodb && filter.expressaodb.trim()) {
+                                var res = alasql(filter.expressaodb, [data]);
+                                return res.map(function (r) {
+                                    return {
+                                        label: r.label ?? r[filter.optionField] ?? r[filter.valueField],
+                                        value: r.value ?? r[filter.valueField] ?? r[filter.optionField]
+                                    };
+                                });
+                            }
+                            if (filter.expressaojs && filter.expressaojs.trim()) {
+                                var fn = new Function('data', 'filters', filter.expressaojs);
+                                var arr = fn(data, App.filters);
+                                if (Array.isArray(arr)) return arr;
+                            }
+                        } catch (e) {
+                            console.error('Filter options error', e);
+                        }
+                        // Default unique values from data
+                        var key = filter.key;
+                        var uniq = Array.from(new Set((data || []).map(function (r) {
+                            return r[key];
+                        }))).filter(function (v) {
+                            return v !== undefined && v !== null && v !== '';
+                        });
+                        return uniq.map(function (v) {
+                            return {
+                                label: String(v),
+                                value: v
+                            };
+                        });
+                    },
+                    addFilter: function () {
+                        App.filters.push(new MreportFilter({
+                            label: 'Filtro',
+                            key: 'nomecliente',
+                            type: 'list',
+                            order: App.filters.length,
+                            size: 3
+                        }));
+                    },
+                    removeFilter: function (id) {
+                        App.filters = App.filters.filter(f => f.id !== id);
+                    },
+
+                    addDataSource: function () {
+                        var ds = new MreportDataSource({
+                            name: 'Fonte ' + (App.dataSources.length + 1),
+                            type: 'query',
+                            sample: makeDummyInvoices(),
+                            query: ''
+                        });
+                        App.dataSources.push(ds);
+                        App.ui.selectedDsId = ds.id;
+                    },
+                    removeDataSource: function (id) {
+                        App.dataSources = App.dataSources.filter(d => d.id !== id);
+                        if (App.ui.selectedDsId === id) App.ui.selectedDsId = App.dataSources[0]?.id || null;
+                    },
+                    testDataSource: function (ds) {
+                        try {
+                            var res = ds.run(App.filters);
+                            console.log('DS rows:', res.length);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                        // Also refresh tables bound to this ds
+                        App.objects.filter(o => o.type === 'table' && o.dataSourceId === ds.id).forEach(function (o) {
+                            App.actions.refreshTable(o);
+                        });
+                    },
+                    previewDS: function (ds) {
+                        try {
+                            return ds.run(App.filters);
+                        } catch (e) {
+                            return ds.sample;
+                        }
+                    },
+
+                    addFunction: function () {
+                        var f = new MreportFunction({
+                            name: 'fx_' + (App.fxs.length + 1),
+                            body: 'return ctx;'
+                        });
+                        App.fxs.push(f);
+                        App.ui.selectedFxId = f.id;
+                    },
+                    removeFunction: function (id) {
+                        App.fxs = App.fxs.filter(f => f.id !== id);
+                        if (App.ui.selectedFxId === id) App.ui.selectedFxId = App.fxs[0]?.id || null;
+                    },
+                    testFunction: function (fx) {
+                        try {
+                            var fn = new Function('ctx', fx.body);
+                            App.ui.fxOutput = JSON.stringify(fn({
+                                value: 123,
+                                row: {
+                                    valor: 456
+                                }
+                            }), null, 2);
+                        } catch (e) {
+                            App.ui.fxOutput = String(e);
+                        }
+                    },
+
+                    // Canvas / Objects
+                    select: function (id) {
+                        App.selectedId = id;
+                    },
+                    deleteObject: function (id) {
+                        var obj = App.objects.find(o => o.id === id);
+                        if (obj && App.tabulators[obj.id]) {
+                            App.tabulators[obj.id].destroy();
+                            delete App.tabulators[obj.id];
+                        }
+                        App.objects = App.objects.filter(o => o.id !== id);
+                        if (App.selectedId === id) App.selectedId = null;
+                    },
+                    duplicateObject: function (id) {
+                        var obj = App.objects.find(o => o.id === id);
+                        if (!obj) return;
+                        var clone = JSON.parse(JSON.stringify(obj));
+                        clone.id = uid();
+                        clone.x += 16;
+                        clone.y += 16;
+                        // Fix columns internal ids
+                        if (clone.columns) {
+                            clone.columns.forEach(function (c) {
+                                c.__id = uid();
+                            });
+                        }
+                        App.objects.push(clone);
+                        setTimeout(function () {
+                            App.actions.mountObject(clone);
+                        }, 0);
+                    },
+                    onObjectChanged: function (obj) {
+                        if (obj.type === 'table') {
+                            App.actions.refreshTable(obj);
+                        }
+                    },
+                    quickAddTable: function () {
+                        var t = new MreportTableObject({
+                            name: 'Tabela Faturas',
+                            dataSourceId: App.dataSources[0]?.id
+                        });
+                        App.objects.push(t);
+                        setTimeout(function () {
+                            App.actions.mountObject(t);
+                        }, 0);
+                    },
+                    quickAddText: function () {
+                        var tx = new MreportTextObject({
+                            name: 'Texto Valor',
+                            mode: 'js',
+                            js: 'return "Total docs: "+(ctx?.data?.length||0);',
+                            dataSourceId: App.dataSources[0]?.id
+                        });
+                        App.objects.push(tx);
+                    },
+                    fieldsForDS: function (dsId) {
+                        var ds = App.dataSources.find(d => d.id === dsId) || App.dataSources[0];
+                        var row = ds?.sample?.[0] || null;
+                        return row ? Object.keys(row) : [];
+                    },
+                    updateGroupFields: function (csv) {
+                        if (!App.selectedObject) return;
+                        var arr = csv.split(',').map(function (s) {
+                            return s.trim();
+                        }).filter(Boolean);
+                        App.selectedObject.groupFields = arr;
+                        App.actions.refreshTable(App.selectedObject);
+                    },
+                    addColumn: function (obj) {
+                        obj.columns.push({
+                            __id: uid(),
+                            field: '',
+                            title: '',
+                            total: '',
+                            color: '#e5e7eb',
+                            headerColor: '#e5e7eb'
+                        });
+                        App.actions.onObjectChanged(obj);
+                    },
+                    removeColumn: function (obj, idx) {
+                        obj.columns.splice(idx, 1);
+                        App.actions.onObjectChanged(obj);
+                    },
+                    autoColumnsFromDS: function (obj) {
+                        var ds = App.dataSources.find(d => d.id === obj.dataSourceId) || App.dataSources[0];
+                        var sample = (ds?.sample || [])[0] || {};
+                        var cols = Object.keys(sample).map(function (k) {
+                            return {
+                                __id: uid(),
+                                field: k,
+                                title: k,
+                                total: (typeof sample[k] === 'number' ? 'sum' : ''),
+                                color: '#e5e7eb',
+                                headerColor: '#e5e7eb'
+                            };
+                        });
+                        obj.columns = cols;
+                        App.actions.refreshTable(obj);
+                    },
+                    renderText: function (obj) {
+                        if (obj.mode === 'static') return obj.text;
+                        var ds = App.dataSources.find(d => d.id === obj.dataSourceId) || App.dataSources[0];
+                        var data = ds ? ds.run(App.filters) : [];
+                        var row = data[0] || {};
+                        if (obj.mode === 'field') return String(row?.[obj.field] ?? '');
+                        if (obj.mode === 'js') {
+                            try {
+                                var fn = new Function('ctx', obj.js || 'return "";');
+                                return String(fn({
+                                    row: row,
+                                    data: data
+                                }));
+                            } catch (e) {
+                                return 'Erro JS';
+                            }
+                        }
+                        return '';
+                    },
+                    mountObject: function (obj) {
+                        if (obj.type === 'table') {
+                            App.actions.refreshTable(obj);
+                        }
+                        // enable interact on this node
+                        App.interactifyObject(obj);
+                    },
+                    refreshTable: function (obj) {
+                        var hostId = 'tab-' + obj.id;
+                        var el = document.getElementById(hostId);
+                        if (!el) return;
+                        // Destroy if exists
+                        if (App.tabulators[obj.id]) {
+                            try {
+                                App.tabulators[obj.id].destroy();
+                            } catch (e) { }
+                            delete App.tabulators[obj.id];
+                        }
+                        var ds = App.dataSources.find(d => d.id === obj.dataSourceId) || App.dataSources[0];
+                        var data = ds ? ds.run(App.filters) : [];
+                        // Columns
+                        var columns = (obj.columns && obj.columns.length ? obj.columns : Object.keys((data[0] || {})).map(function (k) {
+                            return {
+                                field: k,
+                                title: k
+                            };
+                        })).map(function (c) {
+                            var col = {
+                                title: c.title || c.field,
+                                field: c.field
+                            };
+                            if (c.total) {
+                                col.bottomCalc = c.total;
+                            }
+                            if (c.color) {
+                                col.formatter = function (cell) {
+                                    cell.getElement().style.color = c.color;
+                                    return cell.getValue();
+                                };
+                            }
+                            if (c.headerColor) {
+                                col.headerSort = true;
+                                col.titleFormatter = function () {
+                                    var span = document.createElement('span');
+                                    span.textContent = c.title || c.field;
+                                    span.style.color = c.headerColor;
+                                    return span;
+                                };
+                            }
+                            return col;
+                        });
+
+                        var groupBy = Array.isArray(obj.groupFields) ? obj.groupFields.filter(Boolean) : [];
+                        var table = new Tabulator(el, {
+                            data: data,
+                            layout: "fitDataStretch",
+                            columns: columns,
+                            groupBy: groupBy.length ? groupBy : false,
+                            placeholder: "Sem dados",
+                            height: "100%",
+                            columnHeaderVertAlign: "middle",
+                            rowFormatter: function (row) {
+                                var idx = row.getPosition(true);
+                                row.getElement().style.background = (idx % 2 === 0) ? obj.rowColors.even : obj.rowColors.odd;
+                            }
+                        });
+                        App.tabulators[obj.id] = table;
+                    },
+                    applyZoom: function () {
+                        var canvas = document.getElementById('canvas');
+                        if (!canvas) return;
+                        canvas.style.transformOrigin = '0 0';
+                        canvas.style.transform = 'scale(' + App.ui.zoom + ')';
+                        canvas.style.width = (100 / App.ui.zoom) + '%';
+                    }
+                },
+
+                // Drag from palette and drop to canvas using interact
+                drag: {
+                    start: function (type, e) {
+                        var canvas = document.getElementById('canvas');
+                        var ghost = document.createElement('div');
+                        ghost.setAttribute('data-gjs-name', 'Drag Ghost');
+                        ghost.className = 'fixed z-50 pointer-events-none px-3 py-1.5 rounded-md bg-[var(--gjs-t-color-primary)] text-[#0b1220] text-sm';
+                        ghost.textContent = 'Solte para adicionar ' + type;
+                        document.body.appendChild(ghost);
+
+                        function move(ev) {
+                            var x = (ev.touches ? ev.touches[0].clientX : ev.clientX);
+                            var y = (ev.touches ? ev.touches[0].clientY : ev.clientY);
+                            ghost.style.left = x + 12 + 'px';
+                            ghost.style.top = y + 12 + 'px';
+                        }
+
+                        function end(ev) {
+                            document.removeEventListener('mousemove', move);
+                            document.removeEventListener('mouseup', end);
+                            document.removeEventListener('touchmove', move);
+                            document.removeEventListener('touchend', end);
+                            ghost.remove();
+                            var rect = canvas.getBoundingClientRect();
+                            var cx = (e.changedTouches ? e.changedTouches[0].clientX : (ev?.clientX || e.clientX));
+                            var cy = (e.changedTouches ? e.changedTouches[0].clientY : (ev?.clientY || e.clientY));
+                            var inside = cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom;
+                            if (inside) {
+                                var relX = (cx - rect.left) / App.ui.zoom;
+                                var relY = (cy - rect.top) / App.ui.zoom;
+                                // create object
+                                var obj = null;
+                                if (type === 'table') {
+                                    obj = new MreportTableObject({
+                                        x: relX,
+                                        y: relY,
+                                        dataSourceId: App.dataSources[0]?.id
+                                    });
+                                } else if (type === 'text') {
+                                    obj = new MreportTextObject({
+                                        x: relX,
+                                        y: relY
+                                    });
+                                } else if (type === 'header') {
+                                    obj = new MreportBandObject({
+                                        x: relX,
+                                        y: relY,
+                                        type: 'header',
+                                        h: 64
+                                    });
+                                } else if (type === 'footer') {
+                                    obj = new MreportBandObject({
+                                        x: relX,
+                                        y: relY,
+                                        type: 'footer',
+                                        h: 64
+                                    });
+                                }
+                                if (obj) {
+                                    App.objects.push(obj);
+                                    setTimeout(function () {
+                                        App.actions.mountObject(obj);
+                                    }, 0);
+                                }
+                            }
+                        }
+                        document.addEventListener('mousemove', move);
+                        document.addEventListener('mouseup', end);
+                        document.addEventListener('touchmove', move, {
+                            passive: true
+                        });
+                        document.addEventListener('touchend', end);
+                    }
+                },
+
+                interactifyCanvas: function () {
+                    // make existing canvas items draggable/resizable
+                    setTimeout(function () {
+                        interact('.canvas-item')
+                            .draggable({
+                                listeners: {
+                                    move(event) {
+                                        var id = event.target.id.replace('obj-', '');
+                                        var obj = App.objects.find(o => o.id === id);
+                                        if (!obj) return;
+                                        var dx = event.dx / App.ui.zoom;
+                                        var dy = event.dy / App.ui.zoom;
+                                        obj.x = Math.max(0, obj.x + dx);
+                                        obj.y = Math.max(0, obj.y + dy);
+                                    }
+                                },
+                                modifiers: [
+                                    interact.modifiers.restrictRect({
+                                        restriction: 'parent',
+                                        endOnly: true
+                                    })
+                                ]
+                            })
+                            .resizable({
+                                edges: {
+                                    left: true,
+                                    right: true,
+                                    bottom: true,
+                                    top: true
+                                }
+                            })
+                            .on('resizemove', function (event) {
+                                var id = event.target.id.replace('obj-', '');
+                                var obj = App.objects.find(o => o.id === id);
+                                if (!obj) return;
+                                obj.w = Math.max(120, obj.w + event.deltaRect.width / App.ui.zoom);
+                                obj.h = Math.max(60, obj.h + event.deltaRect.height / App.ui.zoom);
+                                obj.x = Math.max(0, obj.x + event.deltaRect.left / App.ui.zoom);
+                                obj.y = Math.max(0, obj.y + event.deltaRect.top / App.ui.zoom);
+                                if (obj.type === 'table') {
+                                    App.actions.refreshTable(obj);
+                                }
+                            });
+                    }, 50);
+                },
+                interactifyObject: function (obj) {
+                    this.interactifyCanvas();
+                },
+
+                applyZoomInit: function () {
+                    this.actions.applyZoom();
+                },
+
+                // Init
+                mounted: function () {
+                    // Initial DS with dummy invoices
+                    var ds = new MreportDataSource({
+                        name: 'Faturas (Dummy)',
+                        type: 'query',
+                        sample: makeDummyInvoices(),
+                        query: ''
+                    });
+                    this.dataSources.push(ds);
+                    this.ui.selectedDsId = ds.id;
+
+                    // Default filters
+                    this.filters.push(new MreportFilter({
+                        label: 'Cliente',
+                        key: 'nomecliente',
+                        type: 'list',
+                        size: 3,
+                        order: 1,
+                        optionField: 'nomecliente',
+                        valueField: 'nomecliente'
+                    }));
+                    this.filters.push(new MreportFilter({
+                        label: 'No Cliente',
+                        key: 'nocliente',
+                        type: 'numeric',
+                        size: 2,
+                        order: 2
+                    }));
+                    this.filters.push(new MreportFilter({
+                        label: 'Ativo',
+                        key: 'activo',
+                        type: 'checkbox',
+                        size: 2,
+                        order: 3
+                    }));
+                    this.filters.push(new MreportFilter({
+                        label: 'Morada',
+                        key: 'morada',
+                        type: 'list',
+                        size: 3,
+                        order: 4
+                    }));
+
+                    // Default function
+                    this.fxs.push(new MreportFunction({
+                        name: 'formatCurrency',
+                        body: 'return new Intl.NumberFormat(\"pt-PT\",{style:\"currency\",currency:\"EUR\"}).format(ctx.value||0);'
+                    }));
+                    this.ui.selectedFxId = this.fxs[0].id;
+
+                    // Setup interact for canvas items
+                    this.interactifyCanvas();
+
+                    // Initial zoom
+                    this.applyZoomInit();
+                }
+            };
+
+            // Mount petite-vue
+            PetiteVue.createApp(App).mount('#app');
+        })();
+    </script>
+    <section id="report-builder-layout" class="gjs-t-border">
+        <div v-scope="" id="rbApp" class="rb-inner">
+            <div class="rb-head" id="ixii33">
+                <div class="rb-head-title" id="i1khus">
+                    <h2 class="gjs-t-h2" id="i8os49">Report Builder Layout</h2>
+                    <span class="rb-badge" id="ii2cc3">Base • Reativo</span>
+                </div>
+                <div class="rb-head-actions" id="iok2b9">
+                    <button type="button" @click="actions.save()" class="gjs-t-button" id="izvesi">Guardar</button>
+                </div>
+            </div>
+            <div class="rb-grid" id="iraxfp"><!-- Left: Palette -->
+                <aside class="rb-panel" id="ixf6vl">
+                    <div class="rb-panel-body" id="icr32v">
+                        <div class="rb-panel-title" id="i7f7hc">Objetos</div>
+                        <div class="rb-palette-items" id="ioxk4h">
+                            <button type="button" @mousedown="drag.start('table',$event)"
+                                @touchstart.passive="drag.start('table',$event)" class="rb-palette-item" id="ioenug">
+                                <img src="https://api.iconify.design/mdi:table-large.svg?color=currentColor&amp;width=28&amp;height=28"
+                                    alt="Adicionar Tabela" id="i7pclb" />
+                                <div class="label" id="i74yi4">Tabela</div>
+                                <div class="hint" id="iow8uh">Tabulator</div>
+                            </button>
+                            <button type="button" @mousedown="drag.start('text',$event)"
+                                @touchstart.passive="drag.start('text',$event)" class="rb-palette-item" id="iicxiw">
+                                <img src="https://api.iconify.design/mdi:format-text.svg?color=currentColor&amp;width=28&amp;height=28"
+                                    alt="Adicionar Texto" id="i93oxs" />
+                                <div class="label" id="iqqyte">Texto</div>
+                                <div class="hint" id="i07uz6">Estático / Binding</div>
+                            </button>
+                            <button type="button" @mousedown="drag.start('header',$event)"
+                                @touchstart.passive="drag.start('header',$event)" class="rb-palette-item" id="ilcwgs">
+                                <img src="https://api.iconify.design/mdi:view-headline.svg?color=currentColor&amp;width=28&amp;height=28"
+                                    alt="Adicionar Header" id="iev5bh" />
+                                <div class="label" id="il66h6">Header</div>
+                                <div class="hint" id="i4grgf">Repetir</div>
+                            </button>
+                            <button type="button" @mousedown="drag.start('footer',$event)"
+                                @touchstart.passive="drag.start('footer',$event)" class="rb-palette-item" id="ild7yw">
+                                <img src="https://api.iconify.design/mdi:view-sequential.svg?color=currentColor&amp;width=28&amp;height=28"
+                                    alt="Adicionar Footer" id="i9vsrp" />
+                                <div class="label" id="ihda9k">Footer</div>
+                                <div class="hint" id="iuanvf">Repetir</div>
+                            </button>
+                        </div>
+                    </div>
+                </aside><!-- Center: Canvas -->
+                <section class="rb-canvas-wrap" id="i8ezqv">
+                    <div class="rb-canvas-head" id="i993rj">
+                        <div id="i3848q">
+                            <div class="rb-canvas-title" id="i47f6w">Área do Relatório</div>
+                            <div class="rb-canvas-hint" id="ig70hw">Arraste objetos da esquerda e solte aqui</div>
+                        </div>
+                        <div class="rb-canvas-tools" id="ieda9k">
+                            <span class="rb-canvas-hint" id="itnnkg">Zoom</span>
+                            <input type="range" min="0.5" max="1.5" step="0.1" v-model="ui.zoom"
+                                @input="actions.applyZoom" class="rb-range" id="idv04v" />
+                        </div>
+                    </div>
+                    <div id="rb-canvas" @click="actions.clearSelection()" class="rb-canvas">
+                        <template v-for="obj in objects" :key="obj.id" id="ip1s9c">
+                            <article :id="'rb-obj-'+obj.id"
+                                :class="['rb-obj', selectedId===obj.id ? 'is-selected' : '']"
+                                :style="{ left: obj.x+'px', top: obj.y+'px', width: obj.w+'px', height: obj.h+'px' }"
+                                @click.stop="actions.select(obj.id)" id="isiztk">
+                                <header class="rb-obj-head" id="i6h231">
+                                    <div class="rb-obj-name" id="i3hc3a">
+                                        {{ obj.name }}
+                                        <span class="rb-obj-type" id="i2tgdz">({{ obj.type }})</span>
+                                    </div>
+                                    <div class="rb-obj-actions" id="i0bozb">
+                                        <button type="button" @click.stop="actions.duplicate(obj.id)"
+                                            class="rb-obj-action" id="iqkiun">Duplicar</button>
+                                        <button type="button" @click.stop="actions.remove(obj.id)" class="rb-obj-action"
+                                            id="ieecb4">Remover</button>
+                                    </div>
+                                </header>
+                                <div class="rb-obj-body" id="i6vz4i">
+                                    <div v-if="obj.type==='text'" id="ihb5ki">Texto de exemplo</div>
+                                    <div v-else-if="obj.type==='header'" id="ip34eh">Cabeçalho</div>
+                                    <div v-else-if="obj.type==='footer'" id="i3vkpp">Rodapé</div>
+                                    <div v-else-if="obj.type==='table'" id="i7yc6o">
+                                        <span class="rb-canvas-hint" id="iirb3v">Tabela (placeholder)</span>
+                                    </div>
+                                </div>
+                            </article>
+                        </template>
+                    </div>
+                </section><!-- Right: Properties -->
+                <aside class="rb-panel" id="ilf3fl">
+                    <div class="rb-panel-body" id="iwstws">
+                        <div class="rb-panel-title" id="idl2aj">Propriedades</div>
+                        <div v-if="!selectedObject" class="rb-canvas-hint" id="ijjrmt">Selecione um objeto para editar.
+                        </div>
+                        <div v-else="" id="iy7w1t">
+                            <div class="rb-field-grid" id="iz7sq2">
+                                <div class="span-2" id="iwvypw">
+                                    <label class="rb-label" id="iuft7j">Nome</label>
+                                    <input type="text" v-model="selectedObject.name" class="rb-input" id="izjj1n" />
+                                </div>
+                                <div id="ik06yl">
+                                    <label class="rb-label" id="id7cjz">X</label>
+                                    <input type="number" v-model.number="selectedObject.x" class="rb-input"
+                                        id="i8kdvq" />
+                                </div>
+                                <div id="iy1so8">
+                                    <label class="rb-label" id="iak2v1">Y</label>
+                                    <input type="number" v-model.number="selectedObject.y" class="rb-input"
+                                        id="ih0vr5" />
+                                </div>
+                                <div id="ik4997">
+                                    <label class="rb-label" id="ie2k0n">Largura</label>
+                                    <input type="number" v-model.number="selectedObject.w" class="rb-input"
+                                        id="i44o7m" />
+                                </div>
+                                <div id="is9vjs">
+                                    <label class="rb-label" id="i9ediz">Altura</label>
+                                    <input type="number" v-model.number="selectedObject.h" class="rb-input"
+                                        id="ioeanm" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div><!-- Vendors -->
+        <script src="https://cdn.jsdelivr.net/npm/alasql@1.7/dist/alasql.min.js" id="id3htn"></script>
+        <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js" id="ii1c4q"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@interactjs/interactjs/index.min.js" id="in3v8j"></script>
+        <script src="https://unpkg.com/petite-vue/dist/petite-vue.iife.js" id="iv037o"></script>
+        <script id="iqfyvk">
+            (function () {
+                function uid() {
+                    return Math.random().toString(36).slice(2) + Date.now().toString(36);
+                }
+
+                // Dummy data: 30 invoices
+                function makeDummyInvoices() {
+                    const nomes = ['Ana', 'Bruno', 'Carla', 'Duarte', 'Eva', 'Fábio', 'Gustavo', 'Helena', 'Igor', 'Joana', 'Katia', 'Luis', 'Mariana', 'Nuno', 'Olga', 'Paulo', 'Quica', 'Rui', 'Sofia', 'Tiago', 'Ursula', 'Vasco', 'Wilma', 'Xavier', 'Yuri', 'Zara', 'Alice', 'Beto', 'Cris', 'Diana'];
+                    const moradas = ['Lisboa', 'Porto', 'Coimbra', 'Braga', 'Aveiro', 'Setúbal', 'Faro'];
+                    const out = [];
+                    for (let i = 1; i <= 30; i++) {
+                        const nome = nomes[i - 1];
+                        const valor = Math.round((Math.random() * 900 + 100) * 100) / 100;
+                        const activo = Math.random() > 0.3;
+                        const data = new Date(2023 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
+                        out.push({
+                            id: i,
+                            nomecliente: nome,
+                            nocliente: 1000 + i,
+                            valor: valor,
+                            data: data.toISOString().slice(0, 10),
+                            activo: activo,
+                            morada: moradas[Math.floor(Math.random() * moradas.length)]
+                        });
+                    }
+                    return out;
+                }
+
+                function RBObjectBase(data) {
+                    this.id = uid();
+                    this.type = data.type;
+                    this.name = data.name || (data.type[0].toUpperCase() + data.type.slice(1));
+                    this.x = data.x ?? 24;
+                    this.y = data.y ?? 24;
+                    this.w = data.w ?? 520;
+                    this.h = data.h ?? (data.type === 'text' ? 80 : (data.type === 'header' || data.type === 'footer' ? 64 : 220));
+                }
+
+                const App = {
+                    objects: [],
+                    selectedId: null,
+                    ui: {
+                        zoom: 1
+                    },
+                    sampleData: [],
+
+                    get selectedObject() {
+                        return this.objects.find(o => o.id === this.selectedId) || null;
+                    },
+
+                    actions: {
+                        select(id) {
+                            App.selectedId = id;
+                        },
+                        clearSelection() {
+                            App.selectedId = null;
+                        },
+                        remove(id) {
+                            App.objects = App.objects.filter(o => o.id !== id);
+                            if (App.selectedId === id) App.selectedId = null;
+                            console.debug('[RB] Object removed:', id);
+                        },
+                        duplicate(id) {
+                            const obj = App.objects.find(o => o.id === id);
+                            if (!obj) return;
+                            const clone = JSON.parse(JSON.stringify(obj));
+                            clone.id = uid();
+                            clone.x += 16;
+                            clone.y += 16;
+                            App.objects.push(clone);
+                            console.debug('[RB] Object duplicated:', {
+                                from: id,
+                                to: clone.id
+                            });
+                            setTimeout(() => App.interactify(), 0);
+                        },
+                        applyZoom() {
+                            const canvas = document.getElementById('rb-canvas');
+                            if (!canvas) return;
+                            canvas.style.transformOrigin = '0 0';
+                            canvas.style.transform = 'scale(' + App.ui.zoom + ')';
+                            canvas.style.width = (100 / App.ui.zoom) + '%';
+                        },
+                        save() {
+                            const payload = {
+                                objects: App.objects,
+                                sampleDataCount: App.sampleData.length
+                            };
+                            console.info('[RB] Guardar (debug):', payload);
+                            alert('Estado guardado em consola (debug).');
+                        }
+                    },
+
+                    drag: {
+                        start(type, e) {
+                            const canvas = document.getElementById('rb-canvas');
+                            const ghost = document.createElement('div');
+                            ghost.className = 'rb-ghost';
+                            ghost.textContent = 'Solte para adicionar ' + type;
+                            document.body.appendChild(ghost);
+
+                            function move(ev) {
+                                const x = (ev.touches ? ev.touches[0].clientX : ev.clientX);
+                                const y = (ev.touches ? ev.touches[0].clientY : ev.clientY);
+                                ghost.style.left = (x + 12) + 'px';
+                                ghost.style.top = (y + 12) + 'px';
+                            }
+
+                            function end(ev) {
+                                document.removeEventListener('mousemove', move);
+                                document.removeEventListener('mouseup', end);
+                                document.removeEventListener('touchmove', move);
+                                document.removeEventListener('touchend', end);
+                                ghost.remove();
+
+                                const rect = canvas.getBoundingClientRect();
+                                const cx = (ev && ev.clientX) || (e.changedTouches ? e.changedTouches[0].clientX : e.clientX);
+                                const cy = (ev && ev.clientY) || (e.changedTouches ? e.changedTouches[0].clientY : e.clientY);
+                                const inside = cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom;
+
+                                if (inside) {
+                                    const relX = (cx - rect.left) / App.ui.zoom;
+                                    const relY = (cy - rect.top) / App.ui.zoom;
+                                    const obj = new RBObjectBase({
+                                        type: type,
+                                        x: relX,
+                                        y: relY
+                                    });
+                                    App.objects.push(obj);
+                                    console.debug('[RB] Object added:', obj);
+                                    setTimeout(() => App.interactify(), 0);
+                                } else {
+                                    console.debug('[RB] Drop cancelled: cursor outside canvas');
+                                }
+                            }
+                            document.addEventListener('mousemove', move);
+                            document.addEventListener('mouseup', end);
+                            document.addEventListener('touchmove', move, {
+                                passive: true
+                            });
+                            document.addEventListener('touchend', end);
+                        }
+                    },
+
+                    interactify() {
+                        setTimeout(function () {
+                            if (!window.interact) {
+                                console.error('[RB] Interact.js not available');
+                                return;
+                            }
+                            interact('#report-builder-layout .rb-obj')
+                                .draggable({
+                                    listeners: {
+                                        move(event) {
+                                            const id = event.target.id.replace('rb-obj-', '');
+                                            const o = App.objects.find(x => x.id === id);
+                                            if (!o) return;
+                                            const dx = event.dx / App.ui.zoom;
+                                            const dy = event.dy / App.ui.zoom;
+                                            o.x = Math.max(0, o.x + dx);
+                                            o.y = Math.max(0, o.y + dy);
+                                        }
+                                    },
+                                    modifiers: [
+                                        interact.modifiers.restrictRect({
+                                            restriction: 'parent',
+                                            endOnly: true
+                                        })
+                                    ]
+                                })
+                                .resizable({
+                                    edges: {
+                                        left: true,
+                                        right: true,
+                                        bottom: true,
+                                        top: true
+                                    }
+                                })
+                                .on('resizemove', function (event) {
+                                    const id = event.target.id.replace('rb-obj-', '');
+                                    const o = App.objects.find(x => x.id === id);
+                                    if (!o) return;
+                                    o.w = Math.max(120, o.w + event.deltaRect.width / App.ui.zoom);
+                                    o.h = Math.max(60, o.h + event.deltaRect.height / App.ui.zoom);
+                                    o.x = Math.max(0, o.x + event.deltaRect.left / App.ui.zoom);
+                                    o.y = Math.max(0, o.y + event.deltaRect.top / App.ui.zoom);
+                                });
+
+                            console.debug('[RB] Interact.js initialized on objects');
+                        }, 30);
+                    },
+
+                    mounted() {
+                        // Debug: check vendors
+                        console.info('[RB] Mounted: checking vendors', {
+                            alasql: !!window.alasql,
+                            Tabulator: !!window.Tabulator,
+                            interact: !!window.interact,
+                            PetiteVue: !!window.PetiteVue
+                        });
+
+                        // Initialize dummy data
+                        this.sampleData = makeDummyInvoices();
+                        console.info('[RB] Dummy data initialized:', this.sampleData.length, 'registos');
+
+                        // Apply initial zoom and enable interact
+                        this.actions.applyZoom();
+                        this.interactify();
+
+                        // Extra debug
+                        console.debug('[RB] App ready. Drag items from palette onto canvas.');
+                    }
+                };
+
+                PetiteVue.createApp(App).mount('#rbApp');
+            })();
+        </script>
+    </section>
+</body>
+
+</html>

@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Builder - Construtor de Relatórios</title>
+    
+    <!-- Bootstrap CSS -->
+   
+    
+    <!-- Tabulator CSS -->
+    <link href='https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_bootstrap5.min.css' rel='stylesheet'>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --success-color: #4cc9f0;
+            --warning-color: #f72585;
+            --info-color: #7209b7;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fb;
+            color: var(--dark-color);
+            overflow-x: hidden;
+        }
+        
+        .app-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .app-title {
+            font-weight: 700;
+            font-size: 1.8rem;
+            margin: 0;
+        }
+        
+        .sidebar {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+        
+        .main-content {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .properties-panel {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+        
+        .component-item {
+            background-color: var(--light-color);
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .component-item:hover {
+            background-color: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .component-icon {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+        
+        .report-canvas {
+            min-height: 800px;
+            background-color: #fafafa;
+            border: 2px dashed #d0d0d0;
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .report-object {
+            position: absolute;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            background-color: white;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            padding: 10px;
+            cursor: move;
+            overflow: hidden;
+            z-index: 10;
+        }
+        
+        .report-object.selected {
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+        }
+        
+        .object-handle {
+            height: 20px;
+            background-color: var(--primary-color);
+            margin: -10px -10px 10px -10px;
+            border-radius: 6px 6px 0 0;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            color: white;
+            font-size: 0.8rem;
+        }
+        
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            bottom: 0;
+            right: 0;
+            cursor: nwse-resize;
+        }
+        
+        .filter-item {
+            background-color: #f0f4ff;
+            border: 1px solid #d0d8ff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #eaeaea;
+            font-weight: 600;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        
+        .section-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #dee2e6;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary-color);
+        }
+        
+        .nav-tabs .nav-link {
+            color: #6c757d;
+        }
+        
+        .grid-system {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .grid-item {
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .grid-item.active {
+            background-color: var(--primary-color);
+        }
+        
+        .badge-primary {
+            background-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div id="app" >
+        <!-- Header -->        
+        <!-- Main Content -->
+        <div class="container-fluid mt-4">
+            <div class="row g-4">
+                <!-- Left Sidebar - Components -->
+                <div class="col-md-3">
+                    <div class="sidebar">
+                        <h5 class="section-title"><i class="fas fa-shapes me-2"></i>Componentes</h5>
+                        
+                        <div class="component-item" 
+                             v-for="component in components" 
+                             :key="component.id"
+                             @mousedown="startDrag(component, $event)">
+                            <i class="component-icon" :class="component.icon"></i>
+                            <span>{{ component.name }}</span>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h5 class="section-title"><i class="fas fa-filter me-2"></i>Filtros</h5>
+                            
+                            <button  type="button" class="btn btn-primary btn-sm w-100 mb-3" @click="addFilter">
+                                <i class="fas fa-plus me-1"></i> Adicionar Filtro
+                            </button>
+                            
+                            <div class="filter-item" v-for="(filter, index) in filters" :key="index">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold">{{ filter.name || 'Novo Filtro' }}</span>
+                                    <button  type="button" class="btn btn-sm btn-outline-danger" @click="removeFilter(index)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Tipo</label>
+                                    <select class="form-select form-select-sm" v-model="filter.type">
+                                        <option value="text">Texto</option>
+                                        <option value="number">Numérico</option>
+                                        <option value="checkbox">Checkbox</option>
+                                        <option value="list">Lista</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Ordem</label>
+                                    <input type="number" class="form-control form-control-sm" v-model="filter.order">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Tamanho (1-12)</label>
+                                    <input type="number" min="1" max="12" class="form-control form-control-sm" v-model="filter.size">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h5 class="section-title"><i class="fas fa-database me-2"></i>Fontes de Dados</h5>
+                            
+                            <button  type="button" class="btn btn-primary btn-sm w-100 mb-3" @click="addDataSource">
+                                <i class="fas fa-plus me-1"></i> Adicionar Fonte
+                            </button>
+                            
+                            <div class="filter-item" v-for="(source, index) in dataSources" :key="index">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold">{{ source.name || 'Nova Fonte' }}</span>
+                                    <button  type="button" class="btn btn-sm btn-outline-danger" @click="removeDataSource(index)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Tipo</label>
+                                    <select class="form-select form-select-sm" v-model="source.type">
+                                        <option value="query">Query SQL</option>
+                                        <option value="api">API REST</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Query/URL</label>
+                                    <textarea class="form-control form-control-sm" rows="3" v-model="source.query"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Center - Report Canvas -->
+                <div class="col-md-6">
+                    <div class="main-content">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="section-title mb-0"><i class="fas fa-palette me-2"></i>Área de Design</h5>
+                            <div>
+                                <button  type="button" class="btn btn-sm btn-outline-secondary me-2">
+                                    <i class="fas fa-plus me-1"></i> Página
+                                </button>
+                                <button  type="button" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-cog me-1"></i> Configurações
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="report-canvas" 
+                             id="report-canvas"
+                             @mousemove="handleDrag"
+                             @mouseup="stopDrag"
+                             @click="deselectAll">
+                             
+                            <div v-if="reportObjects.length === 0" class="empty-state">
+                                <i class="fas fa-object-ungroup"></i>
+                                <h5>Área de Trabalho Vazia</h5>
+                                <p>Arraste componentes da barra lateral para começar a criar o seu relatório</p>
+                            </div>
+                            
+                            <div class="report-object" 
+                                 v-for="obj in reportObjects" 
+                                 :key="obj.id"
+                                 :style="{
+                                     left: obj.x + 'px',
+                                     top: obj.y + 'px',
+                                     width: obj.width + 'px',
+                                     height: obj.height + 'px',
+                                     zIndex: obj.selected ? 100 : 10
+                                 }"
+                                 :class="{ selected: obj.selected }"
+                                 @click.stop="selectObject(obj)">
+                                 
+                                <div class="object-handle">
+                                    <i :class="obj.icon" class="me-1"></i>
+                                    {{ obj.name }}
+                                </div>
+                                
+                                <div class="object-content" v-if="obj.type === 'text'">
+                                    {{ obj.content || 'Texto de exemplo' }}
+                                </div>
+                                
+                                <div class="object-content" v-if="obj.type === 'table'">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th v-for="col in 3" :key="col">Coluna {{ col }}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="row in 3" :key="row">
+                                                    <td v-for="col in 3" :key="col">Dado {{ row }}-{{ col }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <div class="resize-handle" @mousedown.stop="startResize(obj, $event)"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Sidebar - Properties -->
+                <div class="col-md-3">
+                    <div class="properties-panel">
+                        <h5 class="section-title"><i class="fas fa-sliders-h me-2"></i>Propriedades</h5>
+                        
+                        <div v-if="selectedObject">
+                            <div class="mb-3">
+                                <label class="form-label">Nome</label>
+                                <input type="text" class="form-control" v-model="selectedObject.name">
+                            </div>
+                            
+                            <div class="mb-3" v-if="selectedObject.type === 'text'">
+                                <label class="form-label">Conteúdo</label>
+                                <textarea class="form-control" rows="3" v-model="selectedObject.content"></textarea>
+                                <div class="form-text">
+                                    Use {{ campo }} para inserir valores de campos de dados
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3" v-if="selectedObject.type === 'table'">
+                                <label class="form-label">Fonte de Dados</label>
+                                <select class="form-select" v-model="selectedObject.dataSource">
+                                    <option v-for="source in dataSources" :key="source.id" :value="source.id">
+                                        {{ source.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Posição e Tamanho</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" placeholder="X" v-model="selectedObject.x">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" placeholder="Y" v-model="selectedObject.y">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" placeholder="Largura" v-model="selectedObject.width">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" placeholder="Altura" v-model="selectedObject.height">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Estilo</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="boldCheck" v-model="selectedObject.bold">
+                                    <label class="form-check-label" for="boldCheck">
+                                        Texto em Negrito
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="italicCheck" v-model="selectedObject.italic">
+                                    <label class="form-check-label" for="italicCheck">
+                                        Texto em Itálico
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Cor do Texto</label>
+                                <input type="color" class="form-control form-control-color" v-model="selectedObject.textColor">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Cor de Fundo</label>
+                                <input type="color" class="form-control form-control-color" v-model="selectedObject.backgroundColor">
+                            </div>
+                            
+                            <button  type="button" class="btn btn-danger w-100" @click="removeObject(selectedObject)">
+                                <i class="fas fa-trash me-1"></i> Remover Componente
+                            </button>
+                        </div>
+                        
+                        <div v-else class="empty-state">
+                            <i class="fas fa-mouse-pointer"></i>
+                            <h5>Nenhum Componente Selecionado</h5>
+                            <p>Selecione um componente na área de design para ver as suas propriedades</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src='https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js'></script>
+    <script src='https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js'></script>
+    <script src='https://unpkg.com/petite-vue'></script>
+    <script src='https://cdn.jsdelivr.net/npm/alasql'></script>
+    <script src='https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js'></script>
+    
+    <script>
+        // Modelos de dados
+        function ReportObject(data) {
+            var self = this;
+            self.id = data.id || 'obj_' + Date.now();
+            self.type = data.type;
+            self.name = data.name;
+            self.x = data.x || 0;
+            self.y = data.y || 0;
+            self.width = data.width || 200;
+            self.height = data.height || 100;
+            self.selected = data.selected || false;
+            self.icon = data.icon;
+            
+            // Propriedades específicas por tipo
+            if (self.type === 'text') {
+                self.content = data.content || '';
+                self.bold = data.bold || false;
+                self.italic = data.italic || false;
+                self.textColor = data.textColor || '#000000';
+                self.backgroundColor = data.backgroundColor || '#ffffff';
+            }
+            
+            if (self.type === 'table') {
+                self.dataSource = data.dataSource || '';
+                self.columns = data.columns || [];
+                self.groupBy = data.groupBy || [];
+                self.totals = data.totals || [];
+            }
+        }
+        
+        function ReportFilter(data) {
+            var self = this;
+            self.id = data.id || 'filter_' + Date.now();
+            self.name = data.name || '';
+            self.type = data.type || 'text';
+            self.order = data.order || 0;
+            self.size = data.size || 6;
+            self.sqlExpression = data.sqlExpression || '';
+            self.jsExpression = data.jsExpression || '';
+            self.options = data.options || [];
+        }
+        
+        function DataSource(data) {
+            var self = this;
+            self.id = data.id || 'ds_' + Date.now();
+            self.name = data.name || '';
+            self.type = data.type || 'query';
+            self.query = data.query || '';
+            self.testData = data.testData || [];
+        }
+        
+        // Aplicação principal
+        var App = {
+            // Estado da aplicação
+            components: [
+                { id: 1, name: 'Texto', type: 'text', icon: 'fas fa-font' },
+                { id: 2, name: 'Tabela', type: 'table', icon: 'fas fa-table' },
+                { id: 3, name: 'Imagem', type: 'image', icon: 'fas fa-image' },
+                { id: 4, name: 'Gráfico', type: 'chart', icon: 'fas fa-chart-bar' },
+                { id: 5, name: 'Cabeçalho', type: 'header', icon: 'fas fa-heading' },
+                { id: 6, name: 'Rodapé', type: 'footer', icon: 'fas fa-ellipsis-h' }
+            ],
+            reportObjects: [],
+            filters: [],
+            dataSources: [
+                {
+                    id: 'ds1',
+                    name: 'Dados de Faturação',
+                    type: 'query',
+                    query: 'SELECT * FROM faturas',
+                    testData: [
+                        { nomecliente: 'Cliente A', nocliente: 1001, valor: 1500.50, data: '2023-05-15', activo: true, morada: 'Rua A, 123' },
+                        { nomecliente: 'Cliente B', nocliente: 1002, valor: 2300.75, data: '2023-05-16', activo: true, morada: 'Rua B, 456' },
+                        { nomecliente: 'Cliente C', nocliente: 1003, valor: 800.25, data: '2023-05-17', activo: false, morada: 'Rua C, 789' }
+                    ]
+                }
+            ],
+            selectedObject: null,
+            dragging: false,
+            dragObject: null,
+            dragOffset: { x: 0, y: 0 },
+            resizing: false,
+            resizeObject: null,
+            resizeStart: { x: 0, y: 0, width: 0, height: 0 },
+            
+            // Métodos
+            startDrag: function(component, event) {
+                var self = this;
+                self.dragging = true;
+                self.dragObject = new ReportObject({
+                    type: component.type,
+                    name: component.name,
+                    icon: component.icon
+                });
+                
+                // Calcular offset do mouse em relação ao objeto
+                var canvas = document.getElementById('report-canvas');
+                var rect = canvas.getBoundingClientRect();
+                self.dragOffset.x = event.clientX - rect.left;
+                self.dragOffset.y = event.clientY - rect.top;
+                
+                event.preventDefault();
+            },
+            
+            handleDrag: function(event) {
+                var self = this;
+                if (!self.dragging) return;
+                
+                var canvas = document.getElementById('report-canvas');
+                var rect = canvas.getBoundingClientRect();
+                
+                // Atualizar posição do objeto sendo arrastado
+                self.dragObject.x = event.clientX - rect.left - self.dragOffset.x;
+                self.dragObject.y = event.clientY - rect.top - self.dragOffset.y;
+                
+                // Limitar à área do canvas
+                self.dragObject.x = Math.max(0, Math.min(self.dragObject.x, rect.width - self.dragObject.width));
+                self.dragObject.y = Math.max(0, Math.min(self.dragObject.y, rect.height - self.dragObject.height));
+                
+                event.preventDefault();
+            },
+            
+            stopDrag: function(event) {
+                var self = this;
+                if (!self.dragging) return;
+                
+                // Adicionar objeto ao canvas
+                if (self.dragObject) {
+                    self.reportObjects.push(self.dragObject);
+                    self.selectObject(self.dragObject);
+                }
+                
+                self.dragging = false;
+                self.dragObject = null;
+                
+                event.preventDefault();
+            },
+            
+            startResize: function(obj, event) {
+                var self = this;
+                self.resizing = true;
+                self.resizeObject = obj;
+                self.resizeStart.x = event.clientX;
+                self.resizeStart.y = event.clientY;
+                self.resizeStart.width = obj.width;
+                self.resizeStart.height = obj.height;
+                
+                event.preventDefault();
+                event.stopPropagation();
+            },
+            
+            selectObject: function(obj) {
+                var self = this;
+                
+                // Desselecionar todos os objetos
+                self.reportObjects.forEach(function(o) {
+                    o.selected = false;
+                });
+                
+                // Selecionar o objeto clicado
+                obj.selected = true;
+                self.selectedObject = obj;
+            },
+            
+            deselectAll: function() {
+                var self = this;
+                self.reportObjects.forEach(function(obj) {
+                    obj.selected = false;
+                });
+                self.selectedObject = null;
+            },
+            
+            removeObject: function(obj) {
+                var self = this;
+                var index = self.reportObjects.indexOf(obj);
+                if (index !== -1) {
+                    self.reportObjects.splice(index, 1);
+                    self.selectedObject = null;
+                }
+            },
+            
+            addFilter: function() {
+                var self = this;
+                self.filters.push(new ReportFilter({}));
+            },
+            
+            removeFilter: function(index) {
+                var self = this;
+                self.filters.splice(index, 1);
+            },
+            
+            addDataSource: function() {
+                var self = this;
+                self.dataSources.push(new DataSource({}));
+            },
+            
+            removeDataSource: function(index) {
+                var self = this;
+                self.dataSources.splice(index, 1);
+            }
+        };
+        
+        // Inicializar a aplicação
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurar interact.js para drag and drop e redimensionamento
+            var canvas = document.getElementById('report-canvas');
+            
+            // Inicializar petite-vue
+            PetiteVue.createApp(App).mount('#app');
+            
+            // Adicionar evento global de mousemove para redimensionamento
+            document.addEventListener('mousemove', function(event) {
+                var self = App;
+                if (!self.resizing || !self.resizeObject) return;
+                
+                var deltaX = event.clientX - self.resizeStart.x;
+                var deltaY = event.clientY - self.resizeStart.y;
+                
+                self.resizeObject.width = Math.max(50, self.resizeStart.width + deltaX);
+                self.resizeObject.height = Math.max(30, self.resizeStart.height + deltaY);
+                
+                event.preventDefault();
+            });
+            
+            document.addEventListener('mouseup', function() {
+                var self = App;
+                self.resizing = false;
+                self.resizeObject = null;
+            });
+        });
+    </script>
+</body>
+</html>

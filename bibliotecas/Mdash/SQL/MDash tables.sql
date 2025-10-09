@@ -130,7 +130,7 @@ CREATE TABLE MdashContainerItemObject(
     tipoobjectodetalhes VARCHAR(100) DEFAULT '',
     titulodetalhes VARCHAR(250) DEFAULT '',
     titulobtndetalhes VARCHAR(250) DEFAULT ''
-)
+);
 
 CREATE TABLE MdashContainerItemObjectDetail(
 

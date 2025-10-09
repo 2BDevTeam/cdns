@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Tabulator com Header Composto e GroupBy</title>
+
+  <!-- CDN (a que você pediu) -->
+  <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f8f9fa;
+    }
+    #tabela {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h2 class="mb-4">📊 Tabela com Header Composto e Agrupamentos</h2>
+  <div id="tabela"></div>
+
+  <script>
+    const dados = [
+      {departamento: "Vendas", equipa: "Norte", funcionario: "Carlos", idade: 30, total: 1200},
+      {departamento: "Vendas", equipa: "Sul", funcionario: "João", idade: 25, total: 1500},
+      {departamento: "Vendas", equipa: "Norte", funcionario: "Ana", idade: 28, total: 1000},
+      {departamento: "Financeiro", equipa: "Orçamento", funcionario: "Paula", idade: 35, total: 2000},
+      {departamento: "Financeiro", equipa: "Contabilidade", funcionario: "Rui", idade: 40, total: 2500},
+      {departamento: "Financeiro", equipa: "Orçamento", funcionario: "Sofia", idade: 32, total: 1800},
+    ];
+
+    const tabela = new Tabulator("#tabela", {
+      data: dados,
+      layout: "fitColumns",
+      height: "500px",
+
+      groupBy: ["departamento", "equipa"],
+
+      groupHeader: [
+        function(value, count, data){
+          return `<b>Departamento:</b> ${value} <span style="color:#999">(${count} registos)</span>`;
+        },
+        function(value, count, data){
+          const totalEquipa = data.reduce((sum, item) => sum + item.total, 0);
+          return `<b>Equipa:</b> ${value} — Total: ${totalEquipa.toLocaleString("pt-PT")} €`;
+        },
+      ],
+
+      columns: [
+        {title: "Departamento", field: "departamento", headerSort: false},
+        {title: "Equipa", field: "equipa", headerSort: false},
+        {
+          title: "Dados Gerais", 
+          columns: [
+            {title: "Funcionário", field: "funcionario"},
+            {title: "Idade", field: "idade", hozAlign: "center"},
+          ]
+        },
+
+        {title: "Total (€)", field: "total", hozAlign: "right", bottomCalc: "sum"},
+      ],
+    });
+  </script>
+</body>
+</html>

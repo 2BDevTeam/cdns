@@ -28,6 +28,9 @@ Try
     html+=scriptJs
     html+=scriptCss
    
+
+  
+
    
     Dim destination As Object
     destination = mpage.master.findcontrol("conteudo").findcontrol("maincontent")
