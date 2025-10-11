@@ -453,6 +453,8 @@ function crateDynamicSchemaCustomCode(data) {
         }
     };
 }
+
+
 function createDynamicSchemaGrafico(data) {
     var availableFields = Object.keys(data[0]);
 
@@ -564,9 +566,99 @@ function createDynamicSchemaGrafico(data) {
                             maximum: 100,
                             description: "Largura das barras em percentagem (10-100)"
                         },
-                        itemStyle: {
-                            type: "object", title: "Estilo dos Itens",
+                        // NOVAS PROPRIEDADES ADICIONADAS
+                        smooth: {
+                            type: "boolean",
+                            title: "Linha Suave",
+                            'default': true,
+                            description: "Deixa a linha mais fluida (apenas para gráficos de linha)"
+                        },
+                        lineStyle: {
+                            type: "object",
+                            title: "Estilo da Linha",
                             properties: {
+                                width: {
+                                    type: "number",
+                                    title: "Grossura da Linha",
+                                    'default': 5,
+                                    minimum: 1,
+                                    maximum: 20
+                                },
+                                color: {
+                                    type: "string",
+                                    title: "Cor da Linha",
+                                    format: "color",
+                                    'default': "#5470C6"
+                                },
+                                shadowColor: {
+                                    type: "string",
+                                    title: "Cor da Sombra",
+                                    format: "color",
+                                    'default': "rgba(0, 0, 0, 0.5)"
+                                },
+                                shadowBlur: {
+                                    type: "number",
+                                    title: "Desfocagem da Sombra",
+                                    'default': 10,
+                                    minimum: 0,
+                                    maximum: 50
+                                },
+                                shadowOffsetX: {
+                                    type: "number",
+                                    title: "Deslocamento Horizontal da Sombra",
+                                    'default': 4,
+                                    minimum: -20,
+                                    maximum: 20
+                                },
+                                shadowOffsetY: {
+                                    type: "number",
+                                    title: "Deslocamento Vertical da Sombra",
+                                    'default': 4,
+                                    minimum: -20,
+                                    maximum: 20
+                                }
+                            }
+                        },
+                        symbol: {
+                            type: "string",
+                            title: "Formato dos Pontos",
+                            'enum': ["circle", "rect", "roundRect", "triangle", "diamond", "pin", "arrow", "none"],
+                            options: {
+                                enum_titles: ["Círculo", "Retângulo", "Retângulo Arredondado", "Triângulo", "Diamante", "Pin", "Seta", "Nenhum"]
+                            },
+                            'default': "circle",
+                            description: "Formato dos pontos na linha"
+                        },
+                        symbolSize: {
+                            type: "number",
+                            title: "Tamanho dos Pontos",
+                            'default': 8,
+                            minimum: 0,
+                            maximum: 30
+                        },
+                        itemStyle: {
+                            type: "object",
+                            title: "Estilo dos Pontos/Barras",
+                            properties: {
+                                color: {
+                                    type: "string",
+                                    title: "Cor dos Pontos/Barras",
+                                    format: "color",
+                                    'default': "#5470C6"
+                                },
+                                borderColor: {
+                                    type: "string",
+                                    title: "Cor da Borda",
+                                    format: "color",
+                                    'default': "#fff"
+                                },
+                                borderWidth: {
+                                    type: "number",
+                                    title: "Largura da Borda",
+                                    'default': 2,
+                                    minimum: 0,
+                                    maximum: 10
+                                },
                                 borderRadius: {
                                     type: "array",
                                     title: "Raio das Bordas [topo-esq, topo-dir, baixo-dir, baixo-esq]",
@@ -575,14 +667,14 @@ function createDynamicSchemaGrafico(data) {
                                     },
                                     'default': [6, 6, 0, 0],
                                     maxItems: 4,
-                                    minItems: 4
+                                    minItems: 4,
+                                    description: "Para gráficos de barra - raio das bordas"
                                 }
                             }
                         }
                     }
                 }
             }
-            // ...existing code...
         }
     };
 }
@@ -641,23 +733,53 @@ function updateChartOnContainer(chart, config, data) {
                     })
                 };
 
-                // Adicionar cor se definida
-                if (serie.color) {
-                    serieConfig.itemStyle = serieConfig.itemStyle || {};
-                    serieConfig.itemStyle.color = serie.color;
+                // APLICAR NOVAS CONFIGURAÇÕES DE ESTILO
+
+                // Smooth para linhas
+                if (serie.type === 'line' && serie.smooth !== undefined) {
+                    serieConfig.smooth = serie.smooth;
                 }
 
-                // Adicionar barWidth concatenando % na renderização
+                // Line Style - configurações completas da linha
+                if (serie.lineStyle) {
+                    serieConfig.lineStyle = {};
+                    if (serie.lineStyle.width) serieConfig.lineStyle.width = serie.lineStyle.width;
+                    if (serie.lineStyle.color) serieConfig.lineStyle.color = serie.lineStyle.color;
+                    if (serie.lineStyle.shadowColor) serieConfig.lineStyle.shadowColor = serie.lineStyle.shadowColor;
+                    if (serie.lineStyle.shadowBlur !== undefined) serieConfig.lineStyle.shadowBlur = serie.lineStyle.shadowBlur;
+                    if (serie.lineStyle.shadowOffsetX !== undefined) serieConfig.lineStyle.shadowOffsetX = serie.lineStyle.shadowOffsetX;
+                    if (serie.lineStyle.shadowOffsetY !== undefined) serieConfig.lineStyle.shadowOffsetY = serie.lineStyle.shadowOffsetY;
+                }
+
+                // Symbol (formato dos pontos)
+                if (serie.symbol) {
+                    serieConfig.symbol = serie.symbol;
+                }
+                if (serie.symbolSize !== undefined) {
+                    serieConfig.symbolSize = serie.symbolSize;
+                }
+
+                // Item Style (cor e estilo dos pontos/barras)
+                if (serie.itemStyle || serie.color) {
+                    serieConfig.itemStyle = serieConfig.itemStyle || {};
+                    
+                    // Cor principal (fallback para compatibilidade)
+                    if (serie.color) {
+                        serieConfig.itemStyle.color = serie.color;
+                    }
+                    
+                    // Configurações específicas do itemStyle
+                    if (serie.itemStyle) {
+                        if (serie.itemStyle.color) serieConfig.itemStyle.color = serie.itemStyle.color;
+                        if (serie.itemStyle.borderColor) serieConfig.itemStyle.borderColor = serie.itemStyle.borderColor;
+                        if (serie.itemStyle.borderWidth !== undefined) serieConfig.itemStyle.borderWidth = serie.itemStyle.borderWidth;
+                        if (serie.itemStyle.borderRadius) serieConfig.itemStyle.borderRadius = serie.itemStyle.borderRadius;
+                    }
+                }
+
+                // Bar Width (para gráficos de barra)
                 if (serie.barWidth) {
                     serieConfig.barWidth = serie.barWidth + '%';
-                }
-
-                // Adicionar itemStyle se definido
-                if (serie.itemStyle) {
-                    serieConfig.itemStyle = serieConfig.itemStyle || {};
-                    if (serie.itemStyle.borderRadius) {
-                        serieConfig.itemStyle.borderRadius = serie.itemStyle.borderRadius;
-                    }
                 }
 
                 return serieConfig;
@@ -665,7 +787,7 @@ function updateChartOnContainer(chart, config, data) {
         };
 
         chart.setOption(option, true);
-        console.log('Gráfico atualizado:', option);
+        console.log('Gráfico atualizado com novos estilos:', option);
     } catch (e) {
         console.error('Erro ao atualizar gráfico:', e);
     }

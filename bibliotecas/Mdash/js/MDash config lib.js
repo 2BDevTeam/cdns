@@ -3422,25 +3422,13 @@ function registerListenersMdash() {
         });
 
 
-
-
-        var copiedData = {
-            componentCopyConfig: componentCopyConfig,
-            componentData: new componentCopyConfig.entityToInstantiate(copiedComponent)
-        };
-
-        var existingIndex = GCopiedComponentData.findIndex(function (item) {
-            return item.componentData[item.componentCopyConfig.idfield] === copiedData.componentData[copiedData.componentCopyConfig.idfield] &&
-                item.componentCopyConfig.table === copiedData.componentCopyConfig.table;
-        });
-
         if (existingIndex === -1) {
             GCopiedComponentData.push(copiedData);
         } else {
             // Opcionalmente, substituir o elemento existente
             GCopiedComponentData[existingIndex] = copiedData;
         }
-        GCopiedComponentData.push(copiedData);
+        //GCopiedComponentData.push(copiedData);
 
         if (componentCopyConfig.childs && componentCopyConfig.childs.length > 0) {
             componentCopyConfig.childs.forEach(function (childTable) {

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Div que se estica</title>
+<style>
+  .container {
+    width: 300px;
+    background-color: #e0f7fa;
+    border: 2px solid #00796b;
+    padding: 10px;
+    /* Importante: não definir height fixa */
+  }
+
+  .item {
+    background-color: #b2dfdb;
+    margin: 5px 0;
+    padding: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container" id="caixa">
+  <div class="item">Item 1</div>
+  <div class="item">Item 2</div>
+</div>
+
+<button onclick="adicionarItem()">Adicionar Item</button>
+
+<script>
+  function adicionarItem() {
+    const caixa = document.getElementById('caixa');
+    const novo = document.createElement('div');
+    novo.className = 'item';
+    novo.textContent = 'Novo item';
+    caixa.appendChild(novo);
+  }
+</script>
+
+</body>
+</html>

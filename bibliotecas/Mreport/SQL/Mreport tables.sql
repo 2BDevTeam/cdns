@@ -97,11 +97,10 @@ CREATE TABLE MReportFonte(
 
 
 
-CREATE TABLE MReportContainerItemObject(
+CREATE TABLE MreportObject(
 
-    mreportcontaineritemobjectstamp VARCHAR(25) PRIMARY KEY,
-    mreportcontaineritemstamp VARCHAR(25) DEFAULT '',
-    reportboardstamp VARCHAR(25) DEFAULT '',
+    mreportobjectstamp VARCHAR(25) PRIMARY KEY,
+    codigo VARCHAR(25) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
     tamanho INT DEFAULT 0,
     ordem INT DEFAULT 0,
@@ -109,9 +108,9 @@ CREATE TABLE MReportContainerItemObject(
     expressaoobjecto TEXT DEFAULT '',
     configjson TEXT DEFAULT '',
     queryconfigjson TEXT DEFAULT '',
-    temdetalhes BIT DEFAULT 0,
-    detalhesqueryconfigjson TEXT DEFAULT '',
-    tipoobjectodetalhes VARCHAR(100) DEFAULT '',
-    titulodetalhes VARCHAR(250) DEFAULT '',
-    titulobtndetalhes VARCHAR(250) DEFAULT ''
+    section VARCHAR(200) DEFAULT '',
+    x INT DEFAULT 0,
+    y INT DEFAULT 0,
+    width INT DEFAULT 0,
+    height INT DEFAULT 0
 );
