@@ -1,3 +1,17 @@
+
+var GMReportFilters = [new MReportFilter({})];
+GMReportFilters = [];
+
+var GMReportConfig = new MReportConfig({});
+
+var GMReportObjects = [new MReportObject({})];
+GMReportObjects = [];
+
+
+var GMReportFontes = [new MReportFonte({})];
+var GMReportFontes = [];
+
+
 function pageLoad() {
 
     registerListeners()
@@ -19,6 +33,7 @@ function organizarCampos() {
 
 
 }
+
 
 
 
@@ -259,8 +274,9 @@ function addStyvaroReportDesigner() {
     reportConfigCss += "  }";
 
     reportConfigCss += "  .filter-item {";
-    reportConfigCss += "      background-color: #f0f4ff;";
-    reportConfigCss += "      border: 1px solid #d0d8ff;";
+    reportConfigCss += "      background-color: #ffffffff;";
+    reportConfigCss += "      border: 1px solid #ffffffff;";
+    reportConfigCss += "      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);";
     reportConfigCss += "      border-radius: 8px;";
     reportConfigCss += "      padding: 12px;";
     reportConfigCss += "      margin-bottom: 10px;";
@@ -359,34 +375,377 @@ function addStyvaroReportDesigner() {
 function outrasFuncoes() {
 
     addStyvaroReportDesigner();
-    generateMDashReportDesigner();
+    generatemreportReportDesigner();
 
     // Configurar interact.js para drag and drop e redimensionamento
     var canvas = document.getElementById('report-canvas');
+
+
+    // Aplicação principal
+    var App = {
+        // Estado da aplicação
+        components: [
+            { id: 1, name: 'Texto', type: 'text', icon: 'fas fa-font' },
+            { id: 2, name: 'Tabela', type: 'table', icon: 'fas fa-table' },
+            { id: 3, name: 'Imagem', type: 'image', icon: 'fas fa-image' },
+            { id: 4, name: 'Gráfico', type: 'chart', icon: 'fas fa-chart-bar' },
+            { id: 5, name: 'Cabeçalho', type: 'header', icon: 'fas fa-heading' },
+            { id: 6, name: 'Rodapé', type: 'footer', icon: 'fas fa-ellipsis-h' }
+        ],
+        reportObjects: GMReportObjects,
+        filters: GMReportFilters,
+        dataSources: GMReportFontes,
+        selectedObject: null,
+        dragging: false,
+        dragObject: null,
+        dragOffset: { x: 0, y: 0 },
+        resizing: false,
+        resizeObject: null,
+        resizeStart: { x: 0, y: 0, width: 0, height: 0 },
+        getSectionObjects: function (section) {
+            var self = this;
+            return self.reportObjects.filter(function (obj) {
+                return obj.section === section;
+            });
+        },
+        startDrag: function (component, event) {
+            var self = this;
+
+            self.dragging = true;
+            self.dragObject = new MReportObject({
+                tipo: component.type,
+                name: component.name,
+                icon: component.icon,
+                section: 'content' // Define uma secção padrão
+            });
+
+            // Calcular posição inicial baseada na posição do mouse
+            // Usa a secção de conteúdo como referência padrão
+            var contentSection = document.querySelector('.report-content .section-content');
+            if (contentSection) {
+                var rect = contentSection.getBoundingClientRect();
+
+                // Posicionar o objeto onde o mouse está, centralizando o objeto no cursor
+                self.dragObject.x = event.clientX - rect.left - (self.dragObject.width / 2);
+                self.dragObject.y = event.clientY - rect.top - (self.dragObject.height / 2);
+
+                // Definir o offset como metade do tamanho do objeto para manter centrado
+                self.dragOffset.x = self.dragObject.width / 2;
+                self.dragOffset.y = self.dragObject.height / 2;
+            }
+
+            // event.preventDefault();
+        },
+
+        handleDrag: function (event) {
+            var self = this;
+            if (!self.dragging || !self.dragObject) return;
+
+            // Encontrar a secção atual baseada na posição do mouse
+            var sections = document.querySelectorAll('.section-content');
+            var targetSection = null;
+
+            for (var i = 0; i < sections.length; i++) {
+                var rect = sections[i].getBoundingClientRect();
+                if (event.clientX >= rect.left && event.clientX <= rect.right &&
+                    event.clientY >= rect.top && event.clientY <= rect.bottom) {
+                    targetSection = sections[i];
+                    break;
+                }
+            }
+
+            // Se não encontrou nenhuma secção, usa a de conteúdo como padrão
+            if (!targetSection) {
+                targetSection = document.querySelector('.report-content .section-content');
+            }
+
+            if (targetSection) {
+                var rect = targetSection.getBoundingClientRect();
+
+                // Atualizar posição do objeto mantendo-o centrado no cursor
+                self.dragObject.x = event.clientX - rect.left - self.dragOffset.x;
+                self.dragObject.y = event.clientY - rect.top - self.dragOffset.y;
+
+                // Limitar à área da secção
+                self.dragObject.x = Math.max(0, Math.min(self.dragObject.x, rect.width - self.dragObject.width));
+                self.dragObject.y = Math.max(0, Math.min(self.dragObject.y, rect.height - self.dragObject.height));
+
+                // Atualizar a secção do objeto baseada na secção atual
+                var sectionElement = targetSection.closest('.report-section');
+                if (sectionElement) {
+                    console.log("section element", self.dragObject.section, "dataset", sectionElement.dataset.section)
+                    self.dragObject.section = sectionElement.dataset.section;
+
+                }
+            }
+
+            event.preventDefault();
+        },
+
+        drop: function (event, section) {
+            var self = this;
+
+
+            if (!self.dragging || !self.dragObject) return;
+
+            // Determinar a secção de destino
+            var targetSection = section;
+            if (!targetSection) {
+                // Se não foi especificada, tenta determinar pela posição
+                var sectionElement = event.target.closest('.report-section');
+                if (sectionElement) {
+                    targetSection = sectionElement.dataset.section;
+                } else {
+                    targetSection = 'content'; // Padrão
+                }
+            }
+
+            // Encontrar o elemento da secção
+            var sectionContent = document.querySelector('.report-' + targetSection + ' .section-content');
+            if (!sectionContent) return;
+
+            var rect = sectionContent.getBoundingClientRect();
+
+            // Posição final onde o objeto será colocado (relativa à secção)
+            self.dragObject.x = event.clientX - rect.left - (self.dragObject.width / 2);
+            self.dragObject.y = event.clientY - rect.top - (self.dragObject.height / 2);
+
+            // Limitar à área da secção
+            self.dragObject.x = Math.max(0, Math.min(self.dragObject.x, rect.width - self.dragObject.width));
+            self.dragObject.y = Math.max(0, Math.min(self.dragObject.y, rect.height - self.dragObject.height));
+
+            // Definir a secção do objeto
+            self.dragObject.section = targetSection;
+
+            // Adicionar objeto ao canvas
+            self.reportObjects.push(self.dragObject);
+            self.selectObject(self.dragObject);
+
+            // Limpar estado de drag
+            self.dragging = false;
+            self.dragObject = null;
+
+            // Configurar interact para o novo objeto
+            this.$nextTick(function () {
+                interact('.report-object').unset();
+                interact('.report-object')
+                    .draggable({
+                        inertia: true,
+                        modifiers: [
+                            interact.modifiers.restrictRect({
+                                restriction: 'parent',
+                                endOnly: true
+                            })
+                        ],
+                        autoScroll: true,
+                        listeners: {
+                            start: function (event) {
+                                var id = event.target.getAttribute('data-mreportobjectstamp');
+                                var obj = self.reportObjects.find(function (o) {
+                                    return o.mreportobjectstamp == id;
+                                });
+                                if (obj) {
+                                    self.selectObject(obj);
+                                }
+                            },
+                            // No método drop, dentro do $nextTick, atualize o move listener do interact:
+                            move: function (event) {
+                                var target = event.target;
+                                var id = target.getAttribute('data-mreportobjectstamp');
+                                var obj = self.reportObjects.find(function (o) {
+                                    return o.mreportobjectstamp == id;
+                                });
+
+                                if (obj) {
+                                    // Atualiza a posição no modelo
+                                    obj.x += event.dx;
+                                    obj.y += event.dy;
+
+                                    // Detetar se mudou de secção
+                                    var sectionContent = target.closest('.section-content');
+                                    if (sectionContent) {
+                                        var sectionElement = sectionContent.closest('.report-section')
+
+                                        var sectionElement = sectionContent.closest('.report-section');
+                                        if (sectionElement && sectionElement.dataset.section !== obj.section) {
+                                            // Atualiza a secção se mudou para outra área
+                                            obj.section = sectionElement.dataset.section;
+                                        }
+                                    }
+
+                                    // Atualiza o transform para movimento suave
+                                    target.style.transform = "translate3d(" + obj.x + "px, " + obj.y + "px, 0)";
+                                }
+                            }
+                        }
+                    })
+                    .resizable({
+                        edges: { left: true, right: true, bottom: true, top: true },
+                        inertia: true,
+                        modifiers: [
+                            /* interact.modifiers.restrictEdges({
+                                 outer: 'parent'
+                             }),*/
+                            interact.modifiers.restrictSize({
+                                min: { width: 50, height: 30 }
+                            })
+                        ],
+                        listeners: {
+                            move: function (event) {
+                                var target = event.target;
+                                var id = target.getAttribute('data-mreportobjectstamp');
+                                var obj = self.reportObjects.find(function (o) {
+                                    return o.mreportobjectstamp == id;
+                                });
+
+                                if (obj) {
+                                    // Atualiza tamanho no modelo
+                                    obj.width = event.rect.width;
+                                    obj.height = event.rect.height;
+
+                                    // Atualiza posição se redimensionar da esquerda ou topo
+                                    obj.x += event.deltaRect.left;
+                                    obj.y += event.deltaRect.top;
+
+                                    // Atualiza o estilo
+                                    target.style.width = obj.width + 'px';
+                                    target.style.height = obj.height + 'px';
+                                    target.style.transform = "translate3d(" + obj.x + "px, " + obj.y + "px, 0)";
+                                }
+                            }
+                        }
+                    });
+            });
+
+            event.preventDefault();
+        },
+        stopDrag: function (event) {
+            var self = this;
+            if (!self.dragging) return;
+
+            // Adicionar objeto ao canvas
+            if (self.dragObject) {
+                self.reportObjects.push(self.dragObject);
+                self.selectObject(self.dragObject);
+            }
+
+            self.dragging = false;
+            self.dragObject = null;
+
+
+
+
+
+
+
+            event.preventDefault();
+        },
+
+        startResize: function (obj, event) {
+            var self = this;
+            self.resizing = true;
+            self.resizeObject = obj;
+            self.resizeStart.x = event.clientX;
+            self.resizeStart.y = event.clientY;
+            self.resizeStart.width = obj.width;
+            self.resizeStart.height = obj.height;
+
+            event.preventDefault();
+            event.stopPropagation();
+        },
+
+        selectObject: function (obj) {
+            var self = this;
+
+            // Desselecionar todos os objetos
+            self.reportObjects.forEach(function (o) {
+                o.selected = false;
+            });
+
+            // Selecionar o objeto clicado
+            obj.selected = true;
+            self.selectedObject = obj;
+        },
+
+        deselectAll: function () {
+            var self = this;
+            self.reportObjects.forEach(function (obj) {
+                obj.selected = false;
+            });
+            self.selectedObject = null;
+        },
+
+        removeObject: function (obj) {
+            var self = this;
+            var index = self.reportObjects.indexOf(obj);
+            if (index !== -1) {
+                self.reportObjects.splice(index, 1);
+                self.selectedObject = null;
+            }
+        },
+
+        addFilter: function () {
+            var self = this;
+
+            var newFilter = new MReportFilter({});
+            newFilter.setUIFormConfig();
+            self.filters.push(newFilter);
+        },
+
+        openConfigReportElement: function (obj, componente) {
+            var self = this;
+
+            this.$nextTick(function () {
+                handleShowConfigContainer({
+                    idValue: obj[obj.idfield],
+                    localsource: obj.localsource,
+                    idField: obj.idfield,
+                    componente: componente
+                });
+            });
+
+           
+        },
+
+        removeFilter: function (index) {
+            var self = this;
+            self.filters.splice(index, 1);
+        },
+
+        addDataSource: function () {
+            var self = this;
+            self.dataSources.push(new MReportFonte({}));
+        },
+
+        removeDataSource: function (index) {
+            var self = this;
+            self.dataSources.splice(index, 1);
+        }
+    };
 
     // Inicializar petite-vue
     PetiteVue.createApp(App).mount('#reportDesignerContainer');
 
     // Adicionar evento global de mousemove para redimensionamento
-  /*  document.addEventListener('mousemove', function (event) {
-        var self = App;
-    
-        if (!self.resizing || !self.resizeObject) return;
-
-        var deltaX = event.clientX - self.resizeStart.x;
-        var deltaY = event.clientY - self.resizeStart.y;
-
-        self.resizeObject.width = Math.max(50, self.resizeStart.width + deltaX);
-        self.resizeObject.height = Math.max(30, self.resizeStart.height + deltaY);
-
-        event.preventDefault();
-    });
-
-    document.addEventListener('mouseup', function () {
-        var self = App;
-        self.resizing = false;
-        self.resizeObject = null;
-    });*/
+    /*  document.addEventListener('mousemove', function (event) {
+          var self = App;
+      
+          if (!self.resizing || !self.resizeObject) return;
+  
+          var deltaX = event.clientX - self.resizeStart.x;
+          var deltaY = event.clientY - self.resizeStart.y;
+  
+          self.resizeObject.width = Math.max(50, self.resizeStart.width + deltaX);
+          self.resizeObject.height = Math.max(30, self.resizeStart.height + deltaY);
+  
+          event.preventDefault();
+      });
+  
+      document.addEventListener('mouseup', function () {
+          var self = App;
+          self.resizing = false;
+          self.resizeObject = null;
+      });*/
     try {
 
     } catch (error) {
@@ -409,10 +768,177 @@ function registerListeners() {
 }
 
 
+function handleCodeEditor() {
+    var editors = [];
+    document.querySelectorAll('.m-editor').forEach(function (el, idx) {
+        // Garante um id único para cada editor
+        if (!el.id) el.id = 'm-editor' + idx;
+        var aceEditor = ace.edit(el.id);
+        aceEditor.setTheme("ace/theme/monokai");
+        aceEditor.session.setMode("ace/mode/sql");
+        editors.push(aceEditor);
+    });
+
+    // Guarda o editor atualmente focado
+    var focusedEditor = null;
+    editors.forEach(function (ed) {
+        ed.on('focus', function () {
+            focusedEditor = ed;
+        });
+    });
+
+    // Atalho: Ctrl + Shift + F para o editor focado
+    document.addEventListener("keydown", function (e) {
+        if (e.shiftKey && e.key.toLowerCase() === "f" && focusedEditor) {
+            e.preventDefault();
+            formatCode(focusedEditor);
+        }
+    });
+
+    function formatCode(editorInstance) {
+        return;
+        var code = editorInstance.getValue();
+        try {
+            var formatted = prettier.format(code, {
+                parser: "babel",
+                plugins: [prettierPlugins.babel],
+            });
+            editorInstance.setValue(formatted, -1);
+        } catch (err) {
+            //alert("Erro ao formatar: " + err.message);
+        }
+    }
+
+}
+
+function getLocalSource(source) {
+    var localsource = []
+    localsource = eval(source)
+    return localsource
+}
 
 
 
-function generateMDashReportDesigner() {
+
+function handleShowConfigContainer(data) {
+
+    var idValue = data.idValue || "";
+    var localsource = data.localsource || "";
+    var idField = data.idField || "";
+    var componente = data.componente || "";
+
+    var localSourceRes = getLocalSource(localsource);
+
+    var mreportConfigItem = localSourceRes.find(function (obj) {
+        return obj[idField] == idValue;
+    });
+
+
+    var objectsUIFormConfig = [new UIObjectFormConfig({})]
+    if (mreportConfigItem) {
+
+        objectsUIFormConfig = mreportConfigItem.objectsUIFormConfig;
+
+        var sufixoForm = localsource;
+        var containerId = "Container" + localsource;
+
+        var sourceData = {
+            sourceTable: localsource,
+            sourceKey: localsource
+        }
+
+        // console.log("sourceData", sourceData)
+        var containers = [];
+
+        objectsUIFormConfig.forEach(function (obj) {
+
+            var isDiv = obj.contentType === "div";
+            var customData = obj.customData + "  @change='handleChangeComponent'  v-model='mreportConfigItem." + obj.campo + "'";
+            if (isDiv) {
+                //console.log("Div detected for campo: " + obj.campo);
+                customData += " v-on:keyup='changeDivContent(\"" + obj.campo + "\")'";
+            }
+
+            containers.push({
+                colSize: obj.colSize,
+                style: "margin-bottom:0.5em; " + (obj.tipo == "checkbox" ? "display:flex;flex-direction:column" : ""),
+                content: {
+                    contentType: obj.contentType,
+                    type: obj.tipo,
+                    id: obj.campo,
+                    classes: obj.classes + " mreportconfig-item-input",
+                    customData: customData,
+                    style: obj.style,
+                    selectCustomData: obj.customData + " v-model='mreportConfigItem." + obj.campo + "'",
+                    fieldToOption: obj.fieldToOption,
+                    fieldToValue: obj.fieldToValue,
+                    rows: obj.rows || 10,
+                    cols: obj.cols || 10,
+                    label: obj.titulo,
+                    selectData: obj.selectValues,
+                    value: mreportConfigItem[obj.campo],
+                    event: "",
+                    placeholder: "",
+
+                }
+            })
+
+
+        })
+
+
+        $("#modalMReportConfigItem").remove()
+        var containerData = {
+            containerId: containerId,
+            spinnerId: "overlay" + sufixoForm,
+            hasSpinner: false,
+            customData: "",
+            sourceData: sourceData,
+            items: containers
+        }
+        var formContainerResult = GenerateCustomFormContainer(containerData);
+
+        var modalBodyHtml = ""
+        modalBodyHtml += formContainerResult;
+
+        var modalMReportConfigItem = {
+            title: "Configuração ",
+            id: "modalMReportConfigItem",
+            customData: "",
+            otherclassess: "",
+            body: modalBodyHtml,
+            footerContent: "",
+        };
+        var modalHTML = generateModalHTML(modalMReportConfigItem);
+
+        $("#maincontent").append(modalHTML);
+
+        $("#modalMReportConfigItem").modal("show");
+        $("#modalMReportConfigItem .modal-dialog").css("width", "90%")
+        PetiteVue.createApp({
+            mreportConfigItem: mreportConfigItem,
+            localsource: localsource,
+            handleChangeComponent: function () {
+
+                //realTimeComponentSync(this.mreportConfigItem, this.mreportConfigItem.table, this.mreportConfigItem.idfield);
+            },
+            changeDivContent: function (e) {
+                var editor = ace.edit(e);
+                this.mreportConfigItem[e] = editor.getValue();
+                //realTimeComponentSync(this.mreportConfigItem, this.mreportConfigItem.table, this.mreportConfigItem.idfield);
+
+            }
+        }).mount('#maincontent');
+
+        handleCodeEditor();
+    }
+
+}
+
+
+
+
+function generatemreportReportDesigner() {
     var reportConfigHtml = "";
     reportConfigHtml += "<div id='reportDesignerContainer'>";
     reportConfigHtml += "    <div class='container-fluid mt-4'>";
@@ -431,27 +957,18 @@ function generateMDashReportDesigner() {
     reportConfigHtml += "                        </button>";
     reportConfigHtml += "                        <div class='filter-item' v-for='(filter, index) in filters' :key='index'>";
     reportConfigHtml += "                            <div class='d-flex justify-content-between align-items-center mb-2'>";
-    reportConfigHtml += "                                <span class='fw-bold'>{{ filter.name || 'Novo Filtro' }}</span>";
-    reportConfigHtml += "                                <button type='button' class='btn btn-sm btn-outline-danger' @click='removeFilter(index)'>";
-    reportConfigHtml += "                                    <i class='fas fa-times'></i>";
+    reportConfigHtml += "                                <span class='fw-bold'>{{ filter.descricao || 'Novo Filtro' }}</span>";
+    reportConfigHtml += "                                <button type='button' class='btn btn-sm btn-outline-danger' @click='openConfigReportElement(filter,\"Filtro\")'>";
+
+    reportConfigHtml += "                                    <span class='glyphicon glyphicon-cog'></span>";
     reportConfigHtml += "                                </button>";
-    reportConfigHtml += "                            </div>";
-    reportConfigHtml += "                            <div class='mb-2'>";
-    reportConfigHtml += "                                <label class='m-report-form-label'>Tipo</label>";
-    reportConfigHtml += "                                <select class='form-select form-select-sm' v-model='filter.tipo'>";
-    reportConfigHtml += "                                    <option value='text'>Texto</option>";
-    reportConfigHtml += "                                    <option value='number'>Numérico</option>";
-    reportConfigHtml += "                                    <option value='checkbox'>Checkbox</option>";
-    reportConfigHtml += "                                    <option value='list'>Lista</option>";
-    reportConfigHtml += "                                </select>";
+    reportConfigHtml += "                                <button type='button' class='btn btn-sm btn-outline-danger' @click='removeFilter(index)'>";
+    reportConfigHtml += "                                    <span class='glyphicon glyphicon glyphicon-trash' ></span>";
+    reportConfigHtml += "                                </button>";
     reportConfigHtml += "                            </div>";
     reportConfigHtml += "                            <div class='mb-2'>";
     reportConfigHtml += "                                <label class='m-report-form-label'>Ordem</label>";
     reportConfigHtml += "                                <input type='number' class='form-control form-control-sm' v-model='filter.ordem'>";
-    reportConfigHtml += "                            </div>";
-    reportConfigHtml += "                            <div class='mb-2'>";
-    reportConfigHtml += "                                <label class='m-report-form-label'>Tamanho (1-12)</label>";
-    reportConfigHtml += "                                <input type='number' min='1' max='12' class='form-control form-control-sm' v-model='filter.tamanho'>";
     reportConfigHtml += "                            </div>";
     reportConfigHtml += "                        </div>";
     reportConfigHtml += "                    </div>";
@@ -637,6 +1154,23 @@ function generateMDashReportDesigner() {
 
 
 
+function UIObjectFormConfig(data) {
+
+    this.campo = data.campo || "";
+    this.tipo = data.tipo || "";
+    this.titulo = data.titulo || "";
+    this.classes = data.classes || "";
+    this.customData = data.customData || "";
+    this.style = data.style || "";
+    this.selectValues = data.selectValues || [];
+    this.colSize = data.colSize || "4";
+    this.fieldToOption = data.fieldToOption || "";
+    this.fieldToValue = data.fieldToValue || "";
+    this.contentType = data.contentType || "input";
+
+}
+
+
 
 
 function MReportConfig(data) {
@@ -698,7 +1232,7 @@ function MReportObject(data) {
     this.icon = data.icon || 'fas fa-question';
     this.content = data.content || '';
     this.selected = data.selected || false;
-   //this.resizing = data.resizing || false;
+    //this.resizing = data.resizing || false;
 
 
     this.dataSource = data.dataSource || null;
@@ -710,26 +1244,9 @@ function MReportObject(data) {
     this.queryConfig = {};
 
     // Parse dos JSONs se forem strings
-    if (typeof self.configjson === 'string') {
-        try {
-            self.config = JSON.parse(self.configjson);
-        } catch (e) {
-            self.config = {};
-        }
+    this.config = forceJSONParse(this.configjson);
+    this.queryConfig = forceJSONParse(this.queryconfigjson);
 
-    } else {
-        self.config = self.configjson || {};
-    }
-
-    if (typeof self.queryconfigjson === 'string') {
-        try {
-            self.queryConfig = JSON.parse(self.queryconfigjson);
-        } catch (e) {
-            self.queryConfig = {};
-        }
-    } else {
-        self.queryConfig = self.queryconfigjson || {};
-    }
 }
 
 
@@ -738,10 +1255,17 @@ function MReportObject(data) {
 function MReportFilter(data) {
 
     var self = this;
+
+    var maxOrdem = 0;
+    if (Array.isArray(GMReportFilters) && GMReportFilters.length > 0) {
+        maxOrdem = GMReportFilters.reduce(function (max, item) {
+            return Math.max(max, item.ordem || 0);
+        }, 0);
+    }
     this.mreportfilterstamp = data.mreportfilterstamp || generateUUID();
     this.mreportstamp = data.mreportstamp || '';
     this.codigo = data.codigo || '';
-    this.descricao = data.descricao || '';
+    this.descricao = data.descricao || 'Novo Filtro '+(data.ordem || (maxOrdem + 1));
     this.tipo = data.tipo || 'text'; // text, number, checkbox, list, etc.
     this.campooption = data.campooption || '';
     this.eventochange = data.eventochange || false; // BIT -> boolean
@@ -751,9 +1275,66 @@ function MReportFilter(data) {
     this.expressaolistagem = data.expressaolistagem || '';
     this.expressaojslistagem = data.expressaojslistagem || '';
     this.valordefeito = data.valordefeito || '';
-    this.ordem = data.ordem || 0;
+    this.ordem = data.ordem || (maxOrdem + 1);
+
+
+
+    this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+    this.localsource = data.localsource || "";
+    this.idfield = data.idfield || "mreportfilterstamp";
+    this.table = "MReportFilter";
+
 
 }
+
+
+MReportFilter.prototype.setUIFormConfig = function () {
+
+    var UIFormConfig = getmreportFilterUIObjectFormConfigAndSourceValues();
+    this.objectsUIFormConfig = UIFormConfig.objectsUIFormConfig;
+    this.localsource = UIFormConfig.localsource;
+    this.idfield = UIFormConfig.idField;
+
+}
+
+function getmreportFilterUIObjectFormConfigAndSourceValues() {
+    var objectsUIFormConfig = [
+        new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "descricao", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "ordem", tipo: "digit", titulo: "Ordem", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({
+            colSize: 12,
+            campo: "tipo",
+            tipo: "select",
+            titulo: "Tipo",
+            fieldToOption: "option",
+            contentType: "select",
+            fieldToValue: "value",
+            classes: "form-control input-source-form  input-sm ",
+            selectValues: [
+                { option: "Texto", value: "text" },
+                { option: "Radio", value: "radio" },
+                { option: "Lógico", value: "logic" },
+                { option: "Data", value: "date" },
+                { option: "Número", value: "number" },
+                { option: "Lista", value: "list" },
+                { option: "Multipla escolha", value: "multiselect" }
+            ]
+        }),
+
+        new UIObjectFormConfig({ colSize: 6, campo: "campooption", tipo: "text", titulo: "Campo de Opção", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "campovalor", tipo: "text", titulo: "Campo de Valor", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaojslistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem JS", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "valordefeito", tipo: "div", cols: 90, rows: 90, titulo: "Valor por Defeito", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "eventochange", tipo: "checkbox", titulo: "Tem evento change", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaochange", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Change", classes: "input-source-form m-editor", contentType: "div" }),
+    ];
+
+    return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMReportFilters", idField: "mreportfilterstamp" };
+}
+
 
 
 
@@ -769,350 +1350,37 @@ function MReportFonte(data) {
     this.tipo = data.tipo || 'query'; // query, api, json, csv, etc.
     this.expressaolistagem = data.expressaolistagem || '';
     this.expressaojslistagem = data.expressaojslistagem || '';
-    this.ordem = data.ordem ||this
-   // thisropriedades adicionais para funcionalidade
+    this.ordem = data.ordem || this;
+    this.schemajson = data.schemajson || '{}';
+
+
+    // propriedades adicionais para funcionalidade
+    this.schema = {};
+    this.schema = forceJSONParse(this.schemajson);
     this.testData = data.testData || [];
-    this.lastExecuted = data.lastExecuted || null;
+    this.lastExecuted = data.lastExecuted || [];
     this.isActive = data.isActive !== undefined ? data.isActive : true;
 }
 
 
-// Aplicação principal
-var App = {
-    // Estado da aplicação
-    components: [
-        { id: 1, name: 'Texto', type: 'text', icon: 'fas fa-font' },
-        { id: 2, name: 'Tabela', type: 'table', icon: 'fas fa-table' },
-        { id: 3, name: 'Imagem', type: 'image', icon: 'fas fa-image' },
-        { id: 4, name: 'Gráfico', type: 'chart', icon: 'fas fa-chart-bar' },
-        { id: 5, name: 'Cabeçalho', type: 'header', icon: 'fas fa-heading' },
-        { id: 6, name: 'Rodapé', type: 'footer', icon: 'fas fa-ellipsis-h' }
-    ],
-    reportObjects: [],
-    filters: [],
-   dataSources: [
-        new MReportFonte({
-            codigo: 'ds1',
-            descricao: 'Dados de Faturação',
-            name: 'Dados de Faturação',
-            tipo: 'query',
-            expressaolistagem: 'SELECT * FROM faturas',
-            testData: [
-                { nomecliente: 'Cliente A', nocliente: 1001, valor: 1500.50, data: '2023-05-15', activo: true, morada: 'Rua A, 123' },
-                { nomecliente: 'Cliente B', nocliente: 1002, valor: 2300.75, data: '2023-05-16', activo: true, morada: 'Rua B, 456' },
-                { nomecliente: 'Cliente C', nocliente: 1003, valor: 800.25, data: '2023-05-17', activo: false, morada: 'Rua C, 789' }
-            ]
-        })
-    ],
-    selectedObject: null,
-    dragging: false,
-    dragObject: null,
-    dragOffset: { x: 0, y: 0 },
-    resizing: false,
-    resizeObject: null,
-    resizeStart: { x: 0, y: 0, width: 0, height: 0 },
-    getSectionObjects: function (section) {
-        var self = this;
-        return self.reportObjects.filter(function (obj) {
-            return obj.section === section;
-        });
-    },
-    startDrag: function (component, event) {
-        var self = this;
+function forceJSONParse(data) {
 
-        self.dragging = true;
-        self.dragObject = new MReportObject({
-            tipo: component.type,
-            name: component.name,
-            icon: component.icon,
-            section: 'content' // Define uma secção padrão
-        });
-
-        // Calcular posição inicial baseada na posição do mouse
-        // Usa a secção de conteúdo como referência padrão
-        var contentSection = document.querySelector('.report-content .section-content');
-        if (contentSection) {
-            var rect = contentSection.getBoundingClientRect();
-
-            // Posicionar o objeto onde o mouse está, centralizando o objeto no cursor
-            self.dragObject.x = event.clientX - rect.left - (self.dragObject.width / 2);
-            self.dragObject.y = event.clientY - rect.top - (self.dragObject.height / 2);
-
-            // Definir o offset como metade do tamanho do objeto para manter centrado
-            self.dragOffset.x = self.dragObject.width / 2;
-            self.dragOffset.y = self.dragObject.height / 2;
+    if (typeof data === 'string') {
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+            return {};
         }
-
-        // event.preventDefault();
-    },
-
-    handleDrag: function (event) {
-        var self = this;
-        if (!self.dragging || !self.dragObject) return;
-
-        // Encontrar a secção atual baseada na posição do mouse
-        var sections = document.querySelectorAll('.section-content');
-        var targetSection = null;
-
-        for (var i = 0; i < sections.length; i++) {
-            var rect = sections[i].getBoundingClientRect();
-            if (event.clientX >= rect.left && event.clientX <= rect.right &&
-                event.clientY >= rect.top && event.clientY <= rect.bottom) {
-                targetSection = sections[i];
-                break;
-            }
-        }
-
-        // Se não encontrou nenhuma secção, usa a de conteúdo como padrão
-        if (!targetSection) {
-            targetSection = document.querySelector('.report-content .section-content');
-        }
-
-        if (targetSection) {
-            var rect = targetSection.getBoundingClientRect();
-
-            // Atualizar posição do objeto mantendo-o centrado no cursor
-            self.dragObject.x = event.clientX - rect.left - self.dragOffset.x;
-            self.dragObject.y = event.clientY - rect.top - self.dragOffset.y;
-
-            // Limitar à área da secção
-            self.dragObject.x = Math.max(0, Math.min(self.dragObject.x, rect.width - self.dragObject.width));
-            self.dragObject.y = Math.max(0, Math.min(self.dragObject.y, rect.height - self.dragObject.height));
-
-            // Atualizar a secção do objeto baseada na secção atual
-            var sectionElement = targetSection.closest('.report-section');
-            if (sectionElement) {
-                console.log("section element", self.dragObject.section, "dataset", sectionElement.dataset.section)
-                self.dragObject.section = sectionElement.dataset.section;
-
-            }
-        }
-
-        event.preventDefault();
-    },
-
-    drop: function (event, section) {
-        var self = this;
-     
-
-        if (!self.dragging || !self.dragObject) return;
-
-        // Determinar a secção de destino
-        var targetSection = section;
-        if (!targetSection) {
-            // Se não foi especificada, tenta determinar pela posição
-            var sectionElement = event.target.closest('.report-section');
-            if (sectionElement) {
-                targetSection = sectionElement.dataset.section;
-            } else {
-                targetSection = 'content'; // Padrão
-            }
-        }
-
-        // Encontrar o elemento da secção
-        var sectionContent = document.querySelector('.report-' + targetSection + ' .section-content');
-        if (!sectionContent) return;
-
-        var rect = sectionContent.getBoundingClientRect();
-
-        // Posição final onde o objeto será colocado (relativa à secção)
-        self.dragObject.x = event.clientX - rect.left - (self.dragObject.width / 2);
-        self.dragObject.y = event.clientY - rect.top - (self.dragObject.height / 2);
-
-        // Limitar à área da secção
-        self.dragObject.x = Math.max(0, Math.min(self.dragObject.x, rect.width - self.dragObject.width));
-        self.dragObject.y = Math.max(0, Math.min(self.dragObject.y, rect.height - self.dragObject.height));
-
-        // Definir a secção do objeto
-        self.dragObject.section = targetSection;
-
-        // Adicionar objeto ao canvas
-        self.reportObjects.push(self.dragObject);
-        self.selectObject(self.dragObject);
-
-        // Limpar estado de drag
-        self.dragging = false;
-        self.dragObject = null;
-
-        // Configurar interact para o novo objeto
-        this.$nextTick(function () {
-            interact('.report-object').unset();
-            interact('.report-object')
-                .draggable({
-                    inertia: true,
-                    modifiers: [
-                        interact.modifiers.restrictRect({
-                            restriction: 'parent',
-                            endOnly: true
-                        })
-                    ],
-                    autoScroll: true,
-                    listeners: {
-                        start: function (event) {
-                            var id = event.target.getAttribute('data-mreportobjectstamp');
-                            var obj = self.reportObjects.find(function (o) {
-                                return o.mreportobjectstamp == id;
-                            });
-                            if (obj) {
-                                self.selectObject(obj);
-                            }
-                        },
-                        // No método drop, dentro do $nextTick, atualize o move listener do interact:
-                        move: function (event) {
-                            var target = event.target;
-                            var id = target.getAttribute('data-mreportobjectstamp');
-                            var obj = self.reportObjects.find(function (o) {
-                                return o.mreportobjectstamp == id;
-                            });
-
-                            if (obj) {
-                                // Atualiza a posição no modelo
-                                obj.x += event.dx;
-                                obj.y += event.dy;
-
-                                // Detetar se mudou de secção
-                                var sectionContent = target.closest('.section-content');
-                                if (sectionContent) {
-                                    var sectionElement = sectionContent.closest('.report-section')
-                                  
-                                    var sectionElement = sectionContent.closest('.report-section');
-                                    if (sectionElement && sectionElement.dataset.section !== obj.section) {
-                                        // Atualiza a secção se mudou para outra área
-                                        obj.section = sectionElement.dataset.section;
-                                    }
-                                }
-
-                                // Atualiza o transform para movimento suave
-                                target.style.transform = "translate3d(" + obj.x + "px, " + obj.y + "px, 0)";
-                            }
-                        }
-                    }
-                })
-                .resizable({
-                    edges: { left: true, right: true, bottom: true, top: true },
-                    inertia: true,
-                    modifiers: [
-                        /* interact.modifiers.restrictEdges({
-                             outer: 'parent'
-                         }),*/
-                        interact.modifiers.restrictSize({
-                            min: { width: 50, height: 30 }
-                        })
-                    ],
-                    listeners: {
-                        move: function (event) {
-                            var target = event.target;
-                            var id = target.getAttribute('data-mreportobjectstamp');
-                            var obj = self.reportObjects.find(function (o) {
-                                return o.mreportobjectstamp == id;
-                            });
-
-                            if (obj) {
-                                // Atualiza tamanho no modelo
-                                obj.width = event.rect.width;
-                                obj.height = event.rect.height;
-
-                                // Atualiza posição se redimensionar da esquerda ou topo
-                                obj.x += event.deltaRect.left;
-                                obj.y += event.deltaRect.top;
-
-                                // Atualiza o estilo
-                                target.style.width = obj.width + 'px';
-                                target.style.height = obj.height + 'px';
-                                target.style.transform = "translate3d(" + obj.x + "px, " + obj.y + "px, 0)";
-                            }
-                        }
-                    }
-                });
-        });
-
-        event.preventDefault();
-    },
-    stopDrag: function (event) {
-        var self = this;
-        if (!self.dragging) return;
-
-        // Adicionar objeto ao canvas
-        if (self.dragObject) {
-            self.reportObjects.push(self.dragObject);
-            self.selectObject(self.dragObject);
-        }
-
-        self.dragging = false;
-        self.dragObject = null;
-
-
-
-
-
-
-
-        event.preventDefault();
-    },
-
-    startResize: function (obj, event) {
-        var self = this;
-        self.resizing = true;
-        self.resizeObject = obj;
-        self.resizeStart.x = event.clientX;
-        self.resizeStart.y = event.clientY;
-        self.resizeStart.width = obj.width;
-        self.resizeStart.height = obj.height;
-
-        event.preventDefault();
-        event.stopPropagation();
-    },
-
-    selectObject: function (obj) {
-        var self = this;
-
-        // Desselecionar todos os objetos
-        self.reportObjects.forEach(function (o) {
-            o.selected = false;
-        });
-
-        // Selecionar o objeto clicado
-        obj.selected = true;
-        self.selectedObject = obj;
-    },
-
-    deselectAll: function () {
-        var self = this;
-        self.reportObjects.forEach(function (obj) {
-            obj.selected = false;
-        });
-        self.selectedObject = null;
-    },
-
-    removeObject: function (obj) {
-        var self = this;
-        var index = self.reportObjects.indexOf(obj);
-        if (index !== -1) {
-            self.reportObjects.splice(index, 1);
-            self.selectedObject = null;
-        }
-    },
-
-    addFilter: function () {
-        var self = this;
-        self.filters.push(new MReportFilter({}));
-    },
-
-    removeFilter: function (index) {
-        var self = this;
-        self.filters.splice(index, 1);
-    },
-
-    addDataSource: function () {
-        var self = this;
-        self.dataSources.push(new MReportFonte({}));
-    },
-
-    removeDataSource: function (index) {
-        var self = this;
-        self.dataSources.splice(index, 1);
     }
-};
+    else {
+        return data || {};
+    }
+
+}
+
+
+
+
 
 
 
