@@ -85,6 +85,7 @@ CREATE TABLE MReportFilter(
 );
 
 CREATE TABLE MReportFonte(
+    
     mreportfonstestamp VARCHAR(25) PRIMARY KEY,
     mreportstamp VARCHAR(25) DEFAULT '',
     codigo VARCHAR(250) DEFAULT '',
@@ -92,6 +93,8 @@ CREATE TABLE MReportFonte(
     tipo VARCHAR(100) DEFAULT '',
     expressaolistagem VARCHAR(250) DEFAULT '',
     expressaojslistagem TEXT DEFAULT '',
+    schemajson TEXT DEFAULT '',
+    lastResultscached TEXT DEFAULT '',
     ordem INT DEFAULT 0
 );
 

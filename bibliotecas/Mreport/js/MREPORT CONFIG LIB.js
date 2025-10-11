@@ -382,7 +382,7 @@ function outrasFuncoes() {
 
 
     // Aplicação principal
-    var App = {
+    var App = PetiteVue.reactive({
         // Estado da aplicação
         components: [
             { id: 1, name: 'Texto', type: 'text', icon: 'fas fa-font' },
@@ -692,6 +692,12 @@ function outrasFuncoes() {
             self.filters.push(newFilter);
         },
 
+        schemaToBeDefined: function (fonte) {
+            var self = this;
+
+            return fonte.schema.length == 0;
+        },
+
         openConfigReportElement: function (obj, componente) {
             var self = this;
 
@@ -704,7 +710,7 @@ function outrasFuncoes() {
                 });
             });
 
-           
+
         },
 
         removeFilter: function (index) {
@@ -714,14 +720,17 @@ function outrasFuncoes() {
 
         addDataSource: function () {
             var self = this;
-            self.dataSources.push(new MReportFonte({}));
+            var newSource = new MReportFonte({});
+            newSource.setUIFormConfig();
+            self.dataSources.push(newSource);
         },
 
         removeDataSource: function (index) {
             var self = this;
             self.dataSources.splice(index, 1);
         }
-    };
+    });
+    window.reportDesignerState = App;
 
     // Inicializar petite-vue
     PetiteVue.createApp(App).mount('#reportDesignerContainer');
@@ -818,6 +827,73 @@ function getLocalSource(source) {
 }
 
 
+function extractFiltersFromExpression(sqlExpression) {
+    if (!sqlExpression) return [];
+
+    var regexPattern = /\{([^}]+)\}/g; // Padrão para capturar texto dentro de {}
+    var matches = [];
+    var match;
+
+    // Extrai todos os matches usando regex
+    while ((match = regexPattern.exec(sqlExpression)) !== null) {
+        var filterName = match[1].trim(); // Remove espaços em branco
+
+        // Verifica se o filtro já não existe no array para evitar duplicatas
+        if (matches.indexOf(filterName) === -1) {
+            matches.push(filterName);
+        }
+    }
+
+    return matches;
+}
+
+function generateDummyDataForSchema(columns, numRecords) {
+    if (!numRecords) numRecords = 3;
+
+    var randomString = function (len) {
+        if (!len) len = 5;
+        var text = "";
+        for (var i = 0; i < len; i++) {
+            text += String.fromCharCode(97 + Math.floor(Math.random() * 26));
+        }
+        return text;
+    };
+
+    var randomInt = function (min, max) {
+        if (typeof min === "undefined") min = 0;
+        if (typeof max === "undefined") max = 200;
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+
+    var randomDate = function () {
+        var start = new Date(2000, 0, 1).getTime();
+        var end = new Date(2025, 11, 31).getTime();
+        var date = new Date(start + Math.random() * (end - start));
+        return date.toISOString().split("T")[0] + " " + date.toTimeString().split(" ")[0];
+    };
+
+    var getValueByType = function (type) {
+        var t = type.toLowerCase();
+        if (t.indexOf("char") !== -1) return randomString(randomInt(3, 10));
+        if (t.indexOf("numeric") !== -1 || t.indexOf("int") !== -1) return randomInt();
+        if (t.indexOf("bit") !== -1) return true;
+        if (t.indexOf("date") !== -1) return randomDate();
+        if (t.indexOf("text") !== -1) return "lorem ipsum " + randomString(10);
+        return null;
+    };
+
+    var records = [];
+    for (var i = 0; i < numRecords; i++) {
+        var record = {};
+        for (var j = 0; j < columns.length; j++) {
+            var col = columns[j];
+            record[col.name] = getValueByType(col.system_type_name);
+        }
+        records.push(record);
+    }
+
+    return records;
+}
 
 
 function handleShowConfigContainer(data) {
@@ -918,11 +994,188 @@ function handleShowConfigContainer(data) {
         PetiteVue.createApp({
             mreportConfigItem: mreportConfigItem,
             localsource: localsource,
+            filterValues: {},
+            mainQueryHasError: false,
+            queryJsonResult: "",
+            executarExpressaoDbListagem: function () {
+                var self = this;
+                console.log("executarExpressaoDbListagem", self.mreportConfigItem.expressaolistagem, self.filterValues)
+                $.ajax({
+                    type: "POST",
+                    url: "../programs/gensel.aspx?cscript=executeexpressaolistagemdb",
+
+                    data: {
+                        '__EVENTARGUMENT': JSON.stringify([{ expressaodblistagem: self.mreportConfigItem.expressaolistagem, filters: self.filterValues }]),
+                    },
+                    success: function (response) {
+
+                        var errorMessage = "ao trazer resultados da listagem . consulte no console do browser"
+                        try {
+
+                            //console.log(response)
+                            if (response.cod != "0000") {
+
+                                console.log("Erro " + errorMessage, response)
+                                alertify.error("Erro " + errorMessage, 9000);
+                                self.mainQueryError = JSON.stringify(response, null, 2);;
+                                self.mainQueryHasError = true;
+                                return false
+                            }
+                            var queryResult = response.data.length > 0 ? response.data : generateDummyDataForSchema(response.schema, 3);
+
+                            var lastResults = queryResult.slice(0, 20);
+
+                            self.mreportConfigItem.schema = response.schema;
+                            self.mreportConfigItem.lastResults = lastResults;
+                            self.mreportConfigItem.stringifyJSONFields();
+
+
+                            self.queryJsonResult = JSON.stringify(queryResult).replaceAll("total", "tot");
+                            self.mainQueryHasError = false;
+                            //realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield);
+                            alertify.success("Query executada com sucesso", 5000);
+                        } catch (error) {
+                            console.log("Erro interno " + errorMessage, error)
+                            alertify.error("Erro " + errorMessage, 9000);
+                            self.mainQueryError = "Erro interno " + errorMessage;
+                            self.mainQueryHasError = true;
+                            //alertify.error("Erro interno " + errorMessage, 10000)
+                        }
+
+                        //  javascript:__doPostBack('','')
+                    }
+                })
+
+            },
+            abrirQueryJsonResult: function () {
+
+                $("#queryJsonResultModal").remove()
+                var formattedJson = JSON.stringify(JSON.parse(this.queryJsonResult), null, 2);
+                var modalHtmlBody = "<pre id='queryJsonResultModalBody' style='background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto;'>" + formattedJson + "</pre>"
+                var modalData = {
+                    title: "Resultado JSON",
+                    id: "queryJsonResultModal",
+                    customData: "",
+                    otherclassess: "",
+                    body: modalHtmlBody,
+                    footerContent: ""
+                };
+
+                var modalHTML = generateModalHTML(modalData);
+                $("#mainPage").append(modalHTML);
+                $("#queryJsonResultModal").modal("show");
+            },
+            abrirErroResult: function () {
+
+                $("#queryErrorResultModal").remove();
+                var formattedJson = this.mainQueryError
+                var modalHtmlBody = "<pre id='queryErrorResultModalBody' style='background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto;'>" + formattedJson + "</pre>"
+                var modalData = {
+                    title: "Erro na query",
+                    id: "queryErrorResultModal",
+                    customData: "",
+                    otherclassess: "",
+                    body: modalHtmlBody,
+                    footerContent: ""
+                };
+                var modalHTML = generateModalHTML(modalData);
+                $("#mainPage").append(modalHTML);
+                $("#queryErrorResultModal").modal("show");
+            },
+            getFilterByExpressaoDb: function () {
+                var expressaoDb = this.mreportConfigItem.expressaolistagem;
+                if (!expressaoDb) return [];
+
+                var filterCodes = extractFiltersFromExpression(expressaoDb);
+                var matchedFilters = [];
+
+                var lastUsedFiltersLocaStorage = localStorage.getItem("lastUsedFilters");
+                lastUserFilters = {}
+                try {
+
+                    if (lastUsedFiltersLocaStorage) {
+
+                        lastUserFilters = JSON.parse(lastUsedFiltersLocaStorage);
+                    }
+                } catch (error) {
+
+                }
+
+                this.filterValues = lastUserFilters||{}
+
+
+                filterCodes.forEach(function (filterCode) {
+                    var filter = GMReportFilters.find(function (f) {
+                        return f.codigo === filterCode;
+                    });
+
+                    if (filter) {
+                        matchedFilters.push(filter);
+                    }
+                });
+                return matchedFilters;
+            },
+            updateFilter: function (filter, event) {
+
+
+                localStorage.setItem("lastUsedFilters", JSON.stringify(this.filterValues));
+            },
+
+            changeExpressaoDbListagemAndHandleFilters: function () {
+                var self = this;
+                var value = $("#expressaolistagem").text();
+
+                var filterCodes = extractFiltersFromExpression(value);
+
+                var lastUsedFiltersLocaStorage = localStorage.getItem("lastUsedFilters");
+                lastUserFilters = {}
+                try {
+
+                    if (lastUsedFiltersLocaStorage) {
+
+                        lastUserFilters = JSON.parse(lastUsedFiltersLocaStorage);
+                    }
+                } catch (error) {
+
+                }
+
+
+                var matchedFilters = [];
+                filterCodes.forEach(function (filterCode) {
+                    var filter = GMReportFilters.find(function (f) {
+                        return f.codigo === filterCode;
+                    });
+
+                    if (filter) {
+                        self.filterValues[filter.codigo] = lastUserFilters[filter.codigo] || "";
+                    }
+                });
+
+                var editor = ace.edit("expressaolistagem");
+
+
+                self.mreportConfigItem.expressaolistagem = editor.getValue();
+
+
+            },
             handleChangeComponent: function () {
 
                 //realTimeComponentSync(this.mreportConfigItem, this.mreportConfigItem.table, this.mreportConfigItem.idfield);
             },
             changeDivContent: function (e) {
+
+                var divElement = $("#" + e);
+
+                if (divElement.length === 0) {
+                    console.warn('Elemento não encontrado:', e);
+                    return;
+                }
+                var hasFormElements = divElement.find('button, input, textarea, select').length > 0;
+
+                if (hasFormElements) {
+
+                    return;
+                }
                 var editor = ace.edit(e);
                 this.mreportConfigItem[e] = editor.getValue();
                 //realTimeComponentSync(this.mreportConfigItem, this.mreportConfigItem.table, this.mreportConfigItem.idfield);
@@ -979,22 +1232,19 @@ function generatemreportReportDesigner() {
     reportConfigHtml += "                        </button>";
     reportConfigHtml += "                        <div class='filter-item' v-for='(source, index) in dataSources' :key='index'>";
     reportConfigHtml += "                            <div class='d-flex justify-content-between align-items-center mb-2'>";
-    reportConfigHtml += "                                <span class='fw-bold'>{{ source.name || 'Nova Fonte' }}</span>";
+    reportConfigHtml += "                                <span class='fw-bold'>{{ source.descricao || 'Nova Fonte' }}</span>";
+    reportConfigHtml += "                                <button type='button' class='btn btn-sm btn-outline-danger' @click='openConfigReportElement(source,\"Fonte\")'>";
+
+    reportConfigHtml += "                                    <span class='glyphicon glyphicon-cog'></span>";
+    reportConfigHtml += "                                </button>"
     reportConfigHtml += "                                <button type='button' class='btn btn-sm btn-outline-danger' @click='removeDataSource(index)'>";
     reportConfigHtml += "                                    <i class='fas fa-times'></i>";
     reportConfigHtml += "                                </button>";
     reportConfigHtml += "                            </div>";
-    reportConfigHtml += "                            <div class='mb-2'>";
-    reportConfigHtml += "                                <label class='m-report-form-label'>Tipo</label>";
-    reportConfigHtml += "                                <select class='form-select form-select-sm' v-model='source.tipo'>";
-    reportConfigHtml += "                                    <option value='query'>Query SQL</option>";
-    reportConfigHtml += "                                    <option value='api'>API REST</option>";
-    reportConfigHtml += "                                </select>";
+    reportConfigHtml += "                            <div v-if='source.schema.length==0'  class='mb-2'>";
+    reportConfigHtml += "                     <div class='alert alert-info' role='alert' style='margin-top:1em;'>Atenção!Para usar esta fonte de dados deve definir o schema. </div> ";
     reportConfigHtml += "                            </div>";
-    reportConfigHtml += "                            <div class='mb-2'>";
-    reportConfigHtml += "                                <label class='m-report-form-label'>Query/URL</label>";
-    reportConfigHtml += "                                <textarea class='form-control form-control-sm' rows='3' v-model='source.expressaolistagem'></textarea>";
-    reportConfigHtml += "                            </div>";
+
     reportConfigHtml += "                        </div>";
     reportConfigHtml += "                    </div>";
     reportConfigHtml += "                </div>";
@@ -1244,8 +1494,8 @@ function MReportObject(data) {
     this.queryConfig = {};
 
     // Parse dos JSONs se forem strings
-    this.config = forceJSONParse(this.configjson);
-    this.queryConfig = forceJSONParse(this.queryconfigjson);
+    this.config = forceJSONParse(this.configjson, {});
+    this.queryConfig = forceJSONParse(this.queryconfigjson, {});
 
 }
 
@@ -1264,8 +1514,8 @@ function MReportFilter(data) {
     }
     this.mreportfilterstamp = data.mreportfilterstamp || generateUUID();
     this.mreportstamp = data.mreportstamp || '';
-    this.codigo = data.codigo || '';
-    this.descricao = data.descricao || 'Novo Filtro '+(data.ordem || (maxOrdem + 1));
+    this.codigo = data.codigo || 'Filtro' + generateUUID();
+    this.descricao = data.descricao || 'Novo Filtro ' + (data.ordem || (maxOrdem + 1));
     this.tipo = data.tipo || 'text'; // text, number, checkbox, list, etc.
     this.campooption = data.campooption || '';
     this.eventochange = data.eventochange || false; // BIT -> boolean
@@ -1337,43 +1587,190 @@ function getmreportFilterUIObjectFormConfigAndSourceValues() {
 
 
 
+function generateFilterVariablesParaFonteHTML() {
+    var filterVariablesHTML = "";
+
+    filterVariablesHTML += "<div style='display:flex;flex-direction:row;flex-wrap:wrap;' v-for=\"filter in getFilterByExpressaoDb()\" :key=\"filter.mreportfilterstamp\" class=\"\">";
+    filterVariablesHTML += "    <label class=\"m-report-filter-item\" :for=\"filter.codigo\">{{ filter.descricao }}</label>";
+    filterVariablesHTML += "    <!-- text -->";
+    filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-if=\"filter.tipo === 'text'\" type=\"text\"";
+    filterVariablesHTML += "        class=\"form-control input-sm input-mreport-filter\" :id=\"filter.codigo\"";
+    filterVariablesHTML += "        v-model=\"filterValues[filter.codigo]\" />";
+    filterVariablesHTML += "";
+    filterVariablesHTML += "    <!-- digit -->";
+    filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else-if=\"filter.tipo === 'digit'\" type=\"text\"";
+    filterVariablesHTML += "        class=\"form-control input-sm input-mreport-filter\" :id=\"filter.codigo\"";
+    filterVariablesHTML += "        v-model=\"filterValues[filter.codigo]\" />";
+    filterVariablesHTML += "";
+    filterVariablesHTML += "    <!-- logic -->";
+    filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else-if=\"filter.tipo === 'logic'\" type=\"checkbox\"";
+    filterVariablesHTML += "        class=\"form-check-input\" :id=\"filter.codigo\" v-model=\"filterValues[filter.codigo]\" />";
+    filterVariablesHTML += "";
+    filterVariablesHTML += "    <!-- fallback -->";
+    filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else type=\"text\" class=\"form-control input-sm input-mreport-filter\"";
+    filterVariablesHTML += "        :id=\"filter.codigo\" v-model=\"filterValues[filter.codigo]\" />";
+    filterVariablesHTML += "</div>";
+
+    return filterVariablesHTML;
+}
+
+
+
+function generateQueryButtonOptions() {
+
+    var schemaQueryEditorContainerHtml = "";
+
+    schemaQueryEditorContainerHtml += "<div class='row' style='margin-top: 1em;'>";
+
+    // Botão Executar Expressão DB
+    schemaQueryEditorContainerHtml += "<div class='col-md-1' style='margin-bottom:0.5em;'>";
+    schemaQueryEditorContainerHtml += "<button type='button' id='executarexpressaodblistagem' ";
+    schemaQueryEditorContainerHtml += "class='pull-left btn btn-primary btn-sm' ";
+    schemaQueryEditorContainerHtml += "v-on:click='executarExpressaoDbListagem()' ";
+    schemaQueryEditorContainerHtml += "style='margin-top:0.4em;'>";
+    schemaQueryEditorContainerHtml += "<span class='glyphicon glyphicon-play'></span>";
+    schemaQueryEditorContainerHtml += "</button>";
+    schemaQueryEditorContainerHtml += "</div>";
+
+    // Botão Query JSON Result
+    schemaQueryEditorContainerHtml += "<div class='col-md-1' style='margin-bottom:0.5em;'>";
+    schemaQueryEditorContainerHtml += "<button type='button' id='queryjsonresultbtn' ";
+    schemaQueryEditorContainerHtml += "class='pull-left btn btn-default btn-sm' ";
+    schemaQueryEditorContainerHtml += "v-if='queryJsonResult && mainQueryHasError==false' ";
+    schemaQueryEditorContainerHtml += "v-on:click='abrirQueryJsonResult()' ";
+    schemaQueryEditorContainerHtml += "style='margin-top:0.4em;margin-left:-4em;'>";
+    schemaQueryEditorContainerHtml += "<span class='glyphicon glyphicon-th-list'></span>";
+    schemaQueryEditorContainerHtml += "</button>";
+    schemaQueryEditorContainerHtml += "</div>";
+
+    // Botão Export JSON Result (Error)
+    schemaQueryEditorContainerHtml += "<div class='col-md-1' style='margin-bottom:0.5em;'>";
+    schemaQueryEditorContainerHtml += "<button type='button' id='exportjsonresultbtn' ";
+    schemaQueryEditorContainerHtml += "class='pull-left btn btn-warning btn-sm' ";
+    schemaQueryEditorContainerHtml += "v-if='mainQueryHasError' ";
+    schemaQueryEditorContainerHtml += "v-on:click='abrirErroResult()' ";
+    schemaQueryEditorContainerHtml += "style='margin-top:0.4em;background: #dc3545!important;color:white;margin-left:-8em;'>";
+    schemaQueryEditorContainerHtml += "<span class='glyphicon glyphicon-info-sign'></span>";
+    schemaQueryEditorContainerHtml += "</button>";
+    schemaQueryEditorContainerHtml += "</div>";
+
+    // Fechar linha dos botões
+    schemaQueryEditorContainerHtml += "</div>";
+    return schemaQueryEditorContainerHtml;
+
+}
+
 
 
 function MReportFonte(data) {
     var self = this;
 
+    var maxOrdem = 0;
+    if (Array.isArray(GMReportFontes) && GMReportFontes.length > 0) {
+        maxOrdem = GMReportFontes.reduce(function (max, item) {
+            return Math.max(max, item.ordem || 0);
+        }, 0);
+    }
     // Propriedades baseadas na estrutura da tabela
     this.mreportfonstestamp = data.mreportfonstestamp || generateUUID();
     this.mreportstamp = data.mreportstamp || '';
-    this.codigo = data.codigo || '';
-    this.descricao = data.descricao || '';
+    this.codigo = data.codigo || "Fonte-" + generateUUID();
+    this.descricao = data.descricao || 'Nova Fonte ' + (data.ordem || (maxOrdem + 1));
     this.tipo = data.tipo || 'query'; // query, api, json, csv, etc.
     this.expressaolistagem = data.expressaolistagem || '';
     this.expressaojslistagem = data.expressaojslistagem || '';
-    this.ordem = data.ordem || this;
-    this.schemajson = data.schemajson || '{}';
+    this.ordem = (data.ordem || (maxOrdem + 1));
+    this.schemajson = data.schemajson || '[]';
+    this.lastResultscached = data.lastResultscached || '[]';
 
 
     // propriedades adicionais para funcionalidade
-    this.schema = {};
-    this.schema = forceJSONParse(this.schemajson);
+    this.schema = [];
+    this.lastResults = [];
+
+    this.lastResults = forceJSONParse(this.lastResultscached, []);
+    this.schema = forceJSONParse(this.schemajson, []);
     this.testData = data.testData || [];
     this.lastExecuted = data.lastExecuted || [];
     this.isActive = data.isActive !== undefined ? data.isActive : true;
+
+
+    var schemaQueryEditorContainerHtml = "";
+
+    schemaQueryEditorContainerHtml += generateQueryButtonOptions();
+
+
+    schemaQueryEditorContainerHtml += generateFilterVariablesParaFonteHTML();
+
+
+    this.schemaQueryEditor = schemaQueryEditorContainerHtml;
+
+
+    this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+    this.localsource = data.localsource || "";
+    this.idfield = data.idfield || "mreportfonstestamp";
+    this.table = "MReportFonte";
+}
+
+MReportFonte.prototype.setUIFormConfig = function () {
+
+    var UIFormConfig = getMReportFonteUIObjectFormConfigAndSourceValues();
+    this.objectsUIFormConfig = UIFormConfig.objectsUIFormConfig;
+    this.localsource = UIFormConfig.localsource;
+    this.idfield = UIFormConfig.idField;
+}
+
+function getMReportFonteUIObjectFormConfigAndSourceValues() {
+    var objectsUIFormConfig = [
+        new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "descricao", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "ordem", tipo: "digit", titulo: "Ordem", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({
+            colSize: 12,
+            campo: "tipo",
+            tipo: "select",
+            titulo: "Tipo",
+            fieldToOption: "option",
+            contentType: "select",
+            fieldToValue: "value",
+            classes: "form-control input-source-form  input-sm ",
+            selectValues: [
+                { option: "Query SQL", value: "query" },
+                /*   { option: "API REST", value: "api" },
+                   { option: "JSON", value: "json" },
+                   { option: "CSV", value: "csv" }*/
+            ]
+        }),
+        new UIObjectFormConfig({ customData: " v-on:keyup='changeExpressaoDbListagemAndHandleFilters()'", colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
+
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "schemaQueryEditor", tipo: "div", cols: 90, rows: 90, titulo: "", classes: "input-source-form", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaojslistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem JS", classes: "input-source-form m-editor ", contentType: "div" })
+    ];
+    return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMReportFontes", idField: "mreportfonstestamp" };
 }
 
 
-function forceJSONParse(data) {
+MReportFonte.prototype.stringifyJSONFields = function () {
+    var data = this;
+    data.schemajson = JSON.stringify(data.schema || []);
+    data.lastResultscached = JSON.stringify(data.lastResults || []);
+    return data;
+}
+
+
+
+
+function forceJSONParse(data, defaultValue) {
 
     if (typeof data === 'string') {
         try {
             return JSON.parse(data);
         } catch (e) {
-            return {};
+            return defaultValue;
         }
     }
     else {
-        return data || {};
+        return data || defaultValue;
     }
 
 }

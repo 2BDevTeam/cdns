@@ -2336,7 +2336,7 @@ function registerListenersMdash() {
                     });
 
                     realTimeComponentSync(pasted.componentData, pasted.componentData.table, pasted.componentData.idfield)
-                    GCopiedComponentData=[];
+                    GCopiedComponentData = [];
                 });
 
                 $("#buttonPasteContainerItemObject").hide();
