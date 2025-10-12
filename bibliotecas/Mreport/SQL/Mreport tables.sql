@@ -100,9 +100,10 @@ CREATE TABLE MReportFonte(
 
 
 
-CREATE TABLE MreportObject(
+CREATE TABLE MReportObject(
 
     mreportobjectstamp VARCHAR(25) PRIMARY KEY,
+    mreportstamp VARCHAR(25) DEFAULT '',
     codigo VARCHAR(25) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
     tamanho INT DEFAULT 0,
@@ -112,8 +113,8 @@ CREATE TABLE MreportObject(
     configjson TEXT DEFAULT '',
     queryconfigjson TEXT DEFAULT '',
     section VARCHAR(200) DEFAULT '',
-    x INT DEFAULT 0,
-    y INT DEFAULT 0,
-    width INT DEFAULT 0,
-    height INT DEFAULT 0
+    x Numeric(16,2) DEFAULT 0,
+    y Numeric(16,2) DEFAULT 0,
+    width Numeric(16,2) DEFAULT 0,
+    height Numeric(16,2) DEFAULT 0
 );
