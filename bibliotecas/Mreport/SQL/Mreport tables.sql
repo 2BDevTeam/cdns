@@ -112,6 +112,7 @@ CREATE TABLE MReportObject(
     expressaoobjecto TEXT DEFAULT '',
     configjson TEXT DEFAULT '',
     queryconfigjson TEXT DEFAULT '',
+    objectQuery TEXT DEFAULT '',
     section VARCHAR(200) DEFAULT '',
     x Numeric(16,2) DEFAULT 0,
     y Numeric(16,2) DEFAULT 0,

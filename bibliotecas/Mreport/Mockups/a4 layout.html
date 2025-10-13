@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documento A4 sem página vazia</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    /* altura ligeiramente menor que A4 (para evitar página extra) */
+    .m-repor-rendered-a4-container {
+      width: 794px;   /* 210mm em 96dpi */
+      height: 1110px; /* um pouco menos que 297mm */
+      background-color: white;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .m-repor-rendered-header {
+      height: 90px;
+      background-color: #f8f8f8;
+      border-bottom: 1px solid #ddd;
+      padding: 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .m-repor-rendered-header-title {
+      font-size: 20pt;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .m-repor-rendered-content {
+      flex: 1;
+      padding: 40px;
+      overflow: hidden;
+    }
+
+    .m-repor-rendered-content-title {
+      font-size: 16pt;
+      margin-bottom: 25px;
+      color: #444;
+    }
+
+    .m-repor-rendered-content-text {
+      font-size: 11pt;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    .m-repor-rendered-content-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .m-repor-rendered-content-table th,
+    .m-repor-rendered-content-table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .m-repor-rendered-content-table th {
+      background-color: #f2f2f2;
+    }
+
+    .m-repor-rendered-footer {
+      height: 30px;
+      background-color: #8d5252;
+      border-top: 1px solid #ddd;
+      padding: 15px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10pt;
+      color: white;
+    }
+
+    .m-repor-rendered-export-btn {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      transition: background-color 0.3s;
+    }
+
+    .m-repor-rendered-export-btn:hover {
+      background-color: #45a049;
+    }
+
+    @media print {
+      body {
+        background-color: white;
+        padding: 0;
+      }
+      .m-repor-rendered-a4-container {
+        box-shadow: none;
+        margin: 0;
+      }
+      .m-repor-rendered-export-btn {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="m-repor-rendered-export-btn" onclick="exportToPDF()">Exportar para PDF</button>
+
+  <div class="m-repor-rendered-a4-container" id="a4-content">
+    <header class="m-repor-rendered-header">
+      <div class="m-repor-rendered-header-title">RELATÓRIO OFICIAL</div>
+      <div style="width: 150px; height: 60px; background-color: #e0e0e0; display: flex; align-items: center; justify-content: center;">
+        LOGO
+      </div>
+    </header>
+
+    <main class="m-repor-rendered-content">
+      <h1 class="m-repor-rendered-content-title">Relatório de Atividades - Trimestre 2023</h1>
+
+      <p class="m-repor-rendered-content-text">
+        Este relatório apresenta um resumo das atividades desenvolvidas durante o trimestre, 
+        incluindo métricas de desempenho, resultados alcançados e projeções para o próximo período.
+      </p>
+
+      <p class="m-repor-rendered-content-text">
+        Durante este período, foram implementadas novas estratégias de marketing que resultaram 
+        em um aumento significativo no engajamento do público-alvo. As campanhas digitais 
+        alcançaram mais de 500.000 visualizações, com uma taxa de conversão de 3,5%.
+      </p>
+
+      <table class="m-repor-rendered-content-table">
+        <thead>
+          <tr>
+            <th>Métrica</th>
+            <th>Trimestre Anterior</th>
+            <th>Trimestre Atual</th>
+            <th>Variação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Vendas Totais</td><td>R$ 1.250.000</td><td>R$ 1.550.000</td><td>+24%</td></tr>
+          <tr><td>Novos Clientes</td><td>350</td><td>520</td><td>+48,6%</td></tr>
+          <tr><td>Taxa de Retenção</td><td>78%</td><td>85%</td><td>+7%</td></tr>
+          <tr><td>Custo por Aquisição</td><td>R$ 120</td><td>R$ 95</td><td>-20,8%</td></tr>
+        </tbody>
+      </table>
+
+      <p class="m-repor-rendered-content-text" style="margin-top: 15px;">
+        Com base nos resultados apresentados, podemos concluir que as estratégias implementadas 
+        foram eficazes. Para o próximo trimestre, recomendamos a expansão das campanhas bem-sucedidas 
+        e o investimento em novas plataformas de mídia social para alcançar um público ainda maior.
+      </p>
+    </main>
+
+    <footer class="m-repor-rendered-footer">
+      <div>Empresa Exemplo Ltda. | CNPJ: 12.345.678/0001-90</div>
+      <div>Página 1 de 1</div>
+    </footer>
+  </div>
+
+  <script>
+    async function exportToPDF() {
+      const element = document.getElementById('a4-content');
+      const opt = {
+        margin: [0, 0, 0, 0],
+        filename: 'relatorio_a4.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+      html2pdf().set(opt).from(element).save();
+    }
+  </script>
+</body>
+</html>

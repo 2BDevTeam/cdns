@@ -635,17 +635,23 @@ function handleShowConfigContainer(data) {
                                 self.mainQueryHasError = true;
                                 return false
                             }
-                            var queryResult = response.data.length > 0 ? response.data : generateDummyDataForSchema(response.schema, 3);
 
-                            var lastResults = queryResult.slice(0, 20);
+                            var mappedSchema = replaceLocalDbKeywords(response.schema)
+                            var queryResult = response.data.length > 0 ? response.data : generateDummyDataForSchema(mappedSchema, 3);
 
-                            self.mreportConfigItem.schema = response.schema;
+                            var mappedData = replaceLocalDbKeywords(queryResult)
+
+                            var lastResults = mappedData.slice(0, 20);
+
+                            self.mreportConfigItem.schema = mappedSchema;
                             self.mreportConfigItem.lastResults = lastResults;
                             self.mreportConfigItem.stringifyJSONFields();
 
 
-                            self.queryJsonResult = JSON.stringify(queryResult).replaceAll("total", "tot");
+                            self.queryJsonResult = JSON.stringify(mappedData)
                             self.mainQueryHasError = false;
+
+                            self.mreportConfigItem.setTupDataOnLocalDb()
 
                             realTimeComponentSync(self.mreportConfigItem, self.mreportConfigItem.table, self.mreportConfigItem.idfield);
                             alertify.success("Query executada com sucesso", 5000);
@@ -817,7 +823,7 @@ function generatemreportReportDesigner() {
     reportConfigHtml += "                    <h5 class='section-title'><i class='fas fa-shapes me-2'></i> Objectos</h5>";
     reportConfigHtml += "                    <div class='component-item' v-for='component in components' :key='component.id' draggable='true' @dragstart='startDrag(component, $event)' @drop.prevent='drop($event)' @dragover.prevent>";
     reportConfigHtml += "                        <i class='component-icon' :class='component.icon'></i>";
-    reportConfigHtml += "                        <span>{{ component.name }}</span>";
+    reportConfigHtml += "                        <span>{{ component.descricao }}</span>";
     reportConfigHtml += "                    </div>";
     reportConfigHtml += "                    <div class='mt-4'>";
     reportConfigHtml += "                        <h5 class='section-title'><i  class='fas fa-filter me-2'></i> Filtros</h5>";
@@ -888,17 +894,10 @@ function generatemreportReportDesigner() {
     reportConfigHtml += "                            <div class='section-content' @dragover.prevent @drop='drop($event, \"header\")' @click='deselectAll'>";
     reportConfigHtml += "                                <div class='report-object' v-for='obj in getSectionObjects(\"header\")' :key='obj.mreportobjectstamp' :data-mreportobjectstamp='obj.mreportobjectstamp' :style='{ transform: \"translate3d(\" + obj.x + \"px, \" + obj.y + \"px, 0)\", width: obj.width + \"px\", height: obj.height + \"px\", zIndex: obj.selected ? 100 : 10 }' :class='{ selected: obj.selected }' @click.stop='selectObject(obj)'>";
     reportConfigHtml += "                                    <div class='object-handle'>";
-    reportConfigHtml += "                                        <i :class='obj.icon' class='me-1'></i>{{ obj.name }}";
+    reportConfigHtml += "                                        <i :class='obj.icon' class='me-1'></i>{{ obj.descricao }}";
     reportConfigHtml += "                                    </div>";
-    reportConfigHtml += "                                    <div class='object-content' v-if='obj.type === \"text\"'>{{ obj.content || 'Texto de exemplo' }}</div>";
-    reportConfigHtml += "                                    <div class='object-content' v-if='obj.type === \"table\"'>";
-    reportConfigHtml += "                                        <div class='table-responsive'>";
-    reportConfigHtml += "                                            <table class='table table-sm table-bordered'>";
-    reportConfigHtml += "                                                <thead><tr><th v-for='col in 3' :key='col'>Coluna {{ col }}</th></tr></thead>";
-    reportConfigHtml += "                                                <tbody><tr v-for='row in 3' :key='row'><td v-for='col in 3' :key='col'>Dado {{ row }}-{{ col }}</td></tr></tbody>";
-    reportConfigHtml += "                                            </table>";
-    reportConfigHtml += "                                        </div>";
-    reportConfigHtml += "                                    </div>";
+    reportConfigHtml += "                                    <div :id='\"object-report-to-render-\" + obj.mreportobjectstamp' class='object-content'>{{ obj.content || 'Texto de exemplo' }}</div>";
+
     reportConfigHtml += "                                    <div class='resize-handle' @mousedown.stop='startResize(obj, $event)'></div>";
     reportConfigHtml += "                                </div>";
     reportConfigHtml += "                                <div v-if='getSectionObjects(\"header\").length === 0' class='empty-section'>";
@@ -915,10 +914,10 @@ function generatemreportReportDesigner() {
     reportConfigHtml += "                            <div class='section-content' @dragover.prevent @drop='drop($event, \"content\")' @click='deselectAll'>";
     reportConfigHtml += "                                <div class='report-object' v-for='obj in getSectionObjects(\"content\")' :key='obj.mreportobjectstamp' :data-mreportobjectstamp='obj.mreportobjectstamp' :style='{ transform: \"translate3d(\" + obj.x + \"px, \" + obj.y + \"px, 0)\", width: obj.width + \"px\", height: obj.height + \"px\", zIndex: obj.selected ? 100 : 10 }' :class='{ selected: obj.selected }' @click.stop='selectObject(obj)'>";
     reportConfigHtml += "                                    <div class='object-handle'>";
-    reportConfigHtml += "                                        <i :class='obj.icon' class='me-1'></i>{{ obj.name }}";
+    reportConfigHtml += "                                        <i :class='obj.icon' class='me-1'></i>{{ obj.descricao }}";
     reportConfigHtml += "                                    </div>";
-    reportConfigHtml += "                                    <div class='object-content' v-if='obj.type === \"text\"'>{{ obj.content || 'Texto de exemplo' }}</div>";
-    reportConfigHtml += "                                    <div class='object-content' v-if='obj.type === \"table\"'>";
+    reportConfigHtml += "                                    <div class='object-content' v-if='obj.tipo === \"text\"'>{{ obj.content || 'Texto de exemplo' }}</div>";
+    reportConfigHtml += "                                    <div class='object-content' v-if='obj.tipo === \"table\"'>";
     reportConfigHtml += "                                        <div class='table-responsive'>";
     reportConfigHtml += "                                            <table class='table table-sm table-bordered'>";
     reportConfigHtml += "                                                <thead><tr><th v-for='col in 3' :key='col'>Coluna {{ col }}</th></tr></thead>";
@@ -942,10 +941,10 @@ function generatemreportReportDesigner() {
     reportConfigHtml += "                            <div class='section-content' @dragover.prevent @drop='drop($event, \"footer\")' @click='deselectAll'>";
     reportConfigHtml += "                                <div class='report-object' v-for='obj in getSectionObjects(\"footer\")' :key='obj.mreportobjectstamp' :data-mreportobjectstamp='obj.mreportobjectstamp' :style='{ transform: \"translate3d(\" + obj.x + \"px, \" + obj.y + \"px, 0)\", width: obj.width + \"px\", height: obj.height + \"px\", zIndex: obj.selected ? 100 : 10 }' :class='{ selected: obj.selected }' @click.stop='selectObject(obj)'>";
     reportConfigHtml += "                                    <div class='object-handle'>";
-    reportConfigHtml += "                                        <i :class='obj.icon' class='me-1'></i>{{ obj.name }}";
+    reportConfigHtml += "                                        <i :class='obj.icon' class='me-1'></i>{{ obj.descricao }}";
     reportConfigHtml += "                                    </div>";
-    reportConfigHtml += "                                    <div class='object-content' v-if='obj.type === \"text\"'>{{ obj.content || 'Texto de exemplo' }}</div>";
-    reportConfigHtml += "                                    <div class='object-content' v-if='obj.type === \"table\"'>";
+    reportConfigHtml += "                                    <div class='object-content' v-if='obj.tipo === \"text\"'>{{ obj.content || 'Texto de exemplo' }}</div>";
+    reportConfigHtml += "                                    <div class='object-content' v-if='obj.tipo === \"table\"'>";
     reportConfigHtml += "                                        <div class='table-responsive'>";
     reportConfigHtml += "                                            <table class='table table-sm table-bordered'>";
     reportConfigHtml += "                                                <thead><tr><th v-for='col in 3' :key='col'>Coluna {{ col }}</th></tr></thead>";
@@ -976,33 +975,12 @@ function generatemreportReportDesigner() {
     reportConfigHtml += "                                <option value='footer'>Rodapé</option>";
     reportConfigHtml += "                            </select>";
     reportConfigHtml += "                        </div>";
-    reportConfigHtml += "                        <div class='mb-3' v-if='selectedObject.type === \"text\"'>";
-    reportConfigHtml += "                            <label class='m-report-form-label'>Conteúdo</label>";
-    reportConfigHtml += "                            <textarea class='form-control' rows='3' v-model='selectedObject.content'></textarea>";
-    reportConfigHtml += "                            <div class='form-text'>Use {{ campo }} para inserir valores de campos de dados</div>";
+
+    reportConfigHtml += "                        <div style='height:500px;overflow-y:auto;' id='objectEditor' class='objectEditor'>";
+    reportConfigHtml += "                                 <div :id='\"objectEditorContainer-\"+selectedObject.mreportobjectstamp' class='code-editor'></div>";
+
     reportConfigHtml += "                        </div>";
-    reportConfigHtml += "                        <div class='mb-3' v-if='selectedObject.type === \"table\"'>";
-    reportConfigHtml += "                            <label class='m-report-form-label'>Fonte de Dados</label>";
-    reportConfigHtml += "                            <select class='form-select' v-model='selectedObject.dataSource'>";
-    reportConfigHtml += "                                <option v-for='source in dataSources' :key='source.mreportfonstestamp' :value='source.mreportfonstestamp'>{{ source.name }}</option>";
-    reportConfigHtml += "                            </select>";
-    reportConfigHtml += "                        </div>";
-    reportConfigHtml += "                        <div class='mb-3'>";
-    reportConfigHtml += "                            <label class='m-report-form-label'>Posição e Tamanho</label>";
-    reportConfigHtml += "                            <div class='row g-2'>";
-    reportConfigHtml += "                                <div class='col-6'><input type='number' class='form-control' placeholder='X' v-model='selectedObject.x'></div>";
-    reportConfigHtml += "                                <div class='col-6'><input type='number' class='form-control' placeholder='Y' v-model='selectedObject.y'></div>";
-    reportConfigHtml += "                                <div class='col-6'><input type='number' class='form-control' placeholder='Largura' v-model='selectedObject.width'></div>";
-    reportConfigHtml += "                                <div class='col-6'><input type='number' class='form-control' placeholder='Altura' v-model='selectedObject.height'></div>";
-    reportConfigHtml += "                            </div>";
-    reportConfigHtml += "                        </div>";
-    reportConfigHtml += "                        <div class='mb-3'>";
-    reportConfigHtml += "                            <label class='m-report-form-label'>Estilo</label>";
-    reportConfigHtml += "                            <div class='form-check'><input class='form-check-input' type='checkbox' id='boldCheck' v-model='selectedObject.bold'><label class='form-check-label' for='boldCheck'>Texto em Negrito</label></div>";
-    reportConfigHtml += "                            <div class='form-check'><input class='form-check-input' type='checkbox' id='italicCheck' v-model='selectedObject.italic'><label class='form-check-label' for='italicCheck'>Texto em Itálico</label></div>";
-    reportConfigHtml += "                        </div>";
-    reportConfigHtml += "                        <div class='mb-3'><label class='m-report-form-label'>Cor do Texto</label><input type='color' class='form-control form-control-color' v-model='selectedObject.textColor'></div>";
-    reportConfigHtml += "                        <div class='mb-3'><label class='m-report-form-label'>Cor de Fundo</label><input type='color' class='form-control form-control-color' v-model='selectedObject.backgroundColor'></div>";
+
     reportConfigHtml += "                        <button type='button' class='btn btn-danger w-100' @click='removeObject(selectedObject)'><i class='fas fa-trash me-1'></i> Remover Componente</button>";
     reportConfigHtml += "                    </div>";
     reportConfigHtml += "                    <div v-else class='empty-state'>";
@@ -1117,6 +1095,7 @@ function fetchDadosMreport(config, dados) {
 
         var newFonte = new MReportFonte(f);
         newFonte.setUIFormConfig();
+        newFonte.setTupDataOnLocalDb();
         return newFonte;
 
     });
@@ -1124,7 +1103,8 @@ function fetchDadosMreport(config, dados) {
     GMReportObjects = objects.map(function (o) {
 
         var newObject = new MReportObject(o);
-        //newObject.setUIFormConfig();
+        newObject.setUIData();
+
         return newObject;
 
     });
@@ -1180,14 +1160,7 @@ function initConfiguracaoMReport(data) {
     // Aplicação principal
     var App = PetiteVue.reactive({
         // Estado da aplicação
-        components: [
-            { id: 1, name: 'Texto', type: 'text', icon: 'fas fa-font' },
-            { id: 2, name: 'Tabela', type: 'table', icon: 'fas fa-table' },
-            { id: 3, name: 'Imagem', type: 'image', icon: 'fas fa-image' },
-            { id: 4, name: 'Gráfico', type: 'chart', icon: 'fas fa-chart-bar' },
-            { id: 5, name: 'Cabeçalho', type: 'header', icon: 'fas fa-heading' },
-            { id: 6, name: 'Rodapé', type: 'footer', icon: 'fas fa-ellipsis-h' }
-        ],
+        components: getTiposObjectoConfig(),
         reportObjects: GMReportObjects,
         filters: GMReportFilters,
         dataSources: GMReportFontes,
@@ -1275,52 +1248,52 @@ function initConfiguracaoMReport(data) {
                             }
                         }
                     })
-              //.resizable({
-              //    edges: { left: true, right: true, bottom: true, top: true },
-              //    inertia: true,
-              //    modifiers: [
-              //        /* interact.modifiers.restrictEdges({
-              //             outer: 'parent'
-              //         }),*/
-              //        interact.modifiers.restrictSize({
-              //            min: { width: 50, height: 30 }
-              //        })
-              //    ],
-              //    listeners: {
-              //        move: function (event) {
-              //            var target = event.target;
-              //            var id = target.getAttribute('data-mreportobjectstamp');
-              //            var obj = self.reportObjects.find(function (o) {
-              //                return o.mreportobjectstamp == id;
-              //            });
+                //.resizable({
+                //    edges: { left: true, right: true, bottom: true, top: true },
+                //    inertia: true,
+                //    modifiers: [
+                //        /* interact.modifiers.restrictEdges({
+                //             outer: 'parent'
+                //         }),*/
+                //        interact.modifiers.restrictSize({
+                //            min: { width: 50, height: 30 }
+                //        })
+                //    ],
+                //    listeners: {
+                //        move: function (event) {
+                //            var target = event.target;
+                //            var id = target.getAttribute('data-mreportobjectstamp');
+                //            var obj = self.reportObjects.find(function (o) {
+                //                return o.mreportobjectstamp == id;
+                //            });
 
-              //            if (obj) {
-              //                // Atualiza tamanho no modelo
-              //                obj.width = event.rect.width;
-              //                obj.height = event.rect.height;
+                //            if (obj) {
+                //                // Atualiza tamanho no modelo
+                //                obj.width = event.rect.width;
+                //                obj.height = event.rect.height;
 
-              //                // Atualiza posição se redimensionar da esquerda ou topo
-              //                obj.x += event.deltaRect.left;
-              //                obj.y += event.deltaRect.top;
+                //                // Atualiza posição se redimensionar da esquerda ou topo
+                //                obj.x += event.deltaRect.left;
+                //                obj.y += event.deltaRect.top;
 
-              //                // Atualiza o estilo
-              //                target.style.width = obj.width + 'px';
-              //                target.style.height = obj.height + 'px';
-              //                target.style.transform = "translate3d(" + obj.x + "px, " + obj.y + "px, 0)";
-              //            }
-              //        },
-              //        end: function (event) {
-              //            var target = event.target;
-              //            var id = target.getAttribute('data-mreportobjectstamp');
-              //            var obj = self.reportObjects.find(function (o) {
-              //                return o.mreportobjectstamp == id;
-              //            });
-              //            if (obj) {
-              //                realTimeComponentSync(obj, obj.table, obj.idfield);
-              //            }
-              //        }
-              //    }
-              //});*/
+                //                // Atualiza o estilo
+                //                target.style.width = obj.width + 'px';
+                //                target.style.height = obj.height + 'px';
+                //                target.style.transform = "translate3d(" + obj.x + "px, " + obj.y + "px, 0)";
+                //            }
+                //        },
+                //        end: function (event) {
+                //            var target = event.target;
+                //            var id = target.getAttribute('data-mreportobjectstamp');
+                //            var obj = self.reportObjects.find(function (o) {
+                //                return o.mreportobjectstamp == id;
+                //            });
+                //            if (obj) {
+                //                realTimeComponentSync(obj, obj.table, obj.idfield);
+                //            }
+                //        }
+                //    }
+                //});*/
             }, 1000);
 
         },
@@ -1329,11 +1302,12 @@ function initConfiguracaoMReport(data) {
 
             self.dragging = true;
             self.dragObject = new MReportObject({
-                tipo: component.type,
-                name: component.name,
+                tipo: component.tipo,
+                descricao: component.descricao,
                 icon: component.icon,
                 section: 'content' // Define uma secção padrão
             });
+            self.dragObject.setUIData();
 
             // Calcular posição inicial baseada na posição do mouse
             // Usa a secção de conteúdo como referência padrão
@@ -1500,6 +1474,10 @@ function initConfiguracaoMReport(data) {
             // Selecionar o objeto clicado
             obj.selected = true;
             self.selectedObject = obj;
+
+            this.$nextTick(function () {
+                self.updateObjectType(obj);
+            });
         },
 
         deselectAll: function () {
@@ -1539,7 +1517,136 @@ function initConfiguracaoMReport(data) {
 
             return fonte.schema.length == 0;
         },
+        initJSONEditor: function (reportObject, tipoObjecto) {
 
+            var self = this;
+
+            var dynamicSchemaData = {
+                fieldOptions: getAllMappedLocalDBDataSimpleArray()
+            }
+
+            var schemaEditor = tipoObjecto.createDynamicSchema(dynamicSchemaData);
+
+            console.log("schemaEditor", schemaEditor)
+
+            reportObject.objectoConfig = tipoObjecto
+
+            $(".objectEditor").empty();
+
+            /* if (!document.getElementById('objectEditorContainer-' + reportObject.mreportobjectstamp)) {
+                 return;
+             }*/
+
+            var editor = new JSONEditor(document.getElementById("objectEditor"), {
+                schema: schemaEditor,
+                theme: 'bootstrap4',
+                iconlib: 'fontawesome4',
+                disable_edit_json: true,      // Remove botão "JSON"
+                disable_properties: true,     // Remove botão "Properties"
+                no_additional_properties: true, // Evita propriedades adicionais
+                disable_array_delete_last_row: true,  // Remove "Excluir último"
+                disable_array_delete_all_rows: true,  // Remove "Excluir todos"
+                disable_array_reorder: true           // Remove "Reordenar"
+            });
+
+            editor.on('ready', function () {
+
+
+                if (reportObject.configjson && reportObject.configjson.trim() !== '' && reportObject.configjson.trim() !== '{}') {
+                    try {
+
+                        var savedConfig = JSON.parse(reportObject.configjson);
+                        // console.log('Carregando configuração salva:', savedConfig);
+                        editor.setValue(savedConfig);
+                    } catch (error) {
+                        console.warn('Erro ao carregar configuração salva:', error);
+                        console.log('configjson inválido:', reportObject.configjson);
+                        // Se não conseguir fazer parse, inicializar com configuração vazia
+
+                    }
+                }
+
+
+
+                $(".json-editor-btn-collapse").css({
+                    "background": "transparent",
+                    "color": getColorByType("primary").background
+                });
+
+                $(".tratamento-dadoscontainer-item-object input").addClass("form-control input-sm");
+                $(".tratamento-dadoscontainer-item-object select").addClass("form-control input-sm");
+                $(".tratamento-dadoscontainer-item-object").css({ color: "#626e78" })
+
+                $(".json-editor-btntype-add").css({
+                    "margin-top": "0.9em"
+                });
+
+                $(".je-object__title").css(
+                    {
+                        "font-size": "14px",
+                        "font-weight": "bold"
+                    }
+                )
+
+                $(".card-title").css(
+                    {
+                        "font-size": "14px",
+                        "font-weight": "bold"
+                    }
+                );
+
+                var currentValue = editor.getValue();
+
+                if (Object.keys(reportObject.config).length == 0) {
+                    reportObject.configjson = JSON.stringify(currentValue);
+
+                }
+                reportObject.config = reportObject.config || currentValue;
+
+                //reportObject.renderObjectByContainerItem(".container-item-object-render-" + reportObject.mdashreportObjectstamp, self.containerItem);
+
+
+
+
+
+            });
+
+            editor.on('change', function () {
+
+                var currentValue = editor.getValue();
+                reportObject.configjson = JSON.stringify(currentValue);
+                var selector = "#object-report-to-render-" + reportObject.mreportobjectstamp;
+                var currentValue = editor.getValue();
+                reportObject.config = currentValue;
+
+                reportObject.renderOnPage(selector, true);
+                setTimeout(function () {
+                    realTimeComponentSync(reportObject, reportObject.table, reportObject.idfield)
+                }, 0);
+            });
+
+
+        },
+        updateObjectType: function (reportObject) {
+            var self = this;
+
+            switch (reportObject.objectEditorConfig.categoria) {
+                case "editor":
+                    this.initJSONEditor(reportObject, reportObject.objectEditorConfig);
+                    break;
+                case "custom":
+                    this.initCustomEditor(reportObject);
+                    break;
+                case "detail":
+                    this.initDetailEditor(reportObject);
+                    break;
+                default:
+                    alertify.error("Categoria de objecto n&atilde;o suportada: " + reportObject.objectEditorConfig.categoria);
+
+            }
+
+
+        },
         openConfigReportElement: function (obj, componente) {
             var self = this;
 
@@ -1586,9 +1693,16 @@ function initConfiguracaoMReport(data) {
         }
     });
     window.reportDesignerState = App;
+   
+    PetiteVue.createApp(App).mount('#reportDesignerContainer');
+
+    GMReportObjects.forEach(function (obj) {
+
+        var selector = "#object-report-to-render-" + obj.mreportobjectstamp;
+        obj.renderOnPage(selector, false);
+    })
 
     // Inicializar petite-vue
-    PetiteVue.createApp(App).mount('#reportDesignerContainer');
 
 
 }
@@ -1731,6 +1845,7 @@ function MReportObject(data) {
     this.expressaoobjecto = data.expressaoobjecto || '';
     this.configjson = data.configjson || '{}';
     this.queryconfigjson = data.queryconfigjson || '{}';
+    this.objectQuery = data.objectQuery || '';
     this.section = data.section || 'content'; // header, content, footer
     this.x = data.x || 0;
     this.y = data.y || 0;
@@ -1742,7 +1857,7 @@ function MReportObject(data) {
 
     // Propriedades adicionais para funcionalidade (não na BD)
 
-    this.name = data.name || 'Novo Objeto';
+    this.descricao = data.descricao || 'Novo Objeto';
     this.icon = data.icon || 'fas fa-question';
     this.content = data.content || '';
     this.selected = data.selected || false;
@@ -1757,12 +1872,61 @@ function MReportObject(data) {
     this.config = {};
     this.queryConfig = {};
 
+    this.objectEditorConfig = data.objectEditorConfig || {};
+
     // Parse dos JSONs se forem strings
     this.config = forceJSONParse(this.configjson, {});
     this.queryConfig = forceJSONParse(this.queryconfigjson, {});
 
 }
 
+
+MReportObject.prototype.renderOnPage = function (selector, clearContainer) {
+    var self = this;
+
+    if (clearContainer) {
+        $(selector).empty();
+    }
+    /*
+     renderObject: function (params) {
+                var containerSelector = params.containerSelector;
+                var itemObject = params.itemObject;
+                var config = params.config;
+                var data = params.data;
+
+                updateTextElementMReport(containerSelector, itemObject, config, data);
+            }
+    
+    */
+
+
+    self.objectEditorConfig.renderObject({
+        containerSelector: selector,
+        itemObject: self,
+        config: self.config,
+        data: []
+    })
+
+}
+
+
+MReportObject.prototype.setUIData = function () {
+
+    var self = this;
+
+
+    var tiposObjectos = getTiposObjectoConfig();
+    var tipoObjecto = tiposObjectos.find(function (t) {
+        return t.tipo === self.tipo;
+    });
+    if (tipoObjecto) {
+        self.icon = tipoObjecto.icon;
+        self.descricao = tipoObjecto.descricao;
+        self.objectEditorConfig = tipoObjecto;
+    }
+
+
+}
 
 
 
@@ -1835,7 +1999,6 @@ function getmreportFilterUIObjectFormConfigAndSourceValues() {
                 { option: "Multipla escolha", value: "multiselect" }
             ]
         }),
-
         new UIObjectFormConfig({ colSize: 6, campo: "campooption", tipo: "text", titulo: "Campo de Opção", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "campovalor", tipo: "text", titulo: "Campo de Valor", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
@@ -1925,119 +2088,6 @@ function generateQueryButtonOptions() {
 }
 
 
-
-function MReportFonte(data) {
-    var self = this;
-
-    var maxOrdem = 0;
-    if (Array.isArray(GMReportFontes) && GMReportFontes.length > 0) {
-        maxOrdem = GMReportFontes.reduce(function (max, item) {
-            return Math.max(max, item.ordem || 0);
-        }, 0);
-    }
-    // Propriedades baseadas na estrutura da tabela
-    this.mreportfonstestamp = data.mreportfonstestamp || generateUUID();
-    this.mreportstamp = data.mreportstamp || GMRelatorioStamp;
-    this.codigo = data.codigo || "Fonte-" + generateUUID();
-    this.descricao = data.descricao || 'Nova Fonte ' + (data.ordem || (maxOrdem + 1));
-    this.tipo = data.tipo || 'query'; // query, api, json, csv, etc.
-    this.expressaolistagem = data.expressaolistagem || '';
-    this.expressaojslistagem = data.expressaojslistagem || '';
-    this.ordem = (data.ordem || (maxOrdem + 1));
-    this.schemajson = data.schemajson || '[]';
-    this.lastResultscached = data.lastResultscached || '[]';
-
-
-    // propriedades adicionais para funcionalidade
-    this.schema = [];
-    this.lastResults = [];
-
-    this.lastResults = forceJSONParse(this.lastResultscached, []);
-    this.schema = forceJSONParse(this.schemajson, []);
-    this.testData = data.testData || [];
-    this.lastExecuted = data.lastExecuted || [];
-    this.isActive = data.isActive !== undefined ? data.isActive : true;
-
-
-    var schemaQueryEditorContainerHtml = "";
-
-    schemaQueryEditorContainerHtml += generateQueryButtonOptions();
-
-
-    schemaQueryEditorContainerHtml += generateFilterVariablesParaFonteHTML();
-
-
-    this.schemaQueryEditor = schemaQueryEditorContainerHtml;
-
-
-    this.objectsUIFormConfig = data.objectsUIFormConfig || [];
-    this.localsource = data.localsource || "";
-    this.idfield = data.idfield || "mreportfonstestamp";
-    this.table = "MReportFonte";
-}
-
-MReportFonte.prototype.setUIFormConfig = function () {
-
-    var UIFormConfig = getMReportFonteUIObjectFormConfigAndSourceValues();
-    this.objectsUIFormConfig = UIFormConfig.objectsUIFormConfig;
-    this.localsource = UIFormConfig.localsource;
-    this.idfield = UIFormConfig.idField;
-}
-
-function getMReportFonteUIObjectFormConfigAndSourceValues() {
-    var objectsUIFormConfig = [
-        new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "descricao", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "ordem", tipo: "digit", titulo: "Ordem", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({
-            colSize: 12,
-            campo: "tipo",
-            tipo: "select",
-            titulo: "Tipo",
-            fieldToOption: "option",
-            contentType: "select",
-            fieldToValue: "value",
-            classes: "form-control input-source-form  input-sm ",
-            selectValues: [
-                { option: "Query SQL", value: "query" },
-                /*   { option: "API REST", value: "api" },
-                   { option: "JSON", value: "json" },
-                   { option: "CSV", value: "csv" }*/
-            ]
-        }),
-        new UIObjectFormConfig({ customData: " v-on:keyup='changeExpressaoDbListagemAndHandleFilters()'", colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
-
-        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "schemaQueryEditor", tipo: "div", cols: 90, rows: 90, titulo: "", classes: "input-source-form", contentType: "div" }),
-        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaojslistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem JS", classes: "input-source-form m-editor ", contentType: "div" })
-    ];
-    return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMReportFontes", idField: "mreportfonstestamp" };
-}
-
-
-MReportFonte.prototype.stringifyJSONFields = function () {
-    var data = this;
-    data.schemajson = JSON.stringify(data.schema || []);
-    data.lastResultscached = JSON.stringify(data.lastResults || []);
-    return data;
-}
-
-
-
-
-function forceJSONParse(data, defaultValue) {
-
-    if (typeof data === 'string') {
-        try {
-            return JSON.parse(data);
-        } catch (e) {
-            return defaultValue;
-        }
-    }
-    else {
-        return data || defaultValue;
-    }
-
-}
 
 
 

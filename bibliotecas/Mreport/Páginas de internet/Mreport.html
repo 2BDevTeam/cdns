@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+    }
+
+    /* Container com altura exata para A4 */
+    .m-report-rendered-page {
+        width: 794px;
+        /* 210mm em 96dpi */
+        height: 1123px;
+        /* Altura exata para A4 (297mm) */
+        background-color: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+        /* Importante: impede que conteúdo extra escape */
+    }
+
+    .m-report-rendered-header {
+        height: 90px;
+
+        border-bottom: 1px solid #ddd;
+        padding: 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+        /* Impede que o header encolha */
+    }
+
+    .m-report-rendered-header-title {
+        font-size: 20pt;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .m-report-rendered-content {
+        flex: 1;
+        padding: 40px;
+        overflow: hidden;
+        /* Impede scrollbars */
+        display: flex;
+        flex-direction: column;
+    }
+
+    .m-report-rendered-content-title {
+        font-size: 16pt;
+        margin-bottom: 25px;
+        color: #444;
+    }
+
+    .m-report-rendered-content-text {
+        font-size: 11pt;
+        line-height: 1.6;
+        margin-bottom: 15px;
+    }
+
+    .m-report-rendered-content-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        margin-bottom: 15px;
+    }
+
+    .m-report-rendered-content-table th,
+    .m-report-rendered-content-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    .m-report-rendered-content-table th {
+        background-color: #f2f2f2;
+    }
+
+    .m-report-rendered-footer {
+        height: 60px;
+        background-color: #8d5252;
+        border-top: 1px solid #ddd;
+        padding: 15px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 10pt;
+        color: white;
+        flex-shrink: 0;
+        /* Impede que o footer encolha */
+    }
+
+    .m-report-rendered-export-btn {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        transition: background-color 0.3s;
+    }
+
+    .m-report-rendered-export-btn:hover {
+        background-color: #45a049;
+    }
+
+    @media print {
+        body {
+            background-color: white;
+            padding: 0;
+        }
+
+        .m-report-rendered-page {
+            box-shadow: none;
+            margin: 0;
+            height: 100vh;
+            /* Para impressão direta */
+        }
+
+        .m-report-rendered-export-btn {
+            display: none;
+        }
+    }
+</style>
+
+
+
+<script src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<!-- Flatpickr Portuguese localization -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+
+<script src="https://unpkg.com/petite-vue"></script>
+<script src="https://cdn.jsdelivr.net/npm/alasql"></script>
+
+<body>
+
+
+    <div id="reportRenderedContainer">
+
+        <div class="m-report-rendered-page" id="a4-content">
+            <header class="m-report-rendered-header">
+
+
+            </header>
+
+            <main class="m-report-rendered-content">
+
+            </main>
+
+            <footer class="m-report-rendered-footer">
+
+            </footer>
+        </div>
+    </div>
+
+
+
+</body>
+
+<script>
+
+    function MReport(data) {
+
+        var mreportThis = this;
+        this.GMReportFilters = [new MReportFilter({})];
+        this.GMReportFilters = [];
+
+        this.GMRelatorioDeleteRecords = [];
+        this.GMRelatorioStamp = "";
+
+        this.GMReportConfig = new MReportConfig({});
+
+        this.GMReportObjects = [new MReportObject({})];
+        this.GMReportObjects = [];
+
+
+        this.GMReportFontes = [new MReportFonte({})];
+        this.GMReportFontes = [];
+
+
+
+        function MReportObject(data) {
+            var self = this;
+
+            // Propriedades baseadas na estrutura da tabela
+            this.mreportobjectstamp = data.mreportobjectstamp || generateUUID();
+            this.mreportstamp = data.mreportstamp || GMRelatorioStamp;
+            this.codigo = data.codigo || '';
+            this.tipo = data.tipo || 'text'; // text, table, image, chart, header, footer
+            this.tamanho = data.tamanho || 6; // Tamanho no grid (1-12)
+            this.ordem = data.ordem || 0;
+            this.categoria = data.categoria || 'basic'; // basic, advanced, custom
+            this.expressaoobjecto = data.expressaoobjecto || '';
+            this.configjson = data.configjson || '{}';
+            this.queryconfigjson = data.queryconfigjson || '{}';
+            this.objectQuery = data.objectQuery || '';
+            this.section = data.section || 'content'; // header, content, footer
+            this.x = data.x || 0;
+            this.y = data.y || 0;
+            this.width = data.width || 200;
+            this.height = data.height || 60;
+
+            this.table = "MReportObject";
+            this.idfield = "mreportobjectstamp";
+
+            // Propriedades adicionais para funcionalidade (não na BD)
+
+            this.descricao = data.descricao || 'Novo Objeto';
+            this.icon = data.icon || 'fas fa-question';
+            this.content = data.content || '';
+            this.selected = data.selected || false;
+            //this.resizing = data.resizing || false;
+
+
+            this.dataSource = data.dataSource || null;
+            this.bold = data.bold || false;
+            this.italic = data.italic || false;
+            this.textColor = data.textColor || '#000000';
+            this.backgroundColor = data.backgroundColor || '#ffffff';
+            this.config = {};
+            this.queryConfig = {};
+
+            this.objectEditorConfig = data.objectEditorConfig || {};
+
+            // Parse dos JSONs se forem strings
+            this.config = forceJSONParse(this.configjson, {});
+            this.queryConfig = forceJSONParse(this.queryconfigjson, {});
+
+        }
+
+
+        MReportObject.prototype.renderOnPage = function (selector, clearContainer) {
+            var self = this;
+
+            if (clearContainer) {
+                $(selector).empty();
+            }
+            /*
+             renderObject: function (params) {
+                        var containerSelector = params.containerSelector;
+                        var itemObject = params.itemObject;
+                        var config = params.config;
+                        var data = params.data;
+        
+                        updateTextElementMReport(containerSelector, itemObject, config, data);
+                    }
+            
+            */
+
+
+            self.objectEditorConfig.renderObject({
+                containerSelector: selector,
+                itemObject: self,
+                config: self.config,
+                data: []
+            })
+
+        }
+
+
+        MReportObject.prototype.setUIData = function () {
+
+            var self = this;
+
+
+            var tiposObjectos = getTiposObjectoConfig();
+            var tipoObjecto = tiposObjectos.find(function (t) {
+                return t.tipo === self.tipo;
+            });
+            if (tipoObjecto) {
+                self.icon = tipoObjecto.icon;
+                self.descricao = tipoObjecto.descricao;
+                self.objectEditorConfig = tipoObjecto;
+            }
+
+
+        }
+
+
+
+        function MReportFilter(data) {
+
+            var self = this;
+
+            var maxOrdem = 0;
+            if (Array.isArray(GMReportFilters) && GMReportFilters.length > 0) {
+                maxOrdem = GMReportFilters.reduce(function (max, item) {
+                    return Math.max(max, item.ordem || 0);
+                }, 0);
+            }
+            this.mreportfilterstamp = data.mreportfilterstamp || generateUUID();
+            this.mreportstamp = data.mreportstamp || GMRelatorioStamp;
+            this.codigo = data.codigo || 'Filtro' + generateUUID();
+            this.descricao = data.descricao || 'Novo Filtro ' + (data.ordem || (maxOrdem + 1));
+            this.tipo = data.tipo || 'text'; // text, number, checkbox, list, etc.
+            this.campooption = data.campooption || '';
+            this.eventochange = data.eventochange || false; // BIT -> boolean
+            this.expressaochange = data.expressaochange || '';
+            this.campovalor = data.campovalor || '';
+            this.tamanho = data.tamanho || 6; // Tamanho padrão (1-12 para grid system)
+            this.expressaolistagem = data.expressaolistagem || '';
+            this.expressaojslistagem = data.expressaojslistagem || '';
+            this.valordefeito = data.valordefeito || '';
+            this.ordem = data.ordem || (maxOrdem + 1);
+
+
+
+            this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+            this.localsource = data.localsource || "";
+            this.idfield = data.idfield || "mreportfilterstamp";
+            this.table = "MReportFilter";
+
+
+        }
+
+
+        MReportFilter.prototype.setUIFormConfig = function () {
+
+            var UIFormConfig = getmreportFilterUIObjectFormConfigAndSourceValues();
+            this.objectsUIFormConfig = UIFormConfig.objectsUIFormConfig;
+            this.localsource = UIFormConfig.localsource;
+            this.idfield = UIFormConfig.idField;
+
+        }
+
+        function getmreportFilterUIObjectFormConfigAndSourceValues() {
+            var objectsUIFormConfig = [
+                new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
+                new UIObjectFormConfig({ colSize: 4, campo: "descricao", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form input-sm", contentType: "input" }),
+                new UIObjectFormConfig({ colSize: 4, campo: "ordem", tipo: "digit", titulo: "Ordem", classes: "form-control input-source-form input-sm", contentType: "input" }),
+                new UIObjectFormConfig({
+                    colSize: 12,
+                    campo: "tipo",
+                    tipo: "select",
+                    titulo: "Tipo",
+                    fieldToOption: "option",
+                    contentType: "select",
+                    fieldToValue: "value",
+                    classes: "form-control input-source-form  input-sm ",
+                    selectValues: [
+                        { option: "Texto", value: "text" },
+                        { option: "Radio", value: "radio" },
+                        { option: "Lógico", value: "logic" },
+                        { option: "Data", value: "date" },
+                        { option: "Número", value: "number" },
+                        { option: "Lista", value: "list" },
+                        { option: "Multipla escolha", value: "multiselect" }
+                    ]
+                }),
+                new UIObjectFormConfig({ colSize: 6, campo: "campooption", tipo: "text", titulo: "Campo de Opção", classes: "form-control input-source-form input-sm", contentType: "input" }),
+                new UIObjectFormConfig({ colSize: 6, campo: "campovalor", tipo: "text", titulo: "Campo de Valor", classes: "form-control input-source-form input-sm", contentType: "input" }),
+                new UIObjectFormConfig({ colSize: 4, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
+                new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
+                new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaojslistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem JS", classes: "input-source-form m-editor", contentType: "div" }),
+                new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "valordefeito", tipo: "div", cols: 90, rows: 90, titulo: "Valor por Defeito", classes: "input-source-form m-editor", contentType: "div" }),
+                new UIObjectFormConfig({ colSize: 4, campo: "eventochange", tipo: "checkbox", titulo: "Tem evento change", classes: "input-source-form", contentType: "input" }),
+                new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaochange", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Change", classes: "input-source-form m-editor", contentType: "div" }),
+            ];
+
+            return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMReportFilters", idField: "mreportfilterstamp" };
+        }
+
+
+
+        function generateFilterVariablesParaFonteHTML() {
+            var filterVariablesHTML = "";
+
+            filterVariablesHTML += "<div style='display:flex;flex-direction:row;flex-wrap:wrap;' v-for=\"filter in getFilterByExpressaoDb()\" :key=\"filter.mreportfilterstamp\" class=\"\">";
+            filterVariablesHTML += "    <label class=\"m-report-filter-item\" :for=\"filter.codigo\">{{ filter.descricao }}</label>";
+            filterVariablesHTML += "    <!-- text -->";
+            filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-if=\"filter.tipo === 'text'\" type=\"text\"";
+            filterVariablesHTML += "        class=\"form-control input-sm input-mreport-filter\" :id=\"filter.codigo\"";
+            filterVariablesHTML += "        v-model=\"filterValues[filter.codigo]\" />";
+            filterVariablesHTML += "";
+            filterVariablesHTML += "    <!-- digit -->";
+            filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else-if=\"filter.tipo === 'digit'\" type=\"text\"";
+            filterVariablesHTML += "        class=\"form-control input-sm input-mreport-filter\" :id=\"filter.codigo\"";
+            filterVariablesHTML += "        v-model=\"filterValues[filter.codigo]\" />";
+            filterVariablesHTML += "";
+            filterVariablesHTML += "    <!-- logic -->";
+            filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else-if=\"filter.tipo === 'logic'\" type=\"checkbox\"";
+            filterVariablesHTML += "        class=\"form-check-input\" :id=\"filter.codigo\" v-model=\"filterValues[filter.codigo]\" />";
+            filterVariablesHTML += "";
+            filterVariablesHTML += "    <!-- fallback -->";
+            filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else type=\"text\" class=\"form-control input-sm input-mreport-filter\"";
+            filterVariablesHTML += "        :id=\"filter.codigo\" v-model=\"filterValues[filter.codigo]\" />";
+            filterVariablesHTML += "</div>";
+
+            return filterVariablesHTML;
+        }
+
+
+        function MReportFonte(data) {
+            var self = this;
+
+            var maxOrdem = 0;
+            if (Array.isArray(GMReportFontes) && GMReportFontes.length > 0) {
+                maxOrdem = GMReportFontes.reduce(function (max, item) {
+                    return Math.max(max, item.ordem || 0);
+                }, 0);
+            }
+            // Propriedades baseadas na estrutura da tabela
+            this.mreportfonstestamp = data.mreportfonstestamp || generateUUID();
+            this.mreportstamp = data.mreportstamp || GMRelatorioStamp;
+            this.codigo = data.codigo || "Fonte-" + generateUUID();
+            this.descricao = data.descricao || 'Nova Fonte ' + (data.ordem || (maxOrdem + 1));
+            this.tipo = data.tipo || 'query'; // query, api, json, csv, etc.
+            this.expressaolistagem = data.expressaolistagem || '';
+            this.expressaojslistagem = data.expressaojslistagem || '';
+            this.ordem = (data.ordem || (maxOrdem + 1));
+            this.schemajson = data.schemajson || '[]';
+            this.lastResultscached = data.lastResultscached || '[]';
+
+
+            // propriedades adicionais para funcionalidade
+            this.schema = [];
+            this.lastResults = [];
+
+            this.lastResults = forceJSONParse(this.lastResultscached, []);
+            this.schema = forceJSONParse(this.schemajson, []);
+            this.testData = data.testData || [];
+            this.lastExecuted = data.lastExecuted || [];
+            this.isActive = data.isActive !== undefined ? data.isActive : true;
+
+
+            var schemaQueryEditorContainerHtml = "";
+
+            schemaQueryEditorContainerHtml += generateQueryButtonOptions();
+
+
+            schemaQueryEditorContainerHtml += generateFilterVariablesParaFonteHTML();
+
+
+            this.schemaQueryEditor = schemaQueryEditorContainerHtml;
+
+
+            this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+            this.localsource = data.localsource || "";
+            this.idfield = data.idfield || "mreportfonstestamp";
+            this.table = "MReportFonte";
+        }
+
+        MReportFonte.prototype.setTupDataOnLocalDb = function (data) {
+
+            var tableSchema = extractLocalDbSchema(this.lastResults[0]);
+
+            setTupDataOnLocalDb("MReportDB", this.codigo, tableSchema, this.lastResults, this.mreportfonstestamp);
+        }
+
+        MReportFonte.prototype.setUIFormConfig = function () {
+
+            var UIFormConfig = getMReportFonteUIObjectFormConfigAndSourceValues();
+            this.objectsUIFormConfig = UIFormConfig.objectsUIFormConfig;
+            this.localsource = UIFormConfig.localsource;
+            this.idfield = UIFormConfig.idField;
+        }
+
+        function getMReportFonteUIObjectFormConfigAndSourceValues() {
+            var objectsUIFormConfig = [
+                new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
+                new UIObjectFormConfig({ colSize: 4, campo: "descricao", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form input-sm", contentType: "input" }),
+                new UIObjectFormConfig({ colSize: 4, campo: "ordem", tipo: "digit", titulo: "Ordem", classes: "form-control input-source-form input-sm", contentType: "input" }),
+                new UIObjectFormConfig({
+                    colSize: 12,
+                    campo: "tipo",
+                    tipo: "select",
+                    titulo: "Tipo",
+                    fieldToOption: "option",
+                    contentType: "select",
+                    fieldToValue: "value",
+                    classes: "form-control input-source-form  input-sm ",
+                    selectValues: [
+                        { option: "Query SQL", value: "query" },
+                        /*   { option: "API REST", value: "api" },
+                           { option: "JSON", value: "json" },
+                           { option: "CSV", value: "csv" }*/
+                    ]
+                }),
+                new UIObjectFormConfig({ customData: " v-on:keyup='changeExpressaoDbListagemAndHandleFilters()'", colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
+
+                new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "schemaQueryEditor", tipo: "div", cols: 90, rows: 90, titulo: "", classes: "input-source-form", contentType: "div" }),
+                new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaojslistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem JS", classes: "input-source-form m-editor ", contentType: "div" })
+            ];
+            return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMReportFontes", idField: "mreportfonstestamp" };
+        }
+
+
+        MReportFonte.prototype.stringifyJSONFields = function () {
+            var data = this;
+            data.schemajson = JSON.stringify(data.schema || []);
+            data.lastResultscached = JSON.stringify(data.lastResults || []);
+            return data;
+        }
+
+
+
+
+        function forceJSONParse(data, defaultValue) {
+
+            if (typeof data === 'string') {
+                try {
+                    return JSON.parse(data);
+                } catch (e) {
+                    return defaultValue;
+                }
+            }
+            else {
+                return data || defaultValue;
+            }
+
+        }
+
+
+
+
+
+        function MReportConfig(data) {
+
+            this.orientation = data.orientation || 'portrait'; // portrait ou landscape
+            this.u_mreportstamp = data.u_mreportstamp || '';
+            this.pagesize = data.pagesize || 'A4'; // A4, A3, Letter, etc.
+            this.margins = data.margins || { top: 20, right: 20, bottom: 20, left: 20 };
+            this.sections = Array.isArray(data.sections) ? data.sections.map(function (s) {
+                return new ReportSection(s);
+            }) : [
+                new ReportSection({ type: 'header', height: 100, width: 800, name: "Cabeçalho" }),
+                new ReportSection({ type: 'content', height: 400, width: 800, name: "Conteúdo" }),
+                new ReportSection({ type: 'footer', height: 50, width: 800, name: "Rodapé" })
+            ];
+        }
+
+
+        MReportConfig.prototype.toJSONString = function () {
+
+            return JSON.stringify(this);
+        }
+
+        function ReportSection(data) {
+
+            this.type = data.type || 'header'; // header, content, footer
+            this.name = data.name || "Cabeçalho";
+            this.height = data.height || 100; // altura da secção em pixels
+            this.width = data.width || 800; // largura da secção em pixels
+        }
+
+        this.render = function (data) {
+            initConfiguracaoMReport(data);
+        }
+
+        function fetchDadosMreport(config, dados) {
+
+            var filters = dados.filters || [];
+            var fontes = dados.fontes || [];
+            var objects = dados.objects || [];
+            var reportData = dados.report[0] || {};
+            var reportConfig = {};
+
+            try {
+
+                reportConfig = JSON.parse(reportData.reportconfig) || {};
+
+                reportConfig.u_mreportstamp = reportData.u_mreportstamp || '';
+
+            } catch (error) {
+
+            }
+
+            mreportThis.GMReportConfig = new MReportConfig(reportConfig);
+
+            mreportThis.GMReportFilters = filters.map(function (f) {
+
+                var newFilter = new MReportFilter(f);
+                newFilter.setUIFormConfig();
+                return newFilter;
+
+            });
+
+            mreportThis.GMReportFontes = fontes.map(function (f) {
+
+                var newFonte = new MReportFonte(f);
+                newFonte.setUIFormConfig();
+                newFonte.setTupDataOnLocalDb();
+                return newFonte;
+
+            });
+
+            mreportThis.GMReportObjects = objects.map(function (o) {
+
+                var newObject = new MReportObject(o);
+                newObject.setUIData();
+
+                return newObject;
+
+            });
+
+        }
+
+
+
+
+        function initConfiguracaoMReport(data) {
+
+            if (!data) {
+
+                throw new Error("Dados inválidos para inicializar MReportConfig");
+
+            }
+
+            mreportThis.GMRelatorioStamp = data.mreportstamp || '';
+            mreportThis.GMReportConfig = new MReportConfig({});
+            mreportThis.GMReportConfig.u_mreportstamp = data.mreportstamp || '';
+
+            $.ajax({
+                type: "POST",
+                url: "../programs/gensel.aspx?cscript=getconfiguracaomreport",
+                async: false,
+                data: {
+                    '__EVENTARGUMENT': JSON.stringify([{ codigo: data.codigo }]),
+                },
+                success: function (response) {
+                    var errorMessage = "ao trazer resultados da configuração do m report";
+                    try {
+                        if (response.cod != "0000") {
+                            console.log("Erro " + errorMessage, response);
+                            return false;
+                        }
+                        fetchDadosMreport({}, response.data);
+                    } catch (error) {
+                        console.log("Erro interno " + errorMessage, response);
+                    }
+                }
+            });
+
+            addStyvaroReportDesigner();
+            generatemreportReportDesigner();
+
+            // Configurar interact.js para drag and drop e redimensionamento
+            var canvas = document.getElementById('report-canvas');
+
+
+            // Aplicação principal
+            var App = PetiteVue.reactive({
+                // Estado da aplicação
+                components: getTiposObjectoConfig(),
+                reportObjects: mreportThis.GMReportObjects,
+                filters: mreportThis.GMReportFilters,
+                dataSources: mreportThis.GMReportFontes,
+                selectedObject: null,
+                dragging: false,
+                dragObject: null,
+                dragOffset: { x: 0, y: 0 },
+                resizing: false,
+                resizeObject: null,
+                resizeStart: { x: 0, y: 0, width: 0, height: 0 },
+                getSectionObjects: function (section) {
+                    var self = this;
+                    return self.reportObjects.filter(function (obj) {
+                        return obj.section === section;
+                    });
+                }
+
+            });
+            window.reportRenderedState = App;
+
+            PetiteVue.createApp(App).mount('#reportRenderedContainer');
+
+            mreportThis.GMReportObjects.forEach(function (obj) {
+
+                var selector = "#object-report-to-render-" + obj.mreportobjectstamp;
+                obj.renderOnPage(selector, false);
+            })
+
+            // Inicializar petite-vue
+
+
+        }
+    }
+
+</script>
+
+</html>

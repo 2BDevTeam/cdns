@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Facturas - SANITEX</title>
+    <script src="https://unpkg.com/petite-vue" defer init></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        
+        body {
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .controls {
+            max-width: 800px;
+            margin: 0 auto 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #1a252f;
+        }
+        
+        .m-report-rendered-report-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .page {
+            position: relative;
+            width: 100%;
+            min-height: 1122px; /* A4 height at 96dpi */
+            padding: 30px;
+            page-break-after: always;
+            background: white;
+        }
+        
+        .page-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 20px;
+        }
+        
+        .company-info h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .invoice-info {
+            text-align: right;
+        }
+        
+        .invoice-number {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .client-info, .company-details {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .section-title {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        
+        th {
+            background-color: #2c3e50;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .totals {
+            width: 300px;
+            margin-left: auto;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .total-final {
+            font-weight: bold;
+            font-size: 18px;
+            color: #2c3e50;
+            border-bottom: 2px solid #2c3e50;
+        }
+        
+        .footer {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .notes {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .page-number {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            
+            .controls {
+                display: none;
+            }
+            
+            .m-report-rendered-report-container {
+                box-shadow: none;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div v-scope="MpreportPage()">
+        <div class="controls">
+            <button @click="addItem">Adicionar Item</button>
+            <button @click="printReport">Imprimir</button>
+        </div>
+        
+        <div class="m-report-rendered-report-container">
+            <div v-for="(page, pageIndex) in pages" :key="pageIndex" class="page">
+                <div class="page-content">
+                    <!-- Cabeçalho -->
+                    <div class="header">
+                        <div class="company-info">
+                            <h1>SANITEX</h1>
+                            <p>Especialistas em Soluções Sanitárias</p>
+                            <p>Rua da Indústria, 123</p>
+                            <p>2400-000 Leiria</p>
+                            <p>Tel: 244 123 456 | Email: info@sanitex.pt</p>
+                            <p>NIF: 123 456 789</p>
+                        </div>
+                        
+                        <div class="invoice-info">
+                            <div class="invoice-number">FACTURA #{{ invoiceNumber }}</div>
+                            <p><strong>Data:</strong> {{ invoiceDate }}</p>
+                            <p><strong>Vencimento:</strong> {{ dueDate }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Informação do Cliente -->
+                    <div class="client-info">
+                        <div class="section-title">CLIENTE</div>
+                        <p><strong>Nome:</strong> {{ clientName }}</p>
+                        <p><strong>Morada:</strong> {{ clientAddress }}</p>
+                        <p><strong>Localidade:</strong> {{ clientLocation }}</p>
+                        <p><strong>NIF:</strong> {{ clientNIF }}</p>
+                    </div>
+                    
+                    <!-- Itens da Factura -->
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Quantidade</th>
+                                <th>Preço Unitário</th>
+                                <th>IVA</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="item in page.items" :key="item.id">
+                                <td>{{ item.description }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>{{ formatCurrency(item.unitPrice) }}</td>
+                                <td>{{ item.vat }}%</td>
+                                <td>{{ formatCurrency(item.total) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <!-- Totais (apenas na última página) -->
+                    <div v-if="pageIndex === pages.length - 1" class="totals">
+                        <div class="total-row">
+                            <span>Subtotal:</span>
+                            <span>{{ formatCurrency(subtotal) }}</span>
+                        </div>
+                        <div class="total-row">
+                            <span>IVA (23%):</span>
+                            <span>{{ formatCurrency(vatAmount) }}</span>
+                        </div>
+                        <div class="total-row total-final">
+                            <span>TOTAL:</span>
+                            <span>{{ formatCurrency(totalAmount) }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Observações (apenas na última página) -->
+                    <div v-if="pageIndex === pages.length - 1" class="notes">
+                        <div class="section-title">OBSERVAÇÕES</div>
+                        <p>Pagamento por transferência bancária para:</p>
+                        <p>IBAN: PT50 0000 0000 0000 0000 0000 0</p>
+                        <p>Prazo de entrega: 5 dias úteis após confirmação de pagamento</p>
+                    </div>
+                    
+                    <!-- Rodapé -->
+                    <div class="footer">
+                        <p>SANITEX - Soluções em Equipamentos Sanitários</p>
+                        <p>Obrigado pela sua preferência!</p>
+                        <p>www.sanitex.pt | info@sanitex.pt | Tel: 244 123 456</p>
+                    </div>
+                    
+                    <!-- Número da página -->
+                    <div class="page-number">Página {{ pageIndex + 1 }} de {{ pages.length }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function MpreportPage() {
+            return {
+                // Dados da factura
+                invoiceNumber: '2024/001',
+                invoiceDate: '20 de Maio de 2024',
+                dueDate: '20 de Junho de 2024',
+                clientName: 'João Silva Lda.',
+                clientAddress: 'Av. Central, 45',
+                clientLocation: '2400-100 Leiria',
+                clientNIF: '987 654 321',
+                
+                // Itens da factura
+                items: [
+                    { id: 1, description: 'Lavabos modernos - Modelo Lux', quantity: 2, unitPrice: 150.00, vat: 23, total: 300.00 },
+                    { id: 2, description: 'Sanita suspensa - EcoSave', quantity: 3, unitPrice: 89.90, vat: 23, total: 269.70 },
+                    { id: 3, description: 'Misturador cromado - Serie Pro', quantity: 5, unitPrice: 45.00, vat: 23, total: 225.00 },
+                    { id: 4, description: 'Instalação e montagem', quantity: 1, unitPrice: 120.00, vat: 23, total: 120.00 },
+                    { id: 5, description: 'Cuba de banheiro - Modelo Elegance', quantity: 2, unitPrice: 85.00, vat: 23, total: 170.00 },
+                    { id: 6, description: 'Banheira de hidromassagem - Luxury', quantity: 1, unitPrice: 450.00, vat: 23, total: 450.00 },
+                    { id: 7, description: 'Box de chuveiro - Crystal', quantity: 3, unitPrice: 120.00, vat: 23, total: 360.00 },
+                    { id: 8, description: 'Acessórios de banheiro - Kit Completo', quantity: 1, unitPrice: 75.00, vat: 23, total: 75.00 },
+                    { id: 9, description: 'Espelho com iluminação LED', quantity: 2, unitPrice: 65.00, vat: 23, total: 130.00 },
+                    { id: 10, description: 'Armário de banheiro - Madeira Maciça', quantity: 1, unitPrice: 220.00, vat: 23, total: 220.00 },
+                    { id: 11, description: 'Pia de cozinha - Inox Professional', quantity: 1, unitPrice: 180.00, vat: 23, total: 180.00 },
+                    { id: 12, description: 'Torneira de cozinha - Design Moderno', quantity: 2, unitPrice: 55.00, vat: 23, total: 110.00 }
+                ],
+                
+                // Número máximo de itens por página
+                itemsPerPage: 6,
+                
+                // Páginas calculadas
+                get pages() {
+                    const pages = [];
+                    let currentPageItems = [];
+                    
+                    for (let i = 0; i < this.items.length; i++) {
+                        currentPageItems.push(this.items[i]);
+                        
+                        // Se atingiu o limite de itens por página ou é o último item
+                        if (currentPageItems.length >= this.itemsPerPage || i === this.items.length - 1) {
+                            pages.push({
+                                items: [...currentPageItems]
+                            });
+                            currentPageItems = [];
+                        }
+                    }
+                    
+                    return pages;
+                },
+                
+                // Cálculos totais
+                get subtotal() {
+                    return this.items.reduce((sum, item) => sum + item.total, 0);
+                },
+                
+                get vatAmount() {
+                    return this.subtotal * 0.23;
+                },
+                
+                get totalAmount() {
+                    return this.subtotal + this.vatAmount;
+                },
+                
+                // Métodos
+                formatCurrency(value) {
+                    return new Intl.NumberFormat('pt-PT', { 
+                        style: 'currency', 
+                        currency: 'EUR' 
+                    }).format(value);
+                },
+                
+                addItem() {
+                    const newId = this.items.length + 1;
+                    this.items.push({
+                        id: newId,
+                        description: `Novo Item ${newId}`,
+                        quantity: 1,
+                        unitPrice: 50.00,
+                        vat: 23,
+                        total: 50.00
+                    });
+                },
+                
+                printReport() {
+                    window.print();
+                }
+            };
+        }
+    </script>
+</body>
+</html>
