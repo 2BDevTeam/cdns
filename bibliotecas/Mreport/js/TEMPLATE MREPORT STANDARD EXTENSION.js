@@ -12,13 +12,13 @@ function getTiposObjectoConfig() {
             createDynamicSchema: function (data) {
                 var fieldOptions = data.fieldOptions || [];
 
-                
 
-               /* if (data && data.length > 0) {
-                    Object.keys(data[0]).forEach(function (key) {
-                        fieldOptions.push(key);
-                    });
-                }*/
+
+                /* if (data && data.length > 0) {
+                     Object.keys(data[0]).forEach(function (key) {
+                         fieldOptions.push(key);
+                     });
+                 }*/
 
                 return {
                     type: "object",
@@ -348,14 +348,429 @@ function getTiposObjectoConfig() {
                 var config = params.config;
                 var data = params.data;
 
-                updateTextElementMReport(containerSelector, itemObject, config, data,false);
+                updateTextElementMReport(containerSelector, itemObject, config, data, false);
             }
-        }
+        },
+        {
+            id: 2,
+            tipo: "Tabela",
+            descricao: "Tabela",
+            label: "Tabela",
+            icon: "fa fa-table",
+            categoria: "editor",
+            createDynamicSchema: createTableSchema,
+            renderObject: function (params) {
+                var containerSelector = params.containerSelector;
+                var itemObject = params.itemObject;
+                var config = params.config;
+                var data = params.data;
+
+                /*if (!data || data.length === 0) {
+                    console.warn("Nenhum dado disponível para renderizar a tabela");
+                    return;
+                }*/
+
+                updateTable(containerSelector, itemObject, config, data);
+            }
+        },
     ]
 
 
 
 
+}
+
+
+function createTableSchema(data) {
+    var fieldOptions = [];
+
+    data = alasql("select  * from BALANCETE  ")
+    if (data && data.length > 0) {
+        Object.keys(data[0]).forEach(function (key) {
+            fieldOptions.push(key);
+        });
+    }
+
+    return {
+        type: "object",
+        title: "Configuração da Tabela",
+        properties: {
+            // Configurações de hierarquia/nested
+            dataTree: {
+                type: "object",
+                title: "Configuração Hierárquica",
+                properties: {
+                    enabled: {
+                        type: "boolean",
+                        title: "Ativar Estrutura Hierárquica",
+                        'default': true
+                    },
+                    parentField: {
+                        type: "string",
+                        title: "Campo ID do Registo",
+                        'enum': fieldOptions,
+                        'default': "id"
+                    },
+                    childField: {
+                        type: "string",
+                        title: "Campo de Ligação (LinkStamp)",
+                        'enum': fieldOptions,
+                        'default': "linkstamp"
+                    },
+                    startExpanded: {
+                        type: "boolean",
+                        title: "Expandir Tudo Inicialmente",
+                        'default': true
+                    }
+                }
+            },
+
+            // NOVA SEÇÃO: Configurações de Cores
+            styling: {
+                type: "object",
+                title: "Configuração de Cores",
+                properties: {
+                    headerBackgroundColor: {
+                        type: "string",
+                        title: "Cor de Fundo do Cabeçalho",
+                        format: "color",
+                        'default': getColorByType("primary").background
+                    },
+                    headerTextColor: {
+                        type: "string",
+                        title: "Cor do Texto do Cabeçalho",
+                        format: "color",
+                        'default': "#ffffff"
+                    }
+                }
+            },
+
+            // Configurações gerais
+            layout: {
+                type: "string",
+                title: "Layout da Tabela",
+                'enum': ["fitData", "fitColumns", "fitDataFill", "fitDataStretch"],
+                options: {
+                    enum_titles: ["Ajustar aos Dados", "Ajustar Colunas", "Preencher", "Esticar"]
+                },
+                'default': "fitData"
+            },
+            height: {
+                type: "string",
+                title: "Altura da Tabela",
+                'default': "400px"
+            },
+            pagination: {
+                type: "object",
+                title: "Paginação",
+                properties: {
+                    enabled: {
+                        type: "boolean",
+                        title: "Ativar Paginação",
+                        'default': false,
+                        description: "Recomendado desativar com estrutura hierárquica"
+                    },
+                    size: {
+                        type: "integer",
+                        title: "Itens por Página",
+                        'default': 10,
+                        'enum': [5, 10, 25, 50, 100]
+                    }
+                }
+            },
+            columns: {
+                type: "array",
+                title: "Configuração das Colunas",
+                items: {
+                    type: "object",
+                    title: "Coluna",
+                    properties: {
+                        field: {
+                            type: "string",
+                            title: "Campo",
+                            'enum': fieldOptions
+                        },
+                        title: {
+                            type: "string",
+                            title: "Título da Coluna"
+                        },
+                        visible: {
+                            type: "boolean",
+                            title: "Visível",
+                            'default': true
+                        },
+                        width: {
+                            type: "integer",
+                            title: "Largura (px)",
+                            minimum: 50
+                        },
+                        minWidth: {
+                            type: "integer",
+                            title: "Largura Mínima (px)",
+                            'default': 40
+                        },
+                        resizable: {
+                            type: "boolean",
+                            title: "Redimensionável",
+                            'default': true
+                        },
+                        frozen: {
+                            type: "boolean",
+                            title: "Congelar Coluna",
+                            'default': false
+                        },
+                        hozAlign: {
+                            type: "string",
+                            title: "Alinhamento Horizontal",
+                            'enum': ["left", "center", "right"],
+                            'default': "left"
+                        },
+                        vertAlign: {
+                            type: "string",
+                            title: "Alinhamento Vertical",
+                            'enum': ["top", "middle", "bottom"],
+                            'default': "middle"
+                        },
+                        sorter: {
+                            type: "string",
+                            title: "Tipo de Ordenação",
+                            'enum': ["string", "number", "alphanum", "boolean", "exists", "date", "time", "datetime"],
+                            'default': "string"
+                        },
+                        formatter: {
+                            type: "string",
+                            title: "Formatador",
+                            'enum': ["plaintext", "textarea", "number", "html", "money", "link", "datetime", "datetimediff", "tickCross", "color", "star", "traffic", "progress", "lookup", "buttonTick", "buttonCross", "rownum", "handle"],
+                            'default': "plaintext"
+                        },
+                        formatterParams: {
+                            type: "object",
+                            title: "Parâmetros do Formatador",
+                            properties: {
+                                thousand: {
+                                    type: "string",
+                                    title: "Separador de milhares",
+                                    'default': ","
+                                },
+                                decimal: {
+                                    type: "string",
+                                    title: "Separador decimal",
+                                    'default': "."
+                                },
+                                precision: {
+                                    type: "integer",
+                                    title: "Casas decimais",
+                                    'default': 2
+                                },
+                                symbol: {
+                                    type: "string",
+                                    title: "Símbolo da moeda",
+                                    'default': "€"
+                                }
+                            }
+                        },
+                        headerFilter: {
+                            type: "boolean",
+                            title: "Filtro no Cabeçalho",
+                            'default': false
+                        }
+                    },
+                    required: ["field", "title"]
+                },
+                'default': fieldOptions.filter(function (field) {
+                    return field !== 'linkstamp'; // Ocultar linkstamp por padrão
+                }).map(function (field) {
+                    return {
+                        field: field,
+                        title: field.charAt(0).toUpperCase() + field.slice(1),
+                        visible: field !== 'id', // Ocultar ID por padrão mas manter disponível
+                        resizable: true,
+                        frozen: false,
+                        hozAlign: "left",
+                        vertAlign: "middle",
+                        sorter: field === "totalsalario" || field === "totalemprestimo" || field === "funcionarios" ? "number" : "string",
+                        formatter: field === "totalsalario" || field === "totalemprestimo" ? "money" : "plaintext",
+                        headerFilter: false,
+                        formatterParams: field === "totalsalario" || field === "totalemprestimo" ? {
+                            thousand: ",",
+                            decimal: ".",
+                            precision: 2,
+                            symbol: "€"
+                        } : {}
+                    };
+                })
+            }
+        }
+    };
+}
+
+
+function updateTable(containerSelector, itemObject, config, data) {
+    data = alasql("select  * from BALANCETE  ");
+
+    var tabelaId = 'tabulator-table-' + itemObject.mdashcontaineritemobjectstamp;
+    try {
+        // Destruir tabela existente se houver
+        var existingTable = document.getElementById(tabelaId);
+        if (existingTable) {
+            existingTable.innerHTML = '';
+        }
+
+        // APLICAR CORES DO CABEÇALHO DINAMICAMENTE
+        if (config.styling) {
+            var styleElement = document.getElementById('dynamic-table-styles-' + itemObject.mdashcontaineritemobjectstamp);
+            if (styleElement) {
+                styleElement.remove();
+            }
+
+            styleElement = document.createElement('style');
+            styleElement.id = 'dynamic-table-styles-' + itemObject.mdashcontaineritemobjectstamp;
+            // ...existing code...
+
+            styleElement.innerHTML = "";
+            styleElement.innerHTML += ".tabulator .tabulator-header {";
+            styleElement.innerHTML += "    background-color: " + (config.styling.headerBackgroundColor || '#0765b7') + " !important;";
+            styleElement.innerHTML += "}";
+            styleElement.innerHTML += ".tabulator .tabulator-header .tabulator-col {";
+            styleElement.innerHTML += "    background-color: " + (config.styling.headerBackgroundColor || '#0765b7') + " !important;";
+            styleElement.innerHTML += "    color: " + (config.styling.headerTextColor || '#ffffff') + " !important;";
+            styleElement.innerHTML += "}";
+
+            // ...existing code...
+            document.head.appendChild(styleElement);
+        }
+
+        // Configurar colunas visíveis
+        var columns = config.columns.filter(function (col) {
+            return col.visible;
+        }).map(function (col) {
+            var column = {
+                title: col.title,
+                field: col.field,
+                hozAlign: col.hozAlign,
+                vertAlign: col.vertAlign,
+                resizable: col.resizable,
+                frozen: col.frozen,
+                sorter: col.sorter,
+                formatter: col.formatter
+            };
+
+            if (col.width) column.width = col.width;
+            if (col.minWidth) column.minWidth = col.minWidth;
+            if (col.headerFilter) {
+                column.headerFilter = "input";
+            }
+
+            // Configurar formatador com parâmetros
+            if (col.formatter === "money" && col.formatterParams) {
+                column.formatterParams = col.formatterParams;
+                column.formatterParams.symbolAfter = true;
+            }
+
+            return column;
+        });
+
+        // Preparar dados - se hierárquico, converter para árvore
+        var tableData = data;
+        if (config.dataTree && config.dataTree.enabled) {
+            tableData = buildDataTree(data, config.dataTree.parentField, config.dataTree.childField);
+        }
+
+        // Configuração do Tabulator - NATIVA
+        var tabulatorConfig = {
+            data: tableData,
+            columns: columns,
+            layout: config.layout || "fitData",
+            height: config.height || "400px"
+        };
+
+        if (config.pagination && config.pagination.enabled && (!config.dataTree || !config.dataTree.enabled)) {
+            tabulatorConfig.pagination = "local";
+            tabulatorConfig.paginationSize = config.pagination.size || 10;
+            tabulatorConfig.paginationSizeSelector = [5, 10, 25, 50, 100];
+        }
+
+        // Configurar estrutura hierárquica NATIVA do Tabulator
+        if (config.dataTree && config.dataTree.enabled) {
+            tabulatorConfig.dataTree = true;
+            tabulatorConfig.dataTreeChildField = "_children";
+            tabulatorConfig.dataTreeStartExpanded = config.dataTree.startExpanded !== false;
+
+            // Usar primeira coluna visível para o expansor
+            if (columns.length > 0) {
+                tabulatorConfig.dataTreeElementColumn = columns[0].field;
+            }
+        }
+
+        // ... resto da função igual (container, eventos, etc.)
+
+        // Criar container da tabela com botões de exportação
+        var tableContainer = $(containerSelector);
+
+        tableContainer.append('<div id="' + tabelaId + '"></div>');
+
+        tabulatorConfig.langs = {
+            "pt-br": {
+                "columns": {
+                    "name": "Nome", //substitui o título da coluna name pelo valor "Nome"
+                },
+                "data": {
+                    "loading": "Carregando", //texto do carregador de dados
+                    "error": "Erro", //texto de erro de dados
+                },
+                "groups": { //texto para a contagem automática de itens no cabeçalho do grupo
+                    "item": "item", //singular para item
+                    "items": "itens", //plural para itens
+                },
+                "pagination": {
+                    "page_size": "Tamanho da Página", //rótulo para o elemento select de tamanho da página
+                    "page_title": "Mostrar Página", //texto de tooltip para o botão de página numérica, aparece antes do número da página (ex: "Mostrar Página" resultará em tooltip "Mostrar Página 1" no botão da página 1)
+                    "first": "Primeira", //texto para o botão da primeira página
+                    "first_title": "Primeira Página", //texto de tooltip para o botão da primeira página
+                    "last": "Última",
+                    "last_title": "Última Página",
+                    "prev": "Anterior",
+                    "prev_title": "Página Anterior",
+                    "next": "Próxima",
+                    "next_title": "Próxima Página",
+                    "all": "Todos",
+                    "counter": {
+                        "showing": "Mostrando",
+                        "of": "de",
+                        "rows": "linhas",
+                        "pages": "páginas",
+                    }
+                },
+                "headerFilters": {
+                    "default": "filtrar coluna...", //texto padrão do placeholder do filtro de cabeçalho
+                    "columns": {
+                        "name": "filtrar nome...", //substitui o texto padrão do filtro de cabeçalho para a coluna name
+                    }
+                }
+            }
+        },
+
+            tabulatorConfig.locale = "pt-br";
+
+            tabulatorConfig.rowHeight=25;
+        // Inicializar Tabulator
+        new Tabulator('#' + tabelaId, tabulatorConfig);
+
+    } catch (e) {
+        console.error('Erro ao atualizar tabela:', e);
+    }
+}
+
+
+// Função auxiliar para expandir filhos recursivamente
+function expandChildrenRecursive(row) {
+    var children = row.getTreeChildren();
+    children.forEach(function (child) {
+        if (child.getTreeChildren && child.getTreeChildren().length > 0) {
+            child.treeExpand();
+            expandChildrenRecursive(child);
+        }
+    });
 }
 
 
@@ -444,8 +859,8 @@ function updateTextElementMReport(containerSelector, itemObject, config, data, i
     // PREPARAR CONTEÚDO DOS DADOS - IGUAL AOS OUTROS OBJETOS
     var content = "";
 
-     data = findDataByMapCode(config.dataField);
-    var dataFieldSplitted=config.dataField.split("-")
+    data = findDataByMapCode(config.dataField);
+    var dataFieldSplitted = config.dataField.split("-")
 
 
     if (config.dataField && data && data.length > 0) {
@@ -453,7 +868,7 @@ function updateTextElementMReport(containerSelector, itemObject, config, data, i
         if (config.content && config.content.multipleValues) {
             // Múltiplos valores
             var values = data.map(function (item) {
-                
+
 
                 return formatDataValue(item[dataFieldSplitted[1]], config.dataFormat);
             });

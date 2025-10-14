@@ -1,43 +1,112 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Div que se estica</title>
-<style>
-  .container {
-    width: 300px;
-    background-color: #e0f7fa;
-    border: 2px solid #00796b;
-    padding: 10px;
-    /* Importante: não definir height fixa */
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espaço restante com margem</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+    }
 
-  .item {
-    background-color: #b2dfdb;
-    margin: 5px 0;
-    padding: 10px;
-  }
-</style>
+    main {
+      width: 80%;
+      margin: 30px auto;
+      border: 2px solid #999;
+      background: white;
+      height: 600px; /* altura total */
+      padding: 10px;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden; /* impede ultrapassar o limite */
+    }
+
+    .caixa {
+      background: #ddd;
+      margin-bottom: 20px;
+      padding: 20px;
+    }
+
+    .grande {
+      background: #ccc;
+      padding: 20px;
+      height: 250px;
+    }
+  </style>
 </head>
 <body>
 
-<div class="container" id="caixa">
-  <div class="item">Item 1</div>
-  <div class="item">Item 2</div>
-</div>
+  <main id="container">
+    <div class="caixa">Div 1</div>
+    <div class="caixa grande">Div 2 (grande)</div>
+    <div class="caixa">Div 3</div>
+  </main>
 
-<button onclick="adicionarItem()">Adicionar Item</button>
+  <script>
+    /**
+     * Adiciona uma div verde ocupando o espaço restante dentro do container.
+     * @param {string} selector - seletor do container principal.
+     * @param {number} margemSeguranca - unidades em px para reduzir o espaço restante (opcional, padrão: 10px).
+     */
+    function preencherEspacoRestante(selector, margemSeguranca = 10) {
+      const container = document.querySelector(selector);
+      if (!container) {
+        console.error('Container não encontrado:', selector);
+        return;
+      }
 
-<script>
-  function adicionarItem() {
-    const caixa = document.getElementById('caixa');
-    const novo = document.createElement('div');
-    novo.className = 'item';
-    novo.textContent = 'Novo item';
-    caixa.appendChild(novo);
-  }
-</script>
+      // Remove qualquer div verde anterior
+      const existente = container.querySelector('.espaco-restante');
+      if (existente) existente.remove();
+
+      // Altura total do container
+      const containerHeight = container.clientHeight;
+
+      // Soma das alturas de todos os filhos (incluindo margens)
+      let usados = 0;
+      const children = Array.from(container.children);
+
+      children.forEach(el => {
+        const style = window.getComputedStyle(el);
+        const marginTop = parseFloat(style.marginTop);
+        const marginBottom = parseFloat(style.marginBottom);
+        usados += el.offsetHeight + marginTop + marginBottom;
+      });
+
+      // Espaço restante
+      let restante = containerHeight - usados;
+
+      // Aplica margem de segurança
+      restante -= margemSeguranca;
+
+      // Garante que o valor não seja negativo
+      if (restante > 0) {
+        const divVerde = document.createElement('div');
+        divVerde.className = 'espaco-restante';
+        divVerde.textContent = `Espaço restante (${restante.toFixed(2)}px)`;
+        divVerde.style.height = `${restante}px`;
+        divVerde.style.background = 'green';
+        divVerde.style.color = 'white';
+        divVerde.style.display = 'flex';
+        divVerde.style.alignItems = 'center';
+        divVerde.style.justifyContent = 'center';
+        divVerde.style.fontWeight = 'bold';
+        divVerde.style.margin = '0';
+        divVerde.style.borderTop = '2px solid #0f0';
+        divVerde.style.boxSizing = 'border-box';
+        container.appendChild(divVerde);
+      } else {
+        console.log('Nenhum espaço restante ou conteúdo excede o container.');
+      }
+    }
+
+    // 🧩 Chamada com margem de segurança de 20px
+    preencherEspacoRestante('#container', 20);
+    
+  </script>
 
 </body>
 </html>

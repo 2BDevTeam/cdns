@@ -641,7 +641,7 @@ function handleShowConfigContainer(data) {
 
                             var mappedData = replaceLocalDbKeywords(queryResult)
 
-                            var lastResults = mappedData.slice(0, 20);
+                            var lastResults = mappedData.slice(0, 340);
 
                             self.mreportConfigItem.schema = mappedSchema;
                             self.mreportConfigItem.lastResults = lastResults;
@@ -892,7 +892,7 @@ function generatemreportReportDesigner() {
     reportConfigHtml += "                                <i class='fas fa-heading me-1'></i> Cabeçalho";
     reportConfigHtml += "                            </div>";
     reportConfigHtml += "                            <div class='section-content' @dragover.prevent @drop='drop($event, \"header\")' @click='deselectAll'>";
-    reportConfigHtml += "                                <div class='report-object' v-for='obj in getSectionObjects(\"header\")' :key='obj.mreportobjectstamp' :data-mreportobjectstamp='obj.mreportobjectstamp' :style='{ transform: \"translate3d(\" + obj.x + \"px, \" + obj.y + \"px, 0)\", width: obj.width + \"px\", height: obj.height + \"px\", zIndex: obj.selected ? 100 : 10 }' :class='{ selected: obj.selected }' @click.stop='selectObject(obj)'>";
+    reportConfigHtml += "                                <div class='report-object' v-for='obj in getSectionObjects(\"header\")' :key='obj.mreportobjectstamp' :data-mreportobjectstamp='obj.mreportobjectstamp' :style='{ transform: \"translate3d(\" + obj.x + \"px, \" + obj.y + \"px, 0)\", width: obj.width + \"px\", height: obj.height + \"px\" }' :class='{ selected: obj.selected }' @click.stop='selectObject(obj)'>";
     reportConfigHtml += "                                    <div class='object-handle'>";
     reportConfigHtml += "                                        <i :class='obj.icon' class='me-1'></i>{{ obj.descricao }}";
     reportConfigHtml += "                                    </div>";
@@ -912,19 +912,12 @@ function generatemreportReportDesigner() {
     reportConfigHtml += "                                <i class='fas fa-file-alt me-1'></i> Conteúdo";
     reportConfigHtml += "                            </div>";
     reportConfigHtml += "                            <div class='section-content' @dragover.prevent @drop='drop($event, \"content\")' @click='deselectAll'>";
-    reportConfigHtml += "                                <div class='report-object' v-for='obj in getSectionObjects(\"content\")' :key='obj.mreportobjectstamp' :data-mreportobjectstamp='obj.mreportobjectstamp' :style='{ transform: \"translate3d(\" + obj.x + \"px, \" + obj.y + \"px, 0)\", width: obj.width + \"px\", height: obj.height + \"px\", zIndex: obj.selected ? 100 : 10 }' :class='{ selected: obj.selected }' @click.stop='selectObject(obj)'>";
+    reportConfigHtml += "                                <div class='report-object' v-for='obj in getSectionObjects(\"content\")' :key='obj.mreportobjectstamp' :data-mreportobjectstamp='obj.mreportobjectstamp' :style='{ transform: \"translate3d(\" + obj.x + \"px, \" + obj.y + \"px, 0)\", width: obj.width + \"px\", height: obj.height + \"px\" }' :class='{ selected: obj.selected }' @click.stop='selectObject(obj)'>";
     reportConfigHtml += "                                    <div class='object-handle'>";
     reportConfigHtml += "                                        <i :class='obj.icon' class='me-1'></i>{{ obj.descricao }}";
     reportConfigHtml += "                                    </div>";
-    reportConfigHtml += "                                    <div class='object-content' v-if='obj.tipo === \"text\"'>{{ obj.content || 'Texto de exemplo' }}</div>";
-    reportConfigHtml += "                                    <div class='object-content' v-if='obj.tipo === \"table\"'>";
-    reportConfigHtml += "                                        <div class='table-responsive'>";
-    reportConfigHtml += "                                            <table class='table table-sm table-bordered'>";
-    reportConfigHtml += "                                                <thead><tr><th v-for='col in 3' :key='col'>Coluna {{ col }}</th></tr></thead>";
-    reportConfigHtml += "                                                <tbody><tr v-for='row in 3' :key='row'><td v-for='col in 3' :key='col'>Dado {{ row }}-{{ col }}</td></tr></tbody>";
-    reportConfigHtml += "                                            </table>";
-    reportConfigHtml += "                                        </div>";
-    reportConfigHtml += "                                    </div>";
+    reportConfigHtml += "                                    <div :id='\"object-report-to-render-\" + obj.mreportobjectstamp'  class='object-content'>{{ obj.content || 'Texto de exemplo' }}</div>";
+   
     reportConfigHtml += "                                    <div class='resize-handle' @mousedown.stop='startResize(obj, $event)'></div>";
     reportConfigHtml += "                                </div>";
     reportConfigHtml += "                                <div v-if='getSectionObjects(\"content\").length === 0' class='empty-section'>";
@@ -939,20 +932,12 @@ function generatemreportReportDesigner() {
     reportConfigHtml += "                                <i class='fas fa-ellipsis-h me-1'></i> Rodapé";
     reportConfigHtml += "                            </div>";
     reportConfigHtml += "                            <div class='section-content' @dragover.prevent @drop='drop($event, \"footer\")' @click='deselectAll'>";
-    reportConfigHtml += "                                <div class='report-object' v-for='obj in getSectionObjects(\"footer\")' :key='obj.mreportobjectstamp' :data-mreportobjectstamp='obj.mreportobjectstamp' :style='{ transform: \"translate3d(\" + obj.x + \"px, \" + obj.y + \"px, 0)\", width: obj.width + \"px\", height: obj.height + \"px\", zIndex: obj.selected ? 100 : 10 }' :class='{ selected: obj.selected }' @click.stop='selectObject(obj)'>";
+    reportConfigHtml += "                                <div class='report-object' v-for='obj in getSectionObjects(\"footer\")' :key='obj.mreportobjectstamp' :data-mreportobjectstamp='obj.mreportobjectstamp' :style='{ transform: \"translate3d(\" + obj.x + \"px, \" + obj.y + \"px, 0)\", width: obj.width + \"px\", height: obj.height + \"px\" }' :class='{ selected: obj.selected }' @click.stop='selectObject(obj)'>";
     reportConfigHtml += "                                    <div class='object-handle'>";
     reportConfigHtml += "                                        <i :class='obj.icon' class='me-1'></i>{{ obj.descricao }}";
     reportConfigHtml += "                                    </div>";
-    reportConfigHtml += "                                    <div class='object-content' v-if='obj.tipo === \"text\"'>{{ obj.content || 'Texto de exemplo' }}</div>";
-    reportConfigHtml += "                                    <div class='object-content' v-if='obj.tipo === \"table\"'>";
-    reportConfigHtml += "                                        <div class='table-responsive'>";
-    reportConfigHtml += "                                            <table class='table table-sm table-bordered'>";
-    reportConfigHtml += "                                                <thead><tr><th v-for='col in 3' :key='col'>Coluna {{ col }}</th></tr></thead>";
-    reportConfigHtml += "                                                <tbody><tr v-for='row in 3' :key='row'><td v-for='col in 3' :key='col'>Dado {{ row }}-{{ col }}</td></tr></tbody>";
-    reportConfigHtml += "                                            </table>";
-    reportConfigHtml += "                                        </div>";
-    reportConfigHtml += "                                    </div>";
-    reportConfigHtml += "                                    <div class='resize-handle' @mousedown.stop='startResize(obj, $event)'></div>";
+    reportConfigHtml += "                                    <div :id='\"object-report-to-render-\" + obj.mreportobjectstamp' class='object-content' >{{ obj.content || 'Texto de exemplo' }}</div>";
+  
     reportConfigHtml += "                                </div>";
     reportConfigHtml += "                                <div v-if='getSectionObjects(\"footer\").length === 0' class='empty-section'>";
     reportConfigHtml += "                                    <i class='fas fa-arrow-down'></i>";
@@ -1104,7 +1089,6 @@ function fetchDadosMreport(config, dados) {
 
         var newObject = new MReportObject(o);
         newObject.setUIData();
-
         return newObject;
 
     });
@@ -1247,53 +1231,53 @@ function initConfiguracaoMReport(data) {
                                 }
                             }
                         }
-                    })
-                //.resizable({
-                //    edges: { left: true, right: true, bottom: true, top: true },
-                //    inertia: true,
-                //    modifiers: [
-                //        /* interact.modifiers.restrictEdges({
-                //             outer: 'parent'
-                //         }),*/
-                //        interact.modifiers.restrictSize({
-                //            min: { width: 50, height: 30 }
-                //        })
-                //    ],
-                //    listeners: {
-                //        move: function (event) {
-                //            var target = event.target;
-                //            var id = target.getAttribute('data-mreportobjectstamp');
-                //            var obj = self.reportObjects.find(function (o) {
-                //                return o.mreportobjectstamp == id;
-                //            });
+                    }).
+                resizable({
+                   edges: { left: true, right: true, bottom: true, top: true },
+                    inertia: true,
+                    modifiers: [
+                       interact.modifiers.restrictEdges({
+                             outer: 'parent'
+                         }),
+                        interact.modifiers.restrictSize({
+                            min: { width: 50, height: 30 }
+                        })
+                    ],
+                    listeners: {
+                        move: function (event) {
+                            var target = event.target;
+                            var id = target.getAttribute('data-mreportobjectstamp');
+                            var obj = self.reportObjects.find(function (o) {
+                                return o.mreportobjectstamp == id;
+                            });
 
-                //            if (obj) {
-                //                // Atualiza tamanho no modelo
-                //                obj.width = event.rect.width;
-                //                obj.height = event.rect.height;
+                            if (obj) {
+                              
+                                obj.width = event.rect.width;
+                                obj.height = event.rect.height;
 
-                //                // Atualiza posição se redimensionar da esquerda ou topo
-                //                obj.x += event.deltaRect.left;
-                //                obj.y += event.deltaRect.top;
+                               
+                                obj.x += event.deltaRect.left;
+                                obj.y += event.deltaRect.top;
 
-                //                // Atualiza o estilo
-                //                target.style.width = obj.width + 'px';
-                //                target.style.height = obj.height + 'px';
-                //                target.style.transform = "translate3d(" + obj.x + "px, " + obj.y + "px, 0)";
-                //            }
-                //        },
-                //        end: function (event) {
-                //            var target = event.target;
-                //            var id = target.getAttribute('data-mreportobjectstamp');
-                //            var obj = self.reportObjects.find(function (o) {
-                //                return o.mreportobjectstamp == id;
-                //            });
-                //            if (obj) {
-                //                realTimeComponentSync(obj, obj.table, obj.idfield);
-                //            }
-                //        }
-                //    }
-                //});*/
+                               
+                                target.style.width = obj.width + 'px';
+                                target.style.height = obj.height + 'px';
+                                target.style.transform = "translate3d(" + obj.x + "px, " + obj.y + "px, 0)";
+                            }
+                        },
+                        end: function (event) {
+                            var target = event.target;
+                            var id = target.getAttribute('data-mreportobjectstamp');
+                            var obj = self.reportObjects.find(function (o) {
+                                return o.mreportobjectstamp == id;
+                            });
+                            if (obj) {
+                                realTimeComponentSync(obj, obj.table, obj.idfield);
+                            }
+                        }
+                    }
+                });
             }, 1000);
 
         },
@@ -1612,12 +1596,19 @@ function initConfiguracaoMReport(data) {
             });
 
             editor.on('change', function () {
-
                 var currentValue = editor.getValue();
                 reportObject.configjson = JSON.stringify(currentValue);
                 var selector = "#object-report-to-render-" + reportObject.mreportobjectstamp;
-                var currentValue = editor.getValue();
+                /*  var currentValue = editor.getValue();
                 reportObject.config = currentValue;
+                //self.containerItem.refreshContainerItem(".container-item-object-render");
+                reportObject.renderObjectByContainerItem(".container-item-object-render-" + reportObject.mdashreportObjectstamp, self.containerItem);
+                $(".card-title").css(
+                    {
+                        "font-size": "14px",
+                        "font-weight": "bold"
+                        }
+                        )*/
 
                 reportObject.renderOnPage(selector, true);
                 setTimeout(function () {
@@ -1693,16 +1684,9 @@ function initConfiguracaoMReport(data) {
         }
     });
     window.reportDesignerState = App;
-   
-    PetiteVue.createApp(App).mount('#reportDesignerContainer');
-
-    GMReportObjects.forEach(function (obj) {
-
-        var selector = "#object-report-to-render-" + obj.mreportobjectstamp;
-        obj.renderOnPage(selector, false);
-    })
 
     // Inicializar petite-vue
+    PetiteVue.createApp(App).mount('#reportDesignerContainer');
 
 
 }
@@ -1904,7 +1888,7 @@ MReportObject.prototype.renderOnPage = function (selector, clearContainer) {
         containerSelector: selector,
         itemObject: self,
         config: self.config,
-        data: []
+        data: alasql("select *from BALANCETEY")
     })
 
 }
@@ -2088,6 +2072,126 @@ function generateQueryButtonOptions() {
 }
 
 
+
+function MReportFonte(data) {
+    var self = this;
+
+    var maxOrdem = 0;
+    if (Array.isArray(GMReportFontes) && GMReportFontes.length > 0) {
+        maxOrdem = GMReportFontes.reduce(function (max, item) {
+            return Math.max(max, item.ordem || 0);
+        }, 0);
+    }
+    // Propriedades baseadas na estrutura da tabela
+    this.mreportfonstestamp = data.mreportfonstestamp || generateUUID();
+    this.mreportstamp = data.mreportstamp || GMRelatorioStamp;
+    this.codigo = data.codigo || "Fonte-" + generateUUID();
+    this.descricao = data.descricao || 'Nova Fonte ' + (data.ordem || (maxOrdem + 1));
+    this.tipo = data.tipo || 'query'; // query, api, json, csv, etc.
+    this.expressaolistagem = data.expressaolistagem || '';
+    this.expressaojslistagem = data.expressaojslistagem || '';
+    this.ordem = (data.ordem || (maxOrdem + 1));
+    this.schemajson = data.schemajson || '[]';
+    this.lastResultscached = data.lastResultscached || '[]';
+
+
+    // propriedades adicionais para funcionalidade
+    this.schema = [];
+    this.lastResults = [];
+
+    this.lastResults = forceJSONParse(this.lastResultscached, []);
+    this.schema = forceJSONParse(this.schemajson, []);
+    this.testData = data.testData || [];
+    this.lastExecuted = data.lastExecuted || [];
+    this.isActive = data.isActive !== undefined ? data.isActive : true;
+
+
+    var schemaQueryEditorContainerHtml = "";
+
+    schemaQueryEditorContainerHtml += generateQueryButtonOptions();
+
+
+    schemaQueryEditorContainerHtml += generateFilterVariablesParaFonteHTML();
+
+
+    this.schemaQueryEditor = schemaQueryEditorContainerHtml;
+
+
+    this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+    this.localsource = data.localsource || "";
+    this.idfield = data.idfield || "mreportfonstestamp";
+    this.table = "MReportFonte";
+}
+
+MReportFonte.prototype.setTupDataOnLocalDb = function (data) {
+
+    var tableSchema = extractLocalDbSchema(this.lastResults[0]);
+
+    setTupDataOnLocalDb("MReportDB", this.codigo, tableSchema, this.lastResults, this.mreportfonstestamp);
+}
+
+MReportFonte.prototype.setUIFormConfig = function () {
+
+    var UIFormConfig = getMReportFonteUIObjectFormConfigAndSourceValues();
+    this.objectsUIFormConfig = UIFormConfig.objectsUIFormConfig;
+    this.localsource = UIFormConfig.localsource;
+    this.idfield = UIFormConfig.idField;
+}
+
+function getMReportFonteUIObjectFormConfigAndSourceValues() {
+    var objectsUIFormConfig = [
+        new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "descricao", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "ordem", tipo: "digit", titulo: "Ordem", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({
+            colSize: 12,
+            campo: "tipo",
+            tipo: "select",
+            titulo: "Tipo",
+            fieldToOption: "option",
+            contentType: "select",
+            fieldToValue: "value",
+            classes: "form-control input-source-form  input-sm ",
+            selectValues: [
+                { option: "Query SQL", value: "query" },
+                /*   { option: "API REST", value: "api" },
+                   { option: "JSON", value: "json" },
+                   { option: "CSV", value: "csv" }*/
+            ]
+        }),
+        new UIObjectFormConfig({ customData: " v-on:keyup='changeExpressaoDbListagemAndHandleFilters()'", colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
+
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "schemaQueryEditor", tipo: "div", cols: 90, rows: 90, titulo: "", classes: "input-source-form", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaojslistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem JS", classes: "input-source-form m-editor ", contentType: "div" })
+    ];
+    return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMReportFontes", idField: "mreportfonstestamp" };
+}
+
+
+MReportFonte.prototype.stringifyJSONFields = function () {
+    var data = this;
+    data.schemajson = JSON.stringify(data.schema || []);
+    data.lastResultscached = JSON.stringify(data.lastResults || []);
+    return data;
+}
+
+
+
+
+function forceJSONParse(data, defaultValue) {
+
+    if (typeof data === 'string') {
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+            return defaultValue;
+        }
+    }
+    else {
+        return data || defaultValue;
+    }
+
+}
 
 
 

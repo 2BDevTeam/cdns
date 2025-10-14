@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MReport - N Níveis de Agrupamento</title>
+    <style>
+        /* Estilos para página A4 */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 9pt;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+
+        .a4-page {
+            width: 21cm;
+            min-height: 29.7cm;
+            padding: 1.5cm;
+            margin: 0 auto 20px auto;
+            box-sizing: border-box;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background: white;
+            position: relative;
+        }
+
+        /* Cabeçalho do relatório */
+        .report-header {
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .report-title {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .report-subtitle {
+            font-size: 11pt;
+            color: #7f8c8d;
+            margin: 5px 0 0 0;
+        }
+
+        /* Rodapé do relatório */
+        .report-footer {
+            position: absolute;
+            bottom: 1.5cm;
+            left: 1.5cm;
+            right: 1.5cm;
+            border-top: 1px solid #bdc3c7;
+            padding-top: 8px;
+            font-size: 8pt;
+            color: #7f8c8d;
+        }
+
+        /* Tabela de dados */
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            font-size: 9pt;
+        }
+
+        .report-table th {
+            background-color: #34495e;
+            color: white;
+            padding: 6px 8px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #2c3e50;
+        }
+
+        .report-table td {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+        }
+
+        /* Estilos para grupos multi-nível */
+        .group-header {
+            background-color: #ecf0f1;
+            font-weight: bold;
+            padding: 6px 8px;
+            margin: 4px 0 2px 0;
+            font-size: 9pt;
+            border-left: 4px solid #3498db;
+        }
+
+        .group-header-level-0 {
+            background-color: #2c3e50;
+            color: white;
+            border-left: 4px solid #e74c3c;
+            font-size: 10pt;
+        }
+
+        .group-header-level-1 {
+            background-color: #3498db;
+            color: white;
+            border-left: 4px solid #2980b9;
+            margin-left: 15px;
+        }
+
+        .group-header-level-2 {
+            background-color: #9b59b6;
+            color: white;
+            border-left: 4px solid #8e44ad;
+            margin-left: 30px;
+        }
+
+        .group-header-level-3 {
+            background-color: #1abc9c;
+            color: white;
+            border-left: 4px solid #16a085;
+            margin-left: 45px;
+        }
+
+        .group-header-level-4 {
+            background-color: #f39c12;
+            color: white;
+            border-left: 4px solid #d35400;
+            margin-left: 60px;
+        }
+
+        /* Totais por grupo */
+        .group-total {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            padding: 6px 8px;
+            margin: 2px 0 4px 0;
+            border-top: 2px solid #bdc3c7;
+            font-size: 9pt;
+        }
+
+        .group-total-level-0 {
+            background-color: #c0392b;
+            color: white;
+            font-size: 10pt;
+        }
+
+        .group-total-level-1 {
+            background-color: #d35400;
+            color: white;
+            margin-left: 15px;
+        }
+
+        .group-total-level-2 {
+            background-color: #8e44ad;
+            color: white;
+            margin-left: 30px;
+        }
+
+        .group-total-level-3 {
+            background-color: #16a085;
+            color: white;
+            margin-left: 45px;
+        }
+
+        .group-total-level-4 {
+            background-color: #27ae60;
+            color: white;
+            margin-left: 60px;
+        }
+
+        .grand-total {
+            background-color: #2c3e50;
+            color: white;
+            font-weight: bold;
+            padding: 8px;
+            margin-top: 10px;
+            font-size: 10pt;
+        }
+
+        /* Utilitários */
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-bold {
+            font-weight: bold;
+        }
+
+        /* Impressão */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+
+            .a4-page {
+                box-shadow: none;
+                margin: 0;
+                padding: 1.5cm;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+
+        /* Controles */
+        .controls {
+            margin: 20px auto;
+            width: 21cm;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .config-panel {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .config-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        select,
+        input {
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+
+        .group-level {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: #e8f4fc;
+            border-radius: 4px;
+        }
+
+        .stats {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e8f4fc;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="controls no-print">
+        <h2>MReport - N Níveis de Agrupamento</h2>
+        <button onclick="window.print()">📄 Imprimir Relatório</button>
+        <button onclick="generateReport()">🔄 Gerar Relatório</button>
+        <button onclick="addGroupLevel()">➕ Adicionar Nível</button>
+        <button onclick="resetGroups()">🗑️ Limpar Grupos</button>
+
+        <div class="config-panel">
+            <h3>Configuração de Agrupamentos</h3>
+            <div id="groupLevelsContainer">
+                <!-- Níveis de agrupamento serão adicionados aqui -->
+            </div>
+
+            <div class="config-group">
+                <label>
+                    <input type="checkbox" id="showGroupTotals" checked>
+                    Mostrar totais por grupo
+                </label>
+                <label>
+                    <input type="checkbox" id="showGrandTotal" checked>
+                    Mostrar total geral
+                </label>
+            </div>
+        </div>
+
+        <div class="stats">
+            <strong>Estatísticas do Relatório:</strong>
+            <span id="statsInfo">Carregando...</span>
+        </div>
+    </div>
+
+    <div id="report-container">
+        <!-- O relatório será gerado aqui -->
+    </div>
+
+    <script>
+        // ===== SISTEMA MREPORT COM N NÍVEIS DE AGRUPAMENTO =====
+
+        function Mreport() {
+            // Propriedades privadas
+            const state = {
+                rows: [],
+                columns: [],
+                data: [],
+                config: {
+                    title: 'Relatório',
+                    subtitle: '',
+                    showPageNumbers: true,
+                    showDate: true,
+                    groupFields: [],
+                    showGroupTotals: true,
+                    showGrandTotal: true
+                }
+            };
+
+            // Métodos públicos
+            const methods = {
+                setConfig(config) {
+                    state.config = { ...state.config, ...config };
+                    return this;
+                },
+
+                setColumns(columns) {
+                    state.columns = columns;
+                    return this;
+                },
+
+                setData(data) {
+                    state.data = data;
+                    return this;
+                },
+
+                render(containerId) {
+                    const container = document.getElementById(containerId);
+                    if (!container) {
+                        console.error('Container não encontrado:', containerId);
+                        return this;
+                    }
+
+                    container.innerHTML = '';
+
+                    // Processar dados com agrupamento multi-nível
+                    let processedData = [];
+
+                    if (state.config.groupFields.length > 0) {
+                        processedData = methods.groupDataMultiLevel(state.data, state.config.groupFields, 0);
+                    } else {
+                        processedData = [...state.data];
+                    }
+
+                    // Adicionar total geral
+                    if (state.config.showGrandTotal) {
+                        processedData.push({
+                            type: 'grand-total',
+                            data: state.data
+                        });
+                    }
+
+                    // Paginar dados
+                    const linesPerPage = methods.calculateLinesPerPage();
+                    const pages = methods.paginateData(processedData, linesPerPage);
+
+                    // Renderizar páginas
+                    pages.forEach((pageData, pageIndex) => {
+                        const page = methods.createPage(pageData, pageIndex + 1, pages.length);
+                        container.appendChild(page);
+                    });
+
+                    // Atualizar estatísticas
+                    methods.updateStats(pages.length, processedData.length);
+
+                    return this;
+                },
+
+                // Agrupamento recursivo para N níveis
+                groupDataMultiLevel(data, groupFields, level = 0) {
+                    if (level >= groupFields.length) {
+                        return data;
+                    }
+
+                    const currentField = groupFields[level];
+                    const grouped = {};
+
+                    // Agrupar por campo atual
+                    data.forEach(item => {
+                        const key = item[currentField] || 'Não Definido';
+                        if (!grouped[key]) {
+                            grouped[key] = [];
+                        }
+                        grouped[key].push(item);
+                    });
+
+                    const result = [];
+                    const sortedGroups = Object.keys(grouped).sort();
+
+                    sortedGroups.forEach(key => {
+                        // Cabeçalho do grupo atual
+                        result.push({
+                            type: 'group-header',
+                            level: level,
+                            value: key,
+                            groupField: currentField
+                        });
+
+                        // Processar subgrupos recursivamente
+                        const subGrouped = methods.groupDataMultiLevel(grouped[key], groupFields, level + 1);
+                        result.push(...subGrouped);
+
+                        // Total do grupo atual
+                        if (state.config.showGroupTotals && level < groupFields.length - 1) {
+                            result.push({
+                                type: 'group-total',
+                                level: level,
+                                value: key,
+                                groupField: currentField,
+                                data: grouped[key]
+                            });
+                        }
+                    });
+
+                    return result;
+                },
+
+                paginateData(data, linesPerPage) {
+                    const pages = [];
+                    let currentPage = [];
+                    let currentLines = 0;
+
+                    const addPage = () => {
+                        if (currentPage.length > 0) {
+                            pages.push([...currentPage]);
+                            currentPage = [];
+                            currentLines = 0;
+                        }
+                    };
+
+                    data.forEach(item => {
+                        const itemLines = methods.calculateItemLines(item);
+
+                        if (currentLines + itemLines > linesPerPage && currentLines > 0) {
+                            addPage();
+                        }
+
+                        currentPage.push(item);
+                        currentLines += itemLines;
+
+                        if (currentLines >= linesPerPage) {
+                            addPage();
+                        }
+                    });
+
+                    addPage();
+
+                    return pages;
+                },
+
+                calculateItemLines(item) {
+                    if (item.type && item.type.includes('group')) return 2;
+                    if (item.type === 'grand-total') return 3;
+                    return 1;
+                },
+
+                calculateLinesPerPage() {
+                    return 40;
+                },
+
+                createPage(pageData, pageNumber, totalPages) {
+                    const page = document.createElement('div');
+                    page.className = 'a4-page';
+
+                    page.appendChild(methods.createHeader(pageNumber, totalPages));
+                    page.appendChild(methods.createContent(pageData));
+                    page.appendChild(methods.createFooter(pageNumber, totalPages));
+
+                    return page;
+                },
+
+                createHeader(pageNumber, totalPages) {
+                    const header = document.createElement('div');
+                    header.className = 'report-header';
+
+                    const title = document.createElement('h1');
+                    title.className = 'report-title';
+                    title.textContent = state.config.title;
+                    header.appendChild(title);
+
+                    if (state.config.subtitle) {
+                        const subtitle = document.createElement('p');
+                        subtitle.className = 'report-subtitle';
+                        subtitle.textContent = state.config.subtitle;
+                        header.appendChild(subtitle);
+                    }
+
+                    // Info dos grupos ativos
+                    if (state.config.groupFields.length > 0) {
+                        const groupInfo = document.createElement('div');
+                        groupInfo.style.cssText = 'font-size: 9pt; color: #7f8c8d; margin-top: 5px;';
+                        groupInfo.textContent = `Agrupado por: ${state.config.groupFields.join(' → ')}`;
+                        header.appendChild(groupInfo);
+                    }
+
+                    const pageInfo = document.createElement('div');
+                    pageInfo.style.cssText = 'text-align: right; font-size: 8pt; color: #7f8c8d; margin-top: 5px;';
+
+                    if (state.config.showDate) {
+                        pageInfo.textContent += `Gerado em: ${new Date().toLocaleDateString('pt-BR')} | `;
+                    }
+
+                    if (state.config.showPageNumbers) {
+                        pageInfo.textContent += `Página ${pageNumber} de ${totalPages}`;
+                    }
+
+                    header.appendChild(pageInfo);
+
+                    return header;
+                },
+
+                createContent(pageData) {
+                    const content = document.createElement('div');
+
+                    // Tabela
+                    const table = document.createElement('table');
+                    table.className = 'report-table';
+
+                    // Cabeçalho da tabela
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+
+                    state.columns.forEach(col => {
+                        const th = document.createElement('th');
+                        th.textContent = col.title;
+                        if (col.config && col.config.align) {
+                            th.style.textAlign = col.config.align;
+                        }
+                        if (col.config && col.config.headerColor) {
+                            th.style.backgroundColor = col.config.headerColor;
+                        }
+                        headerRow.appendChild(th);
+                    });
+
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+
+                    // Corpo da tabela
+                    const tbody = document.createElement('tbody');
+
+                    pageData.forEach(item => {
+                        if (item.type === 'group-header') {
+                            const groupRow = document.createElement('tr');
+                            const groupCell = document.createElement('td');
+                            groupCell.colSpan = state.columns.length;
+                            groupCell.className = `group-header group-header-level-${item.level}`;
+                            groupCell.style.paddingLeft = `${15 + (item.level * 15)}px`;
+                            groupCell.textContent = `${methods.getGroupLabel(item.groupField)}: ${item.value}`;
+                            groupRow.appendChild(groupCell);
+                            tbody.appendChild(groupRow);
+                        }
+                        else if (item.type === 'group-total') {
+                            const totals = methods.calculateGroupTotals(item.data);
+                            const totalRow = document.createElement('tr');
+                            const totalCell = document.createElement('td');
+                            totalCell.colSpan = state.columns.length;
+                            totalCell.className = `group-total group-total-level-${item.level}`;
+                            totalCell.style.paddingLeft = `${15 + (item.level * 15)}px`;
+
+                            let totalText = `Total ${methods.getGroupLabel(item.groupField)} ${item.value}: `;
+                            let first = true;
+
+                            state.columns.forEach(col => {
+                                if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                                    if (!first) totalText += ' | ';
+                                    totalText += `${col.title}: ${methods.formatValue(totals[col.field], col.type)}`;
+                                    first = false;
+                                }
+                            });
+
+                            totalCell.textContent = totalText;
+                            totalRow.appendChild(totalCell);
+                            tbody.appendChild(totalRow);
+                        }
+                        else if (item.type === 'grand-total') {
+                            const totals = methods.calculateGrandTotals(item.data);
+                            const totalRow = document.createElement('tr');
+                            const totalCell = document.createElement('td');
+                            totalCell.colSpan = state.columns.length;
+                            totalCell.className = 'grand-total';
+                            totalCell.style.textAlign = 'center';
+
+                            let totalText = 'TOTAL GERAL: ';
+                            let first = true;
+
+                            state.columns.forEach(col => {
+                                if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                                    if (!first) totalText += ' | ';
+                                    totalText += `${col.title}: ${methods.formatValue(totals[col.field], col.type)}`;
+                                    first = false;
+                                }
+                            });
+
+                            totalCell.textContent = totalText;
+                            totalRow.appendChild(totalCell);
+                            tbody.appendChild(totalRow);
+                        }
+                        else {
+                            // Linha de dados normal
+                            const row = document.createElement('tr');
+
+                            state.columns.forEach(col => {
+                                const cell = document.createElement('td');
+                                let value = item[col.field];
+
+                                if (col.config && col.config.align) {
+                                    cell.style.textAlign = col.config.align;
+                                    cell.className = `text-${col.config.align}`;
+                                }
+
+                                value = methods.formatValue(value, col.type);
+                                cell.textContent = value;
+                                row.appendChild(cell);
+                            });
+
+                            tbody.appendChild(row);
+                        }
+                    });
+
+                    table.appendChild(tbody);
+                    content.appendChild(table);
+
+                    return content;
+                },
+
+                createFooter(pageNumber, totalPages) {
+                    const footer = document.createElement('div');
+                    footer.className = 'report-footer';
+
+                    const footerText = document.createElement('div');
+                    footerText.style.textAlign = 'center';
+                    footerText.textContent = state.config.footerText || `MReport System - Página ${pageNumber}/${totalPages}`;
+                    footer.appendChild(footerText);
+
+                    return footer;
+                },
+
+                calculateGroupTotals(groupData) {
+                    const totals = {};
+
+                    state.columns.forEach(col => {
+                        if (col.type === 'numeric' || col.type === 'currency') {
+                            totals[col.field] = 0;
+                            groupData.forEach(item => {
+                                if (!item.type) {
+                                    const value = parseFloat(item[col.field]) || 0;
+                                    totals[col.field] += value;
+                                }
+                            });
+                        }
+                    });
+
+                    return totals;
+                },
+
+                calculateGrandTotals(allData) {
+                    const totals = {};
+
+                    state.columns.forEach(col => {
+                        if (col.type === 'numeric' || col.type === 'currency') {
+                            totals[col.field] = 0;
+                            allData.forEach(item => {
+                                if (!item.type) {
+                                    const value = parseFloat(item[col.field]) || 0;
+                                    totals[col.field] += value;
+                                }
+                            });
+                        }
+                    });
+
+                    return totals;
+                },
+
+                getGroupLabel(field) {
+                    const column = state.columns.find(col => col.field === field);
+                    return column ? column.title : field;
+                },
+
+                formatValue(value, type) {
+                    if (value === null || value === undefined) return '-';
+
+                    switch (type) {
+                        case 'numeric':
+                            return parseInt(value).toLocaleString('pt-BR');
+                        case 'currency':
+                            return parseFloat(value).toLocaleString('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL'
+                            });
+                        case 'percent':
+                            return parseFloat(value).toLocaleString('pt-BR', {
+                                style: 'percent',
+                                minimumFractionDigits: 2
+                            });
+                        default:
+                            return value.toString();
+                    }
+                },
+
+                updateStats(totalPages, totalItems) {
+                    const statsInfo = document.getElementById('statsInfo');
+                    if (statsInfo) {
+                        statsInfo.textContent =
+                            `${totalPages} páginas | ${totalItems} itens processados | ${state.data.length} registros | ${state.config.groupFields.length} níveis de agrupamento`;
+                    }
+                },
+
+                // Métodos adicionais para acesso ao estado (opcional)
+                getConfig() {
+                    return { ...state.config };
+                },
+
+                getColumns() {
+                    return [...state.columns];
+                },
+
+                getData() {
+                    return [...state.data];
+                }
+            };
+
+            // Retornar métodos públicos
+            return methods;
+        }
+
+        // Função de conveniência para criação rápida
+        function MreportGenerate(data, columns, config, containerId) {
+            return Mreport()
+                .setConfig(config)
+                .setColumns(columns)
+                .setData(data)
+                .render(containerId);
+        }
+        // ===== FUNÇÕES PÚBLICAS =====
+        function MreportCol(field, title, type = "text", config = {}) {
+            return { field, title, type, config };
+        }
+
+        function MreportGenerate(data, columns, config, containerId) {
+            const report = new Mreport();
+            report.setConfig(config);
+            report.setColumns(columns);
+            report.setData(data);
+            report.render(containerId);
+        }
+
+        // ===== DADOS COM MÚLTIPLOS NÍVEIS =====
+        const multiLevelData = [
+            // Eletrônicos → Smartphones
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy Z Flip', quantidade: 8, preco: 3899.90, total: 31199.20 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 14', quantidade: 18, preco: 3299.90, total: 59398.20 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Xiaomi', produto: 'Mi 13', quantidade: 10, preco: 1999.90, total: 19999.00 },
+
+            // Eletrônicos → Tablets
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Apple', produto: 'iPad Pro', quantidade: 6, preco: 4299.90, total: 25799.40 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Apple', produto: 'iPad Air', quantidade: 10, preco: 2999.90, total: 29999.00 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Lenovo', produto: 'Tab P12', quantidade: 12, preco: 1299.90, total: 15598.80 },
+
+            // Eletrônicos → Notebooks
+            { categoria: 'Eletrônicos', subcategoria: 'Notebooks', marca: 'Dell', produto: 'Inspiron 15', quantidade: 5, preco: 3299.90, total: 16499.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Notebooks', marca: 'Dell', produto: 'XPS 13', quantidade: 3, preco: 5999.90, total: 17999.70 },
+            { categoria: 'Eletrônicos', subcategoria: 'Notebooks', marca: 'Apple', produto: 'MacBook Air M2', quantidade: 4, preco: 5999.90, total: 23999.60 },
+            { categoria: 'Eletrônicos', subcategoria: 'Notebooks', marca: 'Apple', produto: 'MacBook Pro 16', quantidade: 2, preco: 8999.90, total: 17999.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Notebooks', marca: 'Lenovo', produto: 'ThinkPad X1', quantidade: 6, preco: 4599.90, total: 27599.40 },
+
+            // Livros → Ficção
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: 'Admirável Mundo Novo', quantidade: 18, preco: 34.90, total: 628.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Fantasia', produto: 'Harry Potter e a Pedra Filosofal', quantidade: 15, preco: 49.90, total: 748.50 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Fantasia', produto: 'O Hobbit', quantidade: 20, preco: 37.90, total: 758.00 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Romance', produto: 'Dom Casmurro', quantidade: 25, preco: 29.90, total: 747.50 },
+
+            // Livros → Não-Ficção
+            { categoria: 'Livros', subcategoria: 'Não-Ficção', genero: 'Biografia', produto: 'Steve Jobs - Walter Isaacson', quantidade: 12, preco: 59.90, total: 718.80 },
+            { categoria: 'Livros', subcategoria: 'Não-Ficção', genero: 'Biografia', produto: 'Einstein - Sua Vida, Seu Universo', quantidade: 8, preco: 54.90, total: 439.20 },
+            { categoria: 'Livros', subcategoria: 'Não-Ficção', genero: 'Autoajuda', produto: 'O Poder do Hábito', quantidade: 30, preco: 39.90, total: 1197.00 },
+            { categoria: 'Livros', subcategoria: 'Não-Ficção', genero: 'Autoajuda', produto: 'Mais Esperto que o Diabo', quantidade: 25, preco: 34.90, total: 872.50 },
+
+            // Roupas → Masculino
+            { categoria: 'Roupas', subcategoria: 'Masculino', tipo: 'Camisetas', produto: 'Camiseta Básica Branca', quantidade: 50, preco: 29.90, total: 1495.00 },
+            { categoria: 'Roupas', subcategoria: 'Masculino', tipo: 'Camisetas', produto: 'Camiseta Estampada', quantidade: 38, preco: 39.90, total: 1516.20 },
+            { categoria: 'Roupas', subcategoria: 'Masculino', tipo: 'Calças', produto: 'Calça Jeans Slim', quantidade: 35, preco: 89.90, total: 3146.50 },
+            { categoria: 'Roupas', subcategoria: 'Masculino', tipo: 'Calças', produto: 'Calça de Sarja', quantidade: 20, preco: 79.90, total: 1598.00 },
+
+            // Roupas → Feminino
+            { categoria: 'Roupas', subcategoria: 'Feminino', tipo: 'Vestidos', produto: 'Vestido Floral', quantidade: 22, preco: 129.90, total: 2857.80 },
+            { categoria: 'Roupas', subcategoria: 'Feminino', tipo: 'Vestidos', produto: 'Vestido Longo', quantidade: 9, preco: 199.90, total: 1799.10 },
+            { categoria: 'Roupas', subcategoria: 'Feminino', tipo: 'Blusas', produto: 'Blusa de Seda', quantidade: 14, preco: 159.90, total: 2238.60 },
+            { categoria: 'Roupas', subcategoria: 'Feminino', tipo: 'Blusas', produto: 'Blusa Tricot', quantidade: 11, preco: 79.90, total: 878.90 }
+        ];
+
+        // ===== CONFIGURAÇÃO INICIAL =====
+        const reportColumns = [
+            MreportCol("categoria", "Categoria", "text", { headerColor: "#2c3e50" }),
+            MreportCol("subcategoria", "Subcategoria", "text"),
+            MreportCol("marca", "Marca", "text"),
+            MreportCol("genero", "Gênero", "text"),
+            MreportCol("tipo", "Tipo", "text"),
+            MreportCol("produto", "Produto", "text"),
+            MreportCol("quantidade", "Quantidade", "numeric", { align: "right" }),
+            MreportCol("preco", "Preço Unit.", "currency", { align: "right" }),
+            MreportCol("total", "Total", "currency", { align: "right" })
+        ];
+
+        const availableFields = [
+            { value: 'categoria', label: 'Categoria' },
+            { value: 'subcategoria', label: 'Subcategoria' },
+            { value: 'marca', label: 'Marca' },
+            { value: 'genero', label: 'Gênero' },
+            { value: 'tipo', label: 'Tipo' }
+        ];
+
+        let currentGroupFields = ['categoria', 'subcategoria']; // Agrupamento inicial
+
+        // ===== INTERFACE DE CONTROLE =====
+        function initializeGroupLevels() {
+            const container = document.getElementById('groupLevelsContainer');
+            container.innerHTML = '';
+
+            currentGroupFields.forEach((field, index) => {
+                addGroupLevelToUI(field, index);
+            });
+        }
+
+        function addGroupLevelToUI(field = '', index = -1) {
+            const container = document.getElementById('groupLevelsContainer');
+            const levelDiv = document.createElement('div');
+            levelDiv.className = 'group-level';
+
+            const levelLabel = document.createElement('label');
+            levelLabel.textContent = `Nível ${index + 1}:`;
+            levelLabel.style.marginRight = '10px';
+            levelLabel.style.minWidth = '60px';
+
+            const select = document.createElement('select');
+            select.innerHTML = '<option value="">-- Selecionar Campo --</option>';
+            availableFields.forEach(f => {
+                const option = document.createElement('option');
+                option.value = f.value;
+                option.textContent = f.label;
+                option.selected = f.value === field;
+                select.appendChild(option);
+            });
+
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = '❌';
+            removeBtn.onclick = () => removeGroupLevel(index);
+            removeBtn.style.padding = '4px 8px';
+            removeBtn.style.marginLeft = '10px';
+
+            levelDiv.appendChild(levelLabel);
+            levelDiv.appendChild(select);
+            levelDiv.appendChild(removeBtn);
+
+            if (index === -1) {
+                container.appendChild(levelDiv);
+            } else {
+                const existingLevels = container.getElementsByClassName('group-level');
+                if (index < existingLevels.length) {
+                    container.insertBefore(levelDiv, existingLevels[index]);
+                } else {
+                    container.appendChild(levelDiv);
+                }
+            }
+
+            // Atualizar currentGroupFields quando seleção mudar
+            select.onchange = updateGroupFieldsFromUI;
+        }
+
+        function addGroupLevel() {
+            currentGroupFields.push('');
+            initializeGroupLevels();
+            updateGroupFieldsFromUI();
+        }
+
+        function removeGroupLevel(index) {
+            currentGroupFields.splice(index, 1);
+            initializeGroupLevels();
+            updateGroupFieldsFromUI();
+        }
+
+        function resetGroups() {
+            currentGroupFields = [];
+            initializeGroupLevels();
+            updateGroupFieldsFromUI();
+        }
+
+        function updateGroupFieldsFromUI() {
+            const container = document.getElementById('groupLevelsContainer');
+            const selects = container.getElementsByTagName('select');
+            currentGroupFields = Array.from(selects).map(select => select.value).filter(val => val !== '');
+        }
+
+        function generateReport() {
+            updateGroupFieldsFromUI();
+
+            const config = {
+                title: "RELATÓRIO MULTI-NÍVEL",
+                subtitle: "Análise hierárquica de produtos",
+                groupFields: currentGroupFields,
+                showGroupTotals: document.getElementById('showGroupTotals').checked,
+                showGrandTotal: document.getElementById('showGrandTotal').checked,
+                showPageNumbers: true,
+                showDate: true,
+                footerText: "MReport System - Agrupamento Multi-Nível"
+            };
+
+            MreportGenerate(multiLevelData, reportColumns, config, "report-container");
+        }
+
+        // ===== INICIALIZAÇÃO =====
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeGroupLevels();
+            generateReport();
+        });
+    </script>
+</body>
+
+</html>

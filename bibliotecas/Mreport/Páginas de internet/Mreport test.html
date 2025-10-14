@@ -22,6 +22,7 @@
         position: relative;
         overflow: hidden;
         /* Importante: impede que conteúdo extra escape */
+        page-break-after: always;
     }
 
     .m-report-rendered-header {
@@ -48,6 +49,7 @@
         /* Impede scrollbars */
         display: flex;
         flex-direction: column;
+        position: relative;
     }
 
     .m-report-rendered-content-title {
@@ -109,80 +111,58 @@
     .m-report-rendered-export-btn:hover {
         background-color: #45a049;
     }
-</style>
 
+    .report-object {
+        position: absolute;
+    }
+
+    .object-content {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .continuation-info {
+        font-size: 8px;
+        color: #666;
+        padding: 2px 5px;
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+    }
+
+    @media print {
+        .m-report-rendered-page {
+            box-shadow: none;
+            margin: 0;
+            page-break-after: always;
+        }
+
+        .m-report-rendered-export-btn {
+            display: none;
+        }
+    }
+</style>
 
 
 <script src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
 <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
-
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <!-- Flatpickr Portuguese localization -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
-
 <script src="https://unpkg.com/petite-vue"></script>
 <script src="https://cdn.jsdelivr.net/npm/alasql"></script>
 
 <body>
-
-
     <div style="display: flex;align-items: center;justify-content: center;" id="reportRenderedContainer">
-
-        <div class="m-report-rendered-page" id="a4-content">
-            <header class="m-report-rendered-header">
-
-                <div class='report-object' v-for='obj in getSectionObjects("header")' :key='obj.mreportobjectstamp'
-                    :data-mreportobjectstamp='obj.mreportobjectstamp'
-                    :style='{ transform: "translate3d(" + obj.x + "px, " + obj.y + "px, 0)" }'>
-
-                    <div :id='"object-report-to-render-" + obj.mreportobjectstamp' class='object-content'></div>
-
-                </div>
-
-
-            </header>
-
-            <main class="m-report-rendered-content">
-                <div class='report-object' v-for='obj in getSectionObjects("content")' :key='obj.mreportobjectstamp'
-                    :data-mreportobjectstamp='obj.mreportobjectstamp'
-                    :style='{ transform: "translate3d(" + obj.x + "px, " + obj.y + "px, 0)" }'>
-
-
-                    <div :id='"object-report-to-render-" + obj.mreportobjectstamp' class='object-content'></div>
-
-                </div>
-
-            </main>
-
-            <footer class="m-report-rendered-footer">
-
-                <div class='report-object' v-for='obj in getSectionObjects("footer")' :key='obj.mreportobjectstamp'
-                    :data-mreportobjectstamp='obj.mreportobjectstamp'
-                    :style='{ transform: "translate3d(" + obj.x + "px, " + obj.y + "px, 0)"}'>
-
-
-                    <div :id='"object-report-to-render-" + obj.mreportobjectstamp' class='object-content'></div>
-
-                </div>
-
-            </footer>
-        </div>
+        <!-- As páginas serão geradas dinamicamente pelo MpageReport -->
     </div>
-
-
-
+    <button class="m-report-rendered-export-btn" onclick="exportToPDF()">Exportar para PDF</button>
 </body>
 
 <script>
-    var GReportInstance = new MReport({});
-    $(document).ready(function () {
-
-        GReportInstance = new MReport({ codigo: "RELATORIOACTIVO" });
-        GReportInstance.render();
-
-    });
+    // Classe principal para gerenciamento de páginas e quebra de elementos
 
     function forceJSONParse(data, defaultValue) {
 
@@ -198,140 +178,385 @@
         }
 
     }
+    function MpageReport(config) {
+        var self = this;
 
-    function adicionarDivNoEspacoRestante(container) {
-        // Verifica se o container existe
-        if (!container) {
-            console.error('Container não encontrado');
+        // Configurações
+        this.config = config || {};
+        this.pageWidth = this.config.pageWidth || 794;
+        this.pageHeight = this.config.pageHeight || 1123;
+        this.margins = this.config.margins || { top: 40, right: 40, bottom: 40, left: 40 };
+        this.currentPage = null;
+        this.pages = [];
+        this.currentY = 0;
+
+        // Áreas disponíveis por seção
+        this.sectionHeights = {
+            header: 90,
+            content: 0,
+            footer: 60
+        };
+
+        this.init();
+    }
+
+    MpageReport.prototype.init = function () {
+        this.sectionHeights.content = this.pageHeight -
+            this.sectionHeights.header -
+            this.sectionHeights.footer -
+            this.margins.top -
+            this.margins.bottom;
+
+        this.currentY = this.sectionHeights.header + this.margins.top;
+    };
+
+    MpageReport.prototype.createNewPage = function () {
+        var newPage = {
+            number: this.pages.length + 1,
+            elements: [],
+            sections: {
+                header: [],
+                content: [],
+                footer: []
+            },
+            availableHeight: this.sectionHeights.content,
+            currentY: this.sectionHeights.header + this.margins.top
+        };
+
+        this.pages.push(newPage);
+        this.currentPage = newPage;
+        return newPage;
+    };
+
+    MpageReport.prototype.calculateElementHeight = function (element, data) {
+        var baseHeight = element.height || 60;
+
+        if (element.tipo === "Tabela" && data && data.length > 0) {
+            var config = forceJSONParse(element.configjson, {});
+            var rowHeight = config.rowHeight || 30;
+            var headerHeight = config.showHeader !== false ? 40 : 0;
+
+            return Math.max(baseHeight, headerHeight + (data.length * rowHeight));
+        }
+
+        return baseHeight;
+    };
+
+    MpageReport.prototype.fitsInCurrentPage = function (elementHeight) {
+        if (!this.currentPage) return false;
+
+        var availableSpace = this.currentPage.availableHeight -
+            (this.currentPage.currentY - (this.sectionHeights.header + this.margins.top));
+
+        return elementHeight <= availableSpace;
+    };
+
+    MpageReport.prototype.addElement = function (element, data) {
+        var elementHeight = this.calculateElementHeight(element, data);
+
+        if (!this.currentPage || !this.fitsInCurrentPage(elementHeight)) {
+            this.createNewPage();
+        }
+
+        if (element.tipo === "Tabela" && this.isBreakableElement(element)) {
+            this.handleBreakableElement(element, data, elementHeight);
+        } else {
+            this.addSimpleElement(element, data, elementHeight);
+        }
+    };
+
+    MpageReport.prototype.isBreakableElement = function (element) {
+        return element.tipo === "Tabela";
+    };
+
+    MpageReport.prototype.handleBreakableElement = function (element, data, totalHeight) {
+        var availableSpace = this.getAvailableSpace();
+
+        if (totalHeight <= availableSpace) {
+            this.addSimpleElement(element, data, totalHeight);
+        } else {
+            this.splitAndAddElement(element, data, totalHeight, availableSpace);
+        }
+    };
+
+    MpageReport.prototype.getAvailableSpace = function () {
+        if (!this.currentPage) return 0;
+
+        return this.currentPage.availableHeight -
+            (this.currentPage.currentY - (this.sectionHeights.header + this.margins.top));
+    };
+
+    MpageReport.prototype.addSimpleElement = function (element, data, height) {
+        var pageElement = {
+            element: element,
+            data: data,
+            height: height,
+            y: this.currentPage.currentY,
+            isPartial: false,
+            partNumber: 1,
+            totalParts: 1
+        };
+
+        this.currentPage.elements.push(pageElement);
+        this.currentPage.sections.content.push(pageElement);
+        this.currentPage.currentY += height;
+    };
+
+    MpageReport.prototype.splitAndAddElement = function (element, data, totalHeight, availableSpace) {
+        if (element.tipo === "Tabela") {
+            this.splitTableElement(element, data, totalHeight, availableSpace);
+        }
+    };
+
+    MpageReport.prototype.splitTableElement = function (element, data, totalHeight, availableSpace) {
+        var config = forceJSONParse(element.configjson, {});
+        var rowHeight = config.rowHeight || 30;
+        var headerHeight = config.showHeader !== false ? 40 : 0;
+
+        var availableRowsHeight = availableSpace - headerHeight;
+        var rowsThatFit = Math.floor(availableRowsHeight / rowHeight);
+
+        if (rowsThatFit <= 0) {
+            this.createNewPage();
+            this.splitTableElement(element, data, totalHeight, this.getAvailableSpace());
             return;
         }
 
-        // Remove qualquer div verde existente (para evitar duplicatas)
-        const divsVerdesExistentes = container.querySelectorAll('.espaco-verde');
-        divsVerdesExistentes.forEach(div => div.remove());
+        var firstPartData = data.slice(0, rowsThatFit);
+        var remainingData = data.slice(rowsThatFit);
 
-        // Calcula as dimensões do container
-        const rect = container.getBoundingClientRect();
-        const estilo = window.getComputedStyle(container);
+        var firstPartHeight = headerHeight + (firstPartData.length * rowHeight);
 
-        // Considera padding e border no cálculo
-        const paddingTop = parseFloat(estilo.paddingTop) || 0;
-        const paddingBottom = parseFloat(estilo.paddingBottom) || 0;
-        const borderTop = parseFloat(estilo.borderTopWidth) || 0;
-        const borderBottom = parseFloat(estilo.borderBottomWidth) || 0;
+        var firstPartElement = {
+            element: element,
+            data: firstPartData,
+            height: firstPartHeight,
+            y: this.currentPage.currentY,
+            isPartial: true,
+            partNumber: 1,
+            totalParts: Math.ceil(data.length / rowsThatFit),
+            isFirstPart: true
+        };
 
-        // Altura total do container
-        const alturaTotal = rect.height;
+        this.currentPage.elements.push(firstPartElement);
+        this.currentPage.sections.content.push(firstPartElement);
+        this.currentPage.currentY += firstPartHeight;
 
-        // Altura atual do conteúdo
-        let alturaConteudo = 0;
-        Array.from(container.children).forEach(child => {
-            if (!child.classList.contains('espaco-verde')) {
-                alturaConteudo += child.getBoundingClientRect().height;
-            }
+        if (remainingData.length > 0) {
+            this.createNewPage();
+
+            var remainingPartElement = {
+                element: element,
+                data: remainingData,
+                height: headerHeight + (remainingData.length * rowHeight),
+                y: this.currentPage.currentY,
+                isPartial: true,
+                partNumber: 2,
+                totalParts: firstPartElement.totalParts,
+                isContinuation: true
+            };
+
+            this.currentPage.elements.push(remainingPartElement);
+            this.currentPage.sections.content.push(remainingPartElement);
+            this.currentPage.currentY += remainingPartElement.height;
+        }
+    };
+
+    MpageReport.prototype.renderPages = function (containerSelector) {
+        var self = this;
+        var container = $(containerSelector);
+        container.empty();
+
+        this.pages.forEach(function (page, index) {
+            var pageElement = self.renderSinglePage(page, index);
+            container.append(pageElement);
+        });
+    };
+
+    MpageReport.prototype.renderSinglePage = function (page, pageIndex) {
+        var self = this;
+        var pageDiv = $('<div class="m-report-rendered-page"></div>');
+
+        var header = $('<header class="m-report-rendered-header"></header>');
+        page.sections.header.forEach(function (headerElement) {
+            header.append(self.renderElement(headerElement, pageIndex));
+        });
+        pageDiv.append(header);
+
+        var content = $('<main class="m-report-rendered-content"></main>');
+        page.sections.content.forEach(function (contentElement) {
+            content.append(self.renderElement(contentElement, pageIndex));
+        });
+        pageDiv.append(content);
+
+        var footer = $('<footer class="m-report-rendered-footer"></footer>');
+        var pageInfo = {
+            element: {
+                tipo: "Texto",
+                configjson: JSON.stringify({
+                    staticText: "Página " + page.number + " de " + self.pages.length,
+                    textFormat: { textAlign: "center", fontSize: 10 },
+                    colors: { textColor: "#ffffff" }
+                })
+            },
+            data: []
+        };
+        footer.append(self.renderElement(pageInfo, pageIndex));
+
+        page.sections.footer.forEach(function (footerElement) {
+            footer.append(self.renderElement(footerElement, pageIndex));
+        });
+        pageDiv.append(footer);
+
+        return pageDiv;
+    };
+
+    MpageReport.prototype.renderElement = function (pageElement, pageIndex) {
+        var element = pageElement.element;
+        var elementDiv = $('<div class="report-object"></div>');
+
+        elementDiv.css({
+            transform: "translate3d(" + element.x + "px, " + pageElement.y + "px, 0)",
+            width: element.width + "px",
+            height: pageElement.height + "px",
+            position: "absolute"
         });
 
-        // Calcula o espaço restante (com margem de segurança de 10px)
-        const espacoRestante = alturaTotal - alturaConteudo - paddingTop - paddingBottom - borderTop - borderBottom - 10;
+        if (pageElement.isPartial) {
+            var continuationInfo = "";
+            if (pageElement.isFirstPart) {
+                continuationInfo = "<div class='continuation-info'>continua...</div>";
+            } else if (pageElement.isContinuation) {
+                continuationInfo = "<div class='continuation-info'>...continuação</div>";
+            }
 
-        // Se houver espaço suficiente (mais de 20px), adiciona a div verde
-        if (espacoRestante > 20) {
-            const divVerde = document.createElement('div');
-            divVerde.className = 'espaco-verde';
-            divVerde.style.backgroundColor = 'green';
-            divVerde.style.height = espacoRestante + 'px';
-            divVerde.style.margin = '5px 0'; // Margem de segurança
-            divVerde.style.borderRadius = '4px'; // Opcional: para ficar mais bonito
-
-            // Adiciona a div ao final do container
-            container.appendChild(divVerde);
-
-            console.log(`Div verde adicionada com altura: ${espacoRestante}px`);
-            return divVerde;
-        } else {
-            console.log('Espaço insuficiente para adicionar a div verde');
-            return null;
+            elementDiv.append(continuationInfo);
         }
-    }
 
+        var contentId = "object-page-" + pageIndex + "-" + element.mreportobjectstamp;
+        elementDiv.append('<div id="' + contentId + '" class="object-content"></div>');
+
+        this.renderElementContent(contentId, element, pageElement.data, pageElement);
+
+        return elementDiv;
+    };
+
+    MpageReport.prototype.renderElementContent = function (containerId, element, data, pageElement) {
+        var selector = "#" + containerId;
+
+        if (element.tipo === "Tabela") {
+            this.renderTableElement(selector, element, data, pageElement);
+        } else {
+            if (element.renderOnPage) {
+                element.renderOnPage(selector, true);
+            }
+        }
+    };
+
+    MpageReport.prototype.renderTableElement = function (selector, element, data, pageElement) {
+        var config = forceJSONParse(element.configjson, {});
+
+        if (pageElement.isPartial) {
+            config.showHeader = pageElement.isFirstPart || !pageElement.isContinuation;
+            config.height = pageElement.height + "px";
+        }
+
+        var originalConfig = element.configjson;
+        element.configjson = JSON.stringify(config);
+
+        if (element.renderOnPage) {
+            element.renderOnPage(selector, true);
+        }
+
+        element.configjson = originalConfig;
+    };
+
+    MpageReport.prototype.processReportObjects = function (reportObjects, dataSources) {
+        var self = this;
+
+        this.pages = [];
+        this.currentPage = null;
+
+        var sortedObjects = reportObjects.sort(function (a, b) {
+            var sectionOrder = { header: 1, content: 2, footer: 3 };
+            if (a.section !== b.section) {
+                return sectionOrder[a.section] - sectionOrder[b.section];
+            }
+            return a.y - b.y;
+        });
+
+        sortedObjects.forEach(function (obj) {
+            var data = self.getDataForObject(obj, dataSources);
+            self.addElement(obj, data);
+        });
+
+        return this.pages;
+    };
+
+    MpageReport.prototype.getDataForObject = function (obj, dataSources) {
+        if (obj.tipo === "Tabela" && obj.objectQuery) {
+            try {
+                return alasql(obj.objectQuery);
+            } catch (e) {
+                console.error("Erro ao executar query para objeto:", e);
+                return [];
+            }
+        }
+        return [];
+    };
+
+    MpageReport.prototype.exportToPDF = function () {
+        console.log("Exportando", this.pages.length, "páginas para PDF");
+        window.print();
+    };
+
+    var GReportInstance = new MReport({});
+
+    $(document).ready(function () {
+        GReportInstance = new MReport({ codigo: "RELATORIOACTIVO" });
+        GReportInstance.render();
+    });
 
     function MReport(data) {
-
         var mreportThis = this;
         this.codigo = data.codigo || '';
         this.descricao = data.descricao || '';
         this.GMReportFilters = [new MReportFilter({})];
         this.config = data.config || [];
         this.GMReportFilters = [];
-
         this.GMRelatorioDeleteRecords = [];
         this.GMRelatorioStamp = "";
-
         this.GMReportConfig = new MReportConfig({});
-
         this.GMReportObjects = [new MReportObject({})];
         this.GMReportObjects = [];
-
-
         this.GMReportFontes = [new MReportFonte({})];
         this.GMReportFontes = [];
-
-        this.GMReportPages = [new MReportPage({})];
-        this.GMReportPages = [];
-
-
-
-
-
-        function MReportPage(data) {
-            var self = this;
-
-            var maxPageNumber = 0;
-            if (Array.isArray(GMReportPages) && GMReportPages.length > 0) {
-                maxPageNumber = GMReportPages.reduce(function (max, item) {
-                    return Math.max(max, item.pageNumber || 0);
-                }, 0);
-            }
-
-            this.pageNumber = maxPageNumber + 1;
-            
-        }
-
-
+        this.pageManager = null;
 
         function MReportObject(data) {
             var self = this;
-
-            // Propriedades baseadas na estrutura da tabela
             this.mreportobjectstamp = data.mreportobjectstamp || "";
             this.mreportstamp = data.mreportstamp || mreportThis.GMRelatorioStamp;
             this.codigo = data.codigo || '';
-            this.tipo = data.tipo || 'text'; // text, table, image, chart, header, footer
-            this.tamanho = data.tamanho || 6; // Tamanho no grid (1-12)
+            this.tipo = data.tipo || 'text';
+            this.tamanho = data.tamanho || 6;
             this.ordem = data.ordem || 0;
-            this.categoria = data.categoria || 'basic'; // basic, advanced, custom
+            this.categoria = data.categoria || 'basic';
             this.expressaoobjecto = data.expressaoobjecto || '';
             this.configjson = data.configjson || '{}';
             this.queryconfigjson = data.queryconfigjson || '{}';
             this.objectQuery = data.objectQuery || '';
-            this.section = data.section || 'content'; // header, content, footer
+            this.section = data.section || 'content';
             this.x = data.x || 0;
             this.y = data.y || 0;
             this.width = data.width || 200;
             this.height = data.height || 60;
-
             this.table = "MReportObject";
             this.idfield = "mreportobjectstamp";
-
-            // Propriedades adicionais para funcionalidade (não na BD)
-
             this.descricao = data.descricao || 'Novo Objeto';
             this.icon = data.icon || 'fas fa-question';
             this.content = data.content || '';
             this.selected = data.selected || false;
-            //this.resizing = data.resizing || false;
-
-
             this.dataSource = data.dataSource || null;
             this.bold = data.bold || false;
             this.italic = data.italic || false;
@@ -339,50 +564,26 @@
             this.backgroundColor = data.backgroundColor || '#ffffff';
             this.config = {};
             this.queryConfig = {};
-
             this.objectEditorConfig = data.objectEditorConfig || {};
-
-            // Parse dos JSONs se forem strings
             this.config = forceJSONParse(this.configjson, {});
             this.queryConfig = forceJSONParse(this.queryconfigjson, {});
-
         }
-
 
         MReportObject.prototype.renderOnPage = function (selector, clearContainer) {
             var self = this;
-
             if (clearContainer) {
                 $(selector).empty();
             }
-            /*
-             renderObject: function (params) {
-                        var containerSelector = params.containerSelector;
-                        var itemObject = params.itemObject;
-                        var config = params.config;
-                        var data = params.data;
-        
-                        updateTextElementMReport(containerSelector, itemObject, config, data);
-                    }
-            
-            */
-
-
             self.objectEditorConfig.renderObject({
                 containerSelector: selector,
                 itemObject: self,
                 config: self.config,
                 data: []
             })
-
         }
 
-
         MReportObject.prototype.setUIData = function () {
-
             var self = this;
-
-
             var tiposObjectos = getTiposObjectoConfig();
             var tipoObjecto = tiposObjectos.find(function (t) {
                 return t.tipo === self.tipo;
@@ -392,50 +593,35 @@
                 self.descricao = tipoObjecto.descricao;
                 self.objectEditorConfig = tipoObjecto;
             }
-
-
         }
 
-
-
         function MReportFilter(data) {
-
             var self = this;
-
-
             this.mreportfilterstamp = data.mreportfilterstamp || "";
             this.mreportstamp = data.mreportstamp || mreportThis.GMRelatorioStamp;
             this.codigo = data.codigo || 'Filtro';
             this.descricao = data.descricao || '';
-            this.tipo = data.tipo || 'text'; // text, number, checkbox, list, etc.
+            this.tipo = data.tipo || 'text';
             this.campooption = data.campooption || '';
-            this.eventochange = data.eventochange || false; // BIT -> boolean
+            this.eventochange = data.eventochange || false;
             this.expressaochange = data.expressaochange || '';
             this.campovalor = data.campovalor || '';
-            this.tamanho = data.tamanho || 6; // Tamanho padrão (1-12 para grid system)
+            this.tamanho = data.tamanho || 6;
             this.expressaolistagem = data.expressaolistagem || '';
             this.expressaojslistagem = data.expressaojslistagem || '';
             this.valordefeito = data.valordefeito || '';
             this.ordem = data.ordem || 0;
-
-
-
             this.objectsUIFormConfig = data.objectsUIFormConfig || [];
             this.localsource = data.localsource || "";
             this.idfield = data.idfield || "mreportfilterstamp";
             this.table = "MReportFilter";
-
-
         }
 
-
         MReportFilter.prototype.setUIFormConfig = function () {
-
             var UIFormConfig = getmreportFilterUIObjectFormConfigAndSourceValues();
             this.objectsUIFormConfig = UIFormConfig.objectsUIFormConfig;
             this.localsource = UIFormConfig.localsource;
             this.idfield = UIFormConfig.idField;
-
         }
 
         function getmreportFilterUIObjectFormConfigAndSourceValues() {
@@ -471,42 +657,10 @@
                 new UIObjectFormConfig({ colSize: 4, campo: "eventochange", tipo: "checkbox", titulo: "Tem evento change", classes: "input-source-form", contentType: "input" }),
                 new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaochange", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Change", classes: "input-source-form m-editor", contentType: "div" }),
             ];
-
             return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMReportFilters", idField: "mreportfilterstamp" };
         }
 
-
-
-        function generateFilterVariablesParaFonteHTML() {
-            var filterVariablesHTML = "";
-
-            filterVariablesHTML += "<div style='display:flex;flex-direction:row;flex-wrap:wrap;' v-for=\"filter in getFilterByExpressaoDb()\" :key=\"filter.mreportfilterstamp\" class=\"\">";
-            filterVariablesHTML += "    <label class=\"m-report-filter-item\" :for=\"filter.codigo\">{{ filter.descricao }}</label>";
-            filterVariablesHTML += "    <!-- text -->";
-            filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-if=\"filter.tipo === 'text'\" type=\"text\"";
-            filterVariablesHTML += "        class=\"form-control input-sm input-mreport-filter\" :id=\"filter.codigo\"";
-            filterVariablesHTML += "        v-model=\"filterValues[filter.codigo]\" />";
-            filterVariablesHTML += "";
-            filterVariablesHTML += "    <!-- digit -->";
-            filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else-if=\"filter.tipo === 'digit'\" type=\"text\"";
-            filterVariablesHTML += "        class=\"form-control input-sm input-mreport-filter\" :id=\"filter.codigo\"";
-            filterVariablesHTML += "        v-model=\"filterValues[filter.codigo]\" />";
-            filterVariablesHTML += "";
-            filterVariablesHTML += "    <!-- logic -->";
-            filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else-if=\"filter.tipo === 'logic'\" type=\"checkbox\"";
-            filterVariablesHTML += "        class=\"form-check-input\" :id=\"filter.codigo\" v-model=\"filterValues[filter.codigo]\" />";
-            filterVariablesHTML += "";
-            filterVariablesHTML += "    <!-- fallback -->";
-            filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else type=\"text\" class=\"form-control input-sm input-mreport-filter\"";
-            filterVariablesHTML += "        :id=\"filter.codigo\" v-model=\"filterValues[filter.codigo]\" />";
-            filterVariablesHTML += "</div>";
-
-            return filterVariablesHTML;
-        }
-
-
         function UIObjectFormConfig(data) {
-
             this.campo = data.campo || "";
             this.tipo = data.tipo || "";
             this.titulo = data.titulo || "";
@@ -518,43 +672,28 @@
             this.fieldToOption = data.fieldToOption || "";
             this.fieldToValue = data.fieldToValue || "";
             this.contentType = data.contentType || "input";
-
         }
 
         function MReportFonte(data) {
             var self = this;
-
-
-            // Propriedades baseadas na estrutura da tabela
             this.mreportfonstestamp = data.mreportfonstestamp || "";
             this.mreportstamp = data.mreportstamp || mreportThis.GMRelatorioStamp;
             this.codigo = data.codigo || "Fonte-";
             this.descricao = data.descricao || '';
-            this.tipo = data.tipo || 'query'; // query, api, json, csv, etc.
+            this.tipo = data.tipo || 'query';
             this.expressaolistagem = data.expressaolistagem || '';
             this.expressaojslistagem = data.expressaojslistagem || '';
             this.ordem = (data.ordem || 0);
             this.schemajson = data.schemajson || '[]';
             this.lastResultscached = data.lastResultscached || '[]';
-
-
-            // propriedades adicionais para funcionalidade
             this.schema = [];
             this.lastResults = [];
-
             this.lastResults = forceJSONParse(this.lastResultscached, []);
             this.schema = forceJSONParse(this.schemajson, []);
             this.testData = data.testData || [];
             this.lastExecuted = data.lastExecuted || [];
             this.isActive = data.isActive !== undefined ? data.isActive : true;
-
-
-
-
-
             this.schemaQueryEditor = "";
-
-
             this.objectsUIFormConfig = data.objectsUIFormConfig || [];
             this.localsource = data.localsource || "";
             this.idfield = data.idfield || "mreportfonstestamp";
@@ -562,14 +701,11 @@
         }
 
         MReportFonte.prototype.setTupDataOnLocalDb = function (data) {
-
             var tableSchema = extractLocalDbSchema(this.lastResults[0]);
-
             setTupDataOnLocalDb("MReportDB", this.codigo, tableSchema, this.lastResults, this.mreportfonstestamp);
         }
 
         MReportFonte.prototype.setUIFormConfig = function () {
-
             var UIFormConfig = getMReportFonteUIObjectFormConfigAndSourceValues();
             this.objectsUIFormConfig = UIFormConfig.objectsUIFormConfig;
             this.localsource = UIFormConfig.localsource;
@@ -591,20 +727,15 @@
                     fieldToValue: "value",
                     classes: "form-control input-source-form  input-sm ",
                     selectValues: [
-                        { option: "Query SQL", value: "query" },
-                        /*   { option: "API REST", value: "api" },
-                           { option: "JSON", value: "json" },
-                           { option: "CSV", value: "csv" }*/
+                        { option: "Query SQL", value: "query" }
                     ]
                 }),
                 new UIObjectFormConfig({ customData: " v-on:keyup='changeExpressaoDbListagemAndHandleFilters()'", colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
-
                 new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "schemaQueryEditor", tipo: "div", cols: 90, rows: 90, titulo: "", classes: "input-source-form", contentType: "div" }),
                 new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaojslistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem JS", classes: "input-source-form m-editor ", contentType: "div" })
             ];
             return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMReportFontes", idField: "mreportfonstestamp" };
         }
-
 
         MReportFonte.prototype.stringifyJSONFields = function () {
             var data = this;
@@ -613,11 +744,7 @@
             return data;
         }
 
-
-
-
         function forceJSONParse(data, defaultValue) {
-
             if (typeof data === 'string') {
                 try {
                     return JSON.parse(data);
@@ -628,15 +755,14 @@
             else {
                 return data || defaultValue;
             }
-
         }
 
         function MReportConfig(data) {
             this.codigo = data.codigo || '';
             this.descricao = data.descricao || '';
-            this.orientation = data.orientation || 'portrait'; // portrait ou landscape
+            this.orientation = data.orientation || 'portrait';
             this.u_mreportstamp = data.u_mreportstamp || '';
-            this.pagesize = data.pagesize || 'A4'; // A4, A3, Letter, etc.
+            this.pagesize = data.pagesize || 'A4';
             this.margins = data.margins || { top: 20, right: 20, bottom: 20, left: 20 };
             this.sections = Array.isArray(data.sections) ? data.sections.map(function (s) {
                 return new ReportSection(s);
@@ -647,18 +773,15 @@
             ];
         }
 
-
         MReportConfig.prototype.toJSONString = function () {
-
             return JSON.stringify(this);
         }
 
         function ReportSection(data) {
-
-            this.type = data.type || 'header'; // header, content, footer
+            this.type = data.type || 'header';
             this.name = data.name || "Cabeçalho";
-            this.height = data.height || 100; // altura da secção em pixels
-            this.width = data.width || 800; // largura da secção em pixels
+            this.height = data.height || 100;
+            this.width = data.width || 800;
         }
 
         this.render = function () {
@@ -666,7 +789,6 @@
         }
 
         function fetchDadosMreport(config, dados) {
-
             var filters = dados.filters || [];
             var fontes = dados.fontes || [];
             var objects = dados.objects || [];
@@ -674,59 +796,40 @@
             var reportConfig = {};
 
             try {
-
                 reportConfig = JSON.parse(reportData.reportconfig) || {};
-
                 reportConfig.u_mreportstamp = reportData.u_mreportstamp || '';
                 reportConfig.codigo = reportData.codigo || '';
                 reportConfig.descricao = reportData.descricao || '';
-
                 mreportThis.GMReportConfig.u_mreportstamp = reportData.u_mreportstamp || '';
                 mreportThis.GMRelatorioStamp = data.u_mreportstamp || '';
-
             } catch (error) {
-
+                console.error("Erro ao parsear report config:", error);
             }
 
             mreportThis.GMReportConfig = new MReportConfig(reportConfig);
-
             mreportThis.GMReportFilters = filters.map(function (f) {
-
                 var newFilter = new MReportFilter(f);
                 newFilter.setUIFormConfig();
                 return newFilter;
-
             });
 
             mreportThis.GMReportFontes = fontes.map(function (f) {
-
                 var newFonte = new MReportFonte(f);
                 newFonte.setUIFormConfig();
                 newFonte.setTupDataOnLocalDb();
                 return newFonte;
-
             });
 
             mreportThis.GMReportObjects = objects.map(function (o) {
-
                 var newObject = new MReportObject(o);
                 newObject.setUIData();
-
                 return newObject;
-
             });
-
         }
 
-
-
-
         function initConfiguracaoMReport(data) {
-
             if (!data) {
-
                 throw new Error("Dados inválidos para inicializar MReportConfig");
-
             }
 
             mreportThis.GMReportConfig = new MReportConfig({});
@@ -741,65 +844,36 @@
                 success: function (response) {
                     var errorMessage = "ao trazer resultados da configuração do m report";
                     try {
-
                         if (response.cod != "0000") {
                             console.log("Erro " + errorMessage, response);
                             return false;
                         }
-
                         mreportThis.config = response.data;
-                        console
                         fetchDadosMreport({}, response.data);
+
+                        // Inicializar o gerenciador de páginas após carregar os dados
+                        setTimeout(function () {
+                            mreportThis.pageManager = new MpageReport({
+                                pageWidth: 794,
+                                pageHeight: 1123,
+                                margins: { top: 40, right: 40, bottom: 40, left: 40 }
+                            });
+
+                            // Processar objetos e renderizar páginas
+                            var pages = mreportThis.pageManager.processReportObjects(
+                                mreportThis.GMReportObjects,
+                                mreportThis.GMReportFontes
+                            );
+
+                            mreportThis.pageManager.renderPages('#reportRenderedContainer');
+                        }, 100);
                     } catch (error) {
                         console.log("Erro interno " + errorMessage, error);
                     }
                 }
             });
-
-
-            // Configurar interact.js para drag and drop e redimensionamento
-
-
-            // Aplicação principal
-            var App = PetiteVue.reactive({
-                // Estado da aplicação
-                components: getTiposObjectoConfig(),
-                reportObjects: mreportThis.GMReportObjects,
-                filters: mreportThis.GMReportFilters,
-                dataSources: mreportThis.GMReportFontes,
-                selectedObject: null,
-                dragging: false,
-                dragObject: null,
-                dragOffset: { x: 0, y: 0 },
-                resizing: false,
-                resizeObject: null,
-                resizeStart: { x: 0, y: 0, width: 0, height: 0 },
-                getSectionObjects: function (section) {
-                    var self = this;
-                    return self.reportObjects.filter(function (obj) {
-                        return obj.section === section;
-                    });
-                }
-
-            });
-            window.reportRenderedState = App;
-
-            PetiteVue.createApp(App).mount('#reportRenderedContainer');
-
-            mreportThis.GMReportObjects.forEach(function (obj) {
-
-                var selector = "#object-report-to-render-" + obj.mreportobjectstamp;
-                obj.renderOnPage(selector, false);
-            })
-
-            // Inicializar petite-vue
-
-
         }
     }
-
-
-
 </script>
 
 </html>

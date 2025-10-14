@@ -91,7 +91,7 @@ CREATE TABLE MReportFonte(
     codigo VARCHAR(250) DEFAULT '',
     descricao VARCHAR(250) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
-    expressaolistagem VARCHAR(250) DEFAULT '',
+    expressaolistagem TEXT  DEFAULT '',
     expressaojslistagem TEXT DEFAULT '',
     schemajson TEXT DEFAULT '',
     lastResultscached TEXT DEFAULT '',
