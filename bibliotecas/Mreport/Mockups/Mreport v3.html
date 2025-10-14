@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MReport - Sistema com Posicionamento</title>
+    <style>
+        /* Estilos para página A4 */
+        @page { size: A4; margin: 0; }
+        body { margin: 0; padding: 20px; font-family: 'Segoe UI', sans-serif; font-size: 9pt; color: #333; background-color: #f5f5f5; }
+        
+        .a4-page {
+            width: 21cm; min-height: 29.7cm; padding: 1.5cm; margin: 0 auto 20px auto;
+            box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.1); background: white; position: relative;
+            overflow: hidden;
+        }
+
+        /* Áreas da página */
+        .page-section {
+            position: absolute;
+            box-sizing: border-box;
+        }
+
+        .page-header { top: 0; left: 1.5cm; right: 1.5cm; height: 3cm; background: rgba(255,0,0,0.1); }
+        .page-content { top: 3cm; left: 1.5cm; right: 1.5cm; bottom: 2cm; background: rgba(0,255,0,0.1); }
+        .page-footer { bottom: 0; left: 1.5cm; right: 1.5cm; height: 2cm; background: rgba(0,0,255,0.1); }
+
+        /* Objetos posicionados */
+        .report-object {
+            position: absolute;
+            min-width: 100px;
+            min-height: 50px;
+        }
+
+        /* Tabela */
+        .report-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 9pt; 
+            background: white;
+        }
+        .report-table th { background-color: #34495e; color: white; padding: 6px 8px; text-align: left; font-weight: 600; border: 1px solid #2c3e50; }
+        .report-table td { padding: 4px 8px; border: 1px solid #ddd; }
+
+        /* Texto */
+        .text-object { 
+            padding: 10px; 
+            background: #f8f9fa; 
+            border-radius: 4px; 
+            border: 1px solid #ddd;
+        }
+
+        .text-title {
+            font-size: 16pt; 
+            font-weight: bold; 
+            background: #2c3e50; 
+            color: white; 
+            padding: 15px; 
+            text-align: center;
+        }
+
+        .text-description {
+            font-size: 10pt; 
+            background: #e8f4fc; 
+            padding: 12px; 
+            border-left: 4px solid #3498db;
+        }
+
+        /* Controles */
+        .controls { margin: 20px auto; width: 21cm; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border: 1px solid #ddd; }
+        button { background-color: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 10px; font-size: 12px; margin-bottom: 5px; }
+        button:hover { background-color: #2980b9; }
+        
+        .stats { margin-top: 10px; padding: 10px; background-color: #e8f4fc; border-radius: 4px; font-size: 11px; }
+
+        @media print {
+            body { margin: 0; padding: 0; background: white; }
+            .a4-page { box-shadow: none; margin: 0; padding: 1.5cm; }
+            .no-print { display: none; }
+            .page-header, .page-content, .page-footer { background: transparent !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls no-print">
+        <h2>MReport - Sistema com Posicionamento</h2>
+        <button onclick="window.print()">📄 Imprimir Relatório</button>
+        <button onclick="generateReport()">🔄 Gerar Relatório</button>
+        <button onclick="addCustomObjects()">➕ Adicionar Objetos Customizados</button>
+
+        <div class="stats">
+            <strong>Estatísticas:</strong>
+            <span id="statsInfo">Carregando...</span>
+        </div>
+    </div>
+
+    <div id="report-container">
+        <!-- O relatório será gerado aqui -->
+    </div>
+
+    <script>
+        // ===== SISTEMA DE COORDENADAS E POSICIONAMENTO =====
+        class MObject {
+            constructor(type, config = {}) {
+                this.type = type;
+                this.config = config;
+                this.breakable = false;
+                this.minHeight = config.minHeight || 40;
+                this.minWidth = config.minWidth || 100;
+                
+                // Posicionamento - coordenadas relativas à seção
+                this.x = config.x || 0;
+                this.y = config.y || 0;
+                this.width = config.width || 200;
+                this.height = config.height || 100;
+                this.section = config.section || 'content'; // header, content, footer
+                
+                this.id = 'obj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            getPosition() {
+                return {
+                    x: this.x,
+                    y: this.y,
+                    width: this.width,
+                    height: this.height,
+                    section: this.section
+                };
+            }
+
+            setPosition(x, y, section = null) {
+                this.x = x;
+                this.y = y;
+                if (section) this.section = section;
+            }
+
+            setSize(width, height) {
+                this.width = width;
+                this.height = height;
+            }
+
+            getHeight() {
+                return this.height;
+            }
+
+            getWidth() {
+                return this.width;
+            }
+
+            canBreak() {
+                return this.breakable;
+            }
+
+            render() {
+                const container = document.createElement('div');
+                container.className = 'report-object';
+                container.id = this.id;
+                
+                // Aplicar transform com coordenadas
+                container.style.cssText = `
+                    transform: translate3d(${this.x}px, ${this.y}px, 0);
+                    width: ${this.width}px;
+                    height: ${this.height}px;
+                    ${this.config.style || ''}
+                `;
+                
+                const content = this.renderContent();
+                if (content) {
+                    container.appendChild(content);
+                }
+                
+                return container;
+            }
+
+            renderContent() {
+                return document.createElement('div');
+            }
+
+            split(availableHeight) {
+                return { fitted: this, remaining: null };
+            }
+
+            toJSON() {
+                return {
+                    type: this.type,
+                    config: this.config,
+                    x: this.x,
+                    y: this.y,
+                    width: this.width,
+                    height: this.height,
+                    section: this.section,
+                    id: this.id
+                };
+            }
+        }
+
+        // ===== OBJETO TEXTO COM POSICIONAMENTO =====
+        class MTextObject extends MObject {
+            constructor(content, config = {}) {
+                super('text', config);
+                this.content = content;
+                this.breakable = false;
+                this.textStyle = config.textStyle || 'normal';
+            }
+
+            renderContent() {
+                const div = document.createElement('div');
+                div.className = `text-object ${this.textStyle === 'title' ? 'text-title' : ''} ${this.textStyle === 'description' ? 'text-description' : ''}`;
+                div.style.cssText = 'width: 100%; height: 100%; overflow: hidden; box-sizing: border-box;';
+                div.textContent = this.content;
+                return div;
+            }
+
+            getHeight() {
+                const lines = Math.ceil(this.content.length / (this.width / 8));
+                return Math.max(this.minHeight, lines * 20);
+            }
+        }
+
+        // ===== OBJETO TABELA COM POSICIONAMENTO =====
+        class MTableObject extends MObject {
+            constructor(data, columns, config = {}) {
+                super('table', config);
+                this.data = data;
+                this.columns = columns;
+                this.breakable = true;
+                this.rowHeight = config.rowHeight || 25;
+                this.headerHeight = config.headerHeight || 35;
+            }
+
+            renderContent() {
+                const container = document.createElement('div');
+                container.style.cssText = 'width: 100%; height: 100%; overflow: auto; box-sizing: border-box;';
+                
+                const table = this.createTable(this.data);
+                container.appendChild(table);
+                
+                return container;
+            }
+
+            getHeight() {
+                let height = this.headerHeight;
+                this.data.forEach(item => {
+                    if (item.type === 'group-header' || item.type === 'group-total') {
+                        height += 30;
+                    } else {
+                        height += this.rowHeight;
+                    }
+                });
+                return Math.min(height, this.height);
+            }
+
+            createTable(data) {
+                const table = document.createElement('table');
+                table.className = 'report-table';
+                table.style.width = '100%';
+
+                // Cabeçalho
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                this.columns.forEach(col => {
+                    const th = document.createElement('th');
+                    th.textContent = col.title;
+                    if (col.config?.align) th.style.textAlign = col.config.align;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                // Corpo
+                const tbody = document.createElement('tbody');
+                const visibleData = this.getVisibleData(data);
+                
+                visibleData.forEach(item => {
+                    if (item.type === 'group-header') {
+                        const groupRow = document.createElement('tr');
+                        const groupCell = document.createElement('td');
+                        groupCell.colSpan = this.columns.length;
+                        groupCell.style.cssText = 'background: #ecf0f1; font-weight: bold; padding: 8px;';
+                        groupCell.textContent = `${this.getGroupLabel(item.groupField)}: ${item.value}`;
+                        groupRow.appendChild(groupCell);
+                        tbody.appendChild(groupRow);
+                    } else if (!item.type) {
+                        const row = document.createElement('tr');
+                        this.columns.forEach(col => {
+                            const cell = document.createElement('td');
+                            let value = item[col.field];
+                            value = this.formatValue(value, col.type);
+                            cell.textContent = value;
+                            if (col.config?.align) cell.style.textAlign = col.config.align;
+                            row.appendChild(cell);
+                        });
+                        tbody.appendChild(row);
+                    }
+                });
+
+                table.appendChild(tbody);
+                return table;
+            }
+
+            getVisibleData(data) {
+                const maxRows = Math.floor((this.height - this.headerHeight) / this.rowHeight);
+                return data.slice(0, maxRows);
+            }
+
+            getGroupLabel(field) {
+                const column = this.columns.find(col => col.field === field);
+                return column ? column.title : field;
+            }
+
+            formatValue(value, type) {
+                if (value === null || value === undefined) return '-';
+                switch (type) {
+                    case 'numeric': return parseInt(value).toLocaleString('pt-BR');
+                    case 'currency': return parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    default: return value.toString();
+                }
+            }
+
+            split(availableHeight) {
+                if (availableHeight < this.headerHeight + this.rowHeight) {
+                    return { fitted: null, remaining: this };
+                }
+
+                const fittedData = this.data.slice(0, Math.floor(availableHeight / this.rowHeight));
+                const remainingData = this.data.slice(fittedData.length);
+
+                const fittedTable = fittedData.length > 0 ? 
+                    new MTableObject(fittedData, this.columns, { ...this.config, height: availableHeight }) : null;
+                
+                const remainingTable = remainingData.length > 0 ? 
+                    new MTableObject(remainingData, this.columns, this.config) : null;
+
+                return { fitted: fittedTable, remaining: remainingTable };
+            }
+        }
+
+        // ===== GERENCIADOR DE PÁGINAS COM POSICIONAMENTO =====
+        class MPageManager {
+            constructor(config = {}) {
+                this.config = {
+                    pageWidth: 794,   // 21cm em pixels
+                    pageHeight: 1123, // 29.7cm em pixels
+                    margin: 57,       // 1.5cm em pixels
+                    ...config
+                };
+                
+                this.pages = [];
+                this.currentPage = null;
+            }
+
+            createNewPage() {
+                const page = {
+                    objects: [],
+                    sections: {
+                        header: [],
+                        content: [],
+                        footer: []
+                    }
+                };
+                this.pages.push(page);
+                this.currentPage = page;
+                return page;
+            }
+
+            addObjectToPage(object, section = 'content') {
+                const targetPage = this.currentPage;
+                if (!targetPage) return false;
+
+                object.section = section;
+                targetPage.objects.push(object);
+                targetPage.sections[section].push(object);
+                
+                return true;
+            }
+
+            renderPages(containerId) {
+                const container = document.getElementById(containerId);
+                container.innerHTML = '';
+
+                this.pages.forEach((page, pageIndex) => {
+                    const pageElement = this.createPageElement(page, pageIndex + 1, this.pages.length);
+                    container.appendChild(pageElement);
+                });
+
+                return this.pages.length;
+            }
+
+            createPageElement(page, pageNumber, totalPages) {
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'a4-page';
+                pageDiv.dataset.pageNumber = pageNumber;
+
+                // Criar seções da página
+                const headerArea = document.createElement('div');
+                headerArea.className = 'page-section page-header';
+                headerArea.textContent = `Header - Página ${pageNumber}`;
+                
+                const contentArea = document.createElement('div');
+                contentArea.className = 'page-section page-content';
+                contentArea.textContent = 'Content';
+                
+                const footerArea = document.createElement('div');
+                footerArea.className = 'page-section page-footer';
+                footerArea.textContent = `Footer - Página ${pageNumber} de ${totalPages}`;
+
+                pageDiv.appendChild(headerArea);
+                pageDiv.appendChild(contentArea);
+                pageDiv.appendChild(footerArea);
+
+                // Renderizar objetos em suas seções e posições
+                page.objects.forEach(object => {
+                    const objectElement = object.render();
+                    
+                    let sectionElement;
+                    switch (object.section) {
+                        case 'header': sectionElement = headerArea; break;
+                        case 'footer': sectionElement = footerArea; break;
+                        default: sectionElement = contentArea;
+                    }
+                    
+                    sectionElement.appendChild(objectElement);
+                });
+
+                return pageDiv;
+            }
+
+            getStats() {
+                const totalObjects = this.pages.reduce((sum, page) => sum + page.objects.length, 0);
+                
+                const objectsBySection = {
+                    header: this.pages.reduce((sum, page) => sum + page.sections.header.length, 0),
+                    content: this.pages.reduce((sum, page) => sum + page.sections.content.length, 0),
+                    footer: this.pages.reduce((sum, page) => sum + page.sections.footer.length, 0)
+                };
+
+                return {
+                    totalPages: this.pages.length,
+                    totalObjects: totalObjects,
+                    objectsBySection: objectsBySection
+                };
+            }
+        }
+
+        // ===== SISTEMA MREPORT PRINCIPAL =====
+        class MReport {
+            constructor() {
+                this.pageManager = new MPageManager();
+                this.objects = [];
+            }
+
+            addObject(object, section = 'content') {
+                this.objects.push(object);
+                this.pageManager.addObjectToPage(object, section);
+                return this;
+            }
+
+            addText(content, config = {}) {
+                const textObject = new MTextObject(content, config);
+                return this.addObject(textObject, config.section || 'content');
+            }
+
+            addTable(data, columns, config = {}) {
+                const tableObject = new MTableObject(data, columns, config);
+                return this.addObject(tableObject, config.section || 'content');
+            }
+
+            generate(containerId) {
+                this.pageManager.createNewPage();
+
+                // Adicionar objetos às páginas nas suas seções
+                this.objects.forEach(object => {
+                    this.pageManager.addObjectToPage(object, object.section);
+                });
+
+                const totalPages = this.pageManager.renderPages(containerId);
+                const stats = this.pageManager.getStats();
+
+                this.updateStats(stats);
+                return this;
+            }
+
+            updateStats(stats) {
+                const statsInfo = document.getElementById('statsInfo');
+                if (statsInfo) {
+                    statsInfo.textContent = 
+                        `${stats.totalPages} páginas | ${stats.totalObjects} objetos | ` +
+                        `Header: ${stats.objectsBySection.header} | ` +
+                        `Content: ${stats.objectsBySection.content} | ` +
+                        `Footer: ${stats.objectsBySection.footer}`;
+                }
+            }
+
+            clear() {
+                this.objects = [];
+                this.pageManager = new MPageManager();
+                return this;
+            }
+        }
+
+        // ===== DADOS DE EXEMPLO =====
+        const multiLevelData = [
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+             { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+             { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+             { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+             { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+             { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 }
+            
+        ];
+
+        const reportColumns = [
+            { field: "categoria", title: "Categoria", type: "text" },
+            { field: "subcategoria", title: "Subcategoria", type: "text" },
+            { field: "produto", title: "Produto", type: "text" },
+            { field: "quantidade", title: "Qtd", type: "numeric", config: { align: "right" } },
+            { field: "preco", title: "Preço", type: "currency", config: { align: "right" } }
+        ];
+
+        function processDataWithGroups(data, groupFields) {
+            const result = [];
+            const grouped = {};
+            
+            data.forEach(item => {
+                const key = item[groupFields[0]];
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+            });
+
+            Object.keys(grouped).sort().forEach(key => {
+                result.push({
+                    type: 'group-header',
+                    value: key,
+                    groupField: groupFields[0],
+                });
+                result.push(...grouped[key]);
+            });
+
+            return result;
+        }
+
+        // ===== FUNÇÕES DA INTERFACE =====
+        function generateReport() {
+            const report = new MReport();
+
+            // Objetos no HEADER
+            report.addText('RELATÓRIO COMERCIAL', {
+                x: 50, y: 20, section: 'header',
+                width: 400, height: 40,
+                textStyle: 'title'
+            });
+
+            report.addText('Empresa XYZ - CNPJ: 12.345.678/0001-90', {
+                x: 50, y: 70, section: 'header',
+                width: 400, height: 20
+            });
+
+            // Objetos no CONTENT
+            report.addText('Resumo de Vendas por Categoria', {
+                x: 50, y: 50, section: 'content',
+                width: 400, height: 30,
+                textStyle: 'description'
+            });
+
+            const tableData = processDataWithGroups(multiLevelData, ['categoria']);
+            report.addTable(tableData, reportColumns, {
+                x: 50, y: 100, section: 'content',
+                width: 500, height: 200
+            });
+
+            report.addText('Análise: Maior volume em eletrônicos', {
+                x: 50, y: 320, section: 'content',
+                width: 400, height: 40
+            });
+
+            // Objetos no FOOTER
+            report.addText('Relatório gerado em: ' + new Date().toLocaleDateString('pt-BR'), {
+                x: 50, y: 10, section: 'footer',
+                width: 300, height: 20
+            });
+
+            report.addText('Página 1 de 1', {
+                x: 400, y: 10, section: 'footer',
+                width: 150, height: 20
+            });
+
+            report.generate('report-container');
+        }
+
+        function addCustomObjects() {
+            const report = new MReport();
+
+            // Exemplo com múltiplas tabelas em posições diferentes
+            const tableData1 = processDataWithGroups(multiLevelData.slice(0, 2), ['categoria']);
+            report.addTable(tableData1, reportColumns, {
+                x: 50, y: 50, section: 'content',
+                width: 400, height: 150
+            });
+
+            const tableData2 = processDataWithGroups(multiLevelData.slice(2), ['categoria']);
+            report.addTable(tableData2, reportColumns, {
+                x: 500, y: 50, section: 'content', 
+                width: 250, height: 120
+            });
+
+            report.addText('Tabela Esquerda', {
+                x: 50, y: 20, section: 'content',
+                width: 150, height: 25
+            });
+
+            report.addText('Tabela Direita', {
+                x: 500, y: 20, section: 'content',
+                width: 150, height: 25
+            });
+
+            report.generate('report-container');
+        }
+
+        // ===== INICIALIZAÇÃO =====
+        document.addEventListener('DOMContentLoaded', function() {
+            generateReport();
+        });
+    </script>
+</body>
+</html>

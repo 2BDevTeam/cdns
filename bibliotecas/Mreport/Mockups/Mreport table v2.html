@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MReport - Sistema Desacoplado</title>
+    <style>
+        /* Estilos para página A4 */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 9pt;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+
+        .a4-page {
+            width: 21cm;
+            min-height: 29.7cm;
+            padding: 1.5cm;
+            margin: 0 auto 20px auto;
+            box-sizing: border-box;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background: white;
+            position: relative;
+        }
+
+        /* Cabeçalho e rodapé */
+        .report-header {
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .report-title {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .report-subtitle {
+            font-size: 11pt;
+            color: #7f8c8d;
+            margin: 5px 0 0 0;
+        }
+
+        .report-footer {
+            position: absolute;
+            bottom: 1.5cm;
+            left: 1.5cm;
+            right: 1.5cm;
+            border-top: 1px solid #bdc3c7;
+            padding-top: 8px;
+            font-size: 8pt;
+            color: #7f8c8d;
+        }
+
+        /* Tabela */
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            font-size: 9pt;
+        }
+
+        .report-table th {
+            background-color: #34495e;
+            color: white;
+            padding: 6px 8px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #2c3e50;
+        }
+
+        .report-table td {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+        }
+
+        /* Grupos multi-nível */
+        .group-header {
+            background-color: #ecf0f1;
+            font-weight: bold;
+            padding: 6px 8px;
+            margin: 4px 0 2px 0;
+            font-size: 9pt;
+            border-left: 4px solid #3498db;
+        }
+
+        .group-header-level-0 {
+            background-color: #2c3e50;
+            color: white;
+            border-left: 4px solid #e74c3c;
+            font-size: 10pt;
+        }
+
+        .group-header-level-1 {
+            background-color: #3498db;
+            color: white;
+            border-left: 4px solid #2980b9;
+            margin-left: 15px;
+        }
+
+        .group-header-level-2 {
+            background-color: #9b59b6;
+            color: white;
+            border-left: 4px solid #8e44ad;
+            margin-left: 30px;
+        }
+
+        .group-total {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            padding: 6px 8px;
+            margin: 2px 0 4px 0;
+            border-top: 2px solid #bdc3c7;
+            font-size: 9pt;
+        }
+
+        .group-total-level-0 {
+            background-color: #c0392b;
+            color: white;
+            font-size: 10pt;
+        }
+
+        .group-total-level-1 {
+            background-color: #d35400;
+            color: white;
+            margin-left: 15px;
+        }
+
+        .grand-total {
+            background-color: #2c3e50;
+            color: white;
+            font-weight: bold;
+            padding: 8px;
+            margin-top: 10px;
+            font-size: 10pt;
+        }
+
+        /* Utilitários */
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-bold {
+            font-weight: bold;
+        }
+
+        /* Controles */
+        .controls {
+            margin: 20px auto;
+            width: 21cm;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .config-panel {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .config-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        select,
+        input {
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+
+        .group-level {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: #e8f4fc;
+            border-radius: 4px;
+        }
+
+        .stats {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e8f4fc;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        /* Espaço verde para debug */
+        .espaco-verde {
+            background-color: rgba(0, 255, 0, 0.2);
+            border: 1px dashed green;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+
+            .a4-page {
+                box-shadow: none;
+                margin: 0;
+                padding: 1.5cm;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="controls no-print">
+        <h2>MReport - Sistema Desacoplado</h2>
+        <button onclick="window.print()">📄 Imprimir Relatório</button>
+        <button onclick="generateReport()">🔄 Gerar Relatório</button>
+        <button onclick="addTable()">➕ Adicionar Tabela</button>
+        <button onclick="addText()">📝 Adicionar Texto</button>
+
+        <div class="config-panel">
+            <h3>Configuração do Relatório</h3>
+            <div class="config-group">
+                <label><input type="checkbox" id="showGroupTotals" checked> Mostrar totais por grupo</label>
+                <label><input type="checkbox" id="showGrandTotal" checked> Mostrar total geral</label>
+                <label><input type="checkbox" id="debugSpace" checked> Mostrar espaço disponível (debug)</label>
+            </div>
+        </div>
+
+        <div class="stats">
+            <strong>Estatísticas:</strong>
+            <span id="statsInfo">Carregando...</span>
+        </div>
+    </div>
+
+    <div id="report-container">
+        <!-- O relatório será gerado aqui -->
+    </div>
+
+    <script>
+        // ===== SISTEMA DE OBJETOS =====
+        class MObject {
+            constructor(type, config = {}) {
+                this.type = type;
+                this.config = config;
+                this.breakable = false;
+                this.minHeight = 0;
+            }
+
+            getHeight() {
+                return this.minHeight;
+            }
+
+            canBreak() {
+                return this.breakable;
+            }
+
+            render() {
+                return document.createElement('div');
+            }
+
+            split(availableHeight) {
+                return { fitted: this, remaining: null };
+            }
+        }
+
+        // ===== OBJETO TEXTO (NÃO QUEBRÁVEL) =====
+        class MTextObject extends MObject {
+            constructor(content, config = {}) {
+                super('text', config);
+                this.content = content;
+                this.breakable = false;
+                this.minHeight = config.minHeight || 40;
+            }
+
+            render() {
+                const div = document.createElement('div');
+                div.className = 'text-object';
+                div.style.cssText = this.config.style || 'padding: 10px; margin: 5px 0;';
+                div.textContent = this.content;
+                return div;
+            }
+
+            getHeight() {
+                // Estimativa baseada no conteúdo
+                const lines = Math.ceil(this.content.length / 80);
+                return Math.max(this.minHeight, lines * 20);
+            }
+        }
+
+        // ===== OBJETO TABELA (QUEBRÁVEL) =====
+        class MTableObject extends MObject {
+            constructor(data, columns, config = {}) {
+                super('table', config);
+                this.data = data;
+                this.columns = columns;
+                this.breakable = true;
+                this.rowHeight = config.rowHeight || 25;
+                this.headerHeight = config.headerHeight || 35;
+                this.groupHeaderHeight = config.groupHeaderHeight || 30;
+                this.groupTotalHeight = config.groupTotalHeight || 25;
+            }
+
+            getHeight() {
+                let height = this.headerHeight;
+                this.data.forEach(item => {
+                    if (item.type === 'group-header' || item.type === 'group-total') {
+                        height += this.groupHeaderHeight;
+                    } else {
+                        height += this.rowHeight;
+                    }
+                });
+                return height;
+            }
+
+            render() {
+                return this.createTable(this.data);
+            }
+
+            split(availableHeight) {
+                if (availableHeight < this.headerHeight + this.rowHeight) {
+                    return { fitted: null, remaining: this };
+                }
+
+                let currentHeight = this.headerHeight;
+                const fittedData = [];
+                const remainingData = [];
+                let splitIndex = -1;
+
+                for (let i = 0; i < this.data.length; i++) {
+                    const item = this.data[i];
+                    const itemHeight = this.getItemHeight(item);
+
+                    if (currentHeight + itemHeight <= availableHeight) {
+                        fittedData.push(item);
+                        currentHeight += itemHeight;
+                    } else {
+                        splitIndex = i;
+                        break;
+                    }
+                }
+
+                if (splitIndex !== -1) {
+                    for (let i = splitIndex; i < this.data.length; i++) {
+                        remainingData.push(this.data[i]);
+                    }
+                }
+
+                const fittedTable = fittedData.length > 0 ?
+                    new MTableObject(fittedData, this.columns, this.config) : null;
+                const remainingTable = remainingData.length > 0 ?
+                    new MTableObject(remainingData, this.columns, this.config) : null;
+
+                return { fitted: fittedTable, remaining: remainingTable };
+            }
+
+            getItemHeight(item) {
+                if (item.type === 'group-header' || item.type === 'group-total') {
+                    return this.groupHeaderHeight;
+                }
+                return this.rowHeight;
+            }
+
+            createTable(data) {
+                const table = document.createElement('table');
+                table.className = 'report-table';
+
+                // Cabeçalho
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                this.columns.forEach(col => {
+                    const th = document.createElement('th');
+                    th.textContent = col.title;
+                    if (col.config?.align) th.style.textAlign = col.config.align;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                // Corpo
+                const tbody = document.createElement('tbody');
+                data.forEach(item => {
+                    if (item.type === 'group-header') {
+                        const groupRow = document.createElement('tr');
+                        const groupCell = document.createElement('td');
+                        groupCell.colSpan = this.columns.length;
+                        groupCell.className = `group-header group-header-level-${item.level}`;
+                        groupCell.textContent = `${this.getGroupLabel(item.groupField)}: ${item.value}`;
+                        groupRow.appendChild(groupCell);
+                        tbody.appendChild(groupRow);
+                    }
+                    else if (item.type === 'group-total') {
+                        const totals = this.calculateGroupTotals(item.data);
+                        const totalRow = document.createElement('tr');
+                        const totalCell = document.createElement('td');
+                        totalCell.colSpan = this.columns.length;
+                        totalCell.className = `group-total group-total-level-${item.level}`;
+                        totalCell.textContent = this.formatGroupTotal(item, totals);
+                        totalRow.appendChild(totalCell);
+                        tbody.appendChild(totalRow);
+                    }
+                    else if (item.type === 'grand-total') {
+                        const totals = this.calculateGrandTotals(item.data);
+                        const totalRow = document.createElement('tr');
+                        const totalCell = document.createElement('td');
+                        totalCell.colSpan = this.columns.length;
+                        totalCell.className = 'grand-total';
+                        totalCell.textContent = this.formatGrandTotal(totals);
+                        totalRow.appendChild(totalCell);
+                        tbody.appendChild(totalRow);
+                    }
+                    else {
+                        const row = document.createElement('tr');
+                        this.columns.forEach(col => {
+                            const cell = document.createElement('td');
+                            let value = item[col.field];
+                            value = this.formatValue(value, col.type);
+                            cell.textContent = value;
+                            if (col.config?.align) cell.style.textAlign = col.config.align;
+                            row.appendChild(cell);
+                        });
+                        tbody.appendChild(row);
+                    }
+                });
+
+                table.appendChild(tbody);
+                return table;
+            }
+
+            calculateGroupTotals(groupData) {
+                const totals = {};
+                this.columns.forEach(col => {
+                    if (col.type === 'numeric' || col.type === 'currency') {
+                        totals[col.field] = 0;
+                        groupData.forEach(item => {
+                            if (!item.type) {
+                                const value = parseFloat(item[col.field]) || 0;
+                                totals[col.field] += value;
+                            }
+                        });
+                    }
+                });
+                return totals;
+            }
+
+            calculateGrandTotals(allData) {
+                const totals = {};
+                this.columns.forEach(col => {
+                    if (col.type === 'numeric' || col.type === 'currency') {
+                        totals[col.field] = 0;
+                        allData.forEach(item => {
+                            if (!item.type) {
+                                const value = parseFloat(item[col.field]) || 0;
+                                totals[col.field] += value;
+                            }
+                        });
+                    }
+                });
+                return totals;
+            }
+
+            getGroupLabel(field) {
+                const column = this.columns.find(col => col.field === field);
+                return column ? column.title : field;
+            }
+
+            formatGroupTotal(item, totals) {
+                let text = `Total ${this.getGroupLabel(item.groupField)} ${item.value}: `;
+                let first = true;
+                this.columns.forEach(col => {
+                    if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                        if (!first) text += ' | ';
+                        text += `${col.title}: ${this.formatValue(totals[col.field], col.type)}`;
+                        first = false;
+                    }
+                });
+                return text;
+            }
+
+            formatGrandTotal(totals) {
+                let text = 'TOTAL GERAL: ';
+                let first = true;
+                this.columns.forEach(col => {
+                    if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                        if (!first) text += ' | ';
+                        text += `${col.title}: ${this.formatValue(totals[col.field], col.type)}`;
+                        first = false;
+                    }
+                });
+                return text;
+            }
+
+            formatValue(value, type) {
+                if (value === null || value === undefined) return '-';
+                switch (type) {
+                    case 'numeric': return parseInt(value).toLocaleString('pt-BR');
+                    case 'currency': return parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    case 'percent': return parseFloat(value).toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
+                    default: return value.toString();
+                }
+            }
+        }
+
+        // ===== GERENCIADOR DE PÁGINAS =====
+        class MPageManager {
+            constructor(config = {}) {
+                this.config = {
+                    pageWidth: '21cm',
+                    pageHeight: '29.7cm',
+                    margin: '1.5cm',
+                    ...config
+                };
+                this.pages = [];
+                this.currentPage = null;
+            }
+
+            createNewPage() {
+                const page = {
+                    header: null,
+                    content: [],
+                    footer: null,
+                    usedHeight: 0,
+                    maxHeight: this.getMaxContentHeight()
+                };
+                this.pages.push(page);
+                this.currentPage = page;
+                return page;
+            }
+
+            getMaxContentHeight() {
+                // Altura total da página - (header + footer + margens)
+                return 29.7 * 37.8 - (2 * 1.5 * 37.8); // Convertendo cm para px (1cm ≈ 37.8px)
+            }
+
+            addObjectToPage(object, page = null) {
+                const targetPage = page || this.currentPage;
+                if (!targetPage) return false;
+
+                const objectHeight = object.getHeight();
+                const availableHeight = targetPage.maxHeight - targetPage.usedHeight;
+
+                if (object.canBreak()) {
+                    const splitResult = object.split(availableHeight);
+
+                    if (splitResult.fitted) {
+                        targetPage.content.push(splitResult.fitted);
+                        targetPage.usedHeight += splitResult.fitted.getHeight();
+                    }
+
+                    if (splitResult.remaining) {
+                        this.createNewPage();
+                        this.addObjectToPage(splitResult.remaining);
+                    }
+
+                    return true;
+                } else {
+                    // Objeto não quebrável
+                    if (objectHeight <= availableHeight) {
+                        targetPage.content.push(object);
+                        targetPage.usedHeight += objectHeight;
+                        return true;
+                    } else {
+                        // Não cabe na página atual, criar nova página
+                        this.createNewPage();
+                        return this.addObjectToPage(object);
+                    }
+                }
+            }
+
+            renderPages(containerId) {
+                const container = document.getElementById(containerId);
+                container.innerHTML = '';
+
+                this.pages.forEach((page, pageIndex) => {
+                    const pageElement = this.createPageElement(page, pageIndex + 1, this.pages.length);
+                    container.appendChild(pageElement);
+                });
+
+                return this.pages.length;
+            }
+
+            createPageElement(page, pageNumber, totalPages) {
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'a4-page';
+
+                // Header
+                if (page.header) {
+                    pageDiv.appendChild(page.header.render());
+                }
+
+                // Content
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'page-content';
+                page.content.forEach(object => {
+                    contentDiv.appendChild(object.render());
+                });
+
+                // Debug: mostrar espaço restante
+                if (document.getElementById('debugSpace')?.checked) {
+                    const remainingSpace = page.maxHeight - page.usedHeight;
+                    if (remainingSpace > 0) {
+                        const debugDiv = document.createElement('div');
+                        debugDiv.className = 'espaco-verde';
+                        debugDiv.style.height = remainingSpace + 'px';
+                        debugDiv.title = `Espaço restante: ${Math.round(remainingSpace)}px`;
+                        contentDiv.appendChild(debugDiv);
+                    }
+                }
+
+                pageDiv.appendChild(contentDiv);
+
+                // Footer
+                if (page.footer) {
+                    pageDiv.appendChild(page.footer.render());
+                }
+
+                return pageDiv;
+            }
+
+            getStats() {
+                return {
+                    totalPages: this.pages.length,
+                    totalObjects: this.pages.reduce((sum, page) => sum + page.content.length, 0)
+                };
+            }
+        }
+
+        // ===== SISTEMA MREPORT PRINCIPAL =====
+        class MReport {
+            constructor() {
+                this.pageManager = new MPageManager();
+                this.objects = [];
+            }
+
+            addObject(object) {
+                this.objects.push(object);
+                return this;
+            }
+
+            addText(content, config = {}) {
+                const textObject = new MTextObject(content, config);
+                return this.addObject(textObject);
+            }
+
+            addTable(data, columns, config = {}) {
+                const tableObject = new MTableObject(data, columns, config);
+                return this.addObject(tableObject);
+            }
+
+            generate(containerId) {
+                this.pageManager.createNewPage();
+
+                // Adicionar todos os objetos às páginas
+                this.objects.forEach(object => {
+                    this.pageManager.addObjectToPage(object);
+                });
+
+                // Renderizar páginas
+                const totalPages = this.pageManager.renderPages(containerId);
+                const stats = this.pageManager.getStats();
+
+                // Atualizar estatísticas
+                this.updateStats(stats);
+
+                return this;
+            }
+
+            updateStats(stats) {
+                const statsInfo = document.getElementById('statsInfo');
+                if (statsInfo) {
+                    statsInfo.textContent =
+                        `${stats.totalPages} páginas | ${stats.totalObjects} objetos | ${this.objects.length} objetos totais`;
+                }
+            }
+
+            clear() {
+                this.objects = [];
+                this.pageManager = new MPageManager();
+                return this;
+            }
+        }
+
+        // ===== DADOS DE EXEMPLO =====
+        const multiLevelData = [
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Fantasia', produto: 'Harry Potter', quantidade: 15, preco: 49.90, total: 748.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Fantasia', produto: 'Harry Potter', quantidade: 15, preco: 49.90, total: 748.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Fantasia', produto: 'Harry Potter', quantidade: 15, preco: 49.90, total: 748.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Fantasia', produto: 'Harry Potter', quantidade: 15, preco: 49.90, total: 748.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Fantasia', produto: 'Harry Potter', quantidade: 15, preco: 49.90, total: 748.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Fantasia', produto: 'Harry Potter', quantidade: 15, preco: 49.90, total: 748.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Fantasia', produto: 'Harry Potter', quantidade: 15, preco: 49.90, total: 748.50 },
+        ];
+
+        const reportColumns = [
+            { field: "categoria", title: "Categoria", type: "text" },
+            { field: "subcategoria", title: "Subcategoria", type: "text" },
+            { field: "marca", title: "Marca", type: "text" },
+            { field: "produto", title: "Produto", type: "text" },
+            { field: "quantidade", title: "Quantidade", type: "numeric", config: { align: "right" } },
+            { field: "preco", title: "Preço Unit.", type: "currency", config: { align: "right" } },
+            { field: "total", title: "Total", type: "currency", config: { align: "right" } }
+        ];
+
+        // ===== FUNÇÕES DA INTERFACE =====
+        function generateReport() {
+            const report = new MReport();
+
+            // Adicionar texto
+            report.addText('RELATÓRIO DE VENDAS MULTI-NÍVEL', {
+                style: 'font-size: 18pt; font-weight: bold; text-align: center; padding: 20px; background: #f0f0f0;'
+            });
+
+            report.addText('Este é um exemplo de relatório com múltiplos objetos e paginação inteligente.', {
+                style: 'padding: 10px; margin: 10px 0; background: #e8f4fc; border-radius: 4px;'
+            });
+
+            // Adicionar tabela
+            const tableData = processDataWithGroups(multiLevelData, ['categoria', 'subcategoria']);
+            report.addTable(tableData, reportColumns, {
+                rowHeight: 30,
+                headerHeight: 40,
+                groupHeaderHeight: 35
+            });
+
+            // Adicionar mais texto
+            report.addText('Relatório gerado automaticamente pelo sistema MReport.', {
+                style: 'padding: 10px; margin: 10px 0; background: #f8f9fa; border-radius: 4px; text-align: center; font-style: italic;'
+            });
+
+            // Gerar relatório
+            report.generate('report-container');
+        }
+
+        function addTable() {
+            const report = new MReport();
+            const tableData = processDataWithGroups(multiLevelData.slice(0, 8), ['categoria']);
+            report.addTable(tableData, reportColumns);
+            report.generate('report-container');
+        }
+
+        function addText() {
+            const report = new MReport();
+            report.addText('Novo texto adicionado: ' + new Date().toLocaleString(), {
+                style: 'padding: 15px; margin: 10px 0; background: #e8f6ff; border-left: 4px solid #3498db;'
+            });
+            report.generate('report-container');
+        }
+
+        // ===== FUNÇÕES AUXILIARES =====
+        function processDataWithGroups(data, groupFields) {
+            const result = [];
+
+            if (groupFields.length > 0) {
+                const grouped = {};
+                data.forEach(item => {
+                    const key = item[groupFields[0]];
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(item);
+                });
+
+                Object.keys(grouped).sort().forEach(key => {
+                    result.push({
+                        type: 'group-header',
+                        level: 0,
+                        value: key,
+                        groupField: groupFields[0],
+                        data: grouped[key]
+                    });
+
+                    result.push(...grouped[key]);
+
+                    if (document.getElementById('showGroupTotals')?.checked) {
+                        result.push({
+                            type: 'group-total',
+                            level: 0,
+                            value: key,
+                            groupField: groupFields[0],
+                            data: grouped[key]
+                        });
+                    }
+                });
+            } else {
+                result.push(...data);
+            }
+
+            if (document.getElementById('showGrandTotal')?.checked) {
+                result.push({
+                    type: 'grand-total',
+                    data: data
+                });
+            }
+
+            return result;
+        }
+
+        // ===== INICIALIZAÇÃO =====
+        document.addEventListener('DOMContentLoaded', function () {
+            generateReport();
+        });
+    </script>
+</body>
+
+</html>

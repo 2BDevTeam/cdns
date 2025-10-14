@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MReport - Sistema Profissional</title>
+    <script src="https://unpkg.com/petite-vue" defer init></script>
+    <style>
+        /* Estilos para página A4 */
+        @page { size: A4; margin: 0; }
+        body { margin: 0; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 9pt; color: #333; background-color: #f5f5f5; }
+        
+        .a4-page {
+            width: 21cm; min-height: 29.7cm; padding: 1.5cm; margin: 0 auto 20px auto;
+            box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.1); background: white; position: relative;
+        }
+
+        /* Cabeçalho do relatório */
+        .report-header {
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .report-title {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .report-subtitle {
+            font-size: 11pt;
+            color: #7f8c8d;
+            margin: 5px 0 0 0;
+        }
+
+        .header-info {
+            position: absolute;
+            top: 0;
+            right: 0;
+            text-align: right;
+            font-size: 9pt;
+            color: #7f8c8d;
+        }
+
+        /* Rodapé do relatório */
+        .report-footer {
+            position: absolute;
+            bottom: 1.5cm;
+            left: 1.5cm;
+            right: 1.5cm;
+            border-top: 1px solid #bdc3c7;
+            padding-top: 10px;
+            font-size: 8pt;
+            color: #7f8c8d;
+            text-align: center;
+        }
+
+        /* Conteúdo principal */
+        .page-content {
+            min-height: 21cm;
+            position: relative;
+        }
+
+        /* Tabela de dados */
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 9pt;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .report-table th {
+            background: linear-gradient(135deg, #2c3e50, #4a6491);
+            color: white;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #34495e;
+            font-size: 9pt;
+        }
+
+        .report-table td {
+            padding: 6px 10px;
+            border: 1px solid #e1e1e1;
+            background: white;
+        }
+
+        .report-table tr:nth-child(even) td {
+            background-color: #f8f9fa;
+        }
+
+        .report-table tr:hover td {
+            background-color: #e8f4fc;
+        }
+
+        /* Estilos para grupos multi-nível */
+        .group-header {
+            background-color: #ecf0f1;
+            font-weight: bold;
+            padding: 8px 12px;
+            margin: 8px 0 4px 0;
+            font-size: 10pt;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+
+        .group-header-level-0 {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            border-left: 4px solid #e74c3c;
+            font-size: 11pt;
+            padding: 10px 15px;
+        }
+
+        .group-header-level-1 {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border-left: 4px solid #1f618d;
+            margin-left: 20px;
+            padding: 8px 15px;
+        }
+
+        .group-header-level-2 {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+            border-left: 4px solid #6c3483;
+            margin-left: 40px;
+            padding: 7px 15px;
+        }
+
+        /* Totais por grupo */
+        .group-total {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            padding: 8px 12px;
+            margin: 4px 0 8px 0;
+            border-top: 2px solid #bdc3c7;
+            border-bottom: 2px solid #bdc3c7;
+            font-size: 9pt;
+        }
+
+        .group-total-level-0 {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            color: white;
+            font-size: 10pt;
+            padding: 10px 15px;
+        }
+
+        .group-total-level-1 {
+            background: linear-gradient(135deg, #d35400, #e67e22);
+            color: white;
+            margin-left: 20px;
+            padding: 8px 15px;
+        }
+
+        .grand-total {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            font-weight: bold;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 10pt;
+            text-align: center;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Objetos posicionados */
+        .positioned-object {
+            position: absolute;
+            box-sizing: border-box;
+        }
+
+        .text-object {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e1e1e1;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .text-title {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #ecf0f1, #bdc3c7);
+            padding: 15px;
+            text-align: center;
+        }
+
+        .text-highlight {
+            background: linear-gradient(135deg, #e8f4fc, #d6eaf8);
+            border-left: 4px solid #3498db;
+            padding: 12px;
+            font-style: italic;
+        }
+
+        /* Utilitários */
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .text-bold { font-weight: bold; }
+
+        /* Controles */
+        .controls { margin: 20px auto; width: 21cm; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border: 1px solid #ddd; }
+        button { background: linear-gradient(135deg, #3498db, #2980b9); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 10px; font-size: 12px; margin-bottom: 5px; }
+        button:hover { background: linear-gradient(135deg, #2980b9, #1f618d); }
+        
+        .stats { margin-top: 10px; padding: 10px; background: linear-gradient(135deg, #e8f4fc, #d6eaf8); border-radius: 4px; font-size: 11px; border-left: 4px solid #3498db; }
+
+        /* Impressão */
+        @media print {
+            body { margin: 0; padding: 0; background: white; }
+            .a4-page { box-shadow: none; margin: 0; padding: 1.5cm; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls no-print">
+        <h2>MReport - Sistema Profissional</h2>
+        <button @click="window.print()">📄 Imprimir Relatório</button>
+        <button @click="generateReport()">🔄 Gerar Relatório</button>
+        <button @click="testLargeDataset()">📊 Testar com 50 Registros</button>
+
+        <div class="stats">
+            <strong>Estatísticas:</strong>
+            <span>{{ statsInfo }}</span>
+        </div>
+    </div>
+
+    <div id="report-container" v-scope="App">
+        <div v-for="(page, index) in pages" :key="index" class="a4-page">
+            <!-- Cabeçalho -->
+            <div class="report-header">
+                <h1 class="report-title">RELATÓRIO DE VENDAS - MULTI-NÍVEL</h1>
+                <p class="report-subtitle">Análise detalhada por categoria e subcategoria</p>
+                <div class="header-info">
+                    Página {{ index + 1 }} de {{ pages.length }}<br>
+                    Data: {{ currentDate }}<br>
+                    Hora: {{ currentTime }}
+                </div>
+                
+                <!-- Objetos do header -->
+                <div style="position: relative; min-height: 50px;">
+                    <div v-for="obj in page.header.objects" 
+                         :key="obj.id"
+                         class="positioned-object"
+                         :style="getObjectStyle(obj)">
+                        <div v-html="obj.content" :class="getObjectClass(obj)"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="page-content">
+                <div v-for="obj in page.content.objects" 
+                     :key="obj.id"
+                     class="positioned-object"
+                     :style="getObjectStyle(obj)">
+                    <div v-if="obj.type === 'text'" v-html="obj.content" :class="getObjectClass(obj)"></div>
+                    <div v-if="obj.type === 'table'">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th v-for="col in obj.columns" :key="col.field" :style="getColumnStyle(col)">{{ col.title }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(item, itemIndex) in obj.data" :key="itemIndex">
+                                    <template v-if="item.type === 'group-header'">
+                                        <td :colspan="obj.columns.length" :class="`group-header group-header-level-${item.level}`">
+                                            {{ getGroupLabel(obj.columns, item.groupField) }}: {{ item.value }}
+                                        </td>
+                                    </template>
+                                    <template v-else-if="item.type === 'group-total'">
+                                        <td :colspan="obj.columns.length" :class="`group-total group-total-level-${item.level}`">
+                                            {{ formatGroupTotal(item, obj.columns) }}
+                                        </td>
+                                    </template>
+                                    <template v-else-if="item.type === 'grand-total'">
+                                        <td :colspan="obj.columns.length" class="grand-total">
+                                            {{ formatGrandTotal(item, obj.columns) }}
+                                        </td>
+                                    </template>
+                                    <template v-else>
+                                        <td v-for="col in obj.columns" :key="col.field" :style="getColumnStyle(col)">
+                                            {{ formatValue(item[col.field], col.type) }}
+                                        </td>
+                                    </template>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rodapé -->
+            <div class="report-footer">
+                <!-- Objetos do footer -->
+                <div style="position: relative; min-height: 30px;">
+                    <div v-for="obj in page.footer.objects" 
+                         :key="obj.id"
+                         class="positioned-object"
+                         :style="getObjectStyle(obj)">
+                        <div v-html="obj.content" :class="getObjectClass(obj)"></div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center;">
+                    MReport Professional System - Página {{ index + 1 }} de {{ pages.length }} - {{ currentYear }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== SISTEMA DE OBJETOS COM POSICIONAMENTO =====
+        class MObject {
+            constructor(type, config = {}) {
+                this.type = type;
+                this.config = config;
+                this.breakable = false;
+                this.minHeight = config.minHeight || 40;
+                
+                // Posicionamento
+                this.x = config.x || 0;
+                this.y = config.y || 0;
+                this.width = config.width || 200;
+                this.height = config.height || 100;
+                this.section = config.section || 'content';
+                
+                // ID único para o Petite-Vue
+                this.id = Date.now() + Math.random();
+            }
+
+            getPosition() {
+                return { x: this.x, y: this.y, width: this.width, height: this.height, section: this.section };
+            }
+
+            getHeight() {
+                return this.height;
+            }
+
+            canBreak() {
+                return this.breakable;
+            }
+
+            toRenderData() {
+                return {
+                    id: this.id,
+                    type: this.type,
+                    x: this.x,
+                    y: this.y,
+                    width: this.width,
+                    height: this.height,
+                    section: this.section,
+                    content: this.getContent(),
+                    style: this.config.style,
+                    styleType: this.config.styleType
+                };
+            }
+
+            getContent() {
+                return '';
+            }
+
+            split(availableHeight) {
+                return { fitted: this, remaining: null };
+            }
+        }
+
+        // ===== OBJETO TEXTO =====
+        class MTextObject extends MObject {
+            constructor(content, config = {}) {
+                super('text', config);
+                this.content = content;
+                this.breakable = false;
+                
+                if (config.styleType === 'title') {
+                    this.config.style = 'font-size: 14pt; font-weight: bold; z-index: 10;';
+                    this.height = 60;
+                } else if (config.styleType === 'highlight') {
+                    this.config.style = 'font-size: 10pt; z-index: 10;';
+                    this.height = 70;
+                }
+            }
+
+            getContent() {
+                return this.content;
+            }
+        }
+
+        // ===== OBJETO TABELA =====
+        class MTableObject extends MObject {
+            constructor(data, columns, config = {}) {
+                super('table', config);
+                this.data = data;
+                this.columns = columns;
+                this.breakable = true;
+                this.rowHeight = config.rowHeight || 28;
+                this.headerHeight = config.headerHeight || 40;
+                this.groupHeaderHeight = config.groupHeaderHeight || 35;
+                this.groupTotalHeight = config.groupTotalHeight || 32;
+            }
+
+            getHeight() {
+                let height = this.headerHeight;
+                this.data.forEach(item => {
+                    if (item.type === 'group-header' || item.type === 'group-total') {
+                        height += this.groupHeaderHeight;
+                    } else if (item.type === 'grand-total') {
+                        height += 45;
+                    } else {
+                        height += this.rowHeight;
+                    }
+                });
+                return height;
+            }
+
+            toRenderData() {
+                return {
+                    id: this.id,
+                    type: this.type,
+                    x: this.x,
+                    y: this.y,
+                    width: this.width,
+                    height: this.height,
+                    section: this.section,
+                    data: this.data,
+                    columns: this.columns
+                };
+            }
+
+            split(availableHeight) {
+                if (availableHeight < this.headerHeight + this.rowHeight) {
+                    return { fitted: null, remaining: this };
+                }
+
+                let currentHeight = this.headerHeight;
+                const fittedData = [];
+                const remainingData = [];
+                let splitIndex = -1;
+
+                for (let i = 0; i < this.data.length; i++) {
+                    const item = this.data[i];
+                    const itemHeight = this.getItemHeight(item);
+
+                    if (currentHeight + itemHeight <= availableHeight) {
+                        fittedData.push(item);
+                        currentHeight += itemHeight;
+                    } else {
+                        splitIndex = i;
+                        break;
+                    }
+                }
+
+                if (splitIndex !== -1) {
+                    remainingData.push(...this.data.slice(splitIndex));
+                }
+
+                const fittedTable = fittedData.length > 0 ? 
+                    new MTableObject(fittedData, this.columns, this.config) : null;
+                const remainingTable = remainingData.length > 0 ? 
+                    new MTableObject(remainingData, this.columns, this.config) : null;
+
+                return { fitted: fittedTable, remaining: remainingTable };
+            }
+
+            getItemHeight(item) {
+                if (item.type === 'group-header' || item.type === 'group-total') {
+                    return this.groupHeaderHeight;
+                } else if (item.type === 'grand-total') {
+                    return 45;
+                }
+                return this.rowHeight;
+            }
+
+            calculateGroupTotals(groupData) {
+                const totals = {};
+                this.columns.forEach(col => {
+                    if (col.type === 'numeric' || col.type === 'currency') {
+                        totals[col.field] = 0;
+                        groupData.forEach(item => {
+                            if (!item.type) {
+                                const value = parseFloat(item[col.field]) || 0;
+                                totals[col.field] += value;
+                            }
+                        });
+                    }
+                });
+                return totals;
+            }
+
+            calculateGrandTotals(allData) {
+                const totals = {};
+                this.columns.forEach(col => {
+                    if (col.type === 'numeric' || col.type === 'currency') {
+                        totals[col.field] = 0;
+                        allData.forEach(item => {
+                            if (!item.type) {
+                                const value = parseFloat(item[col.field]) || 0;
+                                totals[col.field] += value;
+                            }
+                        });
+                    }
+                });
+                return totals;
+            }
+
+            getGroupLabel(field) {
+                const column = this.columns.find(col => col.field === field);
+                return column ? column.title : field;
+            }
+
+            formatGroupTotal(item, totals) {
+                let text = `Total ${this.getGroupLabel(item.groupField)} ${item.value}: `;
+                let first = true;
+                this.columns.forEach(col => {
+                    if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                        if (!first) text += ' | ';
+                        text += `${col.title}: ${this.formatValue(totals[col.field], col.type)}`;
+                        first = false;
+                    }
+                });
+                return text;
+            }
+
+            formatGrandTotal(totals) {
+                let text = 'TOTAL GERAL: ';
+                let first = true;
+                this.columns.forEach(col => {
+                    if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                        if (!first) text += ' | ';
+                        text += `${col.title}: ${this.formatValue(totals[col.field], col.type)}`;
+                        first = false;
+                    }
+                });
+                return text;
+            }
+
+            formatValue(value, type) {
+                if (value === null || value === undefined) return '-';
+                switch (type) {
+                    case 'numeric': return parseInt(value).toLocaleString('pt-BR');
+                    case 'currency': return parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    case 'percent': return parseFloat(value).toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
+                    default: return value.toString();
+                }
+            }
+        }
+
+        // ===== GERENCIADOR DE PÁGINAS =====
+        class MPageManager {
+            constructor(config = {}) {
+                this.config = {
+                    pageWidth: 794,   // 21cm em pixels
+                    pageHeight: 1123, // 29.7cm em pixels
+                    margin: 57,       // 1.5cm em pixels
+                    ...config
+                };
+                
+                this.pages = [];
+                this.currentPage = null;
+            }
+
+            createNewPage() {
+                const page = {
+                    header: { objects: [], height: 0 },
+                    content: { objects: [], height: 0 },
+                    footer: { objects: [], height: 0 },
+                    usedHeight: 0,
+                    maxHeight: 21 * 37.8 // 21cm em pixels para área de conteúdo
+                };
+                this.pages.push(page);
+                this.currentPage = page;
+                return page;
+            }
+
+            addObjectToPage(object) {
+                const targetPage = this.currentPage;
+                if (!targetPage) return false;
+
+                const section = object.section || 'content';
+                const objectHeight = object.getHeight();
+                const availableHeight = targetPage.maxHeight - targetPage.usedHeight;
+
+                if (object.canBreak()) {
+                    const splitResult = object.split(availableHeight);
+                    
+                    if (splitResult.fitted) {
+                        targetPage[section].objects.push(splitResult.fitted.toRenderData());
+                        targetPage.usedHeight += splitResult.fitted.getHeight();
+                    }
+
+                    if (splitResult.remaining) {
+                        this.createNewPage();
+                        this.addObjectToPage(splitResult.remaining);
+                    }
+                } else {
+                    if (objectHeight <= availableHeight) {
+                        targetPage[section].objects.push(object.toRenderData());
+                        targetPage.usedHeight += objectHeight;
+                    } else {
+                        this.createNewPage();
+                        return this.addObjectToPage(object);
+                    }
+                }
+                
+                return true;
+            }
+
+            getStats() {
+                const totalObjects = this.pages.reduce((sum, page) => 
+                    sum + page.header.objects.length + page.content.objects.length + page.footer.objects.length, 0);
+                return {
+                    totalPages: this.pages.length,
+                    totalObjects: totalObjects
+                };
+            }
+        }
+
+        // ===== SISTEMA MREPORT PRINCIPAL =====
+        class MReport {
+            constructor() {
+                this.pageManager = new MPageManager();
+                this.objects = [];
+            }
+
+            addObject(object) {
+                this.objects.push(object);
+                return this;
+            }
+
+            addText(content, config = {}) {
+                const textObject = new MTextObject(content, config);
+                return this.addObject(textObject);
+            }
+
+            addTable(data, columns, config = {}) {
+                const tableObject = new MTableObject(data, columns, config);
+                return this.addObject(tableObject);
+            }
+
+            generate() {
+                this.pageManager.createNewPage();
+
+                // Adicionar todos os objetos às páginas
+                this.objects.forEach(object => {
+                    this.pageManager.addObjectToPage(object);
+                });
+
+                return this.pageManager.pages;
+            }
+
+            clear() {
+                this.objects = [];
+                this.pageManager = new MPageManager();
+                return this;
+            }
+        }
+
+        // ===== DADOS DE TESTE COM 50 REGISTROS =====
+        function generateTestData() {
+            const categorias = ['Eletrônicos', 'Livros', 'Roupas', 'Casa', 'Esportes'];
+            const subcategorias = {
+                'Eletrônicos': ['Smartphones', 'Tablets', 'Notebooks', 'Acessórios'],
+                'Livros': ['Ficção', 'Não-Ficção', 'Técnicos', 'Infantil'],
+                'Roupas': ['Masculino', 'Feminino', 'Infantil', 'Esportiva'],
+                'Casa': ['Móveis', 'Decoração', 'Cozinha', 'Jardim'],
+                'Esportes': ['Fitness', 'Camping', 'Aquáticos', 'Coletivos']
+            };
+            const marcas = ['Samsung', 'Apple', 'Sony', 'LG', 'Xiaomi', 'Nike', 'Adidas', 'Philips', 'Brastemp'];
+
+            const data = [];
+            for (let i = 1; i <= 50; i++) {
+                const categoria = categorias[Math.floor(Math.random() * categorias.length)];
+                const subcatArray = subcategorias[categoria];
+                const subcategoria = subcatArray[Math.floor(Math.random() * subcatArray.length)];
+                
+                data.push({
+                    id: i,
+                    categoria: categoria,
+                    subcategoria: subcategoria,
+                    produto: `Produto ${i} - ${categoria}`,
+                    marca: marcas[Math.floor(Math.random() * marcas.length)],
+                    quantidade: Math.floor(Math.random() * 100) + 1,
+                    preco: parseFloat((Math.random() * 1000 + 10).toFixed(2)),
+                    total: 0
+                });
+                
+                // Calcular total
+                data[data.length - 1].total = data[data.length - 1].quantidade * data[data.length - 1].preco;
+            }
+            
+            return data;
+        }
+
+        const reportColumns = [
+            { field: "categoria", title: "Categoria", type: "text" },
+            { field: "subcategoria", title: "Subcategoria", type: "text" },
+            { field: "produto", title: "Produto", type: "text" },
+            { field: "marca", title: "Marca", type: "text" },
+            { field: "quantidade", title: "Quantidade", type: "numeric", config: { align: "right" } },
+            { field: "preco", title: "Preço Unit.", type: "currency", config: { align: "right" } },
+            { field: "total", title: "Total", type: "currency", config: { align: "right" } }
+        ];
+
+        function processDataWithGroups(data, groupFields) {
+            if (groupFields.length === 0) return data;
+
+            const result = [];
+            const grouped = {};
+
+            // Agrupar dados
+            data.forEach(item => {
+                const key = item[groupFields[0]];
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+            });
+
+            // Adicionar grupos e totais
+            Object.keys(grouped).sort().forEach(key => {
+                result.push({
+                    type: 'group-header',
+                    level: 0,
+                    value: key,
+                    groupField: groupFields[0],
+                    data: grouped[key]
+                });
+
+                result.push(...grouped[key]);
+
+                result.push({
+                    type: 'group-total',
+                    level: 0,
+                    value: key,
+                    groupField: groupFields[0],
+                    data: grouped[key]
+                });
+            });
+
+            // Total geral
+            result.push({
+                type: 'grand-total',
+                data: data
+            });
+
+            return result;
+        }
+
+        // ===== APLICAÇÃO PETITE-VUE =====
+        const App = {
+            $template: '',
+            pages: [],
+            statsInfo: 'Carregando...',
+            currentDate: new Date().toLocaleDateString('pt-BR'),
+            currentTime: new Date().toLocaleTimeString('pt-BR'),
+            currentYear: new Date().getFullYear(),
+            
+            getObjectStyle(obj) {
+                return `transform: translate3d(${obj.x}px, ${obj.y}px, 0); width: ${obj.width}px; height: ${obj.height}px; ${obj.style || ''}`;
+            },
+            
+            getObjectClass(obj) {
+                const baseClass = 'text-object';
+                if (obj.styleType) {
+                    return `${baseClass} text-${obj.styleType}`;
+                }
+                return baseClass;
+            },
+            
+            getColumnStyle(col) {
+                return col.config?.align ? `text-align: ${col.config.align}` : '';
+            },
+            
+            getGroupLabel(columns, field) {
+                const column = columns.find(col => col.field === field);
+                return column ? column.title : field;
+            },
+            
+            formatGroupTotal(item, columns) {
+                const totals = calculateGroupTotals(item.data, columns);
+                let text = `Total ${this.getGroupLabel(columns, item.groupField)} ${item.value}: `;
+                let first = true;
+                columns.forEach(col => {
+                    if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                        if (!first) text += ' | ';
+                        text += `${col.title}: ${this.formatValue(totals[col.field], col.type)}`;
+                        first = false;
+                    }
+                });
+                return text;
+            },
+            
+            formatGrandTotal(item, columns) {
+                const totals = calculateGrandTotals(item.data, columns);
+                let text = 'TOTAL GERAL: ';
+                let first = true;
+                columns.forEach(col => {
+                    if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                        if (!first) text += ' | ';
+                        text += `${col.title}: ${this.formatValue(totals[col.field], col.type)}`;
+                        first = false;
+                    }
+                });
+                return text;
+            },
+            
+            formatValue(value, type) {
+                if (value === null || value === undefined) return '-';
+                switch (type) {
+                    case 'numeric': return parseInt(value).toLocaleString('pt-BR');
+                    case 'currency': return parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    case 'percent': return parseFloat(value).toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
+                    default: return value.toString();
+                }
+            },
+            
+            generateReport() {
+                const report = new MReport();
+
+                // Texto no header
+                report.addText('RELATÓRIO PROFISSIONAL', {
+                    x: 200, y: 10, section: 'header',
+                    styleType: 'title', width: 400, height: 50
+                });
+
+                // Tabela principal
+                const testData = generateTestData().slice(0, 15); // Poucos dados para demo
+                const tableData = processDataWithGroups(testData, ['categoria']);
+                report.addTable(tableData, reportColumns, {
+                    x: 0, y: 0, section: 'content',
+                    width: 700, height: 600
+                });
+
+                // Texto no footer
+                report.addText('Confidencial - Uso Interno', {
+                    x: 250, y: 5, section: 'footer',
+                    width: 200, height: 25
+                });
+
+                this.pages = report.generate();
+                this.updateStats();
+            },
+            
+            testLargeDataset() {
+                const report = new MReport();
+
+                // Header
+                report.addText('RELATÓRIO COMPLETO - 50 REGISTROS', {
+                    x: 180, y: 5, section: 'header',
+                    styleType: 'title', width: 450, height: 60
+                });
+
+                report.addText('Teste de paginação com grande volume de dados', {
+                    x: 200, y: 45, section: 'header',
+                    styleType: 'highlight', width: 400, height: 30
+                });
+
+                // Tabela com 50 registros
+                const largeData = generateTestData();
+                const tableData = processDataWithGroups(largeData, ['categoria', 'subcategoria']);
+                report.addTable(tableData, reportColumns, {
+                    x: 0, y: 0, section: 'content',
+                    width: 700, height: 800
+                });
+
+                // Footer
+                report.addText('Sistema MReport - Paginação Automática', {
+                    x: 220, y: 5, section: 'footer',
+                    width: 300, height: 25
+                });
+
+                this.pages = report.generate();
+                this.updateStats();
+            },
+            
+            updateStats() {
+                const totalObjects = this.pages.reduce((sum, page) => 
+                    sum + page.header.objects.length + page.content.objects.length + page.footer.objects.length, 0);
+                
+                this.statsInfo = `${this.pages.length} páginas | ${totalObjects} objetos`;
+            }
+        };
+
+        // Funções auxiliares para cálculos de totais
+        function calculateGroupTotals(groupData, columns) {
+            const totals = {};
+            columns.forEach(col => {
+                if (col.type === 'numeric' || col.type === 'currency') {
+                    totals[col.field] = 0;
+                    groupData.forEach(item => {
+                        if (!item.type) {
+                            const value = parseFloat(item[col.field]) || 0;
+                            totals[col.field] += value;
+                        }
+                    });
+                }
+            });
+            return totals;
+        }
+
+        function calculateGrandTotals(allData, columns) {
+            const totals = {};
+            columns.forEach(col => {
+                if (col.type === 'numeric' || col.type === 'currency') {
+                    totals[col.field] = 0;
+                    allData.forEach(item => {
+                        if (!item.type) {
+                            const value = parseFloat(item[col.field]) || 0;
+                            totals[col.field] += value;
+                        }
+                    });
+                }
+            });
+            return totals;
+        }
+
+        // ===== INICIALIZAÇÃO =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar a aplicação Petite-Vue
+            PetiteVue.createApp(App).mount('#report-container');
+            
+            // Gerar relatório inicial
+            App.generateReport();
+        });
+    </script>
+</body>
+</html>
