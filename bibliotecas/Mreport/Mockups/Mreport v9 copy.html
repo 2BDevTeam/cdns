@@ -1983,6 +1983,46 @@
             });
         }
 
+        function setupColumnConfig() {
+            const $container = $('#columns-config');
+            $container.empty();
+
+            reportColumns.forEach(col => {
+                const $group = $('<div>', {
+                    class: 'config-group column-config',
+                    'data-field': col.field
+                });
+
+                $group.append(`
+                    <label>
+                        <input type="checkbox" class="col-visible" checked> 
+                        ${col.title}
+                    </label>
+                    <select class="col-align" style="width: 80px; margin-left: 10px;">
+                        <option value="left">Esquerda</option>
+                        <option value="center">Centro</option>
+                        <option value="right">Direita</option>
+                    </select>
+                    <input type="color" class="col-bg-color" value="${col.config.backgroundColor || '#ffffff'}" class="color-picker" style="margin-left: 10px;">
+                    <input type="color" class="col-text-color" value="${col.config.textColor || '#000000'}" class="color-picker" style="margin-left: 5px;">
+                    <input type="text" class="col-expression" placeholder="Expressão" value="${col.config.expression || ''}" style="width: 200px; margin-left: 10px;">
+                    <select class="col-border-style" style="width: 80px; margin-left: 10px;">
+                        <option value="solid">Sólida</option>
+                        <option value="dashed">Tracejada</option>
+                        <option value="dotted">Pontilhada</option>
+                    </select>
+                    <select class="col-border-width" style="width: 60px; margin-left: 5px;">
+                        <option value="1px">1px</option>
+                        <option value="2px">2px</option>
+                        <option value="3px">3px</option>
+                    </select>
+                    <input type="color" class="col-border-color" value="#34495e" class="color-picker" style="margin-left: 5px;">
+                `);
+
+                $container.append($group);
+            });
+        }
+
 
         // Agrupamento recursivo para N níveis
         function groupDataMultiLevel(data, groupFields, level = 0) {
@@ -3094,11 +3134,34 @@
             console.log("GREPORT", GREPORT.objects)
         }
 
+        function resetConfig() {
+            const defaultConfig = new MReportConfig();
+            defaultConfig.saveToUI();
+            generateReport();
+        }
+
         // ===== INICIALIZAÇÃO =====
         $(document).ready(function () {
             // Configurar tabs
-          
+            $('.tab-button').on('click', function () {
+                const tabId = $(this).data('tab');
+                $('.tab-button').removeClass('active');
+                $(this).addClass('active');
+                $('.tab-pane').removeClass('active');
+                $(`#${tabId}`).addClass('active');
+            });
+
+            // Configurar eventos
+        
+            $('#generate-btn').on('click', generateReport);
+        
+            $('#reset-btn').on('click', resetConfig);
+
+            // Atualizar configurações
          
+            // Inicializar
+            setupColumnConfig();
+            new MReportConfig().saveToUI();
             generateReport();
         });
 

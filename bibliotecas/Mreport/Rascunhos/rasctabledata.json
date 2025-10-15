@@ -1,0 +1,947 @@
+[
+    {
+        "type": "group-header",
+        "level": 1,
+        "value": "Casa",
+        "groupField": "categoria",
+        "data": [
+            {
+                "id": 1,
+                "categoria": "Casa",
+                "subcategoria": "Decoração",
+                "produto": "Produto 1 - Casa",
+                "marca": "Philips",
+                "quantidade": 58,
+                "preco": 466.96,
+                "total": 27083.68
+            },
+            {
+                "id": 5,
+                "categoria": "Casa",
+                "subcategoria": "Decoração",
+                "produto": "Produto 5 - Casa",
+                "marca": "Brastemp",
+                "quantidade": 34,
+                "preco": 92.25,
+                "total": 3136.5
+            },
+            {
+                "id": 6,
+                "categoria": "Casa",
+                "subcategoria": "Móveis",
+                "produto": "Produto 6 - Casa",
+                "marca": "Samsung",
+                "quantidade": 29,
+                "preco": 539.69,
+                "total": 15651.010000000002
+            },
+            {
+                "id": 7,
+                "categoria": "Casa",
+                "subcategoria": "Móveis",
+                "produto": "Produto 7 - Casa",
+                "marca": "Apple",
+                "quantidade": 63,
+                "preco": 834.97,
+                "total": 52603.11
+            },
+            {
+                "id": 18,
+                "categoria": "Casa",
+                "subcategoria": "Móveis",
+                "produto": "Produto 18 - Casa",
+                "marca": "Samsung",
+                "quantidade": 13,
+                "preco": 648.46,
+                "total": 8429.98
+            },
+            {
+                "id": 19,
+                "categoria": "Casa",
+                "subcategoria": "Cozinha",
+                "produto": "Produto 19 - Casa",
+                "marca": "Philips",
+                "quantidade": 57,
+                "preco": 501.66,
+                "total": 28594.620000000003
+            }
+        ]
+    },
+    {
+        "id": 1,
+        "categoria": "Casa",
+        "subcategoria": "Decoração",
+        "produto": "Produto 1 - Casa",
+        "marca": "Philips",
+        "quantidade": 58,
+        "preco": 466.96,
+        "total": 27083.68
+    },
+    {
+        "id": 5,
+        "categoria": "Casa",
+        "subcategoria": "Decoração",
+        "produto": "Produto 5 - Casa",
+        "marca": "Brastemp",
+        "quantidade": 34,
+        "preco": 92.25,
+        "total": 3136.5,
+        "_rowColor": "#fff8f0",
+        "_rowHeight": 30
+    },
+    {
+        "id": 6,
+        "categoria": "Casa",
+        "subcategoria": "Móveis",
+        "produto": "Produto 6 - Casa",
+        "marca": "Samsung",
+        "quantidade": 29,
+        "preco": 539.69,
+        "total": 15651.010000000002,
+        "_cell_preco_color": "#ffebee",
+        "_cell_preco_textColor": "#c62828",
+        "_cell_total_color": "#ffebee",
+        "_cell_total_textColor": "#c62828"
+    },
+    {
+        "id": 7,
+        "categoria": "Casa",
+        "subcategoria": "Móveis",
+        "produto": "Produto 7 - Casa",
+        "marca": "Apple",
+        "quantidade": 63,
+        "preco": 834.97,
+        "total": 52603.11,
+        "_rowColor": "#f0f8ff",
+        "_rowHeight": 32,
+        "_cell_preco_color": "#ffebee",
+        "_cell_preco_textColor": "#c62828",
+        "_cell_total_color": "#ffebee",
+        "_cell_total_textColor": "#c62828"
+    },
+    {
+        "id": 18,
+        "categoria": "Casa",
+        "subcategoria": "Móveis",
+        "produto": "Produto 18 - Casa",
+        "marca": "Samsung",
+        "quantidade": 13,
+        "preco": 648.46,
+        "total": 8429.98,
+        "_cell_preco_color": "#ffebee",
+        "_cell_preco_textColor": "#c62828",
+        "_cell_total_color": "#ffebee",
+        "_cell_total_textColor": "#c62828"
+    },
+    {
+        "id": 19,
+        "categoria": "Casa",
+        "subcategoria": "Cozinha",
+        "produto": "Produto 19 - Casa",
+        "marca": "Philips",
+        "quantidade": 57,
+        "preco": 501.66,
+        "total": 28594.620000000003,
+        "_rowColor": "#fff8f0",
+        "_rowHeight": 30,
+        "_cell_preco_color": "#ffebee",
+        "_cell_preco_textColor": "#c62828",
+        "_cell_total_color": "#ffebee",
+        "_cell_total_textColor": "#c62828"
+    },
+    {
+        "type": "group-total",
+        "level": 1,
+        "value": "Casa",
+        "groupField": "categoria",
+        "data": [
+            {
+                "id": 1,
+                "categoria": "Casa",
+                "subcategoria": "Decoração",
+                "produto": "Produto 1 - Casa",
+                "marca": "Philips",
+                "quantidade": 58,
+                "preco": 466.96,
+                "total": 27083.68
+            },
+            {
+                "id": 5,
+                "categoria": "Casa",
+                "subcategoria": "Decoração",
+                "produto": "Produto 5 - Casa",
+                "marca": "Brastemp",
+                "quantidade": 34,
+                "preco": 92.25,
+                "total": 3136.5
+            },
+            {
+                "id": 6,
+                "categoria": "Casa",
+                "subcategoria": "Móveis",
+                "produto": "Produto 6 - Casa",
+                "marca": "Samsung",
+                "quantidade": 29,
+                "preco": 539.69,
+                "total": 15651.010000000002
+            },
+            {
+                "id": 7,
+                "categoria": "Casa",
+                "subcategoria": "Móveis",
+                "produto": "Produto 7 - Casa",
+                "marca": "Apple",
+                "quantidade": 63,
+                "preco": 834.97,
+                "total": 52603.11
+            },
+            {
+                "id": 18,
+                "categoria": "Casa",
+                "subcategoria": "Móveis",
+                "produto": "Produto 18 - Casa",
+                "marca": "Samsung",
+                "quantidade": 13,
+                "preco": 648.46,
+                "total": 8429.98
+            },
+            {
+                "id": 19,
+                "categoria": "Casa",
+                "subcategoria": "Cozinha",
+                "produto": "Produto 19 - Casa",
+                "marca": "Philips",
+                "quantidade": 57,
+                "preco": 501.66,
+                "total": 28594.620000000003
+            }
+        ]
+    },
+    {
+        "type": "group-header",
+        "level": 1,
+        "value": "Eletrônicos",
+        "groupField": "categoria",
+        "data": [
+            {
+                "id": 2,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Acessórios",
+                "produto": "Produto 2 - Eletrônicos",
+                "marca": "Brastemp",
+                "quantidade": 94,
+                "preco": 996.67,
+                "total": 93686.98
+            },
+            {
+                "id": 3,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Notebooks",
+                "produto": "Produto 3 - Eletrônicos",
+                "marca": "Samsung",
+                "quantidade": 5,
+                "preco": 244.47,
+                "total": 1222.35
+            },
+            {
+                "id": 11,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Notebooks",
+                "produto": "Produto 11 - Eletrônicos",
+                "marca": "LG",
+                "quantidade": 43,
+                "preco": 581.36,
+                "total": 24998.48
+            },
+            {
+                "id": 13,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Smartphones",
+                "produto": "Produto 13 - Eletrônicos",
+                "marca": "Sony",
+                "quantidade": 81,
+                "preco": 730.11,
+                "total": 59138.91
+            },
+            {
+                "id": 16,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Notebooks",
+                "produto": "Produto 16 - Eletrônicos",
+                "marca": "Philips",
+                "quantidade": 17,
+                "preco": 408.68,
+                "total": 6947.56
+            }
+        ]
+    },
+    {
+        "id": 2,
+        "categoria": "Eletrônicos",
+        "subcategoria": "Acessórios",
+        "produto": "Produto 2 - Eletrônicos",
+        "marca": "Brastemp",
+        "quantidade": 94,
+        "preco": 996.67,
+        "total": 93686.98,
+        "_cell_preco_color": "#ffebee",
+        "_cell_preco_textColor": "#c62828",
+        "_cell_total_color": "#ffebee",
+        "_cell_total_textColor": "#c62828",
+        "_cell_quantidade_color": "#e8f5e8",
+        "_cell_quantidade_textColor": "#2e7d32"
+    },
+    {
+        "id": 3,
+        "categoria": "Eletrônicos",
+        "subcategoria": "Notebooks",
+        "produto": "Produto 3 - Eletrônicos",
+        "marca": "Samsung",
+        "quantidade": 5,
+        "preco": 244.47,
+        "total": 1222.35,
+        "_rowColor": "#fff8f0",
+        "_rowHeight": 30
+    },
+    {
+        "id": 11,
+        "categoria": "Eletrônicos",
+        "subcategoria": "Notebooks",
+        "produto": "Produto 11 - Eletrônicos",
+        "marca": "LG",
+        "quantidade": 43,
+        "preco": 581.36,
+        "total": 24998.48,
+        "_cell_preco_color": "#ffebee",
+        "_cell_preco_textColor": "#c62828",
+        "_cell_total_color": "#ffebee",
+        "_cell_total_textColor": "#c62828"
+    },
+    {
+        "id": 13,
+        "categoria": "Eletrônicos",
+        "subcategoria": "Smartphones",
+        "produto": "Produto 13 - Eletrônicos",
+        "marca": "Sony",
+        "quantidade": 81,
+        "preco": 730.11,
+        "total": 59138.91,
+        "_rowColor": "#f0f8ff",
+        "_rowHeight": 32,
+        "_cell_preco_color": "#ffebee",
+        "_cell_preco_textColor": "#c62828",
+        "_cell_total_color": "#ffebee",
+        "_cell_total_textColor": "#c62828",
+        "_cell_quantidade_color": "#e8f5e8",
+        "_cell_quantidade_textColor": "#2e7d32"
+    },
+    {
+        "id": 16,
+        "categoria": "Eletrônicos",
+        "subcategoria": "Notebooks",
+        "produto": "Produto 16 - Eletrônicos",
+        "marca": "Philips",
+        "quantidade": 17,
+        "preco": 408.68,
+        "total": 6947.56
+    },
+    {
+        "type": "group-total",
+        "level": 1,
+        "value": "Eletrônicos",
+        "groupField": "categoria",
+        "data": [
+            {
+                "id": 2,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Acessórios",
+                "produto": "Produto 2 - Eletrônicos",
+                "marca": "Brastemp",
+                "quantidade": 94,
+                "preco": 996.67,
+                "total": 93686.98
+            },
+            {
+                "id": 3,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Notebooks",
+                "produto": "Produto 3 - Eletrônicos",
+                "marca": "Samsung",
+                "quantidade": 5,
+                "preco": 244.47,
+                "total": 1222.35
+            },
+            {
+                "id": 11,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Notebooks",
+                "produto": "Produto 11 - Eletrônicos",
+                "marca": "LG",
+                "quantidade": 43,
+                "preco": 581.36,
+                "total": 24998.48
+            },
+            {
+                "id": 13,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Smartphones",
+                "produto": "Produto 13 - Eletrônicos",
+                "marca": "Sony",
+                "quantidade": 81,
+                "preco": 730.11,
+                "total": 59138.91
+            },
+            {
+                "id": 16,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Notebooks",
+                "produto": "Produto 16 - Eletrônicos",
+                "marca": "Philips",
+                "quantidade": 17,
+                "preco": 408.68,
+                "total": 6947.56
+            }
+        ]
+    },
+    {
+        "type": "group-header",
+        "level": 1,
+        "value": "Esportes",
+        "groupField": "categoria",
+        "data": [
+            {
+                "id": 4,
+                "categoria": "Esportes",
+                "subcategoria": "Fitness",
+                "produto": "Produto 4 - Esportes",
+                "marca": "Xiaomi",
+                "quantidade": 11,
+                "preco": 410.83,
+                "total": 4519.13
+            },
+            {
+                "id": 9,
+                "categoria": "Esportes",
+                "subcategoria": "Fitness",
+                "produto": "Produto 9 - Esportes",
+                "marca": "Adidas",
+                "quantidade": 55,
+                "preco": 200.01,
+                "total": 11000.55
+            },
+            {
+                "id": 12,
+                "categoria": "Esportes",
+                "subcategoria": "Aquáticos",
+                "produto": "Produto 12 - Esportes",
+                "marca": "Nike",
+                "quantidade": 17,
+                "preco": 315.08,
+                "total": 5356.36
+            },
+            {
+                "id": 14,
+                "categoria": "Esportes",
+                "subcategoria": "Aquáticos",
+                "produto": "Produto 14 - Esportes",
+                "marca": "Apple",
+                "quantidade": 89,
+                "preco": 956.39,
+                "total": 85118.70999999999
+            }
+        ]
+    },
+    {
+        "id": 4,
+        "categoria": "Esportes",
+        "subcategoria": "Fitness",
+        "produto": "Produto 4 - Esportes",
+        "marca": "Xiaomi",
+        "quantidade": 11,
+        "preco": 410.83,
+        "total": 4519.13,
+        "_rowColor": "#f0f8ff",
+        "_rowHeight": 32
+    },
+    {
+        "id": 9,
+        "categoria": "Esportes",
+        "subcategoria": "Fitness",
+        "produto": "Produto 9 - Esportes",
+        "marca": "Adidas",
+        "quantidade": 55,
+        "preco": 200.01,
+        "total": 11000.55
+    },
+    {
+        "id": 12,
+        "categoria": "Esportes",
+        "subcategoria": "Aquáticos",
+        "produto": "Produto 12 - Esportes",
+        "marca": "Nike",
+        "quantidade": 17,
+        "preco": 315.08,
+        "total": 5356.36,
+        "_rowColor": "#fff8f0",
+        "_rowHeight": 30
+    },
+    {
+        "id": 14,
+        "categoria": "Esportes",
+        "subcategoria": "Aquáticos",
+        "produto": "Produto 14 - Esportes",
+        "marca": "Apple",
+        "quantidade": 89,
+        "preco": 956.39,
+        "total": 85118.70999999999,
+        "_cell_preco_color": "#ffebee",
+        "_cell_preco_textColor": "#c62828",
+        "_cell_total_color": "#ffebee",
+        "_cell_total_textColor": "#c62828",
+        "_cell_quantidade_color": "#e8f5e8",
+        "_cell_quantidade_textColor": "#2e7d32"
+    },
+    {
+        "type": "group-total",
+        "level": 1,
+        "value": "Esportes",
+        "groupField": "categoria",
+        "data": [
+            {
+                "id": 4,
+                "categoria": "Esportes",
+                "subcategoria": "Fitness",
+                "produto": "Produto 4 - Esportes",
+                "marca": "Xiaomi",
+                "quantidade": 11,
+                "preco": 410.83,
+                "total": 4519.13
+            },
+            {
+                "id": 9,
+                "categoria": "Esportes",
+                "subcategoria": "Fitness",
+                "produto": "Produto 9 - Esportes",
+                "marca": "Adidas",
+                "quantidade": 55,
+                "preco": 200.01,
+                "total": 11000.55
+            },
+            {
+                "id": 12,
+                "categoria": "Esportes",
+                "subcategoria": "Aquáticos",
+                "produto": "Produto 12 - Esportes",
+                "marca": "Nike",
+                "quantidade": 17,
+                "preco": 315.08,
+                "total": 5356.36
+            },
+            {
+                "id": 14,
+                "categoria": "Esportes",
+                "subcategoria": "Aquáticos",
+                "produto": "Produto 14 - Esportes",
+                "marca": "Apple",
+                "quantidade": 89,
+                "preco": 956.39,
+                "total": 85118.70999999999
+            }
+        ]
+    },
+    {
+        "type": "group-header",
+        "level": 1,
+        "value": "Livros",
+        "groupField": "categoria",
+        "data": [
+            {
+                "id": 8,
+                "categoria": "Livros",
+                "subcategoria": "Não-Ficção",
+                "produto": "Produto 8 - Livros",
+                "marca": "Philips",
+                "quantidade": 95,
+                "preco": 155.04,
+                "total": 14728.8
+            }
+        ]
+    },
+    {
+        "id": 8,
+        "categoria": "Livros",
+        "subcategoria": "Não-Ficção",
+        "produto": "Produto 8 - Livros",
+        "marca": "Philips",
+        "quantidade": 95,
+        "preco": 155.04,
+        "total": 14728.8,
+        "_rowColor": "#fff8f0",
+        "_rowHeight": 30,
+        "_cell_quantidade_color": "#e8f5e8",
+        "_cell_quantidade_textColor": "#2e7d32"
+    },
+    {
+        "type": "group-total",
+        "level": 1,
+        "value": "Livros",
+        "groupField": "categoria",
+        "data": [
+            {
+                "id": 8,
+                "categoria": "Livros",
+                "subcategoria": "Não-Ficção",
+                "produto": "Produto 8 - Livros",
+                "marca": "Philips",
+                "quantidade": 95,
+                "preco": 155.04,
+                "total": 14728.8
+            }
+        ]
+    },
+    {
+        "type": "group-header",
+        "level": 1,
+        "value": "Roupas",
+        "groupField": "categoria",
+        "data": [
+            {
+                "id": 10,
+                "categoria": "Roupas",
+                "subcategoria": "Esportiva",
+                "produto": "Produto 10 - Roupas",
+                "marca": "Philips",
+                "quantidade": 77,
+                "preco": 286.91,
+                "total": 22092.070000000003
+            },
+            {
+                "id": 15,
+                "categoria": "Roupas",
+                "subcategoria": "Feminino",
+                "produto": "Produto 15 - Roupas",
+                "marca": "Xiaomi",
+                "quantidade": 24,
+                "preco": 302.69,
+                "total": 7264.5599999999995
+            },
+            {
+                "id": 17,
+                "categoria": "Roupas",
+                "subcategoria": "Masculino",
+                "produto": "Produto 17 - Roupas",
+                "marca": "Apple",
+                "quantidade": 56,
+                "preco": 245.73,
+                "total": 13760.88
+            },
+            {
+                "id": 20,
+                "categoria": "Roupas",
+                "subcategoria": "Infantil",
+                "produto": "Produto 20 - Roupas",
+                "marca": "Apple",
+                "quantidade": 55,
+                "preco": 368.9,
+                "total": 20289.5
+            }
+        ]
+    },
+    {
+        "id": 10,
+        "categoria": "Roupas",
+        "subcategoria": "Esportiva",
+        "produto": "Produto 10 - Roupas",
+        "marca": "Philips",
+        "quantidade": 77,
+        "preco": 286.91,
+        "total": 22092.070000000003
+    },
+    {
+        "id": 15,
+        "categoria": "Roupas",
+        "subcategoria": "Feminino",
+        "produto": "Produto 15 - Roupas",
+        "marca": "Xiaomi",
+        "quantidade": 24,
+        "preco": 302.69,
+        "total": 7264.5599999999995,
+        "_rowColor": "#fff8f0",
+        "_rowHeight": 30
+    },
+    {
+        "id": 17,
+        "categoria": "Roupas",
+        "subcategoria": "Masculino",
+        "produto": "Produto 17 - Roupas",
+        "marca": "Apple",
+        "quantidade": 56,
+        "preco": 245.73,
+        "total": 13760.88
+    },
+    {
+        "id": 20,
+        "categoria": "Roupas",
+        "subcategoria": "Infantil",
+        "produto": "Produto 20 - Roupas",
+        "marca": "Apple",
+        "quantidade": 55,
+        "preco": 368.9,
+        "total": 20289.5,
+        "_rowColor": "#f0f8ff",
+        "_rowHeight": 32
+    },
+    {
+        "type": "group-total",
+        "level": 1,
+        "value": "Roupas",
+        "groupField": "categoria",
+        "data": [
+            {
+                "id": 10,
+                "categoria": "Roupas",
+                "subcategoria": "Esportiva",
+                "produto": "Produto 10 - Roupas",
+                "marca": "Philips",
+                "quantidade": 77,
+                "preco": 286.91,
+                "total": 22092.070000000003
+            },
+            {
+                "id": 15,
+                "categoria": "Roupas",
+                "subcategoria": "Feminino",
+                "produto": "Produto 15 - Roupas",
+                "marca": "Xiaomi",
+                "quantidade": 24,
+                "preco": 302.69,
+                "total": 7264.5599999999995
+            },
+            {
+                "id": 17,
+                "categoria": "Roupas",
+                "subcategoria": "Masculino",
+                "produto": "Produto 17 - Roupas",
+                "marca": "Apple",
+                "quantidade": 56,
+                "preco": 245.73,
+                "total": 13760.88
+            },
+            {
+                "id": 20,
+                "categoria": "Roupas",
+                "subcategoria": "Infantil",
+                "produto": "Produto 20 - Roupas",
+                "marca": "Apple",
+                "quantidade": 55,
+                "preco": 368.9,
+                "total": 20289.5
+            }
+        ]
+    },
+    {
+        "type": "grand-total",
+        "data": [
+            {
+                "id": 1,
+                "categoria": "Casa",
+                "subcategoria": "Decoração",
+                "produto": "Produto 1 - Casa",
+                "marca": "Philips",
+                "quantidade": 58,
+                "preco": 466.96,
+                "total": 27083.68
+            },
+            {
+                "id": 2,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Acessórios",
+                "produto": "Produto 2 - Eletrônicos",
+                "marca": "Brastemp",
+                "quantidade": 94,
+                "preco": 996.67,
+                "total": 93686.98
+            },
+            {
+                "id": 3,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Notebooks",
+                "produto": "Produto 3 - Eletrônicos",
+                "marca": "Samsung",
+                "quantidade": 5,
+                "preco": 244.47,
+                "total": 1222.35
+            },
+            {
+                "id": 4,
+                "categoria": "Esportes",
+                "subcategoria": "Fitness",
+                "produto": "Produto 4 - Esportes",
+                "marca": "Xiaomi",
+                "quantidade": 11,
+                "preco": 410.83,
+                "total": 4519.13
+            },
+            {
+                "id": 5,
+                "categoria": "Casa",
+                "subcategoria": "Decoração",
+                "produto": "Produto 5 - Casa",
+                "marca": "Brastemp",
+                "quantidade": 34,
+                "preco": 92.25,
+                "total": 3136.5
+            },
+            {
+                "id": 6,
+                "categoria": "Casa",
+                "subcategoria": "Móveis",
+                "produto": "Produto 6 - Casa",
+                "marca": "Samsung",
+                "quantidade": 29,
+                "preco": 539.69,
+                "total": 15651.010000000002
+            },
+            {
+                "id": 7,
+                "categoria": "Casa",
+                "subcategoria": "Móveis",
+                "produto": "Produto 7 - Casa",
+                "marca": "Apple",
+                "quantidade": 63,
+                "preco": 834.97,
+                "total": 52603.11
+            },
+            {
+                "id": 8,
+                "categoria": "Livros",
+                "subcategoria": "Não-Ficção",
+                "produto": "Produto 8 - Livros",
+                "marca": "Philips",
+                "quantidade": 95,
+                "preco": 155.04,
+                "total": 14728.8
+            },
+            {
+                "id": 9,
+                "categoria": "Esportes",
+                "subcategoria": "Fitness",
+                "produto": "Produto 9 - Esportes",
+                "marca": "Adidas",
+                "quantidade": 55,
+                "preco": 200.01,
+                "total": 11000.55
+            },
+            {
+                "id": 10,
+                "categoria": "Roupas",
+                "subcategoria": "Esportiva",
+                "produto": "Produto 10 - Roupas",
+                "marca": "Philips",
+                "quantidade": 77,
+                "preco": 286.91,
+                "total": 22092.070000000003
+            },
+            {
+                "id": 11,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Notebooks",
+                "produto": "Produto 11 - Eletrônicos",
+                "marca": "LG",
+                "quantidade": 43,
+                "preco": 581.36,
+                "total": 24998.48
+            },
+            {
+                "id": 12,
+                "categoria": "Esportes",
+                "subcategoria": "Aquáticos",
+                "produto": "Produto 12 - Esportes",
+                "marca": "Nike",
+                "quantidade": 17,
+                "preco": 315.08,
+                "total": 5356.36
+            },
+            {
+                "id": 13,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Smartphones",
+                "produto": "Produto 13 - Eletrônicos",
+                "marca": "Sony",
+                "quantidade": 81,
+                "preco": 730.11,
+                "total": 59138.91
+            },
+            {
+                "id": 14,
+                "categoria": "Esportes",
+                "subcategoria": "Aquáticos",
+                "produto": "Produto 14 - Esportes",
+                "marca": "Apple",
+                "quantidade": 89,
+                "preco": 956.39,
+                "total": 85118.70999999999
+            },
+            {
+                "id": 15,
+                "categoria": "Roupas",
+                "subcategoria": "Feminino",
+                "produto": "Produto 15 - Roupas",
+                "marca": "Xiaomi",
+                "quantidade": 24,
+                "preco": 302.69,
+                "total": 7264.5599999999995
+            },
+            {
+                "id": 16,
+                "categoria": "Eletrônicos",
+                "subcategoria": "Notebooks",
+                "produto": "Produto 16 - Eletrônicos",
+                "marca": "Philips",
+                "quantidade": 17,
+                "preco": 408.68,
+                "total": 6947.56
+            },
+            {
+                "id": 17,
+                "categoria": "Roupas",
+                "subcategoria": "Masculino",
+                "produto": "Produto 17 - Roupas",
+                "marca": "Apple",
+                "quantidade": 56,
+                "preco": 245.73,
+                "total": 13760.88
+            },
+            {
+                "id": 18,
+                "categoria": "Casa",
+                "subcategoria": "Móveis",
+                "produto": "Produto 18 - Casa",
+                "marca": "Samsung",
+                "quantidade": 13,
+                "preco": 648.46,
+                "total": 8429.98
+            },
+            {
+                "id": 19,
+                "categoria": "Casa",
+                "subcategoria": "Cozinha",
+                "produto": "Produto 19 - Casa",
+                "marca": "Philips",
+                "quantidade": 57,
+                "preco": 501.66,
+                "total": 28594.620000000003
+            },
+            {
+                "id": 20,
+                "categoria": "Roupas",
+                "subcategoria": "Infantil",
+                "produto": "Produto 20 - Roupas",
+                "marca": "Apple",
+                "quantidade": 55,
+                "preco": 368.9,
+                "total": 20289.5
+            }
+        ]
+    }
+]

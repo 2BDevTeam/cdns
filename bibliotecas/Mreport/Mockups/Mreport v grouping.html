@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MReport - Sistema Multi-Nível</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Estilos para página A4 */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 9pt;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+
+        .a4-page {
+            width: 21cm;
+            min-height: 29.7cm;
+            padding: 1.5cm;
+            margin: 0 auto 20px auto;
+            box-sizing: border-box;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background: white;
+            position: relative;
+        }
+
+        /* Cabeçalho do relatório */
+        .report-header {
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .report-title {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .report-subtitle {
+            font-size: 11pt;
+            color: #7f8c8d;
+            margin: 5px 0 0 0;
+        }
+
+        .header-info {
+            position: absolute;
+            top: 0;
+            right: 0;
+            text-align: right;
+            font-size: 9pt;
+            color: #7f8c8d;
+        }
+
+        /* Rodapé do relatório */
+        .report-footer {
+            position: absolute;
+            bottom: 1.5cm;
+            left: 1.5cm;
+            right: 1.5cm;
+            border-top: 1px solid #bdc3c7;
+            padding-top: 10px;
+            font-size: 8pt;
+            color: #7f8c8d;
+            text-align: center;
+        }
+
+        /* Conteúdo principal */
+        .page-content {
+            min-height: 21cm;
+            position: relative;
+        }
+
+        /* Tabela de dados */
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 9pt;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-table th {
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #34495e;
+            font-size: 9pt;
+        }
+
+        .report-table td {
+            padding: 6px 10px;
+            border: 1px solid #e1e1e1;
+        }
+
+        .report-table tr:nth-child(even) td {
+            background-color: #f8f9fa;
+        }
+
+        /* Estilos para grupos multi-nível */
+        .group-header {
+            font-weight: bold;
+            padding: 8px 12px;
+            margin: 8px 0 4px 0;
+            font-size: 10pt;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+
+        .group-total {
+            font-weight: bold;
+            padding: 8px 12px;
+            margin: 4px 0 8px 0;
+            border-top: 2px solid #bdc3c7;
+            border-bottom: 2px solid #bdc3c7;
+            font-size: 9pt;
+        }
+
+        .grand-total {
+            font-weight: bold;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 10pt;
+            text-align: center;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Utilitários */
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-bold {
+            font-weight: bold;
+        }
+
+        /* Controles */
+        .controls {
+            margin: 20px auto;
+            width: 21cm;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #2980b9, #1f618d);
+        }
+
+        .stats {
+            margin-top: 10px;
+            padding: 10px;
+            background: linear-gradient(135deg, #e8f4fc, #d6eaf8);
+            border-radius: 4px;
+            font-size: 11px;
+            border-left: 4px solid #3498db;
+        }
+
+        /* Impressão */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+
+            .a4-page {
+                box-shadow: none;
+                margin: 0;
+                padding: 1.5cm;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+        
+        /* Cores para níveis de agrupamento */
+        .level-0 { background-color: #2c3e50; color: white; }
+        .level-1 { background-color: #3498db; color: white; }
+        .level-2 { background-color: #2ecc71; color: white; }
+        .level-3 { background-color: #e74c3c; color: white; }
+        .level-4 { background-color: #9b59b6; color: white; }
+        .level-5 { background-color: #f39c12; color: white; }
+        .level-6 { background-color: #1abc9c; color: white; }
+        .level-7 { background-color: #34495e; color: white; }
+    </style>
+</head>
+
+<body>
+    <div class="controls no-print">
+        <h2>MReport - Sistema Multi-Nível</h2>
+        <button id="print-btn">📄 Imprimir Relatório</button>
+        <button id="generate-btn">🔄 Gerar Relatório</button>
+        <button id="test-multi-level">🧩 Testar 4 Níveis</button>
+        <button id="test-deep-level">🔍 Testar 6 Níveis</button>
+
+        <div class="stats">
+            <strong>Estatísticas:</strong>
+            <span id="statsInfo">Carregando...</span>
+        </div>
+    </div>
+
+    <div id="report-container">
+        <!-- O relatório será gerado aqui -->
+    </div>
+
+    <script>
+        // ===== DADOS MANUAIS - 60 REGISTROS =====
+        const manualData = [
+            // Região Norte
+            { id: 1, regiao: "Norte", estado: "Amazonas", cidade: "Manaus", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone X1", quantidade: 10, preco: 899.90, total: 8999.00 },
+            { id: 2, regiao: "Norte", estado: "Amazonas", cidade: "Manaus", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone Y2", quantidade: 5, preco: 1299.90, total: 6499.50 },
+            { id: 3, regiao: "Norte", estado: "Amazonas", cidade: "Manaus", categoria: "Eletrônicos", subcategoria: "Tablets", produto: "Tablet A1", quantidade: 8, preco: 499.90, total: 3999.20 },
+            { id: 4, regiao: "Norte", estado: "Amazonas", cidade: "Manaus", categoria: "Livros", subcategoria: "Ficção", produto: "Livro F1", quantidade: 15, preco: 29.90, total: 448.50 },
+            { id: 5, regiao: "Norte", estado: "Amazonas", cidade: "Manaus", categoria: "Livros", subcategoria: "Técnicos", produto: "Livro T1", quantidade: 12, preco: 89.90, total: 1078.80 },
+            
+            { id: 6, regiao: "Norte", estado: "Pará", cidade: "Belém", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone X1", quantidade: 7, preco: 899.90, total: 6299.30 },
+            { id: 7, regiao: "Norte", estado: "Pará", cidade: "Belém", categoria: "Eletrônicos", subcategoria: "Tablets", produto: "Tablet A1", quantidade: 4, preco: 499.90, total: 1999.60 },
+            { id: 8, regiao: "Norte", estado: "Pará", cidade: "Belém", categoria: "Roupas", subcategoria: "Masculino", produto: "Camisa M1", quantidade: 20, preco: 49.90, total: 998.00 },
+            { id: 9, regiao: "Norte", estado: "Pará", cidade: "Belém", categoria: "Roupas", subcategoria: "Feminino", produto: "Vestido F1", quantidade: 15, preco: 79.90, total: 1198.50 },
+            
+            // Região Nordeste
+            { id: 10, regiao: "Nordeste", estado: "Bahia", cidade: "Salvador", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone X1", quantidade: 12, preco: 899.90, total: 10798.80 },
+            { id: 11, regiao: "Nordeste", estado: "Bahia", cidade: "Salvador", categoria: "Eletrônicos", subcategoria: "Notebooks", produto: "Notebook N1", quantidade: 6, preco: 2499.90, total: 14999.40 },
+            { id: 12, regiao: "Nordeste", estado: "Bahia", cidade: "Salvador", categoria: "Livros", subcategoria: "Ficção", produto: "Livro F1", quantidade: 25, preco: 29.90, total: 747.50 },
+            { id: 13, regiao: "Nordeste", estado: "Bahia", cidade: "Salvador", categoria: "Livros", subcategoria: "Infantil", produto: "Livro I1", quantidade: 18, preco: 19.90, total: 358.20 },
+            
+            { id: 14, regiao: "Nordeste", estado: "Pernambuco", cidade: "Recife", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone Y2", quantidade: 8, preco: 1299.90, total: 10399.20 },
+            { id: 15, regiao: "Nordeste", estado: "Pernambuco", cidade: "Recife", categoria: "Eletrônicos", subcategoria: "Tablets", produto: "Tablet A1", quantidade: 5, preco: 499.90, total: 2499.50 },
+            { id: 16, regiao: "Nordeste", estado: "Pernambuco", cidade: "Recife", categoria: "Roupas", subcategoria: "Masculino", produto: "Camisa M1", quantidade: 22, preco: 49.90, total: 1097.80 },
+            { id: 17, regiao: "Nordeste", estado: "Pernambuco", cidade: "Recife", categoria: "Roupas", subcategoria: "Feminino", produto: "Vestido F1", quantidade: 18, preco: 79.90, total: 1438.20 },
+            
+            { id: 18, regiao: "Nordeste", estado: "Ceará", cidade: "Fortaleza", categoria: "Eletrônicos", subcategoria: "Notebooks", produto: "Notebook N1", quantidade: 4, preco: 2499.90, total: 9999.60 },
+            { id: 19, regiao: "Nordeste", estado: "Ceará", cidade: "Fortaleza", categoria: "Livros", subcategoria: "Técnicos", produto: "Livro T1", quantidade: 10, preco: 89.90, total: 899.00 },
+            { id: 20, regiao: "Nordeste", estado: "Ceará", cidade: "Fortaleza", categoria: "Roupas", subcategoria: "Infantil", produto: "Conjunto I1", quantidade: 15, preco: 39.90, total: 598.50 },
+            
+            // Região Centro-Oeste
+            { id: 21, regiao: "Centro-Oeste", estado: "Goiás", cidade: "Goiânia", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone X1", quantidade: 9, preco: 899.90, total: 8099.10 },
+            { id: 22, regiao: "Centro-Oeste", estado: "Goiás", cidade: "Goiânia", categoria: "Eletrônicos", subcategoria: "Notebooks", produto: "Notebook N1", quantidade: 5, preco: 2499.90, total: 12499.50 },
+            { id: 23, regiao: "Centro-Oeste", estado: "Goiás", cidade: "Goiânia", categoria: "Livros", subcategoria: "Ficção", produto: "Livro F1", quantidade: 20, preco: 29.90, total: 598.00 },
+            { id: 24, regiao: "Centro-Oeste", estado: "Goiás", cidade: "Goiânia", categoria: "Roupas", subcategoria: "Masculino", produto: "Camisa M1", quantidade: 25, preco: 49.90, total: 1247.50 },
+            
+            { id: 25, regiao: "Centro-Oeste", estado: "Mato Grosso", cidade: "Cuiabá", categoria: "Eletrônicos", subcategoria: "Tablets", produto: "Tablet A1", quantidade: 6, preco: 499.90, total: 2999.40 },
+            { id: 26, regiao: "Centro-Oeste", estado: "Mato Grosso", cidade: "Cuiabá", categoria: "Livros", subcategoria: "Infantil", produto: "Livro I1", quantidade: 12, preco: 19.90, total: 238.80 },
+            { id: 27, regiao: "Centro-Oeste", estado: "Mato Grosso", cidade: "Cuiabá", categoria: "Roupas", subcategoria: "Feminino", produto: "Vestido F1", quantidade: 10, preco: 79.90, total: 799.00 },
+            
+            // Região Sudeste
+            { id: 28, regiao: "Sudeste", estado: "São Paulo", cidade: "São Paulo", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone X1", quantidade: 25, preco: 899.90, total: 22497.50 },
+            { id: 29, regiao: "Sudeste", estado: "São Paulo", cidade: "São Paulo", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone Y2", quantidade: 15, preco: 1299.90, total: 19498.50 },
+            { id: 30, regiao: "Sudeste", estado: "São Paulo", cidade: "São Paulo", categoria: "Eletrônicos", subcategoria: "Notebooks", produto: "Notebook N1", quantidade: 12, preco: 2499.90, total: 29998.80 },
+            { id: 31, regiao: "Sudeste", estado: "São Paulo", cidade: "São Paulo", categoria: "Eletrônicos", subcategoria: "Tablets", produto: "Tablet A1", quantidade: 18, preco: 499.90, total: 8998.20 },
+            { id: 32, regiao: "Sudeste", estado: "São Paulo", cidade: "São Paulo", categoria: "Livros", subcategoria: "Ficção", produto: "Livro F1", quantidade: 40, preco: 29.90, total: 1196.00 },
+            { id: 33, regiao: "Sudeste", estado: "São Paulo", cidade: "São Paulo", categoria: "Livros", subcategoria: "Técnicos", produto: "Livro T1", quantidade: 25, preco: 89.90, total: 2247.50 },
+            { id: 34, regiao: "Sudeste", estado: "São Paulo", cidade: "São Paulo", categoria: "Livros", subcategoria: "Infantil", produto: "Livro I1", quantidade: 30, preco: 19.90, total: 597.00 },
+            { id: 35, regiao: "Sudeste", estado: "São Paulo", cidade: "São Paulo", categoria: "Roupas", subcategoria: "Masculino", produto: "Camisa M1", quantidade: 50, preco: 49.90, total: 2495.00 },
+            { id: 36, regiao: "Sudeste", estado: "São Paulo", cidade: "São Paulo", categoria: "Roupas", subcategoria: "Feminino", produto: "Vestido F1", quantidade: 45, preco: 79.90, total: 3595.50 },
+            { id: 37, regiao: "Sudeste", estado: "São Paulo", cidade: "São Paulo", categoria: "Roupas", subcategoria: "Infantil", produto: "Conjunto I1", quantidade: 35, preco: 39.90, total: 1396.50 },
+            
+            { id: 38, regiao: "Sudeste", estado: "Rio de Janeiro", cidade: "Rio de Janeiro", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone X1", quantidade: 18, preco: 899.90, total: 16198.20 },
+            { id: 39, regiao: "Sudeste", estado: "Rio de Janeiro", cidade: "Rio de Janeiro", categoria: "Eletrônicos", subcategoria: "Notebooks", produto: "Notebook N1", quantidade: 8, preco: 2499.90, total: 19999.20 },
+            { id: 40, regiao: "Sudeste", estado: "Rio de Janeiro", cidade: "Rio de Janeiro", categoria: "Livros", subcategoria: "Ficção", produto: "Livro F1", quantidade: 22, preco: 29.90, total: 657.80 },
+            { id: 41, regiao: "Sudeste", estado: "Rio de Janeiro", cidade: "Rio de Janeiro", categoria: "Roupas", subcategoria: "Feminino", produto: "Vestido F1", quantidade: 20, preco: 79.90, total: 1598.00 },
+            
+            { id: 42, regiao: "Sudeste", estado: "Minas Gerais", cidade: "Belo Horizonte", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone Y2", quantidade: 10, preco: 1299.90, total: 12999.00 },
+            { id: 43, regiao: "Sudeste", estado: "Minas Gerais", cidade: "Belo Horizonte", categoria: "Eletrônicos", subcategoria: "Tablets", produto: "Tablet A1", quantidade: 7, preco: 499.90, total: 3499.30 },
+            { id: 44, regiao: "Sudeste", estado: "Minas Gerais", cidade: "Belo Horizonte", categoria: "Livros", subcategoria: "Técnicos", produto: "Livro T1", quantidade: 15, preco: 89.90, total: 1348.50 },
+            { id: 45, regiao: "Sudeste", estado: "Minas Gerais", cidade: "Belo Horizonte", categoria: "Roupas", subcategoria: "Masculino", produto: "Camisa M1", quantidade: 30, preco: 49.90, total: 1497.00 },
+            
+            // Região Sul
+            { id: 46, regiao: "Sul", estado: "Paraná", cidade: "Curitiba", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone X1", quantidade: 12, preco: 899.90, total: 10798.80 },
+            { id: 47, regiao: "Sul", estado: "Paraná", cidade: "Curitiba", categoria: "Eletrônicos", subcategoria: "Notebooks", produto: "Notebook N1", quantidade: 6, preco: 2499.90, total: 14999.40 },
+            { id: 48, regiao: "Sul", estado: "Paraná", cidade: "Curitiba", categoria: "Livros", subcategoria: "Ficção", produto: "Livro F1", quantidade: 18, preco: 29.90, total: 538.20 },
+            { id: 49, regiao: "Sul", estado: "Paraná", cidade: "Curitiba", categoria: "Roupas", subcategoria: "Feminino", produto: "Vestido F1", quantidade: 15, preco: 79.90, total: 1198.50 },
+            
+            { id: 50, regiao: "Sul", estado: "Rio Grande do Sul", cidade: "Porto Alegre", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone Y2", quantidade: 8, preco: 1299.90, total: 10399.20 },
+            { id: 51, regiao: "Sul", estado: "Rio Grande do Sul", cidade: "Porto Alegre", categoria: "Eletrônicos", subcategoria: "Tablets", produto: "Tablet A1", quantidade: 5, preco: 499.90, total: 2499.50 },
+            { id: 52, regiao: "Sul", estado: "Rio Grande do Sul", cidade: "Porto Alegre", categoria: "Livros", subcategoria: "Infantil", produto: "Livro I1", quantidade: 20, preco: 19.90, total: 398.00 },
+            { id: 53, regiao: "Sul", estado: "Rio Grande do Sul", cidade: "Porto Alegre", categoria: "Roupas", subcategoria: "Masculino", produto: "Camisa M1", quantidade: 25, preco: 49.90, total: 1247.50 },
+            
+            { id: 54, regiao: "Sul", estado: "Santa Catarina", cidade: "Florianópolis", categoria: "Eletrônicos", subcategoria: "Notebooks", produto: "Notebook N1", quantidade: 4, preco: 2499.90, total: 9999.60 },
+            { id: 55, regiao: "Sul", estado: "Santa Catarina", cidade: "Florianópolis", categoria: "Livros", subcategoria: "Técnicos", produto: "Livro T1", quantidade: 12, preco: 89.90, total: 1078.80 },
+            { id: 56, regiao: "Sul", estado: "Santa Catarina", cidade: "Florianópolis", categoria: "Roupas", subcategoria: "Infantil", produto: "Conjunto I1", quantidade: 18, preco: 39.90, total: 718.20 },
+            
+            // Mais alguns registros para completar 60
+            { id: 57, regiao: "Sudeste", estado: "São Paulo", cidade: "Campinas", categoria: "Eletrônicos", subcategoria: "Smartphones", produto: "Smartphone X1", quantidade: 7, preco: 899.90, total: 6299.30 },
+            { id: 58, regiao: "Sudeste", estado: "São Paulo", cidade: "Campinas", categoria: "Livros", subcategoria: "Ficção", produto: "Livro F1", quantidade: 10, preco: 29.90, total: 299.00 },
+            { id: 59, regiao: "Sudeste", estado: "São Paulo", cidade: "Campinas", categoria: "Roupas", subcategoria: "Masculino", produto: "Camisa M1", quantidade: 15, preco: 49.90, total: 748.50 },
+            { id: 60, regiao: "Sudeste", estado: "São Paulo", cidade: "Campinas", categoria: "Roupas", subcategoria: "Feminino", produto: "Vestido F1", quantidade: 12, preco: 79.90, total: 958.80 }
+        ];
+
+        // ===== CONFIGURAÇÃO DAS COLUNAS =====
+        const reportColumns = [
+            { field: "regiao", title: "Região", type: "text" },
+            { field: "estado", title: "Estado", type: "text" },
+            { field: "cidade", title: "Cidade", type: "text" },
+            { field: "categoria", title: "Categoria", type: "text" },
+            { field: "subcategoria", title: "Subcategoria", type: "text" },
+            { field: "produto", title: "Produto", type: "text" },
+            { field: "quantidade", title: "Quantidade", type: "numeric" },
+            { field: "preco", title: "Preço Unit.", type: "currency" },
+            { field: "total", title: "Total", type: "currency" }
+        ];
+
+        // ===== SISTEMA DE AGRUPAMENTO MULTI-NÍVEL =====
+        function processDataWithMultiLevelGroups(data, groupFields, showTotals = true) {
+            if (!groupFields || groupFields.length === 0) return data;
+
+            const result = [];
+            
+            // Função recursiva para processar níveis de agrupamento
+            function processGroupLevel(data, level, parentValues = []) {
+                if (level >= groupFields.length) {
+                    // Nível mais baixo - adicionar os dados
+                    return data;
+                }
+                
+                const currentField = groupFields[level];
+                const grouped = {};
+                
+                // Agrupar dados pelo campo atual
+                data.forEach(item => {
+                    const key = item[currentField];
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(item);
+                });
+                
+                // Processar cada grupo
+                Object.keys(grouped).sort().forEach(key => {
+                    const groupData = grouped[key];
+                    const currentValues = [...parentValues, { field: currentField, value: key }];
+                    
+                    // Adicionar cabeçalho do grupo
+                    result.push({
+                        type: 'group-header',
+                        level: level,
+                        value: key,
+                        groupField: currentField,
+                        data: groupData,
+                        parentValues: currentValues
+                    });
+                    
+                    // Processar próximo nível ou adicionar dados
+                    if (level < groupFields.length - 1) {
+                        processGroupLevel(groupData, level + 1, currentValues);
+                    } else {
+                        result.push(...groupData);
+                    }
+                    
+                    // Adicionar total do grupo se solicitado
+                    if (showTotals) {
+                        result.push({
+                            type: 'group-total',
+                            level: level,
+                            value: key,
+                            groupField: currentField,
+                            data: groupData,
+                            parentValues: currentValues
+                        });
+                    }
+                });
+            }
+            
+            // Iniciar processamento a partir do nível 0
+            processGroupLevel(data, 0);
+            
+            // Adicionar total geral
+            if (showTotals) {
+                result.push({
+                    type: 'grand-total',
+                    data: data
+                });
+            }
+            
+            return result;
+        }
+
+        // ===== SISTEMA DE TABELAS MULTI-NÍVEL =====
+        class MultiLevelTable {
+            constructor(data, columns, groupFields = []) {
+                this.data = data;
+                this.columns = columns;
+                this.groupFields = groupFields;
+                this.groupedData = processDataWithMultiLevelGroups(data, groupFields);
+            }
+            
+            render() {
+                const $table = $('<table>', { class: 'report-table' });
+                const $thead = $('<thead>');
+                const $tbody = $('<tbody>');
+                
+                // Cabeçalho da tabela
+                const $headerRow = $('<tr>');
+                this.columns.forEach(col => {
+                    $headerRow.append($('<th>', { 
+                        text: col.title,
+                        css: {
+                            backgroundColor: '#2c3e50',
+                            color: 'white'
+                        }
+                    }));
+                });
+                $thead.append($headerRow);
+                $table.append($thead);
+                
+                // Corpo da tabela
+                this.groupedData.forEach(item => {
+                    if (item.type === 'group-header') {
+                        // Cabeçalho de grupo
+                        const $groupRow = $('<tr>');
+                        const $groupCell = $('<td>', {
+                            text: this.getGroupLabel(item),
+                            attr: { colspan: this.columns.length },
+                            css: this.getGroupStyle(item.level)
+                        });
+                        $groupRow.append($groupCell);
+                        $tbody.append($groupRow);
+                    } else if (item.type === 'group-total') {
+                        // Total de grupo
+                        const $totalRow = $('<tr>');
+                        const $totalCell = $('<td>', {
+                            text: this.getGroupTotalText(item),
+                            attr: { colspan: this.columns.length },
+                            css: this.getTotalStyle(item.level)
+                        });
+                        $totalRow.append($totalCell);
+                        $tbody.append($totalRow);
+                    } else if (item.type === 'grand-total') {
+                        // Total geral
+                        const $grandTotalRow = $('<tr>');
+                        const $grandTotalCell = $('<td>', {
+                            text: this.getGrandTotalText(item),
+                            attr: { colspan: this.columns.length },
+                            css: {
+                                backgroundColor: '#2c3e50',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                textAlign: 'center',
+                                padding: '12px'
+                            }
+                        });
+                        $grandTotalRow.append($grandTotalCell);
+                        $tbody.append($grandTotalRow);
+                    } else {
+                        // Linha de dados normal
+                        const $dataRow = $('<tr>');
+                        this.columns.forEach(col => {
+                            const value = this.formatValue(item[col.field], col.type);
+                            $dataRow.append($('<td>', { 
+                                text: value,
+                                css: { textAlign: col.type === 'numeric' || col.type === 'currency' ? 'right' : 'left' }
+                            }));
+                        });
+                        $tbody.append($dataRow);
+                    }
+                });
+                
+                $table.append($tbody);
+                return $table;
+            }
+            
+            getGroupLabel(groupData) {
+                const indent = '  '.repeat(groupData.level);
+                const fieldLabel = this.getFieldLabel(groupData.groupField);
+                return `${indent}${fieldLabel}: ${groupData.value}`;
+            }
+            
+            getFieldLabel(field) {
+                const column = this.columns.find(col => col.field === field);
+                return column ? column.title : field;
+            }
+            
+            getGroupStyle(level) {
+                const levelColors = [
+                    { bg: '#2c3e50', color: 'white' },
+                    { bg: '#3498db', color: 'white' },
+                    { bg: '#2ecc71', color: 'white' },
+                    { bg: '#e74c3c', color: 'white' },
+                    { bg: '#9b59b6', color: 'white' },
+                    { bg: '#f39c12', color: 'white' },
+                    { bg: '#1abc9c', color: 'white' }
+                ];
+                
+                const style = levelColors[level % levelColors.length] || levelColors[0];
+                return {
+                    backgroundColor: style.bg,
+                    color: style.color,
+                    fontWeight: 'bold',
+                    padding: '8px 12px',
+                    fontSize: '10pt'
+                };
+            }
+            
+            getTotalStyle(level) {
+                const style = this.getGroupStyle(level);
+                style.fontStyle = 'italic';
+                style.borderTop = '2px solid #bdc3c7';
+                style.borderBottom = '2px solid #bdc3c7';
+                return style;
+            }
+            
+            getGroupTotalText(groupData) {
+                const indent = '  '.repeat(groupData.level);
+                const fieldLabel = this.getFieldLabel(groupData.groupField);
+                const totals = this.calculateGroupTotals(groupData.data);
+                
+                let text = `${indent}Total ${fieldLabel} ${groupData.value}: `;
+                let first = true;
+                
+                this.columns.forEach(col => {
+                    if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                        if (!first) text += ' | ';
+                        text += `${col.title}: ${this.formatValue(totals[col.field], col.type)}`;
+                        first = false;
+                    }
+                });
+                
+                return text;
+            }
+            
+            getGrandTotalText(totalData) {
+                const totals = this.calculateGrandTotals(totalData.data);
+                
+                let text = 'TOTAL GERAL: ';
+                let first = true;
+                
+                this.columns.forEach(col => {
+                    if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                        if (!first) text += ' | ';
+                        text += `${col.title}: ${this.formatValue(totals[col.field], col.type)}`;
+                        first = false;
+                    }
+                });
+                
+                return text;
+            }
+            
+            calculateGroupTotals(groupData) {
+                const totals = {};
+                this.columns.forEach(col => {
+                    if (col.type === 'numeric' || col.type === 'currency') {
+                        totals[col.field] = 0;
+                        groupData.forEach(item => {
+                            if (!item.type) {
+                                const value = parseFloat(item[col.field]) || 0;
+                                totals[col.field] += value;
+                            }
+                        });
+                    }
+                });
+                return totals;
+            }
+            
+            calculateGrandTotals(allData) {
+                const totals = {};
+                this.columns.forEach(col => {
+                    if (col.type === 'numeric' || col.type === 'currency') {
+                        totals[col.field] = 0;
+                        allData.forEach(item => {
+                            if (!item.type) {
+                                const value = parseFloat(item[col.field]) || 0;
+                                totals[col.field] += value;
+                            }
+                        });
+                    }
+                });
+                return totals;
+            }
+            
+            formatValue(value, type) {
+                if (value === null || value === undefined) return '-';
+                switch (type) {
+                    case 'numeric': return parseInt(value).toLocaleString('pt-BR');
+                    case 'currency': return parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    case 'percent': return parseFloat(value).toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
+                    default: return value.toString();
+                }
+            }
+        }
+
+        // ===== FUNÇÕES DE GERAÇÃO DE RELATÓRIO =====
+        function generateReport() {
+            const $container = $('#report-container');
+            $container.empty();
+            
+            const $page = $('<div>', { class: 'a4-page' });
+            
+            // Cabeçalho
+            const $header = $('<div>', { class: 'report-header' });
+            $header.append($('<h1>', { 
+                class: 'report-title', 
+                text: 'RELATÓRIO DE VENDAS - SISTEMA MULTI-NÍVEL' 
+            }));
+            $header.append($('<p>', { 
+                class: 'report-subtitle', 
+                text: 'Agrupamento por Região, Estado e Cidade' 
+            }));
+            $header.append($('<div>', { 
+                class: 'header-info',
+                html: `Data: ${new Date().toLocaleDateString('pt-BR')}<br>Total: 60 registros`
+            }));
+            $page.append($header);
+            
+            // Conteúdo
+            const $content = $('<div>', { class: 'page-content' });
+            
+            // Tabela com 3 níveis de agrupamento
+            const table = new MultiLevelTable(
+                manualData, 
+                reportColumns, 
+                ['regiao', 'estado', 'cidade']
+            );
+            $content.append(table.render());
+            
+            $page.append($content);
+            
+            // Rodapé
+            const $footer = $('<div>', { class: 'report-footer' });
+            $footer.append($('<div>', { 
+                text: 'MReport Professional System - Relatório Multi-Nível - ' + new Date().getFullYear()
+            }));
+            $page.append($footer);
+            
+            $container.append($page);
+            
+            // Atualizar estatísticas
+            updateStats(['regiao', 'estado', 'cidade']);
+        }
+        
+        function testMultiLevel() {
+            const $container = $('#report-container');
+            $container.empty();
+            
+            const $page = $('<div>', { class: 'a4-page' });
+            
+            // Cabeçalho
+            const $header = $('<div>', { class: 'report-header' });
+            $header.append($('<h1>', { 
+                class: 'report-title', 
+                text: 'RELATÓRIO AVANÇADO - 4 NÍVEIS' 
+            }));
+            $header.append($('<p>', { 
+                class: 'report-subtitle', 
+                text: 'Agrupamento por Região, Estado, Cidade e Categoria' 
+            }));
+            $header.append($('<div>', { 
+                class: 'header-info',
+                html: `Data: ${new Date().toLocaleDateString('pt-BR')}<br>Total: 60 registros`
+            }));
+            $page.append($header);
+            
+            // Conteúdo
+            const $content = $('<div>', { class: 'page-content' });
+            
+            // Tabela com 4 níveis de agrupamento
+            const table = new MultiLevelTable(
+                manualData, 
+                reportColumns, 
+                ['regiao', 'estado', 'cidade', 'categoria']
+            );
+            $content.append(table.render());
+            
+            $page.append($content);
+            
+            // Rodapé
+            const $footer = $('<div>', { class: 'report-footer' });
+            $footer.append($('<div>', { 
+                text: 'MReport Professional System - Relatório 4 Níveis - ' + new Date().getFullYear()
+            }));
+            $page.append($footer);
+            
+            $container.append($page);
+            
+            // Atualizar estatísticas
+            updateStats(['regiao', 'estado', 'cidade', 'categoria']);
+        }
+        
+        function testDeepLevel() {
+            const $container = $('#report-container');
+            $container.empty();
+            
+            const $page = $('<div>', { class: 'a4-page' });
+            
+            // Cabeçalho
+            const $header = $('<div>', { class: 'report-header' });
+            $header.append($('<h1>', { 
+                class: 'report-title', 
+                text: 'RELATÓRIO PROFUNDO - 6 NÍVEIS' 
+            }));
+            $header.append($('<p>', { 
+                class: 'report-subtitle', 
+                text: 'Agrupamento completo: Região, Estado, Cidade, Categoria, Subcategoria e Produto' 
+            }));
+            $header.append($('<div>', { 
+                class: 'header-info',
+                html: `Data: ${new Date().toLocaleDateString('pt-BR')}<br>Total: 60 registros`
+            }));
+            $page.append($header);
+            
+            // Conteúdo
+            const $content = $('<div>', { class: 'page-content' });
+            
+            // Tabela com 6 níveis de agrupamento
+            const table = new MultiLevelTable(
+                manualData, 
+                reportColumns, 
+                ['regiao', 'estado', 'cidade', 'categoria', 'subcategoria', 'produto']
+            );
+            $content.append(table.render());
+            
+            $page.append($content);
+            
+            // Rodapé
+            const $footer = $('<div>', { class: 'report-footer' });
+            $footer.append($('<div>', { 
+                text: 'MReport Professional System - Relatório 6 Níveis - ' + new Date().getFullYear()
+            }));
+            $page.append($footer);
+            
+            $container.append($page);
+            
+            // Atualizar estatísticas
+            updateStats(['regiao', 'estado', 'cidade', 'categoria', 'subcategoria', 'produto']);
+        }
+        
+        function updateStats(groupFields) {
+            const $statsInfo = $('#statsInfo');
+            if ($statsInfo.length) {
+                $statsInfo.text(
+                    `60 registros | ${groupFields.length} níveis de agrupamento | Campos: ${groupFields.join(', ')}`
+                );
+            }
+        }
+
+        // ===== INICIALIZAÇÃO =====
+        $(document).ready(function () {
+            // Configurar eventos
+            $('#print-btn').on('click', function () { window.print(); });
+            $('#generate-btn').on('click', generateReport);
+            $('#test-multi-level').on('click', testMultiLevel);
+            $('#test-deep-level').on('click', testDeepLevel);
+
+            // Gerar relatório inicial
+            generateReport();
+        });
+    </script>
+</body>
+
+</html>

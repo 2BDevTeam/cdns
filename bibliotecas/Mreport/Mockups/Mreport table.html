@@ -388,6 +388,8 @@
                         });
                     }
 
+                    console.log("processedData",processedData)
+
                     // Paginar dados
                     const linesPerPage = methods.calculateLinesPerPage();
                     const pages = methods.paginateData(processedData, linesPerPage);
@@ -409,6 +411,8 @@
                     if (level >= groupFields.length) {
                         return data;
                     }
+
+                    console.log("groupFields",groupFields)
 
                     const currentField = groupFields[level];
                     const grouped = {};
@@ -786,6 +790,49 @@
         const multiLevelData = [
             // Eletrônicos → Smartphones
             { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy Z Flip', quantidade: 8, preco: 3899.90, total: 31199.20 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 14', quantidade: 18, preco: 3299.90, total: 59398.20 },
+            { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Xiaomi', produto: 'Mi 13', quantidade: 10, preco: 1999.90, total: 19999.00 },
+
+            // Eletrônicos → Tablets
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Samsung', produto: 'Tab S9', quantidade: 8, preco: 1899.90, total: 15199.20 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Apple', produto: 'iPad Pro', quantidade: 6, preco: 4299.90, total: 25799.40 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Apple', produto: 'iPad Air', quantidade: 10, preco: 2999.90, total: 29999.00 },
+            { categoria: 'Eletrônicos', subcategoria: 'Tablets', marca: 'Lenovo', produto: 'Tab P12', quantidade: 12, preco: 1299.90, total: 15598.80 },
+
+            // Eletrônicos → Notebooks
+            { categoria: 'Eletrônicos', subcategoria: 'Notebooks', marca: 'Dell', produto: 'Inspiron 15', quantidade: 5, preco: 3299.90, total: 16499.50 },
+            { categoria: 'Eletrônicos', subcategoria: 'Notebooks', marca: 'Dell', produto: 'XPS 13', quantidade: 3, preco: 5999.90, total: 17999.70 },
+            { categoria: 'Eletrônicos', subcategoria: 'Notebooks', marca: 'Apple', produto: 'MacBook Air M2', quantidade: 4, preco: 5999.90, total: 23999.60 },
+            { categoria: 'Eletrônicos', subcategoria: 'Notebooks', marca: 'Apple', produto: 'MacBook Pro 16', quantidade: 2, preco: 8999.90, total: 17999.80 },
+            { categoria: 'Eletrônicos', subcategoria: 'Notebooks', marca: 'Lenovo', produto: 'ThinkPad X1', quantidade: 6, preco: 4599.90, total: 27599.40 },
+
+            // Livros → Ficção
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: '1984 - George Orwell', quantidade: 22, preco: 39.90, total: 877.80 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Ciência', produto: 'Admirável Mundo Novo', quantidade: 18, preco: 34.90, total: 628.20 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Fantasia', produto: 'Harry Potter e a Pedra Filosofal', quantidade: 15, preco: 49.90, total: 748.50 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Fantasia', produto: 'O Hobbit', quantidade: 20, preco: 37.90, total: 758.00 },
+            { categoria: 'Livros', subcategoria: 'Ficção', genero: 'Romance', produto: 'Dom Casmurro', quantidade: 25, preco: 29.90, total: 747.50 },
+
+            // Livros → Não-Ficção
+            { categoria: 'Livros', subcategoria: 'Não-Ficção', genero: 'Biografia', produto: 'Steve Jobs - Walter Isaacson', quantidade: 12, preco: 59.90, total: 718.80 },
+            { categoria: 'Livros', subcategoria: 'Não-Ficção', genero: 'Biografia', produto: 'Einstein - Sua Vida, Seu Universo', quantidade: 8, preco: 54.90, total: 439.20 },
+            { categoria: 'Livros', subcategoria: 'Não-Ficção', genero: 'Autoajuda', produto: 'O Poder do Hábito', quantidade: 30, preco: 39.90, total: 1197.00 },
+            { categoria: 'Livros', subcategoria: 'Não-Ficção', genero: 'Autoajuda', produto: 'Mais Esperto que o Diabo', quantidade: 25, preco: 34.90, total: 872.50 },
+
+            // Roupas → Masculino
+            { categoria: 'Roupas', subcategoria: 'Masculino', tipo: 'Camisetas', produto: 'Camiseta Básica Branca', quantidade: 50, preco: 29.90, total: 1495.00 },
+            { categoria: 'Roupas', subcategoria: 'Masculino', tipo: 'Camisetas', produto: 'Camiseta Estampada', quantidade: 38, preco: 39.90, total: 1516.20 },
+            { categoria: 'Roupas', subcategoria: 'Masculino', tipo: 'Calças', produto: 'Calça Jeans Slim', quantidade: 35, preco: 89.90, total: 3146.50 },
+            { categoria: 'Roupas', subcategoria: 'Masculino', tipo: 'Calças', produto: 'Calça de Sarja', quantidade: 20, preco: 79.90, total: 1598.00 },
+
+            // Roupas → Feminino
+            { categoria: 'Roupas', subcategoria: 'Feminino', tipo: 'Vestidos', produto: 'Vestido Floral', quantidade: 22, preco: 129.90, total: 2857.80 },
+            { categoria: 'Roupas', subcategoria: 'Feminino', tipo: 'Vestidos', produto: 'Vestido Longo', quantidade: 9, preco: 199.90, total: 1799.10 },
+            { categoria: 'Roupas', subcategoria: 'Feminino', tipo: 'Blusas', produto: 'Blusa de Seda', quantidade: 14, preco: 159.90, total: 2238.60 },
+            { categoria: 'Roupas', subcategoria: 'Feminino', tipo: 'Blusas', produto: 'Blusa Tricot', quantidade: 11, preco: 79.90, total: 878.90 },
+             { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
             { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy Z Flip', quantidade: 8, preco: 3899.90, total: 31199.20 },
             { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 15 Pro', quantidade: 12, preco: 4599.90, total: 55198.80 },
             { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Apple', produto: 'iPhone 14', quantidade: 18, preco: 3299.90, total: 59398.20 },
