@@ -1487,8 +1487,8 @@
                     new MTableObject(remainingData, this.columns, {
                         ...this.config,
                         reportConfig: this.reportConfig,
-                        x: this.x, // ← Mantém a posição X
-                        y: 0,      // ← ⭐️ RESETA para topo da nova página ⭐️
+                        x: this.x,
+                        y: 0,     
                         renderedRows: []
                     }) : null;
 
@@ -1586,6 +1586,9 @@
 
                 const section = object.section || 'content';
                 const objectHeight = object.getHeight();
+
+
+                
                 const availableHeight = targetPage.maxHeight - targetPage.usedHeight;
 
                 if (object.canBreak()) {
@@ -1599,7 +1602,7 @@
 
                     if (splitResult.remaining) {
                         this.createNewPage();
-                        console.log("BREAKED", object);
+                       
                         this.addObjectToPage(splitResult.remaining);
                     }
                 } else {
@@ -2048,6 +2051,8 @@
         var GREPORT = null
         function generateReport() {
             const config = new MReportConfig().loadFromUI();
+
+            console.log("CONFIG", config);
             const report = new MReport().setConfig(config);
 
             report.addText('RELATÓRIO PROFISSIONAL', {
