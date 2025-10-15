@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MReport - Sistema Profissional Avançado</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Estilos para página A4 */
+        @page { size: A4; margin: 0; }
+        body { margin: 0; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 9pt; color: #333; background-color: #f5f5f5; }
+        
+        .a4-page {
+            width: 21cm; min-height: 29.7cm; padding: 1.5cm; margin: 0 auto 20px auto;
+            box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.1); background: white; position: relative;
+        }
+
+        /* Cabeçalho do relatório */
+        .report-header {
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .report-title {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .report-subtitle {
+            font-size: 11pt;
+            color: #7f8c8d;
+            margin: 5px 0 0 0;
+        }
+
+        .header-info {
+            position: absolute;
+            top: 0;
+            right: 0;
+            text-align: right;
+            font-size: 9pt;
+            color: #7f8c8d;
+        }
+
+        /* Rodapé do relatório */
+        .report-footer {
+            position: absolute;
+            bottom: 1.5cm;
+            left: 1.5cm;
+            right: 1.5cm;
+            border-top: 1px solid #bdc3c7;
+            padding-top: 10px;
+            font-size: 8pt;
+            color: #7f8c8d;
+            text-align: center;
+        }
+
+        /* Conteúdo principal */
+        .page-content {
+            min-height: 21cm;
+            position: relative;
+        }
+
+        /* Tabela de dados */
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 9pt;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .report-table th {
+            background: linear-gradient(135deg, #2c3e50, #4a6491);
+            color: white;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #34495e;
+            font-size: 9pt;
+        }
+
+        .report-table td {
+            padding: 6px 10px;
+            border: 1px solid #e1e1e1;
+            background: white;
+        }
+
+        .report-table tr:nth-child(even) td {
+            background-color: #f8f9fa;
+        }
+
+        .report-table tr:hover td {
+            background-color: #e8f4fc;
+        }
+
+        /* Estilos para grupos multi-nível */
+        .group-header {
+            background-color: #ecf0f1;
+            font-weight: bold;
+            padding: 8px 12px;
+            margin: 8px 0 4px 0;
+            font-size: 10pt;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+
+        .group-header-level-0 {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            border-left: 4px solid #e74c3c;
+            font-size: 11pt;
+            padding: 10px 15px;
+        }
+
+        .group-header-level-1 {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border-left: 4px solid #1f618d;
+            margin-left: 20px;
+            padding: 8px 15px;
+        }
+
+        .group-header-level-2 {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+            border-left: 4px solid #6c3483;
+            margin-left: 40px;
+            padding: 7px 15px;
+        }
+
+        /* Totais por grupo */
+        .group-total {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            padding: 8px 12px;
+            margin: 4px 0 8px 0;
+            border-top: 2px solid #bdc3c7;
+            border-bottom: 2px solid #bdc3c7;
+            font-size: 9pt;
+        }
+
+        .group-total-level-0 {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            color: white;
+            font-size: 10pt;
+            padding: 10px 15px;
+        }
+
+        .group-total-level-1 {
+            background: linear-gradient(135deg, #d35400, #e67e22);
+            color: white;
+            margin-left: 20px;
+            padding: 8px 15px;
+        }
+
+        .grand-total {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            font-weight: bold;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 10pt;
+            text-align: center;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Objetos posicionados */
+        .positioned-object {
+            position: absolute;
+            box-sizing: border-box;
+        }
+
+        .text-object {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e1e1e1;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .text-title {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #ecf0f1, #bdc3c7);
+            padding: 15px;
+            text-align: center;
+        }
+
+        .text-highlight {
+            background: linear-gradient(135deg, #e8f4fc, #d6eaf8);
+            border-left: 4px solid #3498db;
+            padding: 12px;
+            font-style: italic;
+        }
+
+        /* Utilitários */
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .text-bold { font-weight: bold; }
+
+        /* Controles */
+        .controls { margin: 20px auto; width: 21cm; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border: 1px solid #ddd; }
+        button { background: linear-gradient(135deg, #3498db, #2980b9); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 10px; font-size: 12px; margin-bottom: 5px; }
+        button:hover { background: linear-gradient(135deg, #2980b9, #1f618d); }
+        
+        .stats { margin-top: 10px; padding: 10px; background: linear-gradient(135deg, #e8f4fc, #d6eaf8); border-radius: 4px; font-size: 11px; border-left: 4px solid #3498db; }
+        
+        .config-panel { margin-top: 15px; padding: 15px; background: white; border-radius: 5px; border: 1px solid #ddd; }
+        .config-group { margin-bottom: 10px; }
+        .config-group label { display: inline-block; width: 150px; font-weight: bold; }
+        .config-group input, .config-group select { padding: 5px; border: 1px solid #ddd; border-radius: 3px; }
+        .checkbox-group { display: inline-block; margin-right: 15px; }
+
+        /* Impressão */
+        @media print {
+            body { margin: 0; padding: 0; background: white; }
+            .a4-page { box-shadow: none; margin: 0; padding: 1.5cm; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls no-print">
+        <h2>MReport - Sistema Profissional Avançado</h2>
+        <button id="print-btn">📄 Imprimir Relatório</button>
+        <button id="generate-btn">🔄 Gerar Relatório</button>
+        <button id="test-large-btn">📊 Testar com 50 Registros</button>
+        <button id="advanced-btn">⚡ Relatório Avançado</button>
+
+        <div class="config-panel">
+            <h3>Configurações de Agrupamento</h3>
+            <div class="config-group">
+                <label for="group-field">Campo de Agrupamento:</label>
+                <select id="group-field">
+                    <option value="">-- Sem agrupamento --</option>
+                    <option value="categoria" selected>Categoria</option>
+                    <option value="subcategoria">Subcategoria</option>
+                    <option value="marca">Marca</option>
+                </select>
+            </div>
+            
+            <div class="config-group">
+                <label for="group-levels">Níveis de Agrupamento:</label>
+                <select id="group-levels">
+                    <option value="0">Nível 0</option>
+                    <option value="1" selected>Nível 1</option>
+                    <option value="2">Nível 2</option>
+                </select>
+            </div>
+            
+            <div class="config-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="show-group-totals" checked>
+                    <label for="show-group-totals">Mostrar totais por grupo</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="show-grand-total" checked>
+                    <label for="show-grand-total">Mostrar total geral</label>
+                </div>
+            </div>
+            
+            <div class="config-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enable-colors">
+                    <label for="enable-colors">Habilitar cores customizadas</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enable-expressions">
+                    <label for="enable-expressions">Habilitar expressões</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <strong>Estatísticas:</strong>
+            <span id="statsInfo">Carregando...</span>
+        </div>
+    </div>
+
+    <div id="report-container">
+        <!-- O relatório será gerado aqui -->
+    </div>
+
+    <script>
+        // ===== SISTEMA DE OBJETOS COM POSICIONAMENTO =====
+        class MObject {
+            constructor(type, config = {}) {
+                this.type = type;
+                this.config = config;
+                this.breakable = false;
+                this.minHeight = config.minHeight || 40;
+                
+                // Posicionamento
+                this.x = config.x || 0;
+                this.y = config.y || 0;
+                this.width = config.width || 200;
+                this.height = config.height || 100;
+                this.section = config.section || 'content';
+            }
+
+            getPosition() {
+                return { x: this.x, y: this.y, width: this.width, height: this.height, section: this.section };
+            }
+
+            getHeight() {
+                return this.height;
+            }
+
+            canBreak() {
+                return this.breakable;
+            }
+
+            render() {
+                const $container = $('<div>', {
+                    class: 'positioned-object',
+                    css: {
+                        transform: `translate3d(${this.x}px, ${this.y}px, 0)`,
+                        width: `${this.width}px`,
+                        height: `${this.height}px`,
+                        ...(this.config.style ? $.parseStyle(this.config.style) : {})
+                    }
+                });
+                
+                const $content = this.renderContent();
+                if ($content) $container.append($content);
+                
+                return $container;
+            }
+
+            renderContent() {
+                return $('<div>');
+            }
+
+            split(availableHeight) {
+                return { fitted: this, remaining: null };
+            }
+        }
+
+        // ===== OBJETO TEXTO =====
+        class MTextObject extends MObject {
+            constructor(content, config = {}) {
+                super('text', config);
+                this.content = content;
+                this.breakable = false;
+                
+                if (config.styleType === 'title') {
+                    this.config.style = 'font-size: 14pt; font-weight: bold; z-index: 10;';
+                    this.height = 60;
+                } else if (config.styleType === 'highlight') {
+                    this.config.style = 'font-size: 10pt; z-index: 10;';
+                    this.height = 70;
+                }
+            }
+
+            renderContent() {
+                const $div = $('<div>', {
+                    class: `text-object ${this.config.styleType ? 'text-' + this.config.styleType : ''}`,
+                    css: {
+                        width: '100%',
+                        height: '100%',
+                        overflow: 'hidden'
+                    },
+                    html: this.content
+                });
+                return $div;
+            }
+        }
+
+        // ===== OBJETO TABELA AVANÇADO =====
+        class MTableObject extends MObject {
+            constructor(data, columns, config = {}) {
+                super('table', config);
+                this.data = data;
+                this.columns = columns;
+                this.breakable = true;
+                this.rowHeight = config.rowHeight || 28;
+                this.headerHeight = config.headerHeight || 40;
+                this.groupHeaderHeight = config.groupHeaderHeight || 35;
+                this.groupTotalHeight = config.groupTotalHeight || 32;
+                
+                // Configurações de agrupamento
+                this.groupConfig = config.groupConfig || {
+                    enabled: false,
+                    field: null,
+                    levels: 1,
+                    showGroupTotals: true,
+                    showGrandTotal: true
+                };
+                
+                // Configurações de estilo avançado
+                this.styleConfig = config.styleConfig || {
+                    enableColors: false,
+                    enableExpressions: false
+                };
+            }
+
+            getHeight() {
+                let height = this.headerHeight;
+                this.data.forEach(item => {
+                    if (item.type === 'group-header' || item.type === 'group-total') {
+                        height += this.groupHeaderHeight;
+                    } else if (item.type === 'grand-total') {
+                        height += 45;
+                    } else {
+                        // Usar altura customizada da linha se disponível
+                        height += item._rowHeight || this.rowHeight;
+                    }
+                });
+                return height;
+            }
+
+            renderContent() {
+                const $container = $('<div>', {
+                    css: {
+                        width: '100%',
+                        height: '100%',
+                        overflow: 'hidden'
+                    }
+                });
+                $container.append(this.createTable(this.data));
+                return $container;
+            }
+
+            split(availableHeight) {
+                if (availableHeight < this.headerHeight + this.rowHeight) {
+                    return { fitted: null, remaining: this };
+                }
+
+                let currentHeight = this.headerHeight;
+                const fittedData = [];
+                const remainingData = [];
+                let splitIndex = -1;
+
+                for (let i = 0; i < this.data.length; i++) {
+                    const item = this.data[i];
+                    const itemHeight = this.getItemHeight(item);
+
+                    if (currentHeight + itemHeight <= availableHeight) {
+                        fittedData.push(item);
+                        currentHeight += itemHeight;
+                    } else {
+                        splitIndex = i;
+                        break;
+                    }
+                }
+
+                if (splitIndex !== -1) {
+                    remainingData.push(...this.data.slice(splitIndex));
+                }
+
+                const fittedTable = fittedData.length > 0 ? 
+                    new MTableObject(fittedData, this.columns, { 
+                        ...this.config, 
+                        groupConfig: this.groupConfig,
+                        styleConfig: this.styleConfig
+                    }) : null;
+                const remainingTable = remainingData.length > 0 ? 
+                    new MTableObject(remainingData, this.columns, { 
+                        ...this.config, 
+                        groupConfig: this.groupConfig,
+                        styleConfig: this.styleConfig
+                    }) : null;
+
+                return { fitted: fittedTable, remaining: remainingTable };
+            }
+
+            getItemHeight(item) {
+                if (item.type === 'group-header' || item.type === 'group-total') {
+                    return this.groupHeaderHeight;
+                } else if (item.type === 'grand-total') {
+                    return 45;
+                }
+                return item._rowHeight || this.rowHeight;
+            }
+
+            createTable(data) {
+                const $table = $('<table>', { class: 'report-table' });
+
+                // Cabeçalho
+                const $thead = $('<thead>');
+                const $headerRow = $('<tr>');
+                
+                this.columns.forEach(col => {
+                    const $th = $('<th>', { 
+                        text: col.title,
+                        css: {
+                            textAlign: col.config?.align || 'left',
+                            backgroundColor: col.config?.headerColor || '',
+                            color: col.config?.headerTextColor || 'white'
+                        }
+                    });
+                    $headerRow.append($th);
+                });
+                
+                $thead.append($headerRow);
+                $table.append($thead);
+
+                // Corpo
+                const $tbody = $('<tbody>');
+                
+                data.forEach((item, rowIndex) => {
+                    if (item.type === 'group-header') {
+                        const $groupRow = $('<tr>');
+                        const $groupCell = $('<td>', {
+                            colspan: this.columns.length,
+                            class: `group-header group-header-level-${item.level}`,
+                            text: `${this.getGroupLabel(item.groupField)}: ${item.value}`
+                        });
+                        $groupRow.append($groupCell);
+                        $tbody.append($groupRow);
+                    }
+                    else if (item.type === 'group-total') {
+                        const totals = this.calculateGroupTotals(item.data);
+                        const $totalRow = $('<tr>');
+                        const $totalCell = $('<td>', {
+                            colspan: this.columns.length,
+                            class: `group-total group-total-level-${item.level}`,
+                            text: this.formatGroupTotal(item, totals)
+                        });
+                        $totalRow.append($totalCell);
+                        $tbody.append($totalRow);
+                    }
+                    else if (item.type === 'grand-total') {
+                        const totals = this.calculateGrandTotals(item.data);
+                        const $totalRow = $('<tr>');
+                        const $totalCell = $('<td>', {
+                            colspan: this.columns.length,
+                            class: 'grand-total',
+                            text: this.formatGrandTotal(totals)
+                        });
+                        $totalRow.append($totalCell);
+                        $tbody.append($totalRow);
+                    }
+                    else {
+                        const $row = $('<tr>');
+                        
+                        // Aplicar estilo da linha se configurado
+                        if (this.styleConfig.enableColors && item._rowColor) {
+                            $row.css('backgroundColor', item._rowColor);
+                        }
+                        
+                        if (item._rowHeight) {
+                            $row.css('height', `${item._rowHeight}px`);
+                        }
+
+                        this.columns.forEach(col => {
+                            const $cell = $('<td>');
+                            let value = item[col.field];
+                            
+                            // Processar expressões se habilitado
+                            if (this.styleConfig.enableExpressions && col.config?.expression) {
+                                try {
+                                    value = this.evaluateExpression(col.config.expression, item, rowIndex);
+                                } catch (e) {
+                                    console.error('Erro na expressão:', e);
+                                    value = 'Erro';
+                                }
+                            } else {
+                                value = this.formatValue(value, col.type);
+                            }
+                            
+                            $cell.text(value);
+                            
+                            // Aplicar estilo da célula
+                            const cellStyle = {};
+                            
+                            if (col.config?.align) cellStyle.textAlign = col.config.align;
+                            if (col.config?.backgroundColor) cellStyle.backgroundColor = col.config.backgroundColor;
+                            if (col.config?.textColor) cellStyle.color = col.config.textColor;
+                            if (col.config?.fontWeight) cellStyle.fontWeight = col.config.fontWeight;
+                            
+                            // Aplicar estilo da célula individual se configurado
+                            if (this.styleConfig.enableColors && item[`_cell_${col.field}_color`]) {
+                                cellStyle.backgroundColor = item[`_cell_${col.field}_color`];
+                            }
+                            
+                            if (this.styleConfig.enableColors && item[`_cell_${col.field}_textColor`]) {
+                                cellStyle.color = item[`_cell_${col.field}_textColor`];
+                            }
+                            
+                            $cell.css(cellStyle);
+                            
+                            $row.append($cell);
+                        });
+                        $tbody.append($row);
+                    }
+                });
+
+                $table.append($tbody);
+                return $table;
+            }
+
+            evaluateExpression(expression, item, rowIndex) {
+                // Criar contexto seguro para eval
+                const context = {
+                    row: item,
+                    index: rowIndex,
+                    data: this.data,
+                    formatCurrency: (value) => parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+                    formatNumber: (value) => parseInt(value).toLocaleString('pt-BR'),
+                    formatPercent: (value) => parseFloat(value).toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 })
+                };
+                
+                // Função para avaliar expressão de forma segura
+                const evalExpression = new Function(...Object.keys(context), `return ${expression}`);
+                return evalExpression(...Object.values(context));
+            }
+
+            calculateGroupTotals(groupData) {
+                const totals = {};
+                this.columns.forEach(col => {
+                    if (col.type === 'numeric' || col.type === 'currency') {
+                        totals[col.field] = 0;
+                        groupData.forEach(item => {
+                            if (!item.type) {
+                                const value = parseFloat(item[col.field]) || 0;
+                                totals[col.field] += value;
+                            }
+                        });
+                    }
+                });
+                return totals;
+            }
+
+            calculateGrandTotals(allData) {
+                const totals = {};
+                this.columns.forEach(col => {
+                    if (col.type === 'numeric' || col.type === 'currency') {
+                        totals[col.field] = 0;
+                        allData.forEach(item => {
+                            if (!item.type) {
+                                const value = parseFloat(item[col.field]) || 0;
+                                totals[col.field] += value;
+                            }
+                        });
+                    }
+                });
+                return totals;
+            }
+
+            getGroupLabel(field) {
+                const column = this.columns.find(col => col.field === field);
+                return column ? column.title : field;
+            }
+
+            formatGroupTotal(item, totals) {
+                let text = `Total ${this.getGroupLabel(item.groupField)} ${item.value}: `;
+                let first = true;
+                this.columns.forEach(col => {
+                    if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                        if (!first) text += ' | ';
+                        text += `${col.title}: ${this.formatValue(totals[col.field], col.type)}`;
+                        first = false;
+                    }
+                });
+                return text;
+            }
+
+            formatGrandTotal(totals) {
+                let text = 'TOTAL GERAL: ';
+                let first = true;
+                this.columns.forEach(col => {
+                    if ((col.type === 'numeric' || col.type === 'currency') && totals[col.field] !== undefined) {
+                        if (!first) text += ' | ';
+                        text += `${col.title}: ${this.formatValue(totals[col.field], col.type)}`;
+                        first = false;
+                    }
+                });
+                return text;
+            }
+
+            formatValue(value, type) {
+                if (value === null || value === undefined) return '-';
+                switch (type) {
+                    case 'numeric': return parseInt(value).toLocaleString('pt-BR');
+                    case 'currency': return parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    case 'percent': return parseFloat(value).toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });
+                    default: return value.toString();
+                }
+            }
+        }
+
+        // ===== GERENCIADOR DE PÁGINAS =====
+        class MPageManager {
+            constructor(config = {}) {
+                this.config = {
+                    pageWidth: 794,   // 21cm em pixels
+                    pageHeight: 1123, // 29.7cm em pixels
+                    margin: 57,       // 1.5cm em pixels
+                    ...config
+                };
+                
+                this.pages = [];
+                this.currentPage = null;
+            }
+
+            createNewPage() {
+                const page = {
+                    header: { objects: [], height: 0 },
+                    content: { objects: [], height: 0 },
+                    footer: { objects: [], height: 0 },
+                    usedHeight: 0,
+                    maxHeight: 21 * 37.8 // 21cm em pixels para área de conteúdo
+                };
+                this.pages.push(page);
+                this.currentPage = page;
+                return page;
+            }
+
+            addObjectToPage(object) {
+                const targetPage = this.currentPage;
+                if (!targetPage) return false;
+
+                const section = object.section || 'content';
+                const objectHeight = object.getHeight();
+                const availableHeight = targetPage.maxHeight - targetPage.usedHeight;
+
+                if (object.canBreak()) {
+                    const splitResult = object.split(availableHeight);
+                    
+                    if (splitResult.fitted) {
+                        targetPage[section].objects.push(splitResult.fitted);
+                        targetPage.usedHeight += splitResult.fitted.getHeight();
+                    }
+
+                    if (splitResult.remaining) {
+                        this.createNewPage();
+                        this.addObjectToPage(splitResult.remaining);
+                    }
+                } else {
+                    if (objectHeight <= availableHeight) {
+                        targetPage[section].objects.push(object);
+                        targetPage.usedHeight += objectHeight;
+                    } else {
+                        this.createNewPage();
+                        return this.addObjectToPage(object);
+                    }
+                }
+                
+                return true;
+            }
+
+            renderPages(containerId) {
+                const $container = $('#' + containerId);
+                $container.empty();
+
+                this.pages.forEach((page, pageIndex) => {
+                    const $pageElement = this.createPageElement(page, pageIndex + 1, this.pages.length);
+                    $container.append($pageElement);
+                });
+
+                return this.pages.length;
+            }
+
+            createPageElement(page, pageNumber, totalPages) {
+                const $pageDiv = $('<div>', { class: 'a4-page' });
+
+                // Header
+                const $headerDiv = $('<div>', { class: 'report-header' });
+                
+                const $title = $('<h1>', {
+                    class: 'report-title',
+                    text: 'RELATÓRIO DE VENDAS - MULTI-NÍVEL'
+                });
+                $headerDiv.append($title);
+
+                const $subtitle = $('<p>', {
+                    class: 'report-subtitle',
+                    text: 'Análise detalhada por categoria e subcategoria'
+                });
+                $headerDiv.append($subtitle);
+
+                const $headerInfo = $('<div>', {
+                    class: 'header-info',
+                    html: `
+                        Página ${pageNumber} de ${totalPages}<br>
+                        Data: ${new Date().toLocaleDateString('pt-BR')}<br>
+                        Hora: ${new Date().toLocaleTimeString('pt-BR')}
+                    `
+                });
+                $headerDiv.append($headerInfo);
+
+                // Objetos do header
+                const $headerObjectsDiv = $('<div>', {
+                    css: {
+                        position: 'relative',
+                        minHeight: '50px'
+                    }
+                });
+                
+                page.header.objects.forEach(obj => {
+                    $headerObjectsDiv.append(obj.render());
+                });
+                $headerDiv.append($headerObjectsDiv);
+
+                $pageDiv.append($headerDiv);
+
+                // Content
+                const $contentDiv = $('<div>', { class: 'page-content' });
+                
+                // Objetos do content
+                page.content.objects.forEach(obj => {
+                    $contentDiv.append(obj.render());
+                });
+
+                $pageDiv.append($contentDiv);
+
+                // Footer
+                const $footerDiv = $('<div>', { class: 'report-footer' });
+                
+                // Objetos do footer
+                const $footerObjectsDiv = $('<div>', {
+                    css: {
+                        position: 'relative',
+                        minHeight: '30px'
+                    }
+                });
+                
+                page.footer.objects.forEach(obj => {
+                    $footerObjectsDiv.append(obj.render());
+                });
+                $footerDiv.append($footerObjectsDiv);
+
+                const $footerText = $('<div>', {
+                    css: { textAlign: 'center' },
+                    text: `MReport Professional System - Página ${pageNumber} de ${totalPages} - ${new Date().getFullYear()}`
+                });
+                $footerDiv.append($footerText);
+
+                $pageDiv.append($footerDiv);
+
+                return $pageDiv;
+            }
+
+            getStats() {
+                const totalObjects = this.pages.reduce((sum, page) => 
+                    sum + page.header.objects.length + page.content.objects.length + page.footer.objects.length, 0);
+                return {
+                    totalPages: this.pages.length,
+                    totalObjects: totalObjects
+                };
+            }
+        }
+
+        // ===== SISTEMA MREPORT PRINCIPAL =====
+        class MReport {
+            constructor() {
+                this.pageManager = new MPageManager();
+                this.objects = [];
+            }
+
+            addObject(object) {
+                this.objects.push(object);
+                return this;
+            }
+
+            addText(content, config = {}) {
+                const textObject = new MTextObject(content, config);
+                return this.addObject(textObject);
+            }
+
+            addTable(data, columns, config = {}) {
+                const tableObject = new MTableObject(data, columns, config);
+                return this.addObject(tableObject);
+            }
+
+            generate(containerId) {
+                this.pageManager.createNewPage();
+
+                // Adicionar todos os objetos às páginas
+                this.objects.forEach(object => {
+                    this.pageManager.addObjectToPage(object);
+                });
+
+                // Renderizar páginas
+                const totalPages = this.pageManager.renderPages(containerId);
+                const stats = this.pageManager.getStats();
+
+                this.updateStats(stats);
+                return this;
+            }
+
+            updateStats(stats) {
+                const $statsInfo = $('#statsInfo');
+                if ($statsInfo.length) {
+                    $statsInfo.text(
+                        `${stats.totalPages} páginas | ${stats.totalObjects} objetos | ${this.objects.length} objetos totais`
+                    );
+                }
+            }
+
+            clear() {
+                this.objects = [];
+                this.pageManager = new MPageManager();
+                return this;
+            }
+        }
+
+        // ===== DADOS DE TESTE COM 50 REGISTROS =====
+        function generateTestData() {
+            const categorias = ['Eletrônicos', 'Livros', 'Roupas', 'Casa', 'Esportes'];
+            const subcategorias = {
+                'Eletrônicos': ['Smartphones', 'Tablets', 'Notebooks', 'Acessórios'],
+                'Livros': ['Ficção', 'Não-Ficção', 'Técnicos', 'Infantil'],
+                'Roupas': ['Masculino', 'Feminino', 'Infantil', 'Esportiva'],
+                'Casa': ['Móveis', 'Decoração', 'Cozinha', 'Jardim'],
+                'Esportes': ['Fitness', 'Camping', 'Aquáticos', 'Coletivos']
+            };
+            const marcas = ['Samsung', 'Apple', 'Sony', 'LG', 'Xiaomi', 'Nike', 'Adidas', 'Philips', 'Brastemp'];
+
+            const data = [];
+            for (let i = 1; i <= 50; i++) {
+                const categoria = categorias[Math.floor(Math.random() * categorias.length)];
+                const subcatArray = subcategorias[categoria];
+                const subcategoria = subcatArray[Math.floor(Math.random() * subcatArray.length)];
+                
+                data.push({
+                    id: i,
+                    categoria: categoria,
+                    subcategoria: subcategoria,
+                    produto: `Produto ${i} - ${categoria}`,
+                    marca: marcas[Math.floor(Math.random() * marcas.length)],
+                    quantidade: Math.floor(Math.random() * 100) + 1,
+                    preco: parseFloat((Math.random() * 1000 + 10).toFixed(2)),
+                    total: 0
+                });
+                
+                // Calcular total
+                data[data.length - 1].total = data[data.length - 1].quantidade * data[data.length - 1].preco;
+            }
+            
+            return data;
+        }
+
+        // ===== FUNÇÕES DE PROCESSAMENTO DE DADOS AVANÇADAS =====
+        function processDataWithGroups(data, groupConfig) {
+            if (!groupConfig.enabled || !groupConfig.field) return data;
+
+            const result = [];
+            const grouped = {};
+
+            // Agrupar dados
+            data.forEach(item => {
+                const key = item[groupConfig.field];
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+            });
+
+            // Adicionar grupos e totais
+            Object.keys(grouped).sort().forEach(key => {
+                result.push({
+                    type: 'group-header',
+                    level: groupConfig.levels,
+                    value: key,
+                    groupField: groupConfig.field,
+                    data: grouped[key]
+                });
+
+                result.push(...grouped[key]);
+
+                if (groupConfig.showGroupTotals) {
+                    result.push({
+                        type: 'group-total',
+                        level: groupConfig.levels,
+                        value: key,
+                        groupField: groupConfig.field,
+                        data: grouped[key]
+                    });
+                }
+            });
+
+            // Total geral
+            if (groupConfig.showGrandTotal) {
+                result.push({
+                    type: 'grand-total',
+                    data: data
+                });
+            }
+
+            return result;
+        }
+
+        function applyAdvancedStyling(data, styleConfig) {
+            if (!styleConfig.enableColors) return data;
+
+            return data.map((item, index) => {
+                if (item.type) return item; // Pular grupos e totais
+                
+                const newItem = { ...item };
+                
+                // Aplicar cores alternadas para linhas
+                if (index % 4 === 0) {
+                    newItem._rowColor = '#f0f8ff'; // Azul claro
+                    newItem._rowHeight = 32;
+                } else if (index % 4 === 2) {
+                    newItem._rowColor = '#fff8f0'; // Laranja claro
+                    newItem._rowHeight = 30;
+                }
+                
+                // Destacar produtos caros
+                if (item.preco > 500) {
+                    newItem._cell_preco_color = '#ffebee';
+                    newItem._cell_preco_textColor = '#c62828';
+                    newItem._cell_total_color = '#ffebee';
+                    newItem._cell_total_textColor = '#c62828';
+                }
+                
+                // Destacar quantidades altas
+                if (item.quantidade > 80) {
+                    newItem._cell_quantidade_color = '#e8f5e8';
+                    newItem._cell_quantidade_textColor = '#2e7d32';
+                }
+                
+                return newItem;
+            });
+        }
+
+        // ===== CONFIGURAÇÕES DE COLUNAS AVANÇADAS =====
+        const reportColumns = [
+            { 
+                field: "categoria", 
+                title: "Categoria", 
+                type: "text",
+                config: { 
+                    align: "left",
+                    headerColor: "#2c3e50",
+                    backgroundColor: "#f8f9fa",
+                    fontWeight: "bold"
+                }
+            },
+            { 
+                field: "subcategoria", 
+                title: "Subcategoria", 
+                type: "text",
+                config: { 
+                    align: "left",
+                    headerColor: "#34495e"
+                }
+            },
+            { 
+                field: "produto", 
+                title: "Produto", 
+                type: "text",
+                config: { 
+                    align: "left",
+                    headerColor: "#2c3e50"
+                }
+            },
+            { 
+                field: "marca", 
+                title: "Marca", 
+                type: "text",
+                config: { 
+                    align: "left",
+                    headerColor: "#34495e"
+                }
+            },
+            { 
+                field: "quantidade", 
+                title: "Quantidade", 
+                type: "numeric", 
+                config: { 
+                    align: "right",
+                    headerColor: "#27ae60",
+                    backgroundColor: "#f8fff8",
+                    expression: "formatNumber(row.quantidade)"
+                }
+            },
+            { 
+                field: "preco", 
+                title: "Preço Unit.", 
+                type: "currency", 
+                config: { 
+                    align: "right",
+                    headerColor: "#e74c3c",
+                    backgroundColor: "#fff8f8",
+                    expression: "formatCurrency(row.preco)"
+                }
+            },
+            { 
+                field: "total", 
+                title: "Total", 
+                type: "currency", 
+                config: { 
+                    align: "right",
+                    headerColor: "#c0392b",
+                    backgroundColor: "#fff0f0",
+                    fontWeight: "bold",
+                    expression: "formatCurrency(row.quantidade * row.preco)"
+                }
+            }
+        ];
+
+        // ===== FUNÇÕES DA INTERFACE =====
+        function getCurrentConfig() {
+            const groupField = $('#group-field').val();
+            
+            return {
+                groupConfig: {
+                    enabled: !!groupField,
+                    field: groupField,
+                    levels: parseInt($('#group-levels').val()),
+                    showGroupTotals: $('#show-group-totals').is(':checked'),
+                    showGrandTotal: $('#show-grand-total').is(':checked')
+                },
+                styleConfig: {
+                    enableColors: $('#enable-colors').is(':checked'),
+                    enableExpressions: $('#enable-expressions').is(':checked')
+                }
+            };
+        }
+
+        function generateReport() {
+            const config = getCurrentConfig();
+            const report = new MReport();
+
+            // Texto no header
+            report.addText('RELATÓRIO PROFISSIONAL', {
+                x: 200, y: 10, section: 'header',
+                styleType: 'title', width: 400, height: 50
+            });
+
+            // Tabela principal
+            const testData = generateTestData().slice(0, 15);
+            let tableData = processDataWithGroups(testData, config.groupConfig);
+            
+            if (config.styleConfig.enableColors) {
+                tableData = applyAdvancedStyling(tableData, config.styleConfig);
+            }
+
+            report.addTable(tableData, reportColumns, {
+                x: 0, y: 0, section: 'content',
+                width: 700, height: 600,
+                groupConfig: config.groupConfig,
+                styleConfig: config.styleConfig
+            });
+
+            // Texto no footer
+            report.addText('Confidencial - Uso Interno', {
+                x: 250, y: 5, section: 'footer',
+                width: 200, height: 25
+            });
+
+            report.generate('report-container');
+        }
+
+        function testLargeDataset() {
+            const config = getCurrentConfig();
+            const report = new MReport();
+
+            // Header
+            report.addText('RELATÓRIO COMPLETO - 50 REGISTROS', {
+                x: 180, y: 5, section: 'header',
+                styleType: 'title', width: 450, height: 60
+            });
+
+            report.addText('Teste de paginação com grande volume de dados', {
+                x: 200, y: 45, section: 'header',
+                styleType: 'highlight', width: 400, height: 30
+            });
+
+            // Tabela com 50 registros
+            const largeData = generateTestData();
+            let tableData = processDataWithGroups(largeData, config.groupConfig);
+            
+            if (config.styleConfig.enableColors) {
+                tableData = applyAdvancedStyling(tableData, config.styleConfig);
+            }
+
+            report.addTable(tableData, reportColumns, {
+                x: 0, y: 0, section: 'content',
+                width: 700, height: 800,
+                groupConfig: config.groupConfig,
+                styleConfig: config.styleConfig
+            });
+
+            // Footer
+            report.addText('Sistema MReport - Paginação Automática', {
+                x: 220, y: 5, section: 'footer',
+                width: 300, height: 25
+            });
+
+            report.generate('report-container');
+        }
+
+        function generateAdvancedReport() {
+            const config = getCurrentConfig();
+            const report = new MReport();
+
+            // Header avançado
+            report.addText('RELATÓRIO AVANÇADO - STYLING COMPLETO', {
+                x: 150, y: 5, section: 'header',
+                styleType: 'title', width: 500, height: 60
+            });
+
+            report.addText('Demonstração de todas as funcionalidades: cores, expressões, agrupamento', {
+                x: 120, y: 45, section: 'header',
+                styleType: 'highlight', width: 550, height: 40
+            });
+
+            // Tabela com dados e estilo avançado
+            const advancedData = generateTestData().slice(0, 25);
+            let tableData = processDataWithGroups(advancedData, {
+                ...config.groupConfig,
+                enabled: true,
+                field: 'categoria',
+                levels: 1,
+                showGroupTotals: true,
+                showGrandTotal: true
+            });
+            
+            // Forçar estilo avançado
+            tableData = applyAdvancedStyling(tableData, { enableColors: true });
+
+            report.addTable(tableData, reportColumns, {
+                x: 0, y: 0, section: 'content',
+                width: 700, height: 700,
+                groupConfig: {
+                    enabled: true,
+                    field: 'categoria',
+                    levels: 1,
+                    showGroupTotals: true,
+                    showGrandTotal: true
+                },
+                styleConfig: {
+                    enableColors: true,
+                    enableExpressions: true
+                }
+            });
+
+            // Footer
+            report.addText('Relatório Gerado com MReport Advanced', {
+                x: 220, y: 5, section: 'footer',
+                width: 300, height: 25
+            });
+
+            report.generate('report-container');
+        }
+
+        // ===== INICIALIZAÇÃO COM JQUERY =====
+        $(document).ready(function() {
+            // Configurar eventos dos botões
+            $('#print-btn').on('click', function() {
+                window.print();
+            });
+            
+            $('#generate-btn').on('click', function() {
+                generateReport();
+            });
+            
+            $('#test-large-btn').on('click', function() {
+                testLargeDataset();
+            });
+            
+            $('#advanced-btn').on('click', function() {
+                generateAdvancedReport();
+            });
+
+            // Atualizar configurações quando alteradas
+            $('.config-panel input, .config-panel select').on('change', function() {
+                generateReport();
+            });
+
+            // Gerar relatório inicial
+            generateReport();
+        });
+
+        // Utilitário para converter string CSS em objeto
+        $.parseStyle = function(styleString) {
+            const styleObj = {};
+            const styles = styleString.split(';');
+            
+            styles.forEach(style => {
+                if (style.trim()) {
+                    const [property, value] = style.split(':');
+                    if (property && value) {
+                        // Converter propriedades CSS para formato camelCase
+                        const camelCaseProperty = property.trim().replace(/-([a-z])/g, function(g) { 
+                            return g[1].toUpperCase(); 
+                        });
+                        styleObj[camelCaseProperty] = value.trim();
+                    }
+                }
+            });
+            
+            return styleObj;
+        };
+    </script>
+</body>
+</html>
