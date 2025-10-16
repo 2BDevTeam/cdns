@@ -615,8 +615,43 @@
 
             <div class="report-header">
 
-                <div v-for="obj in page.header.objects" :key="page.id" v-html="obj.render().prop('outerHTML')">
+                <div v-for="obj in page.header.objects" :key="page.id">
+                    <div v-if="obj.type === 'table'" class="report-table-container">
 
+                        <div v-if="false" v-html="obj.render().prop('outerHTML')"></div>
+                        <div class="positioned-object"
+                            :style="'transform: translate3d(' + (obj.x || obj.config.x || 0) + 'px, ' + (obj.y || obj.config.y || 0) + 'px, 0);'">
+
+                            <div style="display: none;">{{obj.render()}}</div>
+                            <table>
+                                <thead>
+                                    <tr v-if="obj.hasGroupedHeaderRow()">
+                                        <td v-for="(cell, cIdx) in obj.getGroupedHeaderRow().cells" :key="'ghc-' + cIdx"
+                                            :colspan="cell.colSpan || 1" :rowspan="cell.rowSpan || 1"
+                                            :style="cell.style">
+                                            {{ cell.value }}
+                                        </td>
+                                    </tr>
+
+                                    <tr v-if="obj.hasHeaderRow()">
+                                        <th v-for="(cell, cIdx) in obj.getHeaderRow().cells" :key="'hc-' + cIdx"
+                                            :style="cell.style">
+                                            {{ cell.value }}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="row in obj.getBodyRows()" :key="row.id">
+                                        <td :style="cell.style" :colspan="cell.colSpan || 1" v-for="cell in row.cells"
+                                            :key="cell.id">{{ cell.value }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+
+                    </div>
+                    <div v-else v-html="obj.render().prop('outerHTML')"></div>
                 </div>
 
             </div>
@@ -650,7 +685,8 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="row in obj.getBodyRows()" :key="row.id">
-                                        <td :style="cell.style" :colspan="cell.colSpan || 1"  v-for="cell in row.cells" :key="cell.id">{{ cell.value }}</td>
+                                        <td :style="cell.style" :colspan="cell.colSpan || 1" v-for="cell in row.cells"
+                                            :key="cell.id">{{ cell.value }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -664,8 +700,43 @@
 
             </div>
             <div class="report-footer">
-                <div v-for="obj in page.footer.objects" :key="page.id" v-html="obj.render().prop('outerHTML')">
+                <div v-for="obj in page.footer.objects" :key="page.id" >
+                    <div v-if="obj.type === 'table'" class="report-table-container">
 
+                        <div v-if="false" v-html="obj.render().prop('outerHTML')"></div>
+                        <div class="positioned-object"
+                            :style="'transform: translate3d(' + (obj.x || obj.config.x || 0) + 'px, ' + (obj.y || obj.config.y || 0) + 'px, 0);'">
+
+                            <div style="display: none;">{{obj.render()}}</div>
+                            <table>
+                                <thead>
+                                    <tr v-if="obj.hasGroupedHeaderRow()">
+                                        <td v-for="(cell, cIdx) in obj.getGroupedHeaderRow().cells" :key="'ghc-' + cIdx"
+                                            :colspan="cell.colSpan || 1" :rowspan="cell.rowSpan || 1"
+                                            :style="cell.style">
+                                            {{ cell.value }}
+                                        </td>
+                                    </tr>
+
+                                    <tr v-if="obj.hasHeaderRow()">
+                                        <th v-for="(cell, cIdx) in obj.getHeaderRow().cells" :key="'hc-' + cIdx"
+                                            :style="cell.style">
+                                            {{ cell.value }}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="row in obj.getBodyRows()" :key="row.id">
+                                        <td :style="cell.style" :colspan="cell.colSpan || 1" v-for="cell in row.cells"
+                                            :key="cell.id">{{ cell.value }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+
+                    </div>
+                    <div v-else v-html="obj.render().prop('outerHTML')"></div>
                 </div>
 
             </div>
@@ -1214,7 +1285,7 @@
                 });
             }
 
-            getHeaderRow(){
+            getHeaderRow() {
                 return this.renderedRows.find(row => row.type === 'header');
             }
             hasHeaderRow() {
