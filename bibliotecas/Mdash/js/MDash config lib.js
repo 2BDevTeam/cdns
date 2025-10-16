@@ -3,7 +3,6 @@ GMDashContainers = []
 var Greactive
 var GMDashContainerItems = [new MdashContainerItem({})];
 GMDashContainerItems = [];
-
 var GMDashContainerItemObjects = [new MdashContainerItemObject({})];
 GMDashContainerItemObjects = [];
 var GMDashContainerItemObjectDetails = [new MdashContainerItemObjectDetail({})];
@@ -11,52 +10,36 @@ GMDashContainerItemObjectDetails = [];
 var selectedObject = {};
 var GMDashFilters = [new MdashFilter({})];
 GMDashFilters = [];
-
 var GMdashDeleteRecords = [];
-
 var GMDashStamp = "";
 var GTMPReactiveInstance
 var GTMPDragItem = null;
 var GTMPDragId = null;
 var GCopiedComponentData = []
-
 var GMdashEntityCopyConfig = [
-
     new MdashEntityCopy({
         idfield: "mdashcontainerstamp",
         table: "MdashContainer",
         entityToInstantiate: MdashContainer,
         localsource: "GMDashContainers",
-        childs: ["MdashContainerItem"],
-        extraConfig: {
-            generateOrder: true
-        }
+        childs: ["MdashContainerItem"]
     }),
     new MdashEntityCopy({
         idfield: "mdashcontaineritemstamp",
         table: "MdashContainerItem",
         entityToInstantiate: MdashContainerItem,
         localsource: "GMDashContainerItems",
-        childs: ["MdashContainerItemObject"],
-        extraConfig: {
-            generateOrder: true
-        }
+        childs: ["MdashContainerItemObject"]
     }),
     new MdashEntityCopy({
         idfield: "mdashcontaineritemobjectstamp",
         table: "MdashContainerItemObject",
         entityToInstantiate: MdashContainerItemObject,
         localsource: "GMDashContainerItemObjects",
-        childs: [],
-        extraConfig: {
-            generateOrder: false
-        }
+        childs: []
     })
-
 ];
-
 function UIObjectFormConfig(data) {
-
     this.campo = data.campo || "";
     this.tipo = data.tipo || "";
     this.titulo = data.titulo || "";
@@ -68,29 +51,22 @@ function UIObjectFormConfig(data) {
     this.fieldToOption = data.fieldToOption || "";
     this.fieldToValue = data.fieldToValue || "";
     this.contentType = data.contentType || "input";
-
 }
-
 function MdashEntityCopy(data) {
-
     this.idfield = data.idfield || "";
     this.table = data.table || "";
     this.localsource = data.localsource || "";
     this.entityToInstantiate = data.entityToInstantiate || function () { };
     this.childs = data.childs || [];
-    this.extraConfig = data.extraConfig || {};
 }
 
-
 function MdashFilter(data) {
-
     var maxOrdem = 0;
     if (Array.isArray(GMDashFilters) && GMDashFilters.length > 0) {
         maxOrdem = GMDashFilters.reduce(function (max, item) {
             return Math.max(max, item.ordem || 0);
         }, 0);
     }
-
     this.mdashfilterstamp = data.mdashfilterstamp || generateUUID();
     this.dashboardstamp = data.dashboardstamp || GMDashStamp;
     this.codigo = data.codigo || "";
@@ -110,7 +86,6 @@ function MdashFilter(data) {
     this.idfield = data.idfield || "mdashfilterstamp";
     this.table = "MdashFilter"
 }
-
 function getMdashFilterUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
         new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
@@ -135,7 +110,6 @@ function getMdashFilterUIObjectFormConfigAndSourceValues() {
             ]
         }),
 
-
         new UIObjectFormConfig({ colSize: 6, campo: "campooption", tipo: "text", titulo: "Campo de Opção", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "campovalor", tipo: "text", titulo: "Campo de Valor", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
@@ -145,12 +119,9 @@ function getMdashFilterUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 4, campo: "eventochange", tipo: "checkbox", titulo: "Tem evento change", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaochange", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Change", classes: "input-source-form m-editor", contentType: "div" }),
     ];
-
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashFilters", idField: "mdashfilterstamp" };
 }
-
 function MdashContainer(data) {
-
     var maxOrdem = 0;
     if (Array.isArray(GMDashContainers) && GMDashContainers.length > 0) {
         maxOrdem = GMDashContainers.reduce(function (max, container) {
@@ -168,18 +139,16 @@ function MdashContainer(data) {
     this.localsource = data.localsource || "";
     this.idfield = data.idfield || "mdashcontainerstamp";
     this.table = "MdashContainer";
+    this.inactivo = data.inactivo || false;
 }
 
-
 function MdashContainerItemObjectDetail(data) {
-
     var maxOrdem = 0;
     if (Array.isArray(GMDashContainerItemObjectDetails) && GMDashContainerItemObjectDetails.length > 0) {
         maxOrdem = GMDashContainerItemObjectDetails.reduce(function (max, item) {
             return Math.max(max, item.ordem || 0);
         }, 0);
     }
-
     this.mdashcontaineritemobjectdetailstamp = data.mdashcontaineritemobjectdetailstamp || generateUUID();
     this.mdashcontaineritemobjectstamp = data.mdashcontaineritemobjectstamp || "";
     this.dashboardstamp = data.dashboardstamp || "";
@@ -194,19 +163,15 @@ function MdashContainerItemObjectDetail(data) {
 }
 
 
-
-
 function getContainerUIObjectFormConfigAndSourceValues() {
-
     var objectsUIFormConfig = [
         new UIObjectFormConfig({ colSize: 6, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
     ]
-
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashContainers", idField: "mdashcontainerstamp" };
 }
-
 function MdashContainerItem(data) {
     // Calcula ordem máxima se não for fornecida
     var maxOrdem = 0;
@@ -215,12 +180,12 @@ function MdashContainerItem(data) {
             return Math.max(max, item.ordem || 0);
         }, 0);
     }
-
     this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || generateUUID();
     this.mdashcontainerstamp = data.mdashcontainerstamp || "";
     this.codigo = data.codigo || "";
     this.titulo = data.titulo || "";
     this.tipo = data.tipo || "";
+    this.inactivo = data.inactivo || false;
     this.tamanho = data.tamanho || 4;
     this.ordem = data.ordem || (maxOrdem + 1);
     this.templatelayout = data.templatelayout || "";
@@ -238,72 +203,52 @@ function MdashContainerItem(data) {
     this.localsource = data.localsource || "";
     this.idfield = data.idfield || "mdashcontainerstamp";
     this.table = "MdashContainerItem";
-
 }
-
 MdashContainerItem.prototype.renderLayout = function (container, cleanContainer) {
-
     var self = this;
     var listaTemplates = getTemplateLayoutOptions();
     var selectedTemplate = listaTemplates.find(function (template) {
         return template.codigo === self.templatelayout;
     });
-
     if (selectedTemplate) {
-
         self.dadosTemplate = selectedTemplate
         if (cleanContainer) {
             $(container).empty();
         }
-
         $(container).append(selectedTemplate.generateCard({
             title: self.titulo,
             id: self.mdashcontaineritemstamp,
             tipo: selectedTemplate.UIData.tipo || "primary",
             bodyContent: "Sem conteúdo",
         }));
-
         self.refreshContainerItem("");
     }
-
 }
-
 MdashContainerItem.prototype.refreshContainerItem = function (masterContent) {
-
     if (!masterContent) return;
-
     var dadosTemplate = this.dadosTemplate;
-
     if (!dadosTemplate.containerSelectorToRender) {
-
         console.warn("Container selector to render is not defined in the template data.");
         // alertify.error("Erro ao renderizar item do container. Verifique o template.", 4000);
         return;
     }
-
     var self = this
     var containerItemObjects = GMDashContainerItemObjects.filter(function (obj) {
         return obj.mdashcontaineritemstamp === self.mdashcontaineritemstamp;
     });
 
-
-
     containerItemObjects.forEach(function (itemObject) {
-
         var concatenatedMasterContent = ".container-item-object-render-" + itemObject.mdashcontaineritemobjectstamp + " " + dadosTemplate.containerSelectorToRender;
         $(concatenatedMasterContent).empty();
         itemObject.renderObjectByContainerItem(concatenatedMasterContent, self);
-
     });
-
-
 
 }
 
-
 function getContainerItemUIObjectFormConfigAndSourceValues() {
-
+ 
     var objectsUIFormConfig = [
+        new UIObjectFormConfig({ colSize: 4, campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, campo: "ordem", tipo: "text", titulo: "Ordem", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
@@ -314,17 +259,16 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaodblistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de DB Listagem", classes: "m-editor input-source-form", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "fontelocal", tipo: "checkbox", titulo: "Fonte local", classes: "input-source-form", contentType: "input" })
+    
     ]
-
+ 
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashContainerItems", idField: "mdashcontaineritemstamp" };
-
+ 
 }
 
 
 
-
 function actualizarConfiguracaoMDashboard() {
-
     var configData = [
         {
             sourceTable: "MdashContainer",
@@ -347,11 +291,8 @@ function actualizarConfiguracaoMDashboard() {
             records: GMDashContainerItemObjects
         }
     ];
-
     // console.log("configdata", configData)
     // console.log([{ mdashstamp: GMDashStamp, config: configData }])
-
-
 
     $.ajax({
         type: "POST",
@@ -361,12 +302,10 @@ function actualizarConfiguracaoMDashboard() {
             '__EVENTARGUMENT': JSON.stringify([{ relatoriostamp: GMDashStamp, config: configData, recordsToDelete: GMdashDeleteRecords }]),
         },
         success: function (response) {
-
             var errorMessage = "ao trazer resultados "
             try {
                 console.log(response)
                 if (response.cod != "0000") {
-
                     console.log("Erro " + errorMessage, response);
                     alertify.error("Erro ao actualizar configuração", 9000)
                     return false
@@ -377,18 +316,10 @@ function actualizarConfiguracaoMDashboard() {
                 console.log("Erro interno " + errorMessage, response, error)
                 //alertify.error("Erro interno " + errorMessage, 10000)
             }
-
             //  javascript:__doPostBack('','')
         }
     })
 }
-
-
-
-
-
-
-
 
 
 
@@ -403,30 +334,22 @@ $(document).ready(function () {
     getMeditorStyles(styles);
     objectItemEditorStyles(styles);
 
-
     var globalStyle = ""
     styles.forEach(function (style) {
         globalStyle += style;
     });
     $('head').append('<style>' + globalStyle + '</style>');
 
-
     $(document).on('click', '.home-collapse-header', function () {
         $(this).find(".glyphicon").toggleClass("glyphicon-triangle-bottom");
         //$(this).next("div").css("hidden");
         $(this).next("div").toggleClass("hidden");
-
     });
-
     registerListenersMdash()
 });
 
 
-
-
 function handleConfigReactive() {
-
-
 
     PetiteVue.createApp({
         GMDashContainers: GMDashContainers,
@@ -460,11 +383,7 @@ function handleConfigReactive() {
 
 
 
-
-
-
 }
-
 function handleCodeEditor() {
     var editors = [];
     document.querySelectorAll('.m-editor').forEach(function (el, idx) {
@@ -475,7 +394,6 @@ function handleCodeEditor() {
         aceEditor.session.setMode("ace/mode/sql");
         editors.push(aceEditor);
     });
-
     // Guarda o editor atualmente focado
     var focusedEditor = null;
     editors.forEach(function (ed) {
@@ -483,7 +401,6 @@ function handleCodeEditor() {
             focusedEditor = ed;
         });
     });
-
     // Atalho: Ctrl + Shift + F para o editor focado
     document.addEventListener("keydown", function (e) {
         if (e.shiftKey && e.key.toLowerCase() === "f" && focusedEditor) {
@@ -491,9 +408,7 @@ function handleCodeEditor() {
             formatCode(focusedEditor);
         }
     });
-
     function formatCode(editorInstance) {
-        return;
         var code = editorInstance.getValue();
         try {
             var formatted = prettier.format(code, {
@@ -502,12 +417,10 @@ function handleCodeEditor() {
             });
             editorInstance.setValue(formatted, -1);
         } catch (err) {
-            //alert("Erro ao formatar: " + err.message);
+            alert("Erro ao formatar: " + err.message);
         }
     }
-
 }
-
 function getLocalSource(source) {
     var localsource = []
     localsource = eval(source)
@@ -515,47 +428,34 @@ function getLocalSource(source) {
 }
 
 
-
-
 function handleShowConfigContainer(data) {
-
     var idValue = data.idValue || "";
     var localsource = data.localsource || "";
     var idField = data.idField || "";
     var componente = data.componente || "";
-
     var localSourceRes = getLocalSource(localsource);
-
     var mdashConfigItem = localSourceRes.find(function (obj) {
         return obj[idField] == idValue;
     });
 
-
     var objectsUIFormConfig = [new UIObjectFormConfig({})]
     if (mdashConfigItem) {
-
         objectsUIFormConfig = mdashConfigItem.objectsUIFormConfig;
-
         var sufixoForm = localsource;
         var containerId = "Container" + localsource;
-
         var sourceData = {
             sourceTable: localsource,
             sourceKey: localsource
         }
-
         // console.log("sourceData", sourceData)
         var containers = [];
-
         objectsUIFormConfig.forEach(function (obj) {
-
             var isDiv = obj.contentType === "div";
             var customData = obj.customData + "  @change='handleChangeComponent'  v-model='mdashConfigItem." + obj.campo + "'";
             if (isDiv) {
                 //console.log("Div detected for campo: " + obj.campo);
                 customData += " v-on:keyup='changeDivContent(\"" + obj.campo + "\")'";
             }
-
             containers.push({
                 colSize: obj.colSize,
                 style: "margin-bottom:0.5em; " + (obj.tipo == "checkbox" ? "display:flex;flex-direction:column" : ""),
@@ -576,13 +476,10 @@ function handleShowConfigContainer(data) {
                     value: mdashConfigItem[obj.campo],
                     event: "",
                     placeholder: "",
-
                 }
             })
 
-
         })
-
 
         $("#modalMdashConfigItem").remove()
         var containerData = {
@@ -594,10 +491,8 @@ function handleShowConfigContainer(data) {
             items: containers
         }
         var formContainerResult = GenerateCustomFormContainer(containerData);
-
         var modalBodyHtml = ""
         modalBodyHtml += formContainerResult;
-
         var modalMdashConfigItem = {
             title: "Configuração ",
             id: "modalMdashConfigItem",
@@ -607,40 +502,30 @@ function handleShowConfigContainer(data) {
             footerContent: "",
         };
         var modalHTML = generateModalHTML(modalMdashConfigItem);
-
         $("#maincontent").append(modalHTML);
-
         $("#modalMdashConfigItem").modal("show");
         $("#modalMdashConfigItem .modal-dialog").css("width", "90%")
         PetiteVue.createApp({
             mdashConfigItem: mdashConfigItem,
             localsource: localsource,
             handleChangeComponent: function () {
-
                 realTimeComponentSync(this.mdashConfigItem, this.mdashConfigItem.table, this.mdashConfigItem.idfield);
             },
             changeDivContent: function (e) {
                 var editor = ace.edit(e);
                 this.mdashConfigItem[e] = editor.getValue();
                 realTimeComponentSync(this.mdashConfigItem, this.mdashConfigItem.table, this.mdashConfigItem.idfield);
-
             }
         }).mount('#maincontent');
-
         handleCodeEditor();
     }
-
 }
-
-
 
 function realTimeComponentSync(recordData, table, idfield) {
     var errorMessage = "ao actualizar componente em tempo real,verifique a conexão com a internet.Se o erro persistir contacte o administrador do sistema. "
     try {
 
-
         var configData = []
-
 
         if (recordData) {
             configData = [
@@ -650,9 +535,7 @@ function realTimeComponentSync(recordData, table, idfield) {
                     records: [recordData]
                 }
             ];
-
         }
-
 
         $.ajax({
             type: "POST",
@@ -662,11 +545,9 @@ function realTimeComponentSync(recordData, table, idfield) {
                 '__EVENTARGUMENT': JSON.stringify([{ config: configData, recordsToDelete: GMdashDeleteRecords }]),
             },
             success: function (response) {
-
                 try {
                     console.log(response)
                     if (response.cod != "0000") {
-
                         console.log("Erro " + errorMessage, response);
                         alertify.error("Erro " + errorMessage, 4000)
                         return false
@@ -676,22 +557,17 @@ function realTimeComponentSync(recordData, table, idfield) {
                     //alertify
                     alertify.error("Erro interno " + errorMessage, 10000)
                 }
-
             },
             error: function (xhr, ajaxOptions, thrownError) {
                 console.log("Erro " + errorMessage, xhr, thrownError);
                 alertify.error(".Erro " + errorMessage, 4000)
             }
         })
-
     } catch (error) {
         console.log("Erro interno " + errorMessage, response, error)
-
     }
 
-
 }
-
 
 function MdashContainerItemObject(data) {
     // Calcula ordem máxima se não for fornecida
@@ -701,7 +577,6 @@ function MdashContainerItemObject(data) {
             return Math.max(max, item.ordem || 0);
         }, 0);
     }
-
     this.mdashcontaineritemobjectstamp = data.mdashcontaineritemobjectstamp || generateUUID();
     this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || "";
     this.dashboardstamp = data.dashboardstamp || GMDashStamp;
@@ -718,9 +593,7 @@ function MdashContainerItemObject(data) {
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.localsource = data.localsource || "";
 
-
     var config = {}
-
     if (data.configjson) {
         try {
             config = JSON.parse(data.configjson);
@@ -728,15 +601,11 @@ function MdashContainerItemObject(data) {
             console.error("Erro ao analisar configjson:", error);
         }
     }
-
     this.config = config || {}
     this.configjson = data.configjson || ""
     this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
     this.table = "MdashContainerItemObject"
-
     this.objectoConfig = data.objectoConfig || {};
-
-
 
     var queryConfig = data.queryConfig || {
         selectFields: [],
@@ -747,17 +616,12 @@ function MdashContainerItemObject(data) {
         generatedSQL: "",
         lastResult: []
     };
-
     if (data.queryconfigjson) {
-
         try {
             queryConfig = JSON.parse(data.queryconfigjson);
         } catch (error) {
-
         }
-
     }
-
     this.queryConfig = queryConfig || {
         selectFields: [],
         filters: [],
@@ -767,7 +631,6 @@ function MdashContainerItemObject(data) {
         generatedSQL: "",
         lastResult: []
     };
-
     var queryConfigVoid = {
         selectFields: [],
         filters: [],
@@ -780,14 +643,10 @@ function MdashContainerItemObject(data) {
     this.queryconfigjson = queryConfig ? JSON.stringify(queryConfig) : JSON.stringify(queryConfigVoid);
 }
 
-
 MdashContainerItemObject.prototype.renderObjectByContainerItem = function (containerSelector, containerItem) {
-
     var self = this;
     var contentRecords = containerItem.records || [];
-
     if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
-
         ///  console.log("SELLLF",  containerItem.records)
         self.objectoConfig.renderObject({
             containerSelector: containerSelector,
@@ -798,24 +657,17 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
             data: containerItem.records || [],
         })
     }
-
     if (self.expressaoobjecto) {
         try {
-
             eval(self.expressaoobjecto);
         } catch (error) {
-
             console.error("Erro ao executar expressão do objeto:", error);
             // alertify.error("Erro ao executar expressão do objeto. Verifique o console para mais detalhes.", 4000);
         }
 
-
-
     }
 
-
 }
-
 
 function getContainerItemObjectUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
@@ -863,31 +715,22 @@ function getContainerItemObjectUIObjectFormConfigAndSourceValues() {
             contentType: "div"
         })
     ];
-
     return {
         objectsUIFormConfig: objectsUIFormConfig,
         localsource: "GMDashContainerItemObjects",
         idField: "mdashcontaineritemobjectstamp"
     };
 }
-
 function getPreviewContainerItemData(containerItem) {
 
 
-
-
     var defaultRecords = []
-
 }
 
-
-
 // ...existing code...
-
 // Gerar o HTML reativo para a query local
 function generateReactiveQueryHTML() {
     var queryHTML = "";
-
     // Primeiro Collapse - Query Local
     queryHTML += "             <div class='home-collapse query-local-collapse'>";
     queryHTML += "               <div class='home-collapse-header mainformcptitulo'>";
@@ -895,7 +738,6 @@ function generateReactiveQueryHTML() {
     queryHTML += "                 <span class='collapse-title'>Query Local</span>";
     queryHTML += "               </div>";
     queryHTML += "               <div class='home-collapse-body hidden'>";
-
     // Campos para SELECT / Agregações
     queryHTML += "                 <div class='mb-3'>";
     queryHTML += "                   <label><strong>Campos de Selecção / Agregações:</strong></label>";
@@ -921,7 +763,6 @@ function generateReactiveQueryHTML() {
     queryHTML += "                     + Adicionar campo/agregação";
     queryHTML += "                   </button>";
     queryHTML += "                 </div>";
-
     // Filtros
     queryHTML += "                 <div class='mb-3'>";
     queryHTML += "                   <label><strong>Filtros:</strong></label>";
@@ -947,7 +788,6 @@ function generateReactiveQueryHTML() {
     queryHTML += "                     + Adicionar filtro";
     queryHTML += "                   </button>";
     queryHTML += "                 </div>";
-
     // Group By
     queryHTML += "                 <div class='mb-3'>";
     queryHTML += "                   <label><strong>Agrupamento:</strong></label>";
@@ -964,7 +804,6 @@ function generateReactiveQueryHTML() {
     queryHTML += "                     + Adicionar Agrupamento";
     queryHTML += "                   </button>";
     queryHTML += "                 </div>";
-
     // Order By, Direção, Limit e Executar
     queryHTML += "                 <div class='form-row align-items-center mt-3 mb-3'>";
     queryHTML += "                   <div class='col-auto'>";
@@ -989,13 +828,11 @@ function generateReactiveQueryHTML() {
     queryHTML += "                     <button type='button' @click='executeQuery(containerItemObject)' class='btn btn-primary btn-sm'>Executar</button>";
     queryHTML += "                   </div>";
     queryHTML += "                 </div>";
-
     // Resultado
     queryHTML += "                 <div class='mb-3'>";
     queryHTML += "                   <label><strong>SQL Gerado:</strong></label>";
     queryHTML += "                   <pre class='bg-light p-2 border rounded' style='font-size: 12px;'>{{ containerItemObject.queryConfig.generatedSQL || 'Nenhuma query executada ainda' }}</pre>";
     queryHTML += "                 </div>";
-
     queryHTML += "                 <div class='mb-3'>";
     queryHTML += "                   <label><strong>Resultado ({{ containerItemObject.queryConfig.lastResult.length }} registros):</strong></label>";
     queryHTML += "                   <div class='table-responsive' style='max-height: 300px; overflow-y: auto;'>";
@@ -1014,10 +851,8 @@ function generateReactiveQueryHTML() {
     queryHTML += "                     <p v-else class='text-muted'><i>Nenhum resultado encontrado</i></p>";
     queryHTML += "                   </div>";
     queryHTML += "                 </div>";
-
     queryHTML += "               </div>"; // Fim do home-collapse-body para Query Local
     queryHTML += "             </div>"; // Fim do home-collapse para Query Local
-
     // Segundo Collapse - Configuração do Objecto
     queryHTML += "             <div v-if='false' class='home-collapse object-config-collapse' style='margin-top: 1em;'>";
     queryHTML += "               <div class='home-collapse-header mainformcptitulo'>";
@@ -1025,7 +860,6 @@ function generateReactiveQueryHTML() {
     queryHTML += "                 <span class='collapse-title'>Configuração do Objecto</span>";
     queryHTML += "               </div>";
     queryHTML += "               <div class='home-collapse-body hidden'>";
-
 
     queryHTML += "                 <div class='row'>";
     queryHTML += "                   <div class='col-md-6 pull-left'>";
@@ -1038,31 +872,23 @@ function generateReactiveQueryHTML() {
     queryHTML += "                 </div>";
     queryHTML += "               </div>";
 
-
     queryHTML += "                 <div class='row'>";
     queryHTML += "                        <div class='col-md-6'>";
     // queryHTML += "{{initEditorObject(containerItemObject)}}"
     queryHTML += "                        <div :id='\"objectEditorContainer-\" + containerItemObject.mdashcontaineritemobjectstamp'></div>";
-
     queryHTML += "                        </div>";
     queryHTML += "                        <div v-if='containerItemObject.tipo' class='col-md-6'>";
     queryHTML += "                          <div :class='\"container-item-object-render-\" + containerItemObject.mdashcontaineritemobjectstamp' style='margin-top: 1em;'>";
     queryHTML += "                            <h4>Previsão do objecto</h4>";
-
     queryHTML += "                          </div>";
     queryHTML += "                        </div>";
 
-
     queryHTML += "                    </div>              "
-
     queryHTML += "               </div>"; // Fim do home-collapse-body para Configuração do Objecto
     queryHTML += "             </div>"; // Fim do home-collapse para Configuração do Objecto
-
     return queryHTML;
 }
-
 // ...existing code...
-
 
 JSONEditor.defaults.languages.pt = {
     /**
@@ -1150,12 +976,9 @@ JSONEditor.defaults.languages.pt = {
      */
     button_expand: "Expandir"
 };
-
 // Definir português como idioma padrão
 JSONEditor.defaults.language = 'pt';
 // Initialize the editor
-
-
 
 
 function LocalMdashQuery(container, data) {
@@ -1173,7 +996,6 @@ function LocalMdashQuery(container, data) {
         { label: "MAX", value: "MAX" }
     ];
     self.operadores = ['=', '<', '>', '<=', '>=', '<>', 'LIKE'];
-
     self.$selectContainer = self.container.find(".selectFieldsContainer");
     self.$filterContainer = self.container.find(".filtersContainer");
     self.$groupByContainer = self.container.find(".groupByContainer");
@@ -1184,26 +1006,21 @@ function LocalMdashQuery(container, data) {
     self.$querySqlEl = self.container.find(".querySql");
     self.$jsonResultEl = self.container.find(".jsonResult");
     self.$resultEl = self.container.find(".result");
-
     self.init = function () {
         self.initGroupAndOrder();
         self.addSelectField();
         self.addFilter();
-
         // Eventos dos botões dentro do container
         self.container.find(".btnAddSelectField").on("click", function () {
             self.addSelectField();
         });
-
         self.container.find(".btnAddFilter").on("click", function () {
             self.addFilter();
         });
-
         self.$btnRun.on("click", function () {
             self.run();
         });
     };
-
     self.initGroupAndOrder = function () {
         self.$groupByContainer.empty();
         self.$orderByField.empty().append('<option value="">-- Nenhum --</option>');
@@ -1216,36 +1033,29 @@ function LocalMdashQuery(container, data) {
                 .addClass("mr-1");
             $label.append($cb).append(f);
             self.$groupByContainer.append($label);
-
             self.$orderByField.append($("<option>").attr("value", f).text(f));
         }
     };
-
     self.addSelectField = function () {
         var $div = $("<div>").addClass("select-row  mb-2");
-
         $div.css({
             'display': 'flex',
             'align-items': 'center',
             'gap': '0.8em'
         });
 
-
         var $opSel = $("<select>").addClass("form-control input-sm mr-2");
         for (var i = 0; i < self.operacoes.length; i++) {
             var o = self.operacoes[i];
             $opSel.append($("<option>").val(o.value).text(o.label));
         }
-
         var $fieldSel = $("<select>").addClass("form-control input-sm mr-2");
         for (var i = 0; i < self.fields.length; i++) {
             $fieldSel.append($("<option>").val(self.fields[i]).text(self.fields[i]));
         }
-
         var $aliasInput = $("<input>")
             .attr("placeholder", "Alias")
             .addClass("form-control input-sm alias-input mr-2");
-
         var $btn = $("<button>")
             .addClass("btn btn-danger btn-sm btn-remove")
             .attr("type", "button")
@@ -1253,28 +1063,22 @@ function LocalMdashQuery(container, data) {
             .on("click", function () {
                 $div.remove();
             });
-
         $div.append($opSel, $fieldSel, $aliasInput, $btn);
         self.$selectContainer.append($div);
     };
-
     self.addFilter = function () {
         var $div = $("<div>").addClass("filter-row  mb-2");
-
         var $selCampo = $("<select>").addClass("form-control input-sm mr-2");
         for (var i = 0; i < self.fields.length; i++) {
             $selCampo.append($("<option>").val(self.fields[i]).text(self.fields[i]));
         }
-
         var $selOperador = $("<select>").addClass("form-control input-sm mr-2");
         for (var i = 0; i < self.operadores.length; i++) {
             $selOperador.append($("<option>").val(self.operadores[i]).text(self.operadores[i]));
         }
-
         var $inputValor = $("<input>")
             .attr("placeholder", "Valor")
             .addClass("form-control input-sm mr-2");
-
         var $btn = $("<button>")
             .addClass("btn btn-danger btn-sm btn-remove")
             .attr("type", "button")
@@ -1282,23 +1086,18 @@ function LocalMdashQuery(container, data) {
             .on("click", function () {
                 $div.remove();
             });
-
         $div.append($selCampo, $selOperador, $inputValor, $btn);
         self.$filterContainer.append($div);
     };
-
     self.run = function () {
         var selects = [];
         var stopLoop = false;
-
         self.$selectContainer.children().each(function (idx, div) {
             if (stopLoop) return;
-
             var $div = $(div);
             var op = $div.children("select:eq(0)").val();
             var field = $div.children("select:eq(1)").val();
             var alias = $div.children("input").val().trim();
-
             if (op === "TODOS") {
                 for (var j = 0; j < self.fields.length; j++) {
                     selects.push(self.fields[j]);
@@ -1306,7 +1105,6 @@ function LocalMdashQuery(container, data) {
                 stopLoop = true;
                 return;
             }
-
             if (op === "") {
                 selects.push(alias ? field + " AS " + alias : field);
             } else if (op === "COUNT") {
@@ -1324,12 +1122,10 @@ function LocalMdashQuery(container, data) {
                 return;
             }
         });
-
         if (selects.length === 0) {
             alert("Selecione ao menos um campo");
             return;
         }
-
         var filtros = [];
         self.$filterContainer.children().each(function (idx, div) {
             var $div = $(div);
@@ -1337,32 +1133,26 @@ function LocalMdashQuery(container, data) {
             var op = $div.children("select:eq(1)").val();
             var val = $div.children("input").val().trim();
             if (val === "") return;
-
             if (isNaN(val)) {
                 val = "'" + val.replace(/'/g, "\\'") + "'";
             }
             filtros.push(campo + " " + op + " " + val);
         });
-
         var groupBy = [];
         self.$groupByContainer.find("input[type=checkbox]:checked").each(function () {
             groupBy.push($(this).val());
         });
-
         var orderBy = "";
         if (self.$orderByField.val() !== "") {
             orderBy = self.$orderByField.val() + " " + self.$orderByDirection.val();
         }
-
         var limitVal = self.$limit.val();
         limitVal = limitVal ? parseInt(limitVal) : null;
-
         var query = "SELECT " + selects.join(", ") + " FROM ?";
         if (filtros.length) query += " WHERE " + filtros.join(" AND ");
         if (groupBy.length) query += " GROUP BY " + groupBy.join(", ");
         if (orderBy) query += " ORDER BY " + orderBy;
         if (limitVal) query += " LIMIT " + limitVal;
-
         try {
             var result = alasql(query, [self.data]);
             self.$querySqlEl.text(query);
@@ -1372,24 +1162,20 @@ function LocalMdashQuery(container, data) {
             alert("Erro: " + e.message);
         }
     };
-
     self.renderResult = function (rows) {
         self.$resultEl.empty();
         if (rows.length === 0) {
             self.$resultEl.html("<p><i>Nenhum resultado</i></p>");
             return;
         }
-
         var $table = $("<table>").addClass("table table-sm table-bordered table-striped");
         var $thead = $("<thead>");
         var $tr = $("<tr>");
-
         for (var k in rows[0]) {
             $tr.append($("<th>").text(k));
         }
         $thead.append($tr);
         $table.append($thead);
-
         var $tbody = $("<tbody>");
         for (var i = 0; i < rows.length; i++) {
             var $tr = $("<tr>");
@@ -1399,23 +1185,17 @@ function LocalMdashQuery(container, data) {
             $tbody.append($tr);
         }
         $table.append($tbody);
-
         self.$resultEl.append($table);
     };
 }
-
-
 
 function setMutationObserverTableSqlResult() {
     return
     var targetNode = document.getElementById("master-content");
     var config = { attributes: false, childList: true, subtree: true };
-
     var callback = function (mutationList, observer) {
 
-
         if ($("#resultTableSql").length > 0) {
-
             $("#result  zTableSql").DataTable({
                 "language": {
                     "sProcessing": "Processando...",
@@ -1443,31 +1223,19 @@ function setMutationObserverTableSqlResult() {
                 }
             })
 
-
-
         }
-
     };
-
     var observer = new MutationObserver(callback);
     observer.observe(targetNode, config);
 
-
-
 }
-
 function setMutationObserverSelectQuery() {
-
     var targetNode = document.getElementById("master-content");
     var config = { attributes: false, childList: true, subtree: true };
-
     var callback = function (mutationList, observer) {
 
-
         if ($(".select-local-query").length > 0) {
-
             console.log("Select local query found, initializing LocalMdashQuery");
-
             $(".select-local-query").each(function () {
                 var $this = $(this);
                 if (!$this.data("initialized")) {
@@ -1479,72 +1247,53 @@ function setMutationObserverSelectQuery() {
                     $this.data("initialized", true);
                 }
             });
-
         }
-
     };
-
     var observer = new MutationObserver(callback);
     observer.observe(targetNode, config);
 
-
 }
 
-
 function registerListenersMdash() {
-
 
     // setMutationObserverSelectQuery();
     setMutationObserverTableSqlResult();
     $.getScript("https://cdn.jsdelivr.net/npm/alasql ", function () { });
 
-
     $(document).off("click", ".remover-item-filter-btn").on("click", ".remover-item-filter-btn", function (e) {
-
 
         var filterstamp = $(this).closest("tr").attr("id");
         $(this).closest("tr").remove();
-
         GMdashDeleteRecords.push({
             table: "MdashFilter",
             stamp: filterstamp,
             tableKey: "mdashfilterstamp"
         })
-
         GMDashFilters = GMDashFilters.filter(function (item) {
             return item.mdashfilterstamp !== filterstamp;
         });
 
 
-
-
     });
-
     function refreshAllEditor(containerItemId, contToRender) {
-
 
         var containerItem = GMDashContainerItems.find(function (item) {
             return item.mdashcontaineritemstamp === containerItemId;
         });
-
         var containerItemObjectUIObjectFormConfigResult = getContainerItemObjectUIObjectFormConfigAndSourceValues();
-
         var sufixoForm = containerItemObjectUIObjectFormConfigResult.localsource;
         var containerId = "Container" + sufixoForm;
         var localsource = containerItemObjectUIObjectFormConfigResult.localsource;
-
         var sourceData = {
             sourceTable: localsource,
             sourceKey: localsource
         }
         var containers = [];
-
         if (!containerItem) {
             console.error("Container Item not found");
             alert("Container Item not found");
             return;
         }
-
 
         var addObjectoContainerItem = {
             style: "margin-bottom:0.5em;",
@@ -1554,11 +1303,8 @@ function registerListenersMdash() {
             classes: "btn btn-default btn-sm pull-left",
             customData: " type='button' v-on:click='addObjectoContainerItem()'",
         };
-
         var buttonHtml = generateButton(addObjectoContainerItem);
-
         var containerObjectEditor = '';
-
         containerObjectEditor += '    <div v-if="!containerItem.templatelayout"  class="col-md-12">';
         containerObjectEditor += "      <div class='alert alert-info' role='alert' style='margin-top:1em;'>Selecione um layout para o container</div>";
         containerObjectEditor += '     </div>';
@@ -1574,12 +1320,10 @@ function registerListenersMdash() {
         containerObjectEditor += '        </div>';
         containerObjectEditor += '      </div>';
         containerObjectEditor += '    </div>';
-
         containerObjectEditor += '    <!-- Preview -->';
         containerObjectEditor += '    <div  id="objectPreview" class="col-md-6">';
         containerObjectEditor += gerarConteudoEditorObjecto(containerItem);
         containerObjectEditor += '    </div>';
-
 
         containerObjectEditor += '    <!-- Propriedades -->';
         containerObjectEditor += '    <div style="height:500px;overflow-y:auto;" class="col-md-4">';
@@ -1590,10 +1334,8 @@ function registerListenersMdash() {
         containerObjectEditor += '        <div v-if="selectedObject?.queryConfig?.lastResult.length > 0" class="objectEditor" :id="\'objectEditorContainer-\' + selectedObject.mdashcontaineritemobjectstamp"></div>';
         containerObjectEditor += '      </div>';
         containerObjectEditor += '    </div>';
-
         containerObjectEditor += '  </div>';
         containerObjectEditor += '';
-
 
         containers = [
             {
@@ -1662,7 +1404,6 @@ function registerListenersMdash() {
                     placeholder: ""
                 }
             }];
-
         var containerData = {
             containerId: containerId,
             spinnerId: "overlay" + sufixoForm,
@@ -1676,48 +1417,30 @@ function registerListenersMdash() {
         $(contToRender).append(formContainerResult)
 
 
-
-
-
         var filterValues = {};
-
         GMDashFilters.forEach(function (filter) {
-
             filterValues[filter.codigo] = "";
-
         });
-
 
         var filteredContainerItemObjects = GMDashContainerItemObjects.filter(function (obj) {
             return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
         });
 
-
         setReactiveContainerItemOject(containerItem, filterValues, GMDashContainerItemObjects, filteredContainerItemObjects);
 
-
-
         setTimeout(function () {
-
             if (containerItem.templatelayout) {
-
                 containerItem.renderLayout("#layoutdisplay", true);
             }
         }, 100);
 
-
         handleCodeEditor();
-
     }
 
 
-
-
     $(document).off("click", ".add-container-item-object-btn").on("click", ".add-container-item-object-btn", function (e) {
-
         var containerItemId = $(this).attr("containeritemId");
         $("#modalContainerItemObjectConfig").remove()
-
         var modalBodyHtml = "<div id='modalBodyHtmlContainerItemObjectConfig'>";
         modalBodyHtml += "</div>";
         var modalContainerItemObjectConfig = {
@@ -1729,16 +1452,12 @@ function registerListenersMdash() {
             footerContent: "",
         };
         var modalHTML = generateModalHTML(modalContainerItemObjectConfig);
-
         $("#maincontent").append(modalHTML);
         $("#modalContainerItemObjectConfig").modal("show");
         $("#modalContainerItemObjectConfig .modal-dialog").css("width", "90%")
 
-
         refreshAllEditor(containerItemId, "#modalBodyHtmlContainerItemObjectConfig");
-
     })
-
     /*
       containerItem: containerItem,
             filterValues: filterValues,
@@ -1746,15 +1465,11 @@ function registerListenersMdash() {
             filteredContainerItemObjects: filteredContainerItemObjects,
     */
 
-
     function proxyToJSON(data) {
-
         return JSON.parse(JSON.stringify(data))
     }
 
-
     function generateDummyDataForObject() {
-
         var dummyData = [
             { id: 1, categoria: "Gerente", salario: 3500, nome: "João Silva", dataNascimento: "1985-03-15", genero: "M" },
             { id: 2, categoria: "Analista", salario: 2800, nome: "Maria Santos", dataNascimento: "1990-07-22", genero: "F" },
@@ -1772,13 +1487,10 @@ function registerListenersMdash() {
             { id: 14, categoria: "Designer", salario: 2550, nome: "Mariana Cunha", dataNascimento: "1994-03-09", genero: "F" }
         ];
 
-
         return dummyData;
     }
 
-
     function setReactiveCustomEditorObjecto(containerItemObject, selfContainterItem) {
-
         PetiteVue.createApp({
             containerItemObject: containerItemObject,
             selfContainterItem: selfContainterItem,
@@ -1786,9 +1498,7 @@ function registerListenersMdash() {
                 var containerItem = this.selfContainterItem.containerItem;
                 var containerItemObjectJson = proxyToJSON(this.containerItemObject)
 
-
                 var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
-
                 containerItem.records = result;
                 this.containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + this.containerItemObject.mdashcontaineritemobjectstamp, containerItem);
             },
@@ -1803,30 +1513,22 @@ function registerListenersMdash() {
                 var self = this;
                 this.containerItemObject[e] = editor.getValue();
                 this.renderCustomEditorObjecto();
-                var editor = ace.edit(e);
-
-                realTimeComponentSync(this.containerItemObject, this.containerItemObject.table, this.containerItemObject.idfield);
-
             }
         }).mount("#formConteudoCustomEditorObjecto" + containerItemObject.mdashcontaineritemobjectstamp);
     }
     function setReactiveDetailsEditor(containerItemObject, selfContainterItem) {
-
         // console.log("inited", $("#formConteudoDetailsEditor" + containerItemObject.mdashcontaineritemobjectstamp).length);
-
         PetiteVue.createApp({
             containerItemObject: containerItemObject,
             selfContainterItem: selfContainterItem,
             tipoObjectos: getTiposObjectoConfig(),
             initDetalheEditor: function () {
-
                 var self = this;
                 setTimeout(function () {
                     self.handleTipoObjectoDetalheChange(false);
                 }, 200)
             },
             handleTipoObjectoDetalheChange: function (resetConfig) {
-
                 var tipoObjecto = this.containerItemObject.tipoobjectodetalhes;
                 var tipoObjecto = getTiposObjectoConfig().find(function (tipo) {
                     return tipo.tipo === tipoObjecto;
@@ -1835,25 +1537,18 @@ function registerListenersMdash() {
                 var containerItemObject = this.containerItemObject;
                 var containerItemObjectJson = {};
                 var containerItem = this.selfContainterItem.containerItem;
-
                 if (tipoObjecto) {
-
                     if (resetConfig) {
                         containerItemObject.configjson = ""
                         containerItemObject.config = {}
                     }
                     containerItemObject.objectoConfig = tipoObjecto
-
                     containerItemObjectJson = proxyToJSON(containerItemObject)
                     var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
-
                     containerItem.records = result;
                     var schemaEditor = tipoObjecto.createDynamicSchema(result)
-
                     containerItemObject.objectoConfig = tipoObjecto
-
                     $(".object-editor-details-container").empty();
-
                     if (!document.getElementById('objectEditorDetailsContainer-' + containerItemObject.mdashcontaineritemobjectstamp)) {
                         return;
                     }
@@ -1868,67 +1563,50 @@ function registerListenersMdash() {
                         disable_array_delete_all_rows: true,  // Remove "Excluir todos"
                         disable_array_reorder: true           // Remove "Reordenar"
                     });
-
                     editor.on('ready', function () {
-
 
                         if (containerItemObject.configjson && containerItemObject.configjson.trim() !== '') {
                             try {
-
                                 var savedConfig = JSON.parse(containerItemObject.configjson);
-
                                 editor.setValue(savedConfig);
                             } catch (error) {
                                 console.warn('Erro ao carregar configuração salva:', error);
                                 console.log('configjson inválido:', containerItemObject.configjson);
                                 // Se não conseguir fazer parse, inicializar com configuração vazia
-
                             }
                         }
-
-
 
                         $(".json-editor-btn-collapse").css({
                             "background": "transparent",
                             "color": getColorByType("primary").background
                         });
-
                         $(".tratamento-dadoscontainer-item-object input").addClass("form-control input-sm");
                         $(".tratamento-dadoscontainer-item-object select").addClass("form-control input-sm");
                         $(".tratamento-dadoscontainer-item-object").css({ color: "#626e78" })
-
                         $(".json-editor-btntype-add").css({
                             "margin-top": "0.9em"
                         });
-
                         $(".je-object__title").css(
                             {
                                 "font-size": "14px",
                                 "font-weight": "bold"
                             }
                         )
-
                         $(".card-title").css(
                             {
                                 "font-size": "14px",
                                 "font-weight": "bold"
                             }
                         );
-
                         var currentValue = editor.getValue();
-
                         if (Object.keys(containerItemObject.config).length == 0) {
                             containerItemObject.configjson = JSON.stringify(currentValue);
                             containerItemObject.config = currentValue
-
                         }
-
                         $(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp).empty();
                         containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, containerItem);
 
-
                     });
-
                     editor.on('change', function () {
                         var currentValue = editor.getValue();
                         //  self.containerItem.renderLayout(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, true);
@@ -1944,18 +1622,12 @@ function registerListenersMdash() {
                         )
                     });
 
-
                 }
 
-
-
             }
-
         }).mount("#formConteudoDetailsEditor" + containerItemObject.mdashcontaineritemobjectstamp);
     }
-
     function gerarConteudoCustomEditorObjecto(containerItemObject, selfContainterItem) {
-
         var containerId = "formConteudoCustomEditorObjecto" + containerItemObject.mdashcontaineritemobjectstamp;
         var sufixoForm = "formConteudoCustomEditorObjecto";
         var sourceData = {};
@@ -2005,7 +1677,6 @@ function registerListenersMdash() {
                 }
             }
         ];
-
         var containerData = {
             containerId: containerId,
             spinnerId: "overlay" + sufixoForm,
@@ -2016,15 +1687,11 @@ function registerListenersMdash() {
         }
         var formContainerResult = GenerateCustomFormContainer(containerData);
         return formContainerResult;
-
     }
     function gerarConteudoDetailsEditor(containerItemObject, selfContainterItem) {
 
-
-
         var containerId = "formConteudoDetailsEditor" + containerItemObject.mdashcontaineritemobjectstamp;
         var sufixoForm = "formConteudoDetailsEditor";
-
         var sourceData = {};
         containers = [
             {
@@ -2095,7 +1762,6 @@ function registerListenersMdash() {
             }
         ];
 
-
         var containerData = {
             containerId: containerId,
             spinnerId: "overlay" + sufixoForm,
@@ -2105,14 +1771,10 @@ function registerListenersMdash() {
             items: containers
         }
         var formContainerResult = GenerateCustomFormContainer(containerData);
-
         return formContainerResult
-
-
 
     }
     function setReactiveContainerItemOject(containerItem, filterValues, GMDashContainerItemObjects, filteredContainerItemObjects) {
-
         Greactive = PetiteVue.createApp({
             containerItem: containerItem,
             filterValues: filterValues,
@@ -2121,35 +1783,24 @@ function registerListenersMdash() {
             GCopiedComponentData: GCopiedComponentData,
             selectedObject: selectedObject,
             initEditorObject: function (containerItemObject) {
-
                 var self = this;
                 //console.log("inited" )
-
                 setTimeout(function () {
                     self.updateObjectType(containerItemObject);
                 }, 200);
 
-
-
             },
-
             initJSONEditor: function (containerItemObject, tipoObjecto) {
-
                 var self = this;
                 containerItemObjectJson = proxyToJSON(containerItemObject)
                 var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
-
                 this.containerItem.records = result;
                 var schemaEditor = tipoObjecto.createDynamicSchema(result)
-
                 containerItemObject.objectoConfig = tipoObjecto
-
                 $(".objectEditor").empty();
-
                 if (!document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp)) {
                     return;
                 }
-
                 var editor = new JSONEditor(document.getElementById('objectEditorContainer-' + containerItemObject.mdashcontaineritemobjectstamp), {
                     schema: schemaEditor,
                     theme: 'bootstrap4',
@@ -2161,13 +1812,10 @@ function registerListenersMdash() {
                     disable_array_delete_all_rows: true,  // Remove "Excluir todos"
                     disable_array_reorder: true           // Remove "Reordenar"
                 });
-
                 editor.on('ready', function () {
-
 
                     if (containerItemObject.configjson && containerItemObject.configjson.trim() !== '') {
                         try {
-
                             var savedConfig = JSON.parse(containerItemObject.configjson);
                             console.log('Carregando configuração salva:', savedConfig);
                             editor.setValue(savedConfig);
@@ -2175,55 +1823,40 @@ function registerListenersMdash() {
                             console.warn('Erro ao carregar configuração salva:', error);
                             console.log('configjson inválido:', containerItemObject.configjson);
                             // Se não conseguir fazer parse, inicializar com configuração vazia
-
                         }
                     }
-
-
 
                     $(".json-editor-btn-collapse").css({
                         "background": "transparent",
                         "color": getColorByType("primary").background
                     });
-
                     $(".tratamento-dadoscontainer-item-object input").addClass("form-control input-sm");
                     $(".tratamento-dadoscontainer-item-object select").addClass("form-control input-sm");
                     $(".tratamento-dadoscontainer-item-object").css({ color: "#626e78" })
-
                     $(".json-editor-btntype-add").css({
                         "margin-top": "0.9em"
                     });
-
                     $(".je-object__title").css(
                         {
                             "font-size": "14px",
                             "font-weight": "bold"
                         }
                     )
-
                     $(".card-title").css(
                         {
                             "font-size": "14px",
                             "font-weight": "bold"
                         }
                     );
-
                     var currentValue = editor.getValue();
-
                     if (Object.keys(containerItemObject.config).length == 0) {
                         containerItemObject.configjson = JSON.stringify(currentValue);
-
                     }
                     containerItemObject.config = containerItemObject.config || currentValue;
-
                     containerItemObject.renderObjectByContainerItem(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, self.containerItem);
 
 
-
-
-
                 });
-
                 editor.on('change', function () {
                     var currentValue = editor.getValue();
                     //  self.containerItem.renderLayout(".container-item-object-render-" + containerItemObject.mdashcontaineritemobjectstamp, true);
@@ -2237,16 +1870,13 @@ function registerListenersMdash() {
                             "font-weight": "bold"
                         }
                     )
-
                     setTimeout(function () {
                         realTimeComponentSync(containerItemObject, containerItemObject.table, containerItemObject.idfield)
                     }, 0);
                 });
 
-
             },
             initDetailEditor: function (containerItemObject) {
-
                 var self = this;
                 containerItemObjectJson = proxyToJSON(containerItemObject)
                 var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
@@ -2257,13 +1887,11 @@ function registerListenersMdash() {
                     $("#objectEditorContainer-" + containerItemObject.mdashcontaineritemobjectstamp).append(editorForm);
                     setReactiveDetailsEditor(containerItemObject, self);
                 });
-
             },
             initCustomEditor: function (containerItemObject) {
                 var self = this;
                 containerItemObjectJson = proxyToJSON(containerItemObject)
                 var result = containerItemObjectJson.queryConfig.lastResult.length > 0 ? containerItemObjectJson.queryConfig.lastResult : generateDummyDataForObject();
-
                 this.$nextTick(function () {
                     var editorForm = gerarConteudoCustomEditorObjecto(containerItemObject, self);
                     $(".objectEditor").empty();
@@ -2275,15 +1903,11 @@ function registerListenersMdash() {
             },
             updateObjectType: function (containerItemObject) {
                 var self = this;
-
                 var contItem = JSON.parse(JSON.stringify(containerItemObject))
-
                 var tipoObjecto = getTiposObjectoConfig().find(function (tipo) {
                     return tipo.tipo === contItem.tipo;
                 });
-
                 if (tipoObjecto) {
-
 
                     switch (tipoObjecto.categoria) {
                         case "editor":
@@ -2297,17 +1921,11 @@ function registerListenersMdash() {
                             break;
                         default:
                             alertify.error("Categoria de objecto n&atilde;o suportada: " + tipoObjecto.categoria);
-
                     }
 
-
-
                 }
-
             },
-
             showPasteButton: function () {
-
                 var existingObjectsToPaste = GCopiedComponentData.filter(function (copied) {
                     return copied.table === "MdashContainerItemObject";
                 }).length;
@@ -2315,57 +1933,43 @@ function registerListenersMdash() {
                 return existingObjectsToPaste > 0;
             },
             pasteObjectoContainerItemObject: function () {
-
-
+               
                 var filteredPasted = GCopiedComponentData.filter(function (copied) {
                     return copied.componentCopyConfig.table === "MdashContainerItemObject";
                 });
                 self = this
-
                 filteredPasted.forEach(function (pasted) {
-
 
                     self.GMDashContainerItemObjects.push(pasted.componentData);
                     // this.filteredContainerItemObjects.push(newObject);
                     GMDashContainerItemObjects = self.GMDashContainerItemObjects
-
                     // console.log("New object added:", newObject);
-
                     self.filteredContainerItemObjects = self.GMDashContainerItemObjects.filter(function (obj) {
                         return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
                     });
-
                     realTimeComponentSync(pasted.componentData, pasted.componentData.table, pasted.componentData.idfield)
-                    GCopiedComponentData = [];
                 });
-
                 $("#buttonPasteContainerItemObject").hide();
             },
             handleTemplateLayoutChange: function (templateCode) {
 
-
                 var card = gerarConteudoEditorObjecto(this.containerItem);
                 var self = this
                 GTMPReactiveInstance = this
-
                 //objectPreview
                 this.$nextTick(function () {
                     $("#objectPreview").empty(); // Limpa o conteúdo anterior
                     $("#objectPreview").append(card); // Adiciona o novo card
                     refreshAllEditor(self.containerItem.mdashcontaineritemstamp, "#modalBodyHtmlContainerItemObjectConfig");
                 });
-
                 realTimeComponentSync(this.containerItem, this.containerItem.table, this.containerItem.idfield)
-
             },
             // ... resto dos métodos existentes
             removeContainerObject: function (containerItemObject) {
 
-
                 this.GMDashContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
                     return obj.mdashcontaineritemobjectstamp != containerItemObject.mdashcontaineritemobjectstamp;
                 });
-
 
                 console.log("this.GMDashContainerItemObjects", this.GMDashContainerItemObjects)
                 GMdashDeleteRecords.push({
@@ -2373,18 +1977,13 @@ function registerListenersMdash() {
                     stamp: containerItemObject.mdashcontaineritemobjectstamp,
                     tableKey: "mdashcontaineritemobjectstamp"
                 });
-
                 this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
                     return obj.mdashcontaineritemstamp == containerItemObject.mdashcontaineritemstamp;
                 });
-
                 console.log("Filtered", this.filteredContainerItemObjects)
 
-
             },
-
             addObjectoContainerItem: function (GTMPDragItem) {
-
 
                 var newObject = new MdashContainerItemObject({
                     mdashcontaineritemobjectstamp: generateUUID(),
@@ -2407,17 +2006,13 @@ function registerListenersMdash() {
                         lastResult: []
                     }
                 });
-
                 this.GMDashContainerItemObjects.push(newObject);
                 // this.filteredContainerItemObjects.push(newObject);
                 GMDashContainerItemObjects = this.GMDashContainerItemObjects
-
                 // console.log("New object added:", newObject);
-
                 this.filteredContainerItemObjects = this.GMDashContainerItemObjects.filter(function (obj) {
                     return obj.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
                 });
-
                 realTimeComponentSync(newObject, newObject.table, newObject.idfield)
             },
             availableObjects: getTiposObjectoConfig(),
@@ -2425,29 +2020,23 @@ function registerListenersMdash() {
             dragItem: GTMPDragItem,
             dragId: GTMPDragId,
             nextOrder: 1,
-
             getObjectsSorted: function () {
                 return this.filteredContainerItemObjects.slice().sort(function (a, b) {
                     return a.ordem - b.ordem;
                 });
             },
-
             selectObject: function (obj) {
                 console.log("Selected object:", obj);
                 this.selectedObject = obj;
-
                 console.log("Selected object after set:", this.selectedObject);
                 this.initEditorObject(obj);
             },
-
             dragStart: function (item) {
                 this.dragItem = item;
                 GTMPDragItem = item;
-
                 //  this.dragId = null;
             },
             dragExisting: function (id) {
-
                 this.dragId = id;
                 GTMPDragId = id;
                 this.dragItem = this.GMDashContainerItemObjects.filter(function (o) { return o.mdashcontaineritemobjectstamp === id; })[0] || null;
@@ -2455,14 +2044,11 @@ function registerListenersMdash() {
             },
             drop: function (targetId) {
 
-                console.log("Dropping.....", targetId)
                 if (!GTMPDragItem) return;
-
                 var targetIndex = this.GMDashContainerItemObjects.length;
                 if (targetId) {
                     targetIndex = this.GMDashContainerItemObjects.findIndex(function (o) { return o.mdashcontaineritemobjectstamp === targetId; });
                 }
-
                 if (GTMPDragId !== null) {
                     // mover existente
                     var index = this.GMDashContainerItemObjects.findIndex(function (o) { return o.mdashcontaineritemobjectstamp === this.dragId; }.bind(this));
@@ -2470,25 +2056,16 @@ function registerListenersMdash() {
                     this.GMDashContainerItemObjects.splice(index, 1);
                     this.GMDashContainerItemObjects.splice(targetIndex, 0, dragged);
 
-
                 } else {
-
                     this.addObjectoContainerItem(GTMPDragItem);
-
                 }
-
                 this.GMDashContainerItemObjects.forEach(function (o, idx) { o.ordem = idx + 1; });
 
-
-
                /* Promise.resolve().then(function () {
-
                    
                 })
 */             this.filteredContainerItemObjects.forEach(function (itmObj) {
-
                     realTimeComponentSync(itmObj, itmObj.table, itmObj.idfield)
-
                 });
                 this.dragItem = null;
                 GTMPDragItem = null;
@@ -2496,25 +2073,18 @@ function registerListenersMdash() {
                 GTMPDragId = null;
             },
             abrirConfiguracaoDetalhe: function (containerItemObject) {
-
                 $("#modalConfiguracaoDetalhe").remove();
-
 
             },
             copiarObjeto: function (containerItemObject) {
-
                 copyMdashComponent(containerItemObject.mdashcontaineritemobjectstamp, "MdashContainerItemObject", null, null);
                 $("#buttonPasteContainerItemObject").show();
-
             },
             abrirEditorQuery: function (containerItemObject) {
-
                 $("#modalEditorQuery").remove()
-
 
                 var conteudoEditor = gerarConteudoEditorQuery(containerItemObject, this.containerItem);
                 var modalHtmlBody = "<div id='containerItemObjectQueryConfigContainer' >" + conteudoEditor + "</div>"
-
                 var modalData = {
                     title: "Editor de query",
                     id: "modalEditorQuery",
@@ -2523,13 +2093,10 @@ function registerListenersMdash() {
                     body: modalHtmlBody,
                     footerContent: ""
                 };
-
                 var modalHTML = generateModalHTML(modalData);
                 var self = this;
-
                 $("#mainPage").append(modalHTML);
                 $("#modalEditorQuery").modal("show");
-
                 PetiteVue.createApp({
                     containerItemObject: containerItemObject,
                     containerItem: self.containerItem,
@@ -2540,11 +2107,9 @@ function registerListenersMdash() {
                     queryJsonResult: "",
                     updateQueryLocalConfig: function () {
 
-
                         this.containerItemObject.queryconfigjson = JSON.stringify(this.containerItemObject.queryConfig);
                         realTimeComponentSync(this.containerItemObject, this.containerItemObject.table, this.containerItemObject.idfield);
                     },
-
                     // Métodos para query local
                     getAvailableFields: function () {
                         var records = this.getContainerRecords();
@@ -2553,12 +2118,10 @@ function registerListenersMdash() {
                         }
                         return [];
                     },
-
                     addSelectField: function (containerItemObject) {
                         var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
                             return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
                         });
-
                         if (objectIndex !== -1) {
                             this.GMDashContainerItemObjects[objectIndex].queryConfig.selectFields.push({
                                 operation: '',
@@ -2568,7 +2131,6 @@ function registerListenersMdash() {
                         }
                         this.updateQueryLocalConfig()
                     },
-
                     removeSelectField: function (index, containerItemObject) {
                         this.GMDashContainerItemObjects.filter(function (obj) {
                             return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
@@ -2577,15 +2139,12 @@ function registerListenersMdash() {
                                 obj.queryConfig.selectFields.splice(index, 1);
                             }
                         });
-
                         this.updateQueryLocalConfig()
                     },
-
                     addFilter: function (containerItemObject) {
                         var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
                             return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
                         });
-
                         if (objectIndex !== -1) {
                             this.GMDashContainerItemObjects[objectIndex].queryConfig.filters.push({
                                 field: '',
@@ -2595,12 +2154,10 @@ function registerListenersMdash() {
                         }
                         this.updateQueryLocalConfig()
                     },
-
                     removeFilter: function (index, containerItemObject) {
                         this.GMDashContainerItemObjects.filter(function (obj) {
                             return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
                         }).forEach(function (obj) {
-
 
                             if (obj.queryConfig.filters[index]) {
                                 obj.queryConfig.filters.splice(index, 1);
@@ -2609,65 +2166,48 @@ function registerListenersMdash() {
                         this.updateQueryLocalConfig()
                     },
                     getContainerRecords: function () {
-
                         if (this.containerItem.records && this.containerItem.records.length > 0) {
                             return this.containerItem.records;
                         }
 
-
                         this.containerItem.records = [];
-
                         return this.containerItem.records;
                     },
-
                     executeQuery: function (containerItemObject) {
                         var self = this;
                         var records = this.getContainerRecords();
-
                         // Encontrar o objeto atual
                         var currentObject = this.GMDashContainerItemObjects.find(function (obj) {
                             return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
                         });
-
                         if (!currentObject || !records || records.length === 0) {
                             console.warn("Nenhum dado disponível para executar a query");
                             return;
                         }
 
-
-
                         try {
-
-
 
                             if ($.fn.DataTable.isDataTable("#resultTableSql")) {
                                 $("#resultTableSql").DataTable().destroy();
                                 $("#resultTableSql").dataTable().fnDestroy();
                             }
-
                             var query = this.buildSQLQuery(currentObject.queryConfig, records);
                             currentObject.queryConfig.generatedSQL = query.sql;
-
                             var result = alasql(query.sql, query.params);
-
                             currentObject.queryConfig.lastResult = result;
-
                             containerItemObject.queryconfigjson = JSON.stringify(currentObject.queryConfig);
-                            //  containerItemObject.config = {};
-                            //  containerItemObject.configjson = "";
+                          //  containerItemObject.config = {};
+                          //  containerItemObject.configjson = "";
                             realTimeComponentSync(containerItemObject, containerItemObject.table, containerItemObject.idfield);
-
                         } catch (error) {
                             console.error("Erro ao executar query:", error);
                             alert("Erro ao executar query: " + error.message);
                         }
                     },
-
                     addGroupBy: function (containerItemObject) {
                         var objectIndex = this.GMDashContainerItemObjects.findIndex(function (obj) {
                             return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
                         });
-
                         if (objectIndex !== -1) {
                             this.GMDashContainerItemObjects[objectIndex].queryConfig.groupBy.push({
                                 field: ''
@@ -2675,7 +2215,6 @@ function registerListenersMdash() {
                         }
                         this.updateQueryLocalConfig();
                     },
-
                     removeGroupBy: function (index, containerItemObject) {
                         this.GMDashContainerItemObjects.filter(function (obj) {
                             return obj.mdashcontaineritemobjectstamp === containerItemObject.mdashcontaineritemobjectstamp;
@@ -2684,23 +2223,18 @@ function registerListenersMdash() {
                                 obj.queryConfig.groupBy.splice(index, 1);
                             }
                         });
-
                         this.updateQueryLocalConfig()
                     },
-
                     // Atualizar o método buildSQLQuery para trabalhar com o novo formato do Group By
                     buildSQLQuery: function (queryConfig, records) {
                         var selects = [];
                         var stopLoop = false;
-
                         // Processar campos SELECT
                         queryConfig.selectFields.forEach(function (selectField) {
                             if (stopLoop) return;
-
                             var op = selectField.operation;
                             var field = selectField.field;
                             var alias = selectField.alias.trim();
-
                             if (op === "TODOS") {
                                 var fields = Object.keys(records[0]);
                                 fields.forEach(function (f) {
@@ -2709,7 +2243,6 @@ function registerListenersMdash() {
                                 stopLoop = true;
                                 return;
                             }
-
                             if (op === "") {
                                 selects.push(alias ? field + " AS " + alias : field);
                             } else if (op === "COUNT") {
@@ -2718,12 +2251,10 @@ function registerListenersMdash() {
                                 selects.push(alias ? op + "(" + field + ") AS " + alias : op + "(" + field + ")");
                             }
                         });
-
                         if (selects.length === 0) {
                             var fields = Object.keys(records[0]);
                             selects = fields;
                         }
-
                         // Processar filtros
                         var filtros = [];
                         queryConfig.filters.forEach(function (filter) {
@@ -2735,7 +2266,6 @@ function registerListenersMdash() {
                                 filtros.push(filter.field + " " + filter.operator + " " + value);
                             }
                         });
-
                         // Processar Group By - Nova implementação
                         var groupByFields = [];
                         queryConfig.groupBy.forEach(function (groupField) {
@@ -2743,49 +2273,38 @@ function registerListenersMdash() {
                                 groupByFields.push(groupField.field);
                             }
                         });
-
                         // Construir SQL
                         var sql = "SELECT " + selects.join(", ") + " FROM ?";
-
                         if (filtros.length > 0) {
                             sql += " WHERE " + filtros.join(" AND ");
                         }
-
                         if (groupByFields.length > 0) {
                             sql += " GROUP BY " + groupByFields.join(", ");
                         }
-
                         if (queryConfig.orderBy && queryConfig.orderBy.field) {
                             sql += " ORDER BY " + queryConfig.orderBy.field + " " + queryConfig.orderBy.direction;
                         }
-
                         if (queryConfig.limit && queryConfig.limit > 0) {
                             sql += " LIMIT " + queryConfig.limit;
                         }
-
                         return {
                             sql: sql,
                             params: [records]
                         };
                     },
-
                     executarExpressaoDbListagem: function () {
                         var self = this;
                         $.ajax({
                             type: "POST",
                             url: "../programs/gensel.aspx?cscript=executeexpressaolistagemdb",
-
                             data: {
                                 '__EVENTARGUMENT': JSON.stringify([{ expressaodblistagem: self.containerItem.expressaodblistagem, filters: self.filterValues }]),
                             },
                             success: function (response) {
-
                                 var errorMessage = "ao trazer resultados da listagem . consulte no console do browser"
                                 try {
-
                                     console.log(response)
                                     if (response.cod != "0000") {
-
                                         console.log("Erro " + errorMessage, response)
                                         alertify.error("Erro " + errorMessage, 9000);
                                         self.mainQueryError = JSON.stringify(response, null, 2);;
@@ -2793,14 +2312,11 @@ function registerListenersMdash() {
                                         return false
                                     }
 
-
                                     var containersItemObjectsList = self.GMDashContainerItemObjects.filter(function (obj) {
                                         return obj.mdashcontaineritemstamp === self.containerItem.mdashcontaineritemstamp;
                                     });
 
-
                                     var queryResult = response.data.length > 0 ? response.data : generateDummyDataForSchema(response.schema, 3);
-
                                     self.queryJsonResult = JSON.stringify(queryResult).replaceAll("total", "tot");
                                     self.containerItem.records = JSON.parse(self.queryJsonResult);
                                     self.mainQueryHasError = false;
@@ -2813,14 +2329,11 @@ function registerListenersMdash() {
                                     self.mainQueryHasError = true;
                                     //alertify.error("Erro interno " + errorMessage, 10000)
                                 }
-
                                 //  javascript:__doPostBack('','')
                             }
                         })
-
                     },
                     abrirQueryJsonResult: function () {
-
                         $("#queryJsonResultModal").remove()
                         var formattedJson = JSON.stringify(JSON.parse(this.queryJsonResult), null, 2);
                         var modalHtmlBody = "<pre id='queryJsonResultModalBody' style='background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto;'>" + formattedJson + "</pre>"
@@ -2832,13 +2345,11 @@ function registerListenersMdash() {
                             body: modalHtmlBody,
                             footerContent: ""
                         };
-
                         var modalHTML = generateModalHTML(modalData);
                         $("#mainPage").append(modalHTML);
                         $("#queryJsonResultModal").modal("show");
                     },
                     abrirErroResult: function () {
-
                         $("#queryErrorResultModal").remove();
                         var formattedJson = this.mainQueryError
                         var modalHtmlBody = "<pre id='queryErrorResultModalBody' style='background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto;'>" + formattedJson + "</pre>"
@@ -2856,15 +2367,12 @@ function registerListenersMdash() {
                     },
                     getFilterByExpressaoDb: function (expressaoDb) {
                         if (!expressaoDb) return [];
-
                         var filterCodes = extractFiltersFromExpression(expressaoDb);
                         var matchedFilters = [];
-
                         filterCodes.forEach(function (filterCode) {
                             var filter = GMDashFilters.find(function (f) {
                                 return f.codigo === filterCode;
                             });
-
                             if (filter) {
                                 matchedFilters.push(filter);
                             }
@@ -2874,21 +2382,17 @@ function registerListenersMdash() {
                     changeExpressaoDbListagemAndHandleFilters: function (id, filtro) {
                         var self = this;
                         var value = $("#" + id).text();
-
                         var filterCodes = extractFiltersFromExpression(value);
                         var matchedFilters = [];
                         filterCodes.forEach(function (filterCode) {
                             var filter = GMDashFilters.find(function (f) {
                                 return f.codigo === filterCode;
                             });
-
                             if (filter) {
                                 self.filterValues[filter.codigo] = ""
                             }
                         });
-
                         var editor = ace.edit(id);
-
 
                         self.containerItem.expressaodblistagem = editor.getValue();
                         // realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield)
@@ -2897,22 +2401,17 @@ function registerListenersMdash() {
                               realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield);
                           }
                           );*/
-
                         setTimeout(function () {
                             realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield);
                         }, 0);
-
                     },
                 }).mount('#containerItemObjectQueryConfigContainer');
                 handleCodeEditor();
                 $("#modalEditorQuery .modal-dialog").css("width", "90%")
 
-
-
             },
             removeObject: function (id) {
                 var self = this;
-
 
                 Swal.fire({
                     title: 'Tem certeza?',
@@ -2925,28 +2424,21 @@ function registerListenersMdash() {
                     cancelButtonText: 'Cancelar'
                 }).then(function (result) {
                     if (result.isConfirmed) {
-
                         var containerItemObject = self.GMDashContainerItemObjects.find(function (obj) {
                             return obj.mdashcontaineritemobjectstamp === id;
                         });
-
                         if (containerItemObject) {
                             self.removeContainerObject(containerItemObject)
                         }
-
                     }
                 });
             }
-
         }).mount('#maincontent');
-
 
     }
 
-
     function generateDummyDataForSchema(columns, numRecords) {
         if (!numRecords) numRecords = 3;
-
         var randomString = function (len) {
             if (!len) len = 5;
             var text = "";
@@ -2955,20 +2447,17 @@ function registerListenersMdash() {
             }
             return text;
         };
-
         var randomInt = function (min, max) {
             if (typeof min === "undefined") min = 0;
             if (typeof max === "undefined") max = 200;
             return Math.floor(Math.random() * (max - min + 1)) + min;
         };
-
         var randomDate = function () {
             var start = new Date(2000, 0, 1).getTime();
             var end = new Date(2025, 11, 31).getTime();
             var date = new Date(start + Math.random() * (end - start));
             return date.toISOString().split("T")[0] + " " + date.toTimeString().split(" ")[0];
         };
-
         var getValueByType = function (type) {
             var t = type.toLowerCase();
             if (t.indexOf("char") !== -1) return randomString(randomInt(3, 10));
@@ -2978,7 +2467,6 @@ function registerListenersMdash() {
             if (t.indexOf("text") !== -1) return "lorem ipsum " + randomString(10);
             return null;
         };
-
         var records = [];
         for (var i = 0; i < numRecords; i++) {
             var record = {};
@@ -2988,16 +2476,12 @@ function registerListenersMdash() {
             }
             records.push(record);
         }
-
         return records;
     }
 
-
     function gerarConteudoEditorQuery(containerItemObject, containerItem) {
-
         var containerId = "formContainerItemObjectQueryConfig";
         var sufixoForm = "formContainerItemObjectQueryConfig";
-
         var sourceData = {};
         containers = [
             {
@@ -3020,7 +2504,6 @@ function registerListenersMdash() {
                     value: containerItem.expressaodblistagem || "",
                     event: "",
                     placeholder: "",
-
                 }
             },
             {
@@ -3043,7 +2526,6 @@ function registerListenersMdash() {
                     value: generateFilterVariablesHTML(),
                     event: "",
                     placeholder: "",
-
                 }
             },
             {
@@ -3066,7 +2548,6 @@ function registerListenersMdash() {
                     value: "",
                     event: "",
                     placeholder: "",
-
                 }
             },
             {
@@ -3089,7 +2570,6 @@ function registerListenersMdash() {
                     value: "",
                     event: "",
                     placeholder: "",
-
                 }
             },
             {
@@ -3112,7 +2592,6 @@ function registerListenersMdash() {
                     value: "",
                     event: "",
                     placeholder: "",
-
                 }
             },
             {
@@ -3135,7 +2614,6 @@ function registerListenersMdash() {
                     value: "<span>Resultados: <strong>{{ containerItem.records.length }}</strong></span>",
                     event: "",
                     placeholder: "",
-
                 }
             },
             {
@@ -3158,11 +2636,9 @@ function registerListenersMdash() {
                     value: generateReactiveQueryHTML(),
                     event: "",
                     placeholder: "",
-
                 }
             }
         ];
-
 
         var containerData = {
             containerId: containerId,
@@ -3173,21 +2649,15 @@ function registerListenersMdash() {
             items: containers
         }
         var formContainerResult = GenerateCustomFormContainer(containerData);
-
         return formContainerResult
-
     }
 
-
     function gerarConteudoEditorObjecto(containerItem) {
-
         var listaTemplates = getTemplateLayoutOptions();
         var selectedTemplate = listaTemplates.find(function (template) {
             return template.codigo === containerItem.templatelayout;
         });
-
         if (selectedTemplate) {
-
             containerItem.dadosTemplate = selectedTemplate;
             var containerObjectEditor = '';
             // ...existing code...
@@ -3197,7 +2667,6 @@ function registerListenersMdash() {
             containerObjectEditor += "                 <div style='display:flex;align-items:center;column-gap:0.4em;justify-content:end;margin-bottom:0.3em'>";
             containerObjectEditor += '                  <button type="button" class="btn btn-warning btn-sm" @click="abrirEditorQuery(obj)"><i class="fa fa-database" ></i></button>';
             containerObjectEditor += '                  <button type="button" class="btn btn-default btn-sm" @click="copiarObjeto(obj)"><i class="fa fa-copy" ></i></button>';
-
             containerObjectEditor += '                  <button  type="button" class="btn btn-warning btn-sm" style="background: #dc3545!important" @click="removeObject(obj.mdashcontaineritemobjectstamp)"><i class="fa fa-trash" ></i></button>';
             containerObjectEditor += "                 </div>";
             containerObjectEditor += '                 <div  :class="\' container-item-object-render-\' + obj.mdashcontaineritemobjectstamp" >     {{ obj.tipo }} (ID: {{ obj.mdashcontaineritemobjectstamp }}, Ordem: {{ obj.ordem }})';
@@ -3207,8 +2676,6 @@ function registerListenersMdash() {
             containerObjectEditor += '        </div>'; // Fecha a dropzone
             // ...existing code...
 
-
-
             var cardHtml = selectedTemplate.generateCard({
                 title: containerItem.titulo,
                 id: containerItem.mdashcontaineritemstamp,
@@ -3216,16 +2683,11 @@ function registerListenersMdash() {
                 bodyContent: containerObjectEditor,
             });
 
-
             return cardHtml;
-
         }
-
     }
-
     function generateFilterVariablesHTML() {
         var filterVariablesHTML = "";
-
         filterVariablesHTML += "<div style='display:flex;flex-direction:row;flex-wrap:wrap;' v-for=\"filter in getFilterByExpressaoDb(containerItem.expressaodblistagem)\" :key=\"filter.mdashfilterstamp\" class=\"\">";
         filterVariablesHTML += "    <label class=\"m-dash-filter-item\" :for=\"filter.codigo\">{{ filter.descricao }}</label>";
         filterVariablesHTML += "    <!-- text -->";
@@ -3246,45 +2708,34 @@ function registerListenersMdash() {
         filterVariablesHTML += "    <input @change=\"updateFilter(filter,$event)\" v-else type=\"text\" class=\"form-control input-sm input-mdash-filter\"";
         filterVariablesHTML += "        :id=\"filter.codigo\" v-model=\"filterValues[filter.codigo]\" />";
         filterVariablesHTML += "</div>";
-
         return filterVariablesHTML;
     }
-
     function extractFiltersFromExpression(sqlExpression) {
         if (!sqlExpression) return [];
-
         var regexPattern = /\{([^}]+)\}/g; // Padrão para capturar texto dentro de {}
         var matches = [];
         var match;
-
         // Extrai todos os matches usando regex
         while ((match = regexPattern.exec(sqlExpression)) !== null) {
             var filterName = match[1].trim(); // Remove espaços em branco
-
             // Verifica se o filtro já não existe no array para evitar duplicatas
             if (matches.indexOf(filterName) === -1) {
                 matches.push(filterName);
             }
         }
-
         return matches;
     }
 
-
-
     $(document).off("click", ".open-config-item-filter").on("click", ".open-config-item-filter", function (e) {
-
         var idValue = $(this).closest(".m-dash-filter-item").attr("idValue");
         var localsource = $(this).closest(".m-dash-filter-item").attr("localsource");
         var idField = $(this).closest(".m-dash-filter-item").attr("idfield");
         var componente = $(this).closest(".m-dash-filter-item").attr("componente");
         var localSourceRes = getLocalSource(localsource);
-
         console.log("ID Value: " + idValue);
         console.log("Local Source: ", localSourceRes);
         console.log("ID Field: " + idField);
         console.log("Componente: " + componente);
-
         handleShowConfigContainer({
             idValue: idValue,
             localsource: localsource,
@@ -3292,17 +2743,11 @@ function registerListenersMdash() {
             componente: componente
         });
 
-
-
     })
-
     $(document).off("click", "#addFilterMDashBtn").on("click", "#addFilterMDashBtn", function (e) {
-
         var mdashfilterstamp = generateUUID();
         var codigo = "FILTER_" + mdashfilterstamp;
-
         var mdashFilterUIObjectFormConfigResult = getMdashFilterUIObjectFormConfigAndSourceValues();
-
         var mdashFilter = new MdashFilter({
             mdashfilterstamp: mdashfilterstamp,
             codigo: codigo,
@@ -3315,17 +2760,11 @@ function registerListenersMdash() {
             localsource: mdashFilterUIObjectFormConfigResult.localsource,
             idfield: mdashFilterUIObjectFormConfigResult.idField
         });
-
         GMDashFilters.push(mdashFilter);
-
         addFilterMDashConfig(mdashFilter, mdashFilterUIObjectFormConfigResult);
-
         realTimeComponentSync(mdashFilter, mdashFilter.table, mdashFilter.idfield);
 
-
-
     })
-
 
     $(document).off("click", ".remover-item-container-btn").on("click", ".remover-item-container-btn", function (e) {
         var itemId = $(this).closest(".m-dash-container-item").attr("id");
@@ -3333,22 +2772,18 @@ function registerListenersMdash() {
             return item.mdashcontaineritemstamp !== itemId;
         });
         $(this).closest(".m-dash-container-item").remove();
-
         GMdashDeleteRecords.push({
             table: "MdashContainerItem",
             stamp: itemId,
             tableKey: "mdashcontaineritemstamp"
         });
     })
-
     $(document).off("click", ".open-config-item-container").on("click", ".open-config-item-container", function (e) {
-
         var idValue = $(this).closest(".m-dash-container-item").attr("idValue");
         var localsource = $(this).closest(".m-dash-container-item").attr("localsource");
         var idField = $(this).closest(".m-dash-container-item").attr("idfield");
         var componente = $(this).closest(".m-dash-container-item").attr("componente");
         var localSourceRes = getLocalSource(localsource);
-
         handleShowConfigContainer({
             idValue: idValue,
             localsource: localsource,
@@ -3356,94 +2791,59 @@ function registerListenersMdash() {
             componente: componente
         });
 
-
-
     })
 
-
-
     function getMaxOrdemByLocalSource(localSource) {
-
         var maxOrdem = 0;
         if (Array.isArray(localSource) && localSource.length > 0) {
             maxOrdem = localSource.reduce(function (max, item) {
                 return Math.max(max, item.ordem || 0);
             }, 0);
         }
-
         return maxOrdem;
     }
 
-
     function copyMdashComponent(componenteId, table, parentComponentId, parentIdField) {
-
         var componentCopyConfig = GMdashEntityCopyConfig.find(function (conf) {
             return conf.table == table
         });
-
         if (!componentCopyConfig) {
-
             throw new Error("Configuração de cópia não encontrada para o componente: " + table);
         }
-
         var localSource = eval(componentCopyConfig.localsource);
-
         var componentData = localSource.find(function (item) {
             return item[componentCopyConfig.idfield] === componenteId;
         });
-
         if (!componentData) {
             throw new Error("Componente não encontrado na fonte local: " + table);
         }
-
         var originalId = componentData[componentCopyConfig.idfield];
-
         var newComponentId = generateUUID();
-
         var copiedComponent = Object.assign({}, componentData);
         copiedComponent[componentCopyConfig.idfield] = newComponentId;
-
         if (parentComponentId && parentIdField) {
             copiedComponent[parentIdField] = parentComponentId;
         }
+        copiedComponent.ordem = getMaxOrdemByLocalSource(localSource) + 1;
 
-        if (componentCopyConfig.extraConfig.generateOrder) {
-
-            copiedComponent.ordem = getMaxOrdemByLocalSource(localSource) + 1;
-        }
 
         var copiedData = {
             componentCopyConfig: componentCopyConfig,
-            originalId: originalId,
             componentData: new componentCopyConfig.entityToInstantiate(copiedComponent)
         };
-        var existingIndex = GCopiedComponentData.findIndex(function (item) {
-            return item.originalId == originalId
-        });
-
-
-        if (existingIndex === -1) {
-            GCopiedComponentData.push(copiedData);
-        } else {
-            // Opcionalmente, substituir o elemento existente
-            GCopiedComponentData[existingIndex] = copiedData;
-        }
-        //GCopiedComponentData.push(copiedData);
-
+        GCopiedComponentData.push(copiedData);
         if (componentCopyConfig.childs && componentCopyConfig.childs.length > 0) {
             componentCopyConfig.childs.forEach(function (childTable) {
                 // Encontrar configuração do filho
                 var childConfig = GMdashEntityCopyConfig.find(function (conf) {
                     return conf.table == childTable;
                 });
-
                 if (childConfig) {
                     // Encontrar todos os filhos do componente original
                     var childLocalSource = eval(childConfig.localsource);
                     var children = childLocalSource.filter(function (child) {
                         return child[componentCopyConfig.idfield] === originalId;
                     });
-
                     // Copiar cada filho recursivamente
                     children.forEach(function (child) {
                         copyMdashComponent(
@@ -3456,88 +2856,63 @@ function registerListenersMdash() {
                 }
             });
         }
-
     }
-
     function handleRenderPastedUI(componenteType, componenteData) {
-
         switch (componenteType) {
             case "MdashContainer":
                 // Renderizar UI para MdashContainer
-
                 var containerUIObjectFormConfigResult = getContainerUIObjectFormConfigAndSourceValues();
                 addContainerMDashConfig(componenteData, containerUIObjectFormConfigResult);
                 break;
             case "MdashContainerItem":
-
                 var containerUIObjectFormConfigResult = getContainerItemUIObjectFormConfigAndSourceValues();
                 addContainerItemMDashConfig(componenteData, containerUIObjectFormConfigResult);
                 break;
             default:
                 break;
         }
-
         GCopiedComponentData = [];
         $("#pasteContainerMDashBtn").hide()
-
     }
-
     function pasteComponents() {
         GCopiedComponentData.forEach(function (copiedData) {
             // Aqui você pode usar copiedData para colar os componentes copiados
             var componentCopyConfig = copiedData.componentCopyConfig;
             var componentData = copiedData.componentData;
-
             var localSource = eval(componentCopyConfig.localsource);
             localSource.push(componentData);
-
             handleRenderPastedUI(componentData.table, componentData);
             realTimeComponentSync(componentData, componentData.table, componentData.idfield);
         });
     }
     $(document).off("click", ".paste-m-dash-container-btn").on("click", ".paste-m-dash-container-btn", function (e) {
-
         /* var copiedData = {
              componentCopyConfig: componentCopyConfig,
              componentData: copiedComponent
          };*/
-
         pasteComponents()
-
-
 
 
     })
     $(document).off("click", ".copy-container-btn").on("click", ".copy-container-btn", function (e) {
-
         var containerId = $(this).data("mdashcontainerstamp");
-
         $(".paste-m-dash-container-btn").show();
         copyMdashComponent(containerId, "MdashContainer", null, null);
 
-
     });
-
     $(document).off("click", ".copy-container-item-btn").on("click", ".copy-container-item-btn", function (e) {
-
         var containerItemId = $(this).data("mdashcontaineritemstamp");
-
         $(".paste-m-dash-container-btn").text("Colar item")
         $(".paste-m-dash-container-btn").show();
         copyMdashComponent(containerItemId, "MdashContainerItem", null, null);
 
-
-
     });
-
     $(document).off("click", ".open-config-container-btn").on("click", ".open-config-container-btn", function (e) {
-
         var idValue = $(this).closest(".m-dash-container").attr("idValue");
         var localsource = $(this).closest(".m-dash-container").attr("localsource");
         var idField = $(this).closest(".m-dash-container").attr("idfield");
         var componente = $(this).closest(".m-dash-container").attr("componente");
         var localSourceRes = getLocalSource(localsource);
-
         handleShowConfigContainer({
             idValue: idValue,
             localsource: localsource,
@@ -3545,41 +2920,29 @@ function registerListenersMdash() {
             componente: componente
         });
 
-
     })
-
     $(document).off("click", ".remover-container-btn").on("click", ".remover-container-btn", function (e) {
 
-
         var containerId = $(this).closest(".m-dash-container").attr("id");
-
         GMDashContainers = GMDashContainers.filter(function (container) {
             return container.mdashcontainerstamp !== containerId;
         });
-
         $(this).closest(".m-dash-container").remove();
-
         GMdashDeleteRecords.push({
             table: "MdashContainer",
             stamp: containerId,
             tableKey: "mdashcontainerstamp"
         });
-
         //Remove items
-
         GMDashContainerItems = GMDashContainerItems.filter(function (item) {
             return item.mdashcontainerstamp !== containerId;
         });
         $("#" + containerId + " .m-dash-container-item").remove();
     })
-
     $(document).off("click", "#addContainerMDashBtn").on("click", "#addContainerMDashBtn", function (e) {
-
         var mdashcontainerstamp = generateUUID();
         var codigo = "CONTAINER_" + mdashcontainerstamp;
-
         var containerUIObjectFormConfigResult = getContainerUIObjectFormConfigAndSourceValues();
-
         var mdashContainer = new MdashContainer({
             mdashcontainerstamp: mdashcontainerstamp,
             codigo: codigo,
@@ -3588,24 +2951,17 @@ function registerListenersMdash() {
             localsource: containerUIObjectFormConfigResult.localsource,
             idfield: containerUIObjectFormConfigResult.idField
         });
-
         GMDashContainers.push(mdashContainer);
-
         realTimeComponentSync(mdashContainer, mdashContainer.table, mdashContainer.idfield);
-
         addContainerMDashConfig(mdashContainer, containerUIObjectFormConfigResult);
-
     })
-
     //add-item-container-btn
     $(document).off("click", ".add-item-container-btn").on("click", ".add-item-container-btn", function (e) {
-
         var containerId = $(this).closest(".m-dash-container").attr("id");
         var container = GMDashContainers.find(function (c) {
             return c.mdashcontainerstamp === containerId;
         });
         var containerUIObjectFormConfigResult = getContainerItemUIObjectFormConfigAndSourceValues();
-
 
         if (container) {
             var newItem = new MdashContainerItem({
@@ -3625,28 +2981,20 @@ function registerListenersMdash() {
                 localsource: containerUIObjectFormConfigResult.localsource,
                 idfield: containerUIObjectFormConfigResult.idField
             });
-
             GMDashContainerItems.push(newItem);
-
             addContainerItemMDashConfig(newItem, containerUIObjectFormConfigResult);
             realTimeComponentSync(newItem, newItem.table, newItem.idfield);
 
-
         }
     })
-
 }
 
-
 function addFilterMDashConfig(filter, mdashFilterUIObjectFormConfigResult) {
-
     var filterHtml = "<div class='row'>";
     filterHtml += "     <div class='col-md-12'>";
     filterHtml += "     <h4 class='m-dash-filter-title'>" + " {{ syncDescricaoFiltroByFiltroStamp('" + filter.mdashfilterstamp + "') }} " + "</h4>";
     filterHtml += "  </div>";
-
     var actionsContainer = "<div style='display:flex;column-gap:0.5em'>";
-
     var botaoRemoverItemFilter = {
         style: "",
         buttonId: "removeItemFilterBtn_" + filter.mdashfilterstamp,
@@ -3655,10 +3003,8 @@ function addFilterMDashConfig(filter, mdashFilterUIObjectFormConfigResult) {
         label: "<span class='glyphicon glyphicon glyphicon-trash' ></span>",
         onClick: "",
     };
-
     var removerItemFilterHtml = generateButton(botaoRemoverItemFilter);
     actionsContainer += removerItemFilterHtml;
-
     var botaoOpenConfigItemFilter = {
         style: "",
         buttonId: "openConfigItemFilterBtn_" + filter.mdashfilterstamp,
@@ -3667,32 +3013,22 @@ function addFilterMDashConfig(filter, mdashFilterUIObjectFormConfigResult) {
         label: "<span class='glyphicon glyphicon-cog'></span>",
         onClick: "",
     };
-
     var openConfigItemFilterHtml = generateButton(botaoOpenConfigItemFilter);
     actionsContainer += openConfigItemFilterHtml;
     actionsContainer += "</div>"
-
     filterHtml += "<div class='col-md-12 m-dash-filter-item' componente='Filtro' idValue='" + filter.mdashfilterstamp + "' localsource='" + mdashFilterUIObjectFormConfigResult.localsource + "' idfield='" + mdashFilterUIObjectFormConfigResult.idField + "'   style='margin-bottom:0.5em'>";
     filterHtml += actionsContainer;
     filterHtml += "</div>";
-
     filterHtml += "</div>";
-
     var newTableRowFilter = "<tr id='" + filter.mdashfilterstamp + "'>";
     newTableRowFilter += "<td>" + filterHtml + "</td>";
     newTableRowFilter += "</tr>";
-
     $("#m-dash-filter-body").append(newTableRowFilter);
-
     handleConfigReactive();
-
 
 }
 
-
 function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigResult) {
-
-
 
 
     var bodyContentHtml = "<div   class='row'>";
@@ -3705,7 +3041,6 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
         label: "<span class='glyphicon glyphicon glyphicon-trash' ></span>",
         onClick: "",
     };
-
     var removerItemContainerHtml = generateButton(botaoRemoverItemContainer);
     actionsContainer += removerItemContainerHtml;
     var botaoOpenConfigItemContainer = {
@@ -3716,10 +3051,8 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
         label: "<span class='glyphicon glyphicon-cog'></span>",
         onClick: "",
     };
-
     var openConfigItemContainerHtml = generateButton(botaoOpenConfigItemContainer);
     actionsContainer += openConfigItemContainerHtml;
-
     var botaoAddContainerItemObject = {
         style: "",
         buttonId: "addContainerItemObjectBtn_" + containerItem.mdashcontaineritemstamp,
@@ -3728,7 +3061,6 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
         label: "<span class='glyphicon glyphicon-stats'></span>",
         onClick: "",
     };
-
     var botaoCopyContainerItem = {
         style: "",
         buttonId: "copyContainerItemBtn_" + containerItem.mdashcontaineritemstamp,
@@ -3739,19 +3071,14 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
     };
     var copyContainerItemHtml = generateButton(botaoCopyContainerItem);
     actionsContainer += copyContainerItemHtml;
-
     var addContainerItemObjectHtml = generateButton(botaoAddContainerItemObject);
     actionsContainer += addContainerItemObjectHtml;
 
-
     actionsContainer += "</div>"
-
     bodyContentHtml += " <div class='col-md-12' style='margin-bottom:0.5em'>"
     bodyContentHtml += actionsContainer;
     bodyContentHtml += " </div>"
     bodyContentHtml += "</div>"
-
-
 
     var cardContainerItemData = {
         id: containerItem.mdashcontaineritemstamp,
@@ -3760,7 +3087,6 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
         headerCustomData: "data-container-item='true'",
         bodyContent: bodyContentHtml
     }
-
     var cardContainerItemHtml = generateDashCardHTML(cardContainerItemData);
     var mdashContainerItemHTML = "<div "
         + ":class=\"'m-dash-container-item col col-lg-' + syncTamanhoContainerItemByStamp('" + containerItem.mdashcontaineritemstamp + "')"
@@ -3774,24 +3100,15 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
         + " idfield='" + containerItem.idfield + "' >";
     mdashContainerItemHTML += cardContainerItemHtml;
     mdashContainerItemHTML += "</div>";
-
     $("#" + containerItem.mdashcontainerstamp + " .m-dash-container-body ").append(mdashContainerItemHTML);
-
     handleConfigReactive();
-
-
-
 
 
 }
 
-
-
 function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
-
     var mdashContainerHTML = "<div style='border:0.2px solid grey; padding: 19px; border-radius: 10px;margin-bottom:0.5em;' componente='Container' idValue='" + container.mdashcontainerstamp + "' localsource='" + containerUIObjectFormConfigResult.localsource + "' idfield='" + container.idfield + "' class='m-dash-container' id='" + container.mdashcontainerstamp + "'>";
     mdashContainerHTML += "<h4 style='margin-top:0.4em' class='m-dash-container-title'>" + " {{ syncContainerByStamp('" + container.mdashcontainerstamp + "') }}" + "</h4>";
-
     var botaoAdicionarItem = {
         style: "",
         buttonId: "addItemContainerBtn_" + container.mdashcontainerstamp,
@@ -3801,7 +3118,6 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
         onClick: "",
     };
     var addItemButtonHtml = generateButton(botaoAdicionarItem);
-
     var botaoRemoverContainer = {
         style: "",
         buttonId: "",
@@ -3811,7 +3127,6 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
         onClick: "",
     };
     var removerContainerHtml = generateButton(botaoRemoverContainer);
-
     var openConfigContainerBtn = {
         style: "",
         buttonId: "openConfigContainerBtn_" + container.mdashcontainerstamp,
@@ -3821,7 +3136,6 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
         onClick: "",
     };
     var openConfigButtonHtml = generateButton(openConfigContainerBtn);
-
     var copiarContainerBtn = {
         style: "",
         buttonId: "copyContainerBtn_" + container.mdashcontainerstamp,
@@ -3831,41 +3145,29 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
         onClick: "",
     };
     var copyContainerHtml = generateButton(copiarContainerBtn);
-
     var actionsContainer = "<div style='display:flex;column-gap:0.5em'>"
     actionsContainer += addItemButtonHtml;
     actionsContainer += removerContainerHtml
     actionsContainer += openConfigButtonHtml;
     actionsContainer += copyContainerHtml;
     actionsContainer += "</div>"
-
     mdashContainerHTML += "<div class='m-dash-container-actions'>" + actionsContainer + "</div>";
-
     mdashContainerHTML += "<div class='m-dash-container-body row'>";
-
     mdashContainerHTML += "</div>";
     mdashContainerHTML += "</div>";
-
     $("#m-dash-containers").append(mdashContainerHTML);
-
     handleConfigReactive();
-
 }
 
 
-
-
 function getMeditorStyles(styles) {
-
     return
     var meditorStyle = ".m-editor{";
     meditorStyle += "width: 100%;";
     meditorStyle += "height: 200px;";
     meditorStyle += "}";
     styles.push(meditorStyle);
-
 }
-
 function objectItemEditorStyles(styles) {
     var style = "";
     style += ".dropzone {";
@@ -3927,7 +3229,6 @@ function objectItemEditorStyles(styles) {
       style += "}";*/
     styles.push(style);
 }
-
 function getDashCardStyles(styles) {
     var dashCardStyle = "";
     dashCardStyle += ".dashcard { position: relative; display: flex; flex-direction: column; min-width: 0; word-wrap: break-word; background-color: #fff; background-clip: border-box; border: 1px solid #eee; border-radius: .25rem; border: 0; margin-bottom: 30px; margin-top: 30px; border-radius: 6px; color: #333; background: #fff; width: 100%; box-shadow: 0 2px 2px 0 rgba(0,0,0,.14), 0 3px 1px -2px rgba(0,0,0,.2), 0 1px 5px 0 rgba(0,0,0,.12); box-shadow: 0 1px 4px 0 rgba(0,0,0,.14); }";
@@ -3949,7 +3250,6 @@ function getDashCardStyles(styles) {
     dashCardStyle += ".dashcard-fact-content { padding: 20px; }";
     styles.push(dashCardStyle);
 }
-
 function generateDashCardHTML(cardData) {
     var cardHTML = '<div id="' + (cardData.id || '') + '" class="dashcard">';
     // Header
@@ -3963,7 +3263,6 @@ function generateDashCardHTML(cardData) {
     cardHTML += '</div>';
     return cardHTML.trim();
 }
-
 
 function getDashboardDefaultStyles(styles) {
     var dashboardStyle = "";
@@ -4016,11 +3315,9 @@ function getDashboardDefaultStyles(styles) {
     dashboardStyle += "}";
     styles.push(dashboardStyle);
 }
-
 function generateDefaultMDashboardHTML(cardData) {
     // Start building the card HTML
     var cardHTML = '<div id="' + (cardData.id || '') + '" style="margin-top:1em" class="m-dashboard">';
-
     // Add the card header with custom data attributes
     cardHTML += '<div class="m-dashboard-header m-dashboard-header-' + cardData.type + '" ' + (cardData.headerCustomData || '') + '>';
     cardHTML += '<div class="col-md-12 col-sm-12">';
@@ -4028,92 +3325,64 @@ function generateDefaultMDashboardHTML(cardData) {
     cardHTML += cardData.title + '</h4>';
     cardHTML += '</div>';
     cardHTML += '</div>';
-
     // Add the card body with custom data attributes
     cardHTML += '<div class="m-dashboard-body" ' + (cardData.bodyCustomData || '') + '>';
     cardHTML += cardData.bodyContent;
     cardHTML += '</div>';
-
     // Close the card div
     cardHTML += '</div>';
-
     return cardHTML.trim(); // Remove any leading/trailing whitespace
 }
 
-
 function fetchDadosMDash(config, dados) {
-
 
     var containers = dados.containers || [];
     var containerItems = dados.containerItems || [];
     var filters = dados.filters || [];
     var containerItemObjects = dados.containerItemObjects || [];
-
     containers.forEach(function (container) {
-
         var containerUIConfigResult = getContainerUIObjectFormConfigAndSourceValues();
-
         var mdashContainer = new MdashContainer(container);
         mdashContainer.objectsUIFormConfig = containerUIConfigResult.objectsUIFormConfig || [];
         mdashContainer.localsource = containerUIConfigResult.localsource || "";
         mdashContainer.idfield = containerUIConfigResult.idField || "mdashcontainerstamp";
-
         GMDashContainers.push(mdashContainer);
         addContainerMDashConfig(mdashContainer, containerUIConfigResult);
-
         var items = containerItems.filter(function (item) {
             return item.mdashcontainerstamp === container.mdashcontainerstamp;
         });
-
         items.forEach(function (item) {
-
             var containerItemUIConfigResult = getContainerItemUIObjectFormConfigAndSourceValues();
-
             var mdashContainerItem = new MdashContainerItem(item);
             mdashContainerItem.objectsUIFormConfig = containerItemUIConfigResult.objectsUIFormConfig || [];
             mdashContainerItem.localsource = containerItemUIConfigResult.localsource || "";
             mdashContainerItem.idfield = containerItemUIConfigResult.idField || "mdashcontaineritemstamp";
-
             GMDashContainerItems.push(mdashContainerItem);
             addContainerItemMDashConfig(mdashContainerItem, containerItemUIConfigResult);
-
         })
 
-
     })
-
     filters.forEach(function (filter) {
-
         var mdashFilterUIObjectFormConfigResult = getMdashFilterUIObjectFormConfigAndSourceValues();
-
         var mdashFilter = new MdashFilter(filter);
         mdashFilter.objectsUIFormConfig = mdashFilterUIObjectFormConfigResult.objectsUIFormConfig || [];
         mdashFilter.localsource = mdashFilterUIObjectFormConfigResult.localsource || "";
         mdashFilter.idfield = mdashFilterUIObjectFormConfigResult.idField || "mdashfilterstamp";
-
         GMDashFilters.push(mdashFilter);
         addFilterMDashConfig(mdashFilter, mdashFilterUIObjectFormConfigResult);
-
     })
-
     containerItemObjects.forEach(function (itemObject) {
-
         var containerItemObjectUIConfigResult = getContainerItemObjectUIObjectFormConfigAndSourceValues();
-
         var mdashContainerItemObject = new MdashContainerItemObject(itemObject);
         mdashContainerItemObject.objectsUIFormConfig = containerItemObjectUIConfigResult.objectsUIFormConfig || [];
         mdashContainerItemObject.localsource = containerItemObjectUIConfigResult.localsource || "";
         mdashContainerItemObject.idfield = containerItemObjectUIConfigResult.idField || "mdashcontaineritemobjectstamp";
-
         GMDashContainerItemObjects.push(mdashContainerItemObject);
-
     });
 }
 
-
 function initConfiguracaoDashboard(config) {
     GMDashStamp = config.mdashstamp || "";
-
     // Botão para adicionar filtro
     var botaoAddFiltro = {
         style: "",
@@ -4124,7 +3393,6 @@ function initConfiguracaoDashboard(config) {
         onClick: "",
     };
     var addFilterButtonHtml = generateButton(botaoAddFiltro);
-
     // Container para filtros (col-md-3)
     var filterContainer = "<div class='col-md-3 m-dash-data-filter-container' style='margin-top:1em'>";
     filterContainer += "<div class='row'>";
@@ -4135,7 +3403,6 @@ function initConfiguracaoDashboard(config) {
     filterContainer += "<tbody id='m-dash-filter-body'></tbody>";
     filterContainer += "</table>";
     filterContainer += "</div>";
-
     // Container para o conteúdo do dashboard (col-md-9)
     var dashboardContainer = "<div class='col-md-9 m-dash-data-container' style='margin-top:1em'>";
     var addContainerBtnData = {
@@ -4148,7 +3415,6 @@ function initConfiguracaoDashboard(config) {
     };
     var addContainerButtonHtml = generateButton(addContainerBtnData);
 
-
     var pasteContainerBtnData = {
         style: "margin-left:0.5em;display:none;",
         buttonId: "pasteContainerMDashBtn",
@@ -4158,14 +3424,12 @@ function initConfiguracaoDashboard(config) {
         onClick: "",
     };
     var pasteContainerButtonHtml = generateButton(pasteContainerBtnData);
-
     dashboardContainer += "<div style='display:flex;column-gap:0.5em;margin-righ:0.3em;margin-bottom:0.5em'>";
     dashboardContainer += "<div >" + addContainerButtonHtml + "</div>";
     dashboardContainer += "<div >" + pasteContainerButtonHtml + "</div>";
     dashboardContainer += "</div>";
     dashboardContainer += "<div id='m-dash-containers' class='m-dash-containers'></div>";
     dashboardContainer += "</div>";
-
     // Atualizar configuração do dashboard
     var atualizarDashboardConfigContainer = "<div class='col-md-12' style='margin-top:1em'>";
     var atualizarButtonHtml = generateButton({
@@ -4178,17 +3442,14 @@ function initConfiguracaoDashboard(config) {
     });
     atualizarDashboardConfigContainer += atualizarButtonHtml;
     atualizarDashboardConfigContainer += "</div>";
-
     // Adicionar os containers ao layout principal
     var mainContainer = "<div id='m-dash-main-container' class='row m-dash-main-container'>";
     mainContainer += filterContainer; // Parte dos filtros (col-md-3)
     mainContainer += dashboardContainer; // Parte do dashboard (col-md-9)
     mainContainer += atualizarDashboardConfigContainer; // Botão de atualizar
     mainContainer += "</div>";
-
     // Inserir o layout no DOM
     $("#campos > .row:last").after(mainContainer);
-
     // Buscar dados do dashboard
     $.ajax({
         type: "POST",

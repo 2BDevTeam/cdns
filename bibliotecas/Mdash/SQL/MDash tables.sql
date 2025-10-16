@@ -33,7 +33,7 @@ GO
  
 ALTER TABLE [dbo].[u_mdash] ADD  DEFAULT ((0)) FOR [temfiltro]
 GO
-ALTER TABLE [dbo].[u_mdash] ADD  DEFAULT ((0)) FOR [filtrohorizontal]
+ALTER TABLE [dbo].[u_mdash] ADD  DEFAULT ((0)) FOR [filtrohorizont]
 GO
  
 ALTER TABLE [dbo].[u_mdash] ADD  DEFAULT ('') FOR [codigo]
@@ -68,6 +68,7 @@ GO
 Create table MdashContainer(
 
     mdashcontainerstamp VARCHAR(25) PRIMARY KEY,
+    inactivo BIT DEFAULT 0,
     codigo VARCHAR(250) DEFAULT '',
     titulo VARCHAR(250) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
@@ -79,6 +80,7 @@ Create table MdashContainer(
 CREATE TABLE MdashContainerItem(
     mdashcontaineritemstamp VARCHAR(25) PRIMARY KEY,
     mdashcontainerstamp VARCHAR(25) DEFAULT '',
+    inactivo BIT DEFAULT 0,
     codigo VARCHAR(250) DEFAULT '',
     titulo VARCHAR(250) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
@@ -99,6 +101,7 @@ CREATE TABLE MdashFilter(
 
     mdashfilterstamp VARCHAR(25) PRIMARY KEY,
     dashboardstamp VARCHAR(25) DEFAULT '',
+    inactivo BIT DEFAULT 0,
     codigo VARCHAR(250) DEFAULT '',
     descricao VARCHAR(250) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
@@ -117,6 +120,7 @@ CREATE TABLE MdashContainerItemObject(
 
     mdashcontaineritemobjectstamp VARCHAR(25) PRIMARY KEY,
     mdashcontaineritemstamp VARCHAR(25) DEFAULT '',
+    inactivo BIT DEFAULT 0,
     dashboardstamp VARCHAR(25) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
     tamanho INT DEFAULT 0,

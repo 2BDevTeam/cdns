@@ -747,6 +747,8 @@
         // ===== SISTEMA DE CONFIGURAÇÃO =====
         class MReportConfig {
             constructor() {
+
+                //Deve se descontinuar e passar a usar array
                 this.groupConfig = {
                     field1: 'categoria',
                     field2: '',
@@ -755,6 +757,7 @@
                     group1Style: { backgroundColor: '#2c3e50', color: '#ffffff' },
                     group2Style: { backgroundColor: '#3498db', color: '#ffffff' }
                 };
+
 
                 this.styleConfig = {
                     enableColors: true,
@@ -769,7 +772,6 @@
                 this.columnConfig = {};
                 this.expressions = {};
 
-                // Configurações de cabeçalhos agrupados
                 this.headerConfig = {
                     enableGroupHeaders: true,
                     groupHeaders: [
@@ -2203,7 +2205,6 @@
         function generateReport() {
             const config = new MReportConfig().loadFromUI();
 
-            console.log("CONFIG", config);
             const report = new MReport().setConfig(config);
 
             report.addText('RELATÓRIO PROFISSIONAL', {
@@ -2306,6 +2307,8 @@
 
             if (config.styleConfig.enableColors) {
                 multiLevelData = applyAdvancedStyling(multiLevelData, config.styleConfig);
+
+                console.log("multiLevelData", multiLevelData);
             }
 
             var levelData = groupDataMultiLevel(multiLevelData, subGroupFieds)
