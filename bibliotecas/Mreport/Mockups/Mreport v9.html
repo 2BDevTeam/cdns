@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MReport - Sistema Professional Avançado</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/petite-vue"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alasql"></script>
     <style>
         /* Estilos para página A4 */
         @page {
@@ -608,7 +610,66 @@
     </div>
 
     <div id="report-container">
-        <!-- O relatório será gerado aqui -->
+
+        <div v-for="page in mreport.pageManager.pages" :key="page.id" class="a4-page">
+
+            <div class="report-header">
+
+                <div v-for="obj in page.header.objects" :key="page.id" v-html="obj.render().prop('outerHTML')">
+
+                </div>
+
+            </div>
+            <div class="page-content">
+
+                <div v-for="obj in page.content.objects" :key="page.id">
+
+                    <div v-if="obj.type === 'table'" class="report-table-container">
+
+                        <div v-if="false" v-html="obj.render().prop('outerHTML')"></div>
+                        <div class="positioned-object"
+                            :style="'transform: translate3d(' + (obj.x || obj.config.x || 0) + 'px, ' + (obj.y || obj.config.y || 0) + 'px, 0);'">
+
+                            <div style="display: none;">{{obj.render()}}</div>
+                            <table>
+                                <thead>
+                                    <tr v-if="obj.hasGroupedHeaderRow()">
+                                        <td v-for="(cell, cIdx) in obj.getGroupedHeaderRow().cells" :key="'ghc-' + cIdx"
+                                            :colspan="cell.colSpan || 1" :rowspan="cell.rowSpan || 1"
+                                            :style="cell.style">
+                                            {{ cell.value }}
+                                        </td>
+                                    </tr>
+
+                                    <tr v-if="obj.hasHeaderRow()">
+                                        <th v-for="(cell, cIdx) in obj.getHeaderRow().cells" :key="'hc-' + cIdx"
+                                            :style="cell.style">
+                                            {{ cell.value }}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="row in obj.getBodyRows()" :key="row.id">
+                                        <td :style="cell.style" :colspan="cell.colSpan || 1"  v-for="cell in row.cells" :key="cell.id">{{ cell.value }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+
+                    </div>
+                    <div v-else v-html="obj.render().prop('outerHTML')"></div>
+
+                </div>
+
+            </div>
+            <div class="report-footer">
+                <div v-for="obj in page.footer.objects" :key="page.id" v-html="obj.render().prop('outerHTML')">
+
+                </div>
+
+            </div>
+        </div>
     </div>
 
     <script>
@@ -844,6 +905,9 @@
             }
 
             render() {
+
+
+                //  console.log("Renderizando célula:", this.style);
                 const $cell = $('<td>', {
                     text: this.value,
                     attr: {
@@ -961,7 +1025,6 @@
                 super('table', config);
                 this.data = data;
                 this.columns = columns;
-                this.statuss = "Active"
                 this.breakable = true;
                 this.rowHeight = config.rowHeight || 28;
                 this.headerHeight = config.headerHeight || 40;
@@ -971,8 +1034,6 @@
                 this.renderedRows = config.renderedRows
 
             }
-
-
 
 
 
@@ -1027,7 +1088,7 @@
 
                 // Limpar array de linhas renderizadas
 
-                // Adicionar cabeçalhos agrupados
+                // Adicionar cabeçalhos agrupados 
                 if (this.reportConfig.headerConfig.enableGroupHeaders) {
                     const groupHeaderRow = this.createGroupHeaderRow();
                     $thead.append(groupHeaderRow.render());
@@ -1120,6 +1181,14 @@
                 });
             }
 
+            getGroupedHeaderRow() {
+                return this.renderedRows.find(row => row.type === 'grouped-header');
+            }
+
+            hasGroupedHeaderRow() {
+
+                return this.renderedRows.filter(row => row.type === 'grouped-header').length > 0;
+            }
             createHeaderRow() {
                 const cells = [];
                 const visibleColumns = this.getVisibleColumns();
@@ -1143,6 +1212,17 @@
                     type: 'header',
                     height: this.headerHeight
                 });
+            }
+
+            getHeaderRow(){
+                return this.renderedRows.find(row => row.type === 'header');
+            }
+            hasHeaderRow() {
+                return this.renderedRows.filter(row => row.type === 'header').length > 0;
+            }
+
+            getBodyRows() {
+                return this.renderedRows.filter(row => row.type != 'grouped-header' && row.type != 'header');
             }
 
             createDataRow(item, rowIndex) {
@@ -1445,7 +1525,7 @@
             }
 
             split(availableHeight) {
-                 const effectiveAvailableHeight = availableHeight - this.y;
+                const effectiveAvailableHeight = availableHeight - this.y;
 
                 if (effectiveAvailableHeight < this.headerHeight + this.rowHeight) {
                     return { fitted: null, remaining: this };
@@ -1488,7 +1568,7 @@
                         ...this.config,
                         reportConfig: this.reportConfig,
                         x: this.x,
-                        y: 0,     
+                        y: 0,
                         renderedRows: []
                     }) : null;
 
@@ -1588,7 +1668,7 @@
                 const objectHeight = object.getHeight();
 
 
-                
+
                 const availableHeight = targetPage.maxHeight - targetPage.usedHeight;
 
                 if (object.canBreak()) {
@@ -1602,7 +1682,7 @@
 
                     if (splitResult.remaining) {
                         this.createNewPage();
-                       
+
                         this.addObjectToPage(splitResult.remaining);
                     }
                 } else {
@@ -1758,10 +1838,10 @@
                     this.pageManager.addObjectToPage(object);
                 });
 
-                const totalPages = this.pageManager.renderPages(containerId);
-                const stats = this.pageManager.getStats();
+                // const totalPages = this.pageManager.renderPages(containerId);
+                //const stats = this.pageManager.getStats();
 
-                this.updateStats(stats);
+                //this.updateStats(stats);
                 return this;
             }
 
@@ -2062,7 +2142,7 @@
             var subGroupFieds = ['categoria', 'subcategoria', 'marca'];
 
             // ===== DADOS COM MÚLTIPLOS NÍVEIS =====
-            const multiLevelData = [
+            var multiLevelData = [
                 // Eletrônicos → Smartphones
                 { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy S23', quantidade: 15, preco: 2899.90, total: 43498.50 },
                 { categoria: 'Eletrônicos', subcategoria: 'Smartphones', marca: 'Samsung', produto: 'Galaxy Z Flip', quantidade: 8, preco: 3899.90, total: 31199.20 },
@@ -2153,938 +2233,8 @@
             ];
 
 
-            //const testData = generateTestData().slice(0, 20);
-            let tableData = [
-                {
-                    "type": "group-header",
-                    "level": 0,
-                    "value": "Eletrônicos",
-                    "groupField": "categoria"
-                },
-                {
-                    "type": "group-header",
-                    "level": 1,
-                    "value": "Notebooks",
-                    "groupField": "subcategoria"
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Notebooks",
-                    "marca": "Dell",
-                    "produto": "Inspiron 15",
-                    "quantidade": 5,
-                    "preco": 3299.9,
-                    "total": 16499.5
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Notebooks",
-                    "marca": "Dell",
-                    "produto": "XPS 13",
-                    "quantidade": 3,
-                    "preco": 5999.9,
-                    "total": 17999.7
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Notebooks",
-                    "marca": "Apple",
-                    "produto": "MacBook Air M2",
-                    "quantidade": 4,
-                    "preco": 5999.9,
-                    "total": 23999.6
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Notebooks",
-                    "marca": "Apple",
-                    "produto": "MacBook Pro 16",
-                    "quantidade": 2,
-                    "preco": 8999.9,
-                    "total": 17999.8
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Notebooks",
-                    "marca": "Lenovo",
-                    "produto": "ThinkPad X1",
-                    "quantidade": 6,
-                    "preco": 4599.9,
-                    "total": 27599.4
-                },
-                {
-                    "type": "group-header",
-                    "level": 1,
-                    "value": "Smartphones",
-                    "groupField": "subcategoria"
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Smartphones",
-                    "marca": "Samsung",
-                    "produto": "Galaxy S23",
-                    "quantidade": 15,
-                    "preco": 2899.9,
-                    "total": 43498.5
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Smartphones",
-                    "marca": "Samsung",
-                    "produto": "Galaxy Z Flip",
-                    "quantidade": 8,
-                    "preco": 3899.9,
-                    "total": 31199.2
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Smartphones",
-                    "marca": "Apple",
-                    "produto": "iPhone 15 Pro",
-                    "quantidade": 12,
-                    "preco": 4599.9,
-                    "total": 55198.8
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Smartphones",
-                    "marca": "Apple",
-                    "produto": "iPhone 14",
-                    "quantidade": 18,
-                    "preco": 3299.9,
-                    "total": 59398.2
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Smartphones",
-                    "marca": "Xiaomi",
-                    "produto": "Mi 13",
-                    "quantidade": 10,
-                    "preco": 1999.9,
-                    "total": 19999
-                },
-                {
-                    "type": "group-header",
-                    "level": 1,
-                    "value": "Tablets",
-                    "groupField": "subcategoria"
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Tablets",
-                    "marca": "Samsung",
-                    "produto": "Tab S9",
-                    "quantidade": 8,
-                    "preco": 1899.9,
-                    "total": 15199.2
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Tablets",
-                    "marca": "Apple",
-                    "produto": "iPad Pro",
-                    "quantidade": 6,
-                    "preco": 4299.9,
-                    "total": 25799.4
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Tablets",
-                    "marca": "Apple",
-                    "produto": "iPad Air",
-                    "quantidade": 10,
-                    "preco": 2999.9,
-                    "total": 29999
-                },
-                {
-                    "categoria": "Eletrônicos",
-                    "subcategoria": "Tablets",
-                    "marca": "Lenovo",
-                    "produto": "Tab P12",
-                    "quantidade": 12,
-                    "preco": 1299.9,
-                    "total": 15598.8
-                },
-                {
-                    "type": "group-total",
-                    "level": 0,
-                    "value": "Eletrônicos",
-                    "groupField": "categoria",
-                    "data": [
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Smartphones",
-                            "marca": "Samsung",
-                            "produto": "Galaxy S23",
-                            "quantidade": 15,
-                            "preco": 2899.9,
-                            "total": 43498.5
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Smartphones",
-                            "marca": "Samsung",
-                            "produto": "Galaxy Z Flip",
-                            "quantidade": 8,
-                            "preco": 3899.9,
-                            "total": 31199.2
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Smartphones",
-                            "marca": "Apple",
-                            "produto": "iPhone 15 Pro",
-                            "quantidade": 12,
-                            "preco": 4599.9,
-                            "total": 55198.8
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Smartphones",
-                            "marca": "Apple",
-                            "produto": "iPhone 14",
-                            "quantidade": 18,
-                            "preco": 3299.9,
-                            "total": 59398.2
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Smartphones",
-                            "marca": "Xiaomi",
-                            "produto": "Mi 13",
-                            "quantidade": 10,
-                            "preco": 1999.9,
-                            "total": 19999
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Tablets",
-                            "marca": "Samsung",
-                            "produto": "Tab S9",
-                            "quantidade": 8,
-                            "preco": 1899.9,
-                            "total": 15199.2
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Tablets",
-                            "marca": "Apple",
-                            "produto": "iPad Pro",
-                            "quantidade": 6,
-                            "preco": 4299.9,
-                            "total": 25799.4
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Tablets",
-                            "marca": "Apple",
-                            "produto": "iPad Air",
-                            "quantidade": 10,
-                            "preco": 2999.9,
-                            "total": 29999
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Tablets",
-                            "marca": "Lenovo",
-                            "produto": "Tab P12",
-                            "quantidade": 12,
-                            "preco": 1299.9,
-                            "total": 15598.8
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Notebooks",
-                            "marca": "Dell",
-                            "produto": "Inspiron 15",
-                            "quantidade": 5,
-                            "preco": 3299.9,
-                            "total": 16499.5
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Notebooks",
-                            "marca": "Dell",
-                            "produto": "XPS 13",
-                            "quantidade": 3,
-                            "preco": 5999.9,
-                            "total": 17999.7
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Notebooks",
-                            "marca": "Apple",
-                            "produto": "MacBook Air M2",
-                            "quantidade": 4,
-                            "preco": 5999.9,
-                            "total": 23999.6
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Notebooks",
-                            "marca": "Apple",
-                            "produto": "MacBook Pro 16",
-                            "quantidade": 2,
-                            "preco": 8999.9,
-                            "total": 17999.8
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Notebooks",
-                            "marca": "Lenovo",
-                            "produto": "ThinkPad X1",
-                            "quantidade": 6,
-                            "preco": 4599.9,
-                            "total": 27599.4
-                        }
-                    ]
-                },
-                {
-                    "type": "group-header",
-                    "level": 0,
-                    "value": "Livros",
-                    "groupField": "categoria"
-                },
-                {
-                    "type": "group-header",
-                    "level": 1,
-                    "value": "Ficção",
-                    "groupField": "subcategoria"
-                },
-                {
-                    "categoria": "Livros",
-                    "subcategoria": "Ficção",
-                    "genero": "Ciência",
-                    "produto": "1984 - George Orwell",
-                    "quantidade": 22,
-                    "preco": 39.9,
-                    "total": 877.8
-                },
-                {
-                    "categoria": "Livros",
-                    "subcategoria": "Ficção",
-                    "genero": "Ciência",
-                    "produto": "Admirável Mundo Novo",
-                    "quantidade": 18,
-                    "preco": 34.9,
-                    "total": 628.2
-                },
-                {
-                    "categoria": "Livros",
-                    "subcategoria": "Ficção",
-                    "genero": "Fantasia",
-                    "produto": "Harry Potter e a Pedra Filosofal",
-                    "quantidade": 15,
-                    "preco": 49.9,
-                    "total": 748.5
-                },
-                {
-                    "categoria": "Livros",
-                    "subcategoria": "Ficção",
-                    "genero": "Fantasia",
-                    "produto": "O Hobbit",
-                    "quantidade": 20,
-                    "preco": 37.9,
-                    "total": 758
-                },
-                {
-                    "categoria": "Livros",
-                    "subcategoria": "Ficção",
-                    "genero": "Romance",
-                    "produto": "Dom Casmurro",
-                    "quantidade": 25,
-                    "preco": 29.9,
-                    "total": 747.5
-                },
-                {
-                    "type": "group-header",
-                    "level": 1,
-                    "value": "Não-Ficção",
-                    "groupField": "subcategoria"
-                },
-                {
-                    "categoria": "Livros",
-                    "subcategoria": "Não-Ficção",
-                    "genero": "Biografia",
-                    "produto": "Steve Jobs - Walter Isaacson",
-                    "quantidade": 12,
-                    "preco": 59.9,
-                    "total": 718.8
-                },
-                {
-                    "categoria": "Livros",
-                    "subcategoria": "Não-Ficção",
-                    "genero": "Biografia",
-                    "produto": "Einstein - Sua Vida, Seu Universo",
-                    "quantidade": 8,
-                    "preco": 54.9,
-                    "total": 439.2
-                },
-                {
-                    "categoria": "Livros",
-                    "subcategoria": "Não-Ficção",
-                    "genero": "Autoajuda",
-                    "produto": "O Poder do Hábito",
-                    "quantidade": 30,
-                    "preco": 39.9,
-                    "total": 1197
-                },
-                {
-                    "categoria": "Livros",
-                    "subcategoria": "Não-Ficção",
-                    "genero": "Autoajuda",
-                    "produto": "Mais Esperto que o Diabo",
-                    "quantidade": 25,
-                    "preco": 34.9,
-                    "total": 872.5
-                },
-                {
-                    "type": "group-total",
-                    "level": 0,
-                    "value": "Livros",
-                    "groupField": "categoria",
-                    "data": [
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Ficção",
-                            "genero": "Ciência",
-                            "produto": "1984 - George Orwell",
-                            "quantidade": 22,
-                            "preco": 39.9,
-                            "total": 877.8
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Ficção",
-                            "genero": "Ciência",
-                            "produto": "Admirável Mundo Novo",
-                            "quantidade": 18,
-                            "preco": 34.9,
-                            "total": 628.2
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Ficção",
-                            "genero": "Fantasia",
-                            "produto": "Harry Potter e a Pedra Filosofal",
-                            "quantidade": 15,
-                            "preco": 49.9,
-                            "total": 748.5
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Ficção",
-                            "genero": "Fantasia",
-                            "produto": "O Hobbit",
-                            "quantidade": 20,
-                            "preco": 37.9,
-                            "total": 758
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Ficção",
-                            "genero": "Romance",
-                            "produto": "Dom Casmurro",
-                            "quantidade": 25,
-                            "preco": 29.9,
-                            "total": 747.5
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Não-Ficção",
-                            "genero": "Biografia",
-                            "produto": "Steve Jobs - Walter Isaacson",
-                            "quantidade": 12,
-                            "preco": 59.9,
-                            "total": 718.8
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Não-Ficção",
-                            "genero": "Biografia",
-                            "produto": "Einstein - Sua Vida, Seu Universo",
-                            "quantidade": 8,
-                            "preco": 54.9,
-                            "total": 439.2
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Não-Ficção",
-                            "genero": "Autoajuda",
-                            "produto": "O Poder do Hábito",
-                            "quantidade": 30,
-                            "preco": 39.9,
-                            "total": 1197
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Não-Ficção",
-                            "genero": "Autoajuda",
-                            "produto": "Mais Esperto que o Diabo",
-                            "quantidade": 25,
-                            "preco": 34.9,
-                            "total": 872.5
-                        }
-                    ]
-                },
-                {
-                    "type": "group-header",
-                    "level": 0,
-                    "value": "Roupas",
-                    "groupField": "categoria"
-                },
-                {
-                    "type": "group-header",
-                    "level": 1,
-                    "value": "Feminino",
-                    "groupField": "subcategoria"
-                },
-                {
-                    "categoria": "Roupas",
-                    "subcategoria": "Feminino",
-                    "tipo": "Vestidos",
-                    "produto": "Vestido Floral",
-                    "quantidade": 22,
-                    "preco": 129.9,
-                    "total": 2857.8
-                },
-                {
-                    "categoria": "Roupas",
-                    "subcategoria": "Feminino",
-                    "tipo": "Vestidos",
-                    "produto": "Vestido Longo",
-                    "quantidade": 9,
-                    "preco": 199.9,
-                    "total": 1799.1
-                },
-                {
-                    "categoria": "Roupas",
-                    "subcategoria": "Feminino",
-                    "tipo": "Blusas",
-                    "produto": "Blusa de Seda",
-                    "quantidade": 14,
-                    "preco": 159.9,
-                    "total": 2238.6
-                },
-                {
-                    "categoria": "Roupas",
-                    "subcategoria": "Feminino",
-                    "tipo": "Blusas",
-                    "produto": "Blusa Tricot",
-                    "quantidade": 11,
-                    "preco": 79.9,
-                    "total": 878.9
-                },
-                {
-                    "type": "group-header",
-                    "level": 1,
-                    "value": "Masculino",
-                    "groupField": "subcategoria"
-                },
-                {
-                    "categoria": "Roupas",
-                    "subcategoria": "Masculino",
-                    "tipo": "Camisetas",
-                    "produto": "Camiseta Básica Branca",
-                    "quantidade": 50,
-                    "preco": 29.9,
-                    "total": 1495
-                },
-                {
-                    "categoria": "Roupas",
-                    "subcategoria": "Masculino",
-                    "tipo": "Camisetas",
-                    "produto": "Camiseta Estampada",
-                    "quantidade": 38,
-                    "preco": 39.9,
-                    "total": 1516.2
-                },
-                {
-                    "categoria": "Roupas",
-                    "subcategoria": "Masculino",
-                    "tipo": "Calças",
-                    "produto": "Calça Jeans Slim",
-                    "quantidade": 35,
-                    "preco": 89.9,
-                    "total": 3146.5
-                },
-                {
-                    "categoria": "Roupas",
-                    "subcategoria": "Masculino",
-                    "tipo": "Calças",
-                    "produto": "Calça de Sarja",
-                    "quantidade": 20,
-                    "preco": 79.9,
-                    "total": 1598
-                },
-                {
-                    "type": "group-total",
-                    "level": 0,
-                    "value": "Roupas",
-                    "groupField": "categoria",
-                    "data": [
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Masculino",
-                            "tipo": "Camisetas",
-                            "produto": "Camiseta Básica Branca",
-                            "quantidade": 50,
-                            "preco": 29.9,
-                            "total": 1495
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Masculino",
-                            "tipo": "Camisetas",
-                            "produto": "Camiseta Estampada",
-                            "quantidade": 38,
-                            "preco": 39.9,
-                            "total": 1516.2
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Masculino",
-                            "tipo": "Calças",
-                            "produto": "Calça Jeans Slim",
-                            "quantidade": 35,
-                            "preco": 89.9,
-                            "total": 3146.5
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Masculino",
-                            "tipo": "Calças",
-                            "produto": "Calça de Sarja",
-                            "quantidade": 20,
-                            "preco": 79.9,
-                            "total": 1598
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Feminino",
-                            "tipo": "Vestidos",
-                            "produto": "Vestido Floral",
-                            "quantidade": 22,
-                            "preco": 129.9,
-                            "total": 2857.8
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Feminino",
-                            "tipo": "Vestidos",
-                            "produto": "Vestido Longo",
-                            "quantidade": 9,
-                            "preco": 199.9,
-                            "total": 1799.1
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Feminino",
-                            "tipo": "Blusas",
-                            "produto": "Blusa de Seda",
-                            "quantidade": 14,
-                            "preco": 159.9,
-                            "total": 2238.6
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Feminino",
-                            "tipo": "Blusas",
-                            "produto": "Blusa Tricot",
-                            "quantidade": 11,
-                            "preco": 79.9,
-                            "total": 878.9
-                        }
-                    ]
-                },
-                {
-                    "type": "grand-total",
-                    "data": [
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Smartphones",
-                            "marca": "Samsung",
-                            "produto": "Galaxy S23",
-                            "quantidade": 15,
-                            "preco": 2899.9,
-                            "total": 43498.5
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Smartphones",
-                            "marca": "Samsung",
-                            "produto": "Galaxy Z Flip",
-                            "quantidade": 8,
-                            "preco": 3899.9,
-                            "total": 31199.2
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Smartphones",
-                            "marca": "Apple",
-                            "produto": "iPhone 15 Pro",
-                            "quantidade": 12,
-                            "preco": 4599.9,
-                            "total": 55198.8
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Smartphones",
-                            "marca": "Apple",
-                            "produto": "iPhone 14",
-                            "quantidade": 18,
-                            "preco": 3299.9,
-                            "total": 59398.2
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Smartphones",
-                            "marca": "Xiaomi",
-                            "produto": "Mi 13",
-                            "quantidade": 10,
-                            "preco": 1999.9,
-                            "total": 19999
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Tablets",
-                            "marca": "Samsung",
-                            "produto": "Tab S9",
-                            "quantidade": 8,
-                            "preco": 1899.9,
-                            "total": 15199.2
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Tablets",
-                            "marca": "Apple",
-                            "produto": "iPad Pro",
-                            "quantidade": 6,
-                            "preco": 4299.9,
-                            "total": 25799.4
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Tablets",
-                            "marca": "Apple",
-                            "produto": "iPad Air",
-                            "quantidade": 10,
-                            "preco": 2999.9,
-                            "total": 29999
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Tablets",
-                            "marca": "Lenovo",
-                            "produto": "Tab P12",
-                            "quantidade": 12,
-                            "preco": 1299.9,
-                            "total": 15598.8
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Notebooks",
-                            "marca": "Dell",
-                            "produto": "Inspiron 15",
-                            "quantidade": 5,
-                            "preco": 3299.9,
-                            "total": 16499.5
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Notebooks",
-                            "marca": "Dell",
-                            "produto": "XPS 13",
-                            "quantidade": 3,
-                            "preco": 5999.9,
-                            "total": 17999.7
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Notebooks",
-                            "marca": "Apple",
-                            "produto": "MacBook Air M2",
-                            "quantidade": 4,
-                            "preco": 5999.9,
-                            "total": 23999.6
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Notebooks",
-                            "marca": "Apple",
-                            "produto": "MacBook Pro 16",
-                            "quantidade": 2,
-                            "preco": 8999.9,
-                            "total": 17999.8
-                        },
-                        {
-                            "categoria": "Eletrônicos",
-                            "subcategoria": "Notebooks",
-                            "marca": "Lenovo",
-                            "produto": "ThinkPad X1",
-                            "quantidade": 6,
-                            "preco": 4599.9,
-                            "total": 27599.4
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Ficção",
-                            "genero": "Ciência",
-                            "produto": "1984 - George Orwell",
-                            "quantidade": 22,
-                            "preco": 39.9,
-                            "total": 877.8
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Ficção",
-                            "genero": "Ciência",
-                            "produto": "Admirável Mundo Novo",
-                            "quantidade": 18,
-                            "preco": 34.9,
-                            "total": 628.2
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Ficção",
-                            "genero": "Fantasia",
-                            "produto": "Harry Potter e a Pedra Filosofal",
-                            "quantidade": 15,
-                            "preco": 49.9,
-                            "total": 748.5
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Ficção",
-                            "genero": "Fantasia",
-                            "produto": "O Hobbit",
-                            "quantidade": 20,
-                            "preco": 37.9,
-                            "total": 758
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Ficção",
-                            "genero": "Romance",
-                            "produto": "Dom Casmurro",
-                            "quantidade": 25,
-                            "preco": 29.9,
-                            "total": 747.5
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Não-Ficção",
-                            "genero": "Biografia",
-                            "produto": "Steve Jobs - Walter Isaacson",
-                            "quantidade": 12,
-                            "preco": 59.9,
-                            "total": 718.8
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Não-Ficção",
-                            "genero": "Biografia",
-                            "produto": "Einstein - Sua Vida, Seu Universo",
-                            "quantidade": 8,
-                            "preco": 54.9,
-                            "total": 439.2
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Não-Ficção",
-                            "genero": "Autoajuda",
-                            "produto": "O Poder do Hábito",
-                            "quantidade": 30,
-                            "preco": 39.9,
-                            "total": 1197
-                        },
-                        {
-                            "categoria": "Livros",
-                            "subcategoria": "Não-Ficção",
-                            "genero": "Autoajuda",
-                            "produto": "Mais Esperto que o Diabo",
-                            "quantidade": 25,
-                            "preco": 34.9,
-                            "total": 872.5
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Masculino",
-                            "tipo": "Camisetas",
-                            "produto": "Camiseta Básica Branca",
-                            "quantidade": 50,
-                            "preco": 29.9,
-                            "total": 1495
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Masculino",
-                            "tipo": "Camisetas",
-                            "produto": "Camiseta Estampada",
-                            "quantidade": 38,
-                            "preco": 39.9,
-                            "total": 1516.2
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Masculino",
-                            "tipo": "Calças",
-                            "produto": "Calça Jeans Slim",
-                            "quantidade": 35,
-                            "preco": 89.9,
-                            "total": 3146.5
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Masculino",
-                            "tipo": "Calças",
-                            "produto": "Calça de Sarja",
-                            "quantidade": 20,
-                            "preco": 79.9,
-                            "total": 1598
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Feminino",
-                            "tipo": "Vestidos",
-                            "produto": "Vestido Floral",
-                            "quantidade": 22,
-                            "preco": 129.9,
-                            "total": 2857.8
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Feminino",
-                            "tipo": "Vestidos",
-                            "produto": "Vestido Longo",
-                            "quantidade": 9,
-                            "preco": 199.9,
-                            "total": 1799.1
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Feminino",
-                            "tipo": "Blusas",
-                            "produto": "Blusa de Seda",
-                            "quantidade": 14,
-                            "preco": 159.9,
-                            "total": 2238.6
-                        },
-                        {
-                            "categoria": "Roupas",
-                            "subcategoria": "Feminino",
-                            "tipo": "Blusas",
-                            "produto": "Blusa Tricot",
-                            "quantidade": 11,
-                            "preco": 79.9,
-                            "total": 878.9
-                        }
-                    ]
-                }
-            ]
-
             if (config.styleConfig.enableColors) {
-                //      tableData = applyAdvancedStyling(tableData, config.styleConfig);
+                multiLevelData = applyAdvancedStyling(multiLevelData, config.styleConfig);
             }
 
             var levelData = groupDataMultiLevel(multiLevelData, subGroupFieds)
@@ -3112,6 +2262,14 @@
 
 
             generateReport();
+
+            var state = PetiteVue.reactive({
+                mreport: GREPORT
+            });
+
+            window.mreportAppState = state;
+
+            PetiteVue.createApp(state).mount("#report-container");
         });
 
         // Utilitário para converter string CSS em objeto
