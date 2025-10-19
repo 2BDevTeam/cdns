@@ -39,8 +39,7 @@ function getAllMappedLocalDBDataSimpleArray() {
 
 function replaceLocalDbKeywords(dados) {
     var dadosString = JSON.stringify(dados);
-
-    // Usar uma única regex com alternation (|) para substituir todas as palavras de uma vez
+    
     dadosString = dadosString.replace(/\b(total|no)\b/g, function (match) {
         switch (match) {
             case 'total': return 'tot';
@@ -88,7 +87,7 @@ function findDataByMapCode(mapCode) {
     var tableName = parts[0];
     var fieldName = parts[1];
 
-    
+
     var records = alasql("SELECT " + fieldName + " FROM " + tableName);
     return records;
 }

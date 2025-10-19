@@ -116,6 +116,25 @@ CREATE TABLE MdashFilter(
     ordem INT DEFAULT 0
 );
 
+CREATE TABLE MDashFonte(
+    
+    mdashfontestamp VARCHAR(25) PRIMARY KEY,
+    dashboardstamp VARCHAR(25) DEFAULT '',
+    codigo VARCHAR(250) DEFAULT '',
+    descricao VARCHAR(250) DEFAULT '',
+    tipo VARCHAR(100) DEFAULT '',
+    expressaolistagem TEXT  DEFAULT '',
+    expressaojslistagem TEXT DEFAULT '',
+    schemajson TEXT DEFAULT '',
+    lastResultscached TEXT DEFAULT '',
+    ordem INT DEFAULT 0
+
+);
+
+
+
+
+
 CREATE TABLE MdashContainerItemObject(
 
     mdashcontaineritemobjectstamp VARCHAR(25) PRIMARY KEY,

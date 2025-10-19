@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select2 - WHERE IN</title>
+
+    <!-- CSS Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- JS Select2 -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f8f9fa;
+            padding: 40px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+        button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h3>Exemplo Select2 com conversão para SQL IN</h3>
+
+    <select id="meuSelect" multiple="multiple">
+        <option value="1">Maçã</option>
+        <option value="2">Banana</option>
+        <option value="3">Laranja</option>
+        <option value="4">Manga</option>
+        <option value="5">Uva</option>
+    </select>
+
+    <button id="converter">Converter</button>
+
+    <p><strong>Resultado:</strong></p>
+    <pre id="resultado"></pre>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Inicializar Select2
+    $('#meuSelect').select2({
+        placeholder: 'Selecione as frutas',
+        allowClear: true
+    });
+
+    // Ao clicar no botão, converter para formato SQL IN
+    $('#converter').on('click', function() {
+        const valores = $('#meuSelect').val();
+
+        if (!valores || valores.length === 0) {
+            $('#resultado').text('Nenhum valor selecionado.');
+            return;
+        }
+
+        // Converte para string SQL: '1','2','3'
+        const sqlInString = valores.map(v => `'${v}'`).join(',');
+
+        $('#resultado').text(sqlInString);
+
+        // (Opcional) Mostrar no console também
+        console.log(sqlInString);
+    });
+});
+</script>
+
+</body>
+</html>

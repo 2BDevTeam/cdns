@@ -780,6 +780,7 @@ function handleShowConfigContainer(data) {
 
 
             },
+            
             handleChangeComponent: function () {
 
                 realTimeComponentSync(this.mreportConfigItem, this.mreportConfigItem.table, this.mreportConfigItem.idfield);
@@ -864,7 +865,7 @@ function generatemreportReportDesigner() {
     reportConfigHtml += "                                </button>";
     reportConfigHtml += "                            </div>";
     reportConfigHtml += "                            <div v-if='source.schema.length==0'  class='mb-2'>";
-    reportConfigHtml += "                     <div class='alert alert-info' role='alert' style='margin-top:1em;'>Atenção!Para usar esta fonte de dados deve definir o schema. </div> ";
+    reportConfigHtml += "                                 <div class='alert alert-info' role='alert' style='margin-top:1em;'>Atenção!Para usar esta fonte de dados deve definir o schema. </div> ";
     reportConfigHtml += "                            </div>";
 
     reportConfigHtml += "                        </div>";
@@ -1139,7 +1140,6 @@ function initConfiguracaoMReport(data) {
 
     // Configurar interact.js para drag and drop e redimensionamento
     var canvas = document.getElementById('report-canvas');
-
 
     // Aplicação principal
     var App = PetiteVue.reactive({
@@ -2070,7 +2070,6 @@ function generateQueryButtonOptions() {
     return schemaQueryEditorContainerHtml;
 
 }
-
 
 
 function MReportFonte(data) {

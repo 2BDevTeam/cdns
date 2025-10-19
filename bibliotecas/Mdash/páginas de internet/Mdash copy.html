@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 </head>
 
 <script src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
@@ -319,6 +320,11 @@
     }
   }
 
+
+
+
+
+
   /* mdash-skeleton base */
   .mdash-skeleton {
     background: #eee;
@@ -368,6 +374,7 @@
     margin: 8px auto;
   }
 
+
   .snapshot:hover,
   .celula:hover {
     cursor: pointer;
@@ -376,6 +383,7 @@
   .celula:hover {
     text-decoration: underline;
   }
+
 
   form[action*="./ewpview.aspx?codigo=mdash"] #fieldsAndOptionsZone,
   form[action*="./ewpview.aspx?codigo=catalogo-"] #fieldsAndOptionsZone {
@@ -390,6 +398,7 @@
     display: none;
   }
 
+
   .m-dash-header {
     column-gap: 0.4em;
     display: flex;
@@ -402,11 +411,13 @@
   }
 
   .m-dash-horizonta-filter-container {
+
     margin-bottom: 30px;
     background: #FFF;
     padding: 30px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+
   }
 
   .m-dash-body {
@@ -462,6 +473,7 @@
     flex-grow: 1;
   }
 
+
   .stats-card-container {
     display: grid;
     grid-template-columns: 1fr;
@@ -497,6 +509,8 @@
     font-size: 0.9em;
     font-weight: bold;
   }
+
+
 
   .m-dash-item {
     background: #FFF;
@@ -548,6 +562,28 @@
     height: 100% !important;
   }
 
+  /* .m-dash-container-item-row {
+
+        height: 360px;
+    }
+
+
+    @media screen and (min-width: 1280px) {
+        .m-dash-container-item-row {
+           height: 360px;
+        }
+    }
+
+    @media screen and (min-width: 1440px) {
+        .m-dash-container-item-row {
+           height: 360px;
+        }
+    }
+*/
+
+
+
+
   @media screen and (min-width: 768px) {
     .stats-card-container {
       grid-template-columns: 1fr 1fr;
@@ -582,6 +618,8 @@
       gap: 30px;
     }
   }
+
+
 
   .tabulator-row.tabulator-tree-level-1 {
     background-color: #f8f9fa !important;
@@ -651,11 +689,11 @@
   }
 </style>
 
-<script src="https://unpkg.com/vue-multiselect"></script>
-<link rel="stylesheet" href="https://unpkg.com/vue-multiselect/dist/vue-multiselect.min.css">
 
 <body>
+
   <div id="mdash" class="mdash">
+
     <div class="m-dash-header">
       <h1>{{ mdash.dashboardconfig.descricao }}</h1>
       <button style="font-size: 12px;" v-if="mdash.dashboardconfig.temfiltro==false" @click="refreshDashboard()"
@@ -665,7 +703,9 @@
 
     <div v-if="mdash.dashboardconfig.filtrohorizont && mdash.dashboardconfig.temfiltro==true"
       class="m-dash-horizonta-filter-container">
+
       {{initDomObjects()}}
+
       <div class="gr-row">
         <div class=" gr-col-md-12 gr-col-lg-12 gr-col-sm-12">
           <div class="m-dash-filter-btn-group">
@@ -675,11 +715,14 @@
                 class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
               </button>
             </div>
+
           </div>
+
         </div>
         <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp"
           :class="[`gr-col-md-${filter.tamanho}`, `gr-col-sm-${filter.tamanho}`, `gr-col-lg-${filter.tamanho}`]">
           <div class="m-dash-dynamic-filters">
+
             <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}</label>
 
             <!-- text -->
@@ -704,8 +747,7 @@
                 {{ opt[filter.campooption] }}
               </option>
             </select>
-
-            <select multiple="multiple" @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'multiselect'"
+            <select @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
               class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
               v-model="mdash.filterValues[filter.codigo]">
               <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
@@ -718,23 +760,31 @@
               class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
 
             <!-- fallback -->
-            <input data-else="elseinput" @change="updateFilter(filter,$event)" v-else type="text"
+            <input @change="updateFilter(filter,$event)" v-else type="text"
               class="form-control input-sm input-mdash-filter" :id="filter.codigo"
               v-model="mdash.filterValues[filter.codigo]" />
           </div>
+
+
         </div>
       </div>
+
     </div>
 
     <div class="m-dash-body">
+
+
       <div v-if="mdash.dashboardconfig.temfiltro && mdash.dashboardconfig.filtrohorizont==false" class="m-dash-filter">
+
         <div class="m-dash-filter-btn-group">
+
           <div class="m-dash-btn-filter">
             <p class="m-dash-item-text">Refrescar</p>
             <button @click="refreshDashboard()" type='button' id='btn-refrescar-filtro'
               class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
             </button>
           </div>
+
         </div>
 
         <div class="m-dash-dynamic-filters">
@@ -764,15 +814,6 @@
               </option>
             </select>
 
-
-            <select @vue:mounted="initMultiselect($el,filter)" multiple="multiple" @change="updateFilter(filter,$event)"
-              v-else-if="filter.tipo === 'multiselect'"
-              class=" multisel form-control select-mdash-filter input-mdash-filter" :id="filter.codigo">
-              <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
-                {{ opt[filter.campooption] }}
-              </option>
-            </select>
-
             <!-- logic -->
             <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
               class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
@@ -785,7 +826,9 @@
         </div>
 
         <div class="m-dash-dynamic-filters">
+
         </div>
+
       </div>
 
       <div class="m-dash-main">
@@ -802,21 +845,30 @@
             class="gr-row m-dash-container-item-row " style="margin-top: 1em!important;">
 
             <div style="height: 100%!important;" v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
-              :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area',
-                                        `gr-col-md-${item.tamanho}`,
-                                        `gr-col-sm-${item.tamanho}`,
-                                        `gr-col-lg-${item.tamanho}`]">
+              :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area', 
+                          `gr-col-md-${item.tamanho}`, 
+                          `gr-col-sm-${item.tamanho}`, 
+                          `gr-col-lg-${item.tamanho}`]">
+
+
+
             </div>
           </div>
+
         </div>
       </div>
+
     </div>
+
+
   </div>
+
 </body>
 
 <script src="https://unpkg.com/petite-vue"></script>
 <script src="https://cdn.jsdelivr.net/npm/alasql"></script>
 <script>
+
   function buildAlert(alertClass, alertText) {
     var alerta = ""
     alerta += "<div  class='alert custom-alert " + alertClass + "'>"
@@ -866,10 +918,15 @@
   }
 
   function generateStandardCard(cardData) {
+
     return `<div class="m-dash-item">
                     <h4 class="m-dash-item-text">${cardData.titulo || "Sem título"}</h4>
-                    ${cardData.bodyContent}
+                    
+                        ${cardData.bodyContent}
+                    
                 </div>`;
+
+
   }
 
   function generateDashCardHTML(cardData) {
@@ -886,16 +943,20 @@
     return cardHTML.trim();
   }
 
+
   function MdashRendConfig(data) {
+
     this.codigo = data.codigo || "";
     this.descricao = data.descricao || "";
     this.categoria = data.categoria || "";
     this.dashboardstamp = data.dashboardstamp || "";
     this.temfiltro = data.temfiltro || false;
     this.filtrohorizont = data.filtrohorizont || false;
+
   }
 
   function Mdash(data) {
+
     var globalThis = this;
 
     this.GMDashStamp = data.GMDashStamp || ""
@@ -923,7 +984,9 @@
 
     this.reactiveInstance = null;
 
+
     function MdashRendFilter(data) {
+
       this.mdashfilterstamp = data.mdashfilterstamp || generateUUID();
       this.dashboardstamp = data.dashboardstamp || GMDashStamp;
       this.codigo = data.codigo || "";
@@ -941,6 +1004,7 @@
     }
 
     function MdashRendContainer(data) {
+
       this.mdashcontainerstamp = data.mdashcontainerstamp || generateUUID();
       this.codigo = data.codigo || "";
       this.titulo = data.titulo || "";
@@ -951,6 +1015,8 @@
     }
 
     function MdashContainerItem(data) {
+
+
       var cardContainerItemData = {
         id: "",
         title: "Conteúdo não disponível",
@@ -980,11 +1046,15 @@
       this.records = [];
     }
 
+
     MdashContainerItem.prototype.refreshContent = async function () {
       var containerItem = this;
       var errorMessage = "ao trazer resultados no [refreshContent] " + containerItem.titulo
       try {
+
+
         if (!containerItem.urlfetch) {
+
           containerItem.cleanAndRender(buildAlert("alert-danger", "URL para listagem  não definida"));
           return;
         }
@@ -1005,8 +1075,11 @@
           }
         });
 
+
         if (response.cod != "0000") {
+
           console.log("Erro " + errorMessage, response)
+
           containerItem.cleanAndRender(buildAlert("alert-danger", "Erro ao trazer resultados: "));
           return false
         }
@@ -1016,6 +1089,8 @@
         containerItem.records = contentRecords;
 
         console.log("this is content records", contentRecords)
+
+
 
         var containerItemObjects = globalThis.containerItemObjects.filter(function (itemObject) {
           return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp
@@ -1048,11 +1123,15 @@
           itemObject.renderObjectByContainerItem("#cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp, containerItem);
         });
 
+
         if (containerItem.expressaoapresentacaodados) {
+
+
           eval(containerItem.expressaoapresentacaodados);
         }
 
         if (containerItemObjectsDetails.length > 0) {
+
           var botaoDetalhe = {
             style: "margin-top:1em",
             buttonId: "botao-detalhe-" + containerItem.mdashcontaineritemstamp,
@@ -1088,6 +1167,8 @@
           var modalHTML = generateModalHTML(modalData);
           $("#mainPage").append(modalHTML);
 
+
+
           $(document).off("click", "#" + botaoDetalhe.buttonId).on("click", "#" + botaoDetalhe.buttonId, function (e) {
             e.preventDefault();
             $("#detalhe-modal-" + containerItem.mdashcontaineritemstamp).modal("show");
@@ -1098,20 +1179,26 @@
 
               itemObject.renderObjectByContainerItem("#cont-item-obj-detalhe-" + itemObject.mdashcontaineritemobjectstamp, containerItem);
             });
+
           })
         }
 
+
         containerItem.hideSkeleton();
 
-      } catch (error) {
+      }
+      catch (error) {
         console.log("Erro interno " + errorMessage, error)
         containerItem.cleanAndRender(buildAlert("alert-danger", "Erro interno ao processar resultados: "));
 
+
         //alertify.error("Erro interno " + errorMessage, 10000)
       }
+
     };
 
     MdashContainerItem.prototype.handleLayout = function (content) {
+
       var containerItem = this;
 
       containerItem.skeletonId = "skeleton-" + containerItem.mdashcontaineritemstamp;
@@ -1130,6 +1217,7 @@
         if (selectedTemplate) {
 
           containerItem.dadosTemplate = selectedTemplate
+
           $("#" + this.mdashcontaineritemstamp).empty();
 
           $("#" + this.mdashcontaineritemstamp).append(selectedTemplate.generateCard({
@@ -1142,6 +1230,9 @@
           return;
         }
 
+
+
+
         containerItem.cleanAndRender(generateDashCardHTML({ id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp, title: containerItem.titulo, bodyContent: "" }));
 
         return;
@@ -1150,41 +1241,54 @@
       if (containerItem.expressaolayoutcontaineritem) {
         eval(containerItem.expressaolayoutcontaineritem);
       }
+
     }
 
     MdashContainerItem.prototype.render = function (content) {
+
       $("#" + this.mdashcontaineritemstamp).append(content);
     }
 
     MdashContainerItem.prototype.hideSkeleton = function () {
-      $("#" + this.skeletonId).hide();
+
+      $("#" + this.skeletonId).hide()
+        ;
     }
 
+
     MdashContainerItem.prototype.cleanAndRender = function (content) {
+
       $("#" + this.mdashcontaineritemstamp).empty();
       $("#" + this.mdashcontaineritemstamp).append(content);
     }
 
     MdashContainerItem.prototype.renderOnLayout = function (content) {
+
       $("#m-dash-layout-" + this.mdashcontaineritemstamp).append(content);
     }
 
     MdashContainerItem.prototype.cleanAndRenderOnLayout = function (content) {
+
       $("#m-dash-layout-" + this.mdashcontaineritemstamp).empty();
       $("#m-dash-layout-" + this.mdashcontaineritemstamp).append(content);
     }
 
+
     MdashContainerItem.prototype.renderBodyLayout = function (content) {
+
       $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").append(content);
     }
 
     MdashContainerItem.prototype.cleanAndRenderBodyLayout = function (content) {
+
       $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").empty();
       $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").append(content);
     }
 
     function MdashContainerItemObject(data) {
       // Calcula ordem máxima se não for fornecida
+
+
       this.mdashcontaineritemobjectstamp = data.mdashcontaineritemobjectstamp;
       this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || "";
       this.dashboardstamp = data.dashboardstamp || "";
@@ -1201,7 +1305,9 @@
       this.objectsUIFormConfig = data.objectsUIFormConfig || [];
       this.localsource = data.localsource || "";
 
+
       var config = {}
+
       if (data.configjson) {
         try {
           config = JSON.parse(data.configjson);
@@ -1213,6 +1319,7 @@
       this.config = config || {}
       this.configjson = data.configjson || ""
       this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
+
 
       this.objectoConfig = data.objectoConfig || {};
 
@@ -1228,7 +1335,10 @@
         if (tipoObjecto) {
           this.objectoConfig = tipoObjecto || {};
         }
+
       }
+
+
 
       var queryConfig = data.queryConfig || {
         selectFields: [],
@@ -1241,10 +1351,13 @@
       };
 
       if (data.queryconfigjson) {
+
         try {
           queryConfig = JSON.parse(data.queryconfigjson);
         } catch (error) {
+
         }
+
       }
 
       this.queryConfig = queryConfig || {
@@ -1269,11 +1382,17 @@
       this.queryconfigjson = queryConfig ? JSON.stringify(queryConfig) : JSON.stringify(queryConfigVoid);
     }
 
+
+
     MdashContainerItemObject.prototype.renderObjectByContainerItem = function (containerSelector, containerItem) {
+
       var self = this;
 
       //  console.log("SELLLF", self);
+
       if (Object.keys(self.objectoConfig).length == 0 || containerItem.records.length == 0) {
+
+
         $(containerSelector).append("<p style='font-size:18px!important;font-weight:bold;margin-top:7em' class='m-dash-item-text'>Sem registos</p>")
         return;
       }
@@ -1284,6 +1403,8 @@
       var contentRecords = localQueryResult;
       switch (self.categoria) {
         case "editor":
+
+
           self.objectoConfig.renderObject({
             containerSelector: containerSelector,
             itemObject: self,
@@ -1296,6 +1417,8 @@
           break;
 
         case "detail":
+
+
           var tipoObjecto = self.tipoobjectodetalhes;
           var tipoObjecto = getTiposObjectoConfig().find(function (tipo) {
             return tipo.tipo === tipoObjecto;
@@ -1317,18 +1440,31 @@
           console.log("EXECUTING EXPRESSAOOBJECTO", self.expressaoobjecto)
           if (self.expressaoobjecto) {
             try {
+
+
+
               eval(self.expressaoobjecto);
             } catch (error) {
+
               console.error("Erro ao executar expressão do objeto:", error);
               // alertify.error("Erro ao executar expressão do objeto. Verifique o console para mais detalhes.", 4000);
             }
+
+
+
           }
           break;
 
         default:
           break;
       }
+
+
+
+
     }
+
+
   }
 
   var GMainDashInstance = new Mdash({
@@ -1340,6 +1476,8 @@
     categoria: ""
   });
 
+
+
   function handleDefaultValue(dataType, valor) {
     switch (dataType.trim()) {
       case "digit":
@@ -1349,6 +1487,7 @@
         return isNaN(inputValTxt) || inputValTxt == null || inputValTxt == undefined || inputValTxt == "" ? 0 : inputValTxt;
 
       case "text":
+
         return valor ? valor : "";
 
       default:
@@ -1356,14 +1495,11 @@
     }
   }
 
-  function runExpression(code) {
-    return new Function(code)();
-  }
-
   function getValorDefeito(filter) {
+
     var valorDefeito = null;
     if (filter.valordefeito) {
-      valorDefeito = runExpression(filter.valordefeito)
+      valorDefeito = eval(filter.valordefeito);
     }
 
     var cachedFilters = window.localStorage.getItem("mdashcachedFilters");
@@ -1374,6 +1510,7 @@
     }
 
     return handleDefaultValue(filter.tipo, valorDefeito);
+
   }
 
   function initFlatpickr(element, options) {
@@ -1392,6 +1529,7 @@
     return flatpickr(element, mergedOptions);
   }
 
+
   var GConfigDash = null;
   $(document).ready(function () {
 
@@ -1399,67 +1537,60 @@
       mdash: GMainDashInstance,
       initFlatpickr,
       initDomObjects() {
+
         var self = this;
-      },
-      initMultiselect(el, filtro) {
 
-        var self = this
+        setTimeout(function () {
 
-        $(el).select2({
-          width: '100%',
-          placeholder: 'Selecione uma opção',
-          allowClear: false
-        });
+          $('[data-language]').datepicker({
+            dateFormat: "yyyy-mm-dd",
+            onSelect: function (dateText, date, inst) {
+              //console.log("CHANGEDFGHJKl")
+              var codigo = $(inst.el).attr('id');
+              $(codigo).trigger("change");
+              // dispara evento change manualmente para PetiteVue
+              const event = new Event('change', { bubbles: true });
+              inst.el.dispatchEvent(event);
 
-        this.handleSetUIValueForMultiSelect(el, this.mdash.filterValues[filtro.codigo]);
+              /*  self.mdash.filterValues[codigo] = dateText;
+              var codigo = $(inst.el).attr('id');
+              var containerItemsThatContainFilter = []
 
+              self.mdash.containerItems.map(function (item) {
 
-        $(el).on('change', (event) => {
-          const codigo = $(el).attr('id');
-          const valor = $(el).val();
-
-          //console.log("Texto selecionado no multiselect:", valor);
-          var texto = self.handleMultiSelectValue(valor);
-
-          self.executeUpdateFilter(filtro, texto);
-        });
-
-
-      },
-      handleSetUIValueForMultiSelect(el, valor) {
-        if (!valor) return;
-       
-        if (Array.isArray(valor)) {
-       
-          $(el).val(valor).trigger('change.select2');
-          return;
-        }
-        const arrayValores = valor
-          .split(',')
-          .map(v => v.trim().replace(/^'|'$/g, ''))
-          .filter(v => v !== '');
-
-        
-        $(el).val(arrayValores).trigger('change.select2');
+                var filterFound = item.filters.find(function (f) {
+                  return f == codigo
+                })
 
 
-      },
-      handleMultiSelectValue(valor) {
-        var arrValor = []
-        if (!valor || !Array.isArray(valor)) return [];
+                if (filterFound) {
+                  containerItemsThatContainFilter.push(item);
+                }
 
-        if (valor) {
-          arrValor = valor;
-        }
+              })
 
-        if (arrValor.length == 0) {
-          return "";
-        }
+              containerItemsThatContainFilter.forEach(function (itemWithFilter) {
 
-        return arrValor.map(v => `'${v}'`).join(',')
+                itemWithFilter.refreshContent();
+
+              })
+            
+
+              // $(inst.el).css("background-color","red")
+              console.log("self.mdash.filterValues",self.mdash.filterValues)
+              window.localStorage.setItem("mdashcachedFilters", JSON.stringify(self.mdash.filterValues));*/
+            }
+          });
+
+
+        }, 1000);
+
+
+
       },
       getOptions(filter) {
         try {
+
           var res = []
           $.ajax({
             type: "POST",
@@ -1469,10 +1600,12 @@
               '__EVENTARGUMENT': JSON.stringify([{ mdashfilterstamp: filter.mdashfilterstamp }]),
             },
             success: function (response) {
+
               var errorMessage = "ao trazer resultados "
               try {
                 console.log(response)
                 if (response.cod != "0000") {
+
                   console.log("Erro " + errorMessage, response)
                   return false
                 }
@@ -1482,11 +1615,16 @@
                 //alertify.error("Erro interno " + errorMessage, 10000)
               }
 
-              // javascript:__doPostBack('','')
+              //  javascript:__doPostBack('','')
             }
+
           });
 
+
+
           var filtroResult = res
+
+
           return filtroResult
         } catch (e) {
           console.warn('Erro em expressaolistagem', e);
@@ -1514,21 +1652,13 @@
           containerItem.refreshContent();
         });
       },
+      updateFilter(filtro, event) {
 
-      updateFilterAndTriggerChange: function (codigo, valor) {
-        document.getElementById(codigo).value = valor;
-
-        var elementFilter = document.getElementById(codigo);
-
-        window.mdashAppState.mdash.filterValues[codigo] = valor
-        const event = new Event("change", { bubbles: true });
-        elementFilter.dispatchEvent(event);
-      },
-      executeUpdateFilter(filtro, valor) {
-
+        //console.log("Testo update filter:" + event.target.value)
         var containerItemsThatContainFilter = []
-        this.mdash.filterValues[filtro.codigo] = valor;
-        var filtroValue = valor;
+
+        this.mdash.filterValues[filtro.codigo] = event.target.value;
+        var filtroValue = event.target.value;
         if (filtro.eventochange && filtro.expressaochange) {
           try {
             eval(filtro.expressaochange);
@@ -1540,44 +1670,58 @@
         window.localStorage.setItem("mdashcachedFilters", JSON.stringify(this.mdash.filterValues));
 
         this.mdash.containerItems.map(function (item) {
+
           var filterFound = item.filters.find(function (f) {
             return f == filtro.codigo;
           })
 
+
           if (filterFound) {
             containerItemsThatContainFilter.push(item);
           }
+
         })
 
         containerItemsThatContainFilter.forEach(function (itemWithFilter) {
-          itemWithFilter.refreshContent();
-        })
-      },
-      updateFilter(filtro, event) {
 
-        this.executeUpdateFilter(filtro, event.target.value);
+          itemWithFilter.refreshContent();
+
+        })
+
+
 
       }
     });
+
+
+
 
     window.mdashAppState = state;
 
     PetiteVue.createApp(state).mount("#mdash");
 
     handleMdashConfigData().then(function (data) {
+
       if (GConfigDash) {
+
         window.mdashAppState.mdash.containerItems.forEach(function (item) {
+
           try {
             item.refreshContent();
+
           } catch (error) {
+
           }
         })
       }
+
     })
+
   });
 
   async function handleMdashConfigData() {
     try {
+
       params = new URLSearchParams(document.location.search);
       codigomdash = params.get("codigomdash");
 
@@ -1598,34 +1742,22 @@
         }
       });
 
+
       if (response.cod != "0000") {
         console.log("Erro " + errorMessage, response);
         return false;
       }
 
       var configData = response.data
+
       var dashboardconfig = response.data.dashboard[0] || {};
+
 
       configData.dashboardconfig = dashboardconfig;
 
       var configData = new Mdash(configData);
       var filters = configData.filters || [];
       var filterValues = {};
-
-      setTimeout(function () {
-        $('[data-language]').datepicker({
-          dateFormat: "yyyy-mm-dd",
-          defaultDate: new Date(),
-          onSelect: function (dateText, date, inst) {
-            var codigo = $(inst.el).attr('id');
-            $(codigo).trigger("change");
-            const event = new Event('change', { bubbles: true });
-            inst.el.dispatchEvent(event);
-
-
-          }
-        });
-      }, 1000);
 
       filters.forEach(function (filter) {
         filterValues[filter.codigo] = getValorDefeito(filter);
@@ -1634,6 +1766,7 @@
       configData.filterValues = filterValues;
 
       document.title = dashboardconfig.descricao
+
 
       window.localStorage.setItem("mdashcachedFilters", JSON.stringify(configData.filterValues));
 
@@ -1650,7 +1783,13 @@
     } catch (error) {
       console.log("Erro interno " + errorMessage, error);
     }
+
+
   }
+
+
 </script>
+
+
 
 </html>

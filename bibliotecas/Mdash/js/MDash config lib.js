@@ -246,7 +246,7 @@ MdashContainerItem.prototype.refreshContainerItem = function (masterContent) {
 }
 
 function getContainerItemUIObjectFormConfigAndSourceValues() {
- 
+
     var objectsUIFormConfig = [
         new UIObjectFormConfig({ colSize: 4, campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, campo: "ordem", tipo: "text", titulo: "Ordem", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
@@ -259,11 +259,11 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaodblistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de DB Listagem", classes: "m-editor input-source-form", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, campo: "fontelocal", tipo: "checkbox", titulo: "Fonte local", classes: "input-source-form", contentType: "input" })
-    
+
     ]
- 
+
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashContainerItems", idField: "mdashcontaineritemstamp" };
- 
+
 }
 
 
@@ -403,10 +403,10 @@ function handleCodeEditor() {
     });
     // Atalho: Ctrl + Shift + F para o editor focado
     document.addEventListener("keydown", function (e) {
-        if (e.shiftKey && e.key.toLowerCase() === "f" && focusedEditor) {
-            e.preventDefault();
-            formatCode(focusedEditor);
-        }
+        /* if (e.shiftKey && e.key.toLowerCase() === "f" && focusedEditor) {
+             e.preventDefault();
+             formatCode(focusedEditor);
+         }*/
     });
     function formatCode(editorInstance) {
         var code = editorInstance.getValue();
@@ -1933,7 +1933,7 @@ function registerListenersMdash() {
                 return existingObjectsToPaste > 0;
             },
             pasteObjectoContainerItemObject: function () {
-               
+
                 var filteredPasted = GCopiedComponentData.filter(function (copied) {
                     return copied.componentCopyConfig.table === "MdashContainerItemObject";
                 });
@@ -2196,8 +2196,8 @@ function registerListenersMdash() {
                             var result = alasql(query.sql, query.params);
                             currentObject.queryConfig.lastResult = result;
                             containerItemObject.queryconfigjson = JSON.stringify(currentObject.queryConfig);
-                          //  containerItemObject.config = {};
-                          //  containerItemObject.configjson = "";
+                            //  containerItemObject.config = {};
+                            //  containerItemObject.configjson = "";
                             realTimeComponentSync(containerItemObject, containerItemObject.table, containerItemObject.idfield);
                         } catch (error) {
                             console.error("Erro ao executar query:", error);

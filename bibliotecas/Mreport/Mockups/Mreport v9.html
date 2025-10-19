@@ -700,7 +700,7 @@
 
             </div>
             <div class="report-footer">
-                <div v-for="obj in page.footer.objects" :key="page.id" >
+                <div v-for="obj in page.footer.objects" :key="page.id">
                     <div v-if="obj.type === 'table'" class="report-table-container">
 
                         <div v-if="false" v-html="obj.render().prop('outerHTML')"></div>
@@ -745,6 +745,55 @@
 
     <script>
         // ===== SISTEMA DE CONFIGURAÇÃO =====
+
+        class MtableStyleConfig {
+            constructor(config = {}) {
+                this.backgroundColor = config.backgroundColor || '#ffffff';
+                this.color = config.color || '#1a365d';
+                this.fontSize = config.fontSize || '13px';
+                this.fontWeight = config.fontWeight || 'normal';
+                this.border = config.border || {
+                    borderLeft: "0px solid #e2e8f0",
+                    borderRight: "0px solid #e2e8f0",
+                    borderTop: "0px solid #e2e8f0",
+                    borderBottom: "1px solid #e2e8f0"
+                };
+                this.textAlign = config.textAlign || 'left';
+                this.padding = config.padding || '8px 12px';
+                this.fontFamily = config.fontFamily || 'Nunito, sans-serif';
+                this.forceStyle = config.forceStyle || false;
+                this.enableAlternateRows = config.enableAlternateRows || true;
+                this.evenRowStyle = config.evenRowStyle || {
+                    backgroundColor: '#f8fafc'
+                };
+                this.oddRowStyle = config.oddRowStyle || {
+                    backgroundColor: '#ffffff'
+                };
+                this.headerRowStyle = config.headerRowStyle || {
+                    backgroundColor: '#1e293b',
+                    color: '#ffffff',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    borderBottom: '2px solid #0f172a'
+                };
+                this.totalRowStyle = config.totalRowStyle || {
+                    backgroundColor: '#0f766e',
+                    color: '#ffffff',
+                    fontWeight: '600',
+                    borderTop: '2px solid #0d9488'
+                };
+                this.groupHeaderRowStyle = config.groupHeaderRowStyle || {
+                    backgroundColor: '#334155',
+                    color: '#ffffff',
+                    fontWeight: '600',
+                    borderBottom: '1px solid #475569'
+                };
+                this.hoverRowStyle = config.hoverRowStyle || {
+                    backgroundColor: '#f1f5f9'
+                };
+            }
+        }
+
         class MReportConfig {
             constructor() {
 
@@ -760,8 +809,6 @@
 
 
                 this.styleConfig = {
-                    enableColors: true,
-                    enableExpressions: true,
                     enableAlternateRows: true,
                     headerStyle: { backgroundColor: '#2c3e50', color: '#ffffff' },
                     evenRowStyle: { backgroundColor: '#f8f9fa' },
@@ -807,7 +854,7 @@
 
                 // Estilos
                 this.styleConfig.enableColors = $('#enable-colors').is(':checked');
-                this.styleConfig.enableExpressions = $('#enable-expressions').is(':checked');
+
                 this.styleConfig.enableAlternateRows = $('#enable-alternate-rows').is(':checked');
                 this.styleConfig.headerStyle.backgroundColor = $('#header-bg').val();
                 this.styleConfig.headerStyle.color = $('#header-text').val();
@@ -885,7 +932,6 @@
 
                 // Estilos
                 $('#enable-colors').prop('checked', this.styleConfig.enableColors);
-                $('#enable-expressions').prop('checked', this.styleConfig.enableExpressions);
                 $('#enable-alternate-rows').prop('checked', this.styleConfig.enableAlternateRows);
                 $('#header-bg').val(this.styleConfig.headerStyle.backgroundColor);
                 $('#header-text').val(this.styleConfig.headerStyle.color);
@@ -1319,16 +1365,16 @@
                     let value = item[col.field];
 
                     // Processar expressões
-                    if (this.reportConfig.styleConfig.enableExpressions) {
-                        if (col.config?.expression) {
-                            try {
-                                value = this.evaluateExpression(col.config.expression, item, rowIndex);
-                            } catch (e) {
-                                console.error('Erro na expressão:', e);
-                                value = 'Erro';
-                            }
+
+                    if (col.config?.expression) {
+                        try {
+                            value = this.evaluateExpression(col.config.expression, item, rowIndex);
+                        } catch (e) {
+                            console.error('Erro na expressão:', e);
+                            value = 'Erro';
                         }
-                    } else {
+                    }
+                    else {
                         value = this.formatValue(value, col.type);
                     }
 
@@ -2115,7 +2161,7 @@
         }
 
         function applyAdvancedStyling(data, styleConfig) {
-            if (!styleConfig.enableColors) return data;
+            // if (!styleConfig.enableColors) return data;
 
             return data.map((item, index) => {
                 if (item.type) return item;
@@ -2305,11 +2351,11 @@
             ];
 
 
-            if (config.styleConfig.enableColors) {
-                multiLevelData = applyAdvancedStyling(multiLevelData, config.styleConfig);
+            //  if (config.styleConfig.enableColors) {
+            multiLevelData = applyAdvancedStyling(multiLevelData, config.styleConfig);
 
-                console.log("multiLevelData", multiLevelData);
-            }
+            console.log("multiLevelData", multiLevelData);
+            //   }
 
             var levelData = groupDataMultiLevel(multiLevelData, subGroupFieds)
 
