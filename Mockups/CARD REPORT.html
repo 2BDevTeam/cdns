@@ -9,13 +9,12 @@
     <style>
         .budget-card {
             background: linear-gradient(135deg, #00897b 0%, #0a6b61 100%);
-            
             border-radius: 16px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             color: white;
             position: relative;
             overflow: hidden;
-            height: 180px;
+            height: 220px;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         
@@ -51,7 +50,6 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
         }
         
         .card-title {
@@ -69,35 +67,28 @@
         .budget-value {
             font-size: 1.8rem;
             font-weight: 700;
-            margin-bottom: 5px;
+            margin-bottom: 20px;
         }
         
         .budget-details {
             display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
+            gap: 30px;
         }
         
         .budget-item {
-            text-align: center;
-            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
         
         .budget-label {
-            font-size: 0.8rem;
-            opacity: 0.8;
+            font-size: 0.85rem;
+            opacity: 0.9;
             margin-bottom: 5px;
         }
         
         .budget-amount {
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
-        }
-        
-        .divider {
-            width: 1px;
-            background: rgba(255, 255, 255, 0.3);
-            margin: 0 10px;
         }
         
         .icon-container {
@@ -107,6 +98,9 @@
             font-size: 3rem;
             opacity: 0.2;
         }
+
+        
+        
     </style>
 </head>
 <body>
@@ -130,11 +124,9 @@
                                 <div class="budget-amount">1 837 811 818,96 MT</div>
                             </div>
                             
-                            <div class="divider"></div>
-                            
                             <div class="budget-item">
                                 <div class="budget-label">Total Executado</div>
-                                <div class="budget-amount">-</div>
+                                <div class="budget-amount">1 837 811 818,96 MT</div>
                             </div>
                         </div>
                         

@@ -16,6 +16,9 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
 
 <style>
+  .select2-selection__rendered{
+    overflow-x: scroll!important;
+  }
   /* CONTAINER RESPONSIVO */
   .gr-container {
     width: 100%;
@@ -63,6 +66,8 @@
     gap: 1rem;
     grid-auto-rows: 1fr;
     margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    
   }
 
   /* COLUNAS base */
@@ -462,6 +467,10 @@
     flex-grow: 1;
   }
 
+  .m-dash-filter-item {
+    margin-bottom: 0.4em;
+  }
+
   .stats-card-container {
     display: grid;
     grid-template-columns: 1fr;
@@ -680,7 +689,15 @@
         <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp"
           :class="[`gr-col-md-${filter.tamanho}`, `gr-col-sm-${filter.tamanho}`, `gr-col-lg-${filter.tamanho}`]">
           <div class="m-dash-dynamic-filters">
-            <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}</label>
+            <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
+
+              <div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'">
+                <button style="margin-left: 0.4em;border-radius: 4px;" type="button" class="btn btn-xs btn-primary"
+                  @click="selectAllOptions(filter)">Todas
+                  opções</button> <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
+                  class="btn btn-xs btn-default" @click="deselectAllOptions(filter)">Desmarcar</button>
+              </div>
+            </label>
 
             <!-- text -->
             <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
@@ -697,21 +714,27 @@
               v-model="mdash.filterValues[filter.codigo]" />
 
             <!-- list -->
-            <select @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
-              class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
-              v-model="mdash.filterValues[filter.codigo]">
-              <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
-                {{ opt[filter.campooption] }}
-              </option>
-            </select>
+            <div v-else-if="filter.tipo === 'list'">
+              <select @change="updateFilter(filter,$event)" class="form-control select-mdash-filter input-mdash-filter"
+                :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]">
+                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
+                  {{ opt[filter.campooption] }}
+                </option>
+              </select>
+            </div>
 
-            <select multiple="multiple" @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'multiselect'"
-              class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
-              v-model="mdash.filterValues[filter.codigo]">
-              <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
-                {{ opt[filter.campooption] }}
-              </option>
-            </select>
+            <div v-else-if="filter.tipo === 'multiselect'">
+
+              <select @vue:mounted="initMultiselect($el,filter)" multiple="multiple"
+                @change="updateFilter(filter,$event)"
+                class=" multisel form-control select-mdash-filter input-mdash-filter" :id="filter.codigo">
+                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
+                  {{ opt[filter.campooption] }}
+                </option>
+              </select>
+
+
+            </div>
 
             <!-- logic -->
             <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
@@ -739,7 +762,16 @@
 
         <div class="m-dash-dynamic-filters">
           <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp" class="m-dash-filter-item">
-            <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}</label>
+            <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
+
+              <div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'">
+                <button style="margin-left: 0.4em;border-radius: 4px;" type="button" class="btn btn-xs btn-primary"
+                  @click="selectAllOptions(filter)">Todas
+                  opções</button> <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
+                  class="btn btn-xs btn-default" @click="deselectAllOptions(filter)">Desmarcar todas</button>
+              </div>
+            </label>
+
 
             <!-- text -->
             <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
@@ -756,22 +788,31 @@
               v-model="mdash.filterValues[filter.codigo]" />
 
             <!-- list -->
-            <select @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
-              class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
-              v-model="mdash.filterValues[filter.codigo]">
-              <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
-                {{ opt[filter.campooption] }}
-              </option>
-            </select>
+            <div v-else-if="filter.tipo === 'list'">
+              <select @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
+                class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
+                v-model="mdash.filterValues[filter.codigo]">
+                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
+                  {{ opt[filter.campooption] }}
+                </option>
+              </select>
+            </div>
 
 
-            <select @vue:mounted="initMultiselect($el,filter)" multiple="multiple" @change="updateFilter(filter,$event)"
-              v-else-if="filter.tipo === 'multiselect'"
-              class=" multisel form-control select-mdash-filter input-mdash-filter" :id="filter.codigo">
-              <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
-                {{ opt[filter.campooption] }}
-              </option>
-            </select>
+            <div v-else-if="filter.tipo === 'multiselect'">
+
+              <select @vue:mounted="initMultiselect($el,filter)" multiple="multiple"
+                @change="updateFilter(filter,$event)"
+                class=" multisel form-control select-mdash-filter input-mdash-filter" :id="filter.codigo">
+                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
+                  {{ opt[filter.campooption] }}
+                </option>
+              </select>
+
+
+            </div>
+
+
 
             <!-- logic -->
             <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
@@ -1428,35 +1469,35 @@
       },
       handleSetUIValueForMultiSelect(el, valor) {
         if (!valor) return;
-       
+
         if (Array.isArray(valor)) {
-       
+
           $(el).val(valor).trigger('change.select2');
           return;
         }
-        const arrayValores = valor
+        /* const arrayValores = valor
+           .split(',')
+           .map(v => v.trim().replace(/^'|'$/g, ''))
+           .filter(v => v !== '');*/
+        const arrayValores = (valor || '')
           .split(',')
-          .map(v => v.trim().replace(/^'|'$/g, ''))
+          .map(v => v.trim().replace(/^'+|'+$/g, '')) // remove qualquer número de aspas no início/fim
           .filter(v => v !== '');
 
-        
         $(el).val(arrayValores).trigger('change.select2');
 
 
       },
       handleMultiSelectValue(valor) {
-        var arrValor = []
-        if (!valor || !Array.isArray(valor)) return [];
 
-        if (valor) {
-          arrValor = valor;
-        }
+        if (!valor || !Array.isArray(valor) || valor.length === 0) return "";
 
-        if (arrValor.length == 0) {
-          return "";
-        }
+        // Remove aspas existentes e adiciona uma só por valor
+        return valor
+          .map(v => `${v.replace(/^'+|'+$/g, '')}`)
+          .join(',');
 
-        return arrValor.map(v => `'${v}'`).join(',')
+
       },
       getOptions(filter) {
         try {
@@ -1557,7 +1598,23 @@
 
         this.executeUpdateFilter(filtro, event.target.value);
 
-      }
+      },
+      selectAllOptions(filtro) {
+
+        var allValues = $("#" + filtro.codigo).find('option:not([value="todos"])').map(function () {
+          return this.value;
+        }).get();
+
+        this.executeUpdateFilter(filtro, this.handleMultiSelectValue(allValues));
+        $("#" + filtro.codigo).val(allValues).trigger('change.select2');
+      },
+      deselectAllOptions(filtro) {
+
+        var allValues = []
+
+        this.executeUpdateFilter(filtro, this.handleMultiSelectValue(allValues));
+        $("#" + filtro.codigo).val(allValues).trigger('change.select2');
+      },
     });
 
     window.mdashAppState = state;

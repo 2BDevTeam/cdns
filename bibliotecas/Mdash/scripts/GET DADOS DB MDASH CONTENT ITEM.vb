@@ -141,7 +141,8 @@ Catch ex As Exception
     Dim responseDTO = New With {
         .cod = "0007",
         .codDesc = "Error",
-        .message = ex.ToString()
+        .message = ex.ToString(),
+        .queryComFiltros = queryComFiltros
     }
     mpage.Response.Write(Newtonsoft.Json.JsonConvert.SerializeObject(responseDTO))
 

@@ -37,19 +37,35 @@ function getAllMappedLocalDBDataSimpleArray() {
 
 
 
+
+
 function replaceLocalDbKeywords(dados) {
-    var dadosString = JSON.stringify(dados);
     
-    dadosString = dadosString.replace(/\b(total|no)\b/g, function (match) {
-        switch (match) {
-            case 'total': return 'tot';
-            case 'no': return 'num';
-            default: return match;
-        }
+    var LOCAL_DB_KEYWORD_MAP = {
+        'total': 'tot',
+        'no': 'num',
+        'natural': 'nat',
+        'order': 'ord',
+        'group': 'grp',
+        'select': 'sel',
+        'from': 'frm',
+        'where': 'whr',
+        'count': 'cnt'
+        // Adicione mais conforme necessário
+    };
+
+    // Cria o regex uma vez só baseado nas chaves do mapa
+    var LOCAL_DB_KEYWORDS_REGEX = new RegExp('\\b(' + Object.keys(LOCAL_DB_KEYWORD_MAP).join('|') + ')\\b', 'g');
+
+    var dadosString = JSON.stringify(dados);
+
+    dadosString = dadosString.replace(LOCAL_DB_KEYWORDS_REGEX, function (match) {
+        return LOCAL_DB_KEYWORD_MAP[match] || match;
     });
 
     return JSON.parse(dadosString);
 }
+
 
 function extractLocalDbSchema(dadosSchema) {
 

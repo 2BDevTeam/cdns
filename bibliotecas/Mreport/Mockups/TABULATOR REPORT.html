@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório IGEPE</title>
+    <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        
+        .header-container {
+            margin-bottom: 20px;
+        }
+        
+        .header-container h1, .header-container h2 {
+            margin: 0;
+            padding: 0;
+        }
+        
+        .header-container h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header-container h2 {
+            font-size: 18px;
+            font-weight: normal;
+            margin-bottom: 10px;
+        }
+        
+        .tabulator {
+            border: none;
+        }
+        
+        .tabulator .tabulator-header {
+            border-bottom: 2px solid #1e90ff;
+            background-color: transparent;
+        }
+        
+        .tabulator .tabulator-header .tabulator-col {
+            background-color: transparent;
+            border-right: none;
+        }
+        
+        .tabulator .tabulator-header .tabulator-col .tabulator-col-content {
+            padding: 10px;
+            font-weight: bold;
+        }
+        
+        .tabulator .tabulator-tableholder .tabulator-table .tabulator-row {
+            background-color: transparent;
+            border-bottom: none;
+        }
+        
+        .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell {
+            border-right: none;
+            padding: 8px 10px;
+        }
+        
+        .tabulator-row.ativos-correntes {
+            background-color: #dbeafe !important;
+        }
+        
+        .tabulator-row.ativos-nao-correntes {
+            background-color: transparent;
+        }
+        
+        .tabulator-row.grupo-principal {
+            font-weight: bold;
+        }
+        
+        .tabulator-row.subgrupo {
+            font-weight: bold;
+        }
+        
+        .tabulator-row.item {
+            padding-left: 20px;
+        }
+        
+        .tabulator-row.total {
+            font-weight: bold;
+            border-top: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container">
+        <h1>IGEPE</h1>
+        <h2>CENTRO DE LEGISLAMENTO SEGUINTE</h2>
+        <h2>Balanço</h2>
+    </div>
+    
+    <div id="tabela-relatorio"></div>
+
+    <script>
+        // Dados para a tabela
+        var tableData = [
+            { descricao: "ACTIVOS", A2022: "", ND: "", variacao: "", variacaoPercent: "", nivel: "principal" },
+            
+            { descricao: "Activos correntes", A2022: "", ND: "", variacao: "", variacaoPercent: "", nivel: "subgrupo", classe: "ativos-correntes" },
+            { descricao: "Inventários", A2022: "13 098 600 578.17", ND: "0.00", variacao: "13 098 600 578.17", variacaoPercent: "", nivel: "item" },
+            { descricao: "Activos biológicos", A2022: "0.00", ND: "0.00", variacao: "0.00", variacaoPercent: "0", nivel: "item" },
+            { descricao: "Clientes", A2022: "38 550 426 756.25", ND: "0.00", variacao: "38 550 426 756.25", variacaoPercent: "", nivel: "item" },
+            { descricao: "Outros activos financeiros", A2022: "0.00", ND: "0.00", variacao: "0.00", variacaoPercent: "0", nivel: "item" },
+            { descricao: "Outros activos correntes", A2022: "58 938 683 101.17", ND: "0.00", variacao: "58 938 683 101.17", variacaoPercent: "", nivel: "item" },
+            { descricao: "Caixa e bancos", A2022: "58 090 014 044.90", ND: "0.00", variacao: "58 090 014 044.90", variacaoPercent: "", nivel: "item" },
+            { descricao: "Activos não correntes detidos para venda", A2022: "267 111 300.00", ND: "0.00", variacao: "267 111 300.00", variacaoPercent: "", nivel: "item" },
+            { descricao: "Total- Activos correntes", A2022: "168 944 835 780.49", ND: "0.00", variacao: "168 944 835 780.49", variacaoPercent: "", nivel: "total" },
+            
+            { descricao: "Activos não correntes", A2022: "", ND: "", variacao: "", variacaoPercent: "", nivel: "subgrupo", classe: "ativos-nao-correntes" },
+            { descricao: "Activos tangíveis", A2022: "391 433 875 825.82", ND: "0.00", variacao: "391 433 875 825.82", variacaoPercent: "", nivel: "item" },
+            { descricao: "Activos tangíveis de investimento", A2022: "13 620 279 102.37", ND: "0.00", variacao: "13 620 279 102.37", variacaoPercent: "", nivel: "item" },
+            { descricao: "Goodwill", A2022: "73 808 085.20", ND: "0.00", variacao: "73 808 085.20", variacaoPercent: "", nivel: "item" },
+            { descricao: "Activos intangíveis", A2022: "220 747 032 462.59", ND: "0.00", variacao: "220 747 032 462.59", variacaoPercent: "", nivel: "item" },
+            { descricao: "Activos biológicos", A2022: "0.00", ND: "0.00", variacao: "0.00", variacaoPercent: "0", nivel: "item" },
+            { descricao: "Investimentos em associadas", A2022: "31 499 049 473.35", ND: "0.00", variacao: "31 499 049 473.35", variacaoPercent: "", nivel: "item" },
+            { descricao: "Investimentos em subsidiárias", A2022: "0.00", ND: "0.00", variacao: "0.00", variacaoPercent: "0", nivel: "item" }
+        ];
+
+        // Configuração da tabela
+        var table = new Tabulator("#tabela-relatorio", {
+            data: tableData,
+            layout: "fitColumns",
+            columns: [
+                {
+                    title: "Descrição", 
+                    field: "descricao", 
+                    widthGrow: 2,
+                    headerSort: false, 
+                    resizable: false,
+                    formatter: function(cell, formatterParams, onRendered) {
+                        var row = cell.getRow();
+                        var nivel = row.getData().nivel;
+                        
+                        if (nivel === "item") {
+                            return "<span style='padding-left: 20px;'>" + cell.getValue() + "</span>";
+                        }
+                        
+                        return cell.getValue();
+                    }
+                },
+                {
+                    title: "A2022", 
+                    field: "A2022", 
+                    widthGrow: 1,
+                    headerSort: false, 
+                    resizable: false
+                },
+                {
+                    title: "N/D", 
+                    field: "ND", 
+                    widthGrow: 1,
+                    headerSort: false, 
+                    resizable: false
+                },
+                {
+                    title: "Variação", 
+                    field: "variacao", 
+                    widthGrow: 1,
+                    headerSort: false, 
+                    resizable: false
+                },
+                {
+                    title: "Variação(%)", 
+                    field: "variacaoPercent", 
+                    widthGrow: 1,
+                    headerSort: false, 
+                    resizable: false
+                }
+            ],
+            rowFormatter: function(row) {
+                var data = row.getData();
+                var nivel = data.nivel;
+                var classe = data.classe || "";
+                
+                if (nivel === "principal") {
+                    row.getElement().classList.add("grupo-principal");
+                } else if (nivel === "subgrupo") {
+                    row.getElement().classList.add("subgrupo");
+                    if (classe) {
+                        row.getElement().classList.add(classe);
+                    }
+                } else if (nivel === "item") {
+                    row.getElement().classList.add("item");
+                } else if (nivel === "total") {
+                    row.getElement().classList.add("total");
+                }
+            }
+        });
+    </script>
+</body>
+</html>

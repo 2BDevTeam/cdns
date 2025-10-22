@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Prazos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background: var(--m-time-line-bg-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            color: var(--m-time-line-text-primary);
+        }
+
+        :root {
+            --m-time-line-dentro-prazo: #4CAF50;
+            --m-time-line-prestes-expirar: #FF9800;
+            --m-time-line-expirados: #F44336;
+            --m-time-line-anotado: #2196F3;
+            --m-time-line-visado: #9C27B0;
+            --m-time-line-transitado-anotado: #64B5F6;
+            --m-time-line-transitado-visado: #BA68C8;
+            --m-time-line-bg-primary: #f8fafc;
+            --m-time-line-bg-card: #ffffff;
+            --m-time-line-text-primary: #1e293b;
+            --m-time-line-text-secondary: #64748b;
+        }
+
+        .m-time-line-dashboard-container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--m-time-line-bg-card);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+        }
+
+        .m-time-line-cards-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .m-time-line-card {
+            background: var(--m-time-line-bg-card);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .m-time-line-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .m-time-line-card.m-time-line-dentro-prazo::before {
+            background: linear-gradient(90deg, var(--m-time-line-dentro-prazo), #66bb6a);
+        }
+
+        .m-time-line-card.m-time-line-prestes-expirar::before {
+            background: linear-gradient(90deg, var(--m-time-line-prestes-expirar), #ffb74d);
+        }
+
+        .m-time-line-card.m-time-line-expirados::before {
+            background: linear-gradient(90deg, var(--m-time-line-expirados), #ef5350);
+        }
+
+        .m-time-line-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .m-time-line-card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 18px;
+            padding-top: 5px;
+        }
+
+        .m-time-line-status-count {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-right: 15px;
+            width: 65px;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .m-time-line-card.m-time-line-dentro-prazo .m-time-line-status-count {
+            background: linear-gradient(135deg, var(--m-time-line-dentro-prazo), #66bb6a);
+        }
+
+        .m-time-line-card.m-time-line-prestes-expirar .m-time-line-status-count {
+            background: linear-gradient(135deg, var(--m-time-line-prestes-expirar), #ffb74d);
+        }
+
+        .m-time-line-card.m-time-line-expirados .m-time-line-status-count {
+            background: linear-gradient(135deg, var(--m-time-line-expirados), #ef5350);
+        }
+
+        .m-time-line-status-info {
+            flex: 1;
+        }
+
+        .m-time-line-status-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--m-time-line-text-primary);
+        }
+
+        .m-time-line-status-subtitle {
+            font-size: 0.8rem;
+            color: var(--m-time-line-text-secondary);
+            margin-top: 3px;
+        }
+
+        .m-time-line-card.m-time-line-dentro-prazo .m-time-line-status-subtitle {
+            color: var(--m-time-line-dentro-prazo);
+        }
+
+        .m-time-line-card.m-time-line-prestes-expirar .m-time-line-status-subtitle {
+            color: var(--m-time-line-prestes-expirar);
+        }
+
+        .m-time-line-card.m-time-line-expirados .m-time-line-status-subtitle {
+            color: var(--m-time-line-expirados);
+        }
+
+        .m-time-line-details {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .m-time-line-category {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .m-time-line-category-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+
+        .m-time-line-category-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--m-time-line-text-secondary);
+        }
+
+        .m-time-line-category-items {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .m-time-line-detail-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 8px;
+            border-radius: 10px;
+            background: #f8fafc;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .m-time-line-detail-item:hover {
+            background: #f1f5f9;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .m-time-line-detail-label {
+            font-size: 0.75rem;
+            color: var(--m-time-line-text-secondary);
+            margin-bottom: 5px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .m-time-line-detail-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .m-time-line-anotado {
+            color: var(--m-time-line-anotado);
+        }
+
+        .m-time-line-visado {
+            color: var(--m-time-line-visado);
+        }
+
+        .m-time-line-transitado-anotado {
+            color: var(--m-time-line-transitado-anotado);
+        }
+
+        .m-time-line-transitado-visado {
+            color: var(--m-time-line-transitado-visado);
+        }
+
+        .m-time-line-progress-container {
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .m-time-line-progress-bar {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+
+        .m-time-line-anotado .m-time-line-progress-bar {
+            background: var(--m-time-line-anotado);
+        }
+
+        .m-time-line-visado .m-time-line-progress-bar {
+            background: var(--m-time-line-visado);
+        }
+
+        .m-time-line-transitado-anotado .m-time-line-progress-bar {
+            background: var(--m-time-line-transitado-anotado);
+        }
+
+        .m-time-line-transitado-visado .m-time-line-progress-bar {
+            background: var(--m-time-line-transitado-visado);
+        }
+
+        /* Ajustando as larguras das barras de progresso conforme os valores */
+        .m-time-line-card.m-time-line-dentro-prazo .m-time-line-anotado .m-time-line-progress-bar {
+            width: 67%;
+        }
+
+        .m-time-line-card.m-time-line-dentro-prazo .m-time-line-visado .m-time-line-progress-bar {
+            width: 33%;
+        }
+
+        .m-time-line-card.m-time-line-dentro-prazo .m-time-line-transitado-anotado .m-time-line-progress-bar {
+            width: 50%;
+        }
+
+        .m-time-line-card.m-time-line-dentro-prazo .m-time-line-transitado-visado .m-time-line-progress-bar {
+            width: 0%;
+        }
+
+        .m-time-line-card.m-time-line-prestes-expirar .m-time-line-anotado .m-time-line-progress-bar,
+        .m-time-line-card.m-time-line-prestes-expirar .m-time-line-visado .m-time-line-progress-bar,
+        .m-time-line-card.m-time-line-prestes-expirar .m-time-line-transitado-anotado .m-time-line-progress-bar,
+        .m-time-line-card.m-time-line-prestes-expirar .m-time-line-transitado-visado .m-time-line-progress-bar {
+            width: 0%;
+        }
+
+        .m-time-line-card.m-time-line-expirados .m-time-line-anotado .m-time-line-progress-bar {
+            width: 50%;
+        }
+
+        .m-time-line-card.m-time-line-expirados .m-time-line-visado .m-time-line-progress-bar {
+            width: 0%;
+        }
+
+        .m-time-line-card.m-time-line-expirados .m-time-line-transitado-anotado .m-time-line-progress-bar {
+            width: 50%;
+        }
+
+        .m-time-line-card.m-time-line-expirados .m-time-line-transitado-visado .m-time-line-progress-bar {
+            width: 50%;
+        }
+
+        @media (max-width: 768px) {
+            .m-time-line-dashboard-container {
+                padding: 20px;
+            }
+
+            .m-time-line-card {
+                padding: 18px;
+            }
+
+            .m-time-line-status-count {
+                width: 60px;
+                height: 60px;
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .m-time-line-category-items {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .m-time-line-detail-value {
+                font-size: 1.1rem;
+            }
+        }
+
+
+    </style>
+</head>
+
+<body>
+    <div class="m-time-line-dashboard-containerX">
+        <div class="m-time-line-cards-container">
+            <div class="m-time-line-card m-time-line-dentro-prazo">
+                <div class="m-time-line-card-header">
+                    <div class="m-time-line-status-count">3</div>
+                    <div class="m-time-line-status-info">
+                        <div class="m-time-line-status-title">Dentro do Prazo</div>
+                        <div class="m-time-line-status-subtitle">Processos em dia</div>
+                    </div>
+                </div>
+                <div class="m-time-line-details">
+                    <div class="m-time-line-category">
+                        <div class="m-time-line-category-header">
+                            <div class="m-time-line-category-title">Anotado</div>
+                        </div>
+                        <div class="m-time-line-category-items">
+                            <div class="m-time-line-detail-item m-time-line-anotado">
+                                <span class="m-time-line-detail-label">Anotado</span>
+                                <span class="m-time-line-detail-value">2</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                            <div class="m-time-line-detail-item m-time-line-transitado-anotado">
+                                <span class="m-time-line-detail-label">Transitado</span>
+                                <span class="m-time-line-detail-value">1</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="m-time-line-category">
+                        <div class="m-time-line-category-header">
+                            <div class="m-time-line-category-title">Visado</div>
+                        </div>
+                        <div class="m-time-line-category-items">
+                            <div class="m-time-line-detail-item m-time-line-visado">
+                                <span class="m-time-line-detail-label">Visado</span>
+                                <span class="m-time-line-detail-value">1</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                            <div class="m-time-line-detail-item m-time-line-transitado-visado">
+                                <span class="m-time-line-detail-label">Transitado</span>
+                                <span class="m-time-line-detail-value">0</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="m-time-line-card m-time-line-prestes-expirar">
+                <div class="m-time-line-card-header">
+                    <div class="m-time-line-status-count">0</div>
+                    <div class="m-time-line-status-info">
+                        <div class="m-time-line-status-title">Prestes a Expirar</div>
+                        <div class="m-time-line-status-subtitle">Atenção necessária</div>
+                    </div>
+                </div>
+                <div class="m-time-line-details">
+                    <div class="m-time-line-category">
+                        <div class="m-time-line-category-header">
+                            <div class="m-time-line-category-title">Anotado</div>
+                        </div>
+                        <div class="m-time-line-category-items">
+                            <div class="m-time-line-detail-item m-time-line-anotado">
+                                <span class="m-time-line-detail-label">Anotado</span>
+                                <span class="m-time-line-detail-value">0</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                            <div class="m-time-line-detail-item m-time-line-transitado-anotado">
+                                <span class="m-time-line-detail-label">Transitado</span>
+                                <span class="m-time-line-detail-value">0</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="m-time-line-category">
+                        <div class="m-time-line-category-header">
+                            <div class="m-time-line-category-title">Visado</div>
+                        </div>
+                        <div class="m-time-line-category-items">
+                            <div class="m-time-line-detail-item m-time-line-visado">
+                                <span class="m-time-line-detail-label">Visado</span>
+                                <span class="m-time-line-detail-value">0</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                            <div class="m-time-line-detail-item m-time-line-transitado-visado">
+                                <span class="m-time-line-detail-label">Transitado</span>
+                                <span class="m-time-line-detail-value">0</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="m-time-line-card m-time-line-expirados">
+                <div class="m-time-line-card-header">
+                    <div class="m-time-line-status-count">2</div>
+                    <div class="m-time-line-status-info">
+                        <div class="m-time-line-status-title">Expirados</div>
+                        <div class="m-time-line-status-subtitle">Ações pendentes</div>
+                    </div>
+                </div>
+                <div class="m-time-line-details">
+                    <div class="m-time-line-category">
+                        <div class="m-time-line-category-header">
+                            <div class="m-time-line-category-title">Anotado</div>
+                        </div>
+                        <div class="m-time-line-category-items">
+                            <div class="m-time-line-detail-item m-time-line-anotado">
+                                <span class="m-time-line-detail-label">Anotado</span>
+                                <span class="m-time-line-detail-value">1</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                            <div class="m-time-line-detail-item m-time-line-transitado-anotado">
+                                <span class="m-time-line-detail-label">Transitado</span>
+                                <span class="m-time-line-detail-value">1</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="m-time-line-category">
+                        <div class="m-time-line-category-header">
+                            <div class="m-time-line-category-title">Visado</div>
+                        </div>
+                        <div class="m-time-line-category-items">
+                            <div class="m-time-line-detail-item m-time-line-visado">
+                                <span class="m-time-line-detail-label">Visado</span>
+                                <span class="m-time-line-detail-value">0</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                            <div class="m-time-line-detail-item m-time-line-transitado-visado">
+                                <span class="m-time-line-detail-label">Transitado</span>
+                                <span class="m-time-line-detail-value">1</span>
+                                <div class="m-time-line-progress-container">
+                                    <div class="m-time-line-progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

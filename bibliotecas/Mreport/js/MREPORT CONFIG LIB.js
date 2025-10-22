@@ -1124,7 +1124,7 @@ function initConfiguracaoMReport(data) {
                 }
                 fetchDadosMreport({}, response.data);
             } catch (error) {
-                console.log("Erro interno " + errorMessage, response);
+                console.log("Erro interno " + errorMessage, error);
             }
         }
     });
@@ -2124,6 +2124,11 @@ function MReportFonte(data) {
 
 MReportFonte.prototype.setTupDataOnLocalDb = function (data) {
 
+    console.log(this.lastResults)
+
+    if(this.lastResults.length==0){
+        return;
+    }
     var tableSchema = extractLocalDbSchema(this.lastResults[0]);
 
     setTupDataOnLocalDb("MReportDB", this.codigo, tableSchema, this.lastResults, this.mreportfonstestamp);
