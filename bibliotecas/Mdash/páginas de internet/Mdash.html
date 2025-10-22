@@ -16,9 +16,26 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
 
 <style>
-  .select2-selection__rendered{
-    overflow-x: scroll!important;
+  .select2-selection__rendered {
+    overflow-x: scroll !important;
   }
+
+  .select2-selection__choice {
+    position: relative !important;
+    padding-right: 25px !important;
+    /* Espaço garantido para o botão */
+  }
+
+  .select2-selection__choice__remove {
+    position: absolute !important;
+    right: 4px !important;
+    top: 4px !important;
+    /* Alinhamento mais preciso no topo */
+    transform: none !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+  }
+
   /* CONTAINER RESPONSIVO */
   .gr-container {
     width: 100%;
@@ -67,7 +84,7 @@
     grid-auto-rows: 1fr;
     margin-bottom: 2rem;
     grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    
+
   }
 
   /* COLUNAS base */

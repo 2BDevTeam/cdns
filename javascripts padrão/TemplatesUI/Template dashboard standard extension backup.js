@@ -1,5 +1,8 @@
+
 $(document).ready(function () {
+
     var styles = []
+
     addDashboardStyles(styles);
     addTabulatorStyles(styles);
     addBtnStyles(styles);
@@ -9,44 +12,57 @@ $(document).ready(function () {
     });
     $('head').append('<style>' + globalStyle + '</style>');
     applyTabulatorStylesWithJqueryMdash()
+
 });
 
 
+
+
 // ...existing code...
+
 function addTabulatorStyles(styles) {
     var tabulatorCSS = "";
+
     tabulatorCSS += ".visualization-container {";
     tabulatorCSS += "    border: 1px solid #dee2e6;";
     tabulatorCSS += "    border-radius: 0.375rem;";
     tabulatorCSS += "    padding: 1rem;";
     tabulatorCSS += "    min-height: 400px;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator-row.tabulator-tree-level-1 {";
     tabulatorCSS += "    background-color: #f8f9fa !important;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator-row.tabulator-tree-level-2 {";
     tabulatorCSS += "    background-color: #e9ecef !important;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator-row.tabulator-tree-level-3 {";
     tabulatorCSS += "    background-color: #dee2e6 !important;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator-row.tabulator-tree-level-4 {";
     tabulatorCSS += "    background-color: #ced4da !important;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator-row.tabulator-tree-level-5 {";
     tabulatorCSS += "    background-color: #adb5bd !important;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator {";
     tabulatorCSS += "    background-color: white;";
     tabulatorCSS += "    border-radius: 10px;";
     tabulatorCSS += "    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);";
     tabulatorCSS += "    border: none;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator .tabulator-header {";
     tabulatorCSS += "    background-color:" + getColorByType("primary").background + ";";
     tabulatorCSS += "    border-bottom: none;";
     tabulatorCSS += "    border-radius: 10px 10px 0 0;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator .tabulator-header .tabulator-col {";
     tabulatorCSS += "    background-color:" + getColorByType("primary").background;
     tabulatorCSS += "    color: white;";
@@ -54,26 +70,33 @@ function addTabulatorStyles(styles) {
     tabulatorCSS += "    padding: 12px 15px;";
     tabulatorCSS += "    font-weight: 500;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator .tabulator-header .tabulator-col:first-child {";
     tabulatorCSS += "    border-top-left-radius: 10px;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator .tabulator-header .tabulator-col:last-child {";
     tabulatorCSS += "    border-top-right-radius: 10px;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator-row {";
     tabulatorCSS += "    border-bottom: 1px solid #e0e6ed;";
     tabulatorCSS += "    transition: background-color 0.2s ease;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator-row.tabulator-row-even {";
     tabulatorCSS += "    background-color: #fcfdfe;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator-row:hover {";
     tabulatorCSS += "    background-color: #f5f9ff !important;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator-cell {";
     tabulatorCSS += "    padding: 12px 15px;";
     tabulatorCSS += "    border-right: none;";
     tabulatorCSS += "}";
+
     var tabulatorCSS = "";
     tabulatorCSS += ".mrend-input-cell{";
     tabulatorCSS += "    background: rgb(239, 240, 241);";
@@ -92,9 +115,11 @@ function addTabulatorStyles(styles) {
     tabulatorCSS += "    transition: background-color 0.2s ease!important;";
     tabulatorCSS += "    background-color: white;";
     tabulatorCSS += "}";
+
     tabulatorCSS += ".tabulator .tabulator-col-resize-handle:hover {"
     tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
     tabulatorCSS += "}"
+
     tabulatorCSS += ".tabulator .tabulator-col-resize-handle:hover {"
     tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
     tabulatorCSS += "}"
@@ -104,6 +129,7 @@ function addTabulatorStyles(styles) {
     tabulatorCSS += ".tabulator-cell:hover .tabulator-col-resize-handle {"
     tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
     tabulatorCSS += "}"
+
     /* tabulatorCSS += ".tabulator-cell:hover ~ .tabulator-col-resize-handle {"
      tabulatorCSS += "border:6px solid " + getColorByType("primary").background + "!important;"
      tabulatorCSS += "}"*/
@@ -113,6 +139,7 @@ function addTabulatorStyles(styles) {
     tabulatorCSS += ".tabulator-cell:hover .tabulator-col-resize-handle {"
     tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
     tabulatorCSS += "}"
+
     tabulatorCSS += ".tabulator-cell input[type='checkbox'] {";
     tabulatorCSS + " -webkit-appearance: none!important;"
     tabulatorCSS += "border: 1px solid " + getColorByType("primary").background + "!important;";
@@ -138,11 +165,16 @@ function addTabulatorStyles(styles) {
     tabulatorCSS += "    color: #fff!important;";
     tabulatorCSS += "}";
 
+
     styles.push(tabulatorCSS);
 }
+
 function applyTabulatorStylesWithJqueryMdash() {
+
     var customStyles = {}
+
     //console.log(("mrendThis.reportConfig", mrendThis.reportConfig)
+
     // Tabulator container
     $(".tabulator").css({
         "background-color": "white",
@@ -150,6 +182,7 @@ function applyTabulatorStylesWithJqueryMdash() {
         "box-shadow": "0 4px 20px rgba(0, 0, 0, 0.08)",
         "border": "none"
     });
+
     // Header
     $(".tabulator .tabulator-header").css({
         "background-color": customStyles.headerBackground ? customStyles.headerBackground : getColorByType("primary").background,
@@ -157,6 +190,7 @@ function applyTabulatorStylesWithJqueryMdash() {
         "border-radius": "10px 10px 0 0",
         "padding": "13px"
     });
+
     // Header columns
     $(".tabulator .tabulator-header .tabulator-col").css({
         "background-color": customStyles.headerBackground ? customStyles.headerBackground : getColorByType("primary").background,
@@ -165,8 +199,10 @@ function applyTabulatorStylesWithJqueryMdash() {
         /*  "padding": "12px 15px",*/
         "font-weight": "500"
     });
+
     $(".tabulator .tabulator-header .tabulator-col:first-child").css("border-top-left-radius", "10px");
     $(".tabulator .tabulator-header .tabulator-col:last-child").css("border-top-right-radius", "10px");
+
     // Rows
     $(".tabulator-row").css({
         "border-bottom": "1px solid #e0e6ed",
@@ -177,14 +213,17 @@ function applyTabulatorStylesWithJqueryMdash() {
         function () { $(this).css("background-color", "#f5f9ff"); },
         function () { $(this).css("background-color", ""); }
     );*/
+
     $(".tabulator .tabulator-header .tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid red");
     $(".tabulator-row .tabulator-cell.tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid #0000");
+
 
     // Cells
     $(".tabulator-cell").css({
         "padding": "12px 15px",
         "border-right": "none"
     });
+
     // Botão adicionar
     $(".btn-add").css({
         "margin": "0 0 15px 0",
@@ -214,7 +253,9 @@ function applyTabulatorStylesWithJqueryMdash() {
             });
         }
     );
+
     $(".btn-add i").css("margin-right", "6px");
+
     // Botões de ação
     $(".action-btn").css({
         "background": "none",
@@ -238,6 +279,7 @@ function applyTabulatorStylesWithJqueryMdash() {
             });
         }
     );
+
     // Tree/indent
     $(".tabulator-row .tabulator-cell.tabulator-tree-col").css("padding-left", "15px");
     $(".tabulator-tree-branch").css({
@@ -247,6 +289,7 @@ function applyTabulatorStylesWithJqueryMdash() {
     $(".tabulator-tree-level-1 .tabulator-cell.tabulator-tree-col").css("padding-left", "30px");
     $(".tabulator-tree-level-2 .tabulator-cell.tabulator-tree-col").css("padding-left", "45px");
     $(".tabulator-tree-level-3 .tabulator-cell.tabulator-tree-col").css("padding-left", "60px");
+
     // Tree controls
     $(".tabulator-row .tabulator-cell .tabulator-data-tree-control").css({
         "align-items": "center",
@@ -261,6 +304,7 @@ function applyTabulatorStylesWithJqueryMdash() {
         "vertical-align": "middle",
         "width": "11px"
     });
+
     $(".tabulator-tree-collapse, .tabulator-tree-expand").css({
         "color": getColorByType("primary").background,
         "border-radius": "50%",
@@ -275,6 +319,7 @@ function applyTabulatorStylesWithJqueryMdash() {
         function () { $(this).css("background-color", "rgba(7, 101, 183, 0.1)"); },
         function () { $(this).css("background-color", ""); }
     );
+
     // Edit list
     $(".tabulator-edit-list").css({
         "z-index": "9999",
@@ -288,163 +333,20 @@ function applyTabulatorStylesWithJqueryMdash() {
         "background-color": "rgba(7, 101, 183, 0.1)",
         "color": getColorByType("primary").background
     });
+
     // Scrollbar (apenas para webkit browsers)
     // $("body").append('<style>::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; } ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }</style>');
-}
-
-// ...existing code...
-function generateCardTimeLine(cardData) {
-    var dashCard = new MDashCard(cardData);
-    var ex = dashCard.extraData || {};
-
-    // Status: dentro-prazo | prestes-expirar | expirados
-    var status = (ex.status || 'dentro-prazo').toLowerCase();
-    var classes = 'm-time-line-card m-time-line-' + status + (dashCard.classes ? (' ' + dashCard.classes) : '');
-    var styles = dashCard.styles || '';
-
-    var count = typeof ex.count === 'number' ? ex.count : 0;
-    var title = ex.title || dashCard.title || '';
-    var subtitle = ex.subtitle || '';
-
-    // Valores por categoria
-    var anotado = ex.anotado || { value: 0, transitado: 0 };
-    var visado = ex.visado || { value: 0, transitado: 0 };
-
-    var totalAnotado = (anotado.value || 0) + (anotado.transitado || 0);
-    var totalVisado = (visado.value || 0) + (visado.transitado || 0);
-
-    function pct(v, total) {
-        var n = parseFloat(v) || 0;
-        var t = parseFloat(total) || 0;
-        if (t <= 0) return 0;
-        var p = Math.round((n / t) * 100);
-        return Math.max(0, Math.min(100, p));
-    }
-
-    var html = '';
-    html += '<div class="' + classes + '" style="' + styles + '">';
-    html += '  <div class="m-time-line-card-header">';
-    html += '    <div class="m-time-line-status-count">' + count + '</div>';
-    html += '    <div class="m-time-line-status-info">';
-    html += '      <div class="m-time-line-status-title">' + title + '</div>';
-    html += '      <div class="m-time-line-status-subtitle">' + subtitle + '</div>';
-    html += '    </div>';
-    html += '  </div>';
-
-    html += '  <div class="m-time-line-details">';
-
-    // Categoria: Anotado
-    html += '    <div class="m-time-line-category">';
-    html += '      <div class="m-time-line-category-header">';
-    html += '        <div class="m-time-line-category-title"></div>';
-    html += '      </div>';
-    html += '      <div class="m-time-line-category-items">';
-
-    // Item: Anotado
-    html += '        <div class="m-time-line-detail-item m-time-line-anotado">';
-    html += '          <span class="m-time-line-detail-label">Anotado</span>';
-    html += '          <span class="m-time-line-detail-value">' + (anotado.value || 0) + '</span>';
-    html += '          <div class="m-time-line-progress-container">';
-    html += '            <div class="m-time-line-progress-bar" style="width:' + pct(anotado.value, totalAnotado) + '%;"></div>';
-    html += '          </div>';
-    html += '        </div>';
-
-    // Item: Transitado (Anotado)
-    html += '        <div class="m-time-line-detail-item m-time-line-transitado-anotado">';
-    html += '          <span class="m-time-line-detail-label">Transitado</span>';
-    html += '          <span class="m-time-line-detail-value">' + (anotado.transitado || 0) + '</span>';
-    html += '          <div class="m-time-line-progress-container">';
-    html += '            <div class="m-time-line-progress-bar" style="width:' + pct(anotado.transitado, totalAnotado) + '%;"></div>';
-    html += '          </div>';
-    html += '        </div>';
-
-    html += '      </div>';
-    html += '    </div>';
-
-    // Categoria: Visado
-    html += '    <div class="m-time-line-category">';
-    html += '      <div class="m-time-line-category-header">';
-    html += '        <div class="m-time-line-category-title"></div>';
-    html += '      </div>';
-    html += '      <div class="m-time-line-category-items">';
-
-    // Item: Visado
-    html += '        <div class="m-time-line-detail-item m-time-line-visado">';
-    html += '          <span class="m-time-line-detail-label">Visado</span>';
-    html += '          <span class="m-time-line-detail-value">' + (visado.value || 0) + '</span>';
-    html += '          <div class="m-time-line-progress-container">';
-    html += '            <div class="m-time-line-progress-bar" style="width:' + pct(visado.value, totalVisado) + '%;"></div>';
-    html += '          </div>';
-    html += '        </div>';
-
-    // Item: Transitado (Visado)
-    html += '        <div class="m-time-line-detail-item m-time-line-transitado-visado">';
-    html += '          <span class="m-time-line-detail-label">Transitado</span>';
-    html += '          <span class="m-time-line-detail-value">' + (visado.transitado || 0) + '</span>';
-    html += '          <div class="m-time-line-progress-container">';
-    html += '            <div class="m-time-line-progress-bar" style="width:' + pct(visado.transitado, totalVisado) + '%;"></div>';
-    html += '          </div>';
-    html += '        </div>';
-
-    html += '      </div>';
-    html += '    </div>';
-
-    html += '  </div>'; // details
-    html += '</div>';   // card
-
-    return html;
-}
-
-// (Opcional) Gera o container com vários cards de timeline
-function generateTimeLineCardsContainer(cardsData) {
-    var html = '<div class="m-time-line-cards-container">';
-    (cardsData || []).forEach(function (c) { html += generateCardTimeLine(c); });
-    html += '</div>';
-    return html;
-}
-// ...existing code...
-function generateDashCardBudget(cardData) {
-    var dashCard = new MDashCard(cardData);
-    var id = dashCard.id || ('budget-' + (typeof generateUUID === 'function' ? generateUUID() : Date.now()));
-    var classes = 'budget-card ' + (dashCard.classes || '');
-    var styles = dashCard.styles || '';
-
-
-    var iconClass = dashCard.icon || 'fas fa-chart-pie';
-
-    var html = '';
-    html += '<div id="' + id + '" class="' + classes + '" style="' + styles + '">';
-    html += '  <div class="shape-divider"></div>';
-    html += '  <div class="wave-shape"></div>';
-    html += '  <div class="card-content">';
-    html += '    <div>';
-    html += '      <h2 class="card-title">' + (dashCard.title || '') + '</h2>';
-    html += '      <p class="card-subtitle">' + (dashCard.extraData.subtitle || '') + '</p>';
-    html += '    </div>';
-    html += '    <div class="budget-value">' + (dashCard.extraData.value || '') + '</div>';
-    html += '    <div class="budget-details">';
-    html += '      <div class="budget-item">';
-    html += '        <div class="budget-label">' + (dashCard.extraData.budgetLabel1 || '') + '</div>';
-    html += '        <div class="budget-amount budget-amount-1">' + (dashCard.extraData.budgetAmount1 || '') + '</div>';
-    html += '      </div>';
-    html += '      <div class="budget-item">';
-    html += '        <div class="budget-label">' + (dashCard.extraData.budgetLabel2 || '') + '</div>';
-    html += '        <div class="budget-amount budget-amount-2">' + (dashCard.extraData.budgetAmount2 || '') + '</div>';
-    html += '      </div>';
-    html += '    </div>';
-    html += '    <div class="icon-container"><i class="' + iconClass + '"></i></div>';
-    html += '  </div>';
-    html += '</div>';
-    return html;
 }
 
 
 function generateMDashCardSnapV2(cardData) {
     var dashCard = new MDashCard(cardData);
     var cardHTML = "";
+
     cardHTML += '<div id="' + (dashCard.id || 'snap-' + generateUUID()) + '" ';
     cardHTML += 'class="m-dash-card-snap-v2 ' + (dashCard.classes || '') + '" ';
     cardHTML += 'style="' + (dashCard.styles || '') + '">';
+
     // Conteúdo principal
     cardHTML += '  <div class="m-dash-card-snap-v2-content">';
     cardHTML += '    <div class="m-dash-card-snap-v2-icon bg-' + (dashCard.tipo || 'primary') + '">';
@@ -455,19 +357,26 @@ function generateMDashCardSnapV2(cardData) {
     cardHTML += '      <div class="m-dash-card-snap-v2-value">' + (dashCard.bodyContent || '0') + '</div>';
     cardHTML += '    </div>';
     cardHTML += '  </div>';
+
     // Rodapé
     cardHTML += '  <div class="m-dash-card-snap-v2-footer">';
-    cardHTML += '    ' + (dashCard.footer || '');
+    cardHTML += '    ' + (dashCard.footer || '<span class="text-success">+0%</span> em relação ao período anterior');
     cardHTML += '  </div>';
+
     cardHTML += '</div>';
+
     return cardHTML;
 }
+
+
 
 
 function generateMDashCardSnap(cardData) {
     var dashCard = new MDashCard(cardData);
     var cardHTML = "";
+
     cardHTML += '<div id="' + (dashCard.id || 'snap-' + generateUUID()) + '" class="m-dash-card-snap ' + (dashCard.classes || '') + '" style="height: 100%!important;' + (dashCard.styles || '') + '">';
+
     // Header
     cardHTML += '  <div class="m-dash-card-snap-header p-2 ps-3">';
     cardHTML += '    <div class="d-flex justify-content-between">';
@@ -480,36 +389,50 @@ function generateMDashCardSnap(cardData) {
     cardHTML += '      </div>';
     cardHTML += '    </div>';
     cardHTML += '  </div>';
+
     // Separator
     cardHTML += '  <hr class="dark horizontal my-0">';
+
     // Footer
     cardHTML += '  <div class="m-dash-card-snap-footer p-2 ps-3">';
     cardHTML += '    <p class="mb-0 text-sm">' + (dashCard.footer || '<span class="text-success font-weight-bolder">+0% </span>than last period') + '</p>';
     cardHTML += '  </div>';
+
     cardHTML += '</div>';
+
     return cardHTML;
 }
+
 // ...existing code...
+
 function generateDashCardSnapshot(cardData) {
     var dashCard = new MDashCard(cardData);
     var cardHTML = "";
+
     cardHTML += '<div id="' + (dashCard.id || 'snapshot-' + generateUUID()) + '" class="m-dash-item snapshot ' + (dashCard.classes || '') + '" style="height: 100%!important;' + (dashCard.styles || '') + '">';
     cardHTML += '  <div class="stats-card-value-container">';
     cardHTML += '    <span class="stats-card-label">' + (dashCard.title || "") + '</span>';
     cardHTML += '    <div class="stats-card-body">' + (dashCard.bodyContent || "") + '</div>';
     cardHTML += '  </div>';
     cardHTML += '</div>';
+
     return cardHTML;
 }
+
 function generateDashCardStandard(cardData) {
     var dashCard = new MDashCard(cardData);
     var cardHTML = "";
+
     cardHTML += '<div id="' + dashCard.id + '" class="m-dash-item ' + (dashCard.classes || '') + '" style="height: 100%!important;' + (dashCard.styles || '') + '">';
     cardHTML += '  <h1 class="m-dash-item-title">' + (dashCard.title || "Gráfico") + '</h1>';
+
     cardHTML += "<div class='m-dash-standard-card-body' >" + (dashCard.bodyContent || "") + "</div>";
+
     cardHTML += '</div>';
+
     return cardHTML;
 }
+
 
 function crateDynamicSchemaCustomCode(data) {
     return {
@@ -530,6 +453,8 @@ function crateDynamicSchemaCustomCode(data) {
         }
     };
 }
+
+
 function createDynamicSchemaGrafico(data) {
     var availableFields = Object.keys(data[0]);
 
@@ -768,17 +693,23 @@ function createDynamicSchemaGrafico(data) {
 
 
 function renderObjectGrafico(dados) {
+
     var chartId = 'm-dash-grafico' + dados.itemObject.mdashcontaineritemobjectstamp;
     $("#" + chartId).remove(); // Remove any existing chart with the same ID
     var chartDomDiv = "<div style='width: " + ("100" + "%" || "600px") + "; height: " + (dados.config.chartContainer.height + "px" || "400px") + ";' id='" + chartId + "' class='m-dash-grafico'></div>";
+
     console.log("dados.containerSelector", dados.containerSelector)
     $(dados.containerSelector).append(chartDomDiv);
+
 
     var chartElement = document.getElementById(chartId);
     var chartToRender = echarts.init(chartElement);
 
+
+
     updateChartOnContainer(chartToRender, dados.config, JSON.parse(JSON.stringify(dados.data)));
 }
+
 
 function updateChartOnContainer(chart, config, data) {
     try {
@@ -882,7 +813,9 @@ function updateChartOnContainer(chart, config, data) {
         console.error('Erro ao atualizar gráfico:', e);
     }
 }
+
 function getTiposObjectoConfig() {
+
     /*
      { tipo: 'chart', label: 'Gráfico', icon: '	fa fa-bar-chart' },
                 { tipo: 'pie', label: 'Pizza', icon: '	fa fa-pie-chart' },
@@ -908,12 +841,14 @@ function getTiposObjectoConfig() {
         createDynamicSchema: function (data) {
             var fieldOptions = [];
             var fieldTitles = [];
+
             if (data && data.length > 0) {
                 Object.keys(data[0]).forEach(function (key) {
                     fieldOptions.push(key);
                     fieldTitles.push(key);
                 });
             }
+
             return {
                 type: "object",
                 title: "Configuração do Gráfico de Pizza",
@@ -937,6 +872,7 @@ function getTiposObjectoConfig() {
                         },
                         description: "Campo que será usado como valor das fatias"
                     },
+
                     // Configurações visuais
                     radius: {
                         type: "object",
@@ -956,6 +892,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Configurações de aparência
                     itemStyle: {
                         type: "object",
@@ -977,6 +914,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Configurações da legenda
                     legend: {
                         type: "object",
@@ -1007,6 +945,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Configurações dos rótulos
                     label: {
                         type: "object",
@@ -1040,6 +979,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Configurações de tooltip
                     tooltip: {
                         type: "object",
@@ -1061,6 +1001,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Texto central (para donut charts)
                     centerText: {
                         type: "object",
@@ -1106,6 +1047,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Cores personalizadas
                     colors: {
                         type: "array",
@@ -1127,6 +1069,7 @@ function getTiposObjectoConfig() {
                             '#c4ccd3'
                         ]
                     },
+
                     // Dimensões
                     dimensions: {
                         type: "object",
@@ -1155,10 +1098,12 @@ function getTiposObjectoConfig() {
             var itemObject = params.itemObject;
             var config = params.config;
             var data = params.data;
+
             if (!config.labelField || !config.valueField) {
                 console.warn("Campos obrigatórios não configurados para o gráfico de pizza");
                 return;
             }
+
             updatePie(containerSelector, itemObject, config, data);
         }
     },
@@ -1174,10 +1119,12 @@ function getTiposObjectoConfig() {
             var itemObject = params.itemObject;
             var config = params.config;
             var data = params.data;
+
             if (!data || data.length === 0) {
                 console.warn("Nenhum dado disponível para renderizar a tabela");
                 return;
             }
+
             updateTable(containerSelector, itemObject, config, data);
         }
     },
@@ -1189,11 +1136,13 @@ function getTiposObjectoConfig() {
         categoria: "editor",
         createDynamicSchema: function (data) {
             var fieldOptions = [];
+
             if (data && data.length > 0) {
                 Object.keys(data[0]).forEach(function (key) {
                     fieldOptions.push(key);
                 });
             }
+
             return {
                 type: "object",
                 title: "Configuração de Texto",
@@ -1211,6 +1160,7 @@ function getTiposObjectoConfig() {
                         'default': "",
                         description: "Se não selecionar campo de dados, pode inserir texto fixo"
                     },
+
                     // Configurações de formatação de dados
                     dataFormat: {
                         type: "object",
@@ -1269,6 +1219,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Conteúdo do texto - MODIFICADO
                     content: {
                         type: "object",
@@ -1294,6 +1245,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Formatação de texto
                     textFormat: {
                         type: "object",
@@ -1340,6 +1292,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Cores
                     colors: {
                         type: "object",
@@ -1365,6 +1318,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Espaçamento e layout
                     spacing: {
                         type: "object",
@@ -1414,6 +1368,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Bordas
                     border: {
                         type: "object",
@@ -1441,6 +1396,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Efeitos
                     effects: {
                         type: "object",
@@ -1480,6 +1436,7 @@ function getTiposObjectoConfig() {
                             }
                         }
                     },
+
                     // Dimensões
                     dimensions: {
                         type: "object",
@@ -1513,6 +1470,7 @@ function getTiposObjectoConfig() {
             var itemObject = params.itemObject;
             var config = params.config;
             var data = params.data;
+
             updateTextElement(containerSelector, itemObject, config, data);
         }
     },
@@ -1541,15 +1499,21 @@ function getTiposObjectoConfig() {
     ]
 
 
+
+
 }
+
+
 
 function updateTextElement(containerSelector, itemObject, config, data, isConfig) {
     var textId = 'text_element_' + itemObject.mdashcontaineritemobjectstamp;
+
     // Limpar container
     $(containerSelector).html('');
     //$(textId).remove();
     // PREPARAR CONTEÚDO DOS DADOS - IGUAL AOS OUTROS OBJETOS
     var content = "";
+
     if (config.dataField && data && data.length > 0) {
         // Usar campo de dados
         if (config.content && config.content.multipleValues) {
@@ -1569,8 +1533,10 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
     } else {
         content = "Texto personalizado aqui...";
     }
+
     // Construir estilos CSS
     var styles = "";
+
     if (config.textFormat) {
         styles += "font-size: " + (config.textFormat.fontSize || 16) + "px;";
         styles += "font-weight: " + (config.textFormat.fontWeight || "normal") + ";";
@@ -1579,12 +1545,14 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
         styles += "text-align: " + (config.textFormat.textAlign || "left") + ";";
         styles += "line-height: " + (config.textFormat.lineHeight || 1.5) + ";";
     }
+
     if (config.colors) {
         styles += "color: " + (config.colors.textColor || "#333333") + ";";
         if (config.colors.backgroundColor !== "transparent") {
             styles += "background-color: " + config.colors.backgroundColor + ";";
         }
     }
+
     if (config.spacing) {
         styles += "padding: " +
             (config.spacing.paddingTop || 0) + "px " +
@@ -1595,6 +1563,7 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
             (config.spacing.marginTop || 0) + "px 0 " +
             (config.spacing.marginBottom || 0) + "px 0;";
     }
+
     if (config.border) {
         if (config.border.width > 0) {
             styles += "border: " + config.border.width + "px " +
@@ -1603,6 +1572,7 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
         }
         styles += "border-radius: " + (config.border.radius || 0) + "px;";
     }
+
     if (config.effects && config.effects.textShadow) {
         styles += "text-shadow: " +
             (config.effects.shadowOffsetX || 1) + "px " +
@@ -1610,6 +1580,7 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
             (config.effects.shadowBlur || 2) + "px " +
             (config.effects.shadowColor || "#666666") + ";";
     }
+
     if (config.dimensions) {
         styles += "width: " + (config.dimensions.width || "100%") + ";";
         if (config.dimensions.height !== "auto") {
@@ -1619,23 +1590,31 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
             styles += "max-width: " + config.dimensions.maxWidth + ";";
         }
     }
+
     // Criar elemento
     var textElement = "";
     textElement += '<div id="' + textId + '" class="m-dash-text-element" style="' + styles + '">';
+
     if (config.content && config.content.htmlEnabled) {
         textElement += content; // Permite HTML
     } else {
         textElement += $('<div>').text(content).html(); // Escapa HTML
     }
+
     textElement += '</div>';
+
     // Adicionar ao container
     $(containerSelector).append(textElement);
+
     console.log(containerSelector, 'Elemento de texto renderizado:', textId);
 }
+
 // FUNÇÃO AUXILIAR PARA FORMATAÇÃO DE DADOS
 function formatDataValue(value, formatConfig) {
-    if ((!formatConfig || !value) && (formatConfig.type != "currency" && formatConfig.type != "number")) return value;
+    if (!formatConfig || !value) return value;
+
     var formattedValue = value;
+
     try {
         switch (formatConfig.type) {
             case "number":
@@ -1647,6 +1626,7 @@ function formatDataValue(value, formatConfig) {
                     }).format(num);
                 }
                 break;
+
             case "currency":
                 console.log("")
                 var num = parseFloat(value);
@@ -1658,6 +1638,7 @@ function formatDataValue(value, formatConfig) {
                         maximumFractionDigits: formatConfig.maximumFractionDigits || 2,
                         currencyDisplay: 'symbol'
                     }).format(num);
+
                     // Mover símbolo da moeda para a direita
                     if (formatConfig.currencyPosition === 'right') {
                         var parts = formattedValue.match(/^([^\d]*)([\d\s.,]+)([^\d]*)$/);
@@ -1669,6 +1650,7 @@ function formatDataValue(value, formatConfig) {
                     }
                 }
                 break;
+
             case "percentage":
                 var num = parseFloat(value);
                 if (!isNaN(num)) {
@@ -1679,33 +1661,42 @@ function formatDataValue(value, formatConfig) {
                     }).format(num / 100);
                 }
                 break;
+
             case "date":
                 var date = new Date(value);
                 if (!isNaN(date.getTime())) {
                     formattedValue = new Intl.DateTimeFormat(formatConfig.locale || "pt-PT").format(date);
                 }
                 break;
+
             default:
                 formattedValue = value.toString();
         }
+
         // Adicionar prefixo e sufixo
         if (formatConfig.prefix) formattedValue = formatConfig.prefix + formattedValue;
         if (formatConfig.suffix) formattedValue = formattedValue + formatConfig.suffix;
+
     } catch (e) {
         console.warn("Erro na formatação do valor:", e);
         formattedValue = value;
     }
+
     return formattedValue;
 }
+
 
 function getColorByType(type) {
     // Cria botão temporário dinamicamente
     var tempBtn = $('<button class="btn btn-' + type + '" style="display:none"></button>').appendTo('body');
+
     // Obtém cores
     var corFundo = tempBtn.css('background-color');
     var corTexto = tempBtn.css('color');
+
     // Remove o botão temporário
     tempBtn.remove();
+
     // Retorna objeto com as cores
     return {
         background: corFundo,
@@ -1713,24 +1704,32 @@ function getColorByType(type) {
     };
 }
 
+
+
 function updatePie(containerSelector, itemObject, config, data) {
     var chartId = 'pie_chart_' + itemObject.mdashcontaineritemobjectstamp;
+
     // Preparar container do gráfico
     //vendaunt
     //vndsmcom
     var chartContainer = '<div id="' + chartId + '" style="width: ' +
         (100) + '%; height: ' +
         (config.dimensions.height || 400) + 'px;"></div>';
+
     $(containerSelector).html(chartContainer);
+
     // Aguardar o DOM estar pronto
     setTimeout(function () {
         var chartDom = document.getElementById(chartId);
+
         if (!chartDom) {
             console.error('Container do gráfico não encontrado:', chartId);
             return;
         }
+
         // Inicializar ECharts
         var myChart = echarts.init(chartDom);
+
         // Preparar dados para o gráfico de pizza
         var items = data.map(function (item) {
             return {
@@ -1738,10 +1737,12 @@ function updatePie(containerSelector, itemObject, config, data) {
                 value: parseFloat(item[config.valueField]) || 0
             };
         });
+
         // Calcular total para texto central
         var total = items.reduce(function (sum, item) {
             return sum + item.value;
         }, 0);
+
         // Configurar opções do gráfico
         var option = {
             tooltip: {
@@ -1757,6 +1758,7 @@ function updatePie(containerSelector, itemObject, config, data) {
                     return result;
                 }
             },
+
             legend: config.legend.show !== false ? {
                 top: config.legend.position === 'top' ? '0%' :
                     config.legend.position === 'bottom' ? 'bottom' : 'auto',
@@ -1767,9 +1769,11 @@ function updatePie(containerSelector, itemObject, config, data) {
             } : {
                 show: false
             },
+
             color: config.colors || [
                 '#f79523', '#d43f3a', '#00897B', '#91c7ae', '#749f83'
             ],
+
             series: [
                 {
                     name: config.labelField || 'Dados',
@@ -1811,17 +1815,21 @@ function updatePie(containerSelector, itemObject, config, data) {
                 }
             ]
         };
+
         // Adicionar texto central se configurado
         if (config.centerText.show) {
             var centerTextValue = '';
+
             if (config.centerText.showTotal) {
                 centerTextValue = total.toString();
             }
+
             if (config.centerText.text && config.centerText.text.trim() !== '') {
                 centerTextValue = config.centerText.showTotal ?
                     config.centerText.text + '\n' + centerTextValue :
                     config.centerText.text;
             }
+
             option.graphic = {
                 type: 'text',
                 left: 'center',
@@ -1835,23 +1843,31 @@ function updatePie(containerSelector, itemObject, config, data) {
                 }
             };
         }
+
         // Aplicar configuração e renderizar
         myChart.setOption(option);
+
         // Responsividade
         window.addEventListener('resize', function () {
             myChart.resize();
         });
+
         console.log('Gráfico de pizza renderizado com sucesso:', chartId);
+
     }, 100);
 }
 
+
+
 function createTableSchema(data) {
     var fieldOptions = [];
+
     if (data && data.length > 0) {
         Object.keys(data[0]).forEach(function (key) {
             fieldOptions.push(key);
         });
     }
+
     return {
         type: "object",
         title: "Configuração da Tabela",
@@ -1885,6 +1901,7 @@ function createTableSchema(data) {
                     }
                 }
             },
+
             // NOVA SEÇÃO: Configurações de Cores
             styling: {
                 type: "object",
@@ -1904,6 +1921,7 @@ function createTableSchema(data) {
                     }
                 }
             },
+
             // Configurações gerais
             layout: {
                 type: "string",
@@ -1937,6 +1955,7 @@ function createTableSchema(data) {
                     }
                 }
             },
+
             // Configurações das colunas - COMPLETAS
             columns: {
                 type: "array",
@@ -2065,19 +2084,26 @@ function createTableSchema(data) {
 }
 // Função RECURSIVA para converter dados planos em estrutura hierárquica
 
+
+
 function buildDataTree(data, parentField, childField) {
     var lookup = {};
     var rootNodes = [];
+
     console.log('Iniciando buildDataTree com', data.length, 'registos');
+
     // Primeira passagem: criar lookup de todos os registos
     data.forEach(function (item) {
         var itemCopy = Object.assign({}, item);
         lookup[itemCopy[parentField]] = itemCopy;
     });
+
     console.log('Lookup criado:', Object.keys(lookup));
+
     // Função recursiva interna para adicionar filhos
     function addChildren(parentId) {
         var children = [];
+
         data.forEach(function (item) {
             if (item[childField] === parentId) {
                 var child = lookup[item[parentField]];
@@ -2090,8 +2116,10 @@ function buildDataTree(data, parentField, childField) {
                 }
             }
         });
+
         return children;
     }
+
     // Segunda passagem: construir árvore começando pelos nós raiz
     data.forEach(function (item) {
         if (item[childField] === null || item[childField] === undefined) {
@@ -2105,12 +2133,16 @@ function buildDataTree(data, parentField, childField) {
             }
         }
     });
+
     console.log('Árvore construída com', rootNodes.length, 'nós raiz');
     return rootNodes;
 }
 
+
+
 // Função para atualizar a tabela Tabulator - COM APLICAÇÃO DE CORES
 function updateTable(containerSelector, itemObject, config, data) {
+
     var tabelaId = 'tabulator-table-' + itemObject.mdashcontaineritemobjectstamp;
     try {
         // Destruir tabela existente se houver
@@ -2118,15 +2150,18 @@ function updateTable(containerSelector, itemObject, config, data) {
         if (existingTable) {
             existingTable.innerHTML = '';
         }
+
         // APLICAR CORES DO CABEÇALHO DINAMICAMENTE
         if (config.styling) {
             var styleElement = document.getElementById('dynamic-table-styles-' + itemObject.mdashcontaineritemobjectstamp);
             if (styleElement) {
                 styleElement.remove();
             }
+
             styleElement = document.createElement('style');
             styleElement.id = 'dynamic-table-styles-' + itemObject.mdashcontaineritemobjectstamp;
             // ...existing code...
+
             styleElement.innerHTML = "";
             styleElement.innerHTML += ".tabulator .tabulator-header {";
             styleElement.innerHTML += "    background-color: " + (config.styling.headerBackgroundColor || '#0765b7') + " !important;";
@@ -2135,9 +2170,11 @@ function updateTable(containerSelector, itemObject, config, data) {
             styleElement.innerHTML += "    background-color: " + (config.styling.headerBackgroundColor || '#0765b7') + " !important;";
             styleElement.innerHTML += "    color: " + (config.styling.headerTextColor || '#ffffff') + " !important;";
             styleElement.innerHTML += "}";
+
             // ...existing code...
             document.head.appendChild(styleElement);
         }
+
         // Configurar colunas visíveis
         var columns = config.columns.filter(function (col) {
             return col.visible;
@@ -2152,23 +2189,28 @@ function updateTable(containerSelector, itemObject, config, data) {
                 sorter: col.sorter,
                 formatter: col.formatter
             };
+
             if (col.width) column.width = col.width;
             if (col.minWidth) column.minWidth = col.minWidth;
             if (col.headerFilter) {
                 column.headerFilter = "input";
             }
+
             // Configurar formatador com parâmetros
             if (col.formatter === "money" && col.formatterParams) {
                 column.formatterParams = col.formatterParams;
                 column.formatterParams.symbolAfter = true;
             }
+
             return column;
         });
+
         // Preparar dados - se hierárquico, converter para árvore
         var tableData = data;
         if (config.dataTree && config.dataTree.enabled) {
             tableData = buildDataTree(data, config.dataTree.parentField, config.dataTree.childField);
         }
+
         // Configuração do Tabulator - NATIVA
         var tabulatorConfig = {
             data: tableData,
@@ -2176,25 +2218,32 @@ function updateTable(containerSelector, itemObject, config, data) {
             layout: config.layout || "fitData",
             height: config.height || "400px"
         };
+
         if (config.pagination && config.pagination.enabled && (!config.dataTree || !config.dataTree.enabled)) {
             tabulatorConfig.pagination = "local";
             tabulatorConfig.paginationSize = config.pagination.size || 10;
             tabulatorConfig.paginationSizeSelector = [5, 10, 25, 50, 100];
         }
+
         // Configurar estrutura hierárquica NATIVA do Tabulator
         if (config.dataTree && config.dataTree.enabled) {
             tabulatorConfig.dataTree = true;
             tabulatorConfig.dataTreeChildField = "_children";
             tabulatorConfig.dataTreeStartExpanded = config.dataTree.startExpanded !== false;
+
             // Usar primeira coluna visível para o expansor
             if (columns.length > 0) {
                 tabulatorConfig.dataTreeElementColumn = columns[0].field;
             }
         }
+
         // ... resto da função igual (container, eventos, etc.)
+
         // Criar container da tabela com botões de exportação
         var tableContainer = $(containerSelector);
+
         tableContainer.append('<div id="' + tabelaId + '"></div>');
+
         tabulatorConfig.langs = {
             "pt-br": {
                 "columns": {
@@ -2235,9 +2284,11 @@ function updateTable(containerSelector, itemObject, config, data) {
                 }
             }
         },
+
             tabulatorConfig.locale = "pt-br";
         // Inicializar Tabulator
         new Tabulator('#' + tabelaId, tabulatorConfig);
+
     } catch (e) {
         console.error('Erro ao atualizar tabela:', e);
     }
@@ -2256,7 +2307,12 @@ function expandChildrenRecursive(row) {
 
 
 
+
+
+
+
 function getTemplateLayoutOptions() {
+
     return [
         {
             descricao: "Snapshot Layout v1",
@@ -2348,6 +2404,7 @@ function getTemplateLayoutOptions() {
             generateCard: generateDashCardHTML,
             containerSelectorToRender: ".dashcard-body"
         },
+
         {
             descricao: "Plain Card",
             codigo: "plain_card",
@@ -2359,9 +2416,12 @@ function getTemplateLayoutOptions() {
             containerSelectorToRender: ".m-dash-plain-card-body-content"
         }
     ];
+
 }
 
+
 function generateDashCardHTML(cardData) {
+
     var dashCard = new MDashCard(cardData);
     var cardHTML = '<div style="height: 100%!important;" id="' + (dashCard.id || '') + '" class="dashcard">';
     // Header
@@ -2377,9 +2437,14 @@ function generateDashCardHTML(cardData) {
 }
 
 
+
+
 function generatePlainCard(cardData) {
+
     var dashCard = new MDashCard(cardData);
+
     var cardHTML = "";
+
     cardHTML += '<div id="mdash' + dashCard.id + '" class="m-dash-plain-card ' + dashCard.classes + '" style="height: 100%!important;' + dashCard.styles + '">';
     cardHTML += '  <div class="wrap m-dash-plain-card_' + dashCard.tipo + '">';
     cardHTML += '    <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">';
@@ -2388,24 +2453,35 @@ function generatePlainCard(cardData) {
         cardHTML += ' <i class="' + dashCard.icon + '"></i>';
     }
     cardHTML += '    </h4>';
+
     if (dashCard.header) {
         cardHTML += '    <div class="' + dashCard.headerClasses + '">' + dashCard.header + '</div>';
     }
+
     cardHTML += '    <div class="m-dash-plain-card-body-content ">';
     cardHTML += dashCard.bodyContent;
     cardHTML += '    </div>';
+
     if (dashCard.footer) {
         cardHTML += '    <div class="m-dash-plain-card-footer">' + dashCard.footer + '</div>';
     }
+
     cardHTML += '  </div>';
     cardHTML += '</div>';
+
     return cardHTML;
+
 
 }
 
+
+
 function generateDashCardInfo(cardData) {
+
     var dashCard = new MDashCard(cardData);
+
     var cardHTML = "";
+
     cardHTML += '<div id="mdash' + dashCard.id + '" class="c-dashboardInfo ' + dashCard.classes + '" style="height: 100%!important;' + dashCard.styles + '">';
     cardHTML += '  <div class="wrap c-dashboardInfo_' + dashCard.tipo + '">';
     cardHTML += '    <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">';
@@ -2414,23 +2490,32 @@ function generateDashCardInfo(cardData) {
         cardHTML += ' <i class="' + dashCard.icon + '"></i>';
     }
     cardHTML += '    </h4>';
+
     if (dashCard.header) {
         cardHTML += '    <div class="' + dashCard.headerClasses + '">' + dashCard.header + '</div>';
     }
+
     cardHTML += '    <div class="m-dash-card-body-content dashcard-body">';
     cardHTML += dashCard.bodyContent;
     cardHTML += '    </div>';
+
     if (dashCard.footer) {
         cardHTML += '    <div class="dashcard-footer">' + dashCard.footer + '</div>';
     }
+
     cardHTML += '  </div>';
     cardHTML += '</div>';
+
     return cardHTML;
+
 
 }
 
 
+
+
 function MDashCard(data) {
+
     this.title = data.title || "";
     this.id = data.id || ""
     this.tipo = data.tipo || "primary";
@@ -2442,10 +2527,12 @@ function MDashCard(data) {
     this.footer = data.footer || "";
     this.header = data.header || "";
     this.headerClasses = data.headerClasses || "";
-    this.extraData = data.extraData || {};
+
 }
+
 MDashCard.prototype.generateDashCardInfo = function () {
     var cardHTML = "";
+
     cardHTML += '<div id="mdash' + this.id + '" class="c-dashboardInfo ' + this.classes + '" style="' + this.styles + '">';
     cardHTML += '  <div class="wrap c-dashboardInfo_' + this.tipo + '">';
     cardHTML += '    <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">';
@@ -2454,29 +2541,42 @@ MDashCard.prototype.generateDashCardInfo = function () {
         cardHTML += ' <i class="' + this.icon + '"></i>';
     }
     cardHTML += '    </h4>';
+
     if (this.header) {
         cardHTML += '    <div class="' + this.headerClasses + '">' + this.header + '</div>';
     }
+
     cardHTML += '    <div class="m-dash-card-body-content dashcard-body">';
     cardHTML += this.bodyContent;
     cardHTML += '    </div>';
+
     if (this.footer) {
         cardHTML += '    <div class="dashcard-footer">' + this.footer + '</div>';
     }
+
     cardHTML += '  </div>';
     cardHTML += '</div>';
+
     return cardHTML;
 };
+
 MDashCard.prototype.appendToBody = function (content) {
+
     $("#mdash" + this.id + " .m-dash-card-body-content").append(content);
+
 }
 
+
+
 function addBtnStyles(styles) {
+
     var cssContent = '';
+
     cssContent += '.heartbeat-effect {';
     cssContent += '  display: inline-block;';
     cssContent += '  transform-origin: center;';
     cssContent += '}';
+
     cssContent += '@keyframes heartbeat {';
     cssContent += '  0% { transform: scale(1); }';
     cssContent += '  10% { transform: scale(1.25); }';
@@ -2485,19 +2585,25 @@ function addBtnStyles(styles) {
     cssContent += '  40% { transform: scale(1); }';
     cssContent += '  100% { transform: scale(1); }';
     cssContent += '}';
+
     cssContent += '.heartbeat-effect.is-beating {';
     cssContent += '  animation: heartbeat 1.5s ease-in-out infinite;';
     cssContent += '}';
+
     cssContent += '@media (prefers-reduced-motion: reduce) {';
     cssContent += '  .heartbeat-effect.is-beating { animation: none !important; }';
     cssContent += '}';
+
     styles.push(cssContent);
 }
+
 function addDashboardStyles(styles) {
     var dashboardCSS = "";
+
     dashboardCSS += ".c-dashboardInfo {";
     dashboardCSS += "    margin-bottom: 15px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".c-dashboardInfo .wrap {";
     dashboardCSS += "    background: #ffffff;";
     dashboardCSS += "    box-shadow: 2px 10px 20px rgba(0, 0, 0, 0.1);";
@@ -2508,20 +2614,24 @@ function addDashboardStyles(styles) {
     dashboardCSS += "    padding: 40px 25px 20px;";
     dashboardCSS += "    height: 100%;";
     dashboardCSS += "}";
+
     dashboardCSS += ".c-dashboardInfo__title,";
     dashboardCSS += ".c-dashboardInfo__subInfo {";
     dashboardCSS += "    color: #6c6c6c;";
     dashboardCSS += "    font-size: 1.18em;";
     dashboardCSS += "}";
+
     dashboardCSS += ".c-dashboardInfo span {";
     dashboardCSS += "    display: block;";
     dashboardCSS += "}";
+
     dashboardCSS += ".c-dashboardInfo__count {";
     dashboardCSS += "    font-weight: 600;";
     dashboardCSS += "    font-size: 2.5em;";
     dashboardCSS += "    line-height: 64px;";
     dashboardCSS += "    color: #323c43;";
     dashboardCSS += "}";
+
     dashboardCSS += ".c-dashboardInfo .wrap:after {";
     dashboardCSS += "    display: block;";
     dashboardCSS += "    position: absolute;";
@@ -2531,28 +2641,36 @@ function addDashboardStyles(styles) {
     dashboardCSS += "    height: 7px;";
     dashboardCSS += "    content: '';";
     dashboardCSS += "}";
+
     dashboardCSS += ".c-dashboardInfo .c-dashboardInfo_primary:after {";
     //dashboardCSS += "    background: linear-gradient(82.59deg, #00897B 0%, #00a173 100%);";
     dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
+
     dashboardCSS += "}";
+
     dashboardCSS += ".c-dashboardInfo .c-dashboardInfo_warning:after {";
     dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("warning").background + " 0%, " + getColorByType("warning").background + " 100%);";
+
     // dashboardCSS += "    background: linear-gradient(82.59deg, #f79523 0%, #d88627 100%);";
     dashboardCSS += "}";
+
     dashboardCSS += ".c-dashboardInfo__title svg {";
     dashboardCSS += "    color: #d7d7d7;";
     dashboardCSS += "    margin-left: 5px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".c-dashboardInfo__title {";
     dashboardCSS += "    font-weight: 700;";
     dashboardCSS += "    font-size: 20px;";
     dashboardCSS += "}";
+
     dashboardCSS += "@media (max-width: 768px) {";
     dashboardCSS += "    .c-dashboardInfo {";
     dashboardCSS += "        flex: 1 1 100%;";
     dashboardCSS += "        max-width: 100%;";
     dashboardCSS += "    }";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard {";
     dashboardCSS += "    position: relative;";
     dashboardCSS += "    display: flex;";
@@ -2573,6 +2691,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);";
     dashboardCSS += "    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, .14);";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard-body {";
     dashboardCSS += "    flex: 1 1 auto;";
     dashboardCSS += "    padding: 1.25rem;";
@@ -2580,6 +2699,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "    padding: .9375rem 20px;";
     dashboardCSS += "    position: relative;";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard-title {";
     dashboardCSS += "    margin-bottom: .75rem;";
     dashboardCSS += "    color: #3c4858;";
@@ -2588,6 +2708,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "    margin-top: 0;";
     dashboardCSS += "    margin-bottom: 3px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard-header {";
     dashboardCSS += "    padding: .75rem 1.25rem;";
     dashboardCSS += "    margin-bottom: 0;";
@@ -2597,56 +2718,72 @@ function addDashboardStyles(styles) {
     dashboardCSS += "    background: transparent;";
     dashboardCSS += "    z-index: 3 !important;";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard-header:first-child {";
     dashboardCSS += "    border-radius: calc(.25rem - 1px) calc(.25rem - 1px) 0 0;";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard .dashcard-header .dashcard-title {";
     dashboardCSS += "    margin-bottom: 3px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard [class*=dashcard-header-] {";
     dashboardCSS += "    margin: 0 15px;";
     dashboardCSS += "    padding: 0;";
     dashboardCSS += "    position: relative;";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard [class*=dashcard-header-]:not(.dashcard-header-icon):not(.dashcard-header-text):not(.dashcard-header-image) {";
     dashboardCSS += "    border-radius: 3px;";
     dashboardCSS += "    margin-top: -20px;";
     dashboardCSS += "    padding: 15px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard .dashcard-header-danger:not(.dashcard-header-icon):not(.dashcard-header-text) {";
     dashboardCSS += "    background: linear-gradient(60deg, #d43f3a, #d43f3a);";
     dashboardCSS += "    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .14), 0 7px 10px -5px rgba(244, 67, 54, .4);";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard .dashcard-header-warning:not(.dashcard-header-icon):not(.dashcard-header-text) {";
     //dashboardCSS += "    background: linear-gradient(60deg, #f79523, #f79523);";
     dashboardCSS += "    background: linear-gradient(60deg, " + getColorByType("warning").background + ", " + getColorByType("warning").background + ");";
+
     dashboardCSS += "    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .14), 0 7px 10px -5px rgba(187, 113, 16, 0.4);";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard .dashcard-header-success:not(.dashcard-header-icon):not(.dashcard-header-text) {";
     // dashboardCSS += "    background: linear-gradient(60deg, #3ba94e, #3ba94e);";
     // dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
+
     dashboardCSS += "    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .14), 0 7px 10px -5px rgba(55, 119, 26, 0.4);";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard .dashcard-header-primary:not(.dashcard-header-icon):not(.dashcard-header-text) {";
     dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
+
     // dashboardCSS += "    background: linear-gradient(82.59deg, #00897B 0%, #00897B 100%);";
     dashboardCSS += "    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .14), 0 7px 10px -5px rgba(39, 30, 126, 0.4);";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard [class*=dashcard-header-],";
     dashboardCSS += ".dashcard [class*=dashcard-header-] .dashcard-title {";
     dashboardCSS += "    color: #fff;";
     dashboardCSS += "}";
+
     dashboardCSS += ".box a {";
     dashboardCSS += "    color: #033076;";
     dashboardCSS += "    text-decoration: none;";
     dashboardCSS += "}";
+
     dashboardCSS += ".box a:hover {";
     dashboardCSS += "    color: white;";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard-fact-container {";
     dashboardCSS += "    border-radius: 17px;";
     dashboardCSS += "    box-shadow: 0 0 2px 2px #dbdbdb;";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard-fact-header {";
     dashboardCSS += "    background: linear-gradient(to right, " + getColorByType("primary").background + ", " + getColorByType("primary").background + ");";
     dashboardCSS += "    color: white;";
@@ -2654,44 +2791,54 @@ function addDashboardStyles(styles) {
     dashboardCSS += "    border-top-left-radius: 17px;";
     dashboardCSS += "    border-top-right-radius: 17px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".dashcard-fact-content {";
     dashboardCSS += "    padding: 20px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".chart-container {";
     dashboardCSS += "    position: relative;";
     dashboardCSS += "    height: 100vh;";
     dashboardCSS += "    overflow: hidden;";
     dashboardCSS += "}";
+
     // Novos estilos adicionados
     dashboardCSS += ".stats-card-container {";
     dashboardCSS += "    display: grid;";
     dashboardCSS += "    grid-template-columns: 1fr;";
     dashboardCSS += "    gap: 10px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".stats-card {";
     dashboardCSS += "    background-color: #efefef;";
     dashboardCSS += "    padding: 15px;";
     dashboardCSS += "    border-radius: 5px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".stats-card-grid {";
     dashboardCSS += "    display: grid;";
     dashboardCSS += "    grid-template-columns: 1fr;";
     dashboardCSS += "}";
+
     dashboardCSS += ".stats-card-chart {";
     dashboardCSS += "    height: 300px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".stats-card-value-container {";
     dashboardCSS += "    display: flex;";
     dashboardCSS += "    flex-direction: column;";
     dashboardCSS += "    gap: 2px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".stats-card-value {";
     dashboardCSS += "    color: #999999;";
     dashboardCSS += "}";
+
     dashboardCSS += ".stats-card-label {";
     dashboardCSS += "    font-size: 0.9em;";
     dashboardCSS += "    font-weight: bold;";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-item {";
     dashboardCSS += "    background: #FFF;";
     dashboardCSS += "    -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);";
@@ -2702,28 +2849,34 @@ function addDashboardStyles(styles) {
     dashboardCSS += "    width: 100%;";
     dashboardCSS += "    overflow-x: auto;";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-item.snapshot {";
     dashboardCSS += "    padding: 20px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-item h1 {";
     dashboardCSS += "    font-size: 1.2em;";
     dashboardCSS += "    font-weight: bold;";
     dashboardCSS += "    margin-bottom: 15px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-charts {";
     dashboardCSS += "    display: flex;";
     dashboardCSS += "    flex-direction: column;";
     dashboardCSS += "    gap: 20px;";
     dashboardCSS += "    justify-content: space-between;";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-table {";
     dashboardCSS += "    font-size: 0.9em;";
     dashboardCSS += "    overflow-x: auto;";
     dashboardCSS += "    max-height: 400px;";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-table table {";
     dashboardCSS += "    width: 100%;";
     dashboardCSS += "}";
+
     dashboardCSS += "@media screen and (min-width: 768px) {";
     dashboardCSS += "    .stats-card-container {";
     dashboardCSS += "        grid-template-columns: 1fr 1fr;";
@@ -2733,6 +2886,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "        grid-template-columns: 1fr 1fr;";
     dashboardCSS += "    }";
     dashboardCSS += "}";
+
     dashboardCSS += "@media screen and (min-width: 1024px) {";
     dashboardCSS += "    .m-dash-body {";
     dashboardCSS += "        flex-direction: row;";
@@ -2752,7 +2906,9 @@ function addDashboardStyles(styles) {
     dashboardCSS += "        gap: 30px;";
     dashboardCSS += "    }";
     dashboardCSS += "}";
+
     var color = getColorByType("primary").background;
+
 
     dashboardCSS += ".m-dash-card-snap-v2 {";
     dashboardCSS += "display:flex;";
@@ -2764,18 +2920,21 @@ function addDashboardStyles(styles) {
     dashboardCSS += "padding:1.5rem;";
     dashboardCSS += "transition:transform 0.3s ease, box-shadow 0.3s ease;";
     dashboardCSS += "height:100%;";
-    //   dashboardCSS += "max-width:320px;";
+    dashboardCSS += "max-width:320px;";
     dashboardCSS += "cursor:pointer;";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-card-snap-v2:hover{";
     dashboardCSS += "transform:translateY(-6px);";
     dashboardCSS += "box-shadow:0 10px 25px rgba(0,0,0,0.12);";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-card-snap-v2-content{";
     dashboardCSS += "display:flex;";
     dashboardCSS += "align-items:center;";
     dashboardCSS += "gap:1.2rem;";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-card-snap-v2-icon{";
     dashboardCSS += "width:60px;";
     dashboardCSS += "height:60px;";
@@ -2788,19 +2947,23 @@ function addDashboardStyles(styles) {
     dashboardCSS += "flex-shrink:0;";
     dashboardCSS += "box-shadow:0 6px 12px rgba(0,0,0,0.15);";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-card-snap-v2-info{flex-grow:1;}";
+
     dashboardCSS += ".m-dash-card-snap-v2-title{";
-    dashboardCSS += "font-size:1.3rem;";
+    //dashboardCSS += "font-size:0.95rem;";
     dashboardCSS += "color:#6c757d;";
     dashboardCSS += "margin:0;";
     dashboardCSS += "text-transform:capitalize;";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-card-snap-v2-value{";
     dashboardCSS += "font-size:2rem;";
     dashboardCSS += "font-weight:700;";
     dashboardCSS += "color:#344767;";
     dashboardCSS += "margin:0.2rem 0 0;";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-card-snap-v2-footer{";
     dashboardCSS += "font-size:1.3rem;";
     dashboardCSS += "color:#7b809a;";
@@ -2808,10 +2971,12 @@ function addDashboardStyles(styles) {
     dashboardCSS += "border-top:1px solid #eaeaea;";
     dashboardCSS += "padding-top:0.8rem;";
     dashboardCSS += "}";
+
     dashboardCSS += ".m-dash-card-snap-v2-footer .text-success{";
     dashboardCSS += "color:#2ecc71;";
     dashboardCSS += "font-weight:600;";
     dashboardCSS += "}";
+
     dashboardCSS += ".bg-primary{background:linear-gradient(135deg," + getColorByType("primary").background + "," + getColorByType("primary").background + ");}";
     dashboardCSS += ".bg-success{background:linear-gradient(135deg,#16a34a,#15803d);}";
     dashboardCSS += ".bg-warning{background:linear-gradient(135deg," + getColorByType("warning").background + "," + getColorByType("warning").background + ");}";
@@ -2821,167 +2986,14 @@ function addDashboardStyles(styles) {
     dashboardCSS += ".m-dash-card-snap-v2-icon i{transition:transform 0.4s ease;}";
     dashboardCSS += ".m-dash-card-snap-v2:hover .m-dash-card-snap-v2-icon i{transform:scale(1.15) rotate(5deg);}";
 
-    dashboardCSS += ".budget-card{";
-    dashboardCSS += "background: linear-gradient(135deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
-    dashboardCSS += "border-radius: 16px;";
-    dashboardCSS += "box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);";
-    dashboardCSS += "color: white;";
-    dashboardCSS += "position: relative;";
-    dashboardCSS += "overflow: hidden;";
-    dashboardCSS += "height: 232px;";
-    dashboardCSS += "transition: transform 0.3s ease, box-shadow 0.3s ease;";
-    dashboardCSS += "}";
-    dashboardCSS += ".budget-card:hover{";
-    dashboardCSS += "transform: translateY(-5px);";
-    dashboardCSS += "box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);";
-    dashboardCSS += "}";
-    dashboardCSS += ".shape-divider{";
-    dashboardCSS += "position: absolute;";
-    dashboardCSS += "top: 0;";
-    dashboardCSS += "left: 0;";
-    dashboardCSS += "width: 30%;";
-    dashboardCSS += "height: 100%;";
-    dashboardCSS += "background: rgba(255, 255, 255, 0.1);";
-    dashboardCSS += "clip-path: polygon(0 0, 100% 0, 70% 100%, 0 100%);";
-    dashboardCSS += "}";
-    dashboardCSS += ".wave-shape{";
-    dashboardCSS += "position: absolute;";
-    dashboardCSS += "top: 0;";
-    dashboardCSS += "left: 0;";
-    dashboardCSS += "width: 30%;";
-    dashboardCSS += "height: 100%;";
-    dashboardCSS += "background: rgba(255, 255, 255, 0.15);";
-    dashboardCSS += "clip-path: path(\"M0,0 L100,0 C85,20 85,50 100,70 L0,100 Z\");";
-    dashboardCSS += "}";
-    dashboardCSS += ".card-content{";
-    dashboardCSS += "position: relative;";
-    dashboardCSS += "z-index: 2;";
-    dashboardCSS += "padding: 18px;";
-    dashboardCSS += "height: 100%;";
-    dashboardCSS += "display: flex;";
-    dashboardCSS += "flex-direction: column;";
-    dashboardCSS += "}";
-    dashboardCSS += ".card-title{";
-    dashboardCSS += "font-size: 3.5rem;";
-    dashboardCSS += "font-weight: 700;";
-    dashboardCSS += "margin-bottom: 5px;";
-    dashboardCSS += "}";
-    dashboardCSS += ".card-subtitle{";
-    dashboardCSS += "font-size: 1.4rem;";
-    dashboardCSS += "opacity: 0.9;";
-    dashboardCSS += "margin-bottom: 15px;";
-    dashboardCSS += "}";
-    dashboardCSS += ".budget-value{";
-    dashboardCSS += "font-size: 2.2rem;";
-    dashboardCSS += "font-weight: 700;";
-    dashboardCSS += "margin-bottom: 20px;";
-    dashboardCSS += "}";
-    dashboardCSS += ".budget-details{";
-    dashboardCSS += "display: flex;";
-    dashboardCSS += "gap: 30px;";
-    dashboardCSS += "}";
-    dashboardCSS += ".budget-item{";
-    dashboardCSS += "display: flex;";
-    dashboardCSS += "flex-direction: column;";
-    dashboardCSS += "}";
-    dashboardCSS += ".budget-label{";
-    dashboardCSS += "font-size: 1.5rem;";
-    dashboardCSS += "opacity: 0.9;";
-    dashboardCSS += "margin-bottom: 5px;";
-    dashboardCSS += "}";
-    dashboardCSS += ".budget-amount{";
-    dashboardCSS += "font-size: 1.5rem;";
-    dashboardCSS += "font-weight: 600;";
-    dashboardCSS += "}";
-    dashboardCSS += ".icon-container{";
-    dashboardCSS += "position: absolute;";
-    dashboardCSS += "bottom: 15px;";
-    dashboardCSS += "right: 20px;";
-    dashboardCSS += "font-size: 3rem;";
-    dashboardCSS += "opacity: 0.2;";
-    dashboardCSS += "}";
 
-    dashboardCSS += ":root{";
-    dashboardCSS += " --m-time-line-dentro-prazo:#4CAF50;";
-    dashboardCSS += " --m-time-line-prestes-expirar:#FF9800;";
-    dashboardCSS += " --m-time-line-expirados:#F44336;";
-    dashboardCSS += " --m-time-line-anotado:#2196F3;";
-    dashboardCSS += " --m-time-line-visado:#9C27B0;";
-    dashboardCSS += " --m-time-line-transitado-anotado:#64B5F6;";
-    dashboardCSS += " --m-time-line-transitado-visado:#BA68C8;";
-    dashboardCSS += " --m-time-line-bg-primary:#f8fafc;";
-    dashboardCSS += " --m-time-line-bg-card:#ffffff;";
-    dashboardCSS += " --m-time-line-text-primary:#1e293b;";
-    dashboardCSS += " --m-time-line-text-secondary:#64748b;";
-    dashboardCSS += "}";
-    dashboardCSS += ".m-time-line-dashboard-container{";
-    dashboardCSS += " width:100%;max-width:500px;background:var(--m-time-line-bg-card);";
-    dashboardCSS += " border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.08);padding:25px;";
-    dashboardCSS += "}";
-    dashboardCSS += ".m-time-line-cards-container{display:flex;flex-direction:column;gap:20px;}";
-    dashboardCSS += ".m-time-line-card{background:var(--m-time-line-bg-card);border-radius:14px;";
-    dashboardCSS += " padding:20px;box-shadow:0 6px 20px rgba(0,0,0,0.1);transition:all .3s ease;position:relative;overflow:hidden;}";
-    dashboardCSS += ".m-time-line-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}";
-    //dashboardCSS += ".m-time-line-card.m-time-line-dentro-prazo::before{background:linear-gradient(90deg,var(--m-time-line-dentro-prazo),#66bb6a);}";
-    //dashboardCSS += ".m-time-line-card.m-time-line-prestes-expirar::before{background:linear-gradient(90deg,var(--m-time-line-prestes-expirar),#ffb74d);}";
-    //dashboardCSS += ".m-time-line-card.m-time-line-expirados::before{background:linear-gradient(90deg,var(--m-time-line-expirados),#ef5350);}";
-    dashboardCSS += ".m-time-line-card:hover{transform:translateY(-5px);box-shadow:0 12px 30px rgba(0,0,0,0.15);}";
-    dashboardCSS += ".m-time-line-card-header{display:flex;align-items:center;margin-bottom:18px;padding-top:5px;}";
-    dashboardCSS += ".m-time-line-status-count{font-size:2.2rem;font-weight:800;margin-right:15px;width:65px;height:65px;display:flex;align-items:center;justify-content:center;border-radius:16px;color:#fff;box-shadow:0 5px 15px rgba(0,0,0,0.15);}";
-    dashboardCSS += ".m-time-line-card.m-time-line-dentro-prazo .m-time-line-status-count{background:linear-gradient(135deg," + getColorByType("primary").background + "," + getColorByType("primary").background + ");}";
-    dashboardCSS += ".m-time-line-card.m-time-line-prestes-expirar .m-time-line-status-count{background:linear-gradient(135deg,var(--m-time-line-prestes-expirar),#ffb74d);}";
-    dashboardCSS += ".m-time-line-card.m-time-line-expirados .m-time-line-status-count{background:linear-gradient(135deg,var(--m-time-line-expirados),#ef5350);}";
-    dashboardCSS += ".m-time-line-status-info{flex:1;}";
-    dashboardCSS += ".m-time-line-status-title{font-size:2rem;font-weight:700;color:'#626e78 !important';}";
-    dashboardCSS += ".m-time-line-status-subtitle{font-size:1rem;color:var(--m-time-line-text-secondary);margin-top:3px;}";
-    dashboardCSS += ".m-time-line-card.m-time-line-dentro-prazo .m-time-line-status-subtitle{color:var(--m-time-line-dentro-prazo);}";
-    dashboardCSS += ".m-time-line-card.m-time-line-prestes-expirar .m-time-line-status-subtitle{color:var(--m-time-line-prestes-expirar);}";
-    dashboardCSS += ".m-time-line-card.m-time-line-expirados .m-time-line-status-subtitle{color:var(--m-time-line-expirados);}";
-    dashboardCSS += ".m-time-line-details{display:flex;flex-direction:column;gap:15px;}";
-    dashboardCSS += ".m-time-line-category{display:flex;flex-direction:column;gap:8px;}";
-    dashboardCSS += ".m-time-line-category-header{display:flex;align-items:center;margin-bottom:3px;}";
-    dashboardCSS += ".m-time-line-category-title{font-size:1.25rem;font-weight:600;color:var(--m-time-line-text-secondary);}";
-    dashboardCSS += ".m-time-line-category-items{display:grid;grid-template-columns:1fr 1fr;gap:8px;}";
-    dashboardCSS += ".m-time-line-detail-item{display:flex;flex-direction:column;align-items:center;padding:10px 8px;border-radius:10px;background:#f8fafc;transition:all .2s ease;box-shadow:0 2px 5px rgba(0,0,0,0.05);}";
-    dashboardCSS += ".m-time-line-detail-item:hover{background:#f1f5f9;box-shadow:0 4px 8px rgba(0,0,0,0.08);}";
-    dashboardCSS += ".m-time-line-detail-label{font-size:1.75rem;color:var(--m-time-line-text-secondary);margin-bottom:5px;font-weight:500;text-align:center;}";
-    dashboardCSS += ".m-time-line-detail-value{font-size:1.7rem;font-weight:700;}";
-    dashboardCSS += ".m-time-line-anotado{color:var(--m-time-line-anotado);}";
 
-    dashboardCSS += ".m-time-line-visado{color:var(--m-time-line-visado);}";
-    dashboardCSS += ".m-time-line-transitado-anotado{color:var(--m-time-line-transitado-anotado);}";
-    dashboardCSS += ".m-time-line-transitado-visado{color:var(--m-time-line-transitado-visado);}";
-    dashboardCSS += ".m-time-line-progress-container{width:100%;height:4px;background:#e2e8f0;border-radius:2px;margin-top:8px;overflow:hidden;}";
-    dashboardCSS += ".m-time-line-progress-bar{height:100%;border-radius:2px;transition:width .5s ease;}";
-    dashboardCSS += ".m-time-line-anotado .m-time-line-progress-bar{background:var(--m-time-line-anotado);}";
-    dashboardCSS += ".m-time-line-visado .m-time-line-progress-bar{background:var(--m-time-line-visado);}";
-    dashboardCSS += ".m-time-line-transitado-anotado .m-time-line-progress-bar{background:var(--m-time-line-transitado-anotado);}";
-    dashboardCSS += ".m-time-line-transitado-visado .m-time-line-progress-bar{background:var(--m-time-line-transitado-visado);}";
-
-    // Larguras das barras por status
-    dashboardCSS += ".m-time-line-card.m-time-line-dentro-prazo .m-time-line-anotado .m-time-line-progress-bar{width:67%;}";
-    dashboardCSS += ".m-time-line-card.m-time-line-dentro-prazo .m-time-line-visado .m-time-line-progress-bar{width:33%;}";
-    dashboardCSS += ".m-time-line-card.m-time-line-dentro-prazo .m-time-line-transitado-anotado .m-time-line-progress-bar{width:50%;}";
-    dashboardCSS += ".m-time-line-card.m-time-line-dentro-prazo .m-time-line-transitado-visado .m-time-line-progress-bar{width:0%;}";
-    dashboardCSS += ".m-time-line-card.m-time-line-prestes-expirar .m-time-line-anotado .m-time-line-progress-bar,";
-    dashboardCSS += ".m-time-line-card.m-time-line-prestes-expirar .m-time-line-visado .m-time-line-progress-bar,";
-    dashboardCSS += ".m-time-line-card.m-time-line-prestes-expirar .m-time-line-transitado-anotado .m-time-line-progress-bar,";
-    dashboardCSS += ".m-time-line-card.m-time-line-prestes-expirar .m-time-line-transitado-visado .m-time-line-progress-bar{width:0%;}";
-    dashboardCSS += ".m-time-line-card.m-time-line-expirados .m-time-line-anotado .m-time-line-progress-bar{width:50%;}";
-    dashboardCSS += ".m-time-line-card.m-time-line-expirados .m-time-line-visado .m-time-line-progress-bar{width:0%;}";
-    dashboardCSS += ".m-time-line-card.m-time-line-expirados .m-time-line-transitado-anotado .m-time-line-progress-bar{width:50%;}";
-    dashboardCSS += ".m-time-line-card.m-time-line-expirados .m-time-line-transitado-visado .m-time-line-progress-bar{width:50%;}";
-
-    // Responsivo
-    dashboardCSS += "@media (max-width:768px){";
-    dashboardCSS += " .m-time-line-dashboard-container{padding:20px;}";
-    dashboardCSS += " .m-time-line-card{padding:18px;}";
-    dashboardCSS += " .m-time-line-status-count{width:60px;height:60px;font-size:2rem;}";
-    dashboardCSS += "}";
-    dashboardCSS += "@media (max-width:480px){";
-    dashboardCSS += " .m-time-line-category-items{grid-template-columns:1fr 1fr;}";
-    dashboardCSS += " .m-time-line-detail-value{font-size:1.1rem;}";
-    dashboardCSS += "}";
 
     styles.push(dashboardCSS);
 }
+
+
+
+
+
+
