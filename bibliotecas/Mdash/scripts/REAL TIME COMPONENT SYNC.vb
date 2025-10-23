@@ -67,6 +67,8 @@ Dim BuildDynamicInsertDatarowQueryWithoutParameters = Function(ByVal dataRow As 
         queryDynamic = $"INSERT INTO {tableName} ({String.Join(", ", columns)}) VALUES ({String.Join(", ", values)});"
     End If
 
+    
+
     Return queryDynamic
 
 End Function
@@ -194,7 +196,7 @@ Dim dynamicUpsertDataRowWithTransaction = Function (ByVal dataRow As DataRow, By
         queryDynamic = $"INSERT INTO {tableName} ({String.Join(", ", columns)}) VALUES ({String.Join(", ", values)})"
     End If
 
-    XcUtil.LogViewSource(mpage,queryDynamic)
+   
     
     ExecuteNonQueryWithTransaction(queryDynamic,connectionPar,transactionPar,sqlParametersDynamic)
 End Function

@@ -58,8 +58,9 @@ Try
       Dim jArray As Newtonsoft.Json.Linq.JArray = Newtonsoft.Json.Linq.JArray.Parse(parametro)
 
     Dim requestJObject As Newtonsoft.Json.Linq.JObject = jArray(0)
+    Dim colunaQuery as String="expressaodblistagem"
 
-    Dim queryMdashContainerItem = "
+    Dim queryComponent = "
         SELECT MdashContainerItem.* 
         FROM MdashContainerItem 
         JOIN MdashContainer ON MdashContainer.mdashcontainerstamp = MdashContainerItem.mdashcontainerstamp 
@@ -69,10 +70,42 @@ Try
         ORDER BY MdashContainerItem.ordem ASC
     "
 
-    Dim sqlParametersContainerItem As New List(Of System.Data.SqlClient.SqlParameter)
-    sqlParametersContainerItem.Add(New System.Data.SqlClient.SqlParameter("@codigo", requestJObject("codigo").ToString()))
-    sqlParametersContainerItem.Add(New System.Data.SqlClient.SqlParameter("@mdashcontaineritemstamp", requestJObject("mdashcontaineritemstamp").ToString()))
-    Dim queryResultContainerItem As DataTable = ExecuteQuery(queryMdashContainerItem, sqlParametersContainerItem)
+    Select case requestJObject("tipoquery").ToString()
+
+        Case "item"
+            queryComponent = "
+                     SELECT MdashContainerItem.* 
+                     FROM MdashContainerItem 
+                     JOIN MdashContainer ON MdashContainer.mdashcontainerstamp = MdashContainerItem.mdashcontainerstamp 
+                     JOIN u_mdash ON u_mdash.u_mdashstamp = MdashContainer.dashboardstamp
+                     WHERE u_mdash.codigo = @codigo 
+                     AND MdashContainerItem.mdashcontaineritemstamp = @mdashcontaineritemstamp 
+                     ORDER BY MdashContainerItem.ordem ASC
+          "
+          colunaQuery="expressaodblistagem"
+
+        Case "object"
+
+        queryComponent="
+                        select MdashContainerItemObject.* from MdashContainerItemObject 
+                        join u_mdash on u_mdash.u_mdashstamp=MdashContainerItemObject.dashboardstamp 
+                        where u_mdash.codigo=@codigo 
+                        and MdashContainerItemObject.mdashcontaineritemobjectstamp=@mdashcontaineritemobjectstamp
+                        order by MdashContainerItemObject.ordem asc
+                        "
+            colunaQuery="objectexpressaodblistagem"
+
+    End Select
+
+
+
+    Dim sqlParametersComponent As New List(Of System.Data.SqlClient.SqlParameter)
+    sqlParametersComponent.Add(New System.Data.SqlClient.SqlParameter("@codigo", requestJObject("codigo").ToString()))
+    sqlParametersComponent.Add(New System.Data.SqlClient.SqlParameter("@mdashcontaineritemstamp", requestJObject("mdashcontaineritemstamp").ToString()))
+    sqlParametersComponent.Add(New System.Data.SqlClient.SqlParameter("@mdashcontaineritemobjectstamp", requestJObject("mdashcontaineritemobjectstamp").ToString()))
+
+
+    Dim queryResultContainerItem As DataTable = ExecuteQuery(queryComponent, sqlParametersComponent)
 
     If queryResultContainerItem.Rows.Count = 0 Then
         Throw New Exception("Dados do item do container não encontrados")
@@ -80,8 +113,10 @@ Try
 
     Dim queryResult As New DataTable()
 
-    Dim expressaodblistagem As String = queryResultContainerItem.Rows(0)("expressaodblistagem").ToString()
-     queryComFiltros  = expressaodblistagem
+    Dim expressaodblistagem As String = queryResultContainerItem.Rows(0)(colunaQuery).ToString()
+
+
+    queryComFiltros  = expressaodblistagem
 
  if not String.IsNullOrEmpty(queryComFiltros)   Then
 

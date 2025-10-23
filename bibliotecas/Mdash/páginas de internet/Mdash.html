@@ -857,7 +857,7 @@
 
           <!-- Aqui usamos os grupos de rows -->
           <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)" :key="'row-' + rowIndex"
-            class="gr-row m-dash-container-item-row " style="margin-top: 1em!important;">
+            class="gr-row m-dash-container-item-row " style="margin-top: 1em!important;margin-bottom:3em">
 
             <div style="height: 100%!important;" v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
               :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area',
@@ -1047,12 +1047,14 @@
           return;
         }
 
-        console.log("globalThis.filterValues ", globalThis.filterValues)
         containerItem.handleLayout();
+
         var requestData = {
           codigo: globalThis.dashboardconfig.codigo,
           mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
-          filters: globalThis.filterValues || {}
+          mdashcontaineritemobjectstamp: "",
+          tipoquery: "item",
+          filters: globalThis.filterValues || {},
         }
 
         var response = await $.ajax({
@@ -1073,7 +1075,7 @@
 
         containerItem.records = contentRecords;
 
-        console.log("this is content records", contentRecords)
+
 
         var containerItemObjects = globalThis.containerItemObjects.filter(function (itemObject) {
           return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp
@@ -1256,6 +1258,7 @@
       this.titulodetalhes = data.titulodetalhes || "";
       this.titulobtndetalhes = data.titulobtndetalhes || "";
       this.expressaoobjecto = data.expressaoobjecto || "";
+      this.tipoquery = data.tipoquery || "item"; // local, remote
       this.objectsUIFormConfig = data.objectsUIFormConfig || [];
       this.localsource = data.localsource || "";
 
@@ -1327,20 +1330,68 @@
       this.queryconfigjson = queryConfig ? JSON.stringify(queryConfig) : JSON.stringify(queryConfigVoid);
     }
 
-    MdashContainerItemObject.prototype.renderObjectByContainerItem = function (containerSelector, containerItem) {
+    MdashContainerItemObject.prototype.renderObjectByContainerItem = async function (containerSelector, containerItem) {
       var self = this;
 
-      //  console.log("SELLLF", self);
+      //  console.log("SELLLF", self); 
       if (Object.keys(self.objectoConfig).length == 0 || containerItem.records.length == 0) {
         $(containerSelector).append("<p style='font-size:18px!important;font-weight:bold;margin-top:7em' class='m-dash-item-text'>Sem registos</p>")
         return;
       }
 
-      var alasqlData = JSON.parse(JSON.stringify(containerItem.records || []).replaceAll("total", "tot"));
+
+      var mainRecords = [];
+
+
+
+
+      switch (self.tipoquery) {
+        case "item":
+
+          mainRecords = containerItem.records || [];
+          break;
+        case "object":
+
+
+          var requestData = {
+            codigo: globalThis.dashboardconfig.codigo,
+            mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
+            mdashcontaineritemobjectstamp: self.mdashcontaineritemobjectstamp,
+            tipoquery: self.tipoquery,
+            filters: globalThis.filterValues || {},
+          }
+
+          var response = await $.ajax({
+            type: "POST",
+            url: containerItem.urlfetch,
+            data: {
+              '__EVENTARGUMENT': JSON.stringify([requestData]),
+            }
+          });
+
+          if (response.cod != "0000") {
+            console.log("Erro ao trazer resultados para o objecto: ", response)
+            $(containerSelector).append(buildAlert("alert-danger", "Erro ao trazer resultados para o objecto: "));
+            return false
+          }
+          mainRecords = response.data || [];
+          break;
+
+
+        default:
+          throw new Error("Tipo de query não suportado: " + self.tipoquery);
+      }
+
+
+      var alasqlData = replaceLocalDbKeywords(mainRecords);
 
       var localQueryResult = alasql(self.queryConfig.generatedSQL, [alasqlData]);
       var contentRecords = localQueryResult;
+
+
+
       switch (self.categoria) {
+
         case "editor":
           self.objectoConfig.renderObject({
             containerSelector: containerSelector,

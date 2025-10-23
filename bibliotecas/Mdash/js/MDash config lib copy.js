@@ -728,8 +728,6 @@ function extractFiltersFromExpression(sqlExpression) {
 }
 
 
-
-
 function handleShowConfigContainer(data) {
 
     var idValue = data.idValue || "";
@@ -832,12 +830,11 @@ function handleShowConfigContainer(data) {
             queryJsonResult: "",
             executarExpressaoDbListagem: function () {
                 var self = this;
-
-
+                console.log("executarExpressaoDbListagem", self.mdashConfigItem.expressaolistagem, self.filterValues)
                 $.ajax({
                     type: "POST",
                     url: "../programs/gensel.aspx?cscript=executeexpressaolistagemdb",
-                    async: false,
+
                     data: {
                         '__EVENTARGUMENT': JSON.stringify([{ expressaodblistagem: self.mdashConfigItem.expressaolistagem, filters: self.filterValues }]),
                     },
@@ -861,14 +858,18 @@ function handleShowConfigContainer(data) {
 
                             var mappedData = replaceLocalDbKeywords(queryResult);
 
+                            console.log("Mapped Data", mappedData)
 
                             var lastResults = mappedData.slice(0, 340);
 
                             self.mdashConfigItem.schema = mappedSchema;
                             self.mdashConfigItem.lastResults = lastResults;
                             self.mdashConfigItem.stringifyJSONFields();
+
+
                             self.queryJsonResult = JSON.stringify(mappedData)
                             self.mainQueryHasError = false;
+
                             self.mdashConfigItem.setTupDataOnLocalDb()
 
                             realTimeComponentSync(self.mdashConfigItem, self.mdashConfigItem.table, self.mdashConfigItem.idfield);
@@ -1106,8 +1107,6 @@ function MdashContainerItemObject(data) {
     this.titulodetalhes = data.titulodetalhes || "";
     this.titulobtndetalhes = data.titulobtndetalhes || "";
     this.categoria = data.categoria || "editor";
-    this.tipoquery = data.tipoquery || "item";
-    this.objectexpressaodblistagem = data.objectexpressaodblistagem || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
     this.localsource = data.localsource || "";
 
@@ -2004,7 +2003,7 @@ function registerListenersMdash() {
                     fieldToValue: "codigo",
                     rows: 10,
                     cols: 10,
-                    label: " Layout do item ",
+                    label: " Layout do container ",
                     selectData: getTemplateLayoutOptions(),
                     value: containerItem.templatelayout,
                     event: "",
@@ -3161,51 +3160,50 @@ function registerListenersMdash() {
 
                     executarExpressaoDbListagem: function () {
                         var self = this;
-                        var expressaoDbListagem = handleExpressaoDbListagem(self.containerItem, self.containerItemObject).expressaodb;
                         $.ajax({
                             type: "POST",
                             url: "../programs/gensel.aspx?cscript=executeexpressaolistagemdb",
-                            async: false,
+
                             data: {
-                                '__EVENTARGUMENT': JSON.stringify([{ expressaodblistagem: expressaoDbListagem, filters: self.filterValues }]),
+                                '__EVENTARGUMENT': JSON.stringify([{ expressaodblistagem: self.containerItem.expressaodblistagem, filters: self.filterValues }]),
                             },
                             success: function (response) {
 
                                 var errorMessage = "ao trazer resultados da listagem . consulte no console do browser"
                                 try {
 
-                                    console.log(response);
-
+                                    console.log(response)
                                     if (response.cod != "0000") {
 
                                         console.log("Erro " + errorMessage, response)
                                         alertify.error("Erro " + errorMessage, 9000);
                                         self.mainQueryError = JSON.stringify(response, null, 2);;
                                         self.mainQueryHasError = true;
-                                        return false;
+                                        return false
                                     }
+
 
                                     var containersItemObjectsList = self.GMDashContainerItemObjects.filter(function (obj) {
                                         return obj.mdashcontaineritemstamp === self.containerItem.mdashcontaineritemstamp;
                                     });
 
+
                                     var queryResult = response.data.length > 0 ? response.data : generateDummyDataForSchema(response.schema, 3);
 
-                                    self.queryJsonResult = JSON.stringify(replaceLocalDbKeywords(queryResult));
+                                    self.queryJsonResult = JSON.stringify(queryResult).replaceAll("total", "tot");
                                     self.containerItem.records = JSON.parse(self.queryJsonResult);
                                     self.mainQueryHasError = false;
-
                                     realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield);
                                     alertify.success("Query executada com sucesso", 5000);
-
                                 } catch (error) {
                                     console.log("Erro interno " + errorMessage, response)
                                     alertify.error("Erro " + errorMessage, 9000);
                                     self.mainQueryError = "Erro interno " + errorMessage;
                                     self.mainQueryHasError = true;
+                                    //alertify.error("Erro interno " + errorMessage, 10000)
                                 }
 
-
+                                //  javascript:__doPostBack('','')
                             }
                         })
 
@@ -3262,33 +3260,7 @@ function registerListenersMdash() {
                         });
                         return matchedFilters;
                     },
-                    changeTipoQuery: function () {
-
-                        var self = this;
-
-                        var expressaodblistagemResult = handleExpressaoDbListagem(self.containerItem, self.containerItemObject);
-
-
-                         var editor = ace.edit("expressaodblistagemccontainerobject");
-                         editor.setValue(expressaodblistagemResult.expressaodb || "");
-
-                        setTimeout(function () {
-
-                            console.log("self.containerItemObject.tipoquery", self.containerItemObject.tipoquery)
-                            if (self.containerItemObject.tipoquery == "item") {
-
-                                realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield);
-                                return
-                            }
-                            console.log("Updating object....")
-                            realTimeComponentSync(self.containerItemObject, self.containerItemObject.table, self.containerItemObject.idfield);
-
-
-                        }, 0);
-
-                    },
                     changeExpressaoDbListagemAndHandleFilters: function (id, filtro) {
-
                         var self = this;
                         var value = $("#" + id).text();
 
@@ -3306,20 +3278,18 @@ function registerListenersMdash() {
 
                         var editor = ace.edit(id);
 
-                        var expressaoDbListagemResult = handleExpressaoDbListagem(self.containerItem, self.containerItemObject);
-                        expressaoDbListagemResult.component[expressaoDbListagemResult.campo] = editor.getValue();
+
+                        self.containerItem.expressaodblistagem = editor.getValue();
+                        // realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield)
+                        /*  Promise.resolve().then(function () {
+  
+                              realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield);
+                          }
+                          );*/
 
                         setTimeout(function () {
-
-                            if (self.containerItemObject.tipoquery == "item") {
-
-                                realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield);
-                                return
-                            }
-                            realTimeComponentSync(self.containerItemObject, self.containerItemObject.table, self.containerItemObject.idfield);
+                            realTimeComponentSync(self.containerItem, self.containerItem.table, self.containerItem.idfield);
                         }, 0);
-
-
 
                     },
                 }).mount('#containerItemObjectQueryConfigContainer');
@@ -3417,42 +3387,8 @@ function registerListenersMdash() {
         var containerId = "formContainerItemObjectQueryConfig";
         var sufixoForm = "formContainerItemObjectQueryConfig";
 
-        var expressaoDbListagemResult = handleExpressaoDbListagem(containerItem, containerItemObject);
-
-        console.log("containerItemObjectbcxcxcxxxxc",containerItemObject)
-
         var sourceData = {};
-        var tipoQuery = [{
-            tipo: "item", descricao: "Query no item de container"
-        },
-        {
-            tipo: "object",
-            descricao: "Query no objeto"
-        }];
-        
         containers = [
-            {
-                colSize: 12,
-                style: "margin-bottom:0.8em;",
-                content: {
-                    contentType: "select",
-                    type: "select",
-                    id: "tipoquery",
-                    classes: "mdashconfig-item-input form-control input-source-form input-sm",
-                    customData: "",
-                    style: "width: 100%; ",
-                    selectCustomData: "" + " v-model='containerItemObject.tipoquery' @change=changeTipoQuery()",
-                    fieldToOption: "descricao",
-                    fieldToValue: "tipo",
-                    rows: 10,
-                    cols: 10,
-                    label: " Tipo de query",
-                    selectData: tipoQuery,
-                    value: containerItemObject.tipoquery || "item",
-                    event: "",
-                    placeholder: ""
-                }
-            },
             {
                 colSize: 12,
                 style: "",
@@ -3470,7 +3406,7 @@ function registerListenersMdash() {
                     cols: 10,
                     label: "Expressão de DB Listagem",
                     selectData: "",
-                    value: expressaoDbListagemResult.expressaodb || "",
+                    value: containerItem.expressaodblistagem || "",
                     event: "",
                     placeholder: "",
 

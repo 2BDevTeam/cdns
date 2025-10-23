@@ -584,6 +584,50 @@ function createDynamicSchemaGrafico(data) {
                         title: "Campo para Eixo X",
                         'enum': availableFields,
                         'default': "mes"
+                    },
+                    axisLabel: {
+                        type: "object",
+                        title: "Configuração das Labels",
+                        properties: {
+                            rotate: {
+                                type: "number",
+                                title: "Rotação das Labels (graus)",
+                                'default': 45,
+                                minimum: -90,
+                                maximum: 90,
+                                description: "Ângulo de rotação das labels (-90° a 90°)"
+                            },
+                            interval: {
+                                type: "string",
+                                title: "Intervalo de Exibição",
+                                'enum': ["auto", "0", "1", "2", "3"],
+                                options: {
+                                    enum_titles: ["Automático", "Todas", "A cada 2", "A cada 3", "A cada 4"]
+                                },
+                                'default': "0",
+                                description: "Quantas labels mostrar (0 = todas)"
+                            },
+                            margin: {
+                                type: "number",
+                                title: "Margem das Labels (px)",
+                                'default': 10,
+                                minimum: 0,
+                                maximum: 50
+                            },
+                            fontSize: {
+                                type: "number",
+                                title: "Tamanho da Fonte",
+                                'default': 12,
+                                minimum: 8,
+                                maximum: 20
+                            },
+                            color: {
+                                type: "string",
+                                title: "Cor das Labels",
+                                format: "color",
+                                'default': "#3f5670"
+                            }
+                        }
                     }
                 }
             },
@@ -651,6 +695,23 @@ function createDynamicSchemaGrafico(data) {
                             minimum: 10,
                             maximum: 100,
                             description: "Largura das barras em percentagem (10-100)"
+                        },
+                        // NOVAS PROPRIEDADES PARA CONTROLE DE ESPAÇAMENTO
+                        barGap: {
+                            type: "number",
+                            title: "Espaço entre Barras do Mesmo Grupo (%)",
+                            'default': 0,
+                            minimum: 0,
+                            maximum: 100,
+                            description: "Espaço entre barras da mesma categoria (0 = sem espaço)"
+                        },
+                        barCategoryGap: {
+                            type: "number",
+                            title: "Espaço entre Categorias (%)",
+                            'default': 20,
+                            minimum: 0,
+                            maximum: 100,
+                            description: "Espaço entre diferentes grupos no eixo X"
                         },
                         // NOVAS PROPRIEDADES ADICIONADAS
                         smooth: {
@@ -770,22 +831,30 @@ function createDynamicSchemaGrafico(data) {
 function renderObjectGrafico(dados) {
     var chartId = 'm-dash-grafico' + dados.itemObject.mdashcontaineritemobjectstamp;
     $("#" + chartId).remove(); // Remove any existing chart with the same ID
-    var chartDomDiv = "<div style='width: " + ("100" + "%" || "600px") + "; height: " + (dados.config.chartContainer.height + "px" || "400px") + ";' id='" + chartId + "' class='m-dash-grafico'></div>";
-    console.log("dados.containerSelector", dados.containerSelector)
+    var chartDomDiv = "<div style='width: 100%!important; height: " + (dados.config.chartContainer.height + "px" || "400px") + "; ' id='" + chartId + "' class='m-dash-grafico'></div>";
+
     $(dados.containerSelector).append(chartDomDiv);
 
     var chartElement = document.getElementById(chartId);
     var chartToRender = echarts.init(chartElement);
 
-    updateChartOnContainer(chartToRender, dados.config, JSON.parse(JSON.stringify(dados.data)));
+    updateChartOnContainer(chartToRender, dados.config, JSON.parse(JSON.stringify(dados.data)), chartId);
 }
 
-function updateChartOnContainer(chart, config, data) {
+function updateChartOnContainer(chart, config, data, chartId) {
+
     try {
         var option = {
             title: {
                 text: config.title ? config.title.text : '',
                 show: config.title ? config.title.show : false
+            },
+            grid: {
+                left: '4%',
+                right: '4%',
+                top: '8%',
+                bottom: '8%',
+                containLabel: true
             },
             tooltip: {
                 trigger: 'axis'
@@ -797,7 +866,15 @@ function updateChartOnContainer(chart, config, data) {
                 type: config.xAxis.type,
                 data: data.map(function (item) {
                     return item[config.xAxis.dataField];
-                })
+                }),
+                axisLabel: {
+                    rotate: config.xAxis.axisLabel ? (config.xAxis.axisLabel.rotate || 45) : 45,
+                    interval: config.xAxis.axisLabel ?
+                        (config.xAxis.axisLabel.interval === "auto" ? "auto" : parseInt(config.xAxis.axisLabel.interval)) : 0,
+                    margin: config.xAxis.axisLabel ? (config.xAxis.axisLabel.margin || 10) : 10,
+                    fontSize: config.xAxis.axisLabel ? (config.xAxis.axisLabel.fontSize || 12) : 12,
+                    color: config.xAxis.axisLabel ? (config.xAxis.axisLabel.color || "#666") : "#666"
+                }
             },
             yAxis: {
                 type: config.yAxis.type,
@@ -853,12 +930,7 @@ function updateChartOnContainer(chart, config, data) {
                 if (serie.itemStyle || serie.color) {
                     serieConfig.itemStyle = serieConfig.itemStyle || {};
 
-                    // Cor principal (fallback para compatibilidade)
-                    /* if (serie.color) {
-                         serieConfig.itemStyle.color = serie.color;
-                     }*/
 
-                    // Configurações específicas do itemStyle
                     if (serie.itemStyle) {
                         if (serie.itemStyle.color) serieConfig.itemStyle.color = serie.itemStyle.color;
                         if (serie.itemStyle.borderColor) serieConfig.itemStyle.borderColor = serie.itemStyle.borderColor;
@@ -872,12 +944,26 @@ function updateChartOnContainer(chart, config, data) {
                     serieConfig.barWidth = serie.barWidth + '%';
                 }
 
+                if (serie.barGap !== undefined) {
+                    serieConfig.barGap = serie.barGap + '%';
+                }
+
+                if (serie.barCategoryGap !== undefined) {
+                    serieConfig.barCategoryGap = serie.barCategoryGap + '%';
+                }
+
                 return serieConfig;
             }) : []
         };
 
         chart.setOption(option, true);
-        console.log('Gráfico atualizado com novos estilos:', option);
+
+        window.addEventListener('resize', function () {
+            chart.resize();
+        });
+
+
+
     } catch (e) {
         console.error('Erro ao atualizar gráfico:', e);
     }
@@ -1715,14 +1801,12 @@ function getColorByType(type) {
 
 function updatePie(containerSelector, itemObject, config, data) {
     var chartId = 'pie_chart_' + itemObject.mdashcontaineritemobjectstamp;
-    // Preparar container do gráfico
-    //vendaunt
-    //vndsmcom
+
     var chartContainer = '<div id="' + chartId + '" style="width: ' +
         (100) + '%; height: ' +
         (config.dimensions.height || 400) + 'px;"></div>';
     $(containerSelector).html(chartContainer);
-    // Aguardar o DOM estar pronto
+
     setTimeout(function () {
         var chartDom = document.getElementById(chartId);
         if (!chartDom) {
@@ -1841,7 +1925,7 @@ function updatePie(containerSelector, itemObject, config, data) {
         window.addEventListener('resize', function () {
             myChart.resize();
         });
-        console.log('Gráfico de pizza renderizado com sucesso:', chartId);
+
     }, 100);
 }
 

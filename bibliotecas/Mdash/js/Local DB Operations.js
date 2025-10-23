@@ -1,7 +1,8 @@
 
 
 
-
+var GMappedLocalDBs = [new LocalDBMappedData({ table: "defaultTable", schema: {} })];
+GMappedLocalDBs = [];
 
 function localDataBaseExists(databaseName) {
     // Get the list of existing databases
@@ -11,10 +12,72 @@ function localDataBaseExists(databaseName) {
     return existingDatabases.includes(databaseName);
 }
 
+function LocalDBMappedData(data) {
+
+    this.table = data.table || "defaultTable";
+    this.schema = data.schema || {};
+    this.fontestamp = data.fontestamp || "";
+
+}
+
+function getAllMappedLocalDBDataSimpleArray() {
+
+    var mappedData = []
+
+    GMappedLocalDBs.forEach(function (item) {
+        item.schema.map(function (field) {
+            mappedData.push(item.table + "-" + field)
+        })
+    })
+
+    return mappedData;
+
+}
+
+
+
+
+
+
+function replaceLocalDbKeywords(dados) {
+    
+    var LOCAL_DB_KEYWORD_MAP = {
+        'total': 'tot',
+        'no': 'num',
+        'natural': 'nat',
+        'order': 'ord',
+        'group': 'grp',
+        'select': 'sel',
+        'from': 'frm',
+        'where': 'whr',
+        'count': 'cnt'
+        // Adicione mais conforme necessário
+    };
+
+    // Cria o regex uma vez só baseado nas chaves do mapa
+    var LOCAL_DB_KEYWORDS_REGEX = new RegExp('\\b(' + Object.keys(LOCAL_DB_KEYWORD_MAP).join('|') + ')\\b', 'g');
+
+    var dadosString = JSON.stringify(dados);
+
+    dadosString = dadosString.replace(LOCAL_DB_KEYWORDS_REGEX, function (match) {
+        return LOCAL_DB_KEYWORD_MAP[match] || match;
+    });
+
+    return JSON.parse(dadosString);
+}
+
 
 function extractLocalDbSchema(dadosSchema) {
 
     // Extract the keys and values from dadosSchema to determine the table schema
+    var typeMap = {
+        'number': 'NUMERIC',
+        'string': 'VARCHAR(max)',
+        'boolean': "BIT",
+        'date': "DATETIME"
+    };
+
+
     var tableSchema = "";
     Object.entries(dadosSchema).map(function (entry) {
         var key = entry[0];
@@ -26,10 +89,48 @@ function extractLocalDbSchema(dadosSchema) {
             tableSchema += ", ";
         }
     });
+
+
     return tableSchema;
 }
 
-function setTupDataOnLocalDb(databaseName, tableName, dadosSchema, dados) {
+function handleExpressaoDbListagem(containerItem, itemObject) {
+
+    var tipoQuery = itemObject.tipoquery || "item";
+
+    switch (tipoQuery) {
+
+        case "item":
+
+
+            return { tipoquery: "item", expressaodb: containerItem.expressaodblistagem, campo: "expressaodblistagem", component: containerItem };
+
+        case "object":
+
+            return { tipoquery: "object", expressaodb: itemObject.objectexpressaodblistagem, campo: "objectexpressaodblistagem", component: itemObject };
+
+        default:
+            throw new Error("Tipo de query desconhecido: " + tipoQuery);
+    }
+
+}
+
+
+
+
+function findDataByMapCode(mapCode) {
+
+    var parts = mapCode.split("-");
+    if (parts.length != 2) return [];
+    var tableName = parts[0];
+    var fieldName = parts[1];
+
+
+    var records = alasql("SELECT " + fieldName + " FROM " + tableName);
+    return records;
+}
+
+function setTupDataOnLocalDb(databaseName, tableName, dadosSchema, dados, fontestamp) {
 
     if (!localDataBaseExists(databaseName)) {
 
@@ -51,7 +152,21 @@ function setTupDataOnLocalDb(databaseName, tableName, dadosSchema, dados) {
 
     alasql.tables[tableName].data = dados;
 
+    var fonteExistData = GMappedLocalDBs.find(function (item) { return item.fontestamp == fontestamp });
+    var newMappedData = new LocalDBMappedData({ table: tableName, schema: Object.keys(dados[0]), fontestamp: fontestamp })
+    if (fonteExistData) {
+
+        fonteExistData.table = newMappedData.table;
+        fonteExistData.schema = newMappedData.schema;
+        fonteExistData.fontestamp = newMappedData.fontestamp;
+    } else {
+
+        GMappedLocalDBs.push(newMappedData);
+    }
+
+
 }
+
 
 function localTableExists(databaseName, tableName) {
     // Get the list of tables within the specified database
