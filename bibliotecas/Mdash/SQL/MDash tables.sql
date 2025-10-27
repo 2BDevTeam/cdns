@@ -151,6 +151,7 @@ CREATE TABLE MdashContainerItemObject(
     temdetalhes BIT DEFAULT 0,
     detalhesqueryconfigjson TEXT DEFAULT '',
     tipoquery VARCHAR(100) DEFAULT 'item',
+     objectexpressaodblistagem TEXT DEFAULT '',
     tipoobjectodetalhes VARCHAR(100) DEFAULT '',
     titulodetalhes VARCHAR(250) DEFAULT '',
     titulobtndetalhes VARCHAR(250) DEFAULT ''

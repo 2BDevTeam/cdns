@@ -1147,6 +1147,7 @@
 
           var modalHTML = generateModalHTML(modalData);
           $("#mainPage").append(modalHTML);
+            $("#detalhe-modal-" + this.mdashcontaineritemstamp + " .modal-dialog").css("width", "90%");
 
           $(document).off("click", "#" + botaoDetalhe.buttonId).on("click", "#" + botaoDetalhe.buttonId, function (e) {
             e.preventDefault();

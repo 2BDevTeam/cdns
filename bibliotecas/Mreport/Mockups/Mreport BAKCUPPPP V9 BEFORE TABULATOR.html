@@ -1187,10 +1187,10 @@
                 this.data = data;
                 this.columns = columns;
                 this.breakable = true;
-                this.rowHeight = config.rowHeight || 40;
+                this.rowHeight = config.rowHeight || 28;
                 this.headerHeight = config.headerHeight || 40;
-                this.groupHeaderHeight = config.groupHeaderHeight || 40;
-                this.groupTotalHeight = config.groupTotalHeight || 40;
+                this.groupHeaderHeight = config.groupHeaderHeight || 35;
+                this.groupTotalHeight = config.groupTotalHeight || 32;
                 this.reportConfig = config.reporntConfig || new MReportConfig();
                 this.renderedRows = config.renderedRows
 
@@ -1242,8 +1242,8 @@
                 var tableDivHtml = $("<div id='" + containerId + "'></div>");
 
                 container.append(tableDivHtml);
-
-                console.log("container", container.html());
+                
+                console.log("container",container.html());
 
                 // Dados para a tabela
                 var tableData = [
@@ -1268,13 +1268,12 @@
                     { descricao: "Investimentos em subsidiárias", A2022: "0.00", ND: "0.00", variacao: "0.00", variacaoPercent: "0", nivel: "item" }
                 ];
 
-                console.log("EXISTE CONTAINER ON TABBB", this.data);
+                console.log("EXISTE CONTAINER ON TABBB", this.getVisibleColumns());
 
                 // Configuração da tabela
                 var table = new Tabulator("#" + containerId, {
                     data: this.data,
                     layout: "fitColumns",
-                    rowHeight: 40,
                     columns: this.getVisibleColumns(),
                     rowFormatter: function (row) {
                         var data = row.getData();
@@ -1747,7 +1746,7 @@
             split(availableHeight) {
                 const effectiveAvailableHeight = availableHeight - this.y;
 
-                if (effectiveAvailableHeight < this.headerHeight + 40) {
+                if (effectiveAvailableHeight < this.headerHeight + this.rowHeight) {
                     return { fitted: null, remaining: this };
                 }
 
@@ -2122,57 +2121,66 @@
                 field: "categoria",
                 title: "Categoria",
                 type: "text",
-                widthGrow: 2,
-                headerSort: false,
-                resizable: false,
+                config: {
+                    align: "left",
+                    backgroundColor: "#f8f9fa",
+                    fontWeight: "bold"
+                }
             },
             {
                 field: "subcategoria",
                 title: "Subcategoria",
                 type: "text",
-                widthGrow: 2,
-                headerSort: false,
-                resizable: false
+                config: {
+                    align: "left"
+                }
             },
             {
                 field: "produto",
                 title: "Produto",
                 type: "text",
-                widthGrow: 2,
-                headerSort: false,
-                resizable: false,
+                config: {
+                    align: "left"
+                }
             },
             {
                 field: "marca",
                 title: "Marca",
                 type: "text",
-                widthGrow: 2,
-                headerSort: false,
-                resizable: false,
+                config: {
+                    align: "left"
+                }
             },
             {
                 field: "quantidade",
                 title: "Quantidade",
                 type: "numeric",
-                widthGrow: 2,
-                headerSort: false,
-                resizable: false,
+                config: {
+                    align: "right",
+                    backgroundColor: "#f8fff8",
+                    expression: "formatNumber(row.quantidade)"
+                }
             },
             {
                 field: "preco",
                 title: "Preço Unit.",
                 type: "currency",
-                widthGrow: 2,
-                headerSort: false,
-                resizable: false,
+                config: {
+                    align: "right",
+                    backgroundColor: "#fff8f8",
+                    expression: "formatCurrency(row.preco)"
+                }
             },
             {
                 field: "total",
                 title: "Total",
                 type: "currency",
-                widthGrow: 2,
-                headerSort: false,
-                resizable: false,
+                config: {
+                    align: "right",
+                    backgroundColor: "#fff0f0",
+                    fontWeight: "bold",
+                    expression: "formatCurrency(row.quantidade * row.preco)"
+                }
             }
         ];
 
@@ -2291,6 +2299,9 @@
             if (level >= groupFields.length) {
                 return data;
             }
+
+
+
             const currentField = groupFields[level];
             const grouped = {};
 
@@ -2441,10 +2452,16 @@
             ];
 
 
+            //  if (config.styleConfig.enableColors) {
+            multiLevelData = applyAdvancedStyling(multiLevelData, config.styleConfig);
+
+            //console.log("multiLevelData", multiLevelData);
+            //   }
+
             var levelData = groupDataMultiLevel(multiLevelData, subGroupFieds)
 
 
-            report.addTable(multiLevelData, reportColumns, {
+            report.addTable(levelData, reportColumns, {
                 x: 0, y: 350, section: 'content',
                 width: 700, height: '100%'
             });
@@ -2457,7 +2474,7 @@
             report.generate('report-container');
 
             GREPORT = report;
-
+            console.log("GREPORT", GREPORT.objects)
         }
 
         // ===== INICIALIZAÇÃO =====

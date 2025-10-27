@@ -3247,8 +3247,10 @@ function registerListenersMdash() {
                     },
                     getFilterByExpressaoDb: function (expressaoDb) {
                         if (!expressaoDb) return [];
+                        var self=this
+                         var expressaoDbListagem = handleExpressaoDbListagem(self.containerItem, self.containerItemObject).expressaodb;
 
-                        var filterCodes = extractFiltersFromExpression(expressaoDb);
+                        var filterCodes = extractFiltersFromExpression(expressaoDbListagem);
                         var matchedFilters = [];
 
                         filterCodes.forEach(function (filterCode) {
@@ -3291,8 +3293,11 @@ function registerListenersMdash() {
 
                         var self = this;
                         var value = $("#" + id).text();
+                        //console.log("value", value)
 
                         var filterCodes = extractFiltersFromExpression(value);
+
+                        console.log("filterCodes", filterCodes)
                         var matchedFilters = [];
                         filterCodes.forEach(function (filterCode) {
                             var filter = GMDashFilters.find(function (f) {
@@ -3419,7 +3424,6 @@ function registerListenersMdash() {
 
         var expressaoDbListagemResult = handleExpressaoDbListagem(containerItem, containerItemObject);
 
-        console.log("containerItemObjectbcxcxcxxxxc",containerItemObject)
 
         var sourceData = {};
         var tipoQuery = [{
@@ -3677,6 +3681,7 @@ function registerListenersMdash() {
     }
 
     function generateFilterVariablesHTML() {
+
         var filterVariablesHTML = "";
 
         filterVariablesHTML += "<div style='display:flex;flex-direction:row;flex-wrap:wrap;' v-for=\"filter in getFilterByExpressaoDb(containerItem.expressaodblistagem)\" :key=\"filter.mdashfilterstamp\" class=\"\">";
@@ -3701,6 +3706,8 @@ function registerListenersMdash() {
         filterVariablesHTML += "</div>";
 
         return filterVariablesHTML;
+
+
     }
 
     function extractFiltersFromExpression(sqlExpression) {
