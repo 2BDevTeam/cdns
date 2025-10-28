@@ -592,7 +592,7 @@ function createDynamicSchemaGrafico(data) {
                             rotate: {
                                 type: "number",
                                 title: "Rotação das Labels (graus)",
-                                'default': 45,
+                                'default': 1,
                                 minimum: -90,
                                 maximum: 90,
                                 description: "Ângulo de rotação das labels (-90° a 90°)"
@@ -868,7 +868,7 @@ function updateChartOnContainer(chart, config, data, chartId) {
                     return item[config.xAxis.dataField];
                 }),
                 axisLabel: {
-                    rotate: config.xAxis.axisLabel ? (config.xAxis.axisLabel.rotate || 45) : 45,
+                    rotate: config.xAxis.axisLabel ? (config.xAxis.axisLabel.rotate || 1) : 1,
                     interval: config.xAxis.axisLabel ?
                         (config.xAxis.axisLabel.interval === "auto" ? "auto" : parseInt(config.xAxis.axisLabel.interval)) : 0,
                     margin: config.xAxis.axisLabel ? (config.xAxis.axisLabel.margin || 10) : 10,

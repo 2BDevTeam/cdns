@@ -11,6 +11,8 @@
 <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
 
+
+
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <!-- Flatpickr Portuguese localization -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
@@ -849,23 +851,46 @@
       <div class="m-dash-main">
         <div v-for="container in mdash.containers" :key="container.mdashcontainerstamp"
           :class="[`gr-col-md-${container.tamanho}`, `gr-col-sm-${container.tamanho}`, `gr-col-lg-${container.tamanho}`]">
+          <div class='mon-collapse'>
+            <div class='mon-grupo-header'>
+              {{initUI()}}
+              <div v-if="container.titulo.length>0"
+                style="font-size: 18px;color:#626e78 ;column-gap: 0.4em;display: flex;align-items: center;box-shadow:  0 4px 8px rgba(0, 0, 0, .08);background-color:white;font-size:1em;border-radius: 6px; font-weight: bold; margin: 0 0 20px 0; padding: 8px;">
+                <div>
+                  <i style="font-size: 18px;" class='glyphicon glyphicon-chevron-down mainformcptitulo'></i>
+                </div>
+                <div >
+                  <p style="font-size: 18px;margin-top:0.4em" class='mainformcptitulo'>
+                    {{ container.titulo }}
+                  </p>
+                </div>
 
-          <div v-if="container.titulo.length > 0" style="margin-bottom: 0.8em;" class="gr-col-md-12 pull-left">
-            <h1 class="m-dash-item-text">{{ container.titulo }}</h1>
-            <hr>
-          </div>
 
-          <!-- Aqui usamos os grupos de rows -->
-          <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)" :key="'row-' + rowIndex"
-            class="gr-row m-dash-container-item-row " style="margin-top: 1em!important;margin-bottom:3em">
+              </div>
 
-            <div style="height: 100%!important;" v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
-              :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area',
+            </div>
+            <div class='mon-grupo-body'>
+              <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)" :key="'row-' + rowIndex"
+                class="gr-row m-dash-container-item-row " style="margin-top: 1em!important;margin-bottom:3em">
+
+                <div style="height: 100%!important;" v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
+                  :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area',
                                         `gr-col-md-${item.tamanho}`,
                                         `gr-col-sm-${item.tamanho}`,
                                         `gr-col-lg-${item.tamanho}`]">
+                </div>
+              </div>
             </div>
+
           </div>
+          <div v-if="container.titulo.length > 0" style="margin-bottom: 0.8em;" class="gr-col-md-12 pull-left">
+            <!--  <h1 class="m-dash-item-text">{{ container.titulo }}</h1>
+            <hr>
+            -->
+          </div>
+
+          <!-- Aqui usamos os grupos de rows -->
+
         </div>
       </div>
     </div>
@@ -1147,7 +1172,7 @@
 
           var modalHTML = generateModalHTML(modalData);
           $("#mainPage").append(modalHTML);
-            $("#detalhe-modal-" + this.mdashcontaineritemstamp + " .modal-dialog").css("width", "90%");
+          $("#detalhe-modal-" + this.mdashcontaineritemstamp + " .modal-dialog").css("width", "90%");
 
           $(document).off("click", "#" + botaoDetalhe.buttonId).on("click", "#" + botaoDetalhe.buttonId, function (e) {
             e.preventDefault();
@@ -1505,11 +1530,27 @@
   var GConfigDash = null;
   $(document).ready(function () {
 
+
     var state = PetiteVue.reactive({
       mdash: GMainDashInstance,
       initFlatpickr,
       initDomObjects() {
         var self = this;
+      },
+
+      initUI() {
+
+        setTimeout(() => {
+          
+          $(".mon-grupo-header").on("click", function () {
+            var grupoId = $(this).attr("data-grupo-id");
+            $(this).find("i").toggleClass("glyphicon-chevron-down");
+            $(this).find("i").toggleClass("glyphicon-chevron-right");
+            $(this).next(".mon-grupo-body").toggleClass("hidden");
+          });
+        }, 100);
+
+
       },
       initMultiselect(el, filtro) {
 

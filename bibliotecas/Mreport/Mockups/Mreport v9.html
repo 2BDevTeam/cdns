@@ -1268,7 +1268,6 @@
                     { descricao: "Investimentos em subsidiárias", A2022: "0.00", ND: "0.00", variacao: "0.00", variacaoPercent: "0", nivel: "item" }
                 ];
 
-                console.log("EXISTE CONTAINER ON TABBB", this.data);
 
                 // Configuração da tabela
                 var table = new Tabulator("#" + containerId, {
@@ -1276,22 +1275,55 @@
                     layout: "fitColumns",
                     rowHeight: 40,
                     columns: this.getVisibleColumns(),
+                    // No lugar do rowFormatter atual, usar este:
+                    // No método renderContent do MTableObject, ajuste o rowFormatter:
                     rowFormatter: function (row) {
                         var data = row.getData();
                         var nivel = data.nivel;
-                        var classe = data.classe || "";
+                        var level = data.level;
+                        var type = data.type;
 
-                        if (nivel === "principal") {
-                            row.getElement().classList.add("grupo-principal");
-                        } else if (nivel === "subgrupo") {
-                            row.getElement().classList.add("subgrupo");
-                            if (classe) {
-                                row.getElement().classList.add(classe);
+                        // Limpar todas as classes primeiro
+                        var rowElement = row.getElement();
+                        rowElement.className = 'tabulator-row';
+
+                        // Aplicar estilos baseados no tipo/nível
+                        if (type === 'group-header') {
+                            if (level === 0) {
+                                rowElement.classList.add("grupo-principal");
+                            } else {
+                                rowElement.classList.add("subgrupo");
                             }
-                        } else if (nivel === "item") {
-                            row.getElement().classList.add("item");
-                        } else if (nivel === "total") {
-                            row.getElement().classList.add("total");
+
+                            // Aplicar cores customizadas se existirem
+                            if (data._rowColor) {
+                                rowElement.style.backgroundColor = data._rowColor;
+                            }
+                            if (data._textColor) {
+                                rowElement.style.color = data._textColor;
+                            }
+                        }
+                        else if (type === 'group-total') {
+                            rowElement.classList.add("total");
+                            if (data._rowColor) {
+                                rowElement.style.backgroundColor = data._rowColor;
+                            }
+                            if (data._textColor) {
+                                rowElement.style.color = data._textColor;
+                            }
+                        }
+                        else if (type === 'grand-total') {
+                            rowElement.classList.add("total");
+                            rowElement.style.backgroundColor = '#2c3e50';
+                            rowElement.style.color = '#ffffff';
+                        }
+                        else if (nivel === 'item') {
+                            rowElement.classList.add("item");
+                        }
+
+                        // Aplicar altura customizada
+                        if (data._rowHeight) {
+                            rowElement.style.height = data._rowHeight + 'px';
                         }
                     }
                 });
@@ -2284,18 +2316,25 @@
                 return newItem;
             });
         }
+        // Agrupamento recursivo para N níveis otimizado para Tabulator
+        // Agrupamento recursivo para N níveis otimizado para Tabulator
 
-
-        // Agrupamento recursivo para N níveis
-        function groupDataMultiLevel(data, groupFields, level = 0) {
-            if (level >= groupFields.length) {
+        // Agrupamento recursivo para N níveis - GENÉRICO para qualquer conjunto de colunas
+        function groupDataMultiLevel(data, groupFields, allColumns = [], level = 0) {
+            if (level >= groupFields.length || !data.length) {
                 return data;
             }
+
             const currentField = groupFields[level];
             const grouped = {};
 
             // Agrupar por campo atual
             data.forEach(item => {
+                // Ignorar itens que já são grupos
+                if (item.type && (item.type === 'group-header' || item.type === 'group-total')) {
+                    return;
+                }
+
                 const key = item[currentField] || 'Não Definido';
                 if (!grouped[key]) {
                     grouped[key] = [];
@@ -2307,36 +2346,68 @@
             const sortedGroups = Object.keys(grouped).sort();
 
             sortedGroups.forEach(key => {
-                // Cabeçalho do grupo atual
-                result.push({
+                const groupItems = grouped[key];
+                const firstItem = groupItems[0] || {};
+
+                // Criar cabeçalho do grupo - GENÉRICO para qualquer coluna
+                const groupHeader = {
                     type: 'group-header',
                     level: level,
                     value: key,
-                    groupField: currentField
+                    groupField: currentField,
+                    // Copiar dinamicamente todas as propriedades do primeiro item
+                    ...firstItem,
+                    // Sobrescrever com propriedades específicas do grupo
+                    _rowColor: level === 0 ? '#2c3e50' : (level === 1 ? '#3498db' : '#5dade2'),
+                    _textColor: '#ffffff',
+                    _rowHeight: 35,
+                    nivel: level === 0 ? 'principal' : 'subgrupo',
+                    // Garantir que o valor do campo de agrupamento seja o do grupo
+                    [currentField]: key
+                };
+
+                // Para campos que não são o de agrupamento atual, manter vazio nos cabeçalhos
+                groupFields.forEach((field, idx) => {
+                    if (idx > level) {
+                        groupHeader[field] = ''; // Campos de níveis inferiores ficam vazios
+                    }
                 });
 
+                result.push(groupHeader);
+
                 // Processar subgrupos recursivamente
-                const subGrouped = groupDataMultiLevel(grouped[key], groupFields, level + 1);
+                const subGrouped = groupDataMultiLevel(groupItems, groupFields, allColumns, level + 1);
                 result.push(...subGrouped);
 
-                // Total do grupo atual
-                /* if (state.config.showGroupTotals && level < groupFields.length - 1) {*/
-                result.push({
+                // Criar total do grupo - GENÉRICO
+                const groupTotal = {
                     type: 'group-total',
                     level: level,
                     value: key,
                     groupField: currentField,
-                    data: grouped[key]
-                });
-                /*}*/
+                    data: groupItems,
+                    // Copiar estrutura do primeiro item mas limpar dados numéricos
+                    ...Object.fromEntries(
+                        Object.entries(firstItem).map(([key, value]) => {
+                            if (typeof value === 'number') {
+                                return [key, '']; // Limpar valores numéricos
+                            }
+                            return [key, value];
+                        })
+                    ),
+                    _rowColor: level === 0 ? '#34495e' : (level === 1 ? '#2980b9' : '#3498db'),
+                    _textColor: '#ffffff',
+                    _rowHeight: 32,
+                    nivel: 'total',
+                    // Garantir que o campo de agrupamento tenha o valor correto
+                    [currentField]: key
+                };
+
+                result.push(groupTotal);
             });
 
             return result;
         }
-
-
-        // ===== FUNÇÕES DA INTERFACE =====
-
         var GREPORT = null
         function generateReport() {
             const config = new MReportConfig().loadFromUI();
@@ -2441,10 +2512,13 @@
             ];
 
 
-            var levelData = groupDataMultiLevel(multiLevelData, subGroupFieds)
+            var subGroupFields = ['categoria', 'subcategoria', 'marca'];
+            var levelData = groupDataMultiLevel(multiLevelData, subGroupFieds, reportColumns);
+
+            console.log("multiLevelData", multiLevelData)
 
 
-            report.addTable(multiLevelData, reportColumns, {
+            report.addTable(levelData, reportColumns, {
                 x: 0, y: 350, section: 'content',
                 width: 700, height: '100%'
             });
