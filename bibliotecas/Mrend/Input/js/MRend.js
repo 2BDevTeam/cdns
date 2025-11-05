@@ -4781,7 +4781,7 @@ function Mrend(options) {
         ];
         var addedToColGroup = []
 
-        grupoColuna.forEach(function (grupo) {
+      /*  grupoColuna.forEach(function (grupo) {
 
             var tmpGrupoColunaDefinition = {
 
@@ -4825,7 +4825,7 @@ function Mrend(options) {
 
             columnsDefinition.push(tmpGrupoColunaDefinition);
 
-        });
+        });*/
 
         columns.map(function (cl) {
 

@@ -3,6 +3,7 @@ $(document).ready(function () {
     addDashboardStyles(styles);
     addTabulatorStyles(styles);
     addBtnStyles(styles);
+    otherStyles(styles);
     var globalStyle = ""
     styles.forEach(function (style) {
         globalStyle += style;
@@ -11,6 +12,23 @@ $(document).ready(function () {
     applyTabulatorStylesWithJqueryMdash()
 });
 
+
+function otherStyles(styles) {
+
+    var cssString = "";
+    cssString += "input::file-selector-button {";
+    cssString += "    background: linear-gradient(60deg, " + getColorByType("primary").background + ", " + getColorByType("primary").background + ");";
+    cssString += "    color: white;";
+    cssString += "    border: none;";
+    cssString += "    border-radius: 8px;";
+    cssString += "    padding: 12px 24px;";
+    cssString += "    font-size: 16px;";
+    cssString += "    cursor: pointer;";
+    cssString += "    transition: background 0.3s;";
+    cssString += "}";
+    styles.push(cssString);
+
+}
 
 // ...existing code...
 function addTabulatorStyles(styles) {
@@ -137,6 +155,9 @@ function addTabulatorStyles(styles) {
     tabulatorCSS += "    background-color: " + getColorByType("primary").background + "!important;";
     tabulatorCSS += "    color: #fff!important;";
     tabulatorCSS += "}";
+    tabulatorCSS += ".tabulator-footer{ ";
+    tabulatorCSS += "     background:white!important;";
+    tabulatorCSS += " }";
 
     styles.push(tabulatorCSS);
 }

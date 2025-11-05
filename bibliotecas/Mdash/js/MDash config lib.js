@@ -1,4 +1,6 @@
 var GMDashContainers = [new MdashContainer({})];
+var GMDashConfig = [new MdashConfig({})];
+GMDashConfig = [];
 GMDashContainers = []
 var Greactive
 var GMDashContainerItems = [new MdashContainerItem({})];
@@ -21,7 +23,6 @@ var GTMPReactiveInstance
 var GTMPDragItem = null;
 var GTMPDragId = null;
 var GCopiedComponentData = []
-
 var GMdashEntityCopyConfig = [
 
     new MdashEntityCopy({
@@ -29,25 +30,33 @@ var GMdashEntityCopyConfig = [
         table: "MdashContainer",
         entityToInstantiate: MdashContainer,
         localsource: "GMDashContainers",
-        childs: ["MdashContainerItem"]
+        childs: ["MdashContainerItem"],
+        extraConfig: {
+            generateOrder: true
+        }
     }),
     new MdashEntityCopy({
         idfield: "mdashcontaineritemstamp",
         table: "MdashContainerItem",
         entityToInstantiate: MdashContainerItem,
         localsource: "GMDashContainerItems",
-        childs: ["MdashContainerItemObject"]
+        childs: ["MdashContainerItemObject"],
+        extraConfig: {
+            generateOrder: true
+        }
     }),
     new MdashEntityCopy({
         idfield: "mdashcontaineritemobjectstamp",
         table: "MdashContainerItemObject",
         entityToInstantiate: MdashContainerItemObject,
         localsource: "GMDashContainerItemObjects",
-        childs: []
+        childs: [],
+        extraConfig: {
+            generateOrder: false
+        }
     })
 
 ];
-
 function UIObjectFormConfig(data) {
 
     this.campo = data.campo || "";
@@ -64,6 +73,19 @@ function UIObjectFormConfig(data) {
 
 }
 
+
+
+function MdashConfig(data) {
+    var self = this;
+    this.codigo = data.codigo || "";
+    this.descricao = data.descricao || "";
+    this.temfiltro = data.temfiltro || false;
+    this.categoria = data.categoria || "";
+    this.filtrohorizont = data.filtrohorizont || false;
+    this.u_mdashstamp = data.u_mdashstamp || "";
+}
+
+
 function MdashEntityCopy(data) {
 
     this.idfield = data.idfield || "";
@@ -71,6 +93,7 @@ function MdashEntityCopy(data) {
     this.localsource = data.localsource || "";
     this.entityToInstantiate = data.entityToInstantiate || function () { };
     this.childs = data.childs || [];
+    this.extraConfig = data.extraConfig || {}
 }
 
 
@@ -318,7 +341,112 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
 }
 
 
+function buildMDashConfigData(options) {
+    var includeHeader = options && options.includeHeader === true;
 
+    var configData = [
+        { sourceTable: "MdashContainer", sourceKey: "mdashcontainerstamp", records: GMDashContainers },
+        { sourceTable: "MdashContainerItem", sourceKey: "mdashcontaineritemstamp", records: GMDashContainerItems },
+        { sourceTable: "MdashFilter", sourceKey: "mdashfilterstamp", records: GMDashFilters },
+        { sourceTable: "MdashContainerItemObject", sourceKey: "mdashcontaineritemobjectstamp", records: GMDashContainerItemObjects },
+        { sourceTable: "MDashFonte", sourceKey: "mdashfontestamp", records: GMDashFontes }
+    ];
+
+    configData.unshift({
+        sourceTable: "u_mdash",
+        sourceKey: "u_mdashstamp",
+        records: GMDashConfig
+    });
+
+    return configData;
+}
+
+function exportarConfiguracaoMDashboard() {
+    try {
+        //console.log("GMDashConfigGMDashConfigGMDashConfig", GMDashConfig)
+
+        var configData = buildMDashConfigData({ includeHeader: true });
+        var payload = {
+            relatoriostamp: GMDashStamp || "",
+            config: configData,
+            generatedAt: new Date().toISOString()
+        };
+        var fileContents = JSON.stringify(payload, null, 2);
+        var blob = new Blob([fileContents], { type: "application/json;charset=utf-8" });
+        var downloadUrl = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        var timestamp = new Date().toISOString().replace(/[:.-]/g, "");
+
+        var mdashConfig = GMDashConfig[0] || {};
+
+        var fileName = "dashboard-" + mdashConfig.descricao + timestamp + ".json";
+
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(function () {
+            URL.revokeObjectURL(downloadUrl);
+        }, 1000);
+    } catch (error) {
+        console.error("Erro ao exportar configuracao do MDashboard", error);
+        if (typeof alertify !== "undefined") {
+            alertify.error("Erro ao exportar configuracao", 9000);
+        }
+    }
+}
+
+
+function importarConfiguracaoDashboard() {
+    var fileInput = document.getElementById('importDashboardConfigFileInput');
+    var file = fileInput.files[0];
+    if (!file) {
+        alertify.error("Por favor, selecione um ficheiro para importar.", 5000);
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            var content = e.target.result;
+            var json = JSON.parse(content);
+            json.recordsToDelete = [];
+            $.ajax({
+                type: "POST",
+                url: "../programs/gensel.aspx?cscript=actualizaconfiguracaomrelatorio",
+                async: false,
+                data: {
+                    '__EVENTARGUMENT': JSON.stringify([json]),
+                },
+                success: function (response) {
+
+                    var errorMessage = "ao importar resultados "
+                    try {
+                        console.log(response)
+                        if (response.cod != "0000") {
+
+                            console.log("Erro " + errorMessage, response);
+                            alertify.error("Erro ao importar configuração", 9000)
+                            return false
+                        }
+                        alertify.success("Dados importados com sucesso", 9000);
+                        window.location.reload();
+                    } catch (error) {
+                        console.log("Erro interno " + errorMessage, response, error)
+                        //alertify.error("Erro interno " + errorMessage, 10000)
+                    }
+
+                    //  javascript:__doPostBack('','')
+                }
+            })
+
+            // Process the imported JSON data
+        } catch (error) {
+            alertify.error("Erro ao importar configuração: " + error.message, 5000);
+        }
+    };
+    reader.readAsText(file);
+}
 
 function actualizarConfiguracaoMDashboard() {
 
@@ -350,8 +478,7 @@ function actualizarConfiguracaoMDashboard() {
         }
     ];
 
-    // console.log("configdata", configData)
-    // console.log([{ mdashstamp: GMDashStamp, config: configData }])
+
 
 
 
@@ -599,6 +726,8 @@ function generateQueryButtonOptions() {
     schemaQueryEditorContainerHtml += "</div>";
     return schemaQueryEditorContainerHtml;
 }
+
+
 
 
 
@@ -1891,6 +2020,14 @@ function registerListenersMdash() {
     setMutationObserverTableSqlResult();
     $.getScript("https://cdn.jsdelivr.net/npm/alasql ", function () { });
 
+    $(document).on('click', '.home-collapse-header', function () {
+        $(this).find(".glyphicon").toggleClass("glyphicon-triangle-bottom");
+        //$(this).next("div").css("hidden");
+        $(this).next("div").toggleClass("hidden");
+
+    });
+
+
 
     $(document).off("click", ".remover-item-filter-btn").on("click", ".remover-item-filter-btn", function (e) {
 
@@ -2019,8 +2156,8 @@ function registerListenersMdash() {
                     type: "button",
                     id: "buttonPasteContainerItemObject",
                     classes: "btn btn-default btn-sm pull-left heartbeat-effect is-beating",
-                    customData: " v-on:click='pasteObjectoContainerItemObject()' ",
-                    style: "display:none",
+                    customData: " v-if='showPasteObjectButton() || canShowPaste==true' v-on:click='pasteObjectoContainerItemObject()' ",
+                    style: "",
                     selectCustomData: "",
                     fieldToOption: "",
                     fieldToValue: "",
@@ -2509,6 +2646,9 @@ function registerListenersMdash() {
             GMDashContainerItemObjects: GMDashContainerItemObjects,
             filteredContainerItemObjects: filteredContainerItemObjects,
             GCopiedComponentData: GCopiedComponentData,
+            canShowPaste: GCopiedComponentData.filter(function (copied) {
+                return copied.type === "containeritemobject"
+            }).length > 0,
             selectedObject: selectedObject,
             initEditorObject: function (containerItemObject) {
 
@@ -2695,14 +2835,11 @@ function registerListenersMdash() {
                 }
 
             },
+            showPasteObjectButton: function () {
 
-            showPasteButton: function () {
-
-                var existingObjectsToPaste = GCopiedComponentData.filter(function (copied) {
-                    return copied.table === "MdashContainerItemObject";
-                }).length;
-                //console.log("existingObjectsToPaste", existingObjectsToPaste)
-                return existingObjectsToPaste > 0;
+                return this.GCopiedComponentData.filter(function (copied) {
+                    return copied.componentCopyConfig.table === "MdashContainerItemObject";
+                }).length > 0;
             },
             pasteObjectoContainerItemObject: function () {
 
@@ -2715,6 +2852,7 @@ function registerListenersMdash() {
                 filteredPasted.forEach(function (pasted) {
 
 
+                    pasted.componentData.mdashcontaineritemstamp = containerItem.mdashcontaineritemstamp;
                     self.GMDashContainerItemObjects.push(pasted.componentData);
                     // this.filteredContainerItemObjects.push(newObject);
                     GMDashContainerItemObjects = self.GMDashContainerItemObjects
@@ -2894,7 +3032,12 @@ function registerListenersMdash() {
             copiarObjeto: function (containerItemObject) {
 
                 copyMdashComponent(containerItemObject.mdashcontaineritemobjectstamp, "MdashContainerItemObject", null, null);
+                this.GCopiedComponentData = GCopiedComponentData;
+
+                console.log("GCopiedComponentData", this.GCopiedComponentData)
                 $("#buttonPasteContainerItemObject").show();
+
+                this.canShowPaste = true
 
             },
             abrirEditorQuery: function (containerItemObject) {
@@ -3247,8 +3390,8 @@ function registerListenersMdash() {
                     },
                     getFilterByExpressaoDb: function (expressaoDb) {
                         if (!expressaoDb) return [];
-                        var self=this
-                         var expressaoDbListagem = handleExpressaoDbListagem(self.containerItem, self.containerItemObject).expressaodb;
+                        var self = this
+                        var expressaoDbListagem = handleExpressaoDbListagem(self.containerItem, self.containerItemObject).expressaodb;
 
                         var filterCodes = extractFiltersFromExpression(expressaoDbListagem);
                         var matchedFilters = [];
@@ -3271,8 +3414,8 @@ function registerListenersMdash() {
                         var expressaodblistagemResult = handleExpressaoDbListagem(self.containerItem, self.containerItemObject);
 
 
-                         var editor = ace.edit("expressaodblistagemccontainerobject");
-                         editor.setValue(expressaodblistagemResult.expressaodb || "");
+                        var editor = ace.edit("expressaodblistagemccontainerobject");
+                        editor.setValue(expressaodblistagemResult.expressaodb || "");
 
                         setTimeout(function () {
 
@@ -3433,7 +3576,7 @@ function registerListenersMdash() {
             tipo: "object",
             descricao: "Query no objeto"
         }];
-        
+
         containers = [
             {
                 colSize: 12,
@@ -3867,18 +4010,28 @@ function registerListenersMdash() {
             copiedComponent[parentIdField] = parentComponentId;
         }
 
-        copiedComponent.ordem = getMaxOrdemByLocalSource(localSource) + 1;
+        if (componentCopyConfig.extraConfig.generateOrder) {
 
-
-
-
+            copiedComponent.ordem = getMaxOrdemByLocalSource(localSource) + 1;
+        }
 
         var copiedData = {
             componentCopyConfig: componentCopyConfig,
+            originalId: originalId,
             componentData: new componentCopyConfig.entityToInstantiate(copiedComponent)
         };
+        var existingIndex = GCopiedComponentData.findIndex(function (item) {
+            return item.originalId == originalId
+        });
 
-        GCopiedComponentData.push(copiedData);
+
+        if (existingIndex === -1) {
+            GCopiedComponentData.push(copiedData);
+        } else {
+            // Opcionalmente, substituir o elemento existente
+            GCopiedComponentData[existingIndex] = copiedData;
+        }
+        //GCopiedComponentData.push(copiedData);
 
         if (componentCopyConfig.childs && componentCopyConfig.childs.length > 0) {
             componentCopyConfig.childs.forEach(function (childTable) {
@@ -4499,6 +4652,10 @@ function fetchDadosMDash(config, dados) {
     var filters = dados.filters || [];
     var containerItemObjects = dados.containerItemObjects || [];
     var fontes = dados.fontes || [];
+    var mdashconfig = dados.mdashconfig || {};
+    //GMDashConfig = [new MdashConfig(config)];
+    GMDashConfig.push(new MdashConfig(config));
+
     GMDashFontes = fontes.map(function (f) {
 
         try {
@@ -4576,11 +4733,37 @@ function fetchDadosMDash(config, dados) {
     });
 }
 
-
+function abrirModalImportacaoDashboard() {
+    $("#importDashboardConfigModal").modal("show");
+}
 function initConfiguracaoDashboard(config) {
     GMDashStamp = config.mdashstamp || "";
 
-    // Botão para adicionar filtro
+
+    var importacaoButtonHtml = generateButton({
+        style: "margin-left:0.5em",
+        buttonId: "importDashboardConfigBtn",
+        classes: "btn btn-sm btn-default",
+        customData: " type='button' data-tooltip='true' data-original-title='Importar configuração' ",
+        label: "Importar configuração",
+        onClick: "abrirModalImportacaoDashboard()"
+    });
+
+    $(config.exportBtnSelector).append(importacaoButtonHtml);
+
+    $("#importDashboardConfigModal").remove();
+    var modalImportarDashboardHtml = generateModalHTML({
+        id: "importDashboardConfigModal",
+        title: "Importar Configuração do Dashboard",
+        body: "<div class='form-group'>" +
+            "<label for='importDashboardConfigFileInput'>Selecione o ficheiro de configuração do dashboard (JSON):</label>" +
+            "<input style='height:100%' type='file' class='form-control' id='importDashboardConfigFileInput' accept='.json' />" +
+            "</div>",
+        footerContent: "<button onclick='importarConfiguracaoDashboard()' type='button' class='btn btn-primary' >Importar Configuração</button>"
+    });
+
+    $("#maincontent").append(modalImportarDashboardHtml);
+
     var botaoAddFiltro = {
         style: "",
         buttonId: "addFilterMDashBtn",
@@ -4591,7 +4774,6 @@ function initConfiguracaoDashboard(config) {
     };
     var addFilterButtonHtml = generateButton(botaoAddFiltro);
 
-    // Container para filtros (col-md-3)
     var filterContainer = "<div class='col-md-3 m-dash-data-filter-container' style='margin-top:1em'>";
     filterContainer += "<div class='row'>";
     filterContainer += "<div class='col-md-12'>" + addFilterButtonHtml + "</div>";
@@ -4649,8 +4831,20 @@ function initConfiguracaoDashboard(config) {
     };
     var pasteContainerButtonHtml = generateButton(pasteContainerBtnData);
 
+    var exportarButtonHtml = generateButton({
+        style: "margin-left:0.5em",
+        buttonId: "exportDashboardConfigBtn",
+        classes: "btn btn-sm btn-default",
+        customData: " type='button' data-tooltip='true' data-original-title='Exportar configuração' ",
+        label: "Exportar configuração",
+        onClick: "exportarConfiguracaoMDashboard()"
+    });
+
+    atualizarDashboardConfigContainer += exportarButtonHtml;
+
     dashboardContainer += "<div style='display:flex;column-gap:0.5em;margin-righ:0.3em;margin-bottom:0.5em'>";
     dashboardContainer += "<div >" + addContainerButtonHtml + "</div>";
+    dashboardContainer += "<div >" + exportarButtonHtml + "</div>";
     dashboardContainer += "<div >" + pasteContainerButtonHtml + "</div>";
     dashboardContainer += "</div>";
     dashboardContainer += "<div id='m-dash-containers' class='m-dash-containers'></div>";
@@ -4666,6 +4860,8 @@ function initConfiguracaoDashboard(config) {
         label: "Actualizar configuração",
         onClick: "actualizarConfiguracaoMDashboard()"
     });
+
+
     atualizarDashboardConfigContainer += atualizarButtonHtml;
     atualizarDashboardConfigContainer += "</div>";
 
