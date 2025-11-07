@@ -287,12 +287,12 @@ function Mrend(options) {
         this.tipo = data.tipo || "";
         this.atributo = data.atributo || "";
         this.campovalid = data.campovalid || "";
+        this.visivel = (data.visivel != null && data.visivel != undefined) ? data.visivel : true;
         this.condicaovalidacao = data.condicaovalidacao || "";
         this.sourceTable = data.sourceTable || "";
         this.sourceKey = data.sourceKey || "";
         this.validacoluna = data.validacoluna || false;
         this.forcaeditavel = data.forcaeditavel || false;
-        this.visivel = (data.visivel != null && data.visivel != undefined) ? data.visivel : true;
         this.expresscolfun = data.expresscolfun || "";
         this.botaohtml = data.botaohtml || "";
         this.temlinhadesc = data.temlinhadesc || false;
@@ -3910,6 +3910,7 @@ function Mrend(options) {
     function handleColFormatter(cell, colunaConfig, colunaUIConfig) {
 
 
+
         var celula = getCelulaConfigFromTabulator(cell, colunaConfig, colunaUIConfig);
         var renderedColuna = colunaConfig;
         var rowData = cell.getRow().getData();
@@ -4400,14 +4401,10 @@ function Mrend(options) {
                 width: coluna.config.tamanho,
                 hozAlign: coluna.config.alinhamento,
                 headerHozAlign: coluna.config.alinhamento,
-                frozen: coluna.config.fixacoluna,
                 visible: coluna.config.visivel,
+                frozen: coluna.config.fixacoluna,
                 headerTooltip: function (e, cell, onRendered) {
-                    //e - mouseover event
-                    //cell - cell component
-                    //onRendered - onRendered callback registration function
 
-                    //console.log(("headerTooltip", cell._column.getDefinition().title);
                     var titulo = cell._column.getDefinition().title
                     var el = document.createElement("a");
                     el.style.backgroundColor = "#e9f1ff";
@@ -4615,7 +4612,7 @@ function Mrend(options) {
         $(mrendThis.containerToRender).css({
             "font-family": "Nunito, sans-serif",
             "color": "#161616",
-            "zoom": "0.75",
+            "zoom": "0.85",
             "padding-bottom": "30px"
             //"transform-origin": "top left",
         });
@@ -4625,7 +4622,7 @@ function Mrend(options) {
             style: "",
             buttonId: botaoId,
             classes: "btn btn-primary btn-sm btn-zoom-in btn-zoom-mrend",
-            customData: "  type='button' data-zoom-scale='0.75' data-zoomin='true' data-container='" + mrendThis.containerToRender + "'",
+            customData: "  type='button' data-zoom-scale='0.85' data-zoomin='true' data-container='" + mrendThis.containerToRender + "'",
             label: " <span class='glyphicon glyphicon-plus'></span>",
             onClick: "handleZoomMrend(this, \"" + mrendThis.dbTableToMrendObject.dbName + "\", \"" + mrendThis.tableSourceName + "\");",
         };
@@ -4636,25 +4633,11 @@ function Mrend(options) {
             style: "",
             buttonId: botaoIdZoomOut,
             classes: "btn btn-default btn-sm btn-zoom-out btn-zoom-mrend",
-            customData: " type='button' data-zoomout='true' data-zoom-scale='0.75' data-container='" + mrendThis.containerToRender + "'",
+            customData: " type='button' data-zoomout='true' data-zoom-scale='0.85' data-container='" + mrendThis.containerToRender + "'",
             label: "<span class='glyphicon glyphicon-minus'></span>",
             onClick: "handleZoomMrend(this, \"" + mrendThis.dbTableToMrendObject.dbName + "\", \"" + mrendThis.tableSourceName + "\");",
         };
         var buttonZoomOutHtml = generateButton(buttonZoomOut);
-
-        /* $(document).off("click", ".btn-zoom-mrend").on("click", ".btn-zoom-mrend", function (e) {
- 
-             e.preventDefault();
-             e.stopPropagation();
-             handleZoomMrend(this, mrendThis);
- 
- 
-         })*/
-
-
-
-
-
 
         var zoomAreaContainerButtons = "<div style='display:flex;column-gap:0.3em;justify-content:right;margin-bottom:0.5em'>"
         zoomAreaContainerButtons += " " + buttonZoomInHtml
@@ -4664,21 +4647,7 @@ function Mrend(options) {
         $(mrendThis.containerToRender).before(zoomAreaContainerButtons);
 
 
-        /*
-        columns:[
-        {
-            title:"Column Group",
-            frozen:true,//frozen column group on left of table
-            columns:[
-                {title:"Name", field:"name"},
-                {title:"Age", field:"age"},
-            ]
-        }
-        {title:"Eye Colour", field:"eyes"},
-        {title:"Height", field:"height", frozen:true}, //frozen column on right of table
-        ]
-        
-        */
+
         var grupoColuna = mrendThis.reportConfig.config.grupocolunas;
 
         grupoColuna.sort(function (a, b) {
@@ -4847,8 +4816,9 @@ function Mrend(options) {
             dataTreeStartExpanded: true,
             dataTreeChildIndent: 25,
             popupContainer: "body",
-            layout: "fitDataStretch",
             height: "400px", // altura fixa para ativar scroll e fixar cabeçalho
+            layout: "fitDataTable",
+            ///layout: "fitDataStretch",
             rowFormatter: function (row) {
 
                 var data = row.getData();
@@ -4918,8 +4888,7 @@ function Mrend(options) {
 
         var tableBuiltEvent = function (data) {
 
-
-            var currentScale = 0.75;
+            var currentScale = 0.85;
             var UIConfig = localStorage.getItem("UICONFIG_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName);
             if (UIConfig) {
 
@@ -4943,7 +4912,10 @@ function Mrend(options) {
             }
             $(mrendThis.containerToRender).attr("data-zoom-scale", currentScale);
 
-            //mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+            setTimeout(function () {
+                mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+            }, 500);
+
 
             var cells = JSON.parse(JSON.stringify(mrendThis.GCellObjectsConfig));
 
@@ -4952,10 +4924,9 @@ function Mrend(options) {
                 cells: cells
             });
 
+            mrendThis.GTable.redraw(true);
+            mrendThis.GTable.setHeight(); // Força recálculo da altura
 
-            /* setInterval(function () {
-              //   applyTabulatorStylesWithJquery();
-             }, 1000);*/
         }
 
         mrendThis.GTable.on("rowAdded", function (row) {
@@ -5652,7 +5623,7 @@ function Mrend(options) {
                 // //console.log(("Linha adicionada por modelo", linhaByModeloResult)
                 mrendThis.GTable.addRow(linhaByModeloResult.UIObject, false).then(function (row) {
                     row.treeExpand();
-                    //mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+                    mrendThis.applyTabulatorStylesWithJquery(mrendThis);
 
                 });
 
@@ -6140,8 +6111,10 @@ function Mrend(options) {
             "font-size": "14px",
             "font-family": "Nunito, sans-serif",
             "font-weight": "bold",
-            "height": "75px",
+            "height": "45px",
         });
+
+        $(".tabulator-col").css({ "margin-top": "0.8em", "height": "30px" })
 
         /* $(".tabulator .tabulator-col-resize-handle").css({
              
@@ -6270,8 +6243,6 @@ function Mrend(options) {
             "width": "11px"
         });
 
-         $(".tabulator-col").css({ "margin-top": "0.8em", "height": "30px" })
-
         $(".tabulator-tree-collapse, .tabulator-tree-expand").css({
             "color": "#0765b7",
             "border-radius": "50%",
@@ -6325,7 +6296,6 @@ function Mrend(options) {
             })
         });
     }
-
     this.toggleColumnVisibility = function (columnField, isVisible) {
         var column = mrendThis.GTable.getColumn(columnField);
         if (column) {

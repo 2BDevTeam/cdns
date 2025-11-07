@@ -1,5 +1,4 @@
-
-function LinhaMrenderReportConfig(data) {
+function LinhaMrenderConfig(data) {
 
     this.linhastamp = data.linhastamp || "";
     this.linkstamp = data.linkstamp || "";
@@ -113,7 +112,7 @@ function getLinhaUIObjectFormConfigAndSourceValues() {
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMrendConfigLinhas", idField: "linhastamp" };
 }
 
-function ColunaMrenderReportConfig(data) {
+function ColunaMrenderConfig(data) {
 
     this.colunastamp = data.colunastamp || "";
     this.codigocoluna = data.codigocoluna || "";
@@ -128,6 +127,7 @@ function ColunaMrenderReportConfig(data) {
     this.relatoriostamp = data.relatoriostamp || "";
     this.condicaovalidacao = data.condicaovalidacao || "";
     this.botaohtml = data.botaohtml || "";
+    this.visivel = (data.visivel != null && data.visivel != undefined) ? data.visivel : true;
     this.validacoluna = data.validacoluna || false;
     this.forcaeditavel = data.forcaeditavel || false;
     this.expresscolfun = data.expresscolfun || "";
@@ -286,7 +286,7 @@ function MrendGrupoColuna(data) {
     this.relatoriostamp = data.relatoriostamp || GRelatorioStamp || "";
     this.codigogrupo = data.codigogrupo || "";
     this.descgrupo = data.descgrupo || "";
-    this.fixa = data.fixa ||false;
+    this.fixa = data.fixa || false;
     this.ordem = data.ordem || (function () {
         var maxOrdem = (GMrendGrupoColunas || []).reduce(function (max, item) {
             return Math.max(max, item.ordem || 0);
@@ -319,7 +319,7 @@ function getMrendGrupoColunaUIObjectFormConfigAndSourceValues() {
             classes: "form-control input-source-form input-sm",
             contentType: "input"
         }),
-         new UIObjectFormConfig({
+        new UIObjectFormConfig({
             colSize: 3,
             campo: "fixa",
             tipo: "checkbox",
@@ -379,8 +379,8 @@ function getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues() {
             contentType: "select",
             fieldToValue: "colunastamp",
             selectCustomData: "",
-            selectVariable:"GMrendConfigColunas",
-            isReactive:true,
+            selectVariable: "GMrendConfigColunas",
+            isReactive: true,
             selectValues: [],
             classes: "form-control input-source-form input-sm"
         }),
@@ -460,6 +460,7 @@ function getColunaUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
         new UIObjectFormConfig({ campo: "codigocoluna", tipo: "text", titulo: "Código", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
         new UIObjectFormConfig({ campo: "desccoluna", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form  input-sm ", contentType: "input", }),
+        new UIObjectFormConfig({ campo: "visivel", tipo: "checkbox", titulo: "Visível", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ campo: "campo", tipo: "text", titulo: "Campo", classes: "form-control input-source-form  input-sm ", contentType: "input" }),
         new UIObjectFormConfig({ campo: "condicattr", tipo: "checkbox", titulo: "Tem condição do atributo", classes: "input-source-form", contentType: "input", colSize: 6 }),
         new UIObjectFormConfig({ campo: "condicattrexpr", tipo: "text", titulo: "Expressão  para o atributo", classes: "form-control input-source-form  input-sm ", contentType: "input", colSize: 6 }),
@@ -565,7 +566,7 @@ function getColunaUIObjectFormConfigAndSourceValues() {
 
 
 
-function CelulaMrenderReportConfig(data) {
+function CelulaMrenderConfig(data) {
 
     this.linhastamp = data.linhastamp || "";
     this.celulastamp = data.celulastamp || "";
@@ -648,9 +649,9 @@ function FXData(data) {
 
 
 
-var GMrendConfigLinhas = [new LinhaMrenderReportConfig({})]
-var GMrendConfigColunas = [new ColunaMrenderReportConfig({})]
-var GMrendConfigCelulas = [new CelulaMrenderReportConfig({})];
+var GMrendConfigLinhas = [new LinhaMrenderConfig({})]
+var GMrendConfigColunas = [new ColunaMrenderConfig({})]
+var GMrendConfigCelulas = [new CelulaMrenderConfig({})];
 var GlickedRowComponent
 var GRelatorioStamp = ""
 var GConfigCodigo = ""
@@ -721,19 +722,19 @@ var GRendConfigTableHtml = {
 $(document).ready(function () {
 
 
-    registerListenersMrenderReport();
-    organizarEcraMrenderReport();
+    registerListenersMrender();
+    organizarEcraMrender();
 
 })
 
 
-function organizarEcraMrenderReport() {
+function organizarEcraMrender() {
 
     $("#ctl00_conteudo_u_mrendrelstamp").hide();
 }
 
 
-function initTabelaConfiguracaoMrenderReport(config) {
+function initTabelaConfiguracaoMrender(config) {
 
     GMrendLigacoesPredefinidas = config.ligacoes || [];
     GRelatorioStamp = config.relatoriostamp || $("#ctl00_conteudo_u_mrendrelstamp_mLabel1").text();
@@ -810,12 +811,12 @@ function initTabelaConfiguracaoMrenderReport(config) {
     tableHtml += "<div style='margin-top:2em' class='col-md-12' >" + generateTableV2(GRendConfigTableHtml) + "</div>"
     tableHtml += "<div  class='col-md-12 pull-left'>"
     tableHtml += "    <button  type='button' style='margin-left:0.4em' id='addLinhaBtn' class='btn btn-default'>Adicionar Linha</button>"
-    tableHtml += "    <button onClick='actualizarConfiguracaoMrenderReport()' type='button' style='margin-left:0.4em' id='actualizarConfig' class='btn btn-primary'>Actualizar Configuração</button>"
+    tableHtml += "    <button onClick='actualizarConfiguracaoMrender()' type='button' style='margin-left:0.4em' id='actualizarConfig' class='btn btn-primary'>Actualizar Configuração</button>"
 
     tableHtml += "  </div>"
     $("#campos > .row:last").after("<div style='margin-top:2.5em' class='row table-responsive  sourceTabletableContainer'>" + tableHtml + "</div>");
 
-    fetchConfigMrenderReport(GConfigCodigo);
+    fetchConfigMrender(GConfigCodigo);
 
 
 
@@ -1020,7 +1021,7 @@ function setColunaGrupoReactive() {
     PetiteVue.createApp({
         GMrendGrupoColunas: GMrendGrupoColunas,
         GMrendGrupoColunaItems: GMrendGrupoColunaItems,
-        GMrendConfigColunas:GMrendConfigColunas,
+        GMrendConfigColunas: GMrendConfigColunas,
         addGrupoColuna: function () {
             var grupoColuna = new MrendGrupoColuna({
                 codigogrupo: generateUUID(),
@@ -1035,7 +1036,7 @@ function setColunaGrupoReactive() {
                 return gc.grupocolunastamp !== grupoColuna.grupocolunastamp;
             });
 
-            GMrendGrupoColunas=this.GMrendGrupoColunas;
+            GMrendGrupoColunas = this.GMrendGrupoColunas;
 
         },
         addGrupoColunaItem: function (grupoColuna) {
@@ -1049,7 +1050,7 @@ function setColunaGrupoReactive() {
             this.GMrendGrupoColunaItems = this.GMrendGrupoColunaItems.filter(function (gci) {
                 return gci.grupocolunaitemstamp !== grupoColunaItem.grupocolunaitemstamp;
             });
-            GMrendGrupoColunaItems=this.GMrendGrupoColunaItems
+            GMrendGrupoColunaItems = this.GMrendGrupoColunaItems
         }
 
     }).mount('#colunaGrupoContainer');
@@ -1059,7 +1060,7 @@ function setColunaGrupoReactive() {
 
 }
 
-function fetchConfigMrenderReport(codigo) {
+function fetchConfigMrender(codigo) {
 
     $.ajax({
         type: "POST",
@@ -1142,7 +1143,7 @@ function fetchConfigMrenderReport(codigo) {
 
                 GMrendLigacoesExistentes = ligacoes;
 
-                renderConfigMrenderReport(config);
+                renderConfigMrender(config);
             } catch (error) {
                 console.log("Erro interno " + errorMessage, error)
             }
@@ -1152,18 +1153,18 @@ function fetchConfigMrenderReport(codigo) {
 
 }
 
-function renderConfigMrenderReport(config) {
+function renderConfigMrender(config) {
 
     GMrendConfigColunas = [];
     GMrendConfigLinhas = [];
     GMrendConfigCelulas = [];
     GMrendGrupoColunas = [];
     GMrendGrupoColunaItems = [];
-    var colunas = [new ColunaMrenderReportConfig({})]
+    var colunas = [new ColunaMrenderConfig({})]
     colunas = config.colunas || [];
-    var linhas = [new LinhaMrenderReportConfig({})];
+    var linhas = [new LinhaMrenderConfig({})];
     linhas = config.linhas || [];
-    var celulas = [new CelulaMrenderReportConfig({})];
+    var celulas = [new CelulaMrenderConfig({})];
     celulas = config.celulas || [];
 
     GMrendGrupoColunas = config.grupocolunas.map(function (grupoColuna) {
@@ -1202,11 +1203,11 @@ function renderConfigMrenderReport(config) {
     colunas.forEach(function (coluna) {
 
         var colunaUIObjectFormConfigAndSourceValues = getColunaUIObjectFormConfigAndSourceValues();
-        var col = new ColunaMrenderReportConfig(coluna);
+        var col = new ColunaMrenderConfig(coluna);
         col.objectsUIFormConfig = colunaUIObjectFormConfigAndSourceValues.objectsUIFormConfig;
         col.localsource = colunaUIObjectFormConfigAndSourceValues.localsource;
         GMrendConfigColunas.push(col);
-        addColunaMrenderReportConfig(col, colunaUIObjectFormConfigAndSourceValues);
+        addColunaMrenderConfig(col, colunaUIObjectFormConfigAndSourceValues);
 
 
     })
@@ -1218,7 +1219,7 @@ function renderConfigMrenderReport(config) {
 
     linhas.forEach(function (linha) {
 
-        setLinhasConfigMrenderReport(linha, linhas, celulas);
+        setLinhasConfigMrender(linha, linhas, celulas);
         var sublinhas = linhas.filter(function (sublinha) {
             return sublinha.linkstamp == linha.linhastamp && sublinha.linkstamp;
         });
@@ -1227,7 +1228,7 @@ function renderConfigMrenderReport(config) {
 
         sublinhas.forEach(function (sublinha) {
 
-            setLinhasConfigMrenderReport(sublinha, linhas, celulas);
+            setLinhasConfigMrender(sublinha, linhas, celulas);
 
         });
 
@@ -1243,7 +1244,7 @@ function renderConfigMrenderReport(config) {
 
 }
 
-function setLinhasConfigMrenderReport(linha, linhas, celulas) {
+function setLinhasConfigMrender(linha, linhas, celulas) {
 
     var linhaAdicionada = GMrendConfigLinhas.find(function (l) {
         return l.linhastamp == linha.linhastamp;
@@ -1264,7 +1265,7 @@ function setLinhasConfigMrenderReport(linha, linhas, celulas) {
         });
         if (celulasFilt.length > 0) {
 
-            var celula = new CelulaMrenderReportConfig(celulasFilt[0]);
+            var celula = new CelulaMrenderConfig(celulasFilt[0]);
             var celulaUIObjectFormConfigAndSourceValues = getCelulaUIObjectFormConfigAndSourceValues();
             celula.objectsUIFormConfig = celulaUIObjectFormConfigAndSourceValues.objectsUIFormConfig;
             celula.localsource = celulaUIObjectFormConfigAndSourceValues.localsource;
@@ -1273,7 +1274,7 @@ function setLinhasConfigMrenderReport(linha, linhas, celulas) {
 
         }
         else {
-            celulasLinha.push(new CelulaMrenderReportConfig({
+            celulasLinha.push(new CelulaMrenderConfig({
                 linhastamp: linha.linhastamp,
                 colunastamp: coluna.colunastamp,
                 codigocoluna: coluna.codigocoluna,
@@ -1293,14 +1294,14 @@ function setLinhasConfigMrenderReport(linha, linhas, celulas) {
         }
     })
 
-    var linhaMrenderReport = new LinhaMrenderReportConfig(linha);
+    var linhaMrender = new LinhaMrenderConfig(linha);
 
-    linhaMrenderReport.objectsUIFormConfig = getLinhaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
-    linhaMrenderReport.localSource = getLinhaUIObjectFormConfigAndSourceValues().localsource;
+    linhaMrender.objectsUIFormConfig = getLinhaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    linhaMrender.localSource = getLinhaUIObjectFormConfigAndSourceValues().localsource;
     GMrendConfigCelulas = GMrendConfigCelulas.concat(celulasLinha);
-    GMrendConfigLinhas.push(linhaMrenderReport);
+    GMrendConfigLinhas.push(linhaMrender);
 
-    addLinhaMrenderReportConfig(linhaMrenderReport.tipo, linhaMrenderReport, linhaUIObjectFormConfigResult, celulasLinha);
+    addLinhaMrenderConfig(linhaMrender.tipo, linhaMrender, linhaUIObjectFormConfigResult, celulasLinha);
 
 
 
@@ -1350,7 +1351,7 @@ function handleTableReactive() {
 
 }
 
-function addColunaMrenderReportConfig(coluna, colunaUIObjectFormConfigResult) {
+function addColunaMrenderConfig(coluna, colunaUIObjectFormConfigResult) {
 
 
     var botaoRemoverColuna = {
@@ -1391,7 +1392,7 @@ function addColunaMrenderReportConfig(coluna, colunaUIObjectFormConfigResult) {
         var celulastamp = generateUUID();
 
         var celulaUIObjectFormConfigResult = getCelulaUIObjectFormConfigAndSourceValues();
-        var celula = new CelulaMrenderReportConfig({
+        var celula = new CelulaMrenderConfig({
             linhastamp: linha.linhastamp,
             celulastamp: celulastamp,
             colunastamp: coluna.colunastamp,
@@ -1436,7 +1437,7 @@ function addColunaMrenderReportConfig(coluna, colunaUIObjectFormConfigResult) {
 }
 
 
-function removerColunaMrenderReportConfig(colunastamp) {
+function removerColunaMrenderConfig(colunastamp) {
 
 
     if (GMrendConfigColunas.length == 1) {
@@ -1478,10 +1479,10 @@ function getLocalSource(source) {
     return localsource
 }
 
-function registerListenersMrenderReport() {
+function registerListenersMrender() {
 
     $(document).off("click", ".remover-coluna-btn").on("click", ".remover-coluna-btn", function (e) {
-        removerColunaMrenderReportConfig($(this).closest("th").attr("id"));
+        removerColunaMrenderConfig($(this).closest("th").attr("id"));
     });
 
     $(document).off("click", "#addColunaBtn").on("click", "#addColunaBtn", function (e) {
@@ -1493,7 +1494,7 @@ function registerListenersMrenderReport() {
         var maxOrdemColuna = GMrendConfigColunas.reduce(function (max, col) {
             return Math.max(max, col.ordem || 0);
         }, 0);
-        var coluna = new ColunaMrenderReportConfig({
+        var coluna = new ColunaMrenderConfig({
             colunastamp: colunastamp,
             codigocoluna: codigocoluna,
             desccoluna: "Coluna " + (GMrendConfigColunas.length + 1),
@@ -1525,7 +1526,7 @@ function registerListenersMrenderReport() {
         });
 
         GMrendConfigColunas.push(coluna);
-        addColunaMrenderReportConfig(coluna, colunaUIObjectFormConfigResult);
+        addColunaMrenderConfig(coluna, colunaUIObjectFormConfigResult);
     });
 
 
@@ -1536,7 +1537,7 @@ function registerListenersMrenderReport() {
         var linhaUIObjectFormConfigResult = dadosNovaLinha.linhaUIObjectFormConfigResult;
         var celulas = dadosNovaLinha.celulas;
 
-        addLinhaMrenderReportConfig("Grupo", linha, linhaUIObjectFormConfigResult, celulas);
+        addLinhaMrenderConfig("Grupo", linha, linhaUIObjectFormConfigResult, celulas);
 
         GMrendConfigLinhas.push(linha);
         GMrendConfigCelulas = GMrendConfigCelulas.concat(celulas);
@@ -1733,7 +1734,7 @@ function setNovaLinha(tipo) {
     }, 0);
 
 
-    var linha = new LinhaMrenderReportConfig({
+    var linha = new LinhaMrenderConfig({
         linhastamp: linhastamp,
         linkstamp: linkstamp,
         relatoriostamp: GRelatorioStamp,
@@ -1764,13 +1765,13 @@ function setNovaLinha(tipo) {
         objectsUIFormConfig: linhaUIObjectFormConfigResult.objectsUIFormConfig,
     });
 
-    var celulas = [new CelulaMrenderReportConfig({})]
+    var celulas = [new CelulaMrenderConfig({})]
     celulas = [];
 
     GMrendConfigColunas.forEach(function (coluna) {
         var celulastamp = generateUUID();
         var celulaUIObjectFormConfigAndSourceValues = getCelulaUIObjectFormConfigAndSourceValues();
-        var celula = new CelulaMrenderReportConfig({
+        var celula = new CelulaMrenderConfig({
             linhastamp: linhastamp,
             celulastamp: celulastamp,
             colunastamp: coluna.colunastamp,
@@ -1797,7 +1798,7 @@ function setNovaLinha(tipo) {
 
 
 }
-function addLinhaMrenderReportConfig(tipo, linha, linhaUIObjectFormConfigResult, celulas) {
+function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celulas) {
 
 
     if (GMrendConfigColunas.length === 0) {
@@ -1930,7 +1931,7 @@ function addLinhaMrenderReportConfig(tipo, linha, linhaUIObjectFormConfigResult,
         var linha = dadosNovaLinha.linha;
         var linhaUIObjectFormConfigResult = dadosNovaLinha.linhaUIObjectFormConfigResult;
         var celulas = dadosNovaLinha.celulas;
-        addLinhaMrenderReportConfig("Subgrupo", linha, linhaUIObjectFormConfigResult, celulas);
+        addLinhaMrenderConfig("Subgrupo", linha, linhaUIObjectFormConfigResult, celulas);
         GMrendConfigLinhas.push(linha);
         GMrendConfigCelulas = GMrendConfigCelulas.concat(celulas);
         GlickedRowComponent = null;
@@ -1970,7 +1971,7 @@ function groupRecordsBySource(arr, relationKey) {
     return extraRecords;
 }
 
-function actualizarConfiguracaoMrenderReport() {
+function actualizarConfiguracaoMrender() {
 
     var configData = [{
         sourceTable: "MrendColuna",
@@ -1992,16 +1993,16 @@ function actualizarConfiguracaoMrenderReport() {
         records: GMrendLigacoes
     },
     {
-        sourceTable:"MrendGrupoColuna",
-        sourceKey:"grupocolunastamp",
-        records:GMrendGrupoColunas
+        sourceTable: "MrendGrupoColuna",
+        sourceKey: "grupocolunastamp",
+        records: GMrendGrupoColunas
     },
     {
         sourceTable: "MrendGrupoColunaItem",
         sourceKey: "grupocolunaitemstamp",
         records: GMrendGrupoColunaItems
     }
-];
+    ];
 
 
     var extraRecordsColunas = groupRecordsBySource(GMrendConfigColunas, "relationRecords");

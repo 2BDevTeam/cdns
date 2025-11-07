@@ -203,6 +203,7 @@ End Function
 
  Dim dynamicGlobalQuery=""
  Dim deleteConfiguracaQuery=""
+ 
 
 Try
 
