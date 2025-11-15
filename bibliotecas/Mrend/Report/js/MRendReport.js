@@ -109,7 +109,7 @@ function Mrend(options) {
             if (cellObject.codigocoluna == codigoColuna) {
                 return isNaN(cellObject.valor) ? 0 : Number(cellObject.valor);
             }
-            return 0;
+            return 0; 
         });
     }
 
