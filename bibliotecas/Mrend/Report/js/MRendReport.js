@@ -95,7 +95,7 @@ function Mrend(options) {
     this.remoteFetchData = options.remoteFetchData ? new RemoteFetchData(options.remoteFetchData) : new RemoteFetchData({});
 
     this.getTotalCelulasByFiltro = function (filtro) {
-        _.sumBy(propostaMrendConfig.GCellObjectsConfig, function (cellObject) {
+        _.sumBy(mrendThis.GCellObjectsConfig, function (cellObject) {
             if (eval(filtro)) {
                 return isNaN(cellObject.valor) ? 0 : Number(cellObject.valor);
             }
@@ -105,7 +105,7 @@ function Mrend(options) {
 
     this.getTotalCelulaByCodigoColuna = function (codigoColuna) {
 
-        return _.sumBy(propostaMrendConfig.GCellObjectsConfig, function (cellObject) {
+        return _.sumBy(mrendThis.GCellObjectsConfig, function (cellObject) {
             if (cellObject.codigocoluna == codigoColuna) {
                 return isNaN(cellObject.valor) ? 0 : Number(cellObject.valor);
             }
@@ -4337,9 +4337,24 @@ function Mrend(options) {
             return obj.codigocoluna == coluna && obj.rowid == rowData.rowid;
         });
 
+
+
         if (cellObjectConfig) {
 
+
+
             cellObjectConfig.valor = rowData[coluna];
+            try {
+
+                if (cellObjectConfig.renderedColuna.config.executaeventochange && cellObjectConfig.renderedColuna.config.expressaojsevento) {
+
+                    eval(cellObjectConfig.renderedColuna.config.expressaojsevento);
+
+                }
+
+            } catch (error) {
+                console.warn("ERRO HANDLER DE EVENTO CHANGE", coluna, rowData, error)
+            }
         }
     }
 
@@ -6270,7 +6285,7 @@ function Mrend(options) {
             "width": "11px"
         });
 
-         $(".tabulator-col").css({ "margin-top": "0.8em", "height": "30px" })
+        $(".tabulator-col").css({ "margin-top": "0.8em", "height": "30px" })
 
         $(".tabulator-tree-collapse, .tabulator-tree-expand").css({
             "color": "#0765b7",
