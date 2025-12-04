@@ -1395,6 +1395,8 @@
             }
           });
 
+
+          console.log("RESPONSE OBJECT", response)
           if (response.cod != "0000") {
             console.log("Erro ao trazer resultados para o objecto: ", response)
             $(containerSelector).append(buildAlert("alert-danger", "Erro ao trazer resultados para o objecto: "));

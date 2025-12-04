@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mform - Low-Code Form Builder</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Vue.js -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Ace Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.0/ace.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #6b7280;
+            --accent-color: #10b981;
+            --border-color: #e5e7eb;
+            --hover-color: #f3f4f6;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        
+        .mform-app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* Toolbox Styles */
+        .toolbox {
+            width: 250px;
+            background-color: #f9fafb;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 15px;
+        }
+        
+        .toolbox-section {
+            margin-bottom: 20px;
+        }
+        
+        .toolbox-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .toolbox-item {
+            padding: 10px;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: grab;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .toolbox-item:hover {
+            background-color: var(--hover-color);
+            border-color: var(--primary-color);
+        }
+        
+        .toolbox-item i {
+            margin-right: 8px;
+            color: var(--primary-color);
+        }
+        
+        /* Canvas Styles */
+        .canvas-container {
+            flex: 1;
+            background-color: #f5f5f5;
+            overflow-y: auto;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .canvas {
+            background-color: white;
+            min-height: 100%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .mform-row {
+            margin-bottom: 15px;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 80px;
+            background-color: rgba(248, 250, 252, 0.5);
+        }
+        
+        .mform-row:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .mform-col {
+            border: 1px dashed #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 60px;
+            background-color: rgba(249, 250, 251, 0.5);
+        }
+        
+        .mform-col:hover {
+            border-color: var(--accent-color);
+        }
+        
+        .mform-col.drop-target {
+            border: 2px dashed var(--accent-color);
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+        
+        .form-object {
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+            position: relative;
+        }
+        
+        .form-object:hover {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .form-object.selected {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+        
+        .object-actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: none;
+        }
+        
+        .form-object:hover .object-actions {
+            display: flex;
+        }
+        
+        .object-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px 5px;
+            font-size: 12px;
+            color: var(--secondary-color);
+        }
+        
+        .object-actions button:hover {
+            color: var(--primary-color);
+        }
+        
+        /* Properties Panel Styles */
+        .properties-panel {
+            width: 300px;
+            background-color: #f9fafb;
+            border-left: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 15px;
+        }
+        
+        .properties-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .property-group {
+            margin-bottom: 20px;
+        }
+        
+        .property-label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .property-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .property-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .property-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: white;
+        }
+        
+        .ace-editor-container {
+            height: 150px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--secondary-color);
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #d1d5db;
+        }
+        
+        .empty-state p {
+            margin-bottom: 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .preview-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .preview-btn {
+            padding: 5px 10px;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .preview-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="mform-app">
+        <!-- Top Navigation -->
+        <nav class="navbar navbar-light bg-light border-bottom">
+            <div class="container-fluid">
+                <span class="navbar-brand">Mform</span>
+                <div class="d-flex">
+                    <button class="btn btn-sm btn-outline-secondary me-2" @click="previewMode = !previewMode">
+                        {{ previewMode ? 'Edit' : 'Preview' }}
+                    </button>
+                    <button class="btn btn-sm btn-primary" @click="saveForm">Save</button>
+                </div>
+            </div>
+        </nav>
+        
+        <div class="main-container">
+            <!-- Left Toolbox -->
+            <div class="toolbox" v-if="!previewMode">
+                <div class="toolbox-section">
+                    <div class="toolbox-title">Layout</div>
+                    <div class="toolbox-item" draggable="true" @dragstart="dragStart($event, 'row')">
+                        <i>📏</i> Row
+                    </div>
+                    <div class="toolbox-item" draggable="true" @dragstart="dragStart($event, 'column')">
+                        <i>📐</i> Column
+                    </div>
+                </div>
+                
+                <div class="toolbox-section">
+                    <div class="toolbox-title">Form Elements</div>
+                    <div class="toolbox-item" draggable="true" @dragstart="dragStart($event, 'input')">
+                        <i>📝</i> Input
+                    </div>
+                    <div class="toolbox-item" draggable="true" @dragstart="dragStart($event, 'textarea')">
+                        <i>📄</i> Textarea
+                    </div>
+                    <div class="toolbox-item" draggable="true" @dragstart="dragStart($event, 'select')">
+                        <i>🔽</i> Select
+                    </div>
+                    <div class="toolbox-item" draggable="true" @dragstart="dragStart($event, 'button')">
+                        <i>🔘</i> Button
+                    </div>
+                    <div class="toolbox-item" draggable="true" @dragstart="dragStart($event, 'date')">
+                        <i>📅</i> Date Picker
+                    </div>
+                    <div class="toolbox-item" draggable="true" @dragstart="dragStart($event, 'checkbox')">
+                        <i>☑️</i> Checkbox
+                    </div>
+                    <div class="toolbox-item" draggable="true" @dragstart="dragStart($event, 'number')">
+                        <i>🔢</i> Number Input
+                    </div>
+                </div>
+                
+                <div class="toolbox-section">
+                    <div class="toolbox-title">Advanced</div>
+                    <div class="toolbox-item" draggable="true" @dragstart="dragStart($event, 'table')">
+                        <i>📊</i> Table
+                    </div>
+                    <div class="toolbox-item" draggable="true" @dragstart="dragStart($event, 'div')">
+                        <i>📦</i> Div Container
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Center Canvas -->
+            <div class="canvas-container">
+                <div class="preview-controls" v-if="!previewMode">
+                    <button class="preview-btn active">Desktop</button>
+                    <button class="preview-btn">Tablet</button>
+                    <button class="preview-btn">Mobile</button>
+                </div>
+                
+                <div class="canvas" 
+                     @drop="drop($event)" 
+                     @dragover="allowDrop($event)"
+                     @dragleave="dragLeave($event)">
+                    
+                    <div v-if="mform.containers.length === 0" class="empty-state">
+                        <i>📋</i>
+                        <p>Drag elements from the toolbox to start building your form</p>
+                    </div>
+                    
+                    <div v-else>
+                        <div v-for="container in mform.containers" 
+                             :key="container.mformcontainerstamp"
+                             class="mform-row"
+                             :class="{ selected: selectedElement && selectedElement.type === 'row' && selectedElement.id === container.mformcontainerstamp }"
+                             @click="selectElement('row', container.mformcontainerstamp)">
+                            
+                            <div class="row">
+                                <div v-for="item in container.items" 
+                                     :key="item.mformcontaineritemstamp"
+                                     :class="`col-md-${item.bootstrapColumnSize}`"
+                                     class="mform-col"
+                                     :class="{ 
+                                         'drop-target': isDropTarget(item.mformcontaineritemstamp),
+                                         selected: selectedElement && selectedElement.type === 'column' && selectedElement.id === item.mformcontaineritemstamp
+                                     }"
+                                     @click.stop="selectElement('column', item.mformcontaineritemstamp)"
+                                     @drop="dropOnColumn($event, item.mformcontaineritemstamp)"
+                                     @dragover="allowDrop($event)"
+                                     @dragleave="columnDragLeave(item.mformcontaineritemstamp)">
+                                    
+                                    <div v-if="item.objects.length === 0" class="empty-state" style="padding: 10px;">
+                                        <i>➕</i>
+                                        <p style="font-size: 12px;">Drop elements here</p>
+                                    </div>
+                                    
+                                    <div v-else>
+                                        <div v-for="obj in item.objects" 
+                                             :key="obj.mformcontaineritemobjectstamp"
+                                             class="form-object"
+                                             :class="{ selected: selectedElement && selectedElement.type === 'object' && selectedElement.id === obj.mformcontaineritemobjectstamp }"
+                                             @click.stop="selectElement('object', obj.mformcontaineritemobjectstamp)">
+                                            
+                                            <div class="object-actions">
+                                                <button @click.stop="deleteObject(obj.mformcontaineritemobjectstamp)">✕</button>
+                                            </div>
+                                            
+                                            <div v-if="obj.type === 'input'">
+                                                <label class="form-label">{{ obj.label || 'Input' }}</label>
+                                                <input type="text" class="form-control" :placeholder="obj.placeholder || 'Enter text'" :disabled="previewMode">
+                                            </div>
+                                            
+                                            <div v-else-if="obj.type === 'textarea'">
+                                                <label class="form-label">{{ obj.label || 'Textarea' }}</label>
+                                                <textarea class="form-control" :placeholder="obj.placeholder || 'Enter text'" :disabled="previewMode"></textarea>
+                                            </div>
+                                            
+                                            <div v-else-if="obj.type === 'select'">
+                                                <label class="form-label">{{ obj.label || 'Select' }}</label>
+                                                <select class="form-select" :disabled="previewMode">
+                                                    <option>Option 1</option>
+                                                    <option>Option 2</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div v-else-if="obj.type === 'button'">
+                                                <button class="btn" :class="obj.buttonStyle || 'btn-primary'" :disabled="previewMode">
+                                                    {{ obj.label || 'Button' }}
+                                                </button>
+                                            </div>
+                                            
+                                            <div v-else-if="obj.type === 'date'">
+                                                <label class="form-label">{{ obj.label || 'Date' }}</label>
+                                                <input type="date" class="form-control" :disabled="previewMode">
+                                            </div>
+                                            
+                                            <div v-else-if="obj.type === 'checkbox'">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" :disabled="previewMode">
+                                                    <label class="form-check-label">{{ obj.label || 'Checkbox' }}</label>
+                                                </div>
+                                            </div>
+                                            
+                                            <div v-else-if="obj.type === 'number'">
+                                                <label class="form-label">{{ obj.label || 'Number' }}</label>
+                                                <input type="number" class="form-control" :disabled="previewMode">
+                                            </div>
+                                            
+                                            <div v-else-if="obj.type === 'table'">
+                                                <label class="form-label">{{ obj.label || 'Table' }}</label>
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Column 1</th>
+                                                            <th>Column 2</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td>Data 1</td>
+                                                            <td>Data 2</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            
+                                            <div v-else-if="obj.type === 'div'">
+                                                <div class="p-2 border rounded">
+                                                    {{ obj.label || 'Div Container' }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Properties Panel -->
+            <div class="properties-panel" v-if="!previewMode && selectedElement">
+                <div class="properties-title">
+                    {{ getSelectedElementTitle() }}
+                </div>
+                
+                <div v-if="selectedElement.type === 'row'">
+                    <div class="property-group">
+                        <label class="property-label">Height</label>
+                        <input type="text" class="property-input" v-model="getSelectedRow().height">
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">Background Color</label>
+                        <input type="color" class="property-input" v-model="getSelectedRow().backgroundColor">
+                    </div>
+                    
+                    <div class="property-group">
+                        <button class="btn btn-sm btn-outline-danger" @click="deleteRow(selectedElement.id)">Delete Row</button>
+                    </div>
+                </div>
+                
+                <div v-else-if="selectedElement.type === 'column'">
+                    <div class="property-group">
+                        <label class="property-label">Bootstrap Column Size</label>
+                        <select class="property-select" v-model="getSelectedColumn().bootstrapColumnSize">
+                            <option value="12">12 (Full Width)</option>
+                            <option value="6">6 (Half Width)</option>
+                            <option value="4">4 (One Third)</option>
+                            <option value="3">3 (One Quarter)</option>
+                            <option value="2">2 (One Sixth)</option>
+                            <option value="1">1 (One Twelfth)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">Flex Direction</label>
+                        <select class="property-select" v-model="getSelectedColumn().flexDirection">
+                            <option value="row">Row</option>
+                            <option value="column">Column</option>
+                        </select>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">Justify Content</label>
+                        <select class="property-select" v-model="getSelectedColumn().justifyContent">
+                            <option value="flex-start">Flex Start</option>
+                            <option value="center">Center</option>
+                            <option value="flex-end">Flex End</option>
+                            <option value="space-between">Space Between</option>
+                            <option value="space-around">Space Around</option>
+                        </select>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">Align Items</label>
+                        <select class="property-select" v-model="getSelectedColumn().alignItems">
+                            <option value="stretch">Stretch</option>
+                            <option value="flex-start">Flex Start</option>
+                            <option value="center">Center</option>
+                            <option value="flex-end">Flex End</option>
+                        </select>
+                    </div>
+                    
+                    <div class="property-group">
+                        <button class="btn btn-sm btn-outline-danger" @click="deleteColumn(selectedElement.id)">Delete Column</button>
+                    </div>
+                </div>
+                
+                <div v-else-if="selectedElement.type === 'object'">
+                    <div class="property-group">
+                        <label class="property-label">Label</label>
+                        <input type="text" class="property-input" v-model="getSelectedObject().label">
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">Name</label>
+                        <input type="text" class="property-input" v-model="getSelectedObject().name">
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">Placeholder</label>
+                        <input type="text" class="property-input" v-model="getSelectedObject().placeholder">
+                    </div>
+                    
+                    <div v-if="getSelectedObject().type === 'button'">
+                        <div class="property-group">
+                            <label class="property-label">Button Style</label>
+                            <select class="property-select" v-model="getSelectedObject().buttonStyle">
+                                <option value="btn-primary">Primary</option>
+                                <option value="btn-secondary">Secondary</option>
+                                <option value="btn-success">Success</option>
+                                <option value="btn-danger">Danger</option>
+                                <option value="btn-warning">Warning</option>
+                                <option value="btn-info">Info</option>
+                                <option value="btn-light">Light</option>
+                                <option value="btn-dark">Dark</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">Default Value</label>
+                        <input type="text" class="property-input" v-model="getSelectedObject().defaultValue">
+                        <small class="text-muted">Can be text, JavaScript expression, or backend expression</small>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label>
+                            <input type="checkbox" v-model="getSelectedObject().required"> Required
+                        </label>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label>
+                            <input type="checkbox" v-model="getSelectedObject().readonly"> Readonly
+                        </label>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label>
+                            <input type="checkbox" v-model="getSelectedObject().visible"> Visible
+                        </label>
+                    </div>
+                    
+                    <div class="property-group">
+                        <label class="property-label">On Change Event</label>
+                        <div class="ace-editor-container">
+                            <div id="onchange-editor" style="height: 100%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="property-group">
+                        <button class="btn btn-sm btn-outline-danger" @click="deleteObject(selectedElement.id)">Delete Object</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="properties-panel" v-else-if="!previewMode">
+                <div class="empty-state">
+                    <i>⚙️</i>
+                    <p>Select an element to edit its properties</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constructor functions as requested
+        function Mform(data) {
+            var self = this;
+            self.mformstamp = data.mformstamp || generateId('mform');
+            self.name = data.name || 'New Form';
+            self.containers = data.containers || [];
+            self.internalFunctions = data.internalFunctions || [];
+            self.hasSubmitButton = data.hasSubmitButton || false;
+        }
+        
+        function MformContainer(data) {
+            var self = this;
+            self.mformcontainerstamp = data.mformcontainerstamp || generateId('mformcontainer');
+            self.height = data.height || 'auto';
+            self.backgroundColor = data.backgroundColor || 'transparent';
+            self.items = data.items || [];
+        }
+        
+        function MformContainerItem(data) {
+            var self = this;
+            self.mformcontaineritemstamp = data.mformcontaineritemstamp || generateId('mformcontaineritem');
+            self.bootstrapColumnSize = data.bootstrapColumnSize || 12;
+            self.flexDirection = data.flexDirection || 'column';
+            self.justifyContent = data.justifyContent || 'flex-start';
+            self.alignItems = data.alignItems || 'stretch';
+            self.objects = data.objects || [];
+        }
+        
+        function MformContainerItemObject(data) {
+            var self = this;
+            self.mformcontaineritemobjectstamp = data.mformcontaineritemobjectstamp || generateId('mformcontaineritemobject');
+            self.type = data.type || 'input';
+            self.label = data.label || '';
+            self.name = data.name || '';
+            self.placeholder = data.placeholder || '';
+            self.defaultValue = data.defaultValue || '';
+            self.required = data.required || false;
+            self.readonly = data.readonly || false;
+            self.visible = data.visible !== undefined ? data.visible : true;
+            self.buttonStyle = data.buttonStyle || 'btn-primary';
+            self.events = data.events || {};
+        }
+        
+        function MformInternalFunction(data) {
+            var self = this;
+            self.mforminternalfunctionstamp = data.mforminternalfunctionstamp || generateId('mforminternalfunction');
+            self.name = data.name || '';
+            self.code = data.code || '';
+        }
+        
+        // Helper function to generate unique IDs
+        function generateId(prefix) {
+            return prefix + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        // Vue application
+        const { createApp } = Vue;
+        
+        createApp({
+            data() {
+                return {
+                    mform: new Mform({}),
+                    selectedElement: null,
+                    draggedElementType: null,
+                    dropTargetColumn: null,
+                    previewMode: false
+                };
+            },
+            mounted() {
+                // Initialize with a sample form structure
+                this.initializeSampleForm();
+                
+                // Initialize Ace Editor when needed
+                this.$watch('selectedElement', (newVal) => {
+                    if (newVal && newVal.type === 'object') {
+                        this.$nextTick(() => {
+                            if (ace && document.getElementById('onchange-editor')) {
+                                var editor = ace.edit("onchange-editor");
+                                editor.setTheme("ace/theme/chrome");
+                                editor.session.setMode("ace/mode/javascript");
+                                
+                                const obj = this.getSelectedObject();
+                                if (obj.events && obj.events.onchange) {
+                                    editor.setValue(obj.events.onchange, -1);
+                                }
+                                
+                                editor.on('change', () => {
+                                    if (!obj.events) obj.events = {};
+                                    obj.events.onchange = editor.getValue();
+                                });
+                            }
+                        });
+                    }
+                });
+            },
+            methods: {
+                initializeSampleForm() {
+                    // Create a sample form with one row and one column
+                    var container = new MformContainer({});
+                    var containerItem = new MformContainerItem({ bootstrapColumnSize: 12 });
+                    container.items.push(containerItem);
+                    this.mform.containers.push(container);
+                },
+                
+                dragStart(event, type) {
+                    event.dataTransfer.setData('text/plain', type);
+                    this.draggedElementType = type;
+                },
+                
+                allowDrop(event) {
+                    event.preventDefault();
+                },
+                
+                dragLeave(event) {
+                    // Remove drop target styling
+                    this.dropTargetColumn = null;
+                },
+                
+                columnDragLeave(columnId) {
+                    // Only remove if we're not still hovering over this column
+                    if (this.dropTargetColumn === columnId) {
+                        setTimeout(() => {
+                            if (this.dropTargetColumn === columnId) {
+                                this.dropTargetColumn = null;
+                            }
+                        }, 10);
+                    }
+                },
+                
+                drop(event) {
+                    event.preventDefault();
+                    var type = event.dataTransfer.getData('text/plain');
+                    
+                    if (type === 'row') {
+                        this.addRow();
+                    }
+                    
+                    this.dropTargetColumn = null;
+                },
+                
+                dropOnColumn(event, columnId) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    var type = event.dataTransfer.getData('text/plain');
+                    
+                    if (type && type !== 'row' && type !== 'column') {
+                        this.addObjectToColumn(columnId, type);
+                    }
+                    
+                    this.dropTargetColumn = null;
+                },
+                
+                isDropTarget(columnId) {
+                    return this.dropTargetColumn === columnId;
+                },
+                
+                addRow() {
+                    var newContainer = new MformContainer({});
+                    var newContainerItem = new MformContainerItem({ bootstrapColumnSize: 12 });
+                    newContainer.items.push(newContainerItem);
+                    this.mform.containers.push(newContainer);
+                },
+                
+                addObjectToColumn(columnId, type) {
+                    // Find the column
+                    var targetColumn = null;
+                    var targetContainer = null;
+                    
+                    for (var i = 0; i < this.mform.containers.length; i++) {
+                        var container = this.mform.containers[i];
+                        for (var j = 0; j < container.items.length; j++) {
+                            if (container.items[j].mformcontaineritemstamp === columnId) {
+                                targetColumn = container.items[j];
+                                targetContainer = container;
+                                break;
+                            }
+                        }
+                        if (targetColumn) break;
+                    }
+                    
+                    if (targetColumn) {
+                        var newObject = new MformContainerItemObject({ type: type });
+                        targetColumn.objects.push(newObject);
+                        
+                        // Select the newly created object
+                        this.selectElement('object', newObject.mformcontaineritemobjectstamp);
+                    }
+                },
+                
+                selectElement(type, id) {
+                    this.selectedElement = { type, id };
+                },
+                
+                getSelectedElementTitle() {
+                    if (!this.selectedElement) return '';
+                    
+                    switch (this.selectedElement.type) {
+                        case 'row': return 'Row Properties';
+                        case 'column': return 'Column Properties';
+                        case 'object': 
+                            var obj = this.getSelectedObject();
+                            return (obj.type.charAt(0).toUpperCase() + obj.type.slice(1)) + ' Properties';
+                        default: return 'Properties';
+                    }
+                },
+                
+                getSelectedRow() {
+                    if (!this.selectedElement || this.selectedElement.type !== 'row') return null;
+                    
+                    for (var i = 0; i < this.mform.containers.length; i++) {
+                        if (this.mform.containers[i].mformcontainerstamp === this.selectedElement.id) {
+                            return this.mform.containers[i];
+                        }
+                    }
+                    return null;
+                },
+                
+                getSelectedColumn() {
+                    if (!this.selectedElement || this.selectedElement.type !== 'column') return null;
+                    
+                    for (var i = 0; i < this.mform.containers.length; i++) {
+                        var container = this.mform.containers[i];
+                        for (var j = 0; j < container.items.length; j++) {
+                            if (container.items[j].mformcontaineritemstamp === this.selectedElement.id) {
+                                return container.items[j];
+                            }
+                        }
+                    }
+                    return null;
+                },
+                
+                getSelectedObject() {
+                    if (!this.selectedElement || this.selectedElement.type !== 'object') return null;
+                    
+                    for (var i = 0; i < this.mform.containers.length; i++) {
+                        var container = this.mform.containers[i];
+                        for (var j = 0; j < container.items.length; j++) {
+                            var column = container.items[j];
+                            for (var k = 0; k < column.objects.length; k++) {
+                                if (column.objects[k].mformcontaineritemobjectstamp === this.selectedElement.id) {
+                                    return column.objects[k];
+                                }
+                            }
+                        }
+                    }
+                    return null;
+                },
+                
+                deleteRow(rowId) {
+                    this.mform.containers = this.mform.containers.filter(
+                        container => container.mformcontainerstamp !== rowId
+                    );
+                    this.selectedElement = null;
+                },
+                
+                deleteColumn(columnId) {
+                    for (var i = 0; i < this.mform.containers.length; i++) {
+                        var container = this.mform.containers[i];
+                        container.items = container.items.filter(
+                            item => item.mformcontaineritemstamp !== columnId
+                        );
+                        
+                        // If the container has no columns, remove it
+                        if (container.items.length === 0) {
+                            this.mform.containers.splice(i, 1);
+                            i--;
+                        }
+                    }
+                    this.selectedElement = null;
+                },
+                
+                deleteObject(objectId) {
+                    for (var i = 0; i < this.mform.containers.length; i++) {
+                        var container = this.mform.containers[i];
+                        for (var j = 0; j < container.items.length; j++) {
+                            var column = container.items[j];
+                            column.objects = column.objects.filter(
+                                obj => obj.mformcontaineritemobjectstamp !== objectId
+                            );
+                        }
+                    }
+                    this.selectedElement = null;
+                },
+                
+                saveForm() {
+                    // In a real application, this would save to a backend
+                    console.log('Form saved:', this.mform);
+                    alert('Form saved successfully!');
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

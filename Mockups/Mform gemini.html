@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mform - Low-Code Form Builder</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        /* Estilos Globais do Layout */
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; /* Controla o layout tri-partido */
+        }
+        #app {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* 1. Toolbox (Lado Esquerdo) */
+        .mform-toolbox {
+            width: 250px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 10px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .toolbox-item {
+            cursor: grab;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            background-color: #fff;
+            border: 1px solid #ced4da;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+        }
+        .toolbox-item:hover {
+            background-color: #e9ecef;
+            border-color: #0d6efd;
+        }
+        .toolbox-item i {
+            margin-right: 8px;
+            color: #6c757d;
+        }
+
+        /* 2. Canvas (Centro) */
+        .mform-canvas {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f4f6f9;
+        }
+        .mform-canvas-root {
+            min-height: 100%;
+            border: 2px dashed #adb5bd;
+            padding: 15px;
+            background-color: #fff;
+        }
+
+        /* Container Item (Coluna) */
+        .mform-container-item {
+            min-height: 80px; /* Altura mínima para ser droppável */
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            background-color: #f7f7f7;
+            position: relative;
+            /* Flex properties padrão, pode ser sobrescrito pelo style */
+            display: flex;
+            flex-direction: column; /* Padrão: objetos alinhados em coluna */
+            gap: 10px;
+        }
+        .mform-container-item.selected {
+            border: 2px solid #0d6efd;
+            box-shadow: 0 0 5px rgba(13, 110, 253, 0.5);
+        }
+
+        /* Linha (Container) */
+        .mform-container {
+            min-height: 50px;
+            border: 1px solid #888;
+            margin-bottom: 10px;
+            padding: 5px;
+            position: relative;
+        }
+        .mform-container.selected {
+            border: 2px solid #0d6efd;
+        }
+        
+        /* Feedback Drag & Drop */
+        .mform-drop-target {
+            border: 2px dashed #28a745 !important; /* Destaque verde para drop zone */
+            background-color: #e6ffed !important;
+            opacity: 0.8;
+        }
+        .mform-drop-placeholder {
+            height: 40px;
+            background-color: #28a745;
+            opacity: 0.5;
+            margin: 5px 0;
+        }
+        .drag-feedback {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            background-color: rgba(13, 110, 253, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+        }
+
+        /* 3. Property Editor (Lado Direito) */
+        .mform-property-editor {
+            width: 300px;
+            background-color: #fff;
+            border-left: 1px solid #dee2e6;
+            padding: 15px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .property-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+        }
+        .property-group h5 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #ced4da;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        
+        <div class="mform-toolbox">
+            <h5>🛠️ Componentes</h5>
+            <div data-type="MformContainer" class="toolbox-item" draggable="true"><i class="fas fa-layer-group"></i> Linha (Container)</div>
+            <div data-type="MformContainerItem" data-size="12" class="toolbox-item" draggable="true"><i class="fas fa-columns"></i> Coluna (Container Item)</div>
+            <hr>
+            <h6>Objetos</h6>
+            <div data-type="MformContainerItemObject" data-object-type="input(text)" class="toolbox-item" draggable="true"><i class="fas fa-keyboard"></i> Input (Text)</div>
+            <div data-type="MformContainerItemObject" data-object-type="textarea" class="toolbox-item" draggable="true"><i class="fas fa-align-left"></i> Textarea</div>
+            <div data-type="MformContainerItemObject" data-object-type="button" class="toolbox-item" draggable="true"><i class="fas fa-hand-pointer"></i> Botão</div>
+            </div>
+
+        <div class="mform-canvas">
+            <div class="mform-canvas-root">
+                <div v-if="mform.containers.length === 0" class="text-center text-muted p-5">
+                    Arraste uma **Linha** para começar a construir seu formulário.
+                </div>
+                
+                <div v-for="container in mform.containers" :key="container.mformcontainerstamp" 
+                     :class="['mform-container', { 'selected': container.mformcontainerstamp === selectedElementStamp }]"
+                     @click.stop="selectElement(container.mformcontainerstamp, container)">
+                    
+                    <div class="row m-0">
+                        <div v-for="item in container.containerItems" :key="item.mformcontaineritemstamp"
+                             :class="['col-md-' + item.bootstrapColumnSize, 'mform-container-item', { 'selected': item.mformcontaineritemstamp === selectedElementStamp }]"
+                             :style="{ flexDirection: item.flexDirection, alignItems: item.alignItems, justifyContent: item.justifyContent }"
+                             @click.stop="selectElement(item.mformcontaineritemstamp, item)">
+                            
+                            <div v-if="item.objects.length === 0" :data-drop-zone="item.mformcontaineritemstamp" class="text-center text-muted p-3 m-0" style="border: 2px dashed #adb5bd;">
+                                Arraste **Objetos** aqui (Col-{{ item.bootstrapColumnSize }})
+                            </div>
+                            
+                            <div v-for="object in item.objects" :key="object.mformcontaineritemobjectstamp"
+                                 :class="['mform-object-' + object.objectType, { 'selected': object.mformcontaineritemobjectstamp === selectedElementStamp }]"
+                                 @click.stop="selectElement(object.mformcontaineritemobjectstamp, object)"
+                                 style="border: 1px solid #007bff; padding: 5px; cursor: pointer;">
+                                {{ object.label || object.objectType }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mform-property-editor">
+            <h5>⚙️ Editor de Propriedades</h5>
+            
+            <div v-if="selectedElementStamp">
+                <h6 class="text-primary">{{ selectedElement.constructor.name }}</h6>
+                <p>Stamp: **{{ selectedElementStamp }}**</p>
+                
+                <hr>
+
+                <div class="property-group">
+                    <h5>Geral</h5>
+                    
+                    <template v-if="selectedElement.constructor.name === 'MformContainerItem'">
+                        <div class="mb-3">
+                            <label class="form-label">Tamanho da Coluna (1-12)</label>
+                            <input type="number" class="form-control" v-model.number="selectedElement.bootstrapColumnSize" min="1" max="12">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Direção Flex</label>
+                            <select class="form-select" v-model="selectedElement.flexDirection">
+                                <option value="column">Coluna (Vertical)</option>
+                                <option value="row">Linha (Horizontal)</option>
+                            </select>
+                        </div>
+                    </template>
+                    
+                    <template v-if="selectedElement.constructor.name === 'MformContainerItemObject'">
+                        <div class="mb-3">
+                            <label class="form-label">Label</label>
+                            <input type="text" class="form-control" v-model="selectedElement.label">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Valor Padrão (JS, Expressão, etc.)</label>
+                            <textarea class="form-control" rows="3" v-model="selectedElement.defaultValue"></textarea>
+                            <small class="form-text text-muted">Ex: `thisForm.st.nome` ou `calcularPreco(10)`</small>
+                        </div>
+                    </template>
+                    
+                </div>
+                
+                <div v-if="selectedElement.constructor.name === 'MformContainerItemObject'" class="property-group">
+                    <h5>Eventos</h5>
+                    <div class="mb-3">
+                        <label class="form-label">onChange (Frontend Expression)</label>
+                        <textarea class="form-control" rows="2" v-model="selectedElement.events.onchange.frontendExpression"></textarea>
+                    </div>
+                    </div>
+
+            </div>
+            <div v-else class="text-center text-muted pt-5">
+                Selecione um elemento no **Canvas** para editar suas propriedades.
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // #######################################################
+        // ############ 1. Funções Construtoras (Classes) ############
+        // #######################################################
+
+        /**
+         * Gera um ID único baseado no prefixo.
+         * @param {string} prefix 
+         * @returns {string}
+         */
+        function generateStamp(prefix) {
+            var timestamp = Date.now();
+            var random = Math.floor(Math.random() * 10000);
+            return prefix.toLowerCase() + "stamp-" + timestamp + "-" + random;
+        }
+
+        /**
+         * @typedef {object} MformInternalFunction
+         * @property {string} mforminternalfunctionstamp
+         * @property {string} name
+         * @property {string} code
+         * @property {string} description
+         */
+        function MformInternalFunction(data) {
+            var self = this;
+            self.mforminternalfunctionstamp = generateStamp("MformInternalFunction");
+            self.name = data.name || "NovaFuncao";
+            self.code = data.code || "function newFunction(param) { return param; }";
+            self.description = data.description || "";
+        }
+
+        /**
+         * @typedef {object} MformContainerItemObject
+         * @property {string} mformcontaineritemobjectstamp
+         * @property {string} objectType - Ex: 'input(text)', 'select', 'button'
+         * @property {string} label
+         * @property {string} name
+         * @property {string} placeholder
+         * @property {string} defaultValue - Pode ser JS, SQL, VB.NET expression
+         * @property {object} events - Mapa de eventos (onclick, onchange, etc.)
+         */
+        function MformContainerItemObject(data) {
+            var self = this;
+            self.mformcontaineritemobjectstamp = generateStamp("MformContainerItemObject");
+            self.objectType = data.objectType || "input(text)";
+            self.label = data.label || "Novo " + self.objectType.toUpperCase();
+            self.name = data.name || "input_" + Date.now();
+            self.placeholder = data.placeholder || "";
+            self.defaultValue = data.defaultValue || "";
+            self.required = data.required || false;
+            self.readonly = data.readonly || false;
+            self.visible = data.visible || true;
+            self.helpText = data.helpText || "";
+            self.cssClass = data.cssClass || "";
+            self.styleOverrides = data.styleOverrides || {};
+
+            // Configuração para Select
+            self.optionsSource = data.optionsSource || "fixed"; // fixed, sql, javascript
+            self.optionValueField = data.optionValueField || "value";
+            self.optionLabelField = data.optionLabelField || "label";
+            self.listExpression = data.listExpression || "[]"; // Expressão JS ou Query SQL
+
+            // Eventos - Usa a estrutura de enum solicitada
+            self.events = {
+                onclick: { frontendExpression: "", backendExpression: "" },
+                onchange: { frontendExpression: "", backendExpression: "" },
+                onblur: { frontendExpression: "", backendExpression: "" },
+                keyup: { frontendExpression: "", backendExpression: "" },
+                keypress: { frontendExpression: "", backendExpression: "" },
+                load: { frontendExpression: "", backendExpression: "" },
+                mounted: { frontendExpression: "", backendExpression: "" },
+            };
+            if (data.events) {
+                // Merge para carregar dados existentes
+                Object.assign(self.events, data.events);
+            }
+        }
+
+        /**
+         * @typedef {object} MformContainerItem (Coluna)
+         * @property {string} mformcontaineritemstamp
+         * @property {number} bootstrapColumnSize - Ex: 12, 6, 4
+         * @property {string} flexDirection - 'row' ou 'column' (Propriedade Flex)
+         * @property {string} alignItems
+         * @property {string} justifyContent
+         * @property {Array<MformContainerItemObject>} objects
+         */
+        function MformContainerItem(data) {
+            var self = this;
+            self.mformcontaineritemstamp = generateStamp("MformContainerItem");
+            self.bootstrapColumnSize = data.bootstrapColumnSize || 12; // Padrão 12
+            self.flexDirection = data.flexDirection || "column"; // Padrão: objetos na vertical
+            self.alignItems = data.alignItems || "flex-start";
+            self.justifyContent = data.justifyContent || "flex-start";
+            self.gap = data.gap || "10px";
+            self.padding = data.padding || "10px";
+            self.objects = data.objects || [];
+            
+            // Reconstroi objetos se vierem dados brutos
+            if (data.objects) {
+                self.objects = data.objects.map(function(objData) {
+                    return new MformContainerItemObject(objData);
+                });
+            }
+        }
+
+        /**
+         * @typedef {object} MformContainer (Linha)
+         * @property {string} mformcontainerstamp
+         * @property {number} height - Altura da linha
+         * @property {object} style
+         * @property {Array<MformContainerItem>} containerItems - Deve conter apenas colunas
+         */
+        function MformContainer(data) {
+            var self = this;
+            self.mformcontainerstamp = generateStamp("MformContainer");
+            self.height = data.height || "auto";
+            self.style = data.style || {};
+            self.containerItems = data.containerItems || [];
+
+            // Reconstroi itens do container se vierem dados brutos
+            if (data.containerItems) {
+                self.containerItems = data.containerItems.map(function(itemData) {
+                    return new MformContainerItem(itemData);
+                });
+            }
+        }
+
+        /**
+         * @typedef {object} Mform
+         * @property {string} mformstamp
+         * @property {string} name
+         * @property {boolean} hasSubmitButton
+         * @property {Array<MformContainer>} containers
+         * @property {Array<MformInternalFunction>} internalFunctions
+         */
+        function Mform(data) {
+            var self = this;
+            self.mformstamp = generateStamp("Mform");
+            self.name = data.name || "NovoFormulario";
+            self.hasSubmitButton = data.hasSubmitButton || true;
+            self.containers = data.containers || [];
+            self.internalFunctions = data.internalFunctions || [];
+
+            // Reconstroi containers se vierem dados brutos
+            if (data.containers) {
+                self.containers = data.containers.map(function(containerData) {
+                    return new MformContainer(containerData);
+                });
+            }
+            // Reconstroi internal functions
+            if (data.internalFunctions) {
+                self.internalFunctions = data.internalFunctions.map(function(funcData) {
+                    return new MformInternalFunction(funcData);
+                });
+            }
+        }
+
+        // #######################################################
+        // ############ 2. Lógica Vue e Inicialização ############
+        // #######################################################
+        
+        var app = Vue.createApp({
+            data: function() {
+                var initialData = new Mform({
+                    name: "FormularioInicial",
+                    // Dados de exemplo para iniciar
+                    containers: [
+                        new MformContainer({
+                            containerItems: [
+                                new MformContainerItem({
+                                    bootstrapColumnSize: 6,
+                                    objects: [
+                                        new MformContainerItemObject({ label: "Campo de Nome", objectType: "input(text)" })
+                                    ]
+                                }),
+                                new MformContainerItem({
+                                    bootstrapColumnSize: 6
+                                })
+                            ]
+                        })
+                    ],
+                    internalFunctions: [
+                        new MformInternalFunction({
+                            name: "calcularPreco",
+                            code: "function calcularPreco(ref) {\n  // Simulação de acesso a dados do form\n  // return thisForm.st.findRows(\"ref\", ref)[0].preco;\n  return ref * 1.2;\n}"
+                        })
+                    ]
+                });
+
+                return {
+                    mform: initialData,
+                    selectedElementStamp: null,
+                    selectedElement: null,
+                };
+            },
+            methods: {
+                /**
+                 * Seleciona um elemento no Canvas e atualiza o Property Editor.
+                 * @param {string} stamp
+                 * @param {object} elementData
+                 */
+                selectElement: function(stamp, elementData) {
+                    this.selectedElementStamp = stamp;
+                    this.selectedElement = elementData;
+                    // console.log("Elemento selecionado:", stamp, elementData.constructor.name);
+                },
+
+                /**
+                 * Adiciona um novo ContainerItemObject (Objeto) à Coluna.
+                 * @param {string} containerItemStamp - ID da Coluna (MformContainerItem)
+                 * @param {string} objectType - Tipo de Objeto
+                 */
+                addObjectToContainerItem: function(containerItemStamp, objectType) {
+                    var newObject = new MformContainerItemObject({ objectType: objectType });
+                    
+                    // Lógica para encontrar o ContainerItem e adicionar o objeto
+                    for (var i = 0; i < this.mform.containers.length; i++) {
+                        var container = this.mform.containers[i];
+                        for (var j = 0; j < container.containerItems.length; j++) {
+                            var item = container.containerItems[j];
+                            if (item.mformcontaineritemstamp === containerItemStamp) {
+                                item.objects.push(newObject);
+                                this.selectElement(newObject.mformcontaineritemobjectstamp, newObject);
+                                return;
+                            }
+                        }
+                    }
+                },
+                
+                /**
+                 * Adiciona um novo Container (Linha) ao Formulário.
+                 */
+                addContainer: function() {
+                    var newContainer = new MformContainer({
+                        containerItems: [
+                            new MformContainerItem({ bootstrapColumnSize: 12 }) // Padrão uma coluna 12
+                        ]
+                    });
+                    this.mform.containers.push(newContainer);
+                    this.selectElement(newContainer.mformcontainerstamp, newContainer);
+                },
+
+                /**
+                 * Adiciona um novo ContainerItem (Coluna) a um Container (Linha).
+                 * @param {string} containerStamp - ID da Linha (MformContainer)
+                 * @param {number} size - Tamanho da coluna
+                 */
+                addContainerItemToContainer: function(containerStamp, size) {
+                    var newContainerItem = new MformContainerItem({ bootstrapColumnSize: size });
+
+                    // Lógica para encontrar o Container (Linha) e adicionar a Coluna
+                    for (var i = 0; i < this.mform.containers.length; i++) {
+                        var container = this.mform.containers[i];
+                        if (container.mformcontainerstamp === containerStamp) {
+                            container.containerItems.push(newContainerItem);
+                            this.selectElement(newContainerItem.mformcontaineritemstamp, newContainerItem);
+                            return;
+                        }
+                    }
+                }
+            }
+        }).mount('#app');
+
+        // #######################################################
+        // ############ 3. Lógica jQuery para Drag & Drop ############
+        // #######################################################
+        
+        var draggedItem = null;
+        var dragType = null;
+        var dragFeedback = null; // Elemento para feedback visual
+
+        $(function() {
+            dragFeedback = $('<div class="drag-feedback"></div>').appendTo('body').hide();
+            
+            // 1. Inicializa o Drag nos Itens da Toolbox
+            $('.toolbox-item').on('dragstart', function(e) {
+                var dataTransfer = e.originalEvent.dataTransfer;
+                dragType = $(this).data('type');
+                
+                // Os dados transferidos são apenas para identificar o item/tipo.
+                var itemData = {
+                    type: dragType,
+                    objectType: $(this).data('object-type'),
+                    size: $(this).data('size') // Apenas para MformContainerItem
+                };
+                
+                draggedItem = itemData;
+                dataTransfer.setData('text/plain', JSON.stringify(itemData));
+                
+                // Feedback visual
+                dragFeedback.text(dragType === 'MformContainer' ? 'Linha' : itemData.objectType || 'Coluna');
+                dragFeedback.show();
+                e.currentTarget.style.opacity = '0.4';
+            }).on('dragend', function(e) {
+                e.currentTarget.style.opacity = '1';
+                draggedItem = null;
+                dragType = null;
+                dragFeedback.hide();
+                $('.mform-container, .mform-container-item').removeClass('mform-drop-target');
+            });
+            
+            $(document).on('dragover', function(e) {
+                e.preventDefault(); // Necessário para permitir o drop
+                
+                // Atualiza a posição do feedback visual
+                if (dragFeedback && draggedItem) {
+                    dragFeedback.css({
+                        left: e.originalEvent.pageX + 10,
+                        top: e.originalEvent.pageY + 10
+                    });
+                }
+            });
+
+            // 2. Lógica de Drop no Canvas
+            $('.mform-canvas').on('dragenter', '.mform-canvas-root, .mform-container, .mform-container-item', function(e) {
+                e.preventDefault();
+                // Apenas colunas são drop zones para objetos
+                // Linhas e Root são drop zones para Linhas
+                var $target = $(this);
+
+                if (!draggedItem) return;
+
+                if (dragType === 'MformContainer') {
+                    // Linhas podem ser dropadas na raiz ou entre linhas existentes
+                    $target.addClass('mform-drop-target');
+                } else if (dragType === 'MformContainerItem') {
+                    // Colunas podem ser dropadas apenas em Linhas (MformContainer)
+                    if ($target.hasClass('mform-container')) {
+                        $target.addClass('mform-drop-target');
+                    }
+                } else if (dragType === 'MformContainerItemObject') {
+                    // Objetos podem ser dropados apenas em Colunas (MformContainerItem)
+                    if ($target.hasClass('mform-container-item')) {
+                        $target.addClass('mform-drop-target');
+                    }
+                }
+
+                // Remove o destaque de outros elementos
+                $('.mform-drop-target').not($target).removeClass('mform-drop-target');
+
+            }).on('dragleave', '.mform-canvas-root, .mform-container, .mform-container-item', function(e) {
+                // Ao sair, remove o destaque se não estiver sobre um elemento filho
+                if (e.originalEvent.relatedTarget && $.contains(this, e.originalEvent.relatedTarget)) {
+                     return;
+                }
+                $(this).removeClass('mform-drop-target');
+
+            }).on('drop', '.mform-canvas-root, .mform-container, .mform-container-item', function(e) {
+                e.preventDefault();
+                e.stopPropagation(); // Impede o drop de propagar para o pai
+                
+                var $target = $(this);
+                $target.removeClass('mform-drop-target');
+
+                if (!draggedItem) return;
+
+                if (dragType === 'MformContainer') {
+                    // Drop de LINHA na raiz
+                    app.addContainer();
+
+                } else if (dragType === 'MformContainerItem') {
+                    // Drop de COLUNA em uma LINHA
+                    if ($target.hasClass('mform-container')) {
+                        var containerStamp = app.selectedElementStamp; // Não é o ideal, mas simplifica o exemplo
+                        var $container = $target.closest('.mform-container');
+                        if ($container.length) {
+                             containerStamp = $container.attr('key'); // Usa a key do Vue se possível, ou o stamp
+                             // Como o Vue 3 usa V-nodes, é mais seguro usar o stamp ou um atributo data-stamp
+                             var stamp = $container.get(0).__vueParentComponent.props.container.mformcontainerstamp;
+                             app.addContainerItemToContainer(stamp, draggedItem.size);
+                        } else {
+                            // Se não for possível obter o stamp do Vue, use o primeiro container
+                             app.addContainerItemToContainer(app.mform.containers[0].mformcontainerstamp, draggedItem.size);
+                        }
+                    }
+                } else if (dragType === 'MformContainerItemObject') {
+                    // Drop de OBJETO em uma COLUNA
+                    if ($target.hasClass('mform-container-item')) {
+                        var $containerItem = $target.closest('.mform-container-item');
+                         // Pega o stamp da Coluna
+                        var stamp = $containerItem.get(0).__vueParentComponent.props.item.mformcontaineritemstamp;
+                        app.addObjectToContainerItem(stamp, draggedItem.objectType);
+                    }
+                }
+                
+                // Limpa o estado de arrastar
+                draggedItem = null;
+                dragType = null;
+                dragFeedback.hide();
+            });
+
+            // Log de depuração para verificar o estado inicial
+            console.log("Mform Inicializado:", app.mform);
+        });
+
+    </script>
+</body>
+</html>

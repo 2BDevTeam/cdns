@@ -26,6 +26,7 @@ Try
     scriptCss+=" <link href='https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_bootstrap5.min.css' rel='stylesheet'>"
     scriptJs +="<script src='https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js'></script>"   
     Dim registoJSON as String="<textarea style='display:none' id='registoJson' name='registoJson' type='text'></textarea>"
+    scriptJs+="<link href='https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded' rel='stylesheet' />"
 
 
     html+=registoJSON

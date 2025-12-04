@@ -12,14 +12,16 @@ $.ajax({
             console.log(response)
             if (response.cod != "0000") {
 
-                console.log("Erro "+errorMessage,response)
+                console.log("Erro " + errorMessage, response)
                 return false
             }
         } catch (error) {
             console.log("Erro interno " + errorMessage, response)
             //alertify.error("Erro interno " + errorMessage, 10000)
         }
+        javascript: __doPostBack('ctl00$conteudo$options2$userOption1029', '')
 
+        executarPostbackAjax('ctl00$conteudo$options2$userOption1029', { bistamp: "123445" });
         //  javascript:__doPostBack('','')
     }
 })
