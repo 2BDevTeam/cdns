@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Cards - Examples</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <style>
+        body {
+            background: #f8fafc;
+            padding: 40px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .demo-section {
+            margin-bottom: 40px;
+        }
+        
+        .demo-section h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .code-example {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        .code-example code {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .example-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 15px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1 style="text-align: center; margin-bottom: 40px; color: #1e293b;">
+            <i class="fas fa-layer-group"></i> Advanced Cards - Top Border Design
+        </h1>
+        
+        <!-- Metric Cards Section -->
+        <div class="demo-section">
+            <h2><i class="fas fa-chart-bar"></i> Metric Cards Advanced</h2>
+            
+            <div class="cards-grid" id="metric-cards-container"></div>
+            
+            <div class="code-example">
+                <code>
+// Metric Card - Primary<br>
+var cardData = {<br>
+&nbsp;&nbsp;id: 'metric-card-1',<br>
+&nbsp;&nbsp;title: 'Total Revenue',<br>
+&nbsp;&nbsp;tipo: 'primary',<br>
+&nbsp;&nbsp;icon: 'fas fa-dollar-sign',<br>
+&nbsp;&nbsp;extraData: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;value: '€ 45,320',<br>
+&nbsp;&nbsp;&nbsp;&nbsp;subtitle: '+12% from last month'<br>
+&nbsp;&nbsp;}<br>
+};<br>
+var html = generateBrdCardAdvancedMetric(cardData);<br>
+$('#container').html(html);
+                </code>
+            </div>
+        </div>
+        
+        <!-- Status Cards Section -->
+        <div class="demo-section">
+            <h2><i class="fas fa-signal"></i> Status Cards Advanced</h2>
+            
+            <div class="cards-grid" id="status-cards-container"></div>
+            
+            <div class="code-example">
+                <code>
+// Status Card - Success<br>
+var cardData = {<br>
+&nbsp;&nbsp;id: 'status-card-1',<br>
+&nbsp;&nbsp;title: 'System Status',<br>
+&nbsp;&nbsp;bodyContent: 'All systems operational. No issues detected.',<br>
+&nbsp;&nbsp;footer: 'Last checked: 2 minutes ago',<br>
+&nbsp;&nbsp;tipo: 'success',<br>
+&nbsp;&nbsp;icon: 'fas fa-check-circle',<br>
+&nbsp;&nbsp;extraData: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;status: 'Online'<br>
+&nbsp;&nbsp;}<br>
+};<br>
+var html = generateBrdCardAdvancedStatus(cardData);<br>
+$('#container').html(html);
+                </code>
+            </div>
+        </div>
+        
+        <!-- Alert Cards Section -->
+        <div class="demo-section">
+            <h2><i class="fas fa-bell"></i> Alert Cards Advanced</h2>
+            
+            <div class="cards-grid" id="alert-cards-container"></div>
+            
+            <div class="code-example">
+                <code>
+// Alert Card - Warning<br>
+var cardData = {<br>
+&nbsp;&nbsp;id: 'alert-card-1',<br>
+&nbsp;&nbsp;title: 'Storage Warning',<br>
+&nbsp;&nbsp;bodyContent: 'Disk space is running low. Consider freeing up space.',<br>
+&nbsp;&nbsp;footer: 'Current usage: 85%',<br>
+&nbsp;&nbsp;tipo: 'warning',<br>
+&nbsp;&nbsp;icon: 'fas fa-exclamation-triangle'<br>
+};<br>
+var html = generateBrdCardAdvancedAlert(cardData);<br>
+$('#container').html(html);
+                </code>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Include the Template Dashboard Standard Extension -->
+    <script>
+        // Mock MDashCard class
+        function MDashCard(data) {
+            this.id = data.id || '';
+            this.title = data.title || '';
+            this.bodyContent = data.bodyContent || '';
+            this.footer = data.footer || '';
+            this.tipo = data.tipo || 'primary';
+            this.icon = data.icon || '';
+            this.classes = data.classes || '';
+            this.styles = data.styles || '';
+            this.extraData = data.extraData || {};
+        }
+        
+        // Mock generateUUID
+        function generateUUID() {
+            return 'xxxx-xxxx-xxxx'.replace(/x/g, function() {
+                return (Math.random() * 16 | 0).toString(16);
+            });
+        }
+        
+        // Mock getColorByType
+        function getColorByType(type) {
+            var colors = {
+                primary: { background: '#0ea5e9', text: '#ffffff' },
+                success: { background: '#4CAF50', text: '#ffffff' },
+                warning: { background: '#ff9800', text: '#ffffff' },
+                danger: { background: '#f44336', text: '#ffffff' }
+            };
+            return colors[type] || colors.primary;
+        }
+        
+        // Helper function
+        function hexToRgb(hex) {
+            hex = hex.replace(/^#/, '');
+            if (hex.indexOf('rgb') !== -1) {
+                var match = hex.match(/\d+/g);
+                if (match && match.length >= 3) {
+                    return match[0] + ',' + match[1] + ',' + match[2];
+                }
+            }
+            var r, g, b;
+            if (hex.length === 3) {
+                r = parseInt(hex.charAt(0) + hex.charAt(0), 16);
+                g = parseInt(hex.charAt(1) + hex.charAt(1), 16);
+                b = parseInt(hex.charAt(2) + hex.charAt(2), 16);
+            } else if (hex.length === 6) {
+                r = parseInt(hex.substring(0, 2), 16);
+                g = parseInt(hex.substring(2, 4), 16);
+                b = parseInt(hex.substring(4, 6), 16);
+            } else {
+                return '0,0,0';
+            }
+            return r + ',' + g + ',' + b;
+        }
+        
+        // Include the card generation functions from TEMPLATE DASHBOARD STANDARD EXTENSION.js
+        function generateBrdCardAdvancedMetric(cardData) {
+            var dashCard = new MDashCard(cardData);
+            var id = dashCard.id || ('metric-advanced-' + (typeof generateUUID === 'function' ? generateUUID() : Date.now()));
+            var classes = 'brd-card-advanced brd-card-advanced-metrica ' + (dashCard.classes || '');
+            var styles = dashCard.styles || '';
+            var tipo = dashCard.tipo || 'primary';
+            var iconClass = dashCard.icon || 'fas fa-chart-line';
+
+            var html = '';
+            html += '<div id="' + id + '" class="' + classes + '" style="' + styles + '">';
+            html += '  <div class="brd-card-advanced-icon brd-card-advanced-icon-' + tipo + '">';
+            html += '    <i class="' + iconClass + '"></i>';
+            html += '  </div>';
+            html += '  <div class="brd-card-advanced-content">';
+            html += '    <div class="brd-card-advanced-label">' + (dashCard.title || 'Metric') + '</div>';
+            html += '    <div class="brd-card-advanced-value">' + (dashCard.extraData.value || '0') + '</div>';
+            if (dashCard.extraData.subtitle) {
+                html += '    <div class="brd-card-advanced-subtitle">' + dashCard.extraData.subtitle + '</div>';
+            }
+            html += '  </div>';
+            html += '</div>';
+            return html;
+        }
+
+        function generateBrdCardAdvancedStatus(cardData) {
+            var dashCard = new MDashCard(cardData);
+            var id = dashCard.id || ('status-advanced-' + (typeof generateUUID === 'function' ? generateUUID() : Date.now()));
+            var classes = 'brd-card-advanced brd-card-advanced-status ' + (dashCard.classes || '');
+            var styles = dashCard.styles || '';
+            var tipo = dashCard.tipo || 'primary';
+            var statusText = dashCard.extraData.status || 'active';
+            var iconClass = dashCard.icon || 'fas fa-check-circle';
+
+            var html = '';
+            html += '<div id="' + id + '" class="' + classes + ' brd-card-advanced-status-' + tipo + '" style="' + styles + '">';
+            html += '  <div class="brd-card-advanced-status-header">';
+            html += '    <i class="' + iconClass + '"></i>';
+            html += '    <span class="brd-card-advanced-status-badge">' + statusText + '</span>';
+            html += '  </div>';
+            html += '  <div class="brd-card-advanced-status-body">';
+            html += '    <div class="brd-card-advanced-status-title">' + (dashCard.title || 'Status') + '</div>';
+            html += '    <div class="brd-card-advanced-status-message">' + (dashCard.bodyContent || '') + '</div>';
+            if (dashCard.footer) {
+                html += '    <div class="brd-card-advanced-status-footer">' + dashCard.footer + '</div>';
+            }
+            html += '  </div>';
+            html += '</div>';
+            return html;
+        }
+
+        function generateBrdCardAdvancedAlert(cardData) {
+            var dashCard = new MDashCard(cardData);
+            var id = dashCard.id || ('alert-advanced-' + (typeof generateUUID === 'function' ? generateUUID() : Date.now()));
+            var classes = 'brd-card-advanced brd-card-advanced-alert ' + (dashCard.classes || '');
+            var styles = dashCard.styles || '';
+            var tipo = dashCard.tipo || 'warning';
+            var iconClass = dashCard.icon || 'fas fa-exclamation-triangle';
+
+            var html = '';
+            html += '<div id="' + id + '" class="' + classes + ' brd-card-advanced-alert-' + tipo + '" style="' + styles + '">';
+            html += '  <div class="brd-card-advanced-alert-icon">';
+            html += '    <i class="' + iconClass + '"></i>';
+            html += '  </div>';
+            html += '  <div class="brd-card-advanced-alert-content">';
+            html += '    <div class="brd-card-advanced-alert-title">' + (dashCard.title || 'Alert') + '</div>';
+            html += '    <div class="brd-card-advanced-alert-message">' + (dashCard.bodyContent || '') + '</div>';
+            if (dashCard.footer) {
+                html += '    <div class="brd-card-advanced-alert-footer">' + dashCard.footer + '</div>';
+            }
+            html += '  </div>';
+            html += '</div>';
+            return html;
+        }
+        
+        // Add CSS dynamically
+        function addAdvancedCardStyles() {
+            var css = '';
+            
+            // Base styles
+            css += '.brd-card-advanced{';
+            css += 'background:#ffffff;';
+            css += 'border-radius:12px;';
+            css += 'box-shadow:0 4px 12px rgba(0,0,0,0.08);';
+            css += 'transition:all 0.3s cubic-bezier(0.4,0,0.2,1);';
+            css += 'position:relative;';
+            css += 'overflow:hidden;';
+            css += 'border-top:4px solid #0ea5e9;';
+            css += '}';
+            css += '.brd-card-advanced:hover{';
+            css += 'transform:translateY(-4px);';
+            css += 'box-shadow:0 8px 24px rgba(0,0,0,0.12);';
+            css += '}';
+            css += '.brd-card-advanced::before{';
+            css += 'content:"";';
+            css += 'position:absolute;';
+            css += 'top:0;';
+            css += 'left:0;';
+            css += 'width:100%;';
+            css += 'height:100%;';
+            css += 'background:linear-gradient(135deg,rgba(255,255,255,0) 0%,rgba(255,255,255,0.05) 100%);';
+            css += 'pointer-events:none;';
+            css += '}';
+            
+            // Metric Card
+            css += '.brd-card-advanced-metrica{';
+            css += 'display:flex;';
+            css += 'align-items:center;';
+            css += 'padding:20px;';
+            css += 'min-height:120px;';
+            css += '}';
+            css += '.brd-card-advanced-icon{';
+            css += 'width:60px;';
+            css += 'height:60px;';
+            css += 'border-radius:50%;';
+            css += 'display:flex;';
+            css += 'align-items:center;';
+            css += 'justify-content:center;';
+            css += 'font-size:24px;';
+            css += 'margin-right:20px;';
+            css += 'flex-shrink:0;';
+            css += 'box-shadow:0 4px 8px rgba(0,0,0,0.1);';
+            css += 'transition:transform 0.3s ease;';
+            css += '}';
+            css += '.brd-card-advanced:hover .brd-card-advanced-icon{';
+            css += 'transform:scale(1.1) rotate(5deg);';
+            css += '}';
+            css += '.brd-card-advanced-icon-primary{background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;}';
+            css += '.brd-card-advanced-icon-success{background:linear-gradient(135deg,#4CAF50,#45a049);color:#fff;}';
+            css += '.brd-card-advanced-icon-warning{background:linear-gradient(135deg,#ff9800,#f57c00);color:#fff;}';
+            css += '.brd-card-advanced-icon-danger{background:linear-gradient(135deg,#f44336,#e53935);color:#fff;}';
+            css += '.brd-card-advanced-content{flex:1;min-width:0;}';
+            css += '.brd-card-advanced-label{font-size:14px;color:#64748b;margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;}';
+            css += '.brd-card-advanced-value{font-size:28px;font-weight:700;color:#1e293b;line-height:1.2;margin-bottom:4px;}';
+            css += '.brd-card-advanced-subtitle{font-size:13px;color:#94a3b8;margin-top:4px;}';
+            
+            // Status Card
+            css += '.brd-card-advanced-status{padding:20px;}';
+            css += '.brd-card-advanced-status-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}';
+            css += '.brd-card-advanced-status-header i{font-size:24px;}';
+            css += '.brd-card-advanced-status-badge{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}';
+            css += '.brd-card-advanced-status-primary{border-top-color:#0ea5e9;}';
+            css += '.brd-card-advanced-status-primary .brd-card-advanced-status-header i{color:#0ea5e9;}';
+            css += '.brd-card-advanced-status-primary .brd-card-advanced-status-badge{background:rgba(14,165,233,0.1);color:#0ea5e9;}';
+            css += '.brd-card-advanced-status-success{border-top-color:#4CAF50;}';
+            css += '.brd-card-advanced-status-success .brd-card-advanced-status-header i{color:#4CAF50;}';
+            css += '.brd-card-advanced-status-success .brd-card-advanced-status-badge{background:rgba(76,175,80,0.1);color:#4CAF50;}';
+            css += '.brd-card-advanced-status-warning{border-top-color:#ff9800;}';
+            css += '.brd-card-advanced-status-warning .brd-card-advanced-status-header i{color:#ff9800;}';
+            css += '.brd-card-advanced-status-warning .brd-card-advanced-status-badge{background:rgba(255,152,0,0.1);color:#ff9800;}';
+            css += '.brd-card-advanced-status-danger{border-top-color:#f44336;}';
+            css += '.brd-card-advanced-status-danger .brd-card-advanced-status-header i{color:#f44336;}';
+            css += '.brd-card-advanced-status-danger .brd-card-advanced-status-badge{background:rgba(244,67,54,0.1);color:#f44336;}';
+            css += '.brd-card-advanced-status-title{font-size:18px;font-weight:600;color:#1e293b;margin-bottom:8px;}';
+            css += '.brd-card-advanced-status-message{font-size:14px;color:#64748b;line-height:1.6;}';
+            css += '.brd-card-advanced-status-footer{margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:13px;color:#94a3b8;}';
+            
+            // Alert Card
+            css += '.brd-card-advanced-alert{display:flex;align-items:flex-start;gap:16px;padding:20px;}';
+            css += '.brd-card-advanced-alert-icon{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}';
+            css += '.brd-card-advanced-alert-primary{border-top-color:#0ea5e9;background:rgba(14,165,233,0.03);}';
+            css += '.brd-card-advanced-alert-primary .brd-card-advanced-alert-icon{background:rgba(14,165,233,0.1);color:#0ea5e9;}';
+            css += '.brd-card-advanced-alert-warning{border-top-color:#ff9800;background:rgba(255,152,0,0.03);}';
+            css += '.brd-card-advanced-alert-warning .brd-card-advanced-alert-icon{background:rgba(255,152,0,0.1);color:#ff9800;}';
+            css += '.brd-card-advanced-alert-danger{border-top-color:#f44336;background:rgba(244,67,54,0.03);}';
+            css += '.brd-card-advanced-alert-danger .brd-card-advanced-alert-icon{background:rgba(244,67,54,0.1);color:#f44336;}';
+            css += '.brd-card-advanced-alert-success{border-top-color:#4CAF50;background:rgba(76,175,80,0.03);}';
+            css += '.brd-card-advanced-alert-success .brd-card-advanced-alert-icon{background:rgba(76,175,80,0.1);color:#4CAF50;}';
+            css += '.brd-card-advanced-alert-content{flex:1;min-width:0;}';
+            css += '.brd-card-advanced-alert-title{font-size:16px;font-weight:600;color:#1e293b;margin-bottom:6px;}';
+            css += '.brd-card-advanced-alert-message{font-size:14px;color:#64748b;line-height:1.5;}';
+            css += '.brd-card-advanced-alert-footer{margin-top:10px;font-size:12px;color:#94a3b8;}';
+            
+            // Responsive
+            css += '@media (max-width:768px){';
+            css += '.brd-card-advanced-metrica{padding:16px;}';
+            css += '.brd-card-advanced-icon{width:50px;height:50px;font-size:20px;margin-right:16px;}';
+            css += '.brd-card-advanced-value{font-size:24px;}';
+            css += '.brd-card-advanced-status{padding:16px;}';
+            css += '.brd-card-advanced-alert{padding:16px;gap:12px;}';
+            css += '.brd-card-advanced-alert-icon{width:40px;height:40px;font-size:18px;}';
+            css += '}';
+            
+            $('head').append('<style>' + css + '</style>');
+        }
+        
+        // Initialize examples
+        $(document).ready(function() {
+            addAdvancedCardStyles();
+            
+            // Metric Cards
+            var metricCards = [
+                {
+                    id: 'metric-1',
+                    title: 'Total Revenue',
+                    tipo: 'primary',
+                    icon: 'fas fa-dollar-sign',
+                    extraData: { value: '€ 45,320', subtitle: '+12% from last month' }
+                },
+                {
+                    id: 'metric-2',
+                    title: 'Active Users',
+                    tipo: 'success',
+                    icon: 'fas fa-users',
+                    extraData: { value: '2,847', subtitle: '+5% from yesterday' }
+                },
+                {
+                    id: 'metric-3',
+                    title: 'Pending Tasks',
+                    tipo: 'warning',
+                    icon: 'fas fa-tasks',
+                    extraData: { value: '142', subtitle: '23 urgent' }
+                },
+                {
+                    id: 'metric-4',
+                    title: 'Error Rate',
+                    tipo: 'danger',
+                    icon: 'fas fa-exclamation-circle',
+                    extraData: { value: '3.2%', subtitle: '-0.8% improvement' }
+                }
+            ];
+            
+            metricCards.forEach(function(card) {
+                $('#metric-cards-container').append(generateBrdCardAdvancedMetric(card));
+            });
+            
+            // Status Cards
+            var statusCards = [
+                {
+                    id: 'status-1',
+                    title: 'System Status',
+                    bodyContent: 'All systems operational. No issues detected.',
+                    footer: 'Last checked: 2 minutes ago',
+                    tipo: 'success',
+                    icon: 'fas fa-check-circle',
+                    extraData: { status: 'Online' }
+                },
+                {
+                    id: 'status-2',
+                    title: 'Database Connection',
+                    bodyContent: 'Connected to primary database. Performance optimal.',
+                    footer: 'Response time: 45ms',
+                    tipo: 'primary',
+                    icon: 'fas fa-database',
+                    extraData: { status: 'Connected' }
+                },
+                {
+                    id: 'status-3',
+                    title: 'Backup Process',
+                    bodyContent: 'Scheduled backup in progress. Estimated time: 15 minutes.',
+                    footer: 'Started: 10:30 AM',
+                    tipo: 'warning',
+                    icon: 'fas fa-sync',
+                    extraData: { status: 'Running' }
+                }
+            ];
+            
+            statusCards.forEach(function(card) {
+                $('#status-cards-container').append(generateBrdCardAdvancedStatus(card));
+            });
+            
+            // Alert Cards
+            var alertCards = [
+                {
+                    id: 'alert-1',
+                    title: 'Storage Warning',
+                    bodyContent: 'Disk space is running low. Consider freeing up space or upgrading storage.',
+                    footer: 'Current usage: 85%',
+                    tipo: 'warning',
+                    icon: 'fas fa-exclamation-triangle'
+                },
+                {
+                    id: 'alert-2',
+                    title: 'Security Alert',
+                    bodyContent: 'Multiple failed login attempts detected from unknown IP address.',
+                    footer: 'Detected: 5 minutes ago',
+                    tipo: 'danger',
+                    icon: 'fas fa-shield-alt'
+                },
+                {
+                    id: 'alert-3',
+                    title: 'Update Available',
+                    bodyContent: 'A new system update is available. Install now to get the latest features.',
+                    footer: 'Version 2.4.0',
+                    tipo: 'primary',
+                    icon: 'fas fa-download'
+                },
+                {
+                    id: 'alert-4',
+                    title: 'Backup Complete',
+                    bodyContent: 'System backup completed successfully. All data has been saved.',
+                    footer: 'Completed: 11:45 AM',
+                    tipo: 'success',
+                    icon: 'fas fa-check'
+                }
+            ];
+            
+            alertCards.forEach(function(card) {
+                $('#alert-cards-container').append(generateBrdCardAdvancedAlert(card));
+            });
+        });
+    </script>
+</body>
+</html>

@@ -65,6 +65,7 @@ GO
  
 ALTER TABLE [dbo].[u_mdash] ADD  DEFAULT ((0)) FOR [marcada]
 GO
+
 Create table MdashContainer(
 
     mdashcontainerstamp VARCHAR(25) PRIMARY KEY,

@@ -515,6 +515,7 @@ function actualizarConfiguracaoMDashboard() {
 
 
 $(document).ready(function () {
+    
     // Add global styles
     var styles = [];
     getDashboardDefaultStyles(styles);
@@ -536,6 +537,7 @@ $(document).ready(function () {
         $(this).next("div").toggleClass("hidden");
 
     });
+    
 
     registerListenersMdash()
 });
