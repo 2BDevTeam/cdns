@@ -5,6 +5,48 @@ var GFormContainers = [new FormContainer({})];
 //GFormContainers = [];
 
 $(document).ready(function () {
+    // Skeleton auto-posicionamento - cobre apenas o elemento pai sem modificar seu CSS
+    function initSkeletonOverlay() {
+        $('.mdashskeleton').each(function() {
+            var $skeleton = $(this);
+            var $parent = $skeleton.parent();
+            
+            if ($parent.length && !$skeleton.data('positioned')) {
+                var updatePosition = function() {
+                    var rect = $parent[0].getBoundingClientRect();
+                    $skeleton.css({
+                        'position': 'fixed',
+                        'top': rect.top + 'px',
+                        'left': rect.left + 'px',
+                        'width': rect.width + 'px',
+                        'height': rect.height + 'px'
+                    });
+                };
+                
+                updatePosition();
+                $skeleton.data('positioned', true);
+                
+                // Reposiciona em scroll e resize
+                $(window).on('scroll resize', updatePosition);
+            }
+        });
+    }
+    
+    // Inicializa skeletons existentes
+    initSkeletonOverlay();
+    
+    // Observer para skeletons adicionados dinamicamente
+    if (window.MutationObserver) {
+        var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length) {
+                    initSkeletonOverlay();
+                }
+            });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+    
     $(document).off("change keyup paste", ".custom-form-item").on("change keyup paste", ".custom-form-item", function (e) {
         var containterId = $(this).closest(".mainContainer").attr("id");
         var container = CustomFormData(containterId);
@@ -25,6 +67,7 @@ $(document).ready(function () {
     var globalStyle = "";
     addGridSystemAndSkeletonClasses(styles);
     addBpmCustomStyles(styles);
+    getIframeLoadingStyle(styles);
 
     styles.forEach(function (style) {
         globalStyle += style;
@@ -177,6 +220,20 @@ function addGridSystemAndSkeletonClasses(styles) {
     cssCustom += "position: relative;";
     cssCustom += "overflow: hidden;";
     cssCustom += "}";
+    
+    // Container do skeleton como overlay - posicionado via JavaScript
+    cssCustom += ".mdashskeleton {";
+    cssCustom += "display: flex;";
+    cssCustom += "flex-direction: column;";
+    cssCustom += "justify-content: center;";
+    cssCustom += "align-items: center;";
+    cssCustom += "padding: 20px;";
+    cssCustom += "background: rgba(255, 255, 255, 0.95);";
+    cssCustom += "backdrop-filter: blur(2px);";
+    cssCustom += "z-index: 9999;";
+    cssCustom += "border-radius: inherit;";
+    cssCustom += "box-sizing: border-box;";
+    cssCustom += "}";
 
     // Shimmer animation
     cssCustom += ".mdash-skeleton::after {";
@@ -200,18 +257,32 @@ function addGridSystemAndSkeletonClasses(styles) {
     cssCustom += "width: 100%;";
     cssCustom += "height: 150px;";
     cssCustom += "margin-bottom: 20px;";
+    cssCustom += "flex-shrink: 0;";
     cssCustom += "}";
 
     cssCustom += ".mdash-skeleton-title {";
     cssCustom += "width: 70%;";
     cssCustom += "height: 20px;";
     cssCustom += "margin: 0 auto 15px auto;";
+    cssCustom += "flex-shrink: 0;";
     cssCustom += "}";
 
     cssCustom += ".mdash-skeleton-text {";
     cssCustom += "width: 90%;";
     cssCustom += "height: 15px;";
     cssCustom += "margin: 8px auto;";
+    cssCustom += "flex-shrink: 0;";
+    cssCustom += "}";
+    
+    // Variação para preencher o espaço restante
+    cssCustom += ".mdash-skeleton-text.flex-grow {";
+    cssCustom += "flex-grow: 1;";
+    cssCustom += "min-height: 15px;";
+    cssCustom += "}";
+    
+    // Estado oculto
+    cssCustom += ".mdashskeleton.hidden {";
+    cssCustom += "display: none;";
     cssCustom += "}";
 
     styles.push(cssCustom);
@@ -850,7 +921,7 @@ function addBpmCustomStyles(styles) {
     
     // Scroll suave
     bpmCss += ".bpm-custom-2b-scroll-area {";
-    bpmCss += "max-height: 400px;";
+    bpmCss += "height: 570px;";
     bpmCss += "overflow-y: auto;";
     bpmCss += "}";
     
@@ -1957,6 +2028,111 @@ function submeterDadosFormulario(dados) {
 
 }
 
+
+function getIframeLoadingStyle(styles) {
+    var style = "";
+    style += ".iframe-loading-overlay{";
+    style += "position:absolute;";
+    style += "top:0;";
+    style += "left:0;";
+    style += "width:100%;";
+    style += "height:100%;";
+    style += "background:linear-gradient(135deg,#ffffff 0%,#f8f9fa 100%);";
+    style += "display:flex;";
+    style += "flex-direction:column;";
+    style += "justify-content:center;";
+    style += "align-items:center;";
+    style += "z-index:9999;";
+    style += "font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;";
+    style += "}";
+
+    style += ".screen-loading-animation{";
+    style += "width:200px;";
+    style += "height:120px;";
+    style += "position:relative;";
+    style += "margin-bottom:20px;";
+    style += "}";
+
+    style += ".loading-line{";
+    style += "position:absolute;";
+    style += "width:2px;";
+    style += "height:100%;";
+    style += "background:linear-gradient(to bottom,transparent 0%,"+getColorByType('primary').background+" 50%,transparent 100%);";
+    style += "animation:dataFlow 2s infinite linear;";
+    style += "}";
+
+    style += ".loading-line:nth-child(1){left:20%;animation-delay:0s;}";
+    style += ".loading-line:nth-child(2){left:40%;animation-delay:0.3s;}";
+    style += ".loading-line:nth-child(3){left:60%;animation-delay:0.6s;}";
+    style += ".loading-line:nth-child(4){left:80%;animation-delay:0.9s;}";
+
+    style += ".connection-dot{";
+    style += "position:absolute;";
+    style += "width:8px;";
+    style += "height:8px;";
+    style += "background:"+getColorByType('primary').background+";";
+    style += "border-radius:50%;";
+    style += "animation:pulse 1.5s infinite ease-in-out;";
+    style += "}";
+
+    style += ".connection-dot:nth-child(5){top:20%;left:30%;animation-delay:0s;}";
+    style += ".connection-dot:nth-child(6){top:60%;left:50%;animation-delay:0.5s;}";
+    style += ".connection-dot:nth-child(7){top:40%;left:70%;animation-delay:1s;}";
+
+    style += ".loading-progress{";
+    style += "width:200px;"
+    style += "height:4px;";
+    style += "background:#e9ecef;";
+    style += "border-radius:2px;";
+    style += "overflow:hidden;";
+    style += "margin-bottom:15px;";
+    style += "}";
+
+    style += ".progress-bar-iframe{";
+    style += "width:0%;";
+    style += "height:100%;";
+    style += "background:linear-gradient(90deg,#007bff,#0056b3);";
+    style += "animation:progressLoad 3s infinite ease-in-out;";
+    style += "}";
+
+    style += ".loading-text{";
+    style += "color:#495057;";
+    style += "font-size:14px;";
+    style += "font-weight:500;";
+    style += "text-align:center;";
+    style += "}";
+
+    style += ".loading-subtext{";
+    style += "color:#6c757d;";
+    style += "font-size:12px;";
+    style += "margin-top:5px;";
+    style += "}";
+
+    style += "@keyframes dataFlow{";
+    style += "0%{transform:translateY(-100%);opacity:0;}";
+    style += "50%{opacity:1;}";
+    style += "100%{transform:translateY(100%);opacity:0;}";
+    style += "}";
+
+    style += "@keyframes pulse{";
+    style += "0%,100%{transform:scale(1);opacity:0.7;}";
+    style += "50%{transform:scale(1.3);opacity:1;}";
+    style += "}";
+
+    style += "@keyframes progressLoad{";
+    style += "0%{width:0%;}";
+    style += "50%{width:70%;}";
+    style += "100%{width:100%;}";
+    style += "}";
+
+    style += ".iframe-container{";
+    style += "position:relative;";
+    style += "min-height:400px;";
+    style += "}";
+
+    styles.push(style);
+}
+
 // ...existing code...
 function generateComponent(componentData) {
 
@@ -1980,9 +2156,6 @@ function generateComponent(componentData) {
     overlayHTML += '    <div class="connection-dot"></div>';
     overlayHTML += '    <div class="connection-dot"></div>';
     overlayHTML += '    <div class="connection-dot"></div>';
-    overlayHTML += '</div>';
-    overlayHTML += '<div class="loading-progress">';
-    overlayHTML += '    <div class="progress-bar"></div>';
     overlayHTML += '</div>';
     overlayHTML += '<div class="loading-text">A carregar conteúdo</div>';
     overlayHTML += '<div class="loading-subtext">Aguarde um momento...</div>';
