@@ -148,6 +148,7 @@ Dim ConvertJObjectToDataRowComparingDbSchema=Function(jObject As Newtonsoft.Json
         Return row
 End Function
 
+
 Dim ExecuteNonQueryWithTransaction=Function(ByVal queryPar As String, ByVal connectionPar As SqlClient.SqlConnection,ByVal transactionPar As System.Data.SqlClient.SqlTransaction,ByVal sqlParametersPar As List(Of System.Data.SqlClient.SqlParameter))
     Using command As New SqlClient.SqlCommand(queryPar, connectionPar, transactionPar)
         If sqlParametersPar IsNot Nothing Then
