@@ -3561,5 +3561,629 @@ function addDashboardStyles(styles) {
     dashboardCSS += " .brd-card-advanced-alert-icon{width:40px;height:40px;font-size:18px;}";
     dashboardCSS += "}";
 
+    // ============================================================================
+    // MDASH 2.0 - MODERN SIDEBAR STYLES (UX/UI Senior Design)
+    // ============================================================================
+    
+    // Layout Principal - Glass Morphism Effect
+    dashboardCSS += ".mdash-modern-layout{";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "height:calc(100vh - 100px);";
+    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "position:relative;";
+    dashboardCSS += "overflow:hidden;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-modern-layout::before{";
+    dashboardCSS += "content:'';";
+    dashboardCSS += "position:absolute;";
+    dashboardCSS += "width:400px;";
+    dashboardCSS += "height:400px;";
+    dashboardCSS += "background:rgba(255,255,255,0.1);";
+    dashboardCSS += "border-radius:50%;";
+    dashboardCSS += "top:-100px;";
+    dashboardCSS += "right:-100px;";
+    dashboardCSS += "animation:float 6s ease-in-out infinite;";
+    dashboardCSS += "}";
+    
+    
+    dashboardCSS += "@keyframes float{";
+    dashboardCSS += "0%, 100%{transform:translateY(0px);}";
+    dashboardCSS += "50%{transform:translateY(-20px);}";
+    dashboardCSS += "}";
+    
+    // Sidebar - Modern Glass Effect
+    dashboardCSS += ".mdash-sidebar{";
+    dashboardCSS += "width:380px;";
+    dashboardCSS += "background:rgba(255,255,255,0.95);";
+    dashboardCSS += "backdrop-filter:blur(20px);";
+    dashboardCSS += "border-right:1px solid rgba(255,255,255,0.2);";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "flex-direction:column;";
+    dashboardCSS += "overflow:hidden;";
+    dashboardCSS += "box-shadow:4px 0 24px rgba(0,0,0,0.08);";
+    dashboardCSS += "z-index:10;";
+    dashboardCSS += "}";
+    
+    // Sidebar Header - Gradient with Animation
+    dashboardCSS += ".mdash-sidebar-header{";
+    dashboardCSS += "padding:24px 20px;";
+    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "color:white;";
+    dashboardCSS += "position:relative;";
+    dashboardCSS += "overflow:hidden;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-header::before{";
+    dashboardCSS += "content:'';";
+    dashboardCSS += "position:absolute;";
+    dashboardCSS += "width:200%;";
+    dashboardCSS += "height:200%;";
+    dashboardCSS += "background:radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);";
+    dashboardCSS += "top:-50%;";
+    dashboardCSS += "left:-50%;";
+    dashboardCSS += "animation:shimmer 3s ease-in-out infinite;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "@keyframes shimmer{";
+    dashboardCSS += "0%, 100%{transform:translate(0,0);}";
+    dashboardCSS += "50%{transform:translate(10px,10px);}";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-header h4{";
+    dashboardCSS += "margin:0;";
+    dashboardCSS += "font-size:20px;";
+    dashboardCSS += "font-weight:700;";
+    dashboardCSS += "letter-spacing:0.5px;";
+    dashboardCSS += "position:relative;";
+    dashboardCSS += "z-index:1;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-header h4 i{";
+    dashboardCSS += "margin-right:10px;";
+    dashboardCSS += "font-size:22px;";
+    dashboardCSS += "animation:pulse 2s ease-in-out infinite;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "@keyframes pulse{";
+    dashboardCSS += "0%, 100%{transform:scale(1);}";
+    dashboardCSS += "50%{transform:scale(1.1);}";
+    dashboardCSS += "}";
+    
+    // Sidebar Body - Custom Scrollbar
+    dashboardCSS += ".mdash-sidebar-body{";
+    dashboardCSS += "flex:1;";
+    dashboardCSS += "overflow-y:auto;";
+    dashboardCSS += "padding:20px 16px;";
+    dashboardCSS += "background:rgba(248,250,252,0.8);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-body::-webkit-scrollbar{";
+    dashboardCSS += "width:6px;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-body::-webkit-scrollbar-track{";
+    dashboardCSS += "background:rgba(0,0,0,0.02);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-body::-webkit-scrollbar-thumb{";
+    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "border-radius:10px;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-body::-webkit-scrollbar-thumb:hover{";
+    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "}";
+    
+    // Accordion - Modern Cards Style
+    dashboardCSS += "#mdash-accordion .panel{";
+    dashboardCSS += "margin-bottom:16px;";
+    dashboardCSS += "border-radius:16px;";
+    dashboardCSS += "border:none;";
+    dashboardCSS += "background:white;";
+    dashboardCSS += "box-shadow:0 4px 16px rgba(0,0,0,0.06);";
+    dashboardCSS += "overflow:hidden;";
+    dashboardCSS += "transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "#mdash-accordion .panel:hover{";
+    dashboardCSS += "box-shadow:0 8px 24px rgba(102,126,234,0.15);";
+    dashboardCSS += "transform:translateY(-2px);";
+    dashboardCSS += "}";
+    
+    // Panel Heading - Gradient Hover Effect
+    dashboardCSS += "#mdash-accordion .panel-heading{";
+    dashboardCSS += "background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);";
+    dashboardCSS += "border:none;";
+    dashboardCSS += "cursor:pointer;";
+    dashboardCSS += "padding:16px 20px;";
+    dashboardCSS += "transition:all 0.3s ease;";
+    dashboardCSS += "position:relative;";
+    dashboardCSS += "overflow:hidden;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "#mdash-accordion .panel-heading::before{";
+    dashboardCSS += "content:'';";
+    dashboardCSS += "position:absolute;";
+    dashboardCSS += "top:0;";
+    dashboardCSS += "left:0;";
+    dashboardCSS += "width:4px;";
+    dashboardCSS += "height:100%;";
+    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "transform:scaleY(0);";
+    dashboardCSS += "transition:transform 0.3s ease;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "#mdash-accordion .panel-heading:hover::before{";
+    dashboardCSS += "transform:scaleY(1);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "#mdash-accordion .panel-heading:hover{";
+    dashboardCSS += "background:linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);";
+    dashboardCSS += "padding-left:24px;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "#mdash-accordion .panel-title{";
+    dashboardCSS += "font-size:15px;";
+    dashboardCSS += "font-weight:600;";
+    dashboardCSS += "color:#1e293b;";
+    dashboardCSS += "margin:0;";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "align-items:center;";
+    dashboardCSS += "justify-content:space-between;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "#mdash-accordion .panel-title i{";
+    dashboardCSS += "margin-right:12px;";
+    dashboardCSS += "font-size:18px;";
+    dashboardCSS += "color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "transition:transform 0.3s ease;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "#mdash-accordion .panel-heading:hover .panel-title i{";
+    dashboardCSS += "transform:scale(1.2) rotate(5deg);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "#mdash-accordion .panel-title .badge{";
+    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "font-size:11px;";
+    dashboardCSS += "font-weight:600;";
+    dashboardCSS += "padding:4px 10px;";
+    dashboardCSS += "border-radius:12px;";
+    dashboardCSS += "box-shadow:0 2px 8px rgba(102,126,234,0.3);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "#mdash-accordion .panel-body{";
+    dashboardCSS += "padding:16px 20px 20px;";
+    dashboardCSS += "background:#fafbfc;";
+    dashboardCSS += "}";
+    
+    // Sidebar Items - Modern Card Design
+    dashboardCSS += ".mdash-sidebar-list{";
+    dashboardCSS += "margin-top:12px;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item{";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "align-items:center;";
+    dashboardCSS += "justify-content:space-between;";
+    dashboardCSS += "padding:12px 14px;";
+    dashboardCSS += "margin-bottom:8px;";
+    dashboardCSS += "background:white;";
+    dashboardCSS += "border-radius:12px;";
+    dashboardCSS += "cursor:pointer;";
+    dashboardCSS += "transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);";
+    dashboardCSS += "border:2px solid transparent;";
+    dashboardCSS += "position:relative;";
+    dashboardCSS += "overflow:hidden;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item::before{";
+    dashboardCSS += "content:'';";
+    dashboardCSS += "position:absolute;";
+    dashboardCSS += "top:0;";
+    dashboardCSS += "left:-100%;";
+    dashboardCSS += "width:100%;";
+    dashboardCSS += "height:100%;";
+    dashboardCSS += "background:linear-gradient(90deg, transparent, rgba(102,126,234,0.1), transparent);";
+    dashboardCSS += "transition:left 0.5s ease;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item:hover::before{";
+    dashboardCSS += "left:100%;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item:hover{";
+    dashboardCSS += "background:linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);";
+    dashboardCSS += "border-color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "transform:translateX(4px) scale(1.02);";
+    dashboardCSS += "box-shadow:0 4px 16px rgba(102,126,234,0.15);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item-content{";
+    dashboardCSS += "flex:1;";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "align-items:center;";
+    dashboardCSS += "gap:12px;";
+    dashboardCSS += "font-size:14px;";
+    dashboardCSS += "color:#334155;";
+    dashboardCSS += "font-weight:500;";
+    dashboardCSS += "position:relative;";
+    dashboardCSS += "z-index:1;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item-content i{";
+    dashboardCSS += "color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "font-size:16px;";
+    dashboardCSS += "min-width:20px;";
+    dashboardCSS += "text-align:center;";
+    dashboardCSS += "transition:transform 0.3s ease;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item:hover .mdash-sidebar-item-content i{";
+    dashboardCSS += "transform:rotate(10deg) scale(1.2);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item-content .badge{";
+    dashboardCSS += "margin-left:auto;";
+    dashboardCSS += "background:" + getColorByType("info").background + ";";
+    dashboardCSS += "font-size:10px;";
+    dashboardCSS += "padding:3px 8px;";
+    dashboardCSS += "border-radius:10px;";
+    dashboardCSS += "font-weight:600;";
+    dashboardCSS += "box-shadow:0 2px 6px rgba(59,130,246,0.3);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item-actions{";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "gap:6px;";
+    dashboardCSS += "opacity:0;";
+    dashboardCSS += "transform:translateX(-10px);";
+    dashboardCSS += "transition:all 0.3s ease;";
+    dashboardCSS += "position:relative;";
+    dashboardCSS += "z-index:2;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item:hover .mdash-sidebar-item-actions{";
+    dashboardCSS += "opacity:1;";
+    dashboardCSS += "transform:translateX(0);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item-actions .btn{";
+    dashboardCSS += "padding:6px 10px;";
+    dashboardCSS += "border-radius:8px;";
+    dashboardCSS += "transition:all 0.2s ease;";
+    dashboardCSS += "border:none;";
+    dashboardCSS += "font-size:12px;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item-actions .btn-primary{";
+    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "color:white;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item-actions .btn-primary:hover{";
+    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "transform:scale(1.1);";
+    dashboardCSS += "box-shadow:0 4px 12px rgba(102,126,234,0.4);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item-actions .btn-danger{";
+    dashboardCSS += "background:" + getColorByType("danger").background + ";";
+    dashboardCSS += "color:white;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-sidebar-item-actions .btn-danger:hover{";
+    dashboardCSS += "background:" + getColorByType("danger").background + ";";
+    dashboardCSS += "transform:scale(1.1);";
+    dashboardCSS += "box-shadow:0 4px 12px rgba(239,68,68,0.4);";
+    dashboardCSS += "}";
+    
+    // Canvas Area - Modern Design
+    dashboardCSS += ".mdash-canvas{";
+    dashboardCSS += "flex:1;";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "flex-direction:column;";
+    dashboardCSS += "overflow:hidden;";
+    dashboardCSS += "background:rgba(248,250,252,0.95);";
+    dashboardCSS += "backdrop-filter:blur(10px);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-header{";
+    dashboardCSS += "padding:24px 32px;";
+    dashboardCSS += "background:white;";
+    dashboardCSS += "border-bottom:1px solid rgba(226,232,240,0.8);";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "justify-content:space-between;";
+    dashboardCSS += "align-items:center;";
+    dashboardCSS += "box-shadow:0 2px 8px rgba(0,0,0,0.04);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-header h3{";
+    dashboardCSS += "margin:0;";
+    dashboardCSS += "font-size:22px;";
+    dashboardCSS += "font-weight:700;";
+    dashboardCSS += "color:#1e293b;";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "align-items:center;";
+    dashboardCSS += "gap:12px;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-header h3 i{";
+    dashboardCSS += "color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-body{";
+    dashboardCSS += "flex:1;";
+    dashboardCSS += "overflow-y:auto;";
+    dashboardCSS += "padding:24px;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-body::-webkit-scrollbar{";
+    dashboardCSS += "width:8px;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-body::-webkit-scrollbar-track{";
+    dashboardCSS += "background:rgba(0,0,0,0.02);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-body::-webkit-scrollbar-thumb{";
+    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "border-radius:10px;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-empty{";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "flex-direction:column;";
+    dashboardCSS += "align-items:center;";
+    dashboardCSS += "justify-content:center;";
+    dashboardCSS += "height:100%;";
+    dashboardCSS += "color:#94a3b8;";
+    dashboardCSS += "text-align:center;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-empty i{";
+    dashboardCSS += "font-size:64px;";
+    dashboardCSS += "margin-bottom:16px;";
+    dashboardCSS += "opacity:0.3;";
+    dashboardCSS += "}";
+    
+    // Canvas Container - Card Style
+    dashboardCSS += ".mdash-canvas-container{";
+    dashboardCSS += "margin-bottom:24px;";
+    dashboardCSS += "background:white;";
+    dashboardCSS += "border-radius:16px;";
+    dashboardCSS += "box-shadow:0 4px 16px rgba(0,0,0,0.06);";
+    dashboardCSS += "overflow:hidden;";
+    dashboardCSS += "transition:all 0.3s ease;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-container:hover{";
+    dashboardCSS += "box-shadow:0 8px 24px rgba(102,126,234,0.12);";
+    dashboardCSS += "transform:translateY(-2px);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-container-header{";
+    dashboardCSS += "padding:20px 24px;";
+    dashboardCSS += "background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);";
+    dashboardCSS += "border-bottom:2px solid #e2e8f0;";
+    dashboardCSS += "display:flex;";
+    dashboardCSS += "justify-content:space-between;";
+    dashboardCSS += "align-items:center;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-container-header h4{";
+    dashboardCSS += "margin:0;";
+    dashboardCSS += "font-size:18px;";
+    dashboardCSS += "font-weight:600;";
+    dashboardCSS += "color:#1e293b;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".mdash-canvas-container-body{";
+    dashboardCSS += "padding:24px;";
+    dashboardCSS += "}";
+    
+    // Buttons Modern Style
+    dashboardCSS += ".mdash-canvas-actions .btn,";
+    dashboardCSS += ".panel-body .btn-block{";
+    dashboardCSS += "padding:10px 20px;";
+    dashboardCSS += "border-radius:10px;";
+    dashboardCSS += "font-weight:600;";
+    dashboardCSS += "font-size:14px;";
+    dashboardCSS += "border:none;";
+    dashboardCSS += "transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);";
+    dashboardCSS += "box-shadow:0 2px 8px rgba(0,0,0,0.1);";
+    dashboardCSS += "position:relative;";
+    dashboardCSS += "overflow:hidden;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".btn-primary{";
+    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "color:white;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".btn-primary:hover{";
+    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "transform:translateY(-2px);";
+    dashboardCSS += "box-shadow:0 6px 20px rgba(102,126,234,0.4);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".btn-success{";
+    dashboardCSS += "background:" + getColorByType("success").background + ";";
+    dashboardCSS += "color:white;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".btn-success:hover{";
+    dashboardCSS += "background:" + getColorByType("success").background + ";";
+    dashboardCSS += "transform:translateY(-2px);";
+    dashboardCSS += "box-shadow:0 6px 20px rgba(16,185,129,0.4);";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".btn-info{";
+    dashboardCSS += "background:" + getColorByType("info").background + ";";
+    dashboardCSS += "color:white;";
+    dashboardCSS += "}";
+    
+    dashboardCSS += ".btn-info:hover{";
+    dashboardCSS += "background:" + getColorByType("info").background + ";";
+    dashboardCSS += "transform:translateY(-2px);";
+    dashboardCSS += "box-shadow:0 6px 20px rgba(59,130,246,0.4);";
+    dashboardCSS += "}";
+    
+    // Responsive Design
+    dashboardCSS += "@media (max-width:1024px){";
+    dashboardCSS += ".mdash-sidebar{width:320px;}";
+    dashboardCSS += "}";
+    
+    dashboardCSS += "@media (max-width:768px){";
+    dashboardCSS += ".mdash-modern-layout{flex-direction:column;}";
+    dashboardCSS += ".mdash-sidebar{width:100%;max-height:40vh;}";
+    dashboardCSS += ".mdash-canvas{height:60vh;}";
+    dashboardCSS += "}";
+
     styles.push(dashboardCSS);
+}
+
+/**
+ * Estilos para Sortable.js drag-and-drop
+ */
+function loadSortableStyles() {
+    var sortableCSS = "";
+    
+    // Ghost element (elemento sendo arrastado)
+    sortableCSS += ".sortable-ghost{opacity:0.4;background:#f0f4ff;}";
+    
+    // Chosen element (elemento selecionado)
+    sortableCSS += ".sortable-chosen{cursor:grabbing !important;}";
+    
+    // Drag element  
+    sortableCSS += ".sortable-drag{opacity:0.8;box-shadow:0 4px 8px rgba(0,0,0,0.2);}";
+    
+    // Drag handle para containers
+    sortableCSS += ".m-dash-container-drag-handle{";
+    sortableCSS += "position:absolute;top:5px;left:5px;";
+    sortableCSS += "cursor:move;color:#cbd5e0;font-size:16px;";
+    sortableCSS += "opacity:0;transition:opacity 0.2s;";
+    sortableCSS += "z-index:10;padding:5px;";
+    sortableCSS += "}";
+    
+    sortableCSS += ".home-collapse:hover .m-dash-container-drag-handle{opacity:1;}";
+    
+    // Drag handle para items
+    sortableCSS += ".m-dash-item-drag-handle{";
+    sortableCSS += "position:absolute;top:5px;right:35px;";
+    sortableCSS += "cursor:move;color:#cbd5e0;font-size:14px;";
+    sortableCSS += "opacity:0;transition:opacity 0.2s;";
+    sortableCSS += "}";
+    
+    sortableCSS += ".m-dash-container-item:hover .m-dash-item-drag-handle{opacity:1;}";
+    
+    $('<style>').text(sortableCSS).appendTo('head');
+    console.log('Sortable styles loaded');
+}
+
+/**
+ * Carrega estilos para MDash 2.0 Builder (3 colunas drag-and-drop)
+ */
+function loadModernDashboardStyles() {
+    var primaryColor = getColorByType("primary").background;
+    var successColor = getColorByType("success").background;
+    var dangerColor = getColorByType("danger").background;
+
+    var builderCSS = "";
+
+    builderCSS += ".mdash-builder-layout{display:flex;height:calc(100vh - 120px);gap:0;background:#f5f5f5;}";
+    
+    // Toolbox (left)
+    builderCSS += ".mdash-toolbox{width:280px;background:white;border-right:1px solid #ddd;overflow-y:auto;display:flex;flex-direction:column;}";
+    builderCSS += ".mdash-toolbox-header{padding:15px;border-bottom:1px solid #e0e0e0;background:" + primaryColor + ";color:white;font-weight:bold;font-size:14px;}";
+    builderCSS += ".mdash-toolbox-section{border-bottom:1px solid #e0e0e0;}";
+    builderCSS += ".mdash-toolbox-section-title{padding:12px 15px;background:#fafafa;font-weight:600;font-size:13px;color:#555;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;}";
+    builderCSS += ".mdash-toolbox-section-title:hover{background:#f0f0f0;}";
+    builderCSS += ".mdash-toolbox-section-title i{margin-right:8px;}";
+    builderCSS += ".mdash-toolbox-section-body{padding:10px;}";
+    builderCSS += ".mdash-toolbox-item{padding:10px 12px;margin-bottom:8px;background:white;border:2px dashed #ccc;border-radius:4px;cursor:move;transition:all 0.2s;font-size:13px;display:flex;align-items:center;}";
+    builderCSS += ".mdash-toolbox-item:hover{background:#f9f9f9;border-color:" + primaryColor + ";box-shadow:0 2px 4px rgba(0,0,0,0.1);}";
+    builderCSS += ".mdash-toolbox-item i{margin-right:8px;color:" + primaryColor + ";}";
+    builderCSS += ".mdash-toolbox-item.mdash-dragging{opacity:0.5;transform:scale(0.95);}";
+    builderCSS += ".mdash-toolbox-list-item{padding:8px 12px;margin-bottom:5px;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:3px;cursor:pointer;transition:all 0.2s;font-size:12px;display:flex;align-items:center;justify-content:space-between;}";
+    builderCSS += ".mdash-toolbox-list-item:hover{background:white;border-color:" + primaryColor + ";}";
+    builderCSS += ".mdash-toolbox-list-item i{margin-right:6px;color:" + primaryColor + ";}";
+    builderCSS += ".mdash-toolbox-list-item .btn{padding:2px 6px;margin-left:5px;}";
+    
+    // Canvas (center)
+    builderCSS += ".mdash-canvas{flex:1;background:#f5f5f5;overflow-y:auto;display:flex;flex-direction:column;}";
+    builderCSS += ".mdash-canvas-header{padding:15px 20px;background:white;border-bottom:2px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between;}";
+    builderCSS += ".mdash-canvas-header h3{margin:0;font-size:16px;font-weight:600;color:#333;}";
+    builderCSS += ".mdash-canvas-actions{display:flex;gap:8px;}";
+    builderCSS += ".mdash-canvas-body{flex:1;padding:20px;}";
+    builderCSS += ".mdash-canvas-empty{text-align:center;padding:60px 20px;color:#999;}";
+    builderCSS += ".mdash-canvas-empty i{font-size:48px;margin-bottom:15px;display:block;}";
+    
+    // Containers
+    builderCSS += ".mdash-container-element{background:white;border:2px solid #ddd;border-radius:6px;margin-bottom:15px;transition:all 0.3s;}";
+    builderCSS += ".mdash-container-element.mdash-selected{border-color:" + primaryColor + ";box-shadow:0 0 0 3px rgba(102,126,234,0.2);}";
+    builderCSS += ".mdash-container-header{padding:12px 15px;background:#fafafa;border-bottom:1px solid #e0e0e0;cursor:move;display:flex;align-items:center;justify-content:space-between;user-select:none;}";
+    builderCSS += ".mdash-container-header:hover{background:#f0f0f0;}";
+    builderCSS += ".mdash-container-title{display:flex;align-items:center;font-weight:600;font-size:14px;color:#333;}";
+    builderCSS += ".mdash-container-title i{margin-right:8px;color:" + primaryColor + ";}";
+    builderCSS += ".mdash-container-actions{display:flex;gap:5px;}";
+    builderCSS += ".mdash-container-body{padding:15px;min-height:80px;display:flex;flex-wrap:wrap;gap:10px;}";
+    builderCSS += ".mdash-container-items-dropzone.mdash-dropzone-active{background:rgba(102,126,234,0.05);outline:2px dashed " + primaryColor + ";outline-offset:-2px;}";
+    builderCSS += ".mdash-container-empty-items{width:100%;text-align:center;padding:30px;color:#999;font-size:13px;}";
+    builderCSS += ".mdash-container-empty-items i{font-size:24px;margin-bottom:8px;display:block;}";
+    
+    // Items
+    builderCSS += ".mdash-item-element{background:white;border:1px solid #ddd;border-radius:4px;transition:all 0.3s;min-height:60px;}";
+    builderCSS += ".mdash-item-element.mdash-selected{border-color:" + successColor + ";box-shadow:0 0 0 2px rgba(16,185,129,0.2);}";
+    builderCSS += ".mdash-item-element.mdash-col-1{flex:0 0 calc(8.33% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-2{flex:0 0 calc(16.66% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-3{flex:0 0 calc(25% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-4{flex:0 0 calc(33.33% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-5{flex:0 0 calc(41.66% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-6{flex:0 0 calc(50% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-7{flex:0 0 calc(58.33% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-8{flex:0 0 calc(66.66% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-9{flex:0 0 calc(75% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-10{flex:0 0 calc(83.33% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-11{flex:0 0 calc(91.66% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-12{flex:0 0 calc(100% - 10px);}";
+    builderCSS += ".mdash-item-content{padding:10px;}";
+    builderCSS += ".mdash-item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;cursor:move;user-select:none;}";
+    builderCSS += ".mdash-item-header i{margin-right:6px;color:" + successColor + ";font-size:10px;}";
+    builderCSS += ".mdash-item-header span{flex:1;font-weight:600;font-size:12px;color:#333;}";
+    builderCSS += ".mdash-item-actions{display:flex;gap:3px;}";
+    builderCSS += ".mdash-item-body{font-size:11px;color:#777;}";
+    
+    // Properties (right)
+    builderCSS += ".mdash-properties{width:350px;background:white;border-left:1px solid #ddd;overflow-y:auto;display:flex;flex-direction:column;}";
+    builderCSS += ".mdash-properties-header{padding:15px;border-bottom:1px solid #e0e0e0;background:" + primaryColor + ";color:white;font-weight:bold;font-size:14px;}";
+    builderCSS += "#mdash-properties-panel{padding:15px;flex:1;}";
+    builderCSS += "#mdash-properties-panel .form-group{margin-bottom:15px;}";
+    builderCSS += "#mdash-properties-panel .form-group label{font-weight:600;font-size:12px;color:#555;margin-bottom:5px;}";
+    builderCSS += "#mdash-properties-panel .form-control{font-size:13px;}";
+    
+    // Sortable effects
+    builderCSS += ".mdash-sortable-ghost{opacity:0.4;background:rgba(102,126,234,0.1);}";
+    builderCSS += ".mdash-sortable-chosen{cursor:grabbing !important;}";
+    builderCSS += ".mdash-sortable-drag{opacity:0.8;box-shadow:0 4px 8px rgba(0,0,0,0.2);}";
+    
+    // Buttons
+    builderCSS += ".btn-mdash-primary{background:" + primaryColor + ";color:white;border:none;}";
+    builderCSS += ".btn-mdash-primary:hover{background:" + primaryColor + ";opacity:0.9;color:white;}";
+    builderCSS += ".btn-mdash-success{background:" + successColor + ";color:white;border:none;}";
+    builderCSS += ".btn-mdash-success:hover{background:" + successColor + ";opacity:0.9;color:white;}";
+    
+    // Responsive
+    builderCSS += "@media (max-width:1200px){";
+    builderCSS += ".mdash-toolbox{width:240px;}";
+    builderCSS += ".mdash-properties{width:300px;}";
+    builderCSS += "}";
+    builderCSS += "@media (max-width:992px){";
+    builderCSS += ".mdash-builder-layout{flex-direction:column;}";
+    builderCSS += ".mdash-toolbox,.mdash-properties{width:100%;max-height:300px;}";
+    builderCSS += "}";
+
+    $('head').append('<style>' + builderCSS + '</style>');
+    console.log('MDash 2.0 Builder styles loaded');
 }

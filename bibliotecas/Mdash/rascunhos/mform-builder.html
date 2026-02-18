@@ -1,0 +1,2518 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mform - Low Code Form Builder</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- jQuery UI for Drag and Drop -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+    <!-- Ace Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.js"></script>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            overflow: hidden;
+        }
+
+        #app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .mform-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .mform-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .mform-header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .mform-header-actions button {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .mform-header-actions button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Main Layout */
+        .mform-workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Left Sidebar - Toolbox */
+        .mform-toolbox {
+            width: 280px;
+            background: white;
+            border-right: 1px solid #e1e8ed;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .mform-toolbox h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .toolbox-section {
+            margin-bottom: 30px;
+        }
+
+        .toolbox-item {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .toolbox-item:hover {
+            background: #edf2f7;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .toolbox-item i {
+            font-size: 20px;
+            color: #667eea;
+        }
+
+        .toolbox-item span {
+            font-size: 14px;
+            font-weight: 500;
+            color: #4a5568;
+        }
+
+        /* Canvas - Center */
+        .mform-canvas {
+            flex: 1;
+            background: #f5f7fa;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        .canvas-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 30px;
+            min-height: 600px;
+        }
+
+        .canvas-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 500px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            color: #a0aec0;
+        }
+
+        .canvas-empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .canvas-empty-state p {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        /* Right Sidebar - Properties */
+        .mform-properties {
+            width: 350px;
+            background: white;
+            border-left: 1px solid #e1e8ed;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .mform-properties h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .property-group {
+            margin-bottom: 25px;
+        }
+
+        .property-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+
+        .property-group input,
+        .property-group select,
+        .property-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .property-group input:focus,
+        .property-group select:focus,
+        .property-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .property-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .property-group-inline {
+            display: flex;
+            gap: 10px;
+        }
+
+        .property-group-inline > div {
+            flex: 1;
+        }
+
+        /* Mform Container (Row) */
+        .mform-container {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            min-height: 80px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .mform-container:hover {
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+
+        .mform-container.selected {
+            border-color: #667eea;
+            background: #edf2f7;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .mform-container-label {
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: white;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #667eea;
+            border-radius: 4px;
+            border: 1px solid #667eea;
+        }
+
+        .mform-container-actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .mform-container:hover .mform-container-actions {
+            opacity: 1;
+        }
+
+        .mform-container-actions button {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .mform-container-actions button:hover {
+            background: #f7fafc;
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .mform-container .row {
+            margin: 0;
+        }
+
+        /* Mform Container Item (Column) */
+        .mform-container-item {
+            border: 2px dashed transparent;
+            border-radius: 6px;
+            padding: 15px;
+            min-height: 60px;
+            transition: all 0.2s;
+            position: relative;
+            display: flex;
+        }
+
+        .mform-container-item.drop-target {
+            border-color: #48bb78;
+            background: rgba(72, 187, 120, 0.05);
+        }
+
+        .mform-container-item:hover {
+            border-color: #a0aec0;
+            background: rgba(237, 242, 247, 0.5);
+        }
+
+        .mform-container-item.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .mform-container-item-label {
+            position: absolute;
+            top: -8px;
+            left: 8px;
+            background: white;
+            padding: 1px 6px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #a0aec0;
+            border-radius: 3px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .mform-container-item-actions {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            display: flex;
+            gap: 3px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .mform-container-item:hover .mform-container-item-actions {
+            opacity: 1;
+        }
+
+        .mform-container-item-actions button {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .mform-container-item-actions button:hover {
+            background: #f7fafc;
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .mform-container-item-empty {
+            width: 100%;
+            text-align: center;
+            color: #a0aec0;
+            font-size: 13px;
+            padding: 20px;
+            border: 1px dashed #cbd5e0;
+            border-radius: 4px;
+        }
+
+        /* Mform Object */
+        .mform-object {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .mform-object:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .mform-object.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.02);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .mform-object-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 5px;
+        }
+
+        .mform-object-actions {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            gap: 3px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .mform-object:hover .mform-object-actions {
+            opacity: 1;
+        }
+
+        .mform-object-actions button {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .mform-object-actions button:hover:not(:disabled) {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+        }
+
+        .mform-object-actions button:hover:not(:disabled):last-child {
+            border-color: #e53e3e;
+            color: #e53e3e;
+        }
+
+        .mform-object-actions button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .mform-object-drag-handle {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            cursor: move;
+            color: #cbd5e0;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .mform-object:hover .mform-object-drag-handle {
+            opacity: 1;
+        }
+
+        .mform-container-drag-handle {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            cursor: move;
+            color: #cbd5e0;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
+        .mform-container:hover .mform-container-drag-handle {
+            opacity: 1;
+        }
+
+        .mform-container-item-drag-handle {
+            position: absolute;
+            top: 5px;
+            right: 35px;
+            cursor: move;
+            color: #cbd5e0;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .mform-container-item:hover .mform-container-item-drag-handle {
+            opacity: 1;
+        }
+
+        .ui-sortable-helper {
+            opacity: 0.8;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .ui-sortable-placeholder {
+            border: 2px dashed #667eea !important;
+            background: #f0f4ff !important;
+            visibility: visible !important;
+        }
+
+        /* Form Controls Preview */
+        .mform-object input[type="text"],
+        .mform-object input[type="email"],
+        .mform-object input[type="number"],
+        .mform-object input[type="date"],
+        .mform-object textarea,
+        .mform-object select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .mform-object button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .mform-object button.btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Table Preview Styles */
+        .mform-object .table {
+            margin-bottom: 0;
+            font-size: 13px;
+        }
+
+        .mform-object .table thead th {
+            background: #f8f9fa;
+            font-weight: 600;
+            font-size: 12px;
+            border-bottom: 2px solid #dee2e6;
+            padding: 8px;
+        }
+
+        .mform-object .table tbody td {
+            padding: 6px 8px;
+            vertical-align: middle;
+        }
+
+        .mform-object .table-sm thead th,
+        .mform-object .table-sm tbody td {
+            padding: 6px;
+        }
+
+        .mform-object .pagination {
+            margin: 0;
+        }
+
+        .mform-object .pagination .page-link {
+            font-size: 12px;
+            padding: 4px 8px;
+        }
+
+        /* Ace Editor */
+        .ace-editor-container {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .ace-editor {
+            height: 200px;
+        }
+
+        /* Tabs */
+        .property-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .property-tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 13px;
+            font-weight: 600;
+            color: #718096;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .property-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .property-tab:hover {
+            color: #667eea;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        /* Helper Classes */
+        .flex-row {
+            flex-direction: row !important;
+        }
+
+        .flex-column {
+            flex-direction: column !important;
+        }
+
+        /* Dragging */
+        .ui-draggable-dragging {
+            opacity: 0.7;
+            z-index: 9999;
+        }
+
+        /* Empty State */
+        .no-selection {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #a0aec0;
+        }
+
+        .no-selection i {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .no-selection p {
+            font-size: 14px;
+            margin: 0;
+        }
+
+        /* Checkbox Switch */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e0;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            border-left: 4px solid #48bb78;
+        }
+
+        .toast.error {
+            border-left: 4px solid #e53e3e;
+        }
+
+        .toast.info {
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <div class="mform-header">
+            <h1><i class="bi bi-square-fill" style="font-size: 20px;"></i> Mform Builder</h1>
+            <div class="mform-header-actions">
+                <button @click="exportJSON"><i class="bi bi-download"></i> Export JSON</button>
+                <button @click="exportForDB"><i class="bi bi-database"></i> Export for DB</button>
+                <button @click="importJSON"><i class="bi bi-upload"></i> Import JSON</button>
+                <button @click="previewForm"><i class="bi bi-eye"></i> Preview</button>
+                <button @click="saveForm"><i class="bi bi-save"></i> Save</button>
+            </div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="mform-workspace">
+            <!-- Left Toolbox -->
+            <div class="mform-toolbox">
+                <div class="toolbox-section">
+                    <h3>Layout</h3>
+                    <div class="toolbox-item" data-type="container">
+                        <i class="bi bi-layout-three-columns"></i>
+                        <span>Row / Container</span>
+                    </div>
+                    <div class="toolbox-item" data-type="column">
+                        <i class="bi bi-columns-gap"></i>
+                        <span>Column</span>
+                    </div>
+                </div>
+
+                <div class="toolbox-section">
+                    <h3>Form Elements</h3>
+                    <div class="toolbox-item" data-type="input">
+                        <i class="bi bi-input-cursor-text"></i>
+                        <span>Text Input</span>
+                    </div>
+                    <div class="toolbox-item" data-type="textarea">
+                        <i class="bi bi-textarea-t"></i>
+                        <span>Textarea</span>
+                    </div>
+                    <div class="toolbox-item" data-type="select">
+                        <i class="bi bi-list-ul"></i>
+                        <span>Select Dropdown</span>
+                    </div>
+                    <div class="toolbox-item" data-type="number">
+                        <i class="bi bi-123"></i>
+                        <span>Number Input</span>
+                    </div>
+                    <div class="toolbox-item" data-type="date">
+                        <i class="bi bi-calendar-date"></i>
+                        <span>Date Picker</span>
+                    </div>
+                    <div class="toolbox-item" data-type="checkbox">
+                        <i class="bi bi-check-square"></i>
+                        <span>Checkbox</span>
+                    </div>
+                    <div class="toolbox-item" data-type="button">
+                        <i class="bi bi-square"></i>
+                        <span>Button</span>
+                    </div>
+                </div>
+
+                <div class="toolbox-section">
+                    <h3>Advanced</h3>
+                    <div class="toolbox-item" data-type="table">
+                        <i class="bi bi-table"></i>
+                        <span>Table / Grid</span>
+                    </div>
+                    <div class="toolbox-item" data-type="div">
+                        <i class="bi bi-bounding-box"></i>
+                        <span>Div Container</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas -->
+            <div class="mform-canvas">
+                <div class="canvas-container">
+                    <div v-if="mform.containers.length === 0" class="canvas-empty-state">
+                        <i class="bi bi-plus-circle"></i>
+                        <p>Drag a Row/Container to start building your form</p>
+                    </div>
+                    
+                    <!-- Render Containers -->
+                    <div v-for="(container, cIndex) in mform.containers" 
+                         :key="container.mformcontainerstamp"
+                         :data-stamp="container.mformcontainerstamp"
+                         class="mform-container"
+                         :class="{selected: selectedElement && selectedElement.stamp === container.mformcontainerstamp}"
+                         @click.stop="selectElement(container, 'container')">
+                        
+                        <div class="mform-container-label">Row {{ cIndex + 1 }}</div>
+                        <div class="mform-container-drag-handle" title="Drag to reorder row">
+                            <i class="bi bi-grip-vertical"></i>
+                        </div>
+                        <div class="mform-container-actions">
+                            <button @click.stop="deleteContainer(cIndex)"><i class="bi bi-trash"></i></button>
+                        </div>
+
+                        <div class="row">
+                            <!-- Render Columns -->
+                            <div v-for="(item, iIndex) in container.items" 
+                                 :key="item.mformcontaineritemstamp"
+                                 :data-item-index="iIndex"
+                                 :class="'col-md-' + item.bootstrapColumnSize + ' mform-container-item'"
+                                 :style="{
+                                     flexDirection: item.flexDirection,
+                                     alignItems: item.alignItems,
+                                     justifyContent: item.justifyContent,
+                                     gap: item.gap + 'px',
+                                     padding: item.padding + 'px'
+                                 }"
+                                 @click.stop="selectElement(item, 'column')"
+                                 :class="{selected: selectedElement && selectedElement.stamp === item.mformcontaineritemstamp}">
+                                
+                                <div class="mform-container-item-label">Col {{ item.bootstrapColumnSize }}</div>
+                                <div class="mform-container-item-drag-handle" title="Drag to reorder column">
+                                    <i class="bi bi-grip-vertical"></i>
+                                </div>
+                                <div class="mform-container-item-actions">
+                                    <button @click.stop="deleteColumn(cIndex, iIndex)"><i class="bi bi-trash"></i></button>
+                                </div>
+
+                                <!-- Empty State or Objects -->
+                                <div v-if="item.objects.length === 0" class="mform-container-item-empty">
+                                    Drop elements here
+                                </div>
+
+                                <!-- Render Objects -->
+                                <div v-for="(obj, oIndex) in item.objects"
+                                     :key="obj.mformcontaineritemobjectstamp"
+                                     :data-object-index="oIndex"
+                                     class="mform-object"
+                                     :class="{selected: selectedElement && selectedElement.stamp === obj.mformcontaineritemobjectstamp}"
+                                     @click.stop="selectElement(obj, 'object')">
+                                    
+                                    <div class="mform-object-actions">
+                                        <button @click.stop="deleteObject(cIndex, iIndex, oIndex)" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="mform-object-drag-handle" title="Drag to reorder">
+                                        <i class="bi bi-grip-vertical"></i>
+                                    </div>
+
+                                    <!-- Render based on type -->
+                                    <div v-if="obj.type === 'input'">
+                                        <div class="mform-object-label" v-if="obj.label">{{ obj.label }}</div>
+                                        <input type="text" :placeholder="obj.placeholder" :value="obj.defaultValue" :readonly="obj.readonly" :required="obj.required">
+                                    </div>
+
+                                    <div v-if="obj.type === 'textarea'">
+                                        <div class="mform-object-label" v-if="obj.label">{{ obj.label }}</div>
+                                        <textarea :placeholder="obj.placeholder" :readonly="obj.readonly" :required="obj.required">{{ obj.defaultValue }}</textarea>
+                                    </div>
+
+                                    <div v-if="obj.type === 'select'">
+                                        <div class="mform-object-label" v-if="obj.label">{{ obj.label }}</div>
+                                        <select :required="obj.required">
+                                            <option value="">{{ obj.placeholder || 'Select...' }}</option>
+                                            <option value="option1">Option 1</option>
+                                            <option value="option2">Option 2</option>
+                                        </select>
+                                    </div>
+
+                                    <div v-if="obj.type === 'number'">
+                                        <div class="mform-object-label" v-if="obj.label">{{ obj.label }}</div>
+                                        <input type="number" :placeholder="obj.placeholder" :value="obj.defaultValue" :readonly="obj.readonly" :required="obj.required">
+                                    </div>
+
+                                    <div v-if="obj.type === 'date'">
+                                        <div class="mform-object-label" v-if="obj.label">{{ obj.label }}</div>
+                                        <input type="date" :value="obj.defaultValue" :readonly="obj.readonly" :required="obj.required">
+                                    </div>
+
+                                    <div v-if="obj.type === 'checkbox'">
+                                        <label style="display: flex; align-items: center; gap: 8px;">
+                                            <input type="checkbox" :checked="obj.defaultValue" :required="obj.required">
+                                            <span>{{ obj.label || 'Checkbox' }}</span>
+                                        </label>
+                                    </div>
+
+                                    <div v-if="obj.type === 'button'">
+                                        <button :class="'btn-' + (obj.buttonStyle || 'primary')">{{ obj.label || 'Button' }}</button>
+                                    </div>
+
+                                    <div v-if="obj.type === 'table'">
+                                        <div class="mform-object-label" v-if="obj.label">{{ obj.label }}</div>
+                                        
+                                        <!-- Search bar -->
+                                        <div v-if="obj.tableConfig && obj.tableConfig.enableSearch" class="mb-2">
+                                            <input type="text" class="form-control form-control-sm" placeholder="Search..." disabled>
+                                        </div>
+                                        
+                                        <div style="overflow-x: auto;">
+                                            <table class="table table-sm" 
+                                                   :class="{
+                                                       'table-striped': obj.tableConfig && obj.tableConfig.striped,
+                                                       'table-bordered': obj.tableConfig && obj.tableConfig.bordered,
+                                                       'table-hover': obj.tableConfig && obj.tableConfig.hover
+                                                   }">
+                                                <thead class="table-light">
+                                                    <tr v-if="obj.tableConfig && obj.tableConfig.columns && obj.tableConfig.columns.length > 0">
+                                                        <th v-for="column in obj.tableConfig.columns.filter(c => c.visible !== false)" 
+                                                            :key="column.mformtablecolumnstamp"
+                                                            :style="{width: column.width, textAlign: column.headerAlign || 'left'}">
+                                                            {{ column.label || column.name }}
+                                                            <i v-if="column.sortable && obj.tableConfig.enableSort" 
+                                                               class="bi bi-arrow-down-up" 
+                                                               style="font-size: 10px; opacity: 0.5; margin-left: 4px;"></i>
+                                                        </th>
+                                                    </tr>
+                                                    <tr v-else>
+                                                        <th class="text-center text-muted">
+                                                            <small><i class="bi bi-info-circle"></i> Configure columns in properties panel</small>
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <template v-if="obj.tableConfig && obj.tableConfig.columns && obj.tableConfig.columns.length > 0">
+                                                        <tr v-for="(row, rowIndex) in generateTableDummyData(obj.tableConfig.columns, obj.tableConfig.pageSize || 10)" 
+                                                            :key="'row_' + rowIndex">
+                                                            <td v-for="column in obj.tableConfig.columns.filter(c => c.visible !== false)" 
+                                                                :key="column.mformtablecolumnstamp + '_cell_' + rowIndex"
+                                                                :style="{textAlign: column.cellAlign || 'left'}">
+                                                                {{ formatCellValue(row[column.name], column) }}
+                                                            </td>
+                                                        </tr>
+                                                    </template>
+                                                    <tr v-else>
+                                                        <td class="text-center text-muted py-4">
+                                                            <i class="bi bi-table" style="font-size: 24px; opacity: 0.3;"></i><br>
+                                                            <small>Add columns to see preview data</small>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <!-- Pagination -->
+                                        <div v-if="obj.tableConfig && obj.tableConfig.enablePagination && obj.tableConfig.columns && obj.tableConfig.columns.length > 0" 
+                                             class="d-flex justify-content-between align-items-center mt-2">
+                                            <small class="text-muted">Showing 1 to {{ obj.tableConfig.pageSize || 10 }} of 100 entries</small>
+                                            <nav>
+                                                <ul class="pagination pagination-sm mb-0">
+                                                    <li class="page-item disabled">
+                                                        <a class="page-link" href="#" tabindex="-1">«</a>
+                                                    </li>
+                                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="#">»</a>
+                                                    </li>
+                                                </ul>
+                                            </nav>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="obj.type === 'div'">
+                                        <div :style="{padding: '10px', border: '1px dashed #cbd5e0', borderRadius: '4px'}">
+                                            {{ obj.label || 'Div Container' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Properties Panel -->
+            <div class="mform-properties">
+                <div v-if="!selectedElement" class="no-selection">
+                    <i class="bi bi-cursor"></i>
+                    <p>Select an element to edit properties</p>
+                </div>
+
+                <div v-if="selectedElement && selectedType === 'container'">
+                    <h3><i class="bi bi-layout-three-columns"></i> Row Properties</h3>
+                    
+                    <div class="property-group">
+                        <label>Height</label>
+                        <input type="text" v-model="selectedElement.height" placeholder="auto">
+                    </div>
+
+                    <div class="property-group">
+                        <label>CSS Class</label>
+                        <input type="text" v-model="selectedElement.cssClass" placeholder="custom-class">
+                    </div>
+
+                    <div class="property-group">
+                        <button class="btn btn-primary w-100" @click="addColumn">+ Add Column</button>
+                    </div>
+                </div>
+
+                <div v-if="selectedElement && selectedType === 'column'">
+                    <h3><i class="bi bi-columns-gap"></i> Column Properties</h3>
+                    
+                    <div class="property-group">
+                        <label>Bootstrap Column Size (1-12)</label>
+                        <input type="number" v-model.number="selectedElement.bootstrapColumnSize" min="1" max="12">
+                    </div>
+
+                    <div class="property-group">
+                        <label>Layout Direction</label>
+                        <select v-model="selectedElement.flexDirection">
+                            <option value="column">Vertical (Column)</option>
+                            <option value="row">Horizontal (Row)</option>
+                        </select>
+                    </div>
+
+                    <div class="property-group">
+                        <label>Align Items</label>
+                        <select v-model="selectedElement.alignItems">
+                            <option value="flex-start">Start</option>
+                            <option value="center">Center</option>
+                            <option value="flex-end">End</option>
+                            <option value="stretch">Stretch</option>
+                        </select>
+                    </div>
+
+                    <div class="property-group">
+                        <label>Justify Content</label>
+                        <select v-model="selectedElement.justifyContent">
+                            <option value="flex-start">Start</option>
+                            <option value="center">Center</option>
+                            <option value="flex-end">End</option>
+                            <option value="space-between">Space Between</option>
+                            <option value="space-around">Space Around</option>
+                        </select>
+                    </div>
+
+                    <div class="property-group-inline">
+                        <div>
+                            <label>Gap (px)</label>
+                            <input type="number" v-model.number="selectedElement.gap" min="0">
+                        </div>
+                        <div>
+                            <label>Padding (px)</label>
+                            <input type="number" v-model.number="selectedElement.padding" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="selectedElement && selectedType === 'object'">
+                    <div class="property-tabs">
+                        <button class="property-tab" :class="{active: activeTab === 'general'}" @click="activeTab = 'general'">General</button>
+                        <button class="property-tab" :class="{active: activeTab === 'events'}" @click="activeTab = 'events'">Events</button>
+                        <button v-if="selectedElement.type === 'table'" class="property-tab" :class="{active: activeTab === 'table'}" @click="activeTab = 'table'">Table Config</button>
+                        <button class="property-tab" :class="{active: activeTab === 'advanced'}" @click="activeTab = 'advanced'">Advanced</button>
+                    </div>
+
+                    <!-- General Tab -->
+                    <div v-show="activeTab === 'general'">
+                        <h3><i class="bi bi-gear"></i> {{ selectedElement.type.charAt(0).toUpperCase() + selectedElement.type.slice(1) }} Properties</h3>
+                        
+                        <div class="property-group">
+                            <label>Name / ID</label>
+                            <input type="text" v-model="selectedElement.name" placeholder="field_name">
+                        </div>
+
+                        <div class="property-group">
+                            <label>Label</label>
+                            <input type="text" v-model="selectedElement.label" placeholder="Field Label">
+                        </div>
+
+                        <div class="property-group" v-if="['input', 'textarea', 'select', 'number'].includes(selectedElement.type)">
+                            <label>Placeholder</label>
+                            <input type="text" v-model="selectedElement.placeholder" placeholder="Enter placeholder...">
+                        </div>
+
+                        <div class="property-group">
+                            <label>Default Value</label>
+                            <input type="text" v-model="selectedElement.defaultValue" placeholder="Static value or expression">
+                            <small style="font-size: 11px; color: #718096;">Use expressions like: thisForm.customer.name</small>
+                        </div>
+
+                        <div class="property-group switch-container">
+                            <label class="switch">
+                                <input type="checkbox" v-model="selectedElement.required">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Required</span>
+                        </div>
+
+                        <div class="property-group switch-container">
+                            <label class="switch">
+                                <input type="checkbox" v-model="selectedElement.readonly">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Read Only</span>
+                        </div>
+
+                        <div class="property-group switch-container">
+                            <label class="switch">
+                                <input type="checkbox" v-model="selectedElement.visible">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Visible</span>
+                        </div>
+
+                        <div class="property-group" v-if="selectedElement.type === 'select'">
+                            <label>Options Query (SQL or JS)</label>
+                            <textarea v-model="selectedElement.optionsQuery" placeholder="SELECT id, name FROM table"></textarea>
+                        </div>
+
+                        <div class="property-group" v-if="selectedElement.type === 'select'">
+                            <label>Value Field</label>
+                            <input type="text" v-model="selectedElement.valueField" placeholder="id">
+                        </div>
+
+                        <div class="property-group" v-if="selectedElement.type === 'select'">
+                            <label>Display Field</label>
+                            <input type="text" v-model="selectedElement.displayField" placeholder="name">
+                        </div>
+
+                        <div class="property-group">
+                            <label>Help Text</label>
+                            <textarea v-model="selectedElement.helpText" placeholder="Helper text for this field"></textarea>
+                        </div>
+
+                        <div class="property-group">
+                            <label>CSS Class</label>
+                            <input type="text" v-model="selectedElement.cssClass" placeholder="custom-class">
+                        </div>
+                    </div>
+
+                    <!-- Events Tab -->
+                    <div v-show="activeTab === 'events'">
+                        <h3><i class="bi bi-lightning"></i> Events</h3>
+                        
+                        <div v-for="eventType in ['onclick', 'onchange', 'onblur', 'keyup', 'keypress', 'load', 'mounted']" :key="eventType">
+                            <div class="property-group">
+                                <label>{{ eventType }}</label>
+                                <select v-model="getOrCreateEvent(eventType).expressionType">
+                                    <option value="">None</option>
+                                    <option value="frontend">Frontend Expression (JS)</option>
+                                    <option value="backend">Backend Expression (VB.NET)</option>
+                                    <option value="internal">Internal Function</option>
+                                </select>
+                                
+                                <textarea v-if="getOrCreateEvent(eventType).expressionType" 
+                                          v-model="getOrCreateEvent(eventType).expression" 
+                                          :placeholder="'Enter ' + getOrCreateEvent(eventType).expressionType + ' code...'"
+                                          style="margin-top: 8px;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table Configuration Tab -->
+                    <div v-show="activeTab === 'table'" v-if="selectedElement && selectedElement.type === 'table' && selectedElement.tableConfig">
+                        <h3><i class="bi bi-table"></i> Table Configuration</h3>
+                        
+                        <!-- Data Source Section -->
+                        <div class="property-group" style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Data Source</h4>
+                            
+                            <div class="property-group">
+                                <label>Data Source Type</label>
+                                <select v-model="selectedElement.tableConfig.dataSource.type">
+                                    <option value="sql">SQL Query</option>
+                                    <option value="expression">JavaScript Expression</option>
+                                    <option value="static">Static Data (JSON)</option>
+                                </select>
+                            </div>
+
+                            <div class="property-group" v-if="selectedElement.tableConfig.dataSource.type === 'sql'">
+                                <label>SQL Query</label>
+                                <textarea v-model="selectedElement.tableConfig.dataSource.sqlQuery" 
+                                          placeholder="SELECT id, name, price, date FROM products WHERE active = 1"
+                                          style="min-height: 100px; font-family: 'Courier New', monospace; font-size: 12px;"></textarea>
+                                <small style="font-size: 11px; color: #718096;">Query will execute on server and return array of objects</small>
+                            </div>
+
+                            <div class="property-group" v-if="selectedElement.tableConfig.dataSource.type === 'expression'">
+                                <label>JavaScript Expression</label>
+                                <textarea v-model="selectedElement.tableConfig.dataSource.expression" 
+                                          placeholder="return thisForm.products.filter(p => p.active);"
+                                          style="min-height: 100px; font-family: 'Courier New', monospace; font-size: 12px;"></textarea>
+                                <small style="font-size: 11px; color: #718096;">Must return an array of objects</small>
+                            </div>
+
+                            <div class="property-group" v-if="selectedElement.tableConfig.dataSource.type === 'static'">
+                                <label>Static Data (JSON Array)</label>
+                                <textarea v-model="selectedElement.tableConfig.dataSource.staticData" 
+                                          placeholder='[{"id": 1, "name": "Product A", "price": 100}]'
+                                          style="min-height: 100px; font-family: 'Courier New', monospace; font-size: 12px;"></textarea>
+                            </div>
+
+                            <div class="property-group switch-container">
+                                <label class="switch">
+                                    <input type="checkbox" v-model="selectedElement.tableConfig.autoGenerateColumns">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Auto-generate columns from data source</span>
+                            </div>
+                        </div>
+
+                        <!-- Columns Section -->
+                        <div class="property-group" style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4 style="font-size: 14px; font-weight: 600; margin: 0;">Columns</h4>
+                                <button class="btn btn-sm btn-primary" @click="addTableColumn" style="font-size: 12px; padding: 4px 12px;">
+                                    <i class="bi bi-plus"></i> Add Column
+                                </button>
+                            </div>
+
+                            <div v-if="selectedElement.tableConfig && selectedElement.tableConfig.columns && selectedElement.tableConfig.columns.length === 0" class="text-center text-muted py-3" style="font-size: 13px;">
+                                No columns defined. Click "Add Column" to start.
+                            </div>
+
+                            <div class="mform-table-columns-list">
+                            <div v-if="selectedElement.tableConfig && selectedElement.tableConfig.columns" v-for="(col, index) in selectedElement.tableConfig.columns" :key="col.mformtablecolumnstamp"
+                                 :data-col-index="index"
+                                 style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 10px; background: white;">
+                                
+                                <div v-if="col" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="bi bi-grip-vertical" style="cursor: move; color: #cbd5e0;" title="Drag to reorder"></i>
+                                        <strong style="font-size: 13px;">Column {{ index + 1 }}</strong>
+                                    </div>
+                                    <button @click="deleteTableColumn(index)" 
+                                            class="btn btn-sm btn-danger" 
+                                            style="font-size: 11px; padding: 2px 6px;"
+                                            title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+
+                                <div class="property-group">
+                                    <label style="font-size: 12px;">Field Name</label>
+                                    <input type="text" v-model="col.name" placeholder="fieldName" style="font-size: 13px;">
+                                </div>
+
+                                <div class="property-group">
+                                    <label style="font-size: 12px;">Column Label</label>
+                                    <input type="text" v-model="col.label" placeholder="Display Name" style="font-size: 13px;">
+                                </div>
+
+                                <div class="property-group-inline">
+                                    <div>
+                                        <label style="font-size: 12px;">Data Type</label>
+                                        <select v-model="col.dataType" style="font-size: 13px;">
+                                            <option value="string">String</option>
+                                            <option value="number">Number</option>
+                                            <option value="date">Date</option>
+                                            <option value="boolean">Boolean</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 12px;">Width</label>
+                                        <input type="text" v-model="col.width" placeholder="auto, 100px, 20%" style="font-size: 13px;">
+                                    </div>
+                                </div>
+
+                                <div class="property-group-inline">
+                                    <div>
+                                        <label style="font-size: 12px;">Header Align</label>
+                                        <select v-model="col.headerAlign" style="font-size: 13px;">
+                                            <option value="left">Left</option>
+                                            <option value="center">Center</option>
+                                            <option value="right">Right</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 12px;">Cell Align</label>
+                                        <select v-model="col.cellAlign" style="font-size: 13px;">
+                                            <option value="left">Left</option>
+                                            <option value="center">Center</option>
+                                            <option value="right">Right</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div v-if="col" class="property-group switch-container" style="margin-bottom: 5px;">
+                                    <label class="switch">
+                                        <input type="checkbox" v-model="col.visible">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span style="font-size: 12px;">Visible</span>
+                                </div>
+
+                                <div v-if="col" class="property-group switch-container">
+                                    <label class="switch">
+                                        <input type="checkbox" v-model="col.sortable">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span style="font-size: 12px;">Sortable</span>
+                                </div>
+
+                                <!-- Formatter Section -->
+                                <div v-if="col && col.formatter" style="border-top: 1px solid #e2e8f0; margin-top: 10px; padding-top: 10px;">
+                                    <div class="property-group switch-container">
+                                        <label class="switch">
+                                            <input type="checkbox" v-model="col.formatter.enabled">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span style="font-size: 12px; font-weight: 600;">Enable Formatter</span>
+                                    </div>
+
+                                    <div v-if="col.formatter.enabled">
+                                        <div class="property-group">
+                                            <label style="font-size: 12px;">Formatter Type</label>
+                                            <select v-model="col.formatter.type" style="font-size: 13px;">
+                                                <option value="intl">Intl Format (Number/Date)</option>
+                                                <option value="custom">Custom Expression</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Intl Number/Currency Formatter -->
+                                        <div v-if="col.formatter.type === 'intl' && (col.dataType === 'number')">
+                                            <div class="property-group">
+                                                <label style="font-size: 12px;">Number Format Style</label>
+                                                <select v-model="col.formatter.style" style="font-size: 13px;">
+                                                    <option value="decimal">Decimal</option>
+                                                    <option value="currency">Currency</option>
+                                                    <option value="percent">Percent</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="property-group" v-if="col.formatter.style === 'currency'">
+                                                <label style="font-size: 12px;">Currency</label>
+                                                <select v-model="col.formatter.currency" style="font-size: 13px;">
+                                                    <option value="MZN">MZN - Metical</option>
+                                                    <option value="USD">USD - Dollar</option>
+                                                    <option value="EUR">EUR - Euro</option>
+                                                    <option value="ZAR">ZAR - Rand</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="property-group">
+                                                <label style="font-size: 12px;">Locale</label>
+                                                <input type="text" v-model="col.formatter.locale" placeholder="pt-MZ, en-US" style="font-size: 13px;">
+                                            </div>
+
+                                            <div class="property-group-inline">
+                                                <div>
+                                                    <label style="font-size: 12px;">Min Decimals</label>
+                                                    <input type="number" v-model.number="col.formatter.minimumFractionDigits" min="0" max="20" style="font-size: 13px;">
+                                                </div>
+                                                <div>
+                                                    <label style="font-size: 12px;">Max Decimals</label>
+                                                    <input type="number" v-model.number="col.formatter.maximumFractionDigits" min="0" max="20" style="font-size: 13px;">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Intl Date Formatter -->
+                                        <div v-if="col.formatter.type === 'intl' && col.dataType === 'date'">
+                                            <div class="property-group">
+                                                <label style="font-size: 12px;">Date Style</label>
+                                                <select v-model="col.formatter.dateStyle" style="font-size: 13px;">
+                                                    <option value="full">Full</option>
+                                                    <option value="long">Long</option>
+                                                    <option value="medium">Medium</option>
+                                                    <option value="short">Short</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="property-group">
+                                                <label style="font-size: 12px;">Time Style</label>
+                                                <select v-model="col.formatter.timeStyle" style="font-size: 13px;">
+                                                    <option value="">None</option>
+                                                    <option value="full">Full</option>
+                                                    <option value="long">Long</option>
+                                                    <option value="medium">Medium</option>
+                                                    <option value="short">Short</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="property-group">
+                                                <label style="font-size: 12px;">Locale</label>
+                                                <input type="text" v-model="col.formatter.locale" placeholder="pt-MZ" style="font-size: 13px;">
+                                            </div>
+                                        </div>
+
+                                        <!-- Custom Formatter -->
+                                        <div v-if="col.formatter.type === 'custom'">
+                                            <div class="property-group">
+                                                <label style="font-size: 12px;">Custom Expression</label>
+                                                <textarea v-model="col.formatter.customExpression" 
+                                                          placeholder="return 'R$ ' + value.toFixed(2);"
+                                                          style="min-height: 60px; font-family: 'Courier New', monospace; font-size: 12px;"></textarea>
+                                                <small style="font-size: 11px; color: #718096;">Use 'value' variable for cell value</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- Table Features Section -->
+                        <div class="property-group" style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Table Features</h4>
+                            
+                            <div class="property-group switch-container">
+                                <label class="switch">
+                                    <input type="checkbox" v-model="selectedElement.tableConfig.striped">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Striped Rows</span>
+                            </div>
+
+                            <div class="property-group switch-container">
+                                <label class="switch">
+                                    <input type="checkbox" v-model="selectedElement.tableConfig.bordered">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Bordered</span>
+                            </div>
+
+                            <div class="property-group switch-container">
+                                <label class="switch">
+                                    <input type="checkbox" v-model="selectedElement.tableConfig.hover">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Hover Effect</span>
+                            </div>
+
+                            <div class="property-group switch-container">
+                                <label class="switch">
+                                    <input type="checkbox" v-model="selectedElement.tableConfig.enableSort">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Enable Sorting</span>
+                            </div>
+
+                            <div class="property-group switch-container">
+                                <label class="switch">
+                                    <input type="checkbox" v-model="selectedElement.tableConfig.enableSearch">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Enable Search</span>
+                            </div>
+
+                            <div class="property-group switch-container">
+                                <label class="switch">
+                                    <input type="checkbox" v-model="selectedElement.tableConfig.enablePagination">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Enable Pagination</span>
+                            </div>
+
+                            <div class="property-group" v-if="selectedElement.tableConfig.enablePagination">
+                                <label>Page Size</label>
+                                <input type="number" v-model.number="selectedElement.tableConfig.pageSize" min="1" max="100">
+                            </div>
+                        </div>
+
+                        <!-- Row Interactions Section -->
+                        <div class="property-group" style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Row Interactions</h4>
+                            
+                            <div class="property-group switch-container">
+                                <label class="switch">
+                                    <input type="checkbox" v-model="selectedElement.tableConfig.enableRowClick">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Enable Row Click Event</span>
+                            </div>
+
+                            <div class="property-group" v-if="selectedElement.tableConfig.enableRowClick">
+                                <label>Row Click Expression</label>
+                                <textarea v-model="selectedElement.tableConfig.rowClickEvent" 
+                                          placeholder="console.log('Row clicked:', row);"
+                                          style="min-height: 80px; font-family: 'Courier New', monospace; font-size: 12px;"></textarea>
+                                <small style="font-size: 11px; color: #718096;">Use 'row' variable to access row data</small>
+                            </div>
+
+                            <div class="property-group">
+                                <label>Row Style Expression</label>
+                                <textarea v-model="selectedElement.tableConfig.rowStyleExpression" 
+                                          placeholder="return row.status === 'active' ? 'background: #e6f7e6;' : '';"
+                                          style="min-height: 80px; font-family: 'Courier New', monospace; font-size: 12px;"></textarea>
+                                <small style="font-size: 11px; color: #718096;">Return CSS string based on row data</small>
+                            </div>
+                        </div>
+
+                        <!-- Nested Groups Section -->
+                        <div class="property-group" style="background: #f7fafc; padding: 15px; border-radius: 8px;">
+                            <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">Grouping</h4>
+                            
+                            <div class="property-group switch-container">
+                                <label class="switch">
+                                    <input type="checkbox" v-model="selectedElement.tableConfig.enableNestedGroups">
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Enable Nested Groups</span>
+                            </div>
+
+                            <div class="property-group" v-if="selectedElement.tableConfig.enableNestedGroups">
+                                <label>Group By Column</label>
+                                <select v-model="selectedElement.tableConfig.groupByColumn">
+                                    <option value="">Select column...</option>
+                                    <option v-for="col in selectedElement.tableConfig.columns" :key="col.mformtablecolumnstamp" :value="col.name">
+                                        {{ col.label || col.name }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Tab -->
+                    <div v-show="activeTab === 'advanced'">
+                        <h3><i class="bi bi-code-square"></i> Advanced</h3>
+                        
+                        <div class="property-group">
+                            <button class="btn btn-info w-100 mb-3" @click="viewObjectJSON">
+                                <i class="bi bi-filetype-json"></i> View JSON Config
+                            </button>
+                            <small style="font-size: 11px; color: #718096;">See the JSON configuration that will be stored in the database</small>
+                        </div>
+                        
+                        <div class="property-group">
+                            <label>Custom Inline Style</label>
+                            <textarea v-model="selectedElement.inlineStyle" placeholder="color: red; font-size: 14px;"></textarea>
+                        </div>
+
+                        <div class="property-group">
+                            <label>Validation Expression</label>
+                            <textarea v-model="selectedElement.validationExpression" placeholder="return value.length > 5;"></textarea>
+                        </div>
+
+                        <div class="property-group">
+                            <label>Validation Message</label>
+                            <input type="text" v-model="selectedElement.validationMessage" placeholder="Invalid value">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div class="toast-container" id="toastContainer"></div>
+    </div>
+
+    <script>
+        // =====================================================================
+        // MFORM DATA MODELS (Using Function Constructors - No ES6 Classes)
+        // =====================================================================
+
+        function generateStamp() {
+            return 'stamp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Mform - Main Form
+        function Mform(data) {
+            var self = this;
+            self.mformstamp = data && data.mformstamp || generateStamp();
+            self.name = data && data.name || 'Untitled Form';
+            self.description = data && data.description || '';
+            self.hasSubmitButton = data && data.hasSubmitButton !== undefined ? data.hasSubmitButton : true;
+            self.submitButtonText = data && data.submitButtonText || 'Submit';
+            self.containers = data && data.containers || [];
+            self.internalFunctions = data && data.internalFunctions || [];
+            self.cssClass = data && data.cssClass || '';
+            self.createdAt = data && data.createdAt || new Date().toISOString();
+            self.updatedAt = data && data.updatedAt || new Date().toISOString();
+        }
+
+        // MformContainer - Row
+        function MformContainer(data) {
+            var self = this;
+            self.mformcontainerstamp = data && data.mformcontainerstamp || generateStamp();
+            self.items = data && data.items || [];
+            self.height = data && data.height || 'auto';
+            self.cssClass = data && data.cssClass || '';
+            self.order = data && data.order || 0;
+        }
+
+        // MformContainerItem - Column
+        function MformContainerItem(data) {
+            var self = this;
+            self.mformcontaineritemstamp = data && data.mformcontaineritemstamp || generateStamp();
+            self.bootstrapColumnSize = data && data.bootstrapColumnSize || 12;
+            self.flexDirection = data && data.flexDirection || 'column';
+            self.alignItems = data && data.alignItems || 'flex-start';
+            self.justifyContent = data && data.justifyContent || 'flex-start';
+            self.gap = data && data.gap || 10;
+            self.padding = data && data.padding || 15;
+            self.objects = data && data.objects || [];
+            self.cssClass = data && data.cssClass || '';
+        }
+
+        // MformContainerItemObject - Form Element
+        function MformContainerItemObject(data) {
+            var self = this;
+            self.mformcontaineritemobjectstamp = data && data.mformcontaineritemobjectstamp || generateStamp();
+            self.type = data && data.type || 'input';
+            self.name = data && data.name || '';
+            self.label = data && data.label || '';
+            self.placeholder = data && data.placeholder || '';
+            self.defaultValue = data && data.defaultValue || '';
+            self.required = data && data.required || false;
+            self.readonly = data && data.readonly || false;
+            self.visible = data && data.visible !== undefined ? data.visible : true;
+            self.helpText = data && data.helpText || '';
+            self.cssClass = data && data.cssClass || '';
+            self.inlineStyle = data && data.inlineStyle || '';
+            self.events = data && data.events || [];
+            
+            // Select specific
+            self.optionsQuery = data && data.optionsQuery || '';
+            self.valueField = data && data.valueField || 'value';
+            self.displayField = data && data.displayField || 'label';
+            
+            // Button specific
+            self.buttonStyle = data && data.buttonStyle || 'primary';
+            
+            // Validation
+            self.validationExpression = data && data.validationExpression || '';
+            self.validationMessage = data && data.validationMessage || '';
+            
+            // Table specific - only create tableConfig for table type
+            if (self.type === 'table') {
+                self.tableConfig = data && data.tableConfig ? data.tableConfig : new MformTableConfig({});
+            }
+        }
+
+        // MformTableConfig - Advanced Table Configuration
+        function MformTableConfig(data) {
+            var self = this;
+            self.columns = data && data.columns || [];
+            self.dataSource = data && data.dataSource || new MformTableDataSource({});
+            self.enablePagination = data && data.enablePagination !== undefined ? data.enablePagination : true;
+            self.pageSize = data && data.pageSize || 10;
+            self.enableSearch = data && data.enableSearch !== undefined ? data.enableSearch : true;
+            self.enableSort = data && data.enableSort !== undefined ? data.enableSort : true;
+            self.striped = data && data.striped !== undefined ? data.striped : true;
+            self.bordered = data && data.bordered !== undefined ? data.bordered : true;
+            self.hover = data && data.hover !== undefined ? data.hover : true;
+            self.enableRowClick = data && data.enableRowClick !== undefined ? data.enableRowClick : false;
+            self.rowClickEvent = data && data.rowClickEvent || '';
+            self.rowStyleExpression = data && data.rowStyleExpression || '';
+            self.enableNestedGroups = data && data.enableNestedGroups !== undefined ? data.enableNestedGroups : false;
+            self.groupByColumn = data && data.groupByColumn || '';
+            self.autoGenerateColumns = data && data.autoGenerateColumns !== undefined ? data.autoGenerateColumns : false;
+        }
+
+        // MformTableDataSource - Table Data Source
+        function MformTableDataSource(data) {
+            var self = this;
+            self.type = data && data.type || 'sql'; // 'sql', 'expression', 'static'
+            self.sqlQuery = data && data.sqlQuery || '';
+            self.expression = data && data.expression || '';
+            self.staticData = data && data.staticData || [];
+        }
+
+        // MformTableColumn - Table Column Definition
+        function MformTableColumn(data) {
+            var self = this;
+            self.mformtablecolumnstamp = data && data.mformtablecolumnstamp || generateStamp();
+            self.name = data && data.name || '';
+            self.label = data && data.label || '';
+            self.dataType = data && data.dataType || 'string'; // 'string', 'number', 'date', 'boolean'
+            self.width = data && data.width || 'auto';
+            self.visible = data && data.visible !== undefined ? data.visible : true;
+            self.sortable = data && data.sortable !== undefined ? data.sortable : true;
+            self.formatter = data && data.formatter || new MformTableColumnFormatter({});
+            self.cssClass = data && data.cssClass || '';
+            self.headerAlign = data && data.headerAlign || 'left';
+            self.cellAlign = data && data.cellAlign || 'left';
+            self.order = data && data.order || 0;
+        }
+
+        // MformTableColumnFormatter - Column Formatter
+        function MformTableColumnFormatter(data) {
+            var self = this;
+            self.enabled = data && data.enabled !== undefined ? data.enabled : false;
+            self.type = data && data.type || 'intl'; // 'intl', 'custom'
+            
+            // Intl.NumberFormat options
+            self.intlType = data && data.intlType || 'number'; // 'number', 'currency', 'date'
+            self.locale = data && data.locale || 'pt-MZ';
+            self.style = data && data.style || 'decimal'; // 'decimal', 'currency', 'percent'
+            self.currency = data && data.currency || 'MZN';
+            self.minimumFractionDigits = data && data.minimumFractionDigits || 2;
+            self.maximumFractionDigits = data && data.maximumFractionDigits || 2;
+            
+            // Date format options
+            self.dateStyle = data && data.dateStyle || 'short'; // 'full', 'long', 'medium', 'short'
+            self.timeStyle = data && data.timeStyle || 'short';
+            
+            // Custom formatter
+            self.customExpression = data && data.customExpression || '';
+        }
+
+        // MformObjectEvent - Event Handler
+        function MformObjectEvent(data) {
+            var self = this;
+            self.eventType = data && data.eventType || 'onclick';
+            self.expressionType = data && data.expressionType || 'frontend';
+            self.expression = data && data.expression || '';
+        }
+
+        // MformInternalFunction - Reusable Function
+        function MformInternalFunction(data) {
+            var self = this;
+            self.mforminternalfunctionstamp = data && data.mforminternalfunctionstamp || generateStamp();
+            self.name = data && data.name || '';
+            self.code = data && data.code || '';
+            self.description = data && data.description || '';
+        }
+
+        // =====================================================================
+        // VUE APPLICATION
+        // =====================================================================
+
+        var app = Vue.createApp({
+            data: function() {
+                return {
+                    mform: new Mform({
+                        name: 'My Form',
+                        containers: []
+                    }),
+                    selectedElement: null,
+                    selectedType: null,
+                    activeTab: 'general'
+                };
+            },
+            methods: {
+                selectElement: function(element, type) {
+                    this.selectedElement = element;
+                    this.selectedType = type;
+                    this.selectedElement.stamp = element.mformcontainerstamp || element.mformcontaineritemstamp || element.mformcontaineritemobjectstamp;
+                    
+                    // Ensure tableConfig is initialized for table elements
+                    if (type === 'object' && element.type === 'table' && !element.tableConfig) {
+                        element.tableConfig = new MformTableConfig({});
+                    }
+                },
+                
+                addContainer: function() {
+                    var container = new MformContainer({
+                        items: [new MformContainerItem({bootstrapColumnSize: 12})]
+                    });
+                    this.mform.containers.push(container);
+                    this.showToast('Row added successfully', 'success');
+                },
+                
+                deleteContainer: function(index) {
+                    if (confirm('Delete this row?')) {
+                        this.mform.containers.splice(index, 1);
+                        this.selectedElement = null;
+                        this.showToast('Row deleted', 'info');
+                    }
+                },
+                
+                addColumn: function() {
+                    if (this.selectedElement && this.selectedType === 'container') {
+                        var newColumn = new MformContainerItem({
+                            bootstrapColumnSize: 6
+                        });
+                        this.selectedElement.items.push(newColumn);
+                        this.showToast('Column added', 'success');
+                    }
+                },
+                
+                deleteColumn: function(containerIndex, itemIndex) {
+                    if (confirm('Delete this column?')) {
+                        this.mform.containers[containerIndex].items.splice(itemIndex, 1);
+                        this.selectedElement = null;
+                        this.showToast('Column deleted', 'info');
+                    }
+                },
+                
+                deleteObject: function(containerIndex, itemIndex, objectIndex) {
+                    if (confirm('Delete this element?')) {
+                        this.mform.containers[containerIndex].items[itemIndex].objects.splice(objectIndex, 1);
+                        this.selectedElement = null;
+                        this.showToast('Element deleted', 'info');
+                    }
+                },
+                
+                getOrCreateEvent: function(eventType) {
+                    if (!this.selectedElement.events) {
+                        this.selectedElement.events = [];
+                    }
+                    
+                    var event = this.selectedElement.events.find(function(e) {
+                        return e.eventType === eventType;
+                    });
+                    
+                    if (!event) {
+                        event = new MformObjectEvent({eventType: eventType});
+                        this.selectedElement.events.push(event);
+                    }
+                    
+                    return event;
+                },
+                
+                addTableColumn: function() {
+                    if (this.selectedElement && this.selectedElement.type === 'table') {
+                        if (!this.selectedElement.tableConfig) {
+                            this.selectedElement.tableConfig = new MformTableConfig({});
+                        }
+                        if (!this.selectedElement.tableConfig.columns) {
+                            this.selectedElement.tableConfig.columns = [];
+                        }
+                        var newColumn = new MformTableColumn({
+                            name: 'column_' + (this.selectedElement.tableConfig.columns.length + 1),
+                            label: 'Column ' + (this.selectedElement.tableConfig.columns.length + 1),
+                            dataType: 'string',
+                            visible: true,
+                            sortable: true,
+                            formatter: new MformTableColumnFormatter({})
+                        });
+                        this.selectedElement.tableConfig.columns.push(newColumn);
+                        
+                        // Force deep reactivity update
+                        var self = this;
+                        this.$nextTick(function() {
+                            self.$forceUpdate();
+                        });
+                        
+                        console.log('Column added. Total columns:', this.selectedElement.tableConfig.columns.length);
+                        console.log('Column data:', newColumn);
+                        
+                        this.showToast('Column added', 'success');
+                    }
+                },
+                
+                deleteTableColumn: function(index) {
+                    if (confirm('Delete this column?')) {
+                        if (this.selectedElement && this.selectedElement.tableConfig && this.selectedElement.tableConfig.columns) {
+                            this.selectedElement.tableConfig.columns.splice(index, 1);
+                            this.updateColumnOrder();
+                            this.$forceUpdate();
+                            this.showToast('Column deleted', 'info');
+                        }
+                    }
+                },
+                
+                moveTableColumnUp: function(index) {
+                    if (index > 0 && this.selectedElement && this.selectedElement.tableConfig && this.selectedElement.tableConfig.columns) {
+                        var columns = this.selectedElement.tableConfig.columns;
+                        var temp = columns[index];
+                        columns[index] = columns[index - 1];
+                        columns[index - 1] = temp;
+                        this.updateColumnOrder();
+                        this.$forceUpdate();
+                        this.showToast('Column moved up', 'success');
+                    }
+                },
+                
+                moveTableColumnDown: function(index) {
+                    if (this.selectedElement && this.selectedElement.tableConfig && this.selectedElement.tableConfig.columns) {
+                        var columns = this.selectedElement.tableConfig.columns;
+                        if (index < columns.length - 1) {
+                            var temp = columns[index];
+                            columns[index] = columns[index + 1];
+                            columns[index + 1] = temp;
+                            this.updateColumnOrder();
+                            this.$forceUpdate();
+                            this.showToast('Column moved down', 'success');
+                        }
+                    }
+                },
+                
+                updateColumnOrder: function() {
+                    if (this.selectedElement && this.selectedElement.tableConfig && this.selectedElement.tableConfig.columns) {
+                        this.selectedElement.tableConfig.columns.forEach(function(col, idx) {
+                            col.order = idx;
+                        });
+                    }
+                },
+                
+                moveObjectUp: function(containerIndex, itemIndex, objectIndex) {
+                    if (objectIndex > 0) {
+                        var objects = this.mform.containers[containerIndex].items[itemIndex].objects;
+                        var temp = objects[objectIndex];
+                        objects[objectIndex] = objects[objectIndex - 1];
+                        objects[objectIndex - 1] = temp;
+                        this.$forceUpdate();
+                        this.showToast('Element moved up', 'success');
+                    }
+                },
+                
+                moveObjectDown: function(containerIndex, itemIndex, objectIndex) {
+                    var objects = this.mform.containers[containerIndex].items[itemIndex].objects;
+                    if (objectIndex < objects.length - 1) {
+                        var temp = objects[objectIndex];
+                        objects[objectIndex] = objects[objectIndex + 1];
+                        objects[objectIndex + 1] = temp;
+                        this.$forceUpdate();
+                        this.showToast('Element moved down', 'success');
+                    }
+                },
+                
+                generateTableDummyData: function(columns, rowCount) {
+                    if (!columns || columns.length === 0) return [];
+                    
+                    console.log('Generating dummy data for', columns.length, 'columns and', rowCount, 'rows');
+                    
+                    var dummyDataByType = {
+                        string: ['João Silva', 'Maria Santos', 'Pedro Costa', 'Ana Pereira', 'Carlos Mendes', 'Rita Oliveira', 'Paulo Fernandes', 'Sofia Almeida', 'Miguel Rodrigues', 'Beatriz Martins'],
+                        number: [1250.50, 3400.75, 890.25, 5600.00, 2100.80, 4750.30, 1890.90, 3200.15, 2850.45, 4100.60],
+                        date: [
+                            new Date(2024, 0, 15),
+                            new Date(2024, 2, 22),
+                            new Date(2024, 5, 10),
+                            new Date(2024, 8, 5),
+                            new Date(2024, 11, 1),
+                            new Date(2024, 1, 14),
+                            new Date(2024, 4, 18),
+                            new Date(2024, 7, 23),
+                            new Date(2024, 10, 8),
+                            new Date(2024, 3, 30)
+                        ],
+                        boolean: [true, false, true, true, false, false, true, false, true, true]
+                    };
+                    
+                    var rows = [];
+                    for (var i = 0; i < rowCount; i++) {
+                        var row = {};
+                        for (var j = 0; j < columns.length; j++) {
+                            var col = columns[j];
+                            if (!col || col.visible === false) continue;
+                            
+                            var dataArray = dummyDataByType[col.dataType] || dummyDataByType.string;
+                            var rawValue = dataArray[i % dataArray.length];
+                            
+                            row[col.name] = rawValue;
+                        }
+                        rows.push(row);
+                    }
+                    
+                    console.log('Generated rows:', rows);
+                    return rows;
+                },
+                
+                formatCellValue: function(value, column) {
+                    if (!column || value === null || value === undefined) return '';
+                    
+                    // Apply formatter if enabled
+                    if (column.formatter && column.formatter.enabled && column.formatter.type === 'intl') {
+                        try {
+                            if (column.dataType === 'number' && typeof value === 'number') {
+                                var options = {
+                                    minimumFractionDigits: column.formatter.minimumFractionDigits || 2,
+                                    maximumFractionDigits: column.formatter.maximumFractionDigits || 2
+                                };
+                                
+                                if (column.formatter.style === 'currency') {
+                                    options.style = 'currency';
+                                    options.currency = column.formatter.currency || 'MZN';
+                                } else if (column.formatter.style === 'percent') {
+                                    options.style = 'percent';
+                                    value = value / 100;
+                                }
+                                
+                                return new Intl.NumberFormat(column.formatter.locale || 'pt-MZ', options).format(value);
+                            } else if (column.dataType === 'date' && value instanceof Date) {
+                                var dateOptions = {};
+                                if (column.formatter.dateStyle) {
+                                    dateOptions.dateStyle = column.formatter.dateStyle;
+                                }
+                                if (column.formatter.timeStyle) {
+                                    dateOptions.timeStyle = column.formatter.timeStyle;
+                                }
+                                return new Intl.DateTimeFormat(column.formatter.locale || 'pt-MZ', dateOptions).format(value);
+                            }
+                        } catch (e) {
+                            console.error('Error formatting value:', e);
+                        }
+                    }
+                    
+                    // Default formatting
+                    if (column.dataType === 'date' && value instanceof Date) {
+                        return value.toLocaleDateString('pt-MZ');
+                    } else if (column.dataType === 'boolean') {
+                        return value ? '✓ Sim' : '✗ Não';
+                    }
+                    
+                    return value;
+                },
+                
+                exportJSON: function() {
+                    var json = JSON.stringify(this.mform, null, 2);
+                    var blob = new Blob([json], {type: 'application/json'});
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'mform_' + Date.now() + '.json';
+                    a.click();
+                    this.showToast('Form exported successfully', 'success');
+                },
+                
+                exportForDB: function() {
+                    var self = this;
+                    var dbStructure = {
+                        mformstamp: this.mform.mformstamp,
+                        name: this.mform.name,
+                        description: this.mform.description,
+                        containers: this.mform.containers.map(function(container) {
+                            return {
+                                mformcontainerstamp: container.mformcontainerstamp,
+                                height: container.height,
+                                cssClass: container.cssClass,
+                                order: container.order,
+                                items: container.items.map(function(item) {
+                                    return {
+                                        mformcontaineritemstamp: item.mformcontaineritemstamp,
+                                        bootstrapColumnSize: item.bootstrapColumnSize,
+                                        flexDirection: item.flexDirection,
+                                        alignItems: item.alignItems,
+                                        justifyContent: item.justifyContent,
+                                        gap: item.gap,
+                                        padding: item.padding,
+                                        cssClass: item.cssClass,
+                                        objects: item.objects.map(function(obj) {
+                                            return self.getObjectConfigForDB(obj);
+                                        })
+                                    };
+                                })
+                            };
+                        }),
+                        createdAt: this.mform.createdAt,
+                        updatedAt: this.mform.updatedAt
+                    };
+                    
+                    var json = JSON.stringify(dbStructure, null, 2);
+                    var blob = new Blob([json], {type: 'application/json'});
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'mform_db_' + Date.now() + '.json';
+                    a.click();
+                    this.showToast('Database structure exported', 'success');
+                },
+                
+                importJSON: function() {
+                    var input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    var self = this;
+                    input.onchange = function(e) {
+                        var file = e.target.files[0];
+                        var reader = new FileReader();
+                        reader.onload = function(event) {
+                            try {
+                                var data = JSON.parse(event.target.result);
+                                self.mform = new Mform(data);
+                                self.showToast('Form imported successfully', 'success');
+                            } catch (ex) {
+                                self.showToast('Invalid JSON file', 'error');
+                            }
+                        };
+                        reader.readAsText(file);
+                    };
+                    input.click();
+                },
+                
+                previewForm: function() {
+                    var json = JSON.stringify(this.mform, null, 2);
+                    var win = window.open('', '_blank');
+                    win.document.write('<html><head><title>Form Preview</title>');
+                    win.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">');
+                    win.document.write('</head><body class="p-5">');
+                    win.document.write('<h2>' + this.mform.name + '</h2>');
+                    win.document.write('<p>' + this.mform.description + '</p>');
+                    win.document.write('<hr>');
+                    win.document.write(this.renderFormHTML());
+                    win.document.write('</body></html>');
+                    win.document.close();
+                },
+                
+                saveForm: function() {
+                    this.mform.updatedAt = new Date().toISOString();
+                    localStorage.setItem('mform_current', JSON.stringify(this.mform));
+                    this.showToast('Form saved to browser storage', 'success');
+                },
+                
+                getObjectConfigForDB: function(obj) {
+                    // Prepara o objeto para ser salvo em BD
+                    // Cada tipo de objeto tem seu config específico
+                    var config = {};
+                    
+                    if (obj.type === 'table' && obj.tableConfig) {
+                        config = {
+                            columns: obj.tableConfig.columns,
+                            dataSource: obj.tableConfig.dataSource,
+                            enablePagination: obj.tableConfig.enablePagination,
+                            pageSize: obj.tableConfig.pageSize,
+                            enableSearch: obj.tableConfig.enableSearch,
+                            enableSort: obj.tableConfig.enableSort,
+                            striped: obj.tableConfig.striped,
+                            bordered: obj.tableConfig.bordered,
+                            hover: obj.tableConfig.hover,
+                            enableRowClick: obj.tableConfig.enableRowClick,
+                            rowClickEvent: obj.tableConfig.rowClickEvent,
+                            rowStyleExpression: obj.tableConfig.rowStyleExpression,
+                            enableNestedGroups: obj.tableConfig.enableNestedGroups,
+                            groupByColumn: obj.tableConfig.groupByColumn,
+                            autoGenerateColumns: obj.tableConfig.autoGenerateColumns
+                        };
+                    } else if (obj.type === 'select') {
+                        config = {
+                            optionsQuery: obj.optionsQuery,
+                            valueField: obj.valueField,
+                            displayField: obj.displayField
+                        };
+                    } else if (obj.type === 'input' || obj.type === 'textarea' || obj.type === 'number') {
+                        config = {
+                            placeholder: obj.placeholder,
+                            defaultValue: obj.defaultValue
+                        };
+                    }
+                    
+                    return {
+                        mformcontaineritemobjectstamp: obj.mformcontaineritemobjectstamp,
+                        type: obj.type,
+                        name: obj.name,
+                        label: obj.label,
+                        required: obj.required,
+                        readonly: obj.readonly,
+                        visible: obj.visible,
+                        helpText: obj.helpText,
+                        cssClass: obj.cssClass,
+                        inlineStyle: obj.inlineStyle,
+                        events: obj.events,
+                        validationExpression: obj.validationExpression,
+                        validationMessage: obj.validationMessage,
+                        config: config  // Este é o JSON que vai para o campo configJson no BD
+                    };
+                },
+                
+                viewObjectJSON: function() {
+                    if (!this.selectedElement || this.selectedType !== 'object') {
+                        this.showToast('Select an object first', 'info');
+                        return;
+                    }
+                    
+                    var dbObject = this.getObjectConfigForDB(this.selectedElement);
+                    var jsonString = JSON.stringify(dbObject, null, 2);
+                    
+                    var win = window.open('', '_blank', 'width=800,height=600');
+                    win.document.write('<html><head><title>Object Configuration JSON</title>');
+                    win.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">');
+                    win.document.write('<style>');
+                    win.document.write('body { padding: 20px; background: #1e1e1e; color: #d4d4d4; font-family: "Consolas", "Courier New", monospace; }');
+                    win.document.write('pre { background: #2d2d30; padding: 20px; border-radius: 8px; border: 1px solid #3e3e42; overflow-x: auto; }');
+                    win.document.write('.copy-btn { position: fixed; top: 20px; right: 20px; }');
+                    win.document.write('.string { color: #ce9178; }');
+                    win.document.write('.number { color: #b5cea8; }');
+                    win.document.write('.boolean { color: #569cd6; }');
+                    win.document.write('.null { color: #569cd6; }');
+                    win.document.write('.key { color: #9cdcfe; }');
+                    win.document.write('</style>');
+                    win.document.write('</head><body>');
+                    win.document.write('<button class="btn btn-primary copy-btn" onclick="navigator.clipboard.writeText(document.getElementById(\'json\').innerText); alert(\'Copied to clipboard!\');"><i class="bi bi-clipboard"></i> Copy JSON</button>');
+                    win.document.write('<h3 style="color: #4ec9b0; margin-bottom: 20px;">' + this.selectedElement.type.toUpperCase() + ' Configuration</h3>');
+                    win.document.write('<pre id="json">' + this.syntaxHighlightJSON(jsonString) + '</pre>');
+                    win.document.write('<hr style="border-color: #3e3e42; margin: 30px 0;">');
+                    win.document.write('<h4 style="color: #4ec9b0;">Database Structure:</h4>');
+                    win.document.write('<p style="color: #858585;">Campo <strong style="color: #dcdcaa;">configJson</strong> (NVARCHAR(MAX) ou TEXT):</p>');
+                    win.document.write('<pre style="background: #252526; border-color: #007acc;">' + this.syntaxHighlightJSON(JSON.stringify(dbObject.config, null, 2)) + '</pre>');
+                    win.document.write('</body></html>');
+                    win.document.close();
+                },
+                
+                syntaxHighlightJSON: function(json) {
+                    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                        var cls = 'number';
+                        if (/^"/.test(match)) {
+                            if (/:$/.test(match)) {
+                                cls = 'key';
+                            } else {
+                                cls = 'string';
+                            }
+                        } else if (/true|false/.test(match)) {
+                            cls = 'boolean';
+                        } else if (/null/.test(match)) {
+                            cls = 'null';
+                        }
+                        return '<span class="' + cls + '">' + match + '</span>';
+                    });
+                },
+                
+                renderFormHTML: function() {
+                    var html = '<div class="container">';
+                    
+                    this.mform.containers.forEach(function(container) {
+                        html += '<div class="row mb-3">';
+                        
+                        container.items.forEach(function(item) {
+                            html += '<div class="col-md-' + item.bootstrapColumnSize + '">';
+                            
+                            item.objects.forEach(function(obj) {
+                                if (obj.type === 'input') {
+                                    html += '<div class="mb-3">';
+                                    if (obj.label) html += '<label class="form-label">' + obj.label + '</label>';
+                                    html += '<input type="text" class="form-control" placeholder="' + obj.placeholder + '" value="' + obj.defaultValue + '">';
+                                    html += '</div>';
+                                }
+                                // Add other types...
+                            });
+                            
+                            html += '</div>';
+                        });
+                        
+                        html += '</div>';
+                    });
+                    
+                    html += '</div>';
+                    return html;
+                },
+                
+                showToast: function(message, type) {
+                    var toast = $('<div class="toast ' + type + '"><i class="bi bi-check-circle"></i> ' + message + '</div>');
+                    $('#toastContainer').append(toast);
+                    
+                    setTimeout(function() {
+                        toast.fadeOut(function() {
+                            $(this).remove();
+                        });
+                    }, 3000);
+                }
+            },
+            
+            mounted: function() {
+                var self = this;
+                
+                // Load saved form if exists
+                var saved = localStorage.getItem('mform_current');
+                if (saved) {
+                    try {
+                        this.mform = new Mform(JSON.parse(saved));
+                    } catch (e) {
+                        console.error('Error loading saved form', e);
+                    }
+                }
+                
+                // Initialize Drag and Drop
+                this.$nextTick(function() {
+                    self.initializeDragDrop();
+                });
+            }
+        });
+
+        var vm = app.mount('#app');
+
+        // =====================================================================
+        // DRAG AND DROP INITIALIZATION (jQuery UI)
+        // =====================================================================
+
+        Vue.nextTick(function() {
+            setTimeout(function() {
+                initializeDragDrop();
+            }, 500);
+        });
+
+        function initializeDragDrop() {
+            // Make toolbox items draggable
+            $('.toolbox-item').draggable({
+                helper: 'clone',
+                revert: 'invalid',
+                cursor: 'move',
+                zIndex: 9999
+            });
+            
+            // Make containers (rows) sortable
+            $('.canvas-container').sortable({
+                items: '.mform-container',
+                handle: '.mform-container-drag-handle',
+                placeholder: 'ui-sortable-placeholder',
+                tolerance: 'pointer',
+                cursor: 'move',
+                update: function(event, ui) {
+                    var newOrder = [];
+                    $('.canvas-container .mform-container').each(function(index) {
+                        var stamp = $(this).attr('data-stamp') || vm.mform.containers[index].mformcontainerstamp;
+                        var container = vm.mform.containers.find(function(c) { return c.mformcontainerstamp === stamp; });
+                        if (container) newOrder.push(container);
+                    });
+                    vm.mform.containers = newOrder;
+                    vm.$forceUpdate();
+                    vm.showToast('Row reordered', 'success');
+                }
+            });
+            
+            // Make columns sortable within each row
+            $('.mform-container .row').each(function() {
+                var $row = $(this);
+                var containerIndex = $row.closest('.mform-container').index();
+                
+                $row.sortable({
+                    items: '.mform-container-item',
+                    handle: '.mform-container-item-drag-handle',
+                    placeholder: 'ui-sortable-placeholder',
+                    tolerance: 'pointer',
+                    cursor: 'move',
+                    update: function(event, ui) {
+                        var containerIndex = $(this).closest('.mform-container').index();
+                        var newOrder = [];
+                        $(this).find('.mform-container-item').each(function(index) {
+                            var itemIndex = $(this).attr('data-item-index');
+                            if (itemIndex !== undefined) {
+                                newOrder.push(vm.mform.containers[containerIndex].items[parseInt(itemIndex)]);
+                            }
+                        });
+                        if (newOrder.length > 0) {
+                            vm.mform.containers[containerIndex].items = newOrder;
+                            vm.$forceUpdate();
+                            vm.showToast('Column reordered', 'success');
+                        }
+                    }
+                });
+            });
+            
+            // Make objects sortable within each column
+            $('.mform-container-item').each(function() {
+                var $column = $(this);
+                
+                $column.sortable({
+                    items: '.mform-object',
+                    handle: '.mform-object-drag-handle',
+                    placeholder: 'ui-sortable-placeholder',
+                    tolerance: 'pointer',
+                    cursor: 'move',
+                    update: function(event, ui) {
+                        var $column = $(this);
+                        var containerIndex = $column.closest('.mform-container').index();
+                        var itemIndex = $column.index();
+                        var newOrder = [];
+                        
+                        $column.find('.mform-object').each(function() {
+                            var objectIndex = $(this).attr('data-object-index');
+                            if (objectIndex !== undefined) {
+                                var obj = vm.mform.containers[containerIndex].items[itemIndex].objects[parseInt(objectIndex)];
+                                if (obj) newOrder.push(obj);
+                            }
+                        });
+                        
+                        if (newOrder.length > 0) {
+                            vm.mform.containers[containerIndex].items[itemIndex].objects = newOrder;
+                            vm.$forceUpdate();
+                            vm.showToast('Element reordered', 'success');
+                        }
+                    }
+                });
+            });
+            
+            // Make canvas droppable for containers
+            $('.canvas-container').droppable({
+                accept: '.toolbox-item[data-type="container"]',
+                drop: function(event, ui) {
+                    var type = ui.draggable.data('type');
+                    if (type === 'container') {
+                        vm.addContainer();
+                        setTimeout(function() {
+                            initializeDragDrop();
+                        }, 100);
+                    }
+                },
+                over: function() {
+                    $(this).css('background', '#f0f4ff');
+                },
+                out: function() {
+                    $(this).css('background', 'white');
+                }
+            });
+            
+            // Make containers droppable for columns
+            $('.mform-container .row').droppable({
+                accept: '.toolbox-item[data-type="column"]',
+                drop: function(event, ui) {
+                    var type = ui.draggable.data('type');
+                    if (type === 'column') {
+                        var containerIndex = $(this).closest('.mform-container').index();
+                        var container = vm.mform.containers[containerIndex];
+                        if (container) {
+                            var newColumn = new MformContainerItem({bootstrapColumnSize: 6});
+                            container.items.push(newColumn);
+                            vm.$forceUpdate();
+                            setTimeout(function() {
+                                initializeDragDrop();
+                            }, 100);
+                        }
+                    }
+                },
+                greedy: true
+            });
+            
+            // Make table columns sortable in properties panel
+            $('.property-group .mform-table-columns-list').sortable({
+                items: '> div[style*="border: 1px solid"]',
+                handle: '.bi-grip-vertical',
+                placeholder: 'ui-sortable-placeholder',
+                tolerance: 'pointer',
+                cursor: 'move',
+                update: function(event, ui) {
+                    if (vm.selectedElement && vm.selectedElement.tableConfig && vm.selectedElement.tableConfig.columns) {
+                        var newOrder = [];
+                        $(this).find('> div[style*="border: 1px solid"]').each(function(index) {
+                            var colIndex = $(this).attr('data-col-index');
+                            if (colIndex !== undefined) {
+                                newOrder.push(vm.selectedElement.tableConfig.columns[parseInt(colIndex)]);
+                            }
+                        });
+                        if (newOrder.length > 0) {
+                            vm.selectedElement.tableConfig.columns = newOrder;
+                            vm.updateColumnOrder();
+                            vm.$forceUpdate();
+                            vm.showToast('Table column reordered', 'success');
+                        }
+                    }
+                }
+            });
+            
+            // Make columns droppable for objects
+            $('.mform-container-item').droppable({
+                accept: '.toolbox-item[data-type="input"], .toolbox-item[data-type="textarea"], .toolbox-item[data-type="select"], .toolbox-item[data-type="number"], .toolbox-item[data-type="date"], .toolbox-item[data-type="checkbox"], .toolbox-item[data-type="button"], .toolbox-item[data-type="table"], .toolbox-item[data-type="div"]',
+                drop: function(event, ui) {
+                    var type = ui.draggable.data('type');
+                    var $column = $(this);
+                    var containerIndex = $column.closest('.mform-container').index();
+                    var itemIndex = $column.index();
+                    
+                    var container = vm.mform.containers[containerIndex];
+                    if (container && container.items[itemIndex]) {
+                        var newObject = new MformContainerItemObject({
+                            type: type,
+                            name: type + '_' + Date.now(),
+                            label: type.charAt(0).toUpperCase() + type.slice(1)
+                        });
+                        container.items[itemIndex].objects.push(newObject);
+                        vm.$forceUpdate();
+                        vm.showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' added', 'success');
+                        setTimeout(function() {
+                            initializeDragDrop();
+                        }, 100);
+                    }
+                },
+                over: function() {
+                    $(this).addClass('drop-target');
+                },
+                out: function() {
+                    $(this).removeClass('drop-target');
+                },
+                greedy: true
+            });
+        }
+
+        // Re-initialize drag drop when Vue updates
+        setInterval(function() {
+            if ($('.toolbox-item').length > 0 && !$('.toolbox-item').hasClass('ui-draggable')) {
+                initializeDragDrop();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

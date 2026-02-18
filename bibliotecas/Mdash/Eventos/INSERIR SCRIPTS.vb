@@ -28,6 +28,9 @@ Try
     Dim registoJSON as String="<textarea style='display:none' id='registoJson' name='registoJson' type='text'></textarea>"
     scriptJs+="<link href='https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded' rel='stylesheet' />"
 
+scriptJs+="<link rel='stylesheet' href='https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css'>"
+scriptJs+="<script src='https://code.jquery.com/ui/1.13.2/jquery-ui.min.js'></script>"
+
 
     html+=registoJSON
 

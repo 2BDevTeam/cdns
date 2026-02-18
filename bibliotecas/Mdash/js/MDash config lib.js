@@ -515,7 +515,13 @@ function actualizarConfiguracaoMDashboard() {
 
 
 $(document).ready(function () {
-    
+    $(document).on('click', '.home-collapse-header', function () {
+        $(this).find(".glyphicon").toggleClass("glyphicon-triangle-bottom");
+        //$(this).next("div").css("hidden");
+        $(this).next("div").toggleClass("hidden");
+
+    });
+
     // Add global styles
     var styles = [];
     getDashboardDefaultStyles(styles);
@@ -531,13 +537,8 @@ $(document).ready(function () {
     $('head').append('<style>' + globalStyle + '</style>');
 
 
-    $(document).on('click', '.home-collapse-header', function () {
-        $(this).find(".glyphicon").toggleClass("glyphicon-triangle-bottom");
-        //$(this).next("div").css("hidden");
-        $(this).next("div").toggleClass("hidden");
-
-    });
     
+
 
     registerListenersMdash()
 });
