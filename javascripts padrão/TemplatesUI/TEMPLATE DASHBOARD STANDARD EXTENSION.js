@@ -2072,7 +2072,7 @@ function createTableSchema(data) {
                     enabled: {
                         type: "boolean",
                         title: "Ativar Estrutura Hierárquica",
-                        'default': true
+                        'default': false
                     },
                     parentField: {
                         type: "string",
@@ -2090,6 +2090,51 @@ function createTableSchema(data) {
                         type: "boolean",
                         title: "Expandir Tudo Inicialmente",
                         'default': true
+                    }
+                }
+            },
+            // Configurações de Exportação
+            exportOptions: {
+                type: "object",
+                title: "Opções de Exportação",
+                properties: {
+                    enableExcel: {
+                        type: "boolean",
+                        title: "Ativar Exportação Excel",
+                        'default': true
+                    },
+                    enablePDF: {
+                        type: "boolean",
+                        title: "Ativar Exportação PDF",
+                        'default': true
+                    },
+                    excelFileName: {
+                        type: "string",
+                        title: "Nome do Arquivo Excel",
+                        'default': "dados.xlsx"
+                    },
+                    pdfFileName: {
+                        type: "string",
+                        title: "Nome do Arquivo PDF",
+                        'default': "dados.pdf"
+                    },
+                    buttonStyle: {
+                        type: "object",
+                        title: "Estilo dos Botões",
+                        properties: {
+                            excelColor: {
+                                type: "string",
+                                title: "Cor do Botão Excel",
+                                'enum': ["success", "primary", "info", "warning", "danger"],
+                                'default': "success"
+                            },
+                            pdfColor: {
+                                type: "string",
+                                title: "Cor do Botão PDF",
+                                'enum': ["danger", "primary", "info", "warning", "success"],
+                                'default': "danger"
+                            }
+                        }
                     }
                 }
             },
@@ -2320,11 +2365,19 @@ function buildDataTree(data, parentField, childField) {
 // Função para atualizar a tabela Tabulator - COM APLICAÇÃO DE CORES
 function updateTable(containerSelector, itemObject, config, data) {
     var tabelaId = 'tabulator-table-' + itemObject.mdashcontaineritemobjectstamp;
+    var exportButtonsId = 'export-buttons-' + itemObject.mdashcontaineritemobjectstamp;
+    var tabulatorInstance; // Guardar referência da instância
+    
     try {
         // Destruir tabela existente se houver
         var existingTable = document.getElementById(tabelaId);
         if (existingTable) {
             existingTable.innerHTML = '';
+        }
+        // Remover botões de exportação anteriores se existirem
+        var existingButtons = document.getElementById(exportButtonsId);
+        if (existingButtons) {
+            existingButtons.remove();
         }
         // APLICAR CORES DO CABEÇALHO DINAMICAMENTE
         if (config.styling) {
@@ -2402,6 +2455,33 @@ function updateTable(containerSelector, itemObject, config, data) {
         // ... resto da função igual (container, eventos, etc.)
         // Criar container da tabela com botões de exportação
         var tableContainer = $(containerSelector);
+        
+        // Criar botões de exportação se habilitados
+        if (config.exportOptions && (config.exportOptions.enableExcel || config.exportOptions.enablePDF)) {
+            var exportButtonsHTML = '<div id="' + exportButtonsId + '" style="margin-bottom: 10px; display: flex; gap: 10px; justify-content: flex-end;">';
+            
+            if (config.exportOptions.enableExcel !== false) {
+                var excelColor = config.exportOptions.buttonStyle && config.exportOptions.buttonStyle.excelColor || 'success';
+                exportButtonsHTML += '<button type="button" id="export-excel-' + itemObject.mdashcontaineritemobjectstamp + '" ';
+                exportButtonsHTML += 'class="btn btn-' + excelColor + '" ';
+                exportButtonsHTML += 'style="padding: 8px 16px; border-radius: 4px; font-weight: 500; transition: all 0.3s;">';
+                exportButtonsHTML += '<i class="fa fa-file-excel-o" style="margin-right: 5px;"></i> Exportar Excel';
+                exportButtonsHTML += '</button>';
+            }
+            
+            if (config.exportOptions.enablePDF !== false) {
+                var pdfColor = config.exportOptions.buttonStyle && config.exportOptions.buttonStyle.pdfColor || 'danger';
+                exportButtonsHTML += '<button type="button" id="export-pdf-' + itemObject.mdashcontaineritemobjectstamp + '" ';
+                exportButtonsHTML += 'class="btn btn-' + pdfColor + '" ';
+                exportButtonsHTML += 'style="padding: 8px 16px; border-radius: 4px; font-weight: 500; transition: all 0.3s;">';
+                exportButtonsHTML += '<i class="fa fa-file-pdf-o" style="margin-right: 5px;"></i> Exportar PDF';
+                exportButtonsHTML += '</button>';
+            }
+            
+            exportButtonsHTML += '</div>';
+            tableContainer.append(exportButtonsHTML);
+        }
+        
         tableContainer.append('<div id="' + tabelaId + '"></div>');
         tabulatorConfig.langs = {
             "pt-br": {
@@ -2445,7 +2525,33 @@ function updateTable(containerSelector, itemObject, config, data) {
         },
             tabulatorConfig.locale = "pt-br";
         // Inicializar Tabulator
-        new Tabulator('#' + tabelaId, tabulatorConfig);
+        tabulatorInstance = new Tabulator('#' + tabelaId, tabulatorConfig);
+        
+        // Adicionar eventos aos botões de exportação
+        if (config.exportOptions) {
+            if (config.exportOptions.enableExcel !== false) {
+                $('#export-excel-' + itemObject.mdashcontaineritemobjectstamp).on('click', function() {
+                    var fileName = config.exportOptions.excelFileName || 'dados.xlsx';
+                    tabulatorInstance.download("xlsx", fileName, {sheetName: "Dados"});
+                });
+            }
+            
+            if (config.exportOptions.enablePDF !== false) {
+                $('#export-pdf-' + itemObject.mdashcontaineritemobjectstamp).on('click', function() {
+                    var fileName = config.exportOptions.pdfFileName || 'dados.pdf';
+                    tabulatorInstance.download("pdf", fileName, {
+                        orientation: "landscape",
+                        title: "Relatório de Dados",
+                        autoTable: {
+                            styles: {
+                                fillColor: [100, 100, 100]
+                            },
+                            margin: { top: 30 }
+                        }
+                    });
+                });
+            }
+        }
     } catch (e) {
         console.error('Erro ao atualizar tabela:', e);
     }
