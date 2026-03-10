@@ -305,8 +305,6 @@ function Mrend(options) {
         this.usaexpresstbjs = data.usaexpresstbjs || false;
         this.usaexpressrubdesc = data.usaexpressrubdesc || false;
         this.expressaojsrubdesc = data.expressaojsrubdesc || "";
-        this.usaexpressaocoldesc = data.usaexpressaocoldesc || false;
-        this.expresssaojscoldesc = data.expresssaojscoldesc || "";
 
         this.condicattr = data.condicattr || false;
         this.condicattrexpr = data.condicattrexpr || "";
@@ -380,7 +378,7 @@ function Mrend(options) {
 
         }
 
-        this.fxdata = new FXData({});
+        this.fxdata = new FXData({})
 
     }
 
@@ -3285,8 +3283,10 @@ function Mrend(options) {
 
 
         if (!linhaRecord) {
-            // Constrói registo vazio a partir dos campos de MrendObject
-            linhaRecord = new MrendObject({});
+            // Constrói registo vazio a partir do array de schemas (lista de campos)
+            linhaRecord = {};
+            var schemaFields = Array.isArray(mrendThis.schemas) ? mrendThis.schemas : [];
+            schemaFields.forEach(function(field) { linhaRecord[field] = ""; });
             cellId = generateUUID();
             novoRegisto = true;
         }
@@ -3370,13 +3370,14 @@ function Mrend(options) {
         return new Promise(function (resolve, reject) {
             mrendThis.db = new Dexie(datasourceName);
 
-            // Deriva os campos do schema a partir de MrendObject — ignora o array schemas
-            // (que contém MrendSchema wrappers vazios usados para outro fim)
-            // cellId é a chave primária; os restantes campos de MrendObject são indexes secundários
-            var mrendObjectFields = Object.keys(new MrendObject({}));
-            var primaryKey = "cellId";
-            var secondaryIndexes = mrendObjectFields.filter(function (f) { return f !== primaryKey; });
-            var schemaFields = [primaryKey].concat(secondaryIndexes);
+            // schemas é um array plano de strings: ["pk", "campo1", "campo2", ...]
+            var schemaFields;
+            if (schemas && schemas.length > 0) {
+                schemaFields = schemas;
+            } else {
+                var tableKey = mrendThis.dbTableToMrendObject.tableKey || "";
+                schemaFields = tableKey ? [tableKey] : [];
+            }
 
             return configureDataBase(mrendThis.db, mrendThis.tableSourceName, 1, schemaFields).then(function (result) {
                 mrendThis.db = result;
@@ -3409,7 +3410,9 @@ function Mrend(options) {
         window.localStorage.setItem("stampregisto", stampregisto)
     }
     function storeDataSourceStamp(sourceStamp) {
-        window.localStorage.setItem("sourcestamp_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName, (sourceStamp || "").trim())
+
+
+        window.localStorage.setItem("sourcestamp_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName, sourceStamp.trim())
     }
 
     function clearStamps() {
@@ -3465,11 +3468,11 @@ function Mrend(options) {
 
     function addBulkData(db, tableName, dataArray) {
 
+        console.log("addBulkData", tableName, mrendThis.db[tableName], mrendThis.db['_allTables'][tableName]);
         if (!mrendThis.db[tableName]) {
             console.error("addBulkData: tabela '" + tableName + "' não existe no Dexie. Tabelas registadas:", Object.keys(mrendThis.db['_allTables'] || {}));
             return Promise.reject(new Error("Tabela '" + tableName + "' não encontrada no Dexie."));
         }
-
         return mrendThis.db[tableName].bulkPut(dataArray);
 
     }
@@ -3484,7 +3487,7 @@ function Mrend(options) {
                 url: mrendThis.remoteFetchData.url,
                 data: mrendThis.remoteFetchData.data,
                 success: function (response) {
-                    console.log("Data fetched from remote:", response);
+
                     resolve(response);
                 },
                 error: function (error) {
@@ -3878,7 +3881,7 @@ function Mrend(options) {
     }
 
 
-    function isInactivo(cell, renderedColuna, colunaUIConfig, rowData) {
+    function isInactivo(cell, renderedColuna, colunaUIConfig,rowData) {
 
         var condicAttrResult = ""
         if (renderedColuna.condicattr) {
@@ -3926,7 +3929,7 @@ function Mrend(options) {
 
         if (condicinactivo) {
             var resultCondicInactivo = eval(celula.condicinactexpr);
-
+            
             if (resultCondicInactivo) {
                 return ""
             }
@@ -3958,7 +3961,7 @@ function Mrend(options) {
 
                 var checkboxContainer = document.createElement("div");
                 checkboxContainer.style.textAlign = colunaConfig.alinhamento;
-                var inactivo = isInactivo(cell, colunaConfig, colunaUIConfig, rowData);
+                var inactivo = isInactivo(cell, colunaConfig, colunaUIConfig,rowData);
 
                 var checkbox = document.createElement("input");
                 checkbox.type = "checkbox";
@@ -4402,16 +4405,8 @@ function Mrend(options) {
     function addTabulatorColumns(colunas, columns) {
 
         colunas.forEach(function (coluna) {
-            var colunaTitle = coluna.desccoluna;
-            if (coluna.config.usaexpressaocoldesc && coluna.config.expresssaojscoldesc) {
-                try {
-                    colunaTitle = eval(coluna.config.expresssaojscoldesc);
-                } catch (e) {
-                    console.error("Erro ao avaliar expresssaojscoldesc para coluna " + coluna.codigocoluna, e);
-                }
-            }
             var colunaUIConfig = {
-                title: colunaTitle,
+                title: coluna.desccoluna,
                 field: coluna.codigocoluna,
                 width: coluna.config.tamanho,
                 hozAlign: coluna.config.alinhamento,
@@ -4631,9 +4626,8 @@ function Mrend(options) {
             "font-family": "Nunito, sans-serif",
             "color": "#161616",
             "zoom": "0.75",
-            "padding-bottom": "30px",
-            "overflow-x": "auto",
-            "max-width": "100%"
+            "padding-bottom": "30px"
+            //"transform-origin": "top left",
         });
 
         var botaoId = "btn-zoom-in-" + generateUUID();
@@ -4795,8 +4789,7 @@ function Mrend(options) {
                 }
             }
         ];
-        var addedToColGroup = [];
-        var sortableEntries = [];
+        var addedToColGroup = []
 
         grupoColuna.forEach(function (grupo) {
 
@@ -4804,8 +4797,7 @@ function Mrend(options) {
 
                 title: grupo.descgrupo,
                 frozen: grupo.fixa,
-                columns: [],
-                _minOrdem: Infinity
+                columns: []
             };
 
             var grupoColumnItems = grupoColunaItems.filter(function (objColumnItem) {
@@ -4832,24 +4824,20 @@ function Mrend(options) {
                     });
 
                     if (colDefinition) {
-                        colDefinition.frozen = false;
+                        colDefinition.frozen = false
                         tmpGrupoColunaDefinition.columns.push(colDefinition);
                         addedToColGroup.push(colDefinition);
-
-                        if (colunaCnfgFound.ordem < tmpGrupoColunaDefinition._minOrdem) {
-                            tmpGrupoColunaDefinition._minOrdem = colunaCnfgFound.ordem;
-                        }
                     }
 
                 }
 
-            });
+            })
 
-            sortableEntries.push({ ordem: tmpGrupoColunaDefinition._minOrdem, def: tmpGrupoColunaDefinition });
+            columnsDefinition.push(tmpGrupoColunaDefinition);
 
         });
 
-        columns.forEach(function (cl) {
+        columns.map(function (cl) {
 
             var addedToColGroupResult = addedToColGroup.find(function (colDef) {
                 return colDef.field === cl.field;
@@ -4857,22 +4845,10 @@ function Mrend(options) {
 
             if (!addedToColGroupResult) {
 
-                var colunaCnfg = colunasCnfg.find(function (c) {
-                    return c.codigocoluna === cl.field;
-                });
-                var ordemCl = colunaCnfg ? colunaCnfg.ordem : 9999;
-                sortableEntries.push({ ordem: ordemCl, def: cl });
+                columnsDefinition.push(cl);
             }
 
-        });
-
-        sortableEntries.sort(function (a, b) {
-            return a.ordem - b.ordem;
-        });
-
-        sortableEntries.forEach(function (entry) {
-            columnsDefinition.push(entry.def);
-        });
+        })
 
 
         mrendThis.GTable = new Tabulator(mrendThis.containerToRender, {
@@ -4881,8 +4857,7 @@ function Mrend(options) {
             dataTreeStartExpanded: true,
             dataTreeChildIndent: 25,
             popupContainer: "body",
-            layout: "fitData",
-            columnHeaderVertAlign: "bottom",
+            layout: "fitDataStretch",
             height: "400px", // altura fixa para ativar scroll e fixar cabeçalho
             rowFormatter: function (row) {
 
@@ -5539,7 +5514,6 @@ function Mrend(options) {
             return databaseAndTableHasRecords(mrendThis.db, mrendThis.tableSourceName)
                 .then(function (result) {
 
-                    console.log("Comparing source stamps...", { stampAtual: stampAtual, stampArmazenado: stampArmazenado });
                     if (stampAtual === stampArmazenado) {
                         mrendThis.records = result.data || [];
                         return resolve({ refetchDb: false, records: result.data || [] });
@@ -5553,7 +5527,7 @@ function Mrend(options) {
 
                         return getDataFromRemote()
                             .then(function (remoteData) {
-                                console.log("Remote data fetched successfully.........", remoteData);
+                                console.log("Remote data fetched successfully.........DNELSE", remoteData);
                                 mrendThis.records = remoteData && remoteData.data ? remoteData.data : [];
                                 return resolve({ refetchDb: true, records: mrendThis.records, remoteFetch: true });
                             })
@@ -5568,12 +5542,11 @@ function Mrend(options) {
             return new Promise(function (resolve, reject) {
 
                 if (result.refetchDb) {
-                    console.log("Updating local database with new records...", result.records.length);
-                    return deleteAllRecords(mrendThis.tableSourceName).then(function (data) {
+                    return deleteAllRecords(mrendThis.table).then(function (data) {
 
                         var dbConverstion = ConvertDbTableToMrendObject(mrendThis.records, mrendThis.dbTableToMrendObject);
                         mrendThis.records = dbConverstion;
-                        return addBulkData(mrendThis.db, mrendThis.tableSourceName, dbConverstion).then(function (data) {
+                        return addBulkData(mrendThis.db, mrendThis.table, dbConverstion).then(function (data) {
                             return resolve(result);
                         })
                     })
@@ -6164,66 +6137,60 @@ function Mrend(options) {
             "border": "none"
         });
 
-        // Header — base
-        var headerBg = customStyles.headerBackground ? customStyles.headerBackground : getColorByType("primary").background;
+        // Header
 
+        $(".tabulator .tabulator-header .tabulator-col .tabulator-col-content").css({
+            "padding": "1px"
+        });
         $(".tabulator .tabulator-header").css({
-            "background-color": headerBg,
+            "background-color": customStyles.headerBackground ? customStyles.headerBackground : getColorByType("primary").background,
             "border-bottom": "none",
             "border-radius": "10px 10px 0 0",
             "padding": "0px",
             "font-size": "14px",
             "font-family": "Nunito, sans-serif",
             "font-weight": "bold",
+            "height": "75px",
         });
 
-        // Todas as colunas (base comum)
+        /* $(".tabulator .tabulator-col-resize-handle").css({
+             
+             "border": "6px solid red"
+         });*/
+
+
+        // Header columns
         $(".tabulator .tabulator-header .tabulator-col").css({
-            "background-color": headerBg,
+            "background-color": customStyles.headerBackground ? customStyles.headerBackground : getColorByType("primary").background,
             "color": "white",
+            "border-right": "none",
             "border-right": "1px solid rgba(255, 255, 255, 0.2)",
-            "font-weight": "500",
-            "box-sizing": "border-box",
+            /*  "padding": "12px 15px",*/
+            "font-weight": "500"
         });
 
-        // Col-content das colunas simples (sem grupo): padding normal
-        $(".tabulator .tabulator-header .tabulator-col:not(.tabulator-col-group) > .tabulator-col-content").css({
-            "padding": "10px 10px",
-            "display": "flex",
-            "align-items": "center",
-            "min-height": "38px",
-        });
 
-        // ── Column GROUPS — injectado via <style> para sobrepor height inline do Tabulator ──
-        var existingGroupStyle = document.getElementById("mrend-colgroup-styles");
-        if (existingGroupStyle) existingGroupStyle.remove();
-        var groupStyle = document.createElement("style");
-        groupStyle.id = "mrend-colgroup-styles";
-        groupStyle.innerHTML = [
-            ".tabulator .tabulator-header .tabulator-col-group { overflow: visible !important; }",
-            ".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content { height: 30px !important; min-height: 30px !important; overflow: visible !important; padding: 0 10px !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; box-sizing: border-box !important; display: flex !important; align-items: center !important; justify-content: center !important; }",
-            ".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content .tabulator-col-title { font-size: 12px !important; font-weight: 700 !important; letter-spacing: 0.8px !important; text-transform: none !important; white-space: nowrap !important; color: white !important; }",
-            ".tabulator .tabulator-header .tabulator-col-group-cols { overflow: visible !important; }",
-            ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col { overflow: visible !important; }",
-            ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col > .tabulator-col-content { height: 42px !important; min-height: 42px !important; padding: 16px 10px 6px 10px !important; box-sizing: border-box !important; display: flex !important; align-items: center !important; justify-content: flex-start !important; overflow: visible !important; }",
-            ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col .tabulator-col-title { font-size: 12px !important; font-weight: 500 !important; white-space: nowrap !important; color: rgba(255,255,255,0.95) !important; line-height: 1.4 !important; align-self: center !important; }",
-        ].join("\n");
-        document.head.appendChild(groupStyle);
-        // ─────────────────────────────────────────────────────────────
 
-        $(".tabulator .tabulator-header .tabulator-col:first-child").css("border-top-left-radius", "10px");
+        /* $(".tabulator .tabulator-header .tabulator-col").css({
+             "background-color": customStyles.headerBackground ? customStyles.headerBackground : "#0765b7",
+             "color": "white",
+             "border-right": "1px solid rgba(255, 255, 255, 0.2)",
+             "padding": "12px 15px",
+             "font-weight": "500"
+         });*/
+
         $(".tabulator .tabulator-header .tabulator-col:last-child").css({
             "border-top-right-radius": "10px",
             "border-right": "none"
         });
 
+        $(".tabulator .tabulator-header .tabulator-col:first-child").css("border-top-left-radius", "10px");
+        $(".tabulator .tabulator-header .tabulator-col:last-child").css("border-top-right-radius", "10px");
+
         // Rows
         $(".tabulator-row").css({
             "border-bottom": "0px solid #e0e6ed",
-            "transition": "background-color 0.2s ease",
-            "min-height": "48px",
-            "height": "auto",
-            "overflow": "visible"
+            "transition": "background-color 0.2s ease"
         });
 
         $(".tabulator .tabulator-header .tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid red");
@@ -6232,9 +6199,7 @@ function Mrend(options) {
         // Cells
         $(".tabulator-cell").css({
             "padding": "12px 15px",
-            "border-right": "none",
-            "height": "auto",
-            "overflow": "visible"
+            "border-right": "none"
         });
 
         // Botão adicionar
@@ -6307,12 +6272,12 @@ function Mrend(options) {
             "border": "1px solid #2975dd",
             "border-radius": "2px",
             "display": "inline-flex",
-            "height": "18px",
+            "height": "11px",
             "justify-content": "center",
             "margin-right": "5px",
-            "overflow": "visible",
+            //"overflow": "hidden",
             "vertical-align": "middle",
-            "width": "18px"
+            "width": "11px"
         });
 
         $(".tabulator-tree-collapse, .tabulator-tree-expand").css({
@@ -6383,66 +6348,6 @@ function Mrend(options) {
                 return reject(error);
             })
 
-        });
-
-    }
-
-    this.getDbDataToSchema = function () {
-
-        return new Promise(function (resolve, reject) {
-            mrendThis.db[mrendThis.tableSourceName].toArray().then(function (records) {
-
-                var mrendInternalKeys = Object.keys(new MrendObject({}));
-                var distinctSources = getDistinctWithKeys(records, "sourceTable");
-                var sources = [];
-
-                distinctSources.forEach(function (source) {
-
-                    var sourceRecords = records.filter(function (r) {
-                        return r.sourceTable === source.sourceTable;
-                    });
-
-                    var distinctRows = getDistinctWithKeys(sourceRecords, "rowid");
-                    var tableData = [];
-
-                    distinctRows.forEach(function (row) {
-
-                        var rowCells = sourceRecords.filter(function (cell) {
-                            return cell.rowid === row.rowid;
-                        });
-
-                        var tableRow = {};
-                        tableRow[source.sourceKey] = row.sourceKeyValue;
-
-                        rowCells.forEach(function (cell) {
-                            var val = cell[cell.campo];
-                            tableRow[cell.coluna] = val !== undefined ? val : "";
-                        });
-
-                        // Incluir campos extra que não sejam campos internos do MrendObject
-                        var firstCell = rowCells[0] || {};
-                        Object.keys(firstCell).forEach(function (key) {
-                            if (mrendInternalKeys.indexOf(key) === -1 && tableRow[key] === undefined) {
-                                tableRow[key] = firstCell[key];
-                            }
-                        });
-
-                        tableData.push(tableRow);
-                    });
-
-                    sources.push({
-                        sourceTable: source.sourceTable,
-                        sourceKey: source.sourceKey,
-                        records: tableData
-                    });
-                });
-
-                return resolve(sources);
-
-            }).catch(function (error) {
-                console.error("Erro ao obter dados do schema:", error);
-                return reject(error);
-            });
         });
 
     }
@@ -6556,9 +6461,6 @@ $(document).ready(function () {
     cssContent += "    border-bottom: 0px solid #e0e6ed!important;";
     cssContent += "    transition: background-color 0.2s ease!important;";
     cssContent += "    background-color: white;";
-    cssContent += "    min-height: 48px!important;";
-    cssContent += "    height: auto!important;";
-    cssContent += "    overflow: visible!important;";
     cssContent += "}";
 
     cssContent += ".tabulator .tabulator-col-resize-handle:hover {"
@@ -6591,14 +6493,14 @@ $(document).ready(function () {
     cssContent += "accent-color: " + getColorByType("warning").background + "!important;";
     cssContent += "transform: scale(1.7)!important;";
     cssContent += "}";
-    cssContent += ".tabulator-data-tree-control{ "
-    cssContent += "width:20px!important;"
-    cssContent += "height:20px!important;"
-    cssContent += "}"
-    cssContent += ".tabulator-row .tabulator-cell .tabulator-data-tree-control .tabulator-data-tree-control-collapse:after{"
-    cssContent += "font-size:16px!important;"
-    cssContent += "color:#3f5670!important;";
-    cssContent += "}"
+    cssContent+=".tabulator-data-tree-control{ "
+    cssContent+="width:20px!important;"
+    cssContent+="height:20px!important;"
+    cssContent+="}"
+    cssContent+=".tabulator-row .tabulator-cell .tabulator-data-tree-control .tabulator-data-tree-control-collapse:after{"
+    cssContent+="font-size:16px!important;"
+    cssContent+="color:#3f5670!important;";
+    cssContent+="}"
 
     $('head').append('<style>' + cssContent + '</style>');
     loadAssetsWithGetScript();
@@ -6683,92 +6585,37 @@ function applyTabulatorStylesWithJquery() {
         "border": "none"
     });
 
-    // Header — base
-    var headerBg = customStyles.headerBackground ? customStyles.headerBackground : "#0765b7";
-
+    // Header
     $(".tabulator .tabulator-header").css({
-        "background-color": headerBg,
+        "background-color": customStyles.headerBackground ? customStyles.headerBackground : "#0765b7",
         "border-bottom": "none",
         "border-radius": "10px 10px 0 0",
-        "padding": "0px",
-        "font-size": "14px",
-        "font-family": "Nunito, sans-serif",
-        "font-weight": "bold",
+        "padding": "13px"
     });
 
-    // Todas as colunas (base comum)
+    // Header columns
     $(".tabulator .tabulator-header .tabulator-col").css({
-        "background-color": headerBg,
+        "background-color": customStyles.headerBackground ? customStyles.headerBackground : "#0765b7",
         "color": "white",
-        "border-right": "1px solid rgba(255, 255, 255, 0.2)",
-        "font-weight": "500",
-        "box-sizing": "border-box",
+        "border-right": "none",
+        /*  "padding": "12px 15px",*/
+        "font-weight": "500"
     });
-
-    // Col-content das colunas simples (sem grupo): padding normal
-    $(".tabulator .tabulator-header .tabulator-col:not(.tabulator-col-group) > .tabulator-col-content").css({
-        "padding": "10px 10px",
-        "display": "flex",
-        "align-items": "center",
-        "min-height": "38px",
-    });
-
-    // ── Column GROUPS ────────────────────────────────────────────
-    // Título do grupo (linha de cima)
-    $(".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content").css({
-        "padding": "7px 10px 5px",
-        "min-height": "34px",
-        "display": "flex",
-        "align-items": "center",
-        "justify-content": "center",
-        "border-bottom": "1px solid rgba(255,255,255,0.35)",
-    });
-    $(".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content .tabulator-col-title").css({
-        "text-align": "center",
-        "font-size": "12px",
-        "font-weight": "700",
-        "letter-spacing": "0.5px",
-        "text-transform": "none",
-        "white-space": "nowrap",
-        "color": "white",
-    });
-
-    // ── Column GROUPS — injectado via <style> para sobrepor height inline do Tabulator ──
-    var existingGroupStyle2 = document.getElementById("mrend-colgroup-styles");
-    if (existingGroupStyle2) existingGroupStyle2.remove();
-    var groupStyle2 = document.createElement("style");
-    groupStyle2.id = "mrend-colgroup-styles";
-    groupStyle2.innerHTML = [
-        ".tabulator .tabulator-header .tabulator-col-group { overflow: visible !important; }",
-        ".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content { height: 30px !important; min-height: 30px !important; overflow: visible !important; padding: 0 10px !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; box-sizing: border-box !important; display: flex !important; align-items: center !important; justify-content: center !important; }",
-        ".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content .tabulator-col-title { font-size: 12px !important; font-weight: 700 !important; letter-spacing: 0.8px !important; text-transform: none !important; white-space: nowrap !important; color: white !important; }",
-        ".tabulator .tabulator-header .tabulator-col-group-cols { overflow: visible !important; }",
-        ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col { overflow: visible !important; }",
-        ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col > .tabulator-col-content { height: 42px !important; min-height: 42px !important; padding: 16px 10px 6px 10px !important; box-sizing: border-box !important; display: flex !important; align-items: center !important; justify-content: flex-start !important; overflow: visible !important; }",
-        ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col .tabulator-col-title { font-size: 12px !important; font-weight: 500 !important; white-space: nowrap !important; color: rgba(255,255,255,0.95) !important; line-height: 1.4 !important; align-self: center !important; }",
-    ].join("\n");
-    document.head.appendChild(groupStyle2);
-    // ─────────────────────────────────────────────────────────────
 
     $(".tabulator .tabulator-header .tabulator-col:first-child").css("border-top-left-radius", "10px");
-    $(".tabulator .tabulator-header .tabulator-col:last-child").css({
-        "border-top-right-radius": "10px",
-        "border-right": "none"
-    });
+    $(".tabulator .tabulator-header .tabulator-col:last-child").css("border-top-right-radius", "10px");
 
     // Rows
     $(".tabulator-row").css({
         "border-bottom": "1px solid #e0e6ed",
-        "transition": "background-color 0.2s ease",
-        "min-height": "48px",
-        "height": "auto",
-        "overflow": "visible"
+        "transition": "background-color 0.2s ease"
     });
     // $(".tabulator-row.tabulator-row-even").css("background-color", "#fcfdfe");
-    /* $(".tabulator-row").hover(
+    $(".tabulator-row")/*.hover(
         function () { $(this).css("background-color", "#f5f9ff"); },
         function () { $(this).css("background-color", ""); }
-    ); */
+    );*/
+
     $(".tabulator .tabulator-header .tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid red");
     $(".tabulator-row .tabulator-cell.tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid #0000");
 
@@ -6776,9 +6623,7 @@ function applyTabulatorStylesWithJquery() {
     // Cells
     $(".tabulator-cell").css({
         "padding": "12px 15px",
-        "border-right": "none",
-        "height": "auto",
-        "overflow": "visible"
+        "border-right": "none"
     });
 
     // Botão adicionar
@@ -6854,12 +6699,12 @@ function applyTabulatorStylesWithJquery() {
         "border": "1px solid #2975dd",
         "border-radius": "2px",
         "display": "inline-flex",
-        "height": "18px",
+        "height": "11px",
         "justify-content": "center",
         "margin-right": "5px",
-        "overflow": "visible",
+        "overflow": "hidden",
         "vertical-align": "middle",
-        "width": "18px"
+        "width": "11px"
     });
 
     $(".tabulator-tree-collapse, .tabulator-tree-expand").css({

@@ -305,8 +305,6 @@ function Mrend(options) {
         this.usaexpresstbjs = data.usaexpresstbjs || false;
         this.usaexpressrubdesc = data.usaexpressrubdesc || false;
         this.expressaojsrubdesc = data.expressaojsrubdesc || "";
-        this.usaexpressaocoldesc = data.usaexpressaocoldesc || false;
-        this.expresssaojscoldesc = data.expresssaojscoldesc || "";
 
         this.condicattr = data.condicattr || false;
         this.condicattrexpr = data.condicattrexpr || "";
@@ -380,7 +378,7 @@ function Mrend(options) {
 
         }
 
-        this.fxdata = new FXData({});
+        this.fxdata = new FXData({})
 
     }
 
@@ -3285,8 +3283,10 @@ function Mrend(options) {
 
 
         if (!linhaRecord) {
-            // Constrói registo vazio a partir dos campos de MrendObject
-            linhaRecord = new MrendObject({});
+            // Constrói registo vazio a partir do array de schemas (lista de campos)
+            linhaRecord = {};
+            var schemaFields = Array.isArray(mrendThis.schemas) ? mrendThis.schemas : [];
+            schemaFields.forEach(function(field) { linhaRecord[field] = ""; });
             cellId = generateUUID();
             novoRegisto = true;
         }
@@ -3370,13 +3370,14 @@ function Mrend(options) {
         return new Promise(function (resolve, reject) {
             mrendThis.db = new Dexie(datasourceName);
 
-            // Deriva os campos do schema a partir de MrendObject — ignora o array schemas
-            // (que contém MrendSchema wrappers vazios usados para outro fim)
-            // cellId é a chave primária; os restantes campos de MrendObject são indexes secundários
-            var mrendObjectFields = Object.keys(new MrendObject({}));
-            var primaryKey = "cellId";
-            var secondaryIndexes = mrendObjectFields.filter(function (f) { return f !== primaryKey; });
-            var schemaFields = [primaryKey].concat(secondaryIndexes);
+            // schemas é um array plano de strings: ["pk", "campo1", "campo2", ...]
+            var schemaFields;
+            if (schemas && schemas.length > 0) {
+                schemaFields = schemas;
+            } else {
+                var tableKey = mrendThis.dbTableToMrendObject.tableKey || "";
+                schemaFields = tableKey ? [tableKey] : [];
+            }
 
             return configureDataBase(mrendThis.db, mrendThis.tableSourceName, 1, schemaFields).then(function (result) {
                 mrendThis.db = result;
@@ -3409,7 +3410,9 @@ function Mrend(options) {
         window.localStorage.setItem("stampregisto", stampregisto)
     }
     function storeDataSourceStamp(sourceStamp) {
-        window.localStorage.setItem("sourcestamp_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName, (sourceStamp || "").trim())
+
+
+        window.localStorage.setItem("sourcestamp_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName, sourceStamp.trim())
     }
 
     function clearStamps() {
@@ -3465,11 +3468,11 @@ function Mrend(options) {
 
     function addBulkData(db, tableName, dataArray) {
 
+        console.log("addBulkData", tableName, mrendThis.db[tableName], mrendThis.db['_allTables'][tableName]);
         if (!mrendThis.db[tableName]) {
             console.error("addBulkData: tabela '" + tableName + "' não existe no Dexie. Tabelas registadas:", Object.keys(mrendThis.db['_allTables'] || {}));
             return Promise.reject(new Error("Tabela '" + tableName + "' não encontrada no Dexie."));
         }
-
         return mrendThis.db[tableName].bulkPut(dataArray);
 
     }
@@ -3484,7 +3487,7 @@ function Mrend(options) {
                 url: mrendThis.remoteFetchData.url,
                 data: mrendThis.remoteFetchData.data,
                 success: function (response) {
-                    console.log("Data fetched from remote:", response);
+
                     resolve(response);
                 },
                 error: function (error) {
@@ -3878,7 +3881,7 @@ function Mrend(options) {
     }
 
 
-    function isInactivo(cell, renderedColuna, colunaUIConfig, rowData) {
+    function isInactivo(cell, renderedColuna, colunaUIConfig,rowData) {
 
         var condicAttrResult = ""
         if (renderedColuna.condicattr) {
@@ -3926,7 +3929,7 @@ function Mrend(options) {
 
         if (condicinactivo) {
             var resultCondicInactivo = eval(celula.condicinactexpr);
-
+            
             if (resultCondicInactivo) {
                 return ""
             }
@@ -3958,7 +3961,7 @@ function Mrend(options) {
 
                 var checkboxContainer = document.createElement("div");
                 checkboxContainer.style.textAlign = colunaConfig.alinhamento;
-                var inactivo = isInactivo(cell, colunaConfig, colunaUIConfig, rowData);
+                var inactivo = isInactivo(cell, colunaConfig, colunaUIConfig,rowData);
 
                 var checkbox = document.createElement("input");
                 checkbox.type = "checkbox";
@@ -4402,16 +4405,8 @@ function Mrend(options) {
     function addTabulatorColumns(colunas, columns) {
 
         colunas.forEach(function (coluna) {
-            var colunaTitle = coluna.desccoluna;
-            if (coluna.config.usaexpressaocoldesc && coluna.config.expresssaojscoldesc) {
-                try {
-                    colunaTitle = eval(coluna.config.expresssaojscoldesc);
-                } catch (e) {
-                    console.error("Erro ao avaliar expresssaojscoldesc para coluna " + coluna.codigocoluna, e);
-                }
-            }
             var colunaUIConfig = {
-                title: colunaTitle,
+                title: coluna.desccoluna,
                 field: coluna.codigocoluna,
                 width: coluna.config.tamanho,
                 hozAlign: coluna.config.alinhamento,
@@ -5539,7 +5534,6 @@ function Mrend(options) {
             return databaseAndTableHasRecords(mrendThis.db, mrendThis.tableSourceName)
                 .then(function (result) {
 
-                    console.log("Comparing source stamps...", { stampAtual: stampAtual, stampArmazenado: stampArmazenado });
                     if (stampAtual === stampArmazenado) {
                         mrendThis.records = result.data || [];
                         return resolve({ refetchDb: false, records: result.data || [] });
@@ -5553,7 +5547,7 @@ function Mrend(options) {
 
                         return getDataFromRemote()
                             .then(function (remoteData) {
-                                console.log("Remote data fetched successfully.........", remoteData);
+                                console.log("Remote data fetched successfully.........DNELSE", remoteData);
                                 mrendThis.records = remoteData && remoteData.data ? remoteData.data : [];
                                 return resolve({ refetchDb: true, records: mrendThis.records, remoteFetch: true });
                             })
@@ -5568,12 +5562,11 @@ function Mrend(options) {
             return new Promise(function (resolve, reject) {
 
                 if (result.refetchDb) {
-                    console.log("Updating local database with new records...", result.records.length);
-                    return deleteAllRecords(mrendThis.tableSourceName).then(function (data) {
+                    return deleteAllRecords(mrendThis.table).then(function (data) {
 
                         var dbConverstion = ConvertDbTableToMrendObject(mrendThis.records, mrendThis.dbTableToMrendObject);
                         mrendThis.records = dbConverstion;
-                        return addBulkData(mrendThis.db, mrendThis.tableSourceName, dbConverstion).then(function (data) {
+                        return addBulkData(mrendThis.db, mrendThis.table, dbConverstion).then(function (data) {
                             return resolve(result);
                         })
                     })
@@ -6202,7 +6195,7 @@ function Mrend(options) {
         groupStyle.innerHTML = [
             ".tabulator .tabulator-header .tabulator-col-group { overflow: visible !important; }",
             ".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content { height: 30px !important; min-height: 30px !important; overflow: visible !important; padding: 0 10px !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; box-sizing: border-box !important; display: flex !important; align-items: center !important; justify-content: center !important; }",
-            ".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content .tabulator-col-title { font-size: 12px !important; font-weight: 700 !important; letter-spacing: 0.8px !important; text-transform: none !important; white-space: nowrap !important; color: white !important; }",
+            ".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content .tabulator-col-title { font-size: 12px !important; font-weight: 700 !important; letter-spacing: 0.8px !important; text-transform: uppercase !important; white-space: nowrap !important; color: white !important; }",
             ".tabulator .tabulator-header .tabulator-col-group-cols { overflow: visible !important; }",
             ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col { overflow: visible !important; }",
             ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col > .tabulator-col-content { height: 42px !important; min-height: 42px !important; padding: 16px 10px 6px 10px !important; box-sizing: border-box !important; display: flex !important; align-items: center !important; justify-content: flex-start !important; overflow: visible !important; }",
@@ -6387,66 +6380,6 @@ function Mrend(options) {
 
     }
 
-    this.getDbDataToSchema = function () {
-
-        return new Promise(function (resolve, reject) {
-            mrendThis.db[mrendThis.tableSourceName].toArray().then(function (records) {
-
-                var mrendInternalKeys = Object.keys(new MrendObject({}));
-                var distinctSources = getDistinctWithKeys(records, "sourceTable");
-                var sources = [];
-
-                distinctSources.forEach(function (source) {
-
-                    var sourceRecords = records.filter(function (r) {
-                        return r.sourceTable === source.sourceTable;
-                    });
-
-                    var distinctRows = getDistinctWithKeys(sourceRecords, "rowid");
-                    var tableData = [];
-
-                    distinctRows.forEach(function (row) {
-
-                        var rowCells = sourceRecords.filter(function (cell) {
-                            return cell.rowid === row.rowid;
-                        });
-
-                        var tableRow = {};
-                        tableRow[source.sourceKey] = row.sourceKeyValue;
-
-                        rowCells.forEach(function (cell) {
-                            var val = cell[cell.campo];
-                            tableRow[cell.coluna] = val !== undefined ? val : "";
-                        });
-
-                        // Incluir campos extra que não sejam campos internos do MrendObject
-                        var firstCell = rowCells[0] || {};
-                        Object.keys(firstCell).forEach(function (key) {
-                            if (mrendInternalKeys.indexOf(key) === -1 && tableRow[key] === undefined) {
-                                tableRow[key] = firstCell[key];
-                            }
-                        });
-
-                        tableData.push(tableRow);
-                    });
-
-                    sources.push({
-                        sourceTable: source.sourceTable,
-                        sourceKey: source.sourceKey,
-                        records: tableData
-                    });
-                });
-
-                return resolve(sources);
-
-            }).catch(function (error) {
-                console.error("Erro ao obter dados do schema:", error);
-                return reject(error);
-            });
-        });
-
-    }
-
 
 
 
@@ -6591,14 +6524,14 @@ $(document).ready(function () {
     cssContent += "accent-color: " + getColorByType("warning").background + "!important;";
     cssContent += "transform: scale(1.7)!important;";
     cssContent += "}";
-    cssContent += ".tabulator-data-tree-control{ "
-    cssContent += "width:20px!important;"
-    cssContent += "height:20px!important;"
-    cssContent += "}"
-    cssContent += ".tabulator-row .tabulator-cell .tabulator-data-tree-control .tabulator-data-tree-control-collapse:after{"
-    cssContent += "font-size:16px!important;"
-    cssContent += "color:#3f5670!important;";
-    cssContent += "}"
+    cssContent+=".tabulator-data-tree-control{ "
+    cssContent+="width:20px!important;"
+    cssContent+="height:20px!important;"
+    cssContent+="}"
+    cssContent+=".tabulator-row .tabulator-cell .tabulator-data-tree-control .tabulator-data-tree-control-collapse:after{"
+    cssContent+="font-size:16px!important;"
+    cssContent+="color:#3f5670!important;";
+    cssContent+="}"
 
     $('head').append('<style>' + cssContent + '</style>');
     loadAssetsWithGetScript();
@@ -6685,7 +6618,7 @@ function applyTabulatorStylesWithJquery() {
 
     // Header — base
     var headerBg = customStyles.headerBackground ? customStyles.headerBackground : "#0765b7";
-
+    
     $(".tabulator .tabulator-header").css({
         "background-color": headerBg,
         "border-bottom": "none",
@@ -6728,7 +6661,7 @@ function applyTabulatorStylesWithJquery() {
         "font-size": "12px",
         "font-weight": "700",
         "letter-spacing": "0.5px",
-        "text-transform": "none",
+        "text-transform": "uppercase",
         "white-space": "nowrap",
         "color": "white",
     });
@@ -6741,7 +6674,7 @@ function applyTabulatorStylesWithJquery() {
     groupStyle2.innerHTML = [
         ".tabulator .tabulator-header .tabulator-col-group { overflow: visible !important; }",
         ".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content { height: 30px !important; min-height: 30px !important; overflow: visible !important; padding: 0 10px !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; box-sizing: border-box !important; display: flex !important; align-items: center !important; justify-content: center !important; }",
-        ".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content .tabulator-col-title { font-size: 12px !important; font-weight: 700 !important; letter-spacing: 0.8px !important; text-transform: none !important; white-space: nowrap !important; color: white !important; }",
+        ".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content .tabulator-col-title { font-size: 12px !important; font-weight: 700 !important; letter-spacing: 0.8px !important; text-transform: uppercase !important; white-space: nowrap !important; color: white !important; }",
         ".tabulator .tabulator-header .tabulator-col-group-cols { overflow: visible !important; }",
         ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col { overflow: visible !important; }",
         ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col > .tabulator-col-content { height: 42px !important; min-height: 42px !important; padding: 16px 10px 6px 10px !important; box-sizing: border-box !important; display: flex !important; align-items: center !important; justify-content: flex-start !important; overflow: visible !important; }",

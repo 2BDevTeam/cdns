@@ -656,10 +656,6 @@ var GRelatorioStamp = ""
 var GConfigCodigo = ""
 var GExtraConfigContainer = ""
 var GDefaultInitConfig = null
-var GRelatorioConfig = null
-var GRelatorioTable = "u_mrendrel"
-var GRelatorioTableKey = "u_mrendrelstamp"
-var GRelatorioTableFilterField = "codigo"
 GRenderedLinhas = []
 GMrendConfigColunas = []
 GMrendConfigLinhas = []
@@ -761,42 +757,36 @@ function MrendInitConfig(data) {
         }
     };
 
-    this.recordData = { stamp: (data.recordData && data.recordData.stamp) ? data.recordData.stamp : "" };
+    this.recordData = data.recordData || {};
     this.afterRenderCallback = data.afterRenderCallback || "";
     this.configjson = data.configjson || "";
     this.config = data.config || {};
-    this.schemas = data.schemas || [];
 }
 
 MrendInitConfig.createDynamicSchema = function () {
     return {
         "type": "object",
-        "title": "Configuração de Inicialização Mrend",
+        "title": "Configuracao de Inicializacao Mrend",
         "properties": {
-            "enableEdit": { "type": "string", "title": "Permitir Edição (expressão JS)", "description": "Ex: $(\"#mainPage\").data(\"state\") == \"editar\"" },
-            "resetSourceStamp": { "type": "string", "title": "Reset Source Stamp (expressão JS)", "description": "Ex: $(\"#mainPage\").data(\"state\") != \"editar\"" },
+            "enableEdit": { "type": "string", "title": "Permitir Edicao (expressao JS)", "description": "Ex: $(\"#mainPage\").data(\"state\") == \"editar\"" },
+            "resetSourceStamp": { "type": "string", "title": "Reset Source Stamp (expressao JS)", "description": "Ex: $(\"#mainPage\").data(\"state\") != \"editar\"" },
             "containerToRender": { "type": "string", "title": "Selector do Container de Render" },
-            "schemas": {
-                "type": "array",
-                "title": "Colunas Dexie (1ª = PK)",
-                "items": { "type": "string", "title": "Campo" }
-            },
             "datasourceName": { "type": "string", "title": "Nome do Datasource (Dexie)" },
             "tableSourceName": { "type": "string", "title": "Nome da Tabela Source no Datasource" },
             "table": { "type": "string", "title": "Tabela (options.table)" },
-            "codigo": { "type": "string", "title": "Código do Relatório" },
-            "remoteFetch": { "type": "string", "title": "Usar Fetch Remoto (expressão JS)", "description": "Ex: true" },
+            "codigo": { "type": "string", "title": "Codigo do Relatorio" },
+            "remoteFetch": { "type": "string", "title": "Usar Fetch Remoto (expressao JS)", "description": "Ex: true" },
             "remoteFetchData": {
                 "type": "object",
                 "title": "RemoteFetchData",
                 "properties": {
                     "url": { "type": "string", "title": "URL do pedido" },
-                    "type": { "type": "string", "title": "Método HTTP", "enum": ["GET", "POST"] },
+                    "type": { "type": "string", "title": "Metodo HTTP", "enum": ["GET", "POST"] },
                     "data": {
                         "type": "object",
-                        "title": "Parâmetros enviados no pedido (data do $.ajax)",
+                        "title": "Parametros enviados no pedido (data do $.ajax)",
                         "properties": {
-                            "__EVENTARGUMENT": { "type": "string", "title": "__EVENTARGUMENT (JSON.stringify dos args)" }
+                            "stamp": { "type": "string", "title": "Stamp" }
                         }
                     }
                 }
@@ -831,21 +821,16 @@ MrendInitConfig.createDynamicSchema = function () {
             "recordData": {
                 "type": "object",
                 "title": "Record Data (campos do registo PHC)",
-                "required": ["stamp"],
                 "properties": {
-                    "stamp": { "type": "string", "title": "Stamp (expressão JS)", "description": "Ex: getReportStamp() ou $(\"#ctl00_conteudo_mlstamp_mLabel1\").text()", "default": "" }
+                    "stamp": { "type": "string", "title": "Stamp" }
                 }
             },
             "afterRenderCallback": { "type": "string", "title": "Callback Apos Render (nome da funcao)" }
-           
         }
     };
 };
 
 function initJSONEditorMrendConfig(relatorioConfig) {
-    // O servidor devolve DataTable serializada → array; extraímos o primeiro registo
-    var relatorioRecord = Array.isArray(relatorioConfig) ? (relatorioConfig[0] || {}) : (relatorioConfig || {});
-    GRelatorioConfig = relatorioRecord;
     if (!GExtraConfigContainer) return;
     var container = document.querySelector(GExtraConfigContainer);
     if (!container) return;
@@ -859,13 +844,12 @@ function initJSONEditorMrendConfig(relatorioConfig) {
         iconlib: 'fontawesome4',
         disable_edit_json: true,
         disable_properties: true,
+        no_additional_properties: true,
         disable_array_delete_last_row: true,
-        disable_array_delete_all_rows: true,
-        collapsed: true
+        disable_array_delete_all_rows: true
     });
 
-    // Campo da BD é rendopt (não extras)
-    var extrasjson = relatorioRecord.rendopt || relatorioRecord.extras || "";
+    var extrasjson = relatorioConfig.extras || "";
 
     editor.on('ready', function () {
         var configToLoad;
@@ -878,41 +862,13 @@ function initJSONEditorMrendConfig(relatorioConfig) {
         }
         if (!configToLoad) {
             configToLoad = new MrendInitConfig(GDefaultInitConfig || {});
-        } else {
-            // Merge: preencher campos em falta no rendopt existente com os valores do defaultInitConfig
-            var defaults = new MrendInitConfig(GDefaultInitConfig || {});
-            Object.keys(defaults).forEach(function (key) {
-                var missing = configToLoad[key] === undefined || configToLoad[key] === null;
-                var emptyArr = Array.isArray(configToLoad[key]) && configToLoad[key].length === 0;
-                if (missing || emptyArr) {
-                    configToLoad[key] = defaults[key];
-                }
-            });
-        }
-        // Normalizar schemas: pode vir como string JSON de versões anteriores
-        if (typeof configToLoad.schemas === 'string') {
-            try {
-                var parsed = JSON.parse(configToLoad.schemas);
-                // formato antigo: array de objectos [{tableSourceName, tableSourceSchema}]
-                if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
-                    configToLoad.schemas = parsed[0].tableSourceSchema || [];
-                } else {
-                    configToLoad.schemas = Array.isArray(parsed) ? parsed : [];
-                }
-            } catch (e) {
-                configToLoad.schemas = [];
-            }
-        }
-        // formato antigo: array de objectos [{tableSourceName, tableSourceSchema:[...]}]
-        if (Array.isArray(configToLoad.schemas) && configToLoad.schemas.length > 0 && typeof configToLoad.schemas[0] === 'object') {
-            configToLoad.schemas = configToLoad.schemas[0].tableSourceSchema || [];
         }
         editor.setValue(configToLoad);
     });
 
     editor.on('change', function () {
         var currentValue = editor.getValue();
-        relatorioRecord.rendopt = JSON.stringify(currentValue);
+        relatorioConfig.extras = JSON.stringify(currentValue);
     });
 }
 
@@ -938,9 +894,6 @@ function initTabelaConfiguracaoMrender(config) {
     GConfigCodigo = config.codigo || "";
     GExtraConfigContainer = config.extraConfigContainer || "";
     GDefaultInitConfig = config.defaultInitConfig || null;
-    GRelatorioTable = config.relatorioTable || "u_mrendrel";
-    GRelatorioTableKey = config.relatorioTableKey || "u_mrendrelstamp";
-    GRelatorioTableFilterField = config.relatorioTableFilterField || "codigo";
     GRendConfigTableHtml = {
         tableId: "dd",
         classes: "table table-hover config-input-report-table ",
@@ -1191,7 +1144,7 @@ function setColunaGrupoReactive() {
                     style: "",
                     rowId: "",
                     classes: "",
-                    customData: "v-for=\"colunaGrupoItem in getItemsForGrupo(grupoColuna.grupocolunastamp)\"",
+                    customData: 'v-for="colunaGrupoItem in GMrendGrupoColunaItems"',
                     cols: cols
                 }
 
@@ -1224,11 +1177,6 @@ function setColunaGrupoReactive() {
         GMrendGrupoColunas: GMrendGrupoColunas,
         GMrendGrupoColunaItems: GMrendGrupoColunaItems,
         GMrendConfigColunas:GMrendConfigColunas,
-        getItemsForGrupo: function (grupocolunastamp) {
-            return this.GMrendGrupoColunaItems.filter(function (i) {
-                return i.grupocolunastamp === grupocolunastamp;
-            });
-        },
         addGrupoColuna: function () {
             var grupoColuna = new MrendGrupoColuna({
                 codigogrupo: generateUUID(),
@@ -1276,7 +1224,7 @@ function fetchConfigMrender(codigo) {
         async: false,
         url: "../programs/gensel.aspx?cscript=getmrendconfig",
         data: {
-            '__EVENTARGUMENT': JSON.stringify([{ codigo: codigo, relatorioTable: GRelatorioTable, relatorioTableKey: GRelatorioTableKey, relatorioTableFilterField: GRelatorioTableFilterField }]),
+            '__EVENTARGUMENT': JSON.stringify([{ codigo: codigo }]),
         },
         success: function (response) {
 
@@ -2211,17 +2159,6 @@ function actualizarConfiguracaoMrender() {
         sourceTable: "MrendGrupoColunaItem",
         sourceKey: "grupocolunaitemstamp",
         records: GMrendGrupoColunaItems
-    },
-     {
-        sourceTable: GRelatorioTable,
-        sourceKey: GRelatorioTableFilterField,
-        records: GRelatorioConfig ? [(function() {
-            var r = {};
-            r[GRelatorioTableFilterField] = GRelatorioConfig[GRelatorioTableFilterField] || GConfigCodigo;
-            r.relatoriostamp = GRelatorioConfig.relatoriostamp || GRelatorioStamp;
-            r.rendopt = GRelatorioConfig.rendopt || "";
-            return r;
-        }())] : []
     }
 ];
 

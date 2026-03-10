@@ -108,6 +108,8 @@ CREATE TABLE MrendColuna
     localdata BIT default 0,
     ordem INT DEFAULT 0,
     setinicio BIT DEFAULT 0,
+    usaexpressaocoldesc BIT DEFAULT 0,
+    expresssaojscoldesc TEXT DEFAULT '',
     setfim BIT DEFAULT 0,
     condictipo BIT DEFAULT 0,
     condicetipoxpr TEXT DEFAULT '',

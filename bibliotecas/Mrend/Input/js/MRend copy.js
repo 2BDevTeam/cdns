@@ -1,10 +1,6 @@
-
-
 function Mrend(options) {
 
-
     var mrendThis = this;
-
     this.GTable = {};
     this.GDefaultConfig = undefined;
     this.GRenderData = {};
@@ -33,7 +29,7 @@ function Mrend(options) {
     this.db = undefined;
     this.db = undefined;
     this.reactiveData = PetiteVue.reactive({
-        customTotal: customTotal,
+        customTotal: 0,
         // Pode adicionar outros totais aqui
         totalPcusto: 0,
         totalVenda: 0,
@@ -46,6 +42,35 @@ function Mrend(options) {
             { codigocoluna: 'u_equipprc', valor: 0, label: 'Valor da comissão' }
         ]
     });
+    this.global = {};
+
+    this.setTableEditable = function (editable) {
+
+        mrendThis.GTable.getColumns().forEach(function (col) {
+            col.updateDefinition({
+                editable: editable,   // pode ser true/false ou até função
+            });
+        });
+    }
+
+
+    this.addLinhaComRegistos = function (modelo, registo) {
+
+
+
+
+        var linhaByModeloResult = addLinhaByModelo(modelo, registo);
+
+        mrendThis.GTable.addRow(registo, false).then(function (row) {
+            linhaByModeloResult
+            row.treeExpand();
+            //mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+
+        });
+
+
+    }
+
 
     this.refreshReactiveData = function () {
         //  return 
@@ -70,7 +95,7 @@ function Mrend(options) {
     this.remoteFetchData = options.remoteFetchData ? new RemoteFetchData(options.remoteFetchData) : new RemoteFetchData({});
 
     this.getTotalCelulasByFiltro = function (filtro) {
-        _.sumBy(propostaMrendConfig.GCellObjectsConfig, function (cellObject) {
+        _.sumBy(mrendThis.GCellObjectsConfig, function (cellObject) {
             if (eval(filtro)) {
                 return isNaN(cellObject.valor) ? 0 : Number(cellObject.valor);
             }
@@ -80,7 +105,7 @@ function Mrend(options) {
 
     this.getTotalCelulaByCodigoColuna = function (codigoColuna) {
 
-        return _.sumBy(propostaMrendConfig.GCellObjectsConfig, function (cellObject) {
+        return _.sumBy(mrendThis.GCellObjectsConfig, function (cellObject) {
             if (cellObject.codigocoluna == codigoColuna) {
                 return isNaN(cellObject.valor) ? 0 : Number(cellObject.valor);
             }
@@ -250,6 +275,8 @@ function Mrend(options) {
 
     }
 
+
+
     function Coluna(data) {
 
         this.colunastamp = data.colunastamp || "";
@@ -264,7 +291,10 @@ function Mrend(options) {
         this.sourceTable = data.sourceTable || "";
         this.sourceKey = data.sourceKey || "";
         this.validacoluna = data.validacoluna || false;
+        this.forcaeditavel = data.forcaeditavel || false;
+        this.visivel = (data.visivel != null && data.visivel != undefined) ? data.visivel : true;
         this.expresscolfun = data.expresscolfun || "";
+        this.botaohtml = data.botaohtml || "";
         this.temlinhadesc = data.temlinhadesc || false;
         this.colfunc = data.colfunc || false;
         this.eventoclique = data.eventoclique || false;
@@ -1166,6 +1196,7 @@ function Mrend(options) {
 
         mrendThis.GRenderedLinhas.push(this);
 
+
         if (renderCelula) {
             var recFlt = linhaRecords.filter(function (rec) {
                 return rec.rowid == distinctRow.rowid
@@ -1974,7 +2005,7 @@ function Mrend(options) {
 
 
 
-        //$('#master-content').css('overflow-x', 'hidden');
+        $('#master-content').css('overflow-x', 'hidden');
 
 
     }
@@ -2090,7 +2121,7 @@ function Mrend(options) {
         $("tr[data-gruporowid] input[readonly]:not(.footer-row input)").css("background-color", "#dee5eb");
 
 
-        //$('#master-content').css('overflow-x', 'hidden');
+        $('#master-content').css('overflow-x', 'hidden');
 
 
     }
@@ -2313,6 +2344,144 @@ function Mrend(options) {
         });
     }
 
+
+    this.ConvertDbTableToMrendObject = function (data, MrendConversionConfig) {
+        if (!data[0]) {
+
+            return []
+        }
+        var keys = Object.keys(data[0]);
+        var mrendObjects = []
+
+
+        if (MrendConversionConfig.chunkMapping == false) {
+
+            distinctKey = getDistinctWithKeys(data, MrendConversionConfig.extras.colunaField);
+
+            keys = distinctKey.map(function (obj) {
+                return obj[MrendConversionConfig.extras.colunaField];
+            });
+
+            console.log(" mrendThis.reportConfig.config.colunas", mrendThis.reportConfig.config.colunas)
+            data.forEach(function (record) {
+
+                var mrendObject = new MrendObject({});
+
+                mrendObject = mapRecordToMrendObject(record, MrendConversionConfig);
+
+
+
+                var colunaInstance = mrendObject.coluna.split("___")[0];
+
+                var colunaConfig = mrendThis.reportConfig.config.colunas.filter(function (coluna) {
+                    return coluna.codigocoluna == colunaInstance || coluna.codigocoluna == mrendObject.coluna;
+                });
+
+                if (colunaConfig.length > 0) {
+
+                    mrendObject.campo = colunaConfig[0].campo;
+                    mrendObject[colunaConfig[0].campo] = record[colunaConfig[0].campo];
+
+
+                    if (!mrendObject.tipocol) {
+                        mrendObject.tipocol = colunaConfig[0].tipo || "text";
+                    }
+
+                }
+
+                mrendObjects.push(mrendObject);
+
+
+            });
+
+
+
+            return mrendObjects;
+
+        }
+
+
+
+
+
+
+
+        data.forEach(function (record) {
+            var mrendObject = new MrendObject({});
+            keys.forEach(function (key) {
+
+                var configCol = mrendThis.reportConfig.config.colunas.find(function (coluna) {
+                    return coluna.codigocoluna == key
+                })
+
+                if (MrendConversionConfig.chunkMapping == true) {
+
+                    mrendObject = new MrendObject({});
+                }
+
+                if (MrendConversionConfig.tableKey != key && configCol) {
+
+
+                    var rowid = record[MrendConversionConfig.tableKey]
+
+                    // //console.log((configCol.campo, record[configCol.campo])
+                    mrendObject.campo = MrendConversionConfig.chunkMapping == true ? key : configCol.campo;
+                    mrendObject[configCol.campo] = MrendConversionConfig.chunkMapping == true ? record[key] : record[configCol.campo];
+                    mrendObject.coluna = key;
+                    mrendObject.rowid = rowid;
+                    mrendObject.codigolinha = MrendConversionConfig.table;
+                    mrendObject.cellId = key + "COLUNA___LINHA" + rowid.trim();
+                    mrendObject.ordemField = MrendConversionConfig.extras.ordemField;
+                    mrendObject.tipocolField = MrendConversionConfig.extras.tipocolField;
+                    mrendObject.tipocol = configCol.tipo || "text";
+
+
+                    mrendObject.ordem = record[MrendConversionConfig.extras.ordemField] || 0;
+
+                    mrendObject.sourceTable = MrendConversionConfig.table
+                    mrendObject.sourceKey = MrendConversionConfig.tableKey;
+                    mrendObject.sourceKeyValue = record[MrendConversionConfig.tableKey];
+                    mrendObject.codigocoluna = configCol.codigocoluna;
+
+                    if (configCol.sourceTable) {
+                        mrendObject.sourceTable = configCol.sourceTable;
+                        mrendObject.sourceKey = configCol.sourceKey;
+                        mrendObject.sourceKeyValue = record[configCol.sourceKey];
+                    }
+
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "linkField", "linkid");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "cellIdField", "cellId");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "colunaField", "codigocoluna");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "ordemColunaField", "ordemcoluna");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "rowIdField", "rowid");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "linhaField", "codigolinha");
+                    applyExtraField(mrendObject, record, MrendConversionConfig.extras, "tipocolField", "tipocol");
+
+
+                    if (MrendConversionConfig.chunkMapping == true) {
+
+                        mrendObjects.push(mrendObject)
+                    }
+
+                }
+
+            })
+
+            if (MrendConversionConfig.chunkMapping == false) {
+
+                mrendObjects.push(mrendObject)
+            }
+
+        })
+
+        //  //console.log(("ConvertDbTableToMrendObject Final", mrendObjects)
+
+
+        return mrendObjects;
+
+
+
+    }
 
     function ConvertDbTableToMrendObject(data, MrendConversionConfig) {
         if (!data[0]) {
@@ -2950,6 +3119,7 @@ function Mrend(options) {
             var recFlt = records.filter(function (rec) {
                 return rec.coluna == coluna.codigocoluna
             });
+
             setCelula({}, linha, coluna, recFlt, coluna.config.categoria, "", {})
 
         });
@@ -3564,6 +3734,8 @@ function Mrend(options) {
         });
         cleave.setRawValue(value || 0);
         return input.value;
+
+
     }
 
     function numberFormatCustomEditor(cell, onRendered, success, cancel, editorParams) {
@@ -3601,6 +3773,32 @@ function Mrend(options) {
         input.addEventListener("keydown", function (e) {
             if (e.key === "Enter") input.blur();
             else if (e.key === "Escape") cancel();
+        });
+
+        return input;
+    }
+
+    function jqueryDateEditor(cell, onRendered, success, cancel) {
+        // cria o input
+        var input = document.createElement("input");
+        input.setAttribute("type", "text");
+
+        input.setAttribute("data-language", "pt");
+
+        input.value = cell.getValue() || "";
+
+        onRendered(function () {
+            $(input).datepicker({
+                dateFormat: "dd.mm.yyyy",   // formato da data
+                onSelect: function (dateText) {
+                    success(dateText);    // devolve o valor selecionado ao Tabulator
+                },
+                onClose: function () {
+                    cancel();             // fecha edição
+                }
+            }).datepicker("show");
+
+            input.focus();
         });
 
         return input;
@@ -3668,7 +3866,45 @@ function Mrend(options) {
 
         }
 
-        return "<div style='" + styles + "' class='mrend-input-cell'>" + content + "</div>";
+        return "<div style='" + styles + ";text-align:" + colunaConfig.alinhamento + "' class='mrend-input-cell'>" + content + "</div>";
+    }
+
+
+    function isInactivo(cell, renderedColuna, colunaUIConfig, rowData) {
+
+        var condicAttrResult = ""
+        if (renderedColuna.condicattr) {
+
+            condicAttrResult = eval(renderedColuna.condicattrexpr);
+
+        }
+
+        if (condicAttrResult == "readonly" || condicAttrResult == "disabled") {
+            return true;
+        }
+
+        if (renderedColuna.atributo == "readonly" || renderedColuna.atributo == "disabled") {
+            return true;
+        }
+
+        var celula = getCelulaConfigFromTabulator(cell, renderedColuna, colunaUIConfig);
+
+        if (celula.atributo == "readonly" || celula.atributo == "disabled") {
+            return true;
+        }
+
+        var condicinactivo = celula.condicinactivo;
+        if (condicinactivo) {
+            var resultCondicInactivo = eval(celula.condicinactexpr);
+            if (resultCondicInactivo) {
+                return true
+            }
+        }
+
+        if (celula.inactivo && condicinactivo == false) {
+            return true;
+        }
+
     }
 
     function handleColFormatter(cell, colunaConfig, colunaUIConfig) {
@@ -3679,8 +3915,10 @@ function Mrend(options) {
         var rowData = cell.getRow().getData();
 
         var condicinactivo = celula.condicinactivo;
+
         if (condicinactivo) {
             var resultCondicInactivo = eval(celula.condicinactexpr);
+
             if (resultCondicInactivo) {
                 return ""
             }
@@ -3708,6 +3946,61 @@ function Mrend(options) {
                 var content = ensureMinContent(formattedValue);
                 return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content)
                 break;
+            case "logic":
+
+                var checkboxContainer = document.createElement("div");
+                checkboxContainer.style.textAlign = colunaConfig.alinhamento;
+                var inactivo = isInactivo(cell, colunaConfig, colunaUIConfig, rowData);
+
+                var checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.className = "formatted-checkbox";
+                checkbox.checked = cell.getValue() ? true : false;
+                checkbox.disabled = inactivo
+                // Adiciona o evento diretamente ao checkbox
+                checkbox.addEventListener("change", function () {
+                    var rowData = cell.getRow().getData();
+
+                    var columnField = cell.getField(); // <-- Aqui você pega o nome/campo da coluna editada
+                    var updateData = {};
+                    Object.keys(rowData).forEach(function (key) {
+                        if (key !== "_children" && key !== "id") {
+                            updateData[key] = rowData[key];
+                        }
+                    });
+
+                    updateData[columnField] = checkbox.checked;
+                    cell.getRow().update(updateData);
+
+                    updateCellObjectConfig(columnField, rowData);
+
+                });
+
+                // Adiciona o checkbox ao container
+                checkboxContainer.appendChild(checkbox);
+
+                return checkboxContainer;
+
+            case "button":
+                return colunaConfig.botaohtml;
+            case "date":
+
+                try {
+
+                    var date = new Date(cell.getValue());
+
+                    var formatter = new Intl.DateTimeFormat("de-DE", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric"
+                    });
+                    var formattedValue = formatter.format(date)
+                    var content = ensureMinContent(formattedValue);
+                    return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content);
+                } catch (error) {
+                    var content = ensureMinContent(cell.getValue());
+                    return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content);
+                }
 
             case "table":
 
@@ -3741,9 +4034,34 @@ function Mrend(options) {
 
     }
 
+    function checkboxCustomEditor(cell, onRendered, success, cancel) {
+        // Cria o elemento checkbox
+        var checkbox = document.createElement("input");
+        checkbox.setAttribute("type", "checkbox");
+        checkbox.checked = cell.getValue() === true;
+
+        // Adiciona eventos ao checkbox
+        checkbox.addEventListener("change", function () {
+            success(checkbox.checked); // Retorna o novo valor ao Tabulator
+        });
+
+        checkbox.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+                cancel(); // Cancela a edição
+            }
+        });
+
+        // Foca no checkbox quando renderizado
+        onRendered(function () {
+            checkbox.focus();
+        });
+
+        return checkbox;
+    }
+
     function handleEditor(coluna, colunaUIConfig) {
 
-        if (!mrendThis.enableEdit) {
+        if (!mrendThis.enableEdit && coluna.config.forcaeditavel == false) {
             return {};
         }
         if (coluna.config.tipo === "digit") {
@@ -3751,6 +4069,50 @@ function Mrend(options) {
                 editor: numberFormatCustomEditor,
                 editorParams: { colunaConfig: coluna.config }
             };
+        }
+
+        if (coluna.config.tipo === "date") {
+            return {
+                editor: jqueryDateEditor,
+                editorParams: { colunaConfig: coluna.config }
+            };
+        }
+
+        if (coluna.config.tipo === "logic") {
+
+            return {
+
+            };
+
+        }
+        if (coluna.config.tipo === "button") {
+
+            return {
+                editor: function (cell, onRendered, success, cancel) {
+                    // Cria o botão editor
+                    // var botaoHtml = coluna.config.botaohtml
+                    var botaoHtml = coluna.config.botaohtml;
+                    var epress
+                    var $btn = $(botaoHtml)
+                        .on("click", function () {
+                            // Pega os dados da célula/linha
+                            var rowData = cell.getRow().getData();
+                            eval(coluna.config.expressaoclique)
+
+
+                        });
+
+                    onRendered(function () {
+                        // Foca no botão se necessário
+                        var rowData = cell.getRow().getData();
+                        $btn.focus();
+                        eval(coluna.config.expressaoclique)
+                    });
+
+                    return $btn[0];
+                }
+            }
+
         }
 
         if (coluna.config.tipo === "text") {
@@ -3975,9 +4337,24 @@ function Mrend(options) {
             return obj.codigocoluna == coluna && obj.rowid == rowData.rowid;
         });
 
+
+
         if (cellObjectConfig) {
 
+
+
             cellObjectConfig.valor = rowData[coluna];
+            try {
+
+                if (cellObjectConfig.renderedColuna.config.executaeventochange && cellObjectConfig.renderedColuna.config.expressaojsevento) {
+
+                    eval(cellObjectConfig.renderedColuna.config.expressaojsevento);
+
+                }
+
+            } catch (error) {
+                console.warn("ERRO HANDLER DE EVENTO CHANGE", coluna, rowData, error)
+            }
         }
     }
 
@@ -4037,7 +4414,9 @@ function Mrend(options) {
                 field: coluna.codigocoluna,
                 width: coluna.config.tamanho,
                 hozAlign: coluna.config.alinhamento,
+                headerHozAlign: coluna.config.alinhamento,
                 frozen: coluna.config.fixacoluna,
+                visible: coluna.config.visivel,
                 headerTooltip: function (e, cell, onRendered) {
                     //e - mouseover event
                     //cell - cell component
@@ -4076,6 +4455,7 @@ function Mrend(options) {
                     }
 
                     var rowData = cell.getRow().getData();
+
                     var renderedColuna = mrendThis.GRenderedColunas.find(function (coluna) {
                         return coluna.codigocoluna == cell.getField();
                     });
@@ -4086,7 +4466,10 @@ function Mrend(options) {
                     }
 
 
-                    eval(renderedColuna.config.expressaoclique)
+                    if (coluna.config.tipo != "button") {
+                        eval(renderedColuna.config.expressaoclique)
+
+                    }
 
 
 
@@ -4224,7 +4607,7 @@ function Mrend(options) {
             var observer = new MutationObserver(function (mutationsList, observer) {
                 // Sempre que houver alteração, reaplica os estilos
                 /////console.log(("Tabulator styles changed, reapplying styles...");
-                mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+                //mrendThis.applyTabulatorStylesWithJquery(mrendThis);
             });
 
             // Configura para observar alterações em filhos e subárvores
@@ -4248,7 +4631,7 @@ function Mrend(options) {
             "font-family": "Nunito, sans-serif",
             "color": "#161616",
             "zoom": "0.75",
-            "padding-bottom": "30px",
+            "padding-bottom": "30px"
             //"transform-origin": "top left",
         });
 
@@ -4308,7 +4691,7 @@ function Mrend(options) {
         }
         {title:"Eye Colour", field:"eyes"},
         {title:"Height", field:"height", frozen:true}, //frozen column on right of table
-    ]
+        ]
         
         */
         var grupoColuna = mrendThis.reportConfig.config.grupocolunas;
@@ -4324,13 +4707,13 @@ function Mrend(options) {
             {
                 title: "#",
                 field: "idx",
-                frozen: true,
-                width: 120
+                width: 120,
+                frozen: true
 
             },
 
             {
-                title: "Ações",
+                title: "Actions",
                 frozen: true,
                 formatter: function (cell, formatterParams) {
 
@@ -4385,7 +4768,7 @@ function Mrend(options) {
                         var addFilhaResult = addLinhaFilha(row.getData().rowid);
                         row.addTreeChild(addFilhaResult.UIObject);
                         row.treeExpand();
-                        mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+                        //mrendThis.applyTabulatorStylesWithJquery(mrendThis);
                         handleRowEvent(row, "add");
 
 
@@ -4447,8 +4830,7 @@ function Mrend(options) {
 
                     if (colDefinition) {
                         colDefinition.frozen = false
-                        colDefinition.resizable = true,
-                            tmpGrupoColunaDefinition.columns.push(colDefinition);
+                        tmpGrupoColunaDefinition.columns.push(colDefinition);
                         addedToColGroup.push(colDefinition);
                     }
 
@@ -4474,16 +4856,13 @@ function Mrend(options) {
         })
 
 
-
-
         mrendThis.GTable = new Tabulator(mrendThis.containerToRender, {
             data: mrendThis.GGridData,
             dataTree: true,
             dataTreeStartExpanded: true,
             dataTreeChildIndent: 25,
             popupContainer: "body",
-            //layout: "fitDataTable", // ou "fitColumns"
-            layout: "fitColumns",
+            layout: "fitDataStretch",
             height: "400px", // altura fixa para ativar scroll e fixar cabeçalho
             rowFormatter: function (row) {
 
@@ -4541,13 +4920,13 @@ function Mrend(options) {
 
 
         mrendThis.GTable.on("dataTreeRowExpanded", function (row, level) {
-            mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+            //mrendThis.applyTabulatorStylesWithJquery(mrendThis);
         });
 
 
         mrendThis.GTable.on("dataTreeRowCollapsed", function (row, level) {
 
-            mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+            //mrendThis.applyTabulatorStylesWithJquery(mrendThis);
         });
 
 
@@ -4579,7 +4958,7 @@ function Mrend(options) {
             }
             $(mrendThis.containerToRender).attr("data-zoom-scale", currentScale);
 
-            mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+            //mrendThis.applyTabulatorStylesWithJquery(mrendThis);
 
             var cells = JSON.parse(JSON.stringify(mrendThis.GCellObjectsConfig));
 
@@ -4608,6 +4987,28 @@ function Mrend(options) {
  
              },3000)*/
             //row - row component
+        });
+
+
+        mrendThis.GTable.on("cellClick", function (e, cell) {
+    
+            var rowData = cell.getRow().getData();
+
+            var renderedColuna = mrendThis.GRenderedColunas.find(function (coluna) {
+                return coluna.codigocoluna == cell.getField();
+            });
+
+            if (!renderedColuna) {
+
+                throw new Error("Coluna renderedColuna com codigocoluna " + cell.getField() + " não encontrada.");
+            }
+
+             
+            
+            if (renderedColuna.config.tipo != "button") {
+                eval(renderedColuna.config.expressaoclique)
+
+            }
         });
 
 
@@ -5189,7 +5590,7 @@ function Mrend(options) {
     }
 
 
-    function addLinhaByModelo(modelo) {
+    function addLinhaByModelo(modelo, record) {
 
 
         var linhaModelo = mrendThis.reportConfig.config.linhas.find(function (linha) {
@@ -5197,21 +5598,39 @@ function Mrend(options) {
             return linha.codigo == modelo
         });
 
+        var rowid = generateUUID();
+        if (Object.keys(record || {}).length > 0) {
+
+            rowid = record.rowid || generateUUID();
+        }
+
         var renderedLinha
         if (linhaModelo) {
 
             var codigo = linhaModelo.codigo + "___" + generateTimestampNumber(10);
             var ordem = generateLinhaOrdem();
-            renderedLinha = new RenderedLinha({ ordem: ordem, codigo: codigo, novoregisto: true, rowid: generateUUID(), linkid: "", parentid: "", config: linhaModelo })
 
-            renderedLinha.UIObject = {
-                rowid: renderedLinha.rowid,
-                id: renderedLinha.rowid
+            var records = [];
+            var UIObject = {
+                rowid: rowid,
+                id: rowid
             };
 
 
-            renderedLinha.addToLocalRenderedLinhasList([], "", {}, true, true);
+            if (Object.keys(record || {}).length > 0) {
+                records.push(record);
+                UIObject = record;
 
+            }
+
+            renderedLinha = new RenderedLinha({ UIObject: UIObject, ordem: ordem, codigo: codigo, novoregisto: true, rowid: rowid, linkid: "", parentid: "", config: linhaModelo })
+
+
+            var dbConverstion = ConvertDbTableToMrendObject(records, mrendThis.dbTableToMrendObject);
+
+            renderedLinha.addToLocalRenderedLinhasList(dbConverstion, { rowid: rowid }, {}, true, true);
+
+            mrendThis.GNewRecords = dbConverstion.concat(mrendThis.GNewRecords);
 
 
 
@@ -5265,12 +5684,12 @@ function Mrend(options) {
 
 
 
-                var linhaByModeloResult = addLinhaByModelo(modelo);
+                var linhaByModeloResult = addLinhaByModelo(modelo, {});
 
                 // //console.log(("Linha adicionada por modelo", linhaByModeloResult)
                 mrendThis.GTable.addRow(linhaByModeloResult.UIObject, false).then(function (row) {
                     row.treeExpand();
-                    mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+                    //mrendThis.applyTabulatorStylesWithJquery(mrendThis);
 
                 });
 
@@ -5547,7 +5966,7 @@ function Mrend(options) {
 
 
 
-        mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+        //mrendThis.applyTabulatorStylesWithJquery(mrendThis);
     }
 
     function findRowByIdColuna(rowid, coluna, value) {
@@ -5668,9 +6087,9 @@ function Mrend(options) {
 
     }
 
-    this.updateTableRowColumnValue = function (rowid, rowData, coluna, value) {
+    this.updateTableRowColumnValue = function (rowid, coluna, value) {
 
-        var row = findRowByIdColuna(rowid, coluna, value);
+        console.log("Updating row:", rowid, "column:", coluna, "with value:", value);
 
 
     }
@@ -5680,7 +6099,7 @@ function Mrend(options) {
         var scripts = [
             'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js',
             'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js',
-            'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
+            // 'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
             'https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js',
             'https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js',
             'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS',
@@ -5888,6 +6307,8 @@ function Mrend(options) {
             "width": "11px"
         });
 
+        $(".tabulator-col").css({ "margin-top": "0.8em", "height": "30px" })
+
         $(".tabulator-tree-collapse, .tabulator-tree-expand").css({
             "color": "#0765b7",
             "border-radius": "50%",
@@ -5926,18 +6347,32 @@ function Mrend(options) {
     };
 
     this.render = function () {
-        return loadAssetsPromiseAll().then(function () {
+        /*  return loadAssetsPromiseAll().then(function () {
+  
+  
+            
+          });*/
 
-
-            return InitDB(mrendThis.dbTableToMrendObject.dbName, mrendThis.schemas).then(function (initDBResult) {
-                if (mrendThis.resetSourceStamp) {
-                    mrendThis.clearSourceStamp();
-                }
-                handleReportRecords().then(function (reportRecordResult) {
-                    RenderHandler(mrendThis.records)
-                })
-            });
+        return InitDB(mrendThis.dbTableToMrendObject.dbName, mrendThis.schemas).then(function (initDBResult) {
+            if (mrendThis.resetSourceStamp) {
+                mrendThis.clearSourceStamp();
+            }
+            handleReportRecords().then(function (reportRecordResult) {
+                RenderHandler(mrendThis.records)
+            })
         });
+    }
+
+    this.toggleColumnVisibility = function (columnField, isVisible) {
+        var column = mrendThis.GTable.getColumn(columnField);
+        if (column) {
+            if (isVisible) {
+                column.show();
+                return true;
+            }
+            column.hide();
+            return true;
+        }
     }
 
     this.getDbData = function () {
@@ -5962,6 +6397,13 @@ function Mrend(options) {
 
 
 }
+
+
+
+
+
+
+
 function handleZoomMrend(button, dbName, tableName) {
     var $button = $(button);
     var $container = $($button.data("container"));
@@ -6002,10 +6444,10 @@ function loadAssetsWithGetScript() {
     var scripts = [
         'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js',
         'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js',
-        'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
+        //'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js',
         'https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js',
         'https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js',
-        'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS',
+        //'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS',
         'https://unpkg.com/petite-vue',
         'https://uicdn.toast.com/tui-grid/latest/tui-grid.min.js',
         'https://cdn.jsdelivr.net/npm/observable-slim@0.1.6/observable-slim.min.js',
@@ -6043,7 +6485,6 @@ function loadAssetsWithGetScript() {
 
 
 $(document).ready(function () {
-
     var cssContent = "";
     cssContent += ".mrend-input-cell{";
     cssContent += "    background: rgb(239, 240, 241);";
@@ -6052,7 +6493,7 @@ $(document).ready(function () {
     cssContent += "    border-radius: 4px;";
     cssContent += "     overflow: auto; ";
     cssContent += "    width: 100%;";
-    //cssContent += "    resize: none;";                /* evita resize manual */tabulator-col-resize-handle
+    //cssContent += "    resize: none;";                /* evita resize manual */
     //cssContent += "    overflow: hidden;";            /* esconde scrollbar */
     //cssContent += "    white-space: pre-wrap;";        /* mantém quebras de linha */
     //cssContent += "    word-wrap: break-word;";        /* quebra palavras grandes */
@@ -6062,10 +6503,7 @@ $(document).ready(function () {
     cssContent += "    transition: background-color 0.2s ease!important;";
     cssContent += "    background-color: white;";
     cssContent += "}";
-    cssContent += ".tabulator .tabulator-col-resize-handle {"
-    cssContent += "border:10px solid transparent!important;border-radius:8px;"
-    cssContent += "transition: border 0.2s ease;"
-    cssContent += "}"
+
     cssContent += ".tabulator .tabulator-col-resize-handle:hover {"
     cssContent += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
     cssContent += "}"
@@ -6090,6 +6528,20 @@ $(document).ready(function () {
     cssContent += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
     cssContent += "}"
 
+    cssContent += ".tabulator-cell input[type='checkbox'] {";
+    cssContent + " -webkit-appearance: none!important;"
+    cssContent += "border: 1px solid " + getColorByType("primary").background + "!important;";
+    cssContent += "accent-color: " + getColorByType("warning").background + "!important;";
+    cssContent += "transform: scale(1.7)!important;";
+    cssContent += "}";
+    cssContent += ".tabulator-data-tree-control{ "
+    cssContent += "width:20px!important;"
+    cssContent += "height:20px!important;"
+    cssContent += "}"
+    cssContent += ".tabulator-row .tabulator-cell .tabulator-data-tree-control .tabulator-data-tree-control-collapse:after{"
+    cssContent += "font-size:16px!important;"
+    cssContent += "color:#3f5670!important;";
+    cssContent += "}"
 
     $('head').append('<style>' + cssContent + '</style>');
     loadAssetsWithGetScript();
@@ -6125,11 +6577,11 @@ function loadMrendAssets() {
 
         { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/dexie/3.2.3/dexie.min.js' },
         { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js' },
-        { type: 'script', src: 'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js' },
+        //{ type: 'script', src: 'https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js' },
         { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js' },
         { type: 'link', href: 'https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css', rel: 'stylesheet' },
         { type: 'script', src: 'https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js' },
-        { type: 'script', src: 'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS' },
+        // { type: 'script', src: 'https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS' },
         { type: 'script', src: 'https://unpkg.com/petite-vue' },
         { type: 'script', src: 'https://cdn.jsdelivr.net/npm/observable-slim@0.1.6/observable-slim.min.js' },
         { type: 'script', src: 'https://cdnjs.cloudflare.com/ajax/libs/imask/7.6.1/imask.js' }
@@ -6291,7 +6743,7 @@ function applyTabulatorStylesWithJquery() {
         "height": "11px",
         "justify-content": "center",
         "margin-right": "5px",
-        // "overflow": "hidden",
+        "overflow": "hidden",
         "vertical-align": "middle",
         "width": "11px"
     });

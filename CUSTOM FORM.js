@@ -1002,6 +1002,8 @@ function FormContent(data) {
     this.cols = data.cols || 12;
     this.rows = data.rows || 10;
     this.selectData = data.selectData || "";
+    this.isReactive = data.isReactive || false;
+    this.selectVariable = data.selectVariable || "";
     this.value = data.value || "";
     this.event = data.event || "";
 }
@@ -1073,12 +1075,31 @@ function HandlerCustomContainerContentGenerator(content) {
         case "textarea":
             return generateTextarea(content);
         case "select":
+            if (content.isReactive && content.selectVariable) {
+                return generateReactiveSelect(content);
+            }
             return generateSelect(content.selectData, content.classes, content.style, content.selectCustomData, content.fieldToOption, content.fieldToValue, content.label);
         case "button":
             return generateButton(content);
         case "div":
             return generateDiv(content);
     }
+}
+
+function generateReactiveSelect(content) {
+    var html = "";
+    if (content.label) {
+        html += "<label>" + content.label + "</label>";
+    }
+    html += "<select";
+    if (content.style) html += " style='" + content.style + "'";
+    if (content.classes) html += " class='" + content.classes + "'";
+    if (content.selectCustomData) html += " " + content.selectCustomData;
+    html += ">";
+    html += "<option value=''></option>";
+    html += "<option v-for='opt in " + content.selectVariable + "' :value='opt." + content.fieldToValue + "'>{{ opt." + content.fieldToOption + " }}</option>";
+    html += "</select>";
+    return html;
 }
 function generateDiv(content) {
     var html = "";

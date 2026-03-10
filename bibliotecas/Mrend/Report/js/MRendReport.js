@@ -81,7 +81,7 @@ function Mrend(options) {
     this.enableEdit = options.enableEdit || false;
     this.resetSourceStamp = options.resetSourceStamp || false;
     this.datasourceName = options.datasourceName || "";
-    this.schemas = Array.isArray(options.schemas) ? options.schemas.map(function (s) { return new MrendSchema(s); }) : [];
+    this.schemas = Array.isArray(options.schemas) ? options.schemas : [];
     this.containerToRender = options.containerToRender || "";
     this.records = Array.isArray(options.records) ? options.records : [];
     this.tableSourceName = options.tableSourceName || "";
@@ -121,12 +121,7 @@ function Mrend(options) {
         this.data = data.data || {};
     }
 
-    // Classe para schemas
-    function MrendSchema(data) {
-        this.datasourceName = data.datasourceName || "";
-        this.tableSourceName = data.tableSourceName || "";
-        this.tableSourceSchema = data.tableSourceSchema || {};
-    }
+    // schemas é agora um simples array de strings (nomes das colunas, 1º = PK)
 
     // Classe para dbTableToMrendObject
     function DbTableToMrendObject(data) {
@@ -3282,7 +3277,9 @@ function Mrend(options) {
 
 
         if (!linhaRecord) {
-            linhaRecord = JSON.parse(JSON.stringify(mrendThis.schemas[0].tableSourceSchema))
+            linhaRecord = {};
+            var schemaFields = Array.isArray(mrendThis.schemas) ? mrendThis.schemas : [];
+            schemaFields.forEach(function(field) { linhaRecord[field] = ""; });
             cellId = generateUUID();
             novoRegisto = true
 
@@ -3369,7 +3366,17 @@ function Mrend(options) {
             mrendThis.db = new Dexie(datasourceName);
             var promises = []; // Armazena todas as Promises do loop
 
-            return configureDataBase(mrendThis.db, schemas[0].tableSourceName, 1, Object.keys(schemas[0].tableSourceSchema)).then(function (result) {
+            // Fallback: se schemas estiver vazio constrói um schema mínimo a partir de
+            // dbTableToMrendObject.tableKey (primary key da tabela no Dexie)
+            var schemaFields;
+            if (schemas && schemas.length > 0) {
+                schemaFields = schemas;
+            } else {
+                var tableKey = mrendThis.dbTableToMrendObject.tableKey || "";
+                schemaFields = tableKey ? [tableKey] : [];
+            }
+
+            return configureDataBase(mrendThis.db, mrendThis.tableSourceName, 1, schemaFields).then(function (result) {
                 mrendThis.db = result;
                 resolve({ inited: true, message: "Success", db: result }); // Resolve quando todas as promessas concluírem
             });
@@ -3458,11 +3465,11 @@ function Mrend(options) {
 
     function addBulkData(db, tableName, dataArray) {
 
-        if (mrendThis.db['_allTables'][tableName]) {
-            return mrendThis.db[tableName].bulkPut(dataArray)
-        } else {
-            return mrendThis.db[tableName].bulkAdd(dataArray)
+        if (!mrendThis.db[tableName]) {
+            console.error("addBulkData: tabela '" + tableName + "' não existe no Dexie. Tabelas registadas:", Object.keys(mrendThis.db['_allTables'] || {}));
+            return Promise.reject(new Error("Tabela '" + tableName + "' não encontrada no Dexie."));
         }
+        return mrendThis.db[tableName].bulkPut(dataArray);
 
     }
 
@@ -5547,11 +5554,11 @@ function Mrend(options) {
             return new Promise(function (resolve, reject) {
 
                 if (result.refetchDb) {
-                    return deleteAllRecords(mrendThis.table).then(function (data) {
+                    return deleteAllRecords(mrendThis.tableSourceName).then(function (data) {
 
                         var dbConverstion = ConvertDbTableToMrendObject(mrendThis.records, mrendThis.dbTableToMrendObject);
                         mrendThis.records = dbConverstion;
-                        return addBulkData(mrendThis.db, mrendThis.table, dbConverstion).then(function (data) {
+                        return addBulkData(mrendThis.db, mrendThis.tableSourceName, dbConverstion).then(function (data) {
                             return resolve(result);
                         })
                     })
@@ -5885,7 +5892,7 @@ function Mrend(options) {
             return cellObj.codigocoluna != codigocoluna;
         });
 
-        mrendThis.db[mrendThis.table].where("coluna").equals(codigocoluna).delete().then(function () {
+        mrendThis.db[mrendThis.tableSourceName].where("coluna").equals(codigocoluna).delete().then(function () {
             //console.log(("Coluna deletada com sucesso:", codigocoluna);
         });
     }

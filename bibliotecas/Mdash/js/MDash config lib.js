@@ -4786,7 +4786,7 @@ function initConfiguracaoDashboard(config) {
     filterContainer += "<tbody id='m-dash-filter-body'></tbody>";
     filterContainer += "</table>";
 
-    filterContainer += "                    <div class='mt-4 '>";
+    filterContainer += "                    <div style='display:none' class='mt-4 '>";
     filterContainer += "                        <h5 class='section-title'><i style='margin-left:0.3em' class='fas fa-database me-2'></i> Fontes de Dados</h5>";
     filterContainer += "                        <button style='margin-bottom:2em;' type='button' class='btn btn-primary btn-sm w-100 mb-3' @click='addDataSource'>";
     filterContainer += "                            <i class='fas fa-plus me-1'></i> Adicionar Fonte";
