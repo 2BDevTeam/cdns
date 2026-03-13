@@ -4132,7 +4132,9 @@ function Mrend(options) {
         }
 
         if (coluna.config.tipo === "table") {
-            var values = (coluna.localData || []).map(function (item) {
+
+            var localDataArray = Array.isArray(coluna.localData) ? coluna.localData : [];
+            var values = localDataArray.map(function (item) {
                 return {
                     value: item[coluna.config.valtb],
                     label: item[coluna.config.nometb]
@@ -4148,12 +4150,12 @@ function Mrend(options) {
 
                         var celula = getCelulaConfigFromTabulator(cell, coluna.config, colunaUIConfig);
 
-                        if (coluna.config.usaexpresstbjs && celula.localData.length == 0) {
-                            celula.localData = eval(coluna.config.expressaotbjs);
-
+                        if (coluna.config.usaexpresstbjs && (!celula.localData || celula.localData.length == 0)) {
+                            var evalResult = eval(coluna.config.expressaotbjs);
+                            celula.localData = Array.isArray(evalResult) ? evalResult : [];
                         }
 
-                        list = celula.localData || [];
+                        list = Array.isArray(celula.localData) ? celula.localData : [];
 
                         return (list || []).map(function (item) {
 
@@ -4400,6 +4402,8 @@ function Mrend(options) {
 
 
     function addTabulatorColumns(colunas, columns) {
+
+        
 
         colunas.forEach(function (coluna) {
             var colunaTitle = coluna.desccoluna;
@@ -4874,6 +4878,21 @@ function Mrend(options) {
             columnsDefinition.push(entry.def);
         });
 
+        if (mrendThis.GTable) {
+            try { mrendThis.GTable.destroy(); } catch (e) { /* ignore destroy errors on re-render */ }
+            mrendThis.GTable = null;
+        }
+
+        var tabulatorTarget = document.querySelector(mrendThis.containerToRender);
+        if (!tabulatorTarget) {
+            console.error("MRend: containerToRender '" + mrendThis.containerToRender + "' não existe no DOM. Tabulator não pode ser inicializado.");
+            return;
+        }
+
+        // Promise que resolve quando o Tabulator dispara tableBuilt
+        mrendThis._tableBuiltPromise = new Promise(function (resolve) {
+            mrendThis._tableBuiltResolve = resolve;
+        });
 
         mrendThis.GTable = new Tabulator(mrendThis.containerToRender, {
             data: mrendThis.GGridData,
@@ -4978,7 +4997,23 @@ function Mrend(options) {
             }
             $(mrendThis.containerToRender).attr("data-zoom-scale", currentScale);
 
+            // Resolve a promise para que addColunasByModelo possa chamar addColumn com segurança
+            if (mrendThis._tableBuiltResolve) {
+                mrendThis._tableBuiltResolve();
+                mrendThis._tableBuiltResolve = null;
+            }
+
             mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+
+            // Force Tabulator to re-measure column widths after the container
+            // has fully painted (zoom + surrounding layout settled).
+            // This replicates the fix that happens automatically on window resize.
+            setTimeout(function () {
+                if (mrendThis.GTable) {
+                    mrendThis.GTable.redraw(true);
+                    window.dispatchEvent(new Event('resize'));
+                }
+            }, 200);
 
             var cells = JSON.parse(JSON.stringify(mrendThis.GCellObjectsConfig));
 
@@ -5007,6 +5042,7 @@ function Mrend(options) {
  
              },3000)*/
             //row - row component
+            
         });
 
 
@@ -5014,8 +5050,11 @@ function Mrend(options) {
         mrendThis.GTable.on("tableBuilt", tableBuiltEvent);
 
 
-        setTimeout(function () {
-            mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+        setInterval(function () {
+            if (mrendThis.GTable) {
+                mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+                //mrendThis.GTable.redraw(true);
+            }
         }, 500);
 
 
@@ -5586,6 +5625,20 @@ function Mrend(options) {
 
         localStorage.removeItem("sourcestamp_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName);
 
+    }
+
+    this.clearAllSources = function () {
+
+        var keysToRemove = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            var key = localStorage.key(i);
+            if (key && key.indexOf("sourcestamp_") === 0) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(function (key) {
+            localStorage.removeItem(key);
+        });
 
     }
 
@@ -5649,9 +5702,13 @@ function Mrend(options) {
             return;
         }
 
-
+        // Limpa divs de botões existentes para evitar duplicação em re-renders
         var tableButtonsId = "tableButtons" + mrendThis.table;
-        var tableButtons = $("<div id='" + tableButtonsId + "' class='col-md-12 pull-left tableButtons'></div>");
+        $("#" + tableButtonsId).remove();
+        var tableButtonsColId = "tableButtonsCol" + mrendThis.table;
+        $("#" + tableButtonsColId).remove();
+
+        var tableButtons = $("<div id='" + tableButtonsId + "' style='margin-top:0.6em;display:flex;flex-wrap:wrap;gap:0.4em;' class='tableButtons'></div>");
         $(mrendThis.containerToRender).after(tableButtons);
 
         mrendThis.reportConfig.config.relatorio.modelos.forEach(function (modelo) {
@@ -5712,8 +5769,7 @@ function Mrend(options) {
 
         if (colunasModelos.length > 0) {
 
-            var tableButtonsColId = "tableButtonsCol" + mrendThis.table;
-            var tableButtonsCol = $("<div id='" + tableButtonsColId + "' class='col-md-12 pull-left tableButtonsCol'></div>");
+            var tableButtonsCol = $("<div id='" + tableButtonsColId + "' style='margin-bottom:0.6em;display:flex;flex-wrap:wrap;gap:0.4em;' class='tableButtonsCol'></div>");
             $(mrendThis.containerToRender).before(tableButtonsCol);
 
         }
@@ -5913,6 +5969,8 @@ function Mrend(options) {
     }
     this.addColunasByModelo = function (colunas) {
 
+        var doAdd = function () {
+
         var lastRendered = ""
 
         colunas.forEach(function (coluna) {
@@ -5967,6 +6025,14 @@ function Mrend(options) {
 
 
         mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+
+        }; // end doAdd
+
+        if (mrendThis._tableBuiltPromise) {
+            mrendThis._tableBuiltPromise.then(doAdd);
+        } else {
+            doAdd();
+        }
     }
 
     function findRowByIdColuna(rowid, coluna, value) {
@@ -6363,7 +6429,7 @@ function Mrend(options) {
             if (mrendThis.resetSourceStamp) {
                 mrendThis.clearSourceStamp();
             }
-            handleReportRecords().then(function (reportRecordResult) {
+            return handleReportRecords().then(function (reportRecordResult) {
                 RenderHandler(mrendThis.records)
             })
         });
