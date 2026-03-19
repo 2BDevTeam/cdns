@@ -73,6 +73,58 @@ function Mrend(options) {
 
     }
 
+    // Para chunkMapping: false — recebe array de células (uma por coluna da mesma linha)
+    // Exemplo: addLinhaComCelulas("beil", [
+    //   { u_reportlstamp: "...", linkstamp: rowid, linha: "beil", coluna: "ref",    cvalor: "ABC", valor: 0, tipo: "text" },
+    //   { u_reportlstamp: "...", linkstamp: rowid, linha: "beil", coluna: "design", cvalor: "Mesa", valor: 0, tipo: "text" }
+    // ])
+    this.addLinhaComCelulas = function (modelo, celulas) {
+
+        if (!Array.isArray(celulas) || celulas.length === 0) return;
+
+        var linhaModelo = mrendThis.reportConfig.config.linhas.find(function (linha) {
+            return linha.codigo == modelo;
+        });
+
+        if (!linhaModelo) return;
+
+        var rowid = celulas[0][mrendThis.dbTableToMrendObject.extras.rowIdField]
+            || celulas[0][mrendThis.dbTableToMrendObject.tableKey]
+            || generateUUID();
+
+        var codigo = linhaModelo.codigo + "___" + generateTimestampNumber(10);
+        var ordem = generateLinhaOrdem();
+
+        var UIObject = { rowid: rowid, id: rowid };
+        celulas.forEach(function (celula) {
+            var coluna = celula[mrendThis.dbTableToMrendObject.extras.colunaField];
+            var colConfig = mrendThis.reportConfig.config.colunas.find(function (c) {
+                return c.codigocoluna == coluna;
+            });
+            if (colConfig) {
+                UIObject[coluna] = celula[colConfig.campo] !== undefined
+                    ? celula[colConfig.campo]
+                    : celula.cvalor || celula.valor || 0;
+            }
+        });
+
+        var renderedLinha = new RenderedLinha({ UIObject: UIObject, ordem: ordem, codigo: codigo, novoregisto: true, rowid: rowid, linkid: "", parentid: "", config: linhaModelo });
+
+        var dbConverstion = ConvertDbTableToMrendObject(celulas, mrendThis.dbTableToMrendObject);
+
+        renderedLinha.addToLocalRenderedLinhasList(dbConverstion, { rowid: rowid }, {}, true, true);
+
+        mrendThis.GNewRecords = dbConverstion.concat(mrendThis.GNewRecords);
+
+        addNewRecords();
+
+        mrendThis.GTable.addRow(UIObject, false).then(function (row) {
+            row.treeExpand();
+            mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+        });
+
+    }
+
 
     this.refreshReactiveData = function () {
         //  return 
