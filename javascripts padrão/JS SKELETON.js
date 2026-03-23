@@ -1,4 +1,4 @@
-
+var GVIEWMODEL = null;
 
 
 function pageLoad() {
@@ -24,7 +24,7 @@ function organizarCampos() {
 }
 
 
-function outrasFuncoes(){
+function outrasFuncoes() {
     try {
 
     } catch (error) {
@@ -34,13 +34,34 @@ function outrasFuncoes(){
 }
 
 
+function handleGrelhasPHC() {
+
+    if (GVIEWMODEL != null) {
+
+        $("body").trigger("mainformAfterCreateViewModel", GVIEWMODEL);
+
+    }
+
+    $(document).off("mainformAfterCreateViewModel").on("mainformAfterCreateViewModel", function (event, viewModel) {
+        try {
+
+        
+
+        } catch (error) {
+            console.error("Erro ao configurar o ViewModel:", error);
+        }
+    });
+
+}
+
 
 
 function registerListeners() {
 
     try {
+        handleGrelhasPHC()
 
     } catch (error) {
-
+        console.error("Erro ao registar listeners:", error);
     }
 }

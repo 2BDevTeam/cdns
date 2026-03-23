@@ -78,7 +78,10 @@ CREATE TABLE MrendLinha
     expressaochangejssubgrupo TEXT DEFAULT '',
     sourceKey VARCHAR(250) DEFAULT '',
     sourceBind VARCHAR(250) DEFAULT '',
-    extras TEXT DEFAULT ''
+    extras TEXT DEFAULT '',
+    comportamentogrupo BIT DEFAULT 0,
+    corcomportgrupo VARCHAR(50) DEFAULT '',
+    colunatitulo VARCHAR(100) DEFAULT ''
 );
 
 
