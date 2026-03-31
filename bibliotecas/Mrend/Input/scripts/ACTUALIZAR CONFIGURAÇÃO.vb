@@ -210,6 +210,12 @@ Try
    Dim result as new Object
    Dim relatoriostamp= MapToDefaultValue(Newtonsoft.Json.Linq.JArray.Parse(parametro)(0)("relatoriostamp"))
    Dim config As Newtonsoft.Json.Linq.JArray = Newtonsoft.Json.Linq.JArray.Parse(parametro)(0)("config")
+   Dim recordsToDelete As Newtonsoft.Json.Linq.JArray = Nothing
+   
+   ' Parse recordsToDelete if exists
+   If Newtonsoft.Json.Linq.JArray.Parse(parametro)(0)("recordsToDelete") IsNot Nothing Then
+       recordsToDelete = Newtonsoft.Json.Linq.JArray.Parse(parametro)(0)("recordsToDelete")
+   End If
 
  Using connection as SqlClient.SqlConnection = SqlHelp.GetNewConnection()
    
@@ -249,6 +255,24 @@ Try
         '    command.ExecuteNonQuery()
         'End Using
 
+        ' Process recordsToDelete
+        If recordsToDelete IsNot Nothing AndAlso recordsToDelete.Count > 0 Then
+            For Each deleteRecord As Newtonsoft.Json.Linq.JObject In recordsToDelete
+                Dim deleteTable As String = MapToDefaultValue(deleteRecord("table"))
+                Dim deleteStamp As String = MapToDefaultValue(deleteRecord("stamp"))
+                Dim deleteTableKey As String = MapToDefaultValue(deleteRecord("tableKey"))
+                
+                Dim deleteQuery As String = $"DELETE FROM {deleteTable} WHERE {deleteTableKey} = '{deleteStamp}'"
+                Dim isSanitizedDelete As Boolean = querySanitized(deleteQuery)
+                
+               ' If Not isSanitizedDelete Then
+                '    Throw New Exception("Delete query contains unsafe keywords.")
+                'End If
+                
+                deleteConfiguracaQuery += deleteQuery & vbCrLf
+            Next
+        End If
+
         Dim sqlParametersDynamic as new List(Of System.Data.SqlClient.SqlParameter)
 
         Using command As New System.Data.SqlClient.SqlCommand(dynamicGlobalQuery, connection, transaction)
@@ -259,6 +283,13 @@ Try
             End If
             command.ExecuteNonQuery()
         End Using
+
+        ' Execute delete queries if any
+        If Not String.IsNullOrEmpty(deleteConfiguracaQuery) Then
+            Using deleteCommand As New System.Data.SqlClient.SqlCommand(deleteConfiguracaQuery, connection, transaction)
+                deleteCommand.ExecuteNonQuery()
+            End Using
+        End If
 
         transaction.Commit()
 

@@ -405,6 +405,12 @@ function Mrend(options) {
         this.corcomportgrupo = data.corcomportgrupo || "";
         // Código da coluna que fica visível/editável como título na linha de grupo
         this.colunatitulo = data.colunatitulo || "";
+        // Configuração de totais por linha
+        this.linhatemtotal = data.linhatemtotal || false;
+        this.tituloparatotal = data.tituloparatotal || "";
+        this.colunastotais = data.colunastotais || "";
+        this.temexpressaototal = data.temexpressaototal || false;
+        this.expressaototal = data.expressaototal || "";
 
     }
 
@@ -449,6 +455,7 @@ function Mrend(options) {
         this.condicfuncexpr = data.condicfuncexpr || "";
         this.tamanho = data.tamanho || 150;
         this.alinhamento = data.alinhamento || "left";
+        this.levadesclinha = data.levadesclinha || false;
 
         this.nometb = data.nometb || "";
         this.valtb = data.valtb || "";
@@ -683,7 +690,7 @@ function Mrend(options) {
 
         if (cellObject.changedb == false) {
             //console.log(("syncChangesToDB - changedb is false, skipping mrendThis.db update");
-            return
+            return Promise.resolve(); // Retorna Promise resolvida para células que não salvam no DB
         }
         var htmlComponent = getCellHtmlComponent(cellObject.cellid);
         var varlorF = valor == "Infinity" || valor == "-Infinity" || valor == Infinity ? 0 : valor;
@@ -3374,13 +3381,7 @@ function Mrend(options) {
     }
 
 
-
-
-
-
-
-
-
+    // ── Nova função para linha de total customizada ──
     function buildCelulaDefCol(linhaHtml, linh, colun, records) {
 
         var linha = new RenderedLinha(linh);
@@ -3454,6 +3455,17 @@ function Mrend(options) {
             novoRegisto = true;
         }
 
+        // ── Se coluna tem levadesclinha, usa descricao da linha como valor ──
+        var valorCelula = linhaRecord[coluna.config.campo];
+        var atributoCelula = isUndefinedOrNull(configCelula.atributo) ? coluna.config.atributo : configCelula.atributo;
+        
+        if (coluna.config.levadesclinha) {
+            valorCelula = linha.config.descricao || "";
+           // console.log("levadesclinha", valorCelula)
+            atributoCelula = "readonly";
+        }
+       
+
         var cellObjectConfig = new CellObjectConfig(
             {
                 bindData: new BindData({ sourceKey: "cellId", sourceBind: coluna.config.campo }),
@@ -3461,10 +3473,10 @@ function Mrend(options) {
                 component: "Celula",
                 componentcategoria: "Celula",
                 expressao: "",
-                atributo: isUndefinedOrNull(configCelula.atributo) ? coluna.config.atributo : configCelula.atributo,
+                atributo: atributoCelula,
                 proibenegativo: isUndefinedOrNull(configCelula.proibenegativo) ? "" : configCelula.proibenegativo,
                 dataType: coluna.config.tipo,
-                valor: linhaRecord[coluna.config.campo],
+                valor: valorCelula,
                 campovalor: "",
                 linkid: linha.linkid,
                 row: linha.rowid,
@@ -3979,6 +3991,15 @@ function Mrend(options) {
     function getRenderedLinhaFromTabulator(cell, colunaConfig, colunaUIConfig) {
 
         var rowData = cell.getRow().getData();
+        
+        // ── Se for linha de total, retornar objeto dummy ──
+        if (rowData._isTotalRow) {
+            return {
+                rowid: rowData.rowid,
+                config: { tipo: "TotalLinha" },
+                UIObject: rowData
+            };
+        }
 
         var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
             return linha.rowid == rowData.rowid;
@@ -3998,6 +4019,16 @@ function Mrend(options) {
         var renderedLinha = getRenderedLinhaFromTabulator(cell, colunaConfig, colunaUIConfig);
         if (!renderedLinha) {
             throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
+        }
+        
+        // ── Se for linha de total, retornar objeto dummy ──
+        if (renderedLinha.config && renderedLinha.config.tipo === "TotalLinha") {
+            return {
+                inactivo: false,
+                condicinactivo: false,
+                desabilitado: true,
+                valordefeito: false
+            };
         }
 
         var renderedColuna = mrendThis.GRenderedColunas.find(function (coluna) {
@@ -4026,7 +4057,7 @@ function Mrend(options) {
     function generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content) {
 
         var styles = ""
-        if (colunaConfig.atributo == "readonly" || colunaConfig.colfunc) {
+        if (colunaConfig.atributo == "readonly" || colunaConfig.colfunc || colunaConfig.levadesclinha) {
 
             styles = "background:#dee5eb;"
         }
@@ -4042,6 +4073,11 @@ function Mrend(options) {
 
 
     function isInactivo(cell, renderedColuna, colunaUIConfig, rowData) {
+
+        // ── Se a coluna tem levadesclinha, deve ser readonly ──
+        if (renderedColuna.levadesclinha) {
+            return true;
+        }
 
         var condicAttrResult = ""
         if (renderedColuna.condicattr) {
@@ -4083,6 +4119,24 @@ function Mrend(options) {
 
         var renderedColuna = colunaConfig;
         var rowData = cell.getRow().getData();
+        
+        // ── Se for linha de total, formato especial ──
+        if (rowData._isTotalRow) {
+            var value = cell.getValue();
+            if (colunaConfig.tipo === "digit" && value !== undefined && value !== null && value !== "") {
+                var formattedValue = formatNumber(value, colunaConfig);
+                return "<div style='background:#e8edf2;font-weight:bold;text-align:" + colunaConfig.alinhamento + "' class='mrend-input-cell'>" + formattedValue + "</div>";
+            }
+            return "<div style='background:#e8edf2;font-weight:bold;' class='mrend-input-cell'>&nbsp;</div>";
+        }
+
+        // ── Se a coluna tem levadesclinha, usa descLinha como valor ──
+        /*if (renderedColuna.levadesclinha) {
+            var valorDescLinha = rowData.descLinha || "";
+            console.log("levadesclinha formatter", valorDescLinha)
+            var content = valorDescLinha ? valorDescLinha.toString() : "&nbsp;";
+            return generateMrendCellContainer(cell, renderedColuna, colunaUIConfig, content);
+        }*/
 
         // ── comportamentogrupo: não-título → fundo colorido vazio; título → valor directo ──
         // (feito antes de getCelulaConfigFromTabulator porque a célula pode ter inactivo=true
@@ -4413,8 +4467,10 @@ function Mrend(options) {
         return {
             mutator: function (value, rowData, type, params, component) {
 
-
-
+                // ── Se for linha de total, retornar valor sem processar ──
+                if (rowData._isTotalRow) {
+                    return value;
+                }
 
                 var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
                     return linha.rowid == rowData.rowid;
@@ -4422,6 +4478,11 @@ function Mrend(options) {
 
                 if (!renderedLinha) {
                     throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
+                }
+                
+                // ── Se for linha de total confirmada, retornar valor sem processar ──
+                if (renderedLinha.config.tipo === "TotalLinha") {
+                    return value;
                 }
 
                 var celula = mrendThis.reportConfig.config.celulas.find(function (celula) {
@@ -4543,8 +4604,70 @@ function Mrend(options) {
         if (cellObjectConfig) {
 
             cellObjectConfig.valor = rowData[coluna];
+            
+            // ── Recalcular totais de linha se existirem ──
+            // ── Recalcular totais de linha se existirem ──
+            atualizarTotalLinha(cellObjectConfig.rowid, coluna);
         }
     }
+
+    // ── Função simples para atualizar total da linha ──
+    function atualizarTotalLinha(rowid, codigocoluna) {
+        var linhaAtual = mrendThis.GRenderedLinhas.find(function(l) {
+            return l.rowid === rowid;
+        });
+        
+        if (!linhaAtual || !linhaAtual.config.linhatemtotal) return;
+        
+        var totalRowId = "ROWTOTAL_" + rowid;
+        
+        try {
+            var totalRow = mrendThis.GTable.getRow(totalRowId);
+            if (!totalRow) return;
+            
+            // Calcular totais para todas as colunas digit
+            var totaisAtualizados = {};
+            
+            mrendThis.GRenderedColunas.forEach(function(coluna) {
+                if (coluna.config.tipo !== "digit") return;
+                
+                // Parsear colunas a totalizar
+                var colunasParaTotalizar = [];
+                if (linhaAtual.config.colunastotais) {
+                    colunasParaTotalizar = linhaAtual.config.colunastotais.split(',').map(function(c) {
+                        return c.trim();
+                    });
+                }
+                
+                var deveTotalizar = colunasParaTotalizar.length === 0 || 
+                                   colunasParaTotalizar.indexOf(coluna.codigocoluna) !== -1;
+                
+                if (!deveTotalizar) return;
+                
+                // Calcular soma
+                var soma = 0;
+                var celulasLinha = mrendThis.GCellObjectsConfig.filter(function(c) {
+                    return c.rowid === rowid && 
+                           c.codigocoluna === coluna.codigocoluna &&
+                           c.dataType === "digit";
+                });
+                
+                celulasLinha.forEach(function(celula) {
+                    var valor = parseFloat(celula.valor) || 0;
+                    soma += valor;
+                });
+                
+                totaisAtualizados[coluna.codigocoluna] = soma;
+            });
+            
+            // Atualizar linha no Tabulator
+            totalRow.update(totaisAtualizados);
+            
+        } catch (e) {
+            // Linha de total não encontrada
+        }
+    }
+
 
 
     function deleteRowById(rowid) {
@@ -4682,6 +4805,12 @@ function Mrend(options) {
             colunaUIConfig.editable = function (cell) {
 
                 var rowData = cell.getRow().getData()
+                
+                // ── Linhas de total não são editáveis ──
+                if (rowData._isTotalRow) {
+                    return false;
+                }
+                
                 var renderedColuna = mrendThis.GRenderedColunas.find(function (coluna) {
                     return coluna.codigocoluna == cell.getField();
                 });
@@ -4759,6 +4888,12 @@ function Mrend(options) {
 
     function handleRowEvent(row, operation) {
         var rowData = row.getData();
+        
+        // ── Linhas de total não têm eventos ──
+        if (rowData._isTotalRow) {
+            return;
+        }
+        
         var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
             return linha.rowid == rowData.rowid;
         });
@@ -4925,6 +5060,11 @@ function Mrend(options) {
                 formatter: function (cell, formatterParams) {
 
                     var rowData = cell.getRow().getData()
+                    
+                    // ── Linhas de total não têm ações ──
+                    if (rowData._isTotalRow) {
+                        return "";
+                    }
 
                     var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
 
@@ -4935,7 +5075,6 @@ function Mrend(options) {
 
                         throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
                     }
-
 
                     if (!mrendThis.enableEdit) {
                         return "";
@@ -5080,6 +5219,28 @@ function Mrend(options) {
             columnsDefinition.push(entry.def);
         });
 
+        // Com poucas colunas usa fitColumns com widthGrow proporcional ao tamanho
+        // configurado — mantém as proporções mas preenche 100% da largura.
+        var tabulatorLayout = mrendThis.GRenderedColunas.length <= 4 ? "fitColumns" : "fitData";
+
+        if (tabulatorLayout === "fitColumns") {
+            var nonFrozenCols = [];
+            (function collectNonFrozen(colDefs) {
+                colDefs.forEach(function (col) {
+                    if (col.columns) { collectNonFrozen(col.columns); }
+                    else if (!col.frozen) { nonFrozenCols.push(col); }
+                });
+            })(columnsDefinition);
+
+            var totalW = nonFrozenCols.reduce(function (sum, col) {
+                return sum + (col.width || 100);
+            }, 0);
+            nonFrozenCols.forEach(function (col) {
+                col.widthGrow = ((col.width || 100) / totalW) * nonFrozenCols.length;
+                delete col.width;
+            });
+        }
+
         if (mrendThis.GTable) {
             try { mrendThis.GTable.destroy(); } catch (e) { /* ignore destroy errors on re-render */ }
             mrendThis.GTable = null;
@@ -5102,12 +5263,20 @@ function Mrend(options) {
             dataTreeStartExpanded: true,
             dataTreeChildIndent: 25,
             popupContainer: "body",
-            layout: "fitData",
+            layout: tabulatorLayout,
             columnHeaderVertAlign: "bottom",
             height: "400px", // altura fixa para ativar scroll e fixar cabeçalho
             rowFormatter: function (row) {
 
                 var data = row.getData();
+                
+                // ── Formatação especial para linhas de total ──
+                if (data._isTotalRow) {
+                    row.getElement().style.backgroundColor = "#e8edf2";
+                    row.getElement().style.fontWeight = "bold";
+                    return;
+                }
+                
                 if (row.getTreeParent()) {
                     row.getElement().style.backgroundColor = "#f8fafc";
                 }
@@ -5171,6 +5340,70 @@ function Mrend(options) {
         });
 
 
+        // ── Adicionar linhas de total ao Tabulator ──
+        function adicionarLinhasDeTotais() {
+            var linhasComTotal = mrendThis.GRenderedLinhas.filter(function(l) {
+                return l.config.linhatemtotal;
+            });
+            
+            linhasComTotal.forEach(function(linhaComTotal) {
+                var totalRowId = "ROWTOTAL_" + linhaComTotal.rowid;
+                
+                // Processar título
+                var tituloTotal = linhaComTotal.config.tituloparatotal || "Total";
+                tituloTotal = tituloTotal.replace(/{thisRow}/g, linhaComTotal.config.descricao || "");
+                
+                // Criar objeto de dados para a linha de total
+                var totalRowData = {
+                    rowid: totalRowId,
+                    _isTotalRow: true,
+                    _parentRowId: linhaComTotal.rowid
+                };
+                
+                // Calcular totais para colunas digit
+                var colunasParaTotalizar = [];
+                if (linhaComTotal.config.colunastotais) {
+                    colunasParaTotalizar = linhaComTotal.config.colunastotais.split(',').map(function(c) {
+                        return c.trim();
+                    });
+                }
+                
+                mrendThis.GRenderedColunas.forEach(function(coluna) {
+                    if (coluna.config.tipo === "digit") {
+                        var deveTotalizar = colunasParaTotalizar.length === 0 || 
+                                           colunasParaTotalizar.indexOf(coluna.codigocoluna) !== -1;
+                        
+                        if (deveTotalizar) {
+                            // Calcular soma
+                            var soma = 0;
+                            var celulasLinha = mrendThis.GCellObjectsConfig.filter(function(c) {
+                                return c.rowid === linhaComTotal.rowid && 
+                                       c.codigocoluna === coluna.codigocoluna &&
+                                       c.dataType === "digit";
+                            });
+                            
+                            celulasLinha.forEach(function(celula) {
+                                var valor = parseFloat(celula.valor) || 0;
+                                soma += valor;
+                            });
+                            
+                            totalRowData[coluna.codigocoluna] = soma;
+                        } else {
+                            totalRowData[coluna.codigocoluna] = "";
+                        }
+                    } else {
+                        totalRowData[coluna.codigocoluna] = "";
+                    }
+                });
+                
+                // Adicionar linha como filha da linha pai
+                try {
+                    mrendThis.GTable.addRow(totalRowData, false, linhaComTotal.rowid);
+                } catch (e) {
+                    console.error("Erro ao adicionar linha de total:", e);
+                }
+            });
+        }
 
         var tableBuiltEvent = function (data) {
 
@@ -5206,6 +5439,9 @@ function Mrend(options) {
             }
 
             mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+
+            // ── Adicionar linhas de totais ──
+            adicionarLinhasDeTotais();
 
             // Force Tabulator to re-measure column widths after the container
             // has fully painted (zoom + surrounding layout settled).

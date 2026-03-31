@@ -46,6 +46,11 @@ function LinhaMrenderConfig(data) {
     this.comportamentogrupo = data.comportamentogrupo || false;
     this.corcomportgrupo = data.corcomportgrupo || "";
     this.colunatitulo = data.colunatitulo || "";
+    this.linhatemtotal = data.linhatemtotal || false;
+    this.tituloparatotal = data.tituloparatotal || "";
+    this.colunastotais = data.colunastotais || "";
+    this.temexpressaototal = data.temexpressaototal || false;
+    this.expressaototal = data.expressaototal || "";
     this.bindData = new BindData(data.bindData ? data.bindData : {})
     this.localSource = data.localSource || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
@@ -103,6 +108,13 @@ function getLinhaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 4, campo: "temtotais", tipo: "checkbox", titulo: "Tem Totais", classes: "input-source-form" }),
         new UIObjectFormConfig({ colSize: 4, campo: "totkey", tipo: "text", titulo: "Total Key", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ colSize: 4, campo: "totfield", tipo: "text", titulo: "Total Field", classes: "form-control input-source-form  input-sm" }),
+
+        // ── Totais por Linha ───────────────────────────────────────────
+        new UIObjectFormConfig({ colSize: 3, campo: "linhatemtotal", tipo: "checkbox", titulo: "Linha Tem Total", classes: "input-source-form" }),
+        new UIObjectFormConfig({ colSize: 9, campo: "tituloparatotal", tipo: "text", titulo: "Título para Total (use {thisRow})", classes: "form-control input-source-form  input-sm" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "colunastotais", tipo: "text", titulo: "Colunas Totais (separadas por vírgula, ex: coluna1,coluna2)", classes: "form-control input-source-form  input-sm" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "temexpressaototal", tipo: "checkbox", titulo: "Tem Expressão Total", classes: "input-source-form" }),
+        new UIObjectFormConfig({ colSize: 8, campo: "expressaototal", tipo: "textarea", titulo: "Expressão Total", classes: "form-control input-source-form  input-sm" }),
 
         // ── Classificação ──────────────────────────────────────────────
         new UIObjectFormConfig({ colSize: 6, campo: "categoria", tipo: "text", titulo: "Categoria", classes: "form-control input-source-form  input-sm" }),
@@ -191,6 +203,7 @@ function ColunaMrenderConfig(data) {
     this.proibenegativo = data.proibenegativo || false;
     this.regra = data.regra || "";
     this.fixacoluna = data.fixacoluna || false;
+    this.levadesclinha = data.levadesclinha || false;
     this.bindData = new BindData(data.bindData ? data.bindData : {})
     this.fxdata = new FXData(data.fxdata ? data.fxdata : {});
     this.localsource = data.localsource || "";
@@ -313,7 +326,7 @@ function MrendGrupoColuna(data) {
     this.relatoriostamp = data.relatoriostamp || GRelatorioStamp || "";
     this.codigogrupo = data.codigogrupo || "";
     this.descgrupo = data.descgrupo || "";
-    this.fixa = data.fixa ||false;
+    this.fixa = data.fixa || false;
     this.ordem = data.ordem || (function () {
         var maxOrdem = (GMrendGrupoColunas || []).reduce(function (max, item) {
             return Math.max(max, item.ordem || 0);
@@ -346,7 +359,7 @@ function getMrendGrupoColunaUIObjectFormConfigAndSourceValues() {
             classes: "form-control input-source-form input-sm",
             contentType: "input"
         }),
-         new UIObjectFormConfig({
+        new UIObjectFormConfig({
             colSize: 3,
             campo: "fixa",
             tipo: "checkbox",
@@ -406,8 +419,8 @@ function getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues() {
             contentType: "select",
             fieldToValue: "colunastamp",
             selectCustomData: "",
-            selectVariable:"GMrendConfigColunas",
-            isReactive:true,
+            selectVariable: "GMrendConfigColunas",
+            isReactive: true,
             selectValues: [],
             classes: "form-control input-source-form input-sm"
         }),
@@ -533,6 +546,7 @@ function getColunaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 3, campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 3, campo: "temlinhadesc", tipo: "checkbox", titulo: "Tem Descrição da linha.", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 3, campo: "fixacoluna", tipo: "checkbox", titulo: "Fixa Coluna", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 3, campo: "levadesclinha", tipo: "checkbox", titulo: "Leva Descrição da Linha", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 3, campo: "proibenegativo", tipo: "checkbox", titulo: "Proíbe Negativo", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 3, campo: "setinicio", tipo: "checkbox", titulo: "Set Início", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 3, campo: "setfim", tipo: "checkbox", titulo: "Set Fim", classes: "input-source-form", contentType: "input" }),
@@ -697,6 +711,28 @@ var GMrendConfigLinhas = [new LinhaMrenderConfig({})]
 var GMrendConfigColunas = [new ColunaMrenderConfig({})]
 var GMrendConfigCelulas = [new CelulaMrenderConfig({})];
 var GlickedRowComponent
+
+// Função para atualizar o estilo de uma linha baseado se tem filhos ou não
+function atualizarEstiloLinhaComFilhos(linhastamp) {
+    var table = $("#" + GRendConfigTableHtml.tableId);
+    var $row = table.find("tbody tr#" + linhastamp);
+    
+    if ($row.length === 0) return;
+    
+    // Verificar se tem filhos
+    var temFilhos = GMrendConfigLinhas.some(function(l) {
+        return l.linkstamp === linhastamp;
+    });
+    
+    if (temFilhos) {
+        $row.css("background", "#e9f1ff");
+        $row.addClass("linha-com-filhos");
+    } else {
+        $row.css("background", "");
+        $row.removeClass("linha-com-filhos");
+    }
+}
+
 var GRelatorioStamp = ""
 var GConfigCodigo = ""
 var GExtraConfigContainer = ""
@@ -723,6 +759,75 @@ GMrendGrupoColunas = [];
 
 var GMrendGrupoColunaItems = [new MrendGrupoColunaItem({})];
 GMrendGrupoColunaItems = [];
+
+var GMrendDeleteRecords = [];
+
+// Initialize treetable for hierarchical display
+function initMrendConfigTreeTable() {
+    var table = $("#" + GRendConfigTableHtml.tableId);
+    if (table.length === 0) {
+        console.warn("TreeTable: table #" + GRendConfigTableHtml.tableId + " not found in DOM");
+        return;
+    }
+
+    // Inject custom styles for treetable - similar to otherStyles() pattern
+    if (!document.getElementById("mrendConfigTreeTableStyles")) {
+        var style = document.createElement("style");
+        style.id = "mrendConfigTreeTableStyles";
+
+        var cssRules = "";
+
+        // Remove borders from treetable elements
+        cssRules += "#inputReportTable.treetable, #inputReportTable.treetable tbody tr td, #inputReportTable.treetable thead tr th { border: none !important; }";
+
+        // Treetable indenter styles - minimal interference
+        //cssRules += "#inputReportTable.treetable tr.collapsed span.indenter a, #inputReportTable.treetable tr.expanded span.indenter a { background: none !important; display: inline-block !important; }";
+        //  cssRules += "#inputReportTable.treetable tr.collapsed, #inputReportTable.treetable tr.expanded { background: inherit !important; }";
+        // cssRules += "#inputReportTable.treetable span.indenter { display: inline-block !important; width: 19px !important; margin-right: 5px !important; vertical-align: middle !important; }";
+        // cssRules += "#inputReportTable.treetable span.indenter a { width: 16px !important; height: 16px !important; display: inline-block !important; }";
+        //  cssRules += "#inputReportTable.treetable tbody tr td { padding: 8px !important; vertical-align: middle !important; }";
+        //cssRules += "#inputReportTable.treetable { border-collapse: separate !important; }";
+
+        // Fix button widths and icon centering
+        //cssRules += "#inputReportTable.treetable td.linha-acoes { white-space: nowrap !important; }";
+        //cssRules += "#inputReportTable.treetable td.linha-acoes .btn { display: inline-block !important; padding: 5px 10px !important; line-height: 1.42857143 !important; text-align: center !important; width: auto !important; }";
+        //cssRules += "#inputReportTable.treetable td.linha-acoes .btn .glyphicon { display: inline-block !important; vertical-align: middle !important; }";
+        //cssRules += "#inputReportTable.treetable td.linha-acoes > div { display: contents !important; }";
+
+        style.textContent = cssRules;
+        document.head.appendChild(style);
+    }
+
+    // Destroy existing treetable instance if any
+    try {
+        table.treetable('destroy');
+        $(".indenter").remove();
+    } catch (e) {
+        // No existing instance, continue
+    }
+
+    // Verify we have rows with data-tt-id before initializing
+    var rowsWithTreeData = table.find('tbody tr[data-tt-id]');
+    if (rowsWithTreeData.length === 0) {
+        console.warn("TreeTable: no rows with data-tt-id found");
+        return;
+    }
+
+    // Initialize treetable
+    try {
+        table.treetable({
+            expandable: true,
+            initialState: 'expanded'
+        });
+
+        console.log("TreeTable initialized successfully with " + rowsWithTreeData.length + " rows");
+
+        // Expand all nodes by default
+        table.treetable('expandAll');
+    } catch (error) {
+        console.error("Error initializing treetable:", error);
+    }
+}
 
 var GRendConfigTableHtml = {
     tableId: "dd",
@@ -882,7 +987,7 @@ MrendInitConfig.createDynamicSchema = function () {
                 }
             },
             "afterRenderCallback": { "type": "string", "title": "Callback Apos Render (nome da funcao)" }
-           
+
         }
     };
 };
@@ -1268,7 +1373,7 @@ function setColunaGrupoReactive() {
     PetiteVue.createApp({
         GMrendGrupoColunas: GMrendGrupoColunas,
         GMrendGrupoColunaItems: GMrendGrupoColunaItems,
-        GMrendConfigColunas:GMrendConfigColunas,
+        GMrendConfigColunas: GMrendConfigColunas,
         getItemsForGrupo: function (grupocolunastamp) {
             return this.GMrendGrupoColunaItems.filter(function (i) {
                 return i.grupocolunastamp === grupocolunastamp;
@@ -1288,8 +1393,13 @@ function setColunaGrupoReactive() {
                 return gc.grupocolunastamp !== grupoColuna.grupocolunastamp;
             });
 
-            GMrendGrupoColunas=this.GMrendGrupoColunas;
+            GMrendGrupoColunas = this.GMrendGrupoColunas;
 
+            GMrendDeleteRecords.push({
+                table: "MrendGrupoColuna",
+                stamp: grupoColuna.grupocolunastamp,
+                tableKey: "grupocolunastamp"
+            });
         },
         addGrupoColunaItem: function (grupoColuna) {
             var grupoColunaItem = new MrendGrupoColunaItem({
@@ -1302,7 +1412,13 @@ function setColunaGrupoReactive() {
             this.GMrendGrupoColunaItems = this.GMrendGrupoColunaItems.filter(function (gci) {
                 return gci.grupocolunaitemstamp !== grupoColunaItem.grupocolunaitemstamp;
             });
-            GMrendGrupoColunaItems=this.GMrendGrupoColunaItems
+            GMrendGrupoColunaItems = this.GMrendGrupoColunaItems;
+
+            GMrendDeleteRecords.push({
+                table: "MrendGrupoColunaItem",
+                stamp: grupoColunaItem.grupocolunaitemstamp,
+                tableKey: "grupocolunaitemstamp"
+            });
         }
 
     }).mount('#colunaGrupoContainer');
@@ -1316,7 +1432,7 @@ function fetchConfigMrender(codigo) {
 
     console.log("Fetching config for codigo:", codigo);
 
-   $.ajax({
+    $.ajax({
         type: "POST",
         async: false,
         url: "../programs/gensel.aspx?cscript=getmrendconfig",
@@ -1467,26 +1583,27 @@ function renderConfigMrender(config) {
     })
 
 
-
-
-
-
-    linhas.forEach(function (linha) {
-
+    // Recursive function to process linha and all its descendants
+    function processLinhaHierarchy(linha, linhas, celulas) {
         setLinhasConfigMrender(linha, linhas, celulas);
+
+        // Find and process all direct children
         var sublinhas = linhas.filter(function (sublinha) {
             return sublinha.linkstamp == linha.linhastamp && sublinha.linkstamp;
         });
 
-        //console.log("Sublinhas", linha.descricao, sublinhas)
-
         sublinhas.forEach(function (sublinha) {
-
-            setLinhasConfigMrender(sublinha, linhas, celulas);
-
+            processLinhaHierarchy(sublinha, linhas, celulas); // Recursive call
         });
+    }
 
+    // Process all root linhas (without linkstamp or where linkstamp doesn't match any existing linha)
+    var rootLinhas = linhas.filter(function (linha) {
+        return !linha.linkstamp || !linhas.find(function (l) { return l.linhastamp === linha.linkstamp; });
+    });
 
+    rootLinhas.forEach(function (linha) {
+        processLinhaHierarchy(linha, linhas, celulas);
     });
 
     handleTableReactive();
@@ -1604,6 +1721,25 @@ function handleTableReactive() {
 
     }).mount('#inputReportTable');
 
+    // Initialize treetable after reactive updates - with delay to ensure DOM is ready
+    setTimeout(function () {
+        // Atualizar estilos de todas as linhas que têm filhos
+        GMrendConfigLinhas.forEach(function(linha) {
+            if (linha.linhastamp) {
+                var temFilhos = GMrendConfigLinhas.some(function(l) {
+                    return l.linkstamp === linha.linhastamp;
+                });
+                if (temFilhos) {
+                    var $row = $("#" + GRendConfigTableHtml.tableId + " tbody tr#" + linha.linhastamp);
+                    $row.css("background", "#e9f1ff");
+                    $row.addClass("linha-com-filhos");
+                }
+            }
+        });
+        
+        initMrendConfigTreeTable();
+    }, 100);
+
 }
 
 function addColunaMrenderConfig(coluna, colunaUIObjectFormConfigResult) {
@@ -1712,9 +1848,27 @@ function removerColunaMrenderConfig(colunastamp) {
         // Remove do array de colunas
         GMrendConfigColunas.splice(GMrendConfigColunas.indexOf(coluna), 1);
 
+        // Adiciona ao array de deletes
+        GMrendDeleteRecords.push({
+            table: "MrendColuna",
+            stamp: colunastamp,
+            tableKey: "colunastamp"
+        });
+
         // Remove todas as células do DOM que tenham o atributo data-colunacell igual ao codigocoluna
         $("[data-colunacell='" + colunastamp + "']").closest("td").remove();
 
+        // Track and remove células associated with this coluna (cascade)
+        var celulasRemovidas = GMrendConfigCelulas.filter(function (celula) {
+            return celula.colunastamp === colunastamp;
+        });
+        celulasRemovidas.forEach(function (celula) {
+            GMrendDeleteRecords.push({
+                table: "MrendCelula",
+                stamp: celula.celulastamp,
+                tableKey: "celulastamp"
+            });
+        });
         // Remove do array de células todas que tenham colunastamp igual ao da coluna removida
         GMrendConfigCelulas = GMrendConfigCelulas.filter(function (celula) {
             return celula.colunastamp !== colunastamp;
@@ -1968,19 +2122,32 @@ function registerListenersMrender() {
 
 
 
-function setNovaLinha(tipo) {
+function setNovaLinha(tipo, parentLinha) {
 
 
     var linhastamp = generateUUID();
     var linkstamp = "";
 
-    if (tipo === "Subgrupo" && GlickedRowComponent) {
+    if (GlickedRowComponent) {
         var parentRowId = GlickedRowComponent.attr("id");
-        var parentLinha = GMrendConfigLinhas.find(function (l) { return l.linhastamp === parentRowId; });
-        if (parentLinha) {
-            linkstamp = parentLinha.linhastamp;
+        var parent = GMrendConfigLinhas.find(function (l) { return l.linhastamp === parentRowId; });
+        if (parent) {
+            linkstamp = parent.linhastamp;
+            parentLinha = parent;
         }
+    }
 
+    // ── Determinar tipo do filho baseado no tipo do pai ──
+    if (parentLinha) {
+        if (parentLinha.tipo === "Grupo") {
+            tipo = "Subgrupo";
+        } else if (parentLinha.tipo === "Subgrupo") {
+            tipo = "Singular";
+        } else {
+            tipo = "Singular"; // default para qualquer outro caso
+        }
+    } else if (!tipo) {
+        tipo = "Grupo"; // Se não há pai, é um Grupo raiz
     }
 
     var linhaUIObjectFormConfigResult = getLinhaUIObjectFormConfigAndSourceValues();
@@ -2060,19 +2227,25 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
         alertify.error("Adicione colunas primeiro", 10000);
         return;
     }
+
     var cols = [];
     var customDataUIObjectLinha = " componente='Linha' idValue='" + linha.linhastamp + "' localsource='" + linhaUIObjectFormConfigResult.localsource + "'  idfield='" + linhaUIObjectFormConfigResult.idField + "'"
 
     var cols = [];
+
+    // Action buttons wrapped in a container to prevent treetable indenter interference
+    var actionButtons = "<div style='display:inline-block;white-space:nowrap'>";
+    actionButtons += "<button style='color:white!important;background:#d9534f!important;margin-right:0.4em' type='button' class='btn btn-danger btn-sm remover-linha-btn' title='Remover linha'><span class='glyphicon glyphicon-trash'></span></button>";
+    actionButtons += "<button type='button' class='btn btn-primary btn-sm adicionar-linha-btn' title='Adicionar linha'><span class='glyphicon glyphicon-plus'></span></button>";
+    actionButtons += "<button " + customDataUIObjectLinha + " style='margin-left:0.6em' type='button' class='btn btn-default btn-sm mrendconfig-item' title='Configurar linha'><span class='glyphicon glyphicon-cog'></span></button>";
+    actionButtons += "</div>";
+    actionButtons += "<span class='mrendconfig-item' style='margin-left:0.3em'>" + " {{ getDescricaoByLinhaStamp('" + linha.linhastamp + "') }}" + "</span>";
+
     cols.push({
         style: "",
         colId: "acoes_" + linha.linhastamp,
         classes: "linha-acoes",
-        content:
-            "<button style='color:white!important;background:#d9534f!important' type='button' class='btn btn-danger btn-sm remover-linha-btn' title='Remover linha'><span class='glyphicon glyphicon-trash'></span></button> " +
-            "<button type='button' class='btn btn-primary btn-sm adicionar-linha-btn' title='Adicionar linha'><span class='glyphicon glyphicon-plus'></span></button>" +
-            "<button " + customDataUIObjectLinha + " style='margin-left:0.6em' type='button' class='btn btn-default btn-sm  mrendconfig-item' title='Adicionar linha'><span class='glyphicon glyphicon-cog'></span></button>" +
-            "<span  class='mrendconfig-item' style='margin-left:0.3em'>" + " {{ getDescricaoByLinhaStamp('" + linha.linhastamp + "') }}" + "</span>",
+        content: actionButtons,
         customData: ""
     });
 
@@ -2109,11 +2282,22 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
         });
     });
 
+    // Build treetable attributes for hierarchy
+    var treeTableAttrs = "data-tt-id='" + linha.linhastamp + "'";
+    if (linha.linkstamp) {
+        treeTableAttrs += " data-tt-parent-id='" + linha.linkstamp + "'";
+    }
+
+    // Verificar se esta linha tem filhos para aplicar cor
+    var temFilhos = GMrendConfigLinhas.some(function(l) {
+        return l.linkstamp === linha.linhastamp;
+    });
+    
     var rowObj = {
-        style: "" + (linha.tipo == "Grupo" ? "background:#e9f1ff!important" : ""),
+        style: "" + (temFilhos ? "background:#e9f1ff!important" : ""),
         rowId: linha.linhastamp,
-        classes: "linhaHeader",
-        customData: "linkstamp='" + linha.linkstamp + "'",
+        classes: "linhaHeader linha-tipo-" + linha.tipo.toLowerCase() + (temFilhos ? " linha-com-filhos" : ""),
+        customData: "linkstamp='" + linha.linkstamp + "' " + treeTableAttrs,
         cols: cols
     };
 
@@ -2128,13 +2312,38 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
     }
 
 
-    if (tipo == "Subgrupo" && linha.linkstamp) {
-
-        var $rows = table.find("tbody tr[linkstamp='" + linha.linkstamp + "']");
-        if ($rows.length > 0) {
-            $rows.last().after(trHtml);
+    // ── Lógica de inserção hierárquica melhorada ──
+    if (linha.linkstamp) {
+        // Se tem linkstamp, é filho de alguém
+        
+        // 1. Procurar por irmãos (outras linhas com mesmo parent)
+        var $siblings = table.find("tbody tr[data-tt-parent-id='" + linha.linkstamp + "']");
+        
+        if ($siblings.length > 0) {
+            // Se existem irmãos, precisamos inserir após o último descendente do último irmão
+            var $lastSibling = $siblings.last();
+            var lastSiblingId = $lastSibling.attr('id');
+            
+            // Encontrar todos os descendentes deste último irmão
+            var $descendants = table.find("tbody tr[data-tt-parent-id='" + lastSiblingId + "']");
+            
+            if ($descendants.length > 0) {
+                // Inserir após o último descendente do último irmão (recursivamente)
+                var insertAfter = function(parentId) {
+                    var $children = table.find("tbody tr[data-tt-parent-id='" + parentId + "']");
+                    if ($children.length > 0) {
+                        var lastChildId = $children.last().attr('id');
+                        return insertAfter(lastChildId); // recursivo
+                    }
+                    return table.find("tbody tr#" + parentId);
+                };
+                insertAfter(lastSiblingId).after(trHtml);
+            } else {
+                // Se último irmão não tem filhos, inserir logo após ele
+                $lastSibling.after(trHtml);
+            }
         } else {
-            // Se não encontrar, insere após a linha pai
+            // Se não existem irmãos, inserir após a linha pai
             var $parentRow = table.find("tbody tr#" + linha.linkstamp);
             if ($parentRow.length) {
                 $parentRow.after(trHtml);
@@ -2143,9 +2352,19 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
             }
         }
     } else {
-
+        // Se não tem linkstamp, é raiz - inserir no final
         table.find("tbody").append(trHtml);
     }
+
+    // Atualizar estilo da linha pai se esta linha tem linkstamp
+    if (linha.linkstamp) {
+        atualizarEstiloLinhaComFilhos(linha.linkstamp);
+    }
+
+    // Initialize treetable to apply hierarchical styling - with delay
+    setTimeout(function () {
+        initMrendConfigTreeTable();
+    }, 50);
 
 
     table.find(".remover-linha-btn").off("click").on("click", function () {
@@ -2155,14 +2374,28 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
 
         // Função recursiva para remover filhos do DOM e dos arrays
         function removerFilhosRecursivo(parentStamp) {
-            // Remove filhos do DOM
-            table.find("tbody tr[linkstamp='" + parentStamp + "']").each(function () {
+            // Remove filhos do DOM usando data-tt-parent-id
+            table.find("tbody tr[data-tt-parent-id='" + parentStamp + "']").each(function () {
                 var filhoStamp = $(this).attr("id");
                 $(this).remove();
                 // Remove do array de linhas
                 GMrendConfigLinhas = GMrendConfigLinhas.filter(function (l) { return l.linhastamp !== filhoStamp; });
-                // Remove do array de células
+                // Remove do array de células (cascade)
+                var celulasRemovidas = GMrendConfigCelulas.filter(function (c) { return c.linhastamp === filhoStamp; });
+                celulasRemovidas.forEach(function (celula) {
+                    GMrendDeleteRecords.push({
+                        table: "MrendCelula",
+                        stamp: celula.celulastamp,
+                        tableKey: "celulastamp"
+                    });
+                });
                 GMrendConfigCelulas = GMrendConfigCelulas.filter(function (c) { return c.linhastamp !== filhoStamp; });
+                // Adiciona linha ao array de deletes
+                GMrendDeleteRecords.push({
+                    table: "MrendLinha",
+                    stamp: filhoStamp,
+                    tableKey: "linhastamp"
+                });
                 // Recursivo para sub-filhos
                 removerFilhosRecursivo(filhoStamp);
             });
@@ -2176,17 +2409,41 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
         $tr.remove();
         // Remove do array de linhas
         GMrendConfigLinhas = GMrendConfigLinhas.filter(function (l) { return l.linhastamp !== linhastamp; });
-        // Remove do array de células
+        // Remove do array de células (cascade)
+        var celulasRemovidas = GMrendConfigCelulas.filter(function (c) { return c.linhastamp === linhastamp; });
+        celulasRemovidas.forEach(function (celula) {
+            GMrendDeleteRecords.push({
+                table: "MrendCelula",
+                stamp: celula.celulastamp,
+                tableKey: "celulastamp"
+            });
+        });
         GMrendConfigCelulas = GMrendConfigCelulas.filter(function (c) { return c.linhastamp !== linhastamp; });
+        // Adiciona linha ao array de deletes
+        GMrendDeleteRecords.push({
+            table: "MrendLinha",
+            stamp: linhastamp,
+            tableKey: "linhastamp"
+        });
+
+        // Atualizar estilo da linha pai (pode ter perdido todos os filhos)
+        if (linhaObj && linhaObj.linkstamp) {
+            atualizarEstiloLinhaComFilhos(linhaObj.linkstamp);
+        }
+        
+        // Reinitialize treetable after removal - with delay
+        setTimeout(function () {
+            initMrendConfigTreeTable();
+        }, 50);
     });
     table.find(".adicionar-linha-btn").off("click").on("click", function () {
 
         GlickedRowComponent = $(this).closest("tr");
-        var dadosNovaLinha = setNovaLinha("Subgrupo");
+        var dadosNovaLinha = setNovaLinha(); // Remove tipo fixo, será determinado automaticamente
         var linha = dadosNovaLinha.linha;
         var linhaUIObjectFormConfigResult = dadosNovaLinha.linhaUIObjectFormConfigResult;
         var celulas = dadosNovaLinha.celulas;
-        addLinhaMrenderConfig("Subgrupo", linha, linhaUIObjectFormConfigResult, celulas);
+        addLinhaMrenderConfig(linha.tipo, linha, linhaUIObjectFormConfigResult, celulas); // Usa o tipo da linha
         GMrendConfigLinhas.push(linha);
         GMrendConfigCelulas = GMrendConfigCelulas.concat(celulas);
         GlickedRowComponent = null;
@@ -2248,19 +2505,19 @@ function actualizarConfiguracaoMrender() {
         records: GMrendLigacoes
     },
     {
-        sourceTable:"MrendGrupoColuna",
-        sourceKey:"grupocolunastamp",
-        records:GMrendGrupoColunas
+        sourceTable: "MrendGrupoColuna",
+        sourceKey: "grupocolunastamp",
+        records: GMrendGrupoColunas
     },
     {
         sourceTable: "MrendGrupoColunaItem",
         sourceKey: "grupocolunaitemstamp",
         records: GMrendGrupoColunaItems
     },
-     {
+    {
         sourceTable: GRelatorioTable,
         sourceKey: GRelatorioTableFilterField,
-        records: GRelatorioConfig ? [(function() {
+        records: GRelatorioConfig ? [(function () {
             var r = {};
             r[GRelatorioTableFilterField] = GRelatorioConfig[GRelatorioTableFilterField] || GConfigCodigo;
             r.relatoriostamp = GRelatorioConfig.relatoriostamp || GRelatorioStamp;
@@ -2268,7 +2525,7 @@ function actualizarConfiguracaoMrender() {
             return r;
         }())] : []
     }
-];
+    ];
 
 
     var extraRecordsColunas = groupRecordsBySource(GMrendConfigColunas, "relationRecords");
@@ -2288,7 +2545,7 @@ function actualizarConfiguracaoMrender() {
         url: "../programs/gensel.aspx?cscript=actualizarmrendconfig",
 
         data: {
-            '__EVENTARGUMENT': JSON.stringify([{ relatoriostamp: GRelatorioStamp, config: configData }]),
+            '__EVENTARGUMENT': JSON.stringify([{ relatoriostamp: GRelatorioStamp, config: configData, recordsToDelete: GMrendDeleteRecords }]),
         },
         success: function (response) {
 
@@ -2301,6 +2558,8 @@ function actualizarConfiguracaoMrender() {
                     alertify.error("Erro ao actualizar configuração", 9000)
                     return false
                 }
+                // Clear delete records array after successful save
+                GMrendDeleteRecords = [];
                 alertify.success("Dados actualizados com sucesso", 9000)
             } catch (error) {
                 console.log("Erro interno " + errorMessage, response, error)

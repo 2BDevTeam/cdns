@@ -81,7 +81,12 @@ CREATE TABLE MrendLinha
     extras TEXT DEFAULT '',
     comportamentogrupo BIT DEFAULT 0,
     corcomportgrupo VARCHAR(50) DEFAULT '',
-    colunatitulo VARCHAR(100) DEFAULT ''
+    colunatitulo VARCHAR(100) DEFAULT '',
+    linhatemtotal BIT DEFAULT 0,
+    tituloparatotal TEXT DEFAULT '',
+    colunastotais TEXT DEFAULT '',
+    temexpressaototal BIT DEFAULT 0,
+    expressaototal TEXT DEFAULT ''
 );
 
 
@@ -101,6 +106,7 @@ CREATE TABLE MrendColuna
     condicaovalidacao VARCHAR(250) DEFAULT '',
     botaohtml TEXT DEFAULT '',
     validacoluna BIT DEFAULT 0,
+    levadesclinha BIT DEFAULT 0,
     expresscolfun TEXT DEFAULT '',
     expressaodb TEXT DEFAULT '',
     colfunc BIT DEFAULT 0,
