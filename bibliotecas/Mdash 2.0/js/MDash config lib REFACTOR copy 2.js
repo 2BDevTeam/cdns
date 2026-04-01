@@ -764,17 +764,8 @@ function loadModernStyles() {
  */
 function initModernDashboardUI() {
     console.log("Inicializando MDash 2.0 UI Completa");
-    console.info("MDash REFACTOR build: 2026.04.01");
 
-    var mainHtml = '<div class="mdash-editor-wrapper">';
-    mainHtml += '<div class="mdash-top-toolbar">';
-    mainHtml += '  <div class="mdash-top-toolbar-brand"><i class="glyphicon glyphicon-th"></i> MDash 2.0</div>';
-    mainHtml += '  <div class="mdash-top-toolbar-actions">';
-    mainHtml += '    <button type="button" onclick="actualizarConfiguracaoMDashboard()" class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-floppy-disk"></i> Guardar</button>';
-    mainHtml += '    <button type="button" onclick="exportarConfiguracaoMDashboard()" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-download-alt"></i> Exportar</button>';
-    mainHtml += '  </div>';
-    mainHtml += '</div>';
-    mainHtml += '<div class="mdash-modern-layout" v-scope @vue:mounted="onMounted">';
+    var mainHtml = '<div class="mdash-modern-layout" v-scope @vue:mounted="onMounted">';
 
     // Sidebar (listas + toolbox contextual)
     mainHtml += '  <div class="mdash-sidebar">';
@@ -782,24 +773,6 @@ function initModernDashboardUI() {
     mainHtml += '      <h4><i class="glyphicon glyphicon-th"></i> Componentes</h4>';
     mainHtml += '    </div>';
     mainHtml += '    <div class="mdash-sidebar-body">';
-    mainHtml += '      <div class="mdash-widget-section">';
-    mainHtml += '        <p class="mdash-section-label">Adicionar</p>';
-    mainHtml += '        <div class="mdash-widget-grid">';
-    mainHtml += '          <div class="mdash-widget-tile toolbox-container mdash-toolbox-item" data-component="container" @click="addNewContainer" title="Clique para adicionar ou arraste para o canvas">';
-    mainHtml += '            <i class="glyphicon glyphicon-th-large"></i><span>Container</span>';
-    mainHtml += '          </div>';
-    mainHtml += '          <div class="mdash-widget-tile toolbox-container-item mdash-toolbox-item" data-component="containerItem" title="Arraste para um Container">';
-    mainHtml += '            <i class="glyphicon glyphicon-list-alt"></i><span>Item</span>';
-    mainHtml += '          </div>';
-    mainHtml += '          <div class="mdash-widget-tile" @click="addNewFilter" title="Adicionar Filtro">';
-    mainHtml += '            <i class="glyphicon glyphicon-filter"></i><span>Filtro</span>';
-    mainHtml += '          </div>';
-    mainHtml += '          <div class="mdash-widget-tile" @click="addNewFonte" title="Adicionar Fonte">';
-    mainHtml += '            <i class="glyphicon glyphicon-oil"></i><span>Fonte</span>';
-    mainHtml += '          </div>';
-    mainHtml += '        </div>';
-    mainHtml += '      </div>';
-    mainHtml += '      <div class="mdash-sidebar-divider"></div>';
 
     // Accordion com os componentes (mantém filtros, listas)
     mainHtml += '      <div class="panel-group" id="mdash-accordion">';
@@ -845,6 +818,16 @@ function initModernDashboardUI() {
     mainHtml += '          </div>';
     mainHtml += '          <div id="collapse-containers" class="panel-collapse collapse">';
     mainHtml += '            <div class="panel-body">';
+    // Toolbox agora dentro do painel de Containers
+    mainHtml += '              <div class="mdash-toolbox">';
+    mainHtml += '                <p class="text-muted toolbox-label">Arraste para o canvas</p>';
+    mainHtml += '                <div class="mdash-toolbox-item toolbox-container" data-component="container">';
+    mainHtml += '                  <i class="glyphicon glyphicon-th-large"></i><span>Container</span>';
+    mainHtml += '                </div>';
+    mainHtml += '                <div class="mdash-toolbox-item toolbox-container-item" data-component="containerItem">';
+    mainHtml += '                  <i class="glyphicon glyphicon-stop"></i><span>Container Item</span>';
+    mainHtml += '                </div>';
+    mainHtml += '              </div>';
     mainHtml += '              <div class="mdash-sidebar-list">';
     mainHtml += '                <p v-if="containers.length === 0" class="text-muted text-center" style="margin-top: 10px;"><small>Nenhum container</small></p>';
     mainHtml += '                <div v-for="(container, index) in $computed.sortedContainers()" :key="container.mdashcontainerstamp" class="mdash-sidebar-item mdash-sidebar-container" :data-stamp="container.mdashcontainerstamp">';
@@ -901,16 +884,21 @@ function initModernDashboardUI() {
 
     // Canvas (Área de trabalho)
     mainHtml += '  <div class="mdash-canvas">';
-    mainHtml += '    <div class="mdash-canvas-body" id="mdash-canvas-body">';
-    mainHtml += '      <div class="mdash-canvas-commandbar">';
-    mainHtml += '        <div class="mdash-commandbar-title"><i class="glyphicon glyphicon-modal-window"></i> Dashboard Builder</div>';
-    mainHtml += '        <div class="mdash-commandbar-actions">';
-    mainHtml += '          <button type="button" @click="addNewContainer" class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-th-large"></i> Novo Container</button>';
-    mainHtml += '          <button type="button" @click="addNewFilter" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-filter"></i> Novo Filtro</button>';
-    mainHtml += '          <button type="button" @click="addNewFonte" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-oil"></i> Nova Fonte</button>';
-    mainHtml += '          <button type="button" onclick="renderAllContainerItemTemplates()" class="btn btn-default btn-sm" title="Atualizar canvas"><i class="glyphicon glyphicon-refresh"></i></button>';
-    mainHtml += '        </div>';
+    mainHtml += '    <div class="mdash-canvas-header">';
+    mainHtml += '      <h3><i class="glyphicon glyphicon-eye-open"></i> Pré-visualização do Dashboard</h3>';
+    mainHtml += '      <div class="mdash-canvas-actions">';
+    mainHtml += '        <button type="button" @click="refreshCanvas" class="btn btn-default btn-sm">';
+    mainHtml += '          <i class="glyphicon glyphicon-refresh"></i> Atualizar Vista';
+    mainHtml += '        </button>';
+    mainHtml += '        <button type="button" @click="saveConfiguration" class="btn btn-primary btn-sm" style="margin-left: 8px;">';
+    mainHtml += '          <i class="glyphicon glyphicon-floppy-disk"></i> Guardar Configuração';
+    mainHtml += '        </button>';
+    mainHtml += '        <button type="button" @click="exportConfiguration" class="btn btn-success btn-sm" style="margin-left: 8px;">';
+    mainHtml += '          <i class="glyphicon glyphicon-download-alt"></i> Exportar';
+    mainHtml += '        </button>';
     mainHtml += '      </div>';
+    mainHtml += '    </div>';
+    mainHtml += '    <div class="mdash-canvas-body" id="mdash-canvas-body">';
     mainHtml += '      <div v-if="containers.length === 0" class="mdash-canvas-empty mdash-drop-target">';
     mainHtml += '        <i class="glyphicon glyphicon-info-sign"></i>';
     mainHtml += '        <p>Arraste um Container para começar a construir seu dashboard.</p>';
@@ -918,11 +906,11 @@ function initModernDashboardUI() {
     mainHtml += '      <div v-for="(container, index) in $computed.sortedContainers()" :key="container.mdashcontainerstamp" class="mdash-canvas-container" :data-stamp="container.mdashcontainerstamp" @click.stop="selectContainer(container.mdashcontainerstamp)" :class="{\'is-selected\': selectedComponent.stamp === container.mdashcontainerstamp}">';
     mainHtml += '        <div class="mdash-container-label">Container {{ index + 1 }}</div>';
     mainHtml += '        <div class="mdash-canvas-container-header">';
-    mainHtml += '          <div class="mdash-container-drag-handle" title="Arraste para mover o container"><i class="glyphicon glyphicon-move"></i></div>';
-    mainHtml += '          <input type="text" class="mdash-inline-title" :value="container.titulo" @change.stop="updateContainerTitle(container, $event)" @click.stop placeholder="Container sem título" />';
+    mainHtml += '          <h4>{{ container.titulo || \'Container sem título\' }}</h4>';
     mainHtml += '          <div class="mdash-canvas-container-actions">';
-    mainHtml += '            <button type="button" @click.stop="editContainer(container.mdashcontainerstamp)" class="btn btn-xs btn-default" title="Configurar"><i class="glyphicon glyphicon-cog"></i></button>';
-    mainHtml += '            <button type="button" @click.stop="deleteContainer(container.mdashcontainerstamp)" class="btn btn-xs btn-danger" title="Eliminar"><i class="glyphicon glyphicon-trash"></i></button>';
+    mainHtml += '            <button type="button" @click.stop="editContainer(container.mdashcontainerstamp)" class="btn btn-xs btn-default">';
+    mainHtml += '              <i class="glyphicon glyphicon-pencil"></i>';
+    mainHtml += '            </button>';
     mainHtml += '          </div>';
     mainHtml += '        </div>';
     mainHtml += '        <div class="mdash-canvas-container-body mdash-drop-target mdash-container-items" :data-container="container.mdashcontainerstamp">';
@@ -933,11 +921,10 @@ function initModernDashboardUI() {
     mainHtml += '            <div v-for="item in getContainerItems(container.mdashcontainerstamp)" :key="item.mdashcontaineritemstamp" class="mdash-canvas-item" :class="{\'is-selected\': selectedComponent.stamp === item.mdashcontaineritemstamp}" :data-stamp="item.mdashcontaineritemstamp" @click.stop="selectContainerItem(item.mdashcontaineritemstamp)" :style=\"getItemFlex(item)\">';
     mainHtml += '              <div class="mdash-canvas-item-card">';
     mainHtml += '                <div class="mdash-canvas-item-header">';
-    mainHtml += '                  <input type="text" class="mdash-inline-title mdash-inline-title-sm" :value="item.titulo" @change.stop="updateItemTitle(item, $event)" @click.stop placeholder="Item sem título" />';
-    mainHtml += '                  <div style="display:flex;gap:3px;flex-shrink:0;">';
-    mainHtml += '                    <button type="button" @click.stop="editContainerItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-default" title="Configurar"><i class="glyphicon glyphicon-cog"></i></button>';
-    mainHtml += '                    <button type="button" @click.stop="deleteContainerItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-danger" title="Eliminar"><i class="glyphicon glyphicon-trash"></i></button>';
-    mainHtml += '                  </div>';
+    mainHtml += '                  <h5>{{ item.titulo || \'Item sem título\' }}</h5>';
+    mainHtml += '                  <button type="button" @click.stop="editContainerItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-default">';
+    mainHtml += '                    <i class="glyphicon glyphicon-pencil"></i>';
+    mainHtml += '                  </button>';
     mainHtml += '                </div>';
     mainHtml += '                <div class="mdash-canvas-item-body">';
     mainHtml += '                  <small v-if="getItemObjects(item.mdashcontaineritemstamp).length === 0" class="text-muted">Nenhum objeto</small>';
@@ -947,7 +934,7 @@ function initModernDashboardUI() {
     mainHtml += '                    </div>';
     mainHtml += '                  </div>';
     mainHtml += '                  <div style="margin-top:5px;">';
-    mainHtml += '                    <button type="button" @click.stop="addContainerItemObject(item.mdashcontaineritemstamp)" class="btn btn-xs btn-link" style="padding:2px 0;" title="Adicionar Objeto">';
+    mainHtml += '                    <button @click.stop="addContainerItemObject(item.mdashcontaineritemstamp)" class="btn btn-xs btn-link" style="padding:2px 0;" title="Adicionar Objeto">';
     mainHtml += '                      <i class="glyphicon glyphicon-plus"></i> Add Objeto';
     mainHtml += '                    </button>';
     mainHtml += '                  </div>';
@@ -956,7 +943,7 @@ function initModernDashboardUI() {
     mainHtml += '            </div>';
     mainHtml += '          </div>';
     mainHtml += '          <div style="margin-top:6px;text-align:right;">';
-    mainHtml += '            <button type="button" @click.stop="addContainerItem(container.mdashcontainerstamp)" class="btn btn-xs btn-primary">';
+    mainHtml += '            <button @click.stop="addContainerItem(container.mdashcontainerstamp)" class="btn btn-xs btn-success">';
     mainHtml += '              <i class="glyphicon glyphicon-plus"></i> Add Item';
     mainHtml += '            </button>';
     mainHtml += '          </div>';
@@ -973,8 +960,7 @@ function initModernDashboardUI() {
     mainHtml += '    </div>';
     mainHtml += '  </div>';
 
-    mainHtml += '</div>'; // fim mdash-modern-layout
-    mainHtml += '</div>'; // fim mdash-editor-wrapper
+    mainHtml += '</div>';
 
     // Injeta no DOM
     $('#m-dash-main-container').html(mainHtml);
@@ -1075,10 +1061,6 @@ function initModernDashboardUI() {
             deleteContainer(stamp);
         },
 
-        moveContainer: function (stamp, direction) {
-            moveContainer(stamp, direction);
-        },
-
         addContainerItem: function (containerStamp) {
             addContainerItem(containerStamp);
         },
@@ -1119,24 +1101,6 @@ function initModernDashboardUI() {
             if (!item) return;
             this.selectedComponent = { type: "containerItem", stamp: stamp, data: item };
             handleComponentProperties(this.selectedComponent);
-        },
-
-        updateContainerTitle: function (container, event) {
-            container.titulo = event.target.value.trim();
-            if (typeof realTimeComponentSync === 'function') {
-                realTimeComponentSync(container, container.table, container.idfield);
-            }
-        },
-
-        updateItemTitle: function (item, event) {
-            item.titulo = event.target.value.trim();
-            if (typeof realTimeComponentSync === 'function') {
-                realTimeComponentSync(item, item.table, item.idfield);
-            }
-        },
-
-        deleteContainerItem: function (stamp) {
-            deleteContainerItem(stamp);
         },
 
         refreshCanvas: function () {
@@ -1206,21 +1170,9 @@ function makeCanvasDroppable() {
 function makeContainersSortable() {
     $('#mdash-canvas-body').sortable({
         items: '.mdash-canvas-container',
-        handle: '.mdash-container-drag-handle',
-        axis: 'y',
-        tolerance: 'intersect',
-        forcePlaceholderSize: true,
-        distance: 4,
-        revert: 120,
+        handle: '.mdash-canvas-container-header',
+        tolerance: 'pointer',
         placeholder: 'mdash-sort-placeholder',
-        start: function (event, ui) {
-            ui.placeholder.height(ui.item.outerHeight());
-            ui.placeholder.width(ui.item.outerWidth());
-            ui.item.addClass('is-dragging');
-        },
-        stop: function (event, ui) {
-            ui.item.removeClass('is-dragging');
-        },
         update: function () {
             updateContainerOrderFromDom();
         }
@@ -1319,24 +1271,6 @@ function handleComponentProperties(selectedComponent) {
     }
 }
 
-function buildModalEntityTitle(typeLabel, titleValue) {
-    var cleanTitle = (titleValue || "").toString().trim();
-    return cleanTitle ? (typeLabel + " - " + cleanTitle) : typeLabel;
-}
-
-function resetModalOpenState(modalSelector) {
-    var $existingModal = $(modalSelector);
-    if ($existingModal.length) {
-        $existingModal.modal('hide');
-        $existingModal.remove();
-    }
-
-    $('.modal-backdrop').remove();
-    if ($('.modal.in').length === 0) {
-        $('body').removeClass('modal-open').css('padding-right', '');
-    }
-}
-
 function renderPropertiesForm(panel, entity, formConfig) {
     if (!formConfig || !formConfig.objectsUIFormConfig) return;
 
@@ -1347,9 +1281,8 @@ function renderPropertiesForm(panel, entity, formConfig) {
         var isDiv = obj.contentType === "div";
         var value = entity[obj.campo] || "";
         if (isCheckbox) value = !!entity[obj.campo];
-        var panelColSize = 12;
 
-        html += '<div class=\"col-md-' + panelColSize + '\" style=\"margin-bottom:0.5em;\">';
+        html += '<div class=\"col-md-' + obj.colSize + '\" style=\"margin-bottom:0.5em;\">';
         html += '  <div class=\"form-group\">';
         html += '    <label>' + obj.titulo + '</label>';
 
@@ -1463,8 +1396,8 @@ function editContainer(containerStamp) {
  * Abre modal de edição de container
  */
 function openContainerEditModal(container) {
-    // Remove modal se já existir e limpa estado órfão do Bootstrap
-    resetModalOpenState('#mdash-container-edit-modal');
+    // Remove modal se já existir
+    $('#mdash-container-edit-modal').remove();
 
     // Obtém a configuração do formulário
     var formConfig = getContainerUIObjectFormConfigAndSourceValues();
@@ -1503,14 +1436,13 @@ function openContainerEditModal(container) {
     formHtml += '</div>';
 
     // Monta o modal
-    var containerModalTitle = buildModalEntityTitle("Container", container.titulo || container.codigo || "");
     var modalHtml = '<div class="modal fade" id="mdash-container-edit-modal" tabindex="-1">';
     modalHtml += '  <div class="modal-dialog modal-lg">';
     modalHtml += '    <div class="modal-content">';
     modalHtml += '      <div class="modal-header">';
     modalHtml += '        <button type="button" class="close" data-dismiss="modal">&times;</button>';
     modalHtml += '        <h4 class="modal-title">';
-    modalHtml += '          <i class="glyphicon glyphicon-th-large"></i> ' + containerModalTitle;
+    modalHtml += '          <i class="glyphicon glyphicon-th-large"></i> Configurar Container';
     modalHtml += '        </h4>';
     modalHtml += '      </div>';
     modalHtml += '      <div class="modal-body">';
@@ -1590,37 +1522,6 @@ function deleteContainer(containerStamp) {
 }
 
 /**
- * Move um container para cima/baixo e normaliza ordem
- */
-function moveContainer(containerStamp, direction) {
-    if (!window.appState || !Array.isArray(window.appState.containers)) return;
-
-    var ordered = window.appState.containers.slice().sort(function (a, b) {
-        return (a.ordem || 0) - (b.ordem || 0);
-    });
-
-    var currentIndex = ordered.findIndex(function (c) {
-        return c.mdashcontainerstamp === containerStamp;
-    });
-
-    if (currentIndex === -1) return;
-
-    var targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (targetIndex < 0 || targetIndex >= ordered.length) return;
-
-    var temp = ordered[currentIndex];
-    ordered[currentIndex] = ordered[targetIndex];
-    ordered[targetIndex] = temp;
-
-    ordered.forEach(function (container, idx) {
-        container.ordem = idx + 1;
-        if (typeof realTimeComponentSync === 'function') {
-            realTimeComponentSync(container, container.table, container.idfield);
-        }
-    });
-}
-
-/**
  * Adiciona um item a um container
  */
 function addContainerItem(containerStamp) {
@@ -1655,9 +1556,7 @@ function editContainerItem(itemStamp) {
  * Abre modal de edição de container item
  */
 function openContainerItemEditModal(item) {
-    resetModalOpenState('#mdash-item-edit-modal');
-
-    var itemModalTitle = buildModalEntityTitle("Container Item", item.titulo || item.codigo || "");
+    $('#mdash-item-edit-modal').remove();
 
     var formConfig = getContainerItemUIObjectFormConfigAndSourceValues();
     var objectsUIFormConfig = formConfig.objectsUIFormConfig;
@@ -1713,7 +1612,7 @@ function openContainerItemEditModal(item) {
     modalHtml += '    <div class="modal-content">';
     modalHtml += '      <div class="modal-header">';
     modalHtml += '        <button type="button" class="close" data-dismiss="modal">&times;</button>';
-    modalHtml += '        <h4 class="modal-title"><i class="glyphicon glyphicon-list-alt"></i> ' + itemModalTitle + '</h4>';
+    modalHtml += '        <h4 class="modal-title"><i class="glyphicon glyphicon-list-alt"></i> Configurar Item</h4>';
     modalHtml += '      </div>';
     modalHtml += '      <div class="modal-body"><form id="mdash-item-edit-form">' + formHtml + '</form></div>';
     modalHtml += '      <div class="modal-footer">';
@@ -1814,9 +1713,7 @@ function editContainerItemObject(objectStamp) {
  * Abre modal de edição/criação de objeto
  */
 function openContainerItemObjectEditModal(obj) {
-    resetModalOpenState('#mdash-object-edit-modal');
-
-    var objectModalTitle = buildModalEntityTitle("Objeto", obj.titulo || obj.expressaoobjecto || "");
+    $('#mdash-object-edit-modal').remove();
 
     var tipoOptions = [
         { value: 'chart', label: 'Gráfico' },
@@ -1841,7 +1738,7 @@ function openContainerItemObjectEditModal(obj) {
     modalHtml += '<div class="modal-dialog modal-lg"><div class="modal-content">';
     modalHtml += '<div class="modal-header">';
     modalHtml += '<button type="button" class="close" data-dismiss="modal">&times;</button>';
-    modalHtml += '<h4 class="modal-title"><i class="glyphicon glyphicon-stop"></i> ' + objectModalTitle + '</h4>';
+    modalHtml += '<h4 class="modal-title"><i class="glyphicon glyphicon-stop"></i> Configurar Objeto</h4>';
     modalHtml += '</div>';
     modalHtml += '<div class="modal-body"><div class="row">';
     modalHtml += '<div class="col-md-4"><div class="form-group"><label>Tipo</label>';
@@ -1952,9 +1849,7 @@ function editFonte(fonteStamp) {
  * Abre modal de edição/criação de fonte de dados
  */
 function openFonteEditModal(fonte) {
-    resetModalOpenState('#mdash-fonte-edit-modal');
-
-    var fonteModalTitle = buildModalEntityTitle("Fonte", fonte.descricao || fonte.codigo || "");
+    $('#mdash-fonte-edit-modal').remove();
 
     var tipoFonteOptions = [
         { value: 'cscript', label: 'CScript PHC CS Web' },
@@ -1972,7 +1867,7 @@ function openFonteEditModal(fonte) {
     modalHtml += '<div class="modal-dialog modal-lg"><div class="modal-content">';
     modalHtml += '<div class="modal-header">';
     modalHtml += '<button type="button" class="close" data-dismiss="modal">&times;</button>';
-    modalHtml += '<h4 class="modal-title"><i class="glyphicon glyphicon-oil"></i> ' + fonteModalTitle + '</h4>';
+    modalHtml += '<h4 class="modal-title"><i class="glyphicon glyphicon-oil"></i> Configurar Fonte de Dados</h4>';
     modalHtml += '</div>';
     modalHtml += '<div class="modal-body"><div class="row">';
     modalHtml += '<div class="col-md-3"><div class="form-group"><label>Código</label>';
@@ -2115,8 +2010,8 @@ function editFilter(filterStamp) {
  * Abre modal de edição de filtro usando UIObjectFormConfig (abordagem original)
  */
 function openFilterEditModal(filter) {
-    // Remove modal se já existir e limpa estado órfão do Bootstrap (ex.: duplo clique)
-    resetModalOpenState('#mdash-filter-edit-modal');
+    // Remove modal se já existir
+    $('#mdash-filter-edit-modal').remove();
 
     // Obtém a configuração do formulário (UIObjectFormConfig)
     var formConfig = getMdashFilterUIObjectFormConfigAndSourceValues();
@@ -2201,7 +2096,6 @@ function openFilterEditModal(filter) {
     formHtml += '</div>';
 
     // Monta o modal
-    var filterModalTitle = buildModalEntityTitle("Filtro", filter.descricao || filter.codigo || "");
     var modalHtml = '<div class="modal fade" id="mdash-filter-edit-modal" tabindex="-1">';
     modalHtml += '  <div class="modal-dialog modal-lg">';
     modalHtml += '    <div class="modal-content">';
@@ -2210,7 +2104,8 @@ function openFilterEditModal(filter) {
     modalHtml += '      <div class="modal-header">';
     modalHtml += '        <button type="button" class="close" data-dismiss="modal">&times;</button>';
     modalHtml += '        <h4 class="modal-title">';
-    modalHtml += '          <i class="glyphicon glyphicon-filter"></i> ' + filterModalTitle;
+    modalHtml += '          <i class="glyphicon glyphicon-filter"></i> ';
+    modalHtml += '          Configurar Filtro - ' + (filter.descricao || 'Novo');
     modalHtml += '        </h4>';
     modalHtml += '      </div>';
 
@@ -2321,188 +2216,115 @@ function deleteFilter(filterStamp) {
  */
 function loadModernDashboardStyles() {
     var styles = "";
-    var primaryColor = getColorByType("primary").background;
-    var primaryRgb = hexToRgb(primaryColor);
-    //var primaryRgb = hexToRgb(primaryColor);
-    var styleVersion = "2026.04.01-refactor";
 
-    // Evita estilos duplicados quando a UI é reinicializada
-    $('#mdash-modern-styles').remove();
-    // Remove estilos antigos/duplicados injetados sem id por outras cópias do módulo
-    $('style').filter(function () {
-        if (this.id === 'mdash-modern-styles') return false;
-        var cssText = this.textContent || '';
-        return cssText.indexOf('.mdash-modern-layout') !== -1 || cssText.indexOf('.mdash-editor-wrapper') !== -1;
-    }).remove();
-
-    // ===== TOKENS =====
-    styles += ".mdash-editor-wrapper { --md-primary: " + primaryColor + "; --md-primary-rgb: " + primaryRgb + "; --md-surface: #ffffff; --md-bg: #f3f6fb; --md-text: #1f2937; --md-muted: #64748b; --md-border: rgba(15,23,42,0.08); display: flex; flex-direction: column; height: calc(100vh - 60px); background: radial-gradient(circle at 10% -10%, rgba(var(--md-primary-rgb),0.12) 0%, transparent 34%), radial-gradient(circle at 110% 120%, rgba(var(--md-primary-rgb),0.12) 0%, transparent 32%), var(--md-bg); }";
-
-    // ===== TOP TOOLBAR =====
-    styles += ".mdash-top-toolbar { height: 54px; background: linear-gradient(120deg, rgba(var(--md-primary-rgb),0.96), #101828 88%); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid rgba(255,255,255,0.18); flex-shrink: 0; box-shadow: 0 8px 24px rgba(2,6,23,0.18); }";
-    styles += ".mdash-top-toolbar-brand { color: #fff; font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; letter-spacing: 0.2px; }";
-    styles += ".mdash-top-toolbar-brand i { color: #fff; opacity: 0.95; }";
-    styles += ".mdash-top-toolbar-actions { display: flex; align-items: center; gap: 8px; }";
-
-    // ===== MAIN LAYOUT =====
-    styles += ".mdash-modern-layout { display: flex; flex: 1; overflow: hidden; gap: 10px; padding: 10px; }";
+    // ===== LAYOUT PRINCIPAL =====
+    styles += ".mdash-modern-layout { display: flex; height: calc(100vh - 100px); background: #f5f7fa; }";
 
     // ===== SIDEBAR =====
-    styles += ".mdash-sidebar { width: 320px; background: linear-gradient(180deg, rgba(var(--md-primary-rgb),0.96), rgba(var(--md-primary-rgb),0.84)); border: 1px solid rgba(255,255,255,0.16); border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 16px 32px rgba(2,6,23,0.18); backdrop-filter: blur(8px); }";
-    styles += ".mdash-sidebar-header { padding: 18px 18px 14px; border-bottom: 1px solid rgba(255,255,255,0.18); background: transparent; color: #fff; }";
-    styles += ".mdash-sidebar-header h4 { margin: 0; font-size: 28px; font-weight: 800; display:flex; align-items:center; gap:10px; opacity:0.98; }";
-    styles += ".mdash-sidebar-body { flex: 1; overflow-y: auto; padding: 12px; background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.96)); }";
+    styles += ".mdash-sidebar { width: 320px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; overflow: hidden; }";
+    styles += ".mdash-sidebar-header { padding: 20px; border-bottom: 1px solid #ecf0f1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }";
+    styles += ".mdash-sidebar-header h4 { margin: 0; font-size: 18px; }";
+    styles += ".mdash-sidebar-header h4 i { margin-right: 8px; }";
+    styles += ".mdash-sidebar-body { flex: 1; overflow-y: auto; padding: 10px; }";
 
-    // ===== WIDGET PALETTE =====
-    styles += ".mdash-widget-section { padding: 2px 0 8px; }";
-    styles += ".mdash-section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: var(--md-primary); margin: 0 0 10px 2px; }";
-    styles += ".mdash-widget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }";
-    styles += ".mdash-widget-tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 76px; padding: 12px 8px; background: #fff; border: 1px solid rgba(var(--md-primary-rgb),0.28); border-radius: 12px; cursor: pointer; transition: all 0.2s ease; font-size: 12px; font-weight: 700; color: var(--md-primary); text-align: center; user-select: none; margin: 0; box-sizing: border-box; box-shadow: 0 4px 14px rgba(2,6,23,0.06); }";
-    styles += ".mdash-widget-grid .mdash-widget-tile.mdash-toolbox-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 76px; padding: 12px 8px; border-radius: 12px; margin: 0; }";
-    styles += ".mdash-widget-tile i { font-size: 22px; color: var(--md-primary); }";
-    styles += ".mdash-widget-tile:hover { transform: translateY(-2px); border-color: var(--md-primary); box-shadow: 0 8px 20px rgba(var(--md-primary-rgb),0.22); }";
-    styles += ".mdash-widget-tile:active { transform: translateY(0); }";
-    styles += ".mdash-sidebar-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(var(--md-primary-rgb),0.35), transparent); margin: 8px 0 12px; }";
+    // Toolbox
+    styles += ".mdash-toolbox { background: #f8f9fc; border: 1px dashed #d5d9e3; padding: 10px; border-radius: 8px; margin-bottom: 12px; }";
+    styles += ".toolbox-label { font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; margin: 0 0 8px 0; }";
+    styles += ".mdash-toolbox-item { display: flex; align-items: center; gap: 10px; background: white; border: 1px solid #e1e6ef; border-radius: 6px; padding: 10px 12px; cursor: move; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }";
+    styles += ".mdash-toolbox-item + .mdash-toolbox-item { margin-top: 8px; }";
+    styles += ".mdash-toolbox-item:hover { border-color: #667eea; box-shadow: 0 4px 10px rgba(102,126,234,0.12); transform: translateY(-1px); }";
+    styles += ".mdash-toolbox-item i { color: #667eea; }";
+    styles += ".mdash-toolbox-item span { font-weight: 600; color: #2c3e50; font-size: 13px; }";
 
-    // ===== ACCORDION / LISTS =====
-    styles += "#mdash-accordion .panel { margin-bottom: 10px; border-radius: 10px; border: 1px solid var(--md-border); box-shadow: 0 6px 16px rgba(2,6,23,0.06); overflow: hidden; }";
-    styles += "#mdash-accordion .panel-heading { background: linear-gradient(180deg, #ffffff, #f8fafc); border-bottom: 1px solid var(--md-border); cursor: pointer; padding: 12px 14px; transition: all 0.2s; }";
-    styles += "#mdash-accordion .panel-title { font-size: 14px; font-weight: 700; color: var(--md-text); margin: 0; display: flex; align-items: center; justify-content: space-between; }";
-    styles += "#mdash-accordion .panel-title i { margin-right: 8px; color: var(--md-primary); }";
-    styles += "#mdash-accordion .panel-title .badge { background: var(--md-primary); font-size: 11px; }";
+    // Accordion customizado
+    styles += "#mdash-accordion .panel { margin-bottom: 8px; border-radius: 6px; border: 1px solid #e0e0e0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }";
+    styles += "#mdash-accordion .panel-heading { background: #f8f9fa; border-bottom: 1px solid #e0e0e0; cursor: pointer; padding: 12px 15px; transition: all 0.2s; }";
+    styles += "#mdash-accordion .panel-heading:hover { background: #e9ecef; }";
+    styles += "#mdash-accordion .panel-title { font-size: 14px; font-weight: 600; color: #2c3e50; margin: 0; display: flex; align-items: center; justify-content: space-between; }";
+    styles += "#mdash-accordion .panel-title i { margin-right: 8px; }";
+    styles += "#mdash-accordion .panel-title .badge { background: #667eea; font-size: 11px; }";
     styles += "#mdash-accordion .panel-body { padding: 10px; }";
+
+    // Items da sidebar
     styles += ".mdash-sidebar-list { margin-top: 10px; }";
-    styles += ".mdash-sidebar-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; margin-bottom: 6px; background: #fff; border: 1px solid var(--md-border); border-radius: 8px; cursor: pointer; transition: all 0.2s; }";
-    styles += ".mdash-sidebar-item:hover { border-color: rgba(var(--md-primary-rgb),0.45); transform: translateX(2px); }";
-    styles += ".mdash-sidebar-item-content { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--md-text); }";
-    styles += ".mdash-sidebar-item-content i { color: var(--md-primary); font-size: 12px; }";
-    styles += ".mdash-sidebar-item-content .badge { margin-left: auto; background: var(--md-primary); font-size: 10px; }";
-    styles += ".mdash-sidebar-item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }";
+    styles += ".mdash-sidebar-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; margin-bottom: 5px; background: #f8f9fa; border-radius: 4px; cursor: pointer; transition: all 0.2s; }";
+    styles += ".mdash-sidebar-item:hover { background: #e9ecef; transform: translateX(2px); }";
+    styles += ".mdash-sidebar-item-content { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #2c3e50; }";
+    styles += ".mdash-sidebar-item-content i { color: #667eea; font-size: 12px; }";
+    styles += ".mdash-sidebar-item-content .badge { margin-left: auto; background: #3498db; font-size: 10px; }";
+    styles += ".mdash-sidebar-item-actions { display: flex; gap: 3px; opacity: 0; transition: opacity 0.2s; }";
     styles += ".mdash-sidebar-item:hover .mdash-sidebar-item-actions { opacity: 1; }";
 
-    // ===== CANVAS =====
-    styles += ".mdash-canvas { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-radius: 14px; border: 1px solid var(--md-border); background: var(--md-surface); box-shadow: 0 12px 28px rgba(2,6,23,0.08); }";
-    styles += ".mdash-canvas-body { flex: 1; overflow-y: auto; padding: 14px; background-image: radial-gradient(rgba(15,23,42,0.08) 1px, transparent 1px); background-size: 18px 18px; background-position: -8px -8px; }";
-    styles += ".mdash-canvas-commandbar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding: 10px 12px; margin-bottom: 12px; border:1px solid var(--md-border); border-radius: 12px; background: linear-gradient(180deg, #ffffff, #f8fafc); box-shadow: 0 6px 14px rgba(2,6,23,0.06); }";
-    styles += ".mdash-commandbar-title { font-size: 14px; font-weight: 800; color: var(--md-text); display:flex; align-items:center; gap:8px; }";
-    styles += ".mdash-commandbar-title i { color: var(--md-primary); }";
-    styles += ".mdash-commandbar-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }";
+    // ===== CANVAS (Área de trabalho) =====
+    styles += ".mdash-canvas { flex: 1; display: flex; flex-direction: column; overflow: hidden; }";
+    styles += ".mdash-canvas-header { padding: 20px; background: white; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }";
+    styles += ".mdash-canvas-header h3 { margin: 0; font-size: 20px; color: #2c3e50; }";
+    styles += ".mdash-canvas-header h3 i { margin-right: 10px; color: #3498db; }";
+    styles += ".mdash-canvas-body { flex: 1; overflow-y: auto; padding: 20px; }";
 
     // Canvas vazio
-    styles += ".mdash-canvas-empty { text-align: center; padding: 80px 20px; color: var(--md-muted); border: 2px dashed rgba(var(--md-primary-rgb),0.28); border-radius: 12px; background: rgba(255,255,255,0.8); }";
-    styles += ".mdash-canvas-empty i { font-size: 64px; color: var(--md-primary); margin-bottom: 20px; display: block; opacity: 0.45; }";
+    styles += ".mdash-canvas-empty { text-align: center; padding: 80px 20px; color: #7f8c8d; }";
+    styles += ".mdash-canvas-empty i { font-size: 64px; color: #bdc3c7; margin-bottom: 20px; display: block; }";
     styles += ".mdash-canvas-empty p { font-size: 16px; margin: 0; }";
     styles += ".mdash-drop-target { border: 2px dashed transparent; transition: border-color 0.2s, background 0.2s; }";
-    styles += ".mdash-drop-hover { border-color: var(--md-primary) !important; background: rgba(var(--md-primary-rgb),0.07); }";
-    styles += ".mdash-sort-placeholder { border: 2px dashed var(--md-primary); background: rgba(var(--md-primary-rgb),0.06); min-height: 60px; margin-bottom: 12px; border-radius:10px; }";
+    styles += ".mdash-drop-hover { border-color: #667eea !important; background: rgba(102,126,234,0.05); }";
+    styles += ".mdash-sort-placeholder { border: 2px dashed #cbd3e0; background: #f0f4ff; min-height: 60px; margin-bottom: 12px; }";
 
     // Container no canvas
-    styles += ".mdash-canvas-container { position: relative; background: #ffffff; border: 1px dashed rgba(var(--md-primary-rgb),0.45); border-radius: 12px; padding: 12px; margin: 8px 0 14px; min-height: 0; transition: border-color 0.18s ease, box-shadow 0.18s ease; box-shadow: 0 6px 16px rgba(2,6,23,0.05); }";
-    styles += ".mdash-canvas-container:hover { border-color: var(--md-primary); box-shadow: 0 10px 20px rgba(var(--md-primary-rgb),0.14); }";
-    styles += ".mdash-canvas-container.is-selected { border-color: var(--md-primary); box-shadow: 0 0 0 3px rgba(var(--md-primary-rgb),0.18); }";
-    styles += ".mdash-container-label { position: absolute; top: 8px; left: 12px; background: #fff; padding: 2px 8px; font-size: 11px; font-weight: 700; color: var(--md-primary); border-radius: 20px; border: 1px solid rgba(var(--md-primary-rgb),0.42); z-index: 1; }";
-    styles += ".mdash-canvas-container-header { padding: 22px 0 8px 0; display: flex; justify-content: space-between; align-items: center; gap: 6px; }";
-    styles += ".mdash-container-drag-handle { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 1px dashed rgba(var(--md-primary-rgb),0.45); border-radius: 6px; color: var(--md-primary); cursor: move; flex-shrink: 0; background: #fff; }";
-    styles += ".mdash-container-drag-handle:hover { background: rgba(var(--md-primary-rgb),0.08); border-color: var(--md-primary); }";
-    styles += ".ui-sortable-helper.mdash-canvas-container { box-shadow: 0 16px 30px rgba(2,6,23,0.18); }";
-    styles += ".mdash-canvas-container.is-dragging { transition: none !important; }";
-    styles += ".mdash-canvas-container .mdash-container-drag-handle:active { cursor: grabbing; }";
+    styles += ".mdash-canvas-container { position: relative; background: #fbfdff; border: 2px dashed #cbd5e0; border-radius: 8px; padding: 12px; margin-bottom: 14px; min-height: 0; transition: all 0.2s; }";
+    styles += ".mdash-canvas-container:hover { border-color: #667eea; background: #f7fafc; }";
+    styles += ".mdash-canvas-container.is-selected { border-color: #667eea; background: #edf2f7; box-shadow: 0 0 0 3px rgba(102,126,234,0.12); }";
+    styles += ".mdash-container-label { position: absolute; top: -6px; left: 12px; background: white; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #667eea; border-radius: 4px; border: 1px solid #667eea; }";
+    styles += ".mdash-canvas-container-header { padding: 4px 0 8px 0; display: flex; justify-content: space-between; align-items: center; }";
+    styles += ".mdash-canvas-container-header h4 { margin: 0; font-size: 15px; color: #2c3e50; font-weight: 700; }";
     styles += ".mdash-canvas-container-body { padding: 4px 0 0 0; min-height: 0; }";
 
     // Item no canvas
     styles += ".mdash-container-items-row { display: flex; flex-wrap: wrap; gap: 16px; }";
     styles += ".mdash-canvas-item { margin-bottom: 8px; }";
-    styles += ".mdash-canvas-item-card { background: #fff; border: 1px solid var(--md-border); border-radius: 10px; padding: 10px 12px; min-height: 96px; box-shadow: 0 2px 8px rgba(2,6,23,0.06); }";
-    styles += ".mdash-canvas-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid rgba(var(--md-primary-rgb),0.22); }";
+    styles += ".mdash-canvas-item-card { background: #fdfefe; border: 1px solid #e4e7ed; border-radius: 8px; padding: 10px 12px; min-height: 96px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }";
+    styles += ".mdash-canvas-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #edf1f5; }";
+    styles += ".mdash-canvas-item-header h5 { margin: 0; font-size: 13px; color: #2c3e50; font-weight: 600; }";
     styles += ".mdash-canvas-item-body { min-height: 60px; }";
-    styles += ".is-selected { outline: 2px solid rgba(var(--md-primary-rgb),0.3); outline-offset: 0; }";
+    styles += ".is-selected { outline: 2px solid #667eea; outline-offset: 0; }";
 
     // Empty items
-    styles += ".mdash-canvas-empty-items { text-align: center; padding: 30px 10px; color: var(--md-muted); border: 1px dashed rgba(var(--md-primary-rgb),0.28); border-radius: 8px; background: rgba(255,255,255,0.82); }";
+    styles += ".mdash-canvas-empty-items { text-align: center; padding: 30px 10px; color: #7f8c8d; }";
 
-    // Inline editing
-    styles += ".mdash-inline-title { border: none; background: transparent; font-size: 15px; font-weight: 700; color: var(--md-text); width: 100%; padding: 2px 4px; outline: none; border-radius: 4px; cursor: text; transition: background 0.15s, border-bottom 0.15s; border-bottom: 2px solid transparent; min-width: 0; }";
-    styles += ".mdash-inline-title:hover { background: rgba(var(--md-primary-rgb),0.06); border-bottom-color: rgba(var(--md-primary-rgb),0.42); }";
-    styles += ".mdash-inline-title:focus { background: rgba(var(--md-primary-rgb),0.09); border-bottom-color: var(--md-primary); }";
-    styles += ".mdash-inline-title::placeholder { color: var(--md-muted); font-weight: 500; }";
-    styles += ".mdash-inline-title-sm { font-size: 13px !important; font-weight: 600 !important; }";
-
-    // Objects badges + previews
+    // Objects badges
     styles += ".mdash-canvas-objects-list { display: flex; flex-wrap: wrap; gap: 8px; }";
-    styles += ".mdash-canvas-object-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: #fff; border: 1px solid rgba(var(--md-primary-rgb),0.28); border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.2s; color: var(--md-text); }";
-    styles += ".mdash-canvas-object-badge:hover { border-color: var(--md-primary); transform: translateY(-1px); box-shadow: 0 6px 12px rgba(var(--md-primary-rgb),0.14); }";
-    styles += ".mdash-canvas-object-badge i { color: var(--md-primary); }";
-    styles += ".preview-card { background: #fff; border: 1px solid rgba(var(--md-primary-rgb),0.2); border-radius: 8px; padding: 10px; }";
+    styles += ".mdash-canvas-object-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: white; border: 1px solid #dee2e6; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.2s; }";
+    styles += ".mdash-canvas-object-badge:hover { background: #e9ecef; border-color: #667eea; transform: translateY(-1px); }";
+    styles += ".mdash-canvas-object-badge i { color: #667eea; }";
+    styles += ".preview-card { background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; }";
     styles += ".preview-card.kpi { display: grid; gap: 6px; }";
-    styles += ".preview-card.kpi .kpi-label { font-size: 12px; color: var(--md-muted); text-transform: uppercase; letter-spacing: 0.5px; }";
-    styles += ".preview-card.kpi .kpi-value { font-size: 24px; font-weight: 700; color: var(--md-text); }";
-    styles += ".preview-card.kpi .kpi-trend { font-size: 12px; font-weight: 600; color: var(--md-primary); }";
-    styles += ".preview-card.chart { min-height: 120px; display: flex; align-items: center; justify-content: center; background: linear-gradient(120deg, rgba(var(--md-primary-rgb),0.09), rgba(255,255,255,0.9)); color: var(--md-primary); font-weight: 700; border: 1px dashed rgba(var(--md-primary-rgb),0.4); }";
+    styles += ".preview-card.kpi .kpi-label { font-size: 12px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; }";
+    styles += ".preview-card.kpi .kpi-value { font-size: 24px; font-weight: 700; color: #2c3e50; }";
+    styles += ".preview-card.kpi .kpi-trend { font-size: 12px; font-weight: 600; }";
+    styles += ".preview-card.kpi .kpi-trend.up { color: #2ecc71; }";
+    styles += ".preview-card.chart { min-height: 120px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #eef2ff 0%, #e3f3ff 100%); color: #667eea; font-weight: 600; }";
 
-    // ===== PROPERTIES PANEL =====
-    styles += ".mdash-properties { width: 340px; background: linear-gradient(180deg, #ffffff, #f8fafc); border: 1px solid var(--md-border); border-radius: 14px; padding: 14px; overflow-y: auto; box-shadow: 0 12px 24px rgba(2,6,23,0.08); }";
-    styles += ".mdash-properties-header { font-weight: 800; color: var(--md-text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 18px; }";
-    styles += ".mdash-properties-header i { color: var(--md-primary); }";
-    styles += "#mdash-properties-panel .form-group { margin-bottom: 12px; }";
-    styles += "#mdash-properties-panel label { font-size: 12px; font-weight: 700; color: var(--md-muted); letter-spacing: .2px; }";
-    styles += "#mdash-properties-panel input:not([type='checkbox']), #mdash-properties-panel select { font-size: 13px; border-radius: 8px; border: 1px solid rgba(var(--md-primary-rgb),0.45); box-shadow: none; min-height: 34px; }";
-    styles += "#mdash-properties-panel input:focus, #mdash-properties-panel select:focus { border-color: var(--md-primary); box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.16); outline: none; }";
-    styles += "#mdash-properties-panel input[type='checkbox'] { width: 14px; height: 14px; min-height: 14px; accent-color: var(--md-primary); cursor: pointer; vertical-align: middle; margin: 0; }";
-
-    // ===== MODALS =====
-    styles += ".modal-header { background: linear-gradient(120deg, var(--md-primary), #0f172a); color: white; }";
+    // ===== MODAIS =====
+    styles += ".modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }";
     styles += ".modal-header .close { color: white; opacity: 0.8; }";
     styles += ".modal-header .close:hover { opacity: 1; }";
-    styles += ".modal-header .modal-title { margin: 0; color: " + primaryColor + " !important; }";
-    styles += ".modal-header .modal-title i { color: " + primaryColor + " !important; }";
+    styles += ".modal-header h4 { margin: 0; }";
 
-    $('<style id="mdash-modern-styles" data-mdash-style-version="' + styleVersion + '">').text(styles).appendTo('head');
+    // ===== PROPRIEDADES =====
+    styles += ".mdash-properties { width: 360px; background: white; border-left: 1px solid #ddd; padding: 15px; overflow-y: auto; }";
+    styles += ".mdash-properties-header { font-weight: 700; color: #2c3e50; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }";
+    styles += "#mdash-properties-panel .form-group { margin-bottom: 10px; }";
+    styles += "#mdash-properties-panel label { font-size: 12px; font-weight: 600; color: #4a5568; }";
+    styles += "#mdash-properties-panel input, #mdash-properties-panel select { font-size: 13px; }";
+    
 
-    // Reaplica após o ciclo atual para ganhar prioridade caso outro script injete CSS depois.
-    setTimeout(function () {
-        $('#mdash-modern-styles').appendTo('head');
-    }, 0);
+    $('<style>').text(styles).appendTo('head');
 }
 
 /**
  * Inicializa editores ACE para campos com classe .m-editor
  */
 function handleCodeEditor() {
-    function getAceModeForEditor(el) {
-        var key = [
-            (el && el.id) || "",
-            (el && el.getAttribute && el.getAttribute("data-field")) || "",
-            (el && el.getAttribute && el.getAttribute("name")) || "",
-            (el && el.className) || ""
-        ].join(" ").toLowerCase();
-        var sqlKeys = [
-            "expressaolistagem",
-            "expressaodblistagem",
-            "mdash-obj-query-editor",
-            "mdash-fonte-query-editor",
-            "query",
-            "sql"
-        ];
-        var jsKeys = [
-            "expressaojslistagem",
-            "expressaochange",
-            "expressaoapresentacaodados",
-            "expressaolayoutcontaineritem",
-            "valordefeito"
-        ];
-
-        for (var i = 0; i < sqlKeys.length; i++) {
-            if (key.indexOf(sqlKeys[i]) !== -1) return "ace/mode/sql";
-        }
-
-        for (var j = 0; j < jsKeys.length; j++) {
-            if (key.indexOf(jsKeys[j]) !== -1) return "ace/mode/javascript";
-        }
-
-        // Fallback: a maioria dos campos de expressão não-DB usa JavaScript.
-        return "ace/mode/javascript";
-    }
-
     var editors = [];
     document.querySelectorAll('.m-editor').forEach(function (el, idx) {
         // Garante um id único para cada editor
@@ -2510,7 +2332,7 @@ function handleCodeEditor() {
 
         var aceEditor = ace.edit(el.id);
         aceEditor.setTheme("ace/theme/monokai");
-        aceEditor.session.setMode(getAceModeForEditor(el));
+        aceEditor.session.setMode("ace/mode/sql");
         aceEditor.setOptions({
             fontSize: "13px",
             enableBasicAutocompletion: true,
