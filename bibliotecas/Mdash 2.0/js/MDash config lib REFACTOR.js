@@ -31,6 +31,8 @@ var GSelectedElement = null;
 var GSelectedType = "";
 var GActiveTab = "general";
 var GMDashReactiveInstance = null;
+var GTemplateThumbCache = {};
+var GMDashIsResizingItem = false;
 
 // ============================================================================
 // CORE ENTITY CONSTRUCTORS (100% Mantidos da versão original)
@@ -541,7 +543,7 @@ function actualizarConfiguracaoMDashboard() {
 
 function realTimeComponentSync(recordData, table, idfield) {
 
-    console.log("Sincronização em tempo real do componente:", { table: table, idfield: idfield, recordData: recordData });
+    //console.log("Sincronização em tempo real do componente:", { table: table, idfield: idfield, recordData: recordData });
     var errorMessage = "ao actualizar componente em tempo real. Verifique a conexão com a internet.";
     try {
         var configData = [];
@@ -707,32 +709,89 @@ function loadDashboardDataFromServer(config) {
     });
 }
 
-// Placeholder - Esta função deve retornar os templates disponíveis
-// (copiada da versão original)
 function getTemplateLayoutOptions() {
-    // Templates básicos para pré-visualização rápida
+    // Usa os layouts reais definidos em TEMPLATE DASHBOARD STANDARD EXTENSION.js quando disponível.
+    if (typeof generateDashCardInfo === "function") {
+        return [
+            { descricao: "Snapshot Layout v1", codigo: "snapshot_layout_v1", tipo: "snapshot", generateCard: generateDashCardInfo, UIData: { tipo: "primary" }, containerSelectorToRender: ".m-dash-card-body-content" },
+            { descricao: "Snapshot Layout v1 Warning", codigo: "snapshot_layout_v1_warning", tipo: "snapshot", UIData: { tipo: "warning" }, generateCard: generateDashCardInfo, containerSelectorToRender: ".m-dash-card-body-content" },
+            { descricao: "Snapshot layout v2", codigo: "snapshot_layout_v2", tipo: "snapshot", UIData: { tipo: "primary" }, generateCard: generateDashCardSnapshot, containerSelectorToRender: ".stats-card-body" },
+            { descricao: "Snap card Warning", codigo: "snapshot_card_warning", tipo: "snapshot", UIData: { tipo: "warning" }, generateCard: generateMDashCardSnapV2, containerSelectorToRender: ".m-dash-card-snap-v2-value" },
+            { descricao: "Snap Card", codigo: "snap_card", tipo: "snapshot", UIData: { tipo: "primary" }, generateCard: generateMDashCardSnapV2, containerSelectorToRender: ".m-dash-card-snap-v2-value" },
+            { descricao: "Snap Card Success", codigo: "snap_card_success", tipo: "snapshot", UIData: { tipo: "success" }, generateCard: generateMDashCardSnapV2, containerSelectorToRender: ".m-dash-card-snap-v2-value" },
+            { descricao: "Snap card Danger", codigo: "snapshot_card_danger", tipo: "snapshot", UIData: { tipo: "danger" }, generateCard: generateMDashCardSnapV2, containerSelectorToRender: ".m-dash-card-snap-v2-value" },
+            { descricao: "Card standard", codigo: "card_standard", tipo: "card", UIData: { tipo: "primary" }, generateCard: generateDashCardStandard, containerSelectorToRender: ".m-dash-standard-card-body" },
+            { descricao: "Card header destacado", codigo: "card_header_highlighted", tipo: "card", UIData: { tipo: "primary" }, generateCard: generateDashCardHTML, containerSelectorToRender: ".dashcard-body" },
+            { descricao: "Plain Card", codigo: "plain_card", tipo: "card", UIData: { tipo: "primary" }, generateCard: generatePlainCard, containerSelectorToRender: ".m-dash-plain-card-body-content" },
+            { descricao: "Top Border Card Advanced - Metric Primary", codigo: "brd_card_advanced_metric_primary", tipo: "card", UIData: { tipo: "primary" }, generateCard: generateBrdCardAdvancedMetric, containerSelectorToRender: ".brd-card-advanced-content" },
+            { descricao: "Top Border Card Advanced - Metric Success", codigo: "brd_card_advanced_metric_success", tipo: "card", UIData: { tipo: "success" }, generateCard: generateBrdCardAdvancedMetric, containerSelectorToRender: ".brd-card-advanced-content" },
+            { descricao: "Top Border Card Advanced - Metric Warning", codigo: "brd_card_advanced_metric_warning", tipo: "card", UIData: { tipo: "warning" }, generateCard: generateBrdCardAdvancedMetric, containerSelectorToRender: ".brd-card-advanced-content" },
+            { descricao: "Top Border Card Advanced - Metric Danger", codigo: "brd_card_advanced_metric_danger", tipo: "card", UIData: { tipo: "danger" }, generateCard: generateBrdCardAdvancedMetric, containerSelectorToRender: ".brd-card-advanced-content" },
+            { descricao: "Top Border Card Advanced - Status Primary", codigo: "brd_card_advanced_status_primary", tipo: "card", UIData: { tipo: "primary" }, generateCard: generateBrdCardAdvancedStatus, containerSelectorToRender: ".brd-card-advanced-status-body" },
+            { descricao: "Top Border Card Advanced - Status Success", codigo: "brd_card_advanced_status_success", tipo: "card", UIData: { tipo: "success" }, generateCard: generateBrdCardAdvancedStatus, containerSelectorToRender: ".brd-card-advanced-status-body" },
+            { descricao: "Top Border Card Advanced - Status Warning", codigo: "brd_card_advanced_status_warning", tipo: "card", UIData: { tipo: "warning" }, generateCard: generateBrdCardAdvancedStatus, containerSelectorToRender: ".brd-card-advanced-status-body" },
+            { descricao: "Top Border Card Advanced - Status Danger", codigo: "brd_card_advanced_status_danger", tipo: "card", UIData: { tipo: "danger" }, generateCard: generateBrdCardAdvancedStatus, containerSelectorToRender: ".brd-card-advanced-status-body" },
+            { descricao: "Top Border Card Advanced - Alert Primary", codigo: "brd_card_advanced_alert_primary", tipo: "card", UIData: { tipo: "primary" }, generateCard: generateBrdCardAdvancedAlert, containerSelectorToRender: ".brd-card-advanced-alert-content" },
+            { descricao: "Top Border Card Advanced - Alert Success", codigo: "brd_card_advanced_alert_success", tipo: "card", UIData: { tipo: "success" }, generateCard: generateBrdCardAdvancedAlert, containerSelectorToRender: ".brd-card-advanced-alert-content" },
+            { descricao: "Top Border Card Advanced - Alert Warning", codigo: "brd_card_advanced_alert_warning", tipo: "card", UIData: { tipo: "warning" }, generateCard: generateBrdCardAdvancedAlert, containerSelectorToRender: ".brd-card-advanced-alert-content" },
+            { descricao: "Top Border Card Advanced - Alert Danger", codigo: "brd_card_advanced_alert_danger", tipo: "card", UIData: { tipo: "danger" }, generateCard: generateBrdCardAdvancedAlert, containerSelectorToRender: ".brd-card-advanced-alert-content" }
+        ];
+    }
+
+    // Fallback mínimo para ambientes onde o ficheiro de templates não esteja carregado.
     return [
-        {
-            codigo: "template_kpi",
-            descricao: "KPI Card",
-            sampleHtml: '<div class="preview-card kpi"><div class="kpi-label">Vendas</div><div class="kpi-value">123.4K</div><div class="kpi-trend up">+4.6%</div></div>'
-        },
-        {
-            codigo: "template_table",
-            descricao: "Tabela simples",
-            sampleHtml: '<div class="preview-card table"><table class="table table-condensed"><thead><tr><th>Col 1</th><th>Col 2</th></tr></thead><tbody><tr><td>Valor</td><td>42</td></tr><tr><td>Valor</td><td>58</td></tr></tbody></table></div>'
-        },
-        {
-            codigo: "template_chart",
-            descricao: "Gráfico (placeholder)",
-            sampleHtml: '<div class="preview-card chart"><div class="chart-placeholder">Gráfico aqui</div></div>'
-        }
+        { codigo: "template_kpi", descricao: "KPI Card", sampleHtml: '<div class="preview-card kpi"><div class="kpi-label">Vendas</div><div class="kpi-value">123.4K</div><div class="kpi-trend up">+4.6%</div></div>' },
+        { codigo: "template_table", descricao: "Tabela simples", sampleHtml: '<div class="preview-card table"><table class="table table-condensed"><thead><tr><th>Col 1</th><th>Col 2</th></tr></thead><tbody><tr><td>Valor</td><td>42</td></tr><tr><td>Valor</td><td>58</td></tr></tbody></table></div>' },
+        { codigo: "template_chart", descricao: "Gráfico (placeholder)", sampleHtml: '<div class="preview-card chart"><div class="chart-placeholder">Gráfico aqui</div></div>' }
     ];
 }
 
 function getDefaultTemplateCodigo() {
     var templates = getTemplateLayoutOptions();
     return (templates[0] && templates[0].codigo) || "";
+}
+
+function getTemplateLayoutByCode(templateCode) {
+    return getTemplateLayoutOptions().find(function (tpl) {
+        return tpl.codigo === templateCode;
+    }) || null;
+}
+
+function getTemplateThumbnailHtml(templateCode) {
+    if (!templateCode) return "";
+    if (GTemplateThumbCache[templateCode]) return GTemplateThumbCache[templateCode];
+
+    var template = getTemplateLayoutByCode(templateCode);
+    if (!template) {
+        GTemplateThumbCache[templateCode] = '<div class="mdash-template-thumb-empty">?</div>';
+        return GTemplateThumbCache[templateCode];
+    }
+
+    var thumbHtml = "";
+    if (typeof template.generateCard === "function") {
+        try {
+            thumbHtml = template.generateCard({
+                title: "Preview",
+                id: "thumb-" + template.codigo,
+                tipo: (template.UIData && template.UIData.tipo) || "primary",
+                bodyContent: "Demo"
+            });
+        } catch (error) {
+            thumbHtml = "";
+        }
+    }
+
+    if (!thumbHtml && template.sampleHtml) {
+        thumbHtml = template.sampleHtml;
+    }
+
+    if (!thumbHtml) {
+        var firstLetter = (template.descricao || template.codigo || "?").charAt(0).toUpperCase();
+        thumbHtml = '<div class="mdash-template-thumb-empty">' + firstLetter + '</div>';
+    }
+
+    GTemplateThumbCache[templateCode] = '<div class="mdash-template-thumb-render">' + thumbHtml + '</div>';
+    return GTemplateThumbCache[templateCode];
 }
 
 // TODO: Implementar o resto das funções da UI moderna
@@ -777,9 +836,16 @@ function initModernDashboardUI() {
     mainHtml += '<div class="mdash-modern-layout" v-scope @vue:mounted="onMounted">';
 
     // Sidebar (listas + toolbox contextual)
-    mainHtml += '  <div class="mdash-sidebar">';
+    mainHtml += '  <div class="mdash-sidebar" :class="{\'is-collapsed\': isSidebarCollapsed}">';
     mainHtml += '    <div class="mdash-sidebar-header">';
     mainHtml += '      <h4><i class="glyphicon glyphicon-th"></i> Componentes</h4>';
+    mainHtml += '      <button type="button" class="btn btn-default btn-xs mdash-panel-toggle mdash-sidebar-toggle" @click.stop="toggleSidebar" :title="isSidebarCollapsed ? \'Expandir componentes\' : \'Colapsar componentes\'"><i :class="isSidebarCollapsed ? \'glyphicon glyphicon-chevron-right\' : \'glyphicon glyphicon-chevron-left\'"></i></button>';
+    mainHtml += '    </div>';
+    mainHtml += '    <div class="mdash-sidebar-rail-actions">';
+    mainHtml += '      <button type="button" class="btn btn-default btn-sm toolbox-container mdash-toolbox-item" data-component="container" @click="addNewContainer" title="Container (clique ou arraste para o canvas)"><i class="glyphicon glyphicon-th-large"></i></button>';
+    mainHtml += '      <button type="button" class="btn btn-default btn-sm toolbox-container-item mdash-toolbox-item" data-component="containerItem" @click="quickAddItemFromRail" title="Item (clique ou arraste para um container)"><i class="glyphicon glyphicon-list-alt"></i></button>';
+    mainHtml += '      <button type="button" class="btn btn-default btn-sm" @click="openFiltersManagerModal" title="Gerir filtros"><i class="glyphicon glyphicon-filter"></i></button>';
+    mainHtml += '      <button type="button" class="btn btn-default btn-sm" @click="addNewFonte" title="Nova Fonte"><i class="glyphicon glyphicon-oil"></i></button>';
     mainHtml += '    </div>';
     mainHtml += '    <div class="mdash-sidebar-body">';
     mainHtml += '      <div class="mdash-widget-section">';
@@ -905,10 +971,9 @@ function initModernDashboardUI() {
     mainHtml += '      <div class="mdash-canvas-commandbar">';
     mainHtml += '        <div class="mdash-commandbar-title"><i class="glyphicon glyphicon-modal-window"></i> Dashboard Builder</div>';
     mainHtml += '        <div class="mdash-commandbar-actions">';
-    mainHtml += '          <button type="button" @click="addNewContainer" class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-th-large"></i> Novo Container</button>';
-    mainHtml += '          <button type="button" @click="addNewFilter" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-filter"></i> Novo Filtro</button>';
-    mainHtml += '          <button type="button" @click="addNewFonte" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-oil"></i> Nova Fonte</button>';
-    mainHtml += '          <button type="button" onclick="renderAllContainerItemTemplates()" class="btn btn-default btn-sm" title="Atualizar canvas"><i class="glyphicon glyphicon-refresh"></i></button>';
+    mainHtml += '          <button type="button"  class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-eye-open"></i> Pré visualizar</button>';
+   /* mainHtml += '          <button type="button" @click="addNewFilter" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-filter"></i> Novo Filtro</button>';
+    mainHtml += '          <button type="button" @click="addNewFonte" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-oil"></i> Nova Fonte</button>';*/
     mainHtml += '        </div>';
     mainHtml += '      </div>';
     mainHtml += '      <div v-if="containers.length === 0" class="mdash-canvas-empty mdash-drop-target">';
@@ -932,11 +997,30 @@ function initModernDashboardUI() {
     mainHtml += '          <div v-else class="mdash-container-items-row">';
     mainHtml += '            <div v-for="item in getContainerItems(container.mdashcontainerstamp)" :key="item.mdashcontaineritemstamp" class="mdash-canvas-item" :class="{\'is-selected\': selectedComponent.stamp === item.mdashcontaineritemstamp}" :data-stamp="item.mdashcontaineritemstamp" @click.stop="selectContainerItem(item.mdashcontaineritemstamp)" :style=\"getItemFlex(item)\">';
     mainHtml += '              <div class="mdash-canvas-item-card">';
+    mainHtml += '                <div class="mdash-item-resize-handle mdash-item-resize-handle-left" title="Redimensionar (2-12 colunas; ALT para 1)"></div>';
+    mainHtml += '                <div class="mdash-item-resize-handle mdash-item-resize-handle-right" title="Redimensionar (2-12 colunas; ALT para 1)"></div>';
     mainHtml += '                <div class="mdash-canvas-item-header">';
-    mainHtml += '                  <input type="text" class="mdash-inline-title mdash-inline-title-sm" :value="item.titulo" @change.stop="updateItemTitle(item, $event)" @click.stop placeholder="Item sem título" />';
-    mainHtml += '                  <div style="display:flex;gap:3px;flex-shrink:0;">';
+    mainHtml += '                  <div class="mdash-item-header-top">';
+    mainHtml += '                    <input type="text" class="mdash-inline-title mdash-inline-title-sm" :value="item.titulo" @change.stop="updateItemTitle(item, $event)" @click.stop placeholder="Item sem título" />';
+    mainHtml += '                  </div>';
+    mainHtml += '                  <div class="mdash-item-header-bottom">';
+    mainHtml += '                    <div class="mdash-inline-layout-picker" @click.stop>';
+    mainHtml += '                      <button type="button" class="mdash-inline-layout-trigger" @click.stop="toggleTemplatePicker(item.mdashcontaineritemstamp)" title="Alterar layout">';
+    mainHtml += '                        <span class="mdash-inline-layout-thumb" v-html="getTemplateThumbHtml(item.templatelayout)"></span>';
+    mainHtml += '                        <span class="mdash-inline-layout-name">{{ getTemplateLabel(item.templatelayout) }}</span>';
+    mainHtml += '                        <i class="glyphicon glyphicon-chevron-down"></i>';
+    mainHtml += '                      </button>';
+    mainHtml += '                      <div v-if="openTemplatePickerFor === item.mdashcontaineritemstamp" class="mdash-inline-layout-menu">';
+    mainHtml += '                        <button type="button" class="mdash-inline-layout-option" v-for="tpl in getTemplateLayouts()" :key="tpl.codigo" @click.stop="selectItemLayout(item, tpl.codigo)">';
+    mainHtml += '                          <span class="mdash-inline-layout-thumb" v-html="getTemplateThumbHtml(tpl.codigo)"></span>';
+    mainHtml += '                          <span class="mdash-inline-layout-name">{{ tpl.descricao }}</span>';
+    mainHtml += '                        </button>';
+    mainHtml += '                      </div>';
+    mainHtml += '                    </div>';
+    mainHtml += '                    <div class="mdash-item-header-actions">';
     mainHtml += '                    <button type="button" @click.stop="editContainerItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-default" title="Configurar"><i class="glyphicon glyphicon-cog"></i></button>';
     mainHtml += '                    <button type="button" @click.stop="deleteContainerItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-danger" title="Eliminar"><i class="glyphicon glyphicon-trash"></i></button>';
+    mainHtml += '                  </div>';
     mainHtml += '                  </div>';
     mainHtml += '                </div>';
     mainHtml += '                <div class="mdash-canvas-item-body">';
@@ -966,8 +1050,12 @@ function initModernDashboardUI() {
     mainHtml += '  </div>';
 
     // Coluna de propriedades
-    mainHtml += '  <div class="mdash-properties">';
-    mainHtml += '    <div class="mdash-properties-header"><i class="glyphicon glyphicon-wrench"></i> Propriedades</div>';
+    mainHtml += '  <div class="mdash-properties" :class="{\'is-collapsed\': isPropertiesCollapsed}">';
+    mainHtml += '    <div class="mdash-properties-header"><span><i class="glyphicon glyphicon-wrench"></i> Propriedades</span><button type="button" class="btn btn-default btn-xs mdash-panel-toggle mdash-properties-toggle" @click.stop="toggleProperties" :title="isPropertiesCollapsed ? \'Expandir propriedades\' : \'Colapsar propriedades\'"><i :class="isPropertiesCollapsed ? \'glyphicon glyphicon-chevron-left\' : \'glyphicon glyphicon-chevron-right\'"></i></button></div>';
+    mainHtml += '    <div class="mdash-properties-rail-actions">';
+    mainHtml += '      <button type="button" class="btn btn-default btn-sm" @click="editSelectedComponent" title="Editar selecionado"><i class="glyphicon glyphicon-cog"></i></button>';
+    mainHtml += '      <button type="button" class="btn btn-default btn-sm" @click="addChildForSelected" title="Adicionar ao selecionado"><i class="glyphicon glyphicon-plus"></i></button>';
+    mainHtml += '    </div>';
     mainHtml += '    <div id="mdash-properties-panel">';
     mainHtml += '      <p class="text-muted" style="margin:0;">Selecione um Container ou Item.</p>';
     mainHtml += '    </div>';
@@ -1000,6 +1088,9 @@ function initModernDashboardUI() {
         containerItemObjects: window.appState.containerItemObjects,
         fontes: window.appState.fontes,
         selectedComponent: { type: "", stamp: "", data: null },
+        isSidebarCollapsed: false,
+        isPropertiesCollapsed: false,
+        openTemplatePickerFor: "",
         $computed: {
             sortedFilters: function() {
                 return window.appState.filters.slice().sort(function (a, b) {
@@ -1045,9 +1136,46 @@ function initModernDashboardUI() {
         },
 
         getItemFlex: function (item) {
-            var size = item.tamanho || 4;
-            var percent = (size / 12) * 100;
-            return 'flex: 0 0 calc(' + percent + '% - 12px);';
+            var size = parseInt(item.tamanho, 10) || 4;
+            if (size < 1) size = 1;
+            if (size > 12) size = 12;
+            return 'grid-column: span ' + size + '; min-width: 0;';
+        },
+
+        getTemplateLayouts: function () {
+            return getTemplateLayoutOptions();
+        },
+
+        getTemplateLabel: function (templateCode) {
+            var template = getTemplateLayoutByCode(templateCode);
+            return (template && (template.descricao || template.codigo)) || "Selecionar layout";
+        },
+
+        getTemplateThumbHtml: function (templateCode) {
+            return getTemplateThumbnailHtml(templateCode);
+        },
+
+        toggleTemplatePicker: function (itemStamp) {
+            this.openTemplatePickerFor = this.openTemplatePickerFor === itemStamp ? "" : itemStamp;
+        },
+
+        toggleSidebar: function () {
+            this.isSidebarCollapsed = !this.isSidebarCollapsed;
+            setTimeout(initDragAndDrop, 0);
+        },
+
+        toggleProperties: function () {
+            this.isPropertiesCollapsed = !this.isPropertiesCollapsed;
+        },
+
+        selectItemLayout: function (item, templateCode) {
+            this.openTemplatePickerFor = "";
+            if (!templateCode || item.templatelayout === templateCode) return;
+            item.templatelayout = templateCode;
+            renderContainerItemTemplate(item);
+            if (typeof realTimeComponentSync === 'function') {
+                realTimeComponentSync(item, item.table, item.idfield);
+            }
         },
 
         // Ações (delegam para as funções globais)
@@ -1061,6 +1189,10 @@ function initModernDashboardUI() {
 
         deleteFilter: function (stamp) {
             deleteFilter(stamp);
+        },
+
+        openFiltersManagerModal: function () {
+            openFiltersManagerModal();
         },
 
         addNewContainer: function () {
@@ -1107,7 +1239,46 @@ function initModernDashboardUI() {
             deleteFonte(stamp);
         },
 
+        quickAddItemFromRail: function () {
+            var selected = this.selectedComponent || {};
+            if (selected.type === "container" && selected.stamp) {
+                addContainerItem(selected.stamp);
+                return;
+            }
+            if (this.containers.length > 0) {
+                addContainerItem(this.containers[0].mdashcontainerstamp);
+                return;
+            }
+            addNewContainer();
+        },
+
+        editSelectedComponent: function () {
+            var selected = this.selectedComponent || {};
+            if (!selected.stamp) return;
+            if (selected.type === "container") {
+                editContainer(selected.stamp);
+                return;
+            }
+            if (selected.type === "containerItem") {
+                editContainerItem(selected.stamp);
+            }
+        },
+
+        addChildForSelected: function () {
+            var selected = this.selectedComponent || {};
+            if (selected.type === "container" && selected.stamp) {
+                addContainerItem(selected.stamp);
+                return;
+            }
+            if (selected.type === "containerItem" && selected.stamp) {
+                addContainerItemObject(selected.stamp);
+                return;
+            }
+            this.quickAddItemFromRail();
+        },
+
         selectContainer: function (stamp) {
+            this.openTemplatePickerFor = "";
             var container = window.appState.containers.find(function (c) { return c.mdashcontainerstamp === stamp; });
             if (!container) return;
             this.selectedComponent = { type: "container", stamp: stamp, data: container };
@@ -1115,6 +1286,7 @@ function initModernDashboardUI() {
         },
 
         selectContainerItem: function (stamp) {
+            this.openTemplatePickerFor = "";
             var item = window.appState.containerItems.find(function (i) { return i.mdashcontaineritemstamp === stamp; });
             if (!item) return;
             this.selectedComponent = { type: "containerItem", stamp: stamp, data: item };
@@ -1130,6 +1302,8 @@ function initModernDashboardUI() {
 
         updateItemTitle: function (item, event) {
             item.titulo = event.target.value.trim();
+            renderContainerItemTemplate(item);
+            setTimeout(syncAllContainerItemsLayout, 0);
             if (typeof realTimeComponentSync === 'function') {
                 realTimeComponentSync(item, item.table, item.idfield);
             }
@@ -1150,6 +1324,7 @@ function initModernDashboardUI() {
                 fontes: this.fontes.length
             });
             initDragAndDrop();
+            setTimeout(syncAllContainerItemsLayout, 0);
         }
     }).mount('#m-dash-main-container');
 }
@@ -1168,6 +1343,165 @@ function initDragAndDrop() {
     makeCanvasDroppable();
     makeContainersSortable();
     makeContainerItemsSortable();
+    initContainerItemResize();
+    setTimeout(syncAllContainerItemsLayout, 0);
+}
+
+function syncAllContainerItemsLayout() {
+    var items = (window.appState && window.appState.containerItems) ? window.appState.containerItems : GMDashContainerItems;
+    if (!Array.isArray(items) || !items.length) return;
+
+    items.forEach(function (item) {
+        if (!item || !item.mdashcontaineritemstamp) return;
+        var size = parseInt(item.tamanho, 10) || 4;
+        if (size < 1) size = 1;
+        if (size > 12) size = 12;
+
+        var selector = '.mdash-canvas-item[data-stamp="' + item.mdashcontaineritemstamp + '"]';
+        var $el = $(selector);
+        if (!$el.length) return;
+
+        // Reforça o layout por span e limpa vestígios inline do sortable.
+        $el.css({
+            'grid-column': 'span ' + size + ' / span ' + size,
+            'width': '',
+            'max-width': '',
+            'left': '',
+            'top': ''
+        });
+    });
+}
+
+function initContainerItemResize() {
+    $(document)
+        .off('pointerdown.mdashItemResize mousedown.mdashItemResize')
+        .on('pointerdown.mdashItemResize mousedown.mdashItemResize', '.mdash-item-resize-handle', function (event) {
+            // Evita duplicação em browsers que disparam pointerdown + mousedown.
+            if (event.type === 'mousedown' && window.PointerEvent) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            var pointX = event.clientX;
+            if ((pointX === undefined || pointX === null) && event.originalEvent && event.originalEvent.touches && event.originalEvent.touches[0]) {
+                pointX = event.originalEvent.touches[0].clientX;
+            }
+            if (pointX === undefined || pointX === null) return;
+
+            var $itemEl = $(this).closest('.mdash-canvas-item');
+            if (!$itemEl.length) return;
+
+            var itemStamp = $itemEl.data('stamp');
+            var item = GMDashContainerItems.find(function (i) {
+                return i.mdashcontaineritemstamp === itemStamp;
+            });
+            if (!item) return;
+
+            var $grid = $itemEl.closest('.mdash-container-items-row');
+            if (!$grid.length) return;
+
+            var startX = pointX;
+            var isLeftHandle = $(this).hasClass('mdash-item-resize-handle-left');
+            var startSize = parseInt(item.tamanho, 10) || 4;
+            var lastSize = startSize;
+            var maxWarnShown = false;
+            var minWarnShown = false;
+
+            var gridElement = $grid.get(0);
+            var computedGrid = window.getComputedStyle(gridElement);
+            var gap = parseFloat(computedGrid.columnGap || computedGrid.gap || '14') || 14;
+            var gridWidth = $grid.innerWidth() || $grid.width() || 0;
+            var colUnit = (gridWidth - (gap * 11)) / 12;
+
+            // Fallback quando o cálculo da grid não devolve largura válida.
+            if (!colUnit || colUnit <= 0) {
+                colUnit = ($itemEl.outerWidth() || 1) / Math.max(startSize, 1);
+            }
+            if (!colUnit || colUnit <= 0) colUnit = 20;
+
+            $('body').addClass('mdash-resize-active');
+            $itemEl.addClass('is-resizing');
+            GMDashIsResizingItem = true;
+
+            $('.mdash-container-items-row').each(function () {
+                var $row = $(this);
+                if ($row.data('ui-sortable')) {
+                    $row.sortable('option', 'disabled', true);
+                }
+            });
+
+            function readClientX(moveEvent) {
+                if (moveEvent.clientX !== undefined && moveEvent.clientX !== null) return moveEvent.clientX;
+                if (moveEvent.originalEvent && moveEvent.originalEvent.touches && moveEvent.originalEvent.touches[0]) {
+                    return moveEvent.originalEvent.touches[0].clientX;
+                }
+                return null;
+            }
+
+            function applySize(proposed, moveEvent) {
+                var minAllowed = (moveEvent && moveEvent.altKey) ? 1 : 2;
+
+                if (proposed > 12) {
+                    proposed = 12;
+                    if (!maxWarnShown && typeof alertify !== 'undefined') {
+                        alertify.warning('Tamanho maximo possivel atingido (12 colunas).', 2500);
+                        maxWarnShown = true;
+                    }
+                }
+
+                if (proposed < minAllowed) {
+                    proposed = minAllowed;
+                    if (minAllowed === 2 && !minWarnShown && typeof alertify !== 'undefined') {
+                        alertify.message('Tamanho minimo recomendado: 2 colunas (ALT para permitir 1).', 2500);
+                        minWarnShown = true;
+                    }
+                }
+
+                if (proposed === lastSize) return;
+
+                lastSize = proposed;
+                item.tamanho = proposed;
+                $itemEl.css('grid-column', 'span ' + proposed);
+                setTimeout(syncAllContainerItemsLayout, 0);
+            }
+
+            function onPointerMove(moveEvent) {
+                var moveX = readClientX(moveEvent);
+                if (moveX === null) return;
+                var deltaX = moveX - startX;
+                var directionFactor = isLeftHandle ? -1 : 1;
+                var deltaCols = Math.round((deltaX * directionFactor) / colUnit);
+                var proposed = startSize + deltaCols;
+                applySize(proposed, moveEvent);
+            }
+
+            function cleanup() {
+                $(document).off('pointermove.mdashItemResizeActive mousemove.mdashItemResizeActive', onPointerMove);
+                $(document).off('pointerup.mdashItemResizeActive mouseup.mdashItemResizeActive', onPointerUp);
+                $('body').removeClass('mdash-resize-active');
+                $itemEl.removeClass('is-resizing').css('grid-column', '');
+                GMDashIsResizingItem = false;
+
+                $('.mdash-container-items-row').each(function () {
+                    var $row = $(this);
+                    if ($row.data('ui-sortable')) {
+                        $row.sortable('option', 'disabled', false);
+                    }
+                });
+
+                if (lastSize !== startSize && typeof realTimeComponentSync === 'function') {
+                    realTimeComponentSync(item, item.table, item.idfield);
+                }
+                setTimeout(syncAllContainerItemsLayout, 0);
+            }
+
+            function onPointerUp() {
+                cleanup();
+            }
+
+            $(document).on('pointermove.mdashItemResizeActive mousemove.mdashItemResizeActive', onPointerMove);
+            $(document).on('pointerup.mdashItemResizeActive mouseup.mdashItemResizeActive', onPointerUp);
+        });
 }
 
 function makeToolboxDraggable() {
@@ -1176,6 +1510,7 @@ function makeToolboxDraggable() {
         revert: 'invalid',
         appendTo: 'body',
         zIndex: 9999,
+        cancel: '',
         start: function (e, ui) {
             ui.helper.addClass('dragging');
         }
@@ -1232,10 +1567,19 @@ function makeContainerItemsSortable() {
         var containerStamp = $(this).closest('.mdash-canvas-container').data('stamp');
         $(this).sortable({
             items: '.mdash-canvas-item',
+            cancel: '.mdash-item-resize-handle, .mdash-item-resize-handle *',
             connectWith: '.mdash-container-items-row',
             tolerance: 'pointer',
+            distance: 6,
+            start: function () {
+                if (GMDashIsResizingItem) return false;
+            },
+            stop: function () {
+                setTimeout(syncAllContainerItemsLayout, 0);
+            },
             update: function () {
                 updateContainerItemsOrder(containerStamp);
+                setTimeout(syncAllContainerItemsLayout, 0);
             }
         });
     });
@@ -1293,6 +1637,7 @@ function updateContainerItemsOrder(containerStamp) {
             }
         }
     });
+    setTimeout(syncAllContainerItemsLayout, 0);
 }
 
 // ============================================================================
@@ -2111,6 +2456,63 @@ function editFilter(filterStamp) {
     openFilterEditModal(filter);
 }
 
+function openFiltersManagerModal() {
+    resetModalOpenState('#mdash-filters-manager-modal');
+
+    var filters = (window.appState && window.appState.filters ? window.appState.filters : GMDashFilters).slice();
+    filters.sort(function (a, b) {
+        return (a.ordem || 0) - (b.ordem || 0);
+    });
+
+    var listHtml = '';
+    if (!filters.length) {
+        listHtml = '<p class="text-muted text-center" style="margin: 10px 0 0;"><small>Nenhum filtro configurado</small></p>';
+    } else {
+        filters.forEach(function (filter) {
+            var filterTitle = filter.descricao || filter.codigo || 'Sem nome';
+            listHtml += '<div class="mdash-filter-manager-row">';
+            listHtml += '  <div class="mdash-filter-manager-main">';
+            listHtml += '    <div class="mdash-filter-manager-title">' + filterTitle + '</div>';
+            listHtml += '    <div class="mdash-filter-manager-meta">' + (getFilterTypeLabel(filter.tipo) || '') + ' • Ordem ' + (filter.ordem || 0) + '</div>';
+            listHtml += '  </div>';
+            listHtml += '  <div class="mdash-filter-manager-actions">';
+            listHtml += '    <button type="button" class="btn btn-xs btn-default" onclick="$(\'#mdash-filters-manager-modal\').modal(\'hide\'); editFilter(\'' + filter.mdashfilterstamp + '\');" title="Editar">';
+            listHtml += '      <i class="glyphicon glyphicon-cog"></i>';
+            listHtml += '    </button>';
+            listHtml += '    <button type="button" class="btn btn-xs btn-danger" onclick="deleteFilter(\'' + filter.mdashfilterstamp + '\'); openFiltersManagerModal();" title="Eliminar">';
+            listHtml += '      <i class="glyphicon glyphicon-trash"></i>';
+            listHtml += '    </button>';
+            listHtml += '  </div>';
+            listHtml += '</div>';
+        });
+    }
+
+    var modalHtml = '<div class="modal fade" id="mdash-filters-manager-modal" tabindex="-1">';
+    modalHtml += '  <div class="modal-dialog modal-lg">';
+    modalHtml += '    <div class="modal-content">';
+    modalHtml += '      <div class="modal-header">';
+    modalHtml += '        <button type="button" class="close" data-dismiss="modal">&times;</button>';
+    modalHtml += '        <h4 class="modal-title"><i class="glyphicon glyphicon-filter"></i> Gestão de Filtros</h4>';
+    modalHtml += '      </div>';
+    modalHtml += '      <div class="modal-body">';
+    modalHtml += '        <div style="margin-bottom:10px;text-align:right;">';
+    modalHtml += '          <button type="button" class="btn btn-primary btn-sm" onclick="$(\'#mdash-filters-manager-modal\').modal(\'hide\'); addNewFilter();">';
+    modalHtml += '            <i class="glyphicon glyphicon-plus"></i> Novo Filtro';
+    modalHtml += '          </button>';
+    modalHtml += '        </div>';
+    modalHtml += '        <div class="mdash-filter-manager-list">' + listHtml + '</div>';
+    modalHtml += '      </div>';
+    modalHtml += '      <div class="modal-footer">';
+    modalHtml += '        <button type="button" class="btn btn-default" data-dismiss="modal">Fechar</button>';
+    modalHtml += '      </div>';
+    modalHtml += '    </div>';
+    modalHtml += '  </div>';
+    modalHtml += '</div>';
+
+    $('body').append(modalHtml);
+    $('#mdash-filters-manager-modal').modal('show');
+}
+
 /**
  * Abre modal de edição de filtro usando UIObjectFormConfig (abordagem original)
  */
@@ -2345,13 +2747,31 @@ function loadModernDashboardStyles() {
     styles += ".mdash-top-toolbar-actions { display: flex; align-items: center; gap: 8px; }";
 
     // ===== MAIN LAYOUT =====
-    styles += ".mdash-modern-layout { display: flex; flex: 1; overflow: hidden; gap: 10px; padding: 10px; }";
+    styles += ".mdash-modern-layout { display: flex; flex: 1; overflow: hidden; gap: 8px; padding: 8px; }";
 
     // ===== SIDEBAR =====
-    styles += ".mdash-sidebar { width: 320px; background: linear-gradient(180deg, rgba(var(--md-primary-rgb),0.96), rgba(var(--md-primary-rgb),0.84)); border: 1px solid rgba(255,255,255,0.16); border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 16px 32px rgba(2,6,23,0.18); backdrop-filter: blur(8px); }";
-    styles += ".mdash-sidebar-header { padding: 18px 18px 14px; border-bottom: 1px solid rgba(255,255,255,0.18); background: transparent; color: #fff; }";
-    styles += ".mdash-sidebar-header h4 { margin: 0; font-size: 28px; font-weight: 800; display:flex; align-items:center; gap:10px; opacity:0.98; }";
-    styles += ".mdash-sidebar-body { flex: 1; overflow-y: auto; padding: 12px; background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.96)); }";
+    styles += ".mdash-sidebar { width: 248px; min-width: 248px; background: linear-gradient(180deg, rgba(var(--md-primary-rgb),0.96), rgba(var(--md-primary-rgb),0.84)); border: 1px solid rgba(255,255,255,0.16); border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 16px 32px rgba(2,6,23,0.18); backdrop-filter: blur(8px); transition: width 0.22s ease, min-width 0.22s ease; }";
+    styles += ".mdash-sidebar-header { position: relative; min-height: 50px; padding: 12px 38px 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.18); background: transparent; color: #fff; display: flex; align-items: center; }";
+    styles += ".mdash-sidebar-header h4 { margin: 0; font-size: 22px; font-weight: 800; display:flex; align-items:center; gap:8px; line-height: 1; opacity:0.98; }";
+    styles += ".mdash-sidebar-header h4 i { width: 20px; text-align: center; line-height: 1; }";
+    styles += ".mdash-panel-toggle { width: 22px; height: 22px; padding: 0; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; transform: translateY(-50%); }";
+    styles += ".mdash-panel-toggle i { font-size: 10px; line-height: 1; }";
+    styles += ".mdash-sidebar-toggle { position: absolute; top: 50%; right: 8px; border-color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.16); color: #fff; }";
+    styles += ".mdash-sidebar-toggle:hover { background: rgba(255,255,255,0.26); color: #fff; border-color: rgba(255,255,255,0.7); }";
+    styles += ".mdash-sidebar-header i, .mdash-sidebar-rail-actions .btn i, .mdash-properties-header i, .mdash-properties-rail-actions .btn i { animation: none !important; transition: none !important; transform: none !important; }";
+    styles += ".mdash-sidebar-body { flex: 1; overflow-y: auto; padding: 10px; background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.96)); }";
+    styles += ".mdash-sidebar-rail-actions { display: none; padding: 8px 6px; gap: 8px; flex-direction: column; align-items: center; border-top: 1px solid rgba(255,255,255,0.2); }";
+    styles += ".mdash-sidebar-rail-actions .btn { width: 36px; min-width: 36px; height: 36px; padding: 0; border-radius: 10px; border-color: rgba(255,255,255,0.42); color: var(--md-primary); background: rgba(255,255,255,0.96); display: inline-flex; align-items: center; justify-content: center; line-height: 1; }";
+    styles += ".mdash-sidebar-rail-actions .btn i { color: var(--md-primary); font-size: 14px; line-height: 1; }";
+    styles += ".mdash-sidebar-rail-actions .btn:hover { background: #fff; border-color: rgba(var(--md-primary-rgb),0.58); color: var(--md-primary); box-shadow: 0 4px 10px rgba(var(--md-primary-rgb),0.18); }";
+    styles += ".mdash-sidebar-rail-actions .btn:focus { outline: none; box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.22); }";
+    styles += ".mdash-sidebar.is-collapsed { width: 56px; min-width: 56px; }";
+    styles += ".mdash-sidebar.is-collapsed .mdash-sidebar-body { display: none; }";
+    styles += ".mdash-sidebar.is-collapsed .mdash-sidebar-rail-actions { display: flex; }";
+    styles += ".mdash-sidebar.is-collapsed .mdash-sidebar-header { min-height: 40px; padding: 8px 24px 8px 8px; display:flex; justify-content:center; align-items:center; }";
+    styles += ".mdash-sidebar.is-collapsed .mdash-sidebar-header h4 { margin: 0; width: 20px; height: 20px; padding: 0; border: none; background: transparent; border-radius: 0; display: flex; justify-content: center; align-items: center; gap: 0; font-size: 0; line-height: 0; color: transparent; overflow: hidden; box-shadow: none; }";
+    styles += ".mdash-sidebar.is-collapsed .mdash-sidebar-header h4 i { display: flex; flex: 0 0 20px; width: 20px; height: 20px; align-items: center; justify-content: center; text-align: center; font-size: 20px; margin: 0; color: #fff; line-height: 1; opacity: 0.98; position: static; left: auto; }";
+    styles += ".mdash-sidebar.is-collapsed .mdash-sidebar-toggle { top: 50%; right: 4px; width: 18px; height: 18px; border-radius: 5px; }";
 
     // ===== WIDGET PALETTE =====
     styles += ".mdash-widget-section { padding: 2px 0 8px; }";
@@ -2379,6 +2799,13 @@ function loadModernDashboardStyles() {
     styles += ".mdash-sidebar-item-content .badge { margin-left: auto; background: var(--md-primary); font-size: 10px; }";
     styles += ".mdash-sidebar-item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }";
     styles += ".mdash-sidebar-item:hover .mdash-sidebar-item-actions { opacity: 1; }";
+    styles += ".mdash-filter-manager-list { max-height: 420px; overflow-y: auto; }";
+    styles += ".mdash-filter-manager-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--md-border); border-radius: 10px; background: #fff; margin-bottom: 8px; }";
+    styles += ".mdash-filter-manager-row:last-child { margin-bottom: 0; }";
+    styles += ".mdash-filter-manager-main { min-width: 0; }";
+    styles += ".mdash-filter-manager-title { font-weight: 700; color: var(--md-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }";
+    styles += ".mdash-filter-manager-meta { font-size: 11px; color: var(--md-muted); margin-top: 2px; }";
+    styles += ".mdash-filter-manager-actions { display: flex; gap: 4px; flex-shrink: 0; }";
 
     // ===== CANVAS =====
     styles += ".mdash-canvas { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-radius: 14px; border: 1px solid var(--md-border); background: var(--md-surface); box-shadow: 0 12px 28px rgba(2,6,23,0.08); }";
@@ -2410,10 +2837,20 @@ function loadModernDashboardStyles() {
     styles += ".mdash-canvas-container-body { padding: 4px 0 0 0; min-height: 0; }";
 
     // Item no canvas
-    styles += ".mdash-container-items-row { display: flex; flex-wrap: wrap; gap: 16px; }";
-    styles += ".mdash-canvas-item { margin-bottom: 8px; }";
-    styles += ".mdash-canvas-item-card { background: #fff; border: 1px solid var(--md-border); border-radius: 10px; padding: 10px 12px; min-height: 96px; box-shadow: 0 2px 8px rgba(2,6,23,0.06); }";
-    styles += ".mdash-canvas-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid rgba(var(--md-primary-rgb),0.22); }";
+    styles += ".mdash-container-items-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }";
+    styles += ".mdash-canvas-item { margin-bottom: 0; min-width: 0; }";
+    styles += ".mdash-canvas-item-card { position: relative; background: #fff; border: 1px solid var(--md-border); border-radius: 10px; padding: 10px 12px; min-height: 96px; box-shadow: 0 2px 8px rgba(2,6,23,0.06); }";
+    styles += ".mdash-canvas-item-card { height: 100%; }";
+    styles += ".mdash-item-resize-handle { position: absolute; top: 8px; width: 12px; height: calc(100% - 16px); border-radius: 8px; cursor: ew-resize; background: transparent; z-index: 8; touch-action: none; }";
+    styles += ".mdash-item-resize-handle-left { left: -1px; }";
+    styles += ".mdash-item-resize-handle-right { right: -1px; }";
+    styles += ".mdash-item-resize-handle::before { content: ''; position: absolute; top: 50%; left: 50%; width: 3px; height: 26px; transform: translate(-50%, -50%); border-radius: 2px; background: rgba(var(--md-primary-rgb),0.42); transition: background 0.16s ease, height 0.16s ease, width 0.16s ease; }";
+    styles += ".mdash-canvas-item:hover .mdash-item-resize-handle::before, .mdash-canvas-item.is-resizing .mdash-item-resize-handle::before { background: var(--md-primary); height: 32px; }";
+    styles += "body.mdash-resize-active { cursor: ew-resize !important; user-select: none; }";
+    styles += ".mdash-canvas-item-header { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid rgba(var(--md-primary-rgb),0.22); }";
+    styles += ".mdash-item-header-top { width: 100%; }";
+    styles += ".mdash-item-header-bottom { display: flex; align-items: center; gap: 10px; }";
+    styles += ".mdash-item-header-actions { display: flex; gap: 3px; flex-shrink: 0; margin-left: auto; }";
     styles += ".mdash-canvas-item-body { min-height: 60px; }";
     styles += ".is-selected { outline: 2px solid rgba(var(--md-primary-rgb),0.3); outline-offset: 0; }";
 
@@ -2425,7 +2862,20 @@ function loadModernDashboardStyles() {
     styles += ".mdash-inline-title:hover { background: rgba(var(--md-primary-rgb),0.06); border-bottom-color: rgba(var(--md-primary-rgb),0.42); }";
     styles += ".mdash-inline-title:focus { background: rgba(var(--md-primary-rgb),0.09); border-bottom-color: var(--md-primary); }";
     styles += ".mdash-inline-title::placeholder { color: var(--md-muted); font-weight: 500; }";
-    styles += ".mdash-inline-title-sm { font-size: 13px !important; font-weight: 600 !important; }";
+    styles += ".mdash-inline-title-sm { font-size: 13px !important; font-weight: 600 !important; width: 100%; }";
+    styles += ".mdash-inline-layout-picker { position: relative; flex: 1; min-width: 0; }";
+    styles += ".mdash-inline-layout-trigger { width: 100%; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(var(--md-primary-rgb),0.35); border-radius: 8px; background: #fff; color: var(--md-text); font-size: 12px; height: 40px; padding: 4px 10px; box-shadow: none; text-align: left; }";
+    styles += ".mdash-inline-layout-trigger:hover { border-color: var(--md-primary); }";
+    styles += ".mdash-inline-layout-trigger:focus { outline: none; border-color: var(--md-primary); box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.16); }";
+    styles += ".mdash-inline-layout-trigger i { margin-left: auto; color: var(--md-muted); }";
+    styles += ".mdash-inline-layout-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }";
+    styles += ".mdash-inline-layout-thumb { width: 64px; height: 36px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(var(--md-primary-rgb),0.26); background: #f8fafc; flex-shrink: 0; display: block; }";
+    styles += ".mdash-template-thumb-render { width: 240px; transform: scale(0.25); transform-origin: top left; pointer-events: none; }";
+    styles += ".mdash-template-thumb-empty { width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; font-weight:700; color: var(--md-primary); font-size: 12px; }";
+    styles += ".mdash-inline-layout-menu { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 60; max-height: 260px; overflow-y: auto; background: #fff; border: 1px solid rgba(var(--md-primary-rgb),0.24); border-radius: 10px; box-shadow: 0 14px 26px rgba(2,6,23,0.16); padding: 6px; }";
+    styles += ".mdash-inline-layout-option { width: 100%; display: flex; align-items: center; gap: 10px; border: 1px solid transparent; background: #fff; border-radius: 8px; padding: 7px; color: var(--md-text); text-align: left; margin-bottom: 4px; }";
+    styles += ".mdash-inline-layout-option:last-child { margin-bottom: 0; }";
+    styles += ".mdash-inline-layout-option:hover { background: rgba(var(--md-primary-rgb),0.08); border-color: rgba(var(--md-primary-rgb),0.24); }";
 
     // Objects badges + previews
     styles += ".mdash-canvas-objects-list { display: flex; flex-wrap: wrap; gap: 8px; }";
@@ -2438,16 +2888,28 @@ function loadModernDashboardStyles() {
     styles += ".preview-card.kpi .kpi-value { font-size: 24px; font-weight: 700; color: var(--md-text); }";
     styles += ".preview-card.kpi .kpi-trend { font-size: 12px; font-weight: 600; color: var(--md-primary); }";
     styles += ".preview-card.chart { min-height: 120px; display: flex; align-items: center; justify-content: center; background: linear-gradient(120deg, rgba(var(--md-primary-rgb),0.09), rgba(255,255,255,0.9)); color: var(--md-primary); font-weight: 700; border: 1px dashed rgba(var(--md-primary-rgb),0.4); }";
+    styles += "@media (max-width: 767px) { .mdash-container-items-row { grid-template-columns: 1fr; } .mdash-canvas-item { grid-column: 1 / -1 !important; } }";
 
     // ===== PROPERTIES PANEL =====
-    styles += ".mdash-properties { width: 340px; background: linear-gradient(180deg, #ffffff, #f8fafc); border: 1px solid var(--md-border); border-radius: 14px; padding: 14px; overflow-y: auto; box-shadow: 0 12px 24px rgba(2,6,23,0.08); }";
-    styles += ".mdash-properties-header { font-weight: 800; color: var(--md-text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 18px; }";
+    styles += ".mdash-properties { width: 300px; min-width: 300px; background: linear-gradient(180deg, #ffffff, #f8fafc); border: 1px solid var(--md-border); border-radius: 14px; padding: 12px; overflow-y: auto; box-shadow: 0 12px 24px rgba(2,6,23,0.08); transition: width 0.22s ease, min-width 0.22s ease, padding 0.22s ease; }";
+    styles += ".mdash-properties-header { position: relative; font-weight: 800; color: var(--md-text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 18px; padding-right: 28px; }";
     styles += ".mdash-properties-header i { color: var(--md-primary); }";
+    styles += ".mdash-properties-toggle { position: absolute; top: 50%; right: 0; }";
+    styles += ".mdash-properties-rail-actions { display: none; flex-direction: column; gap: 6px; align-items: center; }";
+    styles += ".mdash-properties-rail-actions .btn { width: 36px; height: 34px; padding: 0; border-radius: 8px; }";
+    styles += ".mdash-properties.is-collapsed { width: 56px; min-width: 56px; padding: 10px 8px; overflow: hidden; }";
+    styles += ".mdash-properties.is-collapsed #mdash-properties-panel { display: none; }";
+    styles += ".mdash-properties.is-collapsed .mdash-properties-rail-actions { display: flex; }";
+    styles += ".mdash-properties.is-collapsed .mdash-properties-header { justify-content: center; align-items: center; font-size: 0; margin-bottom: 4px; padding: 0 20px 0 0; min-height: 24px; width: 100%; }";
+    styles += ".mdash-properties.is-collapsed .mdash-properties-header > span { font-size: 0; width: 100%; display: flex; align-items: center; justify-content: center; }";
+    styles += ".mdash-properties.is-collapsed .mdash-properties-header > span i { font-size: 18px; }";
+    styles += ".mdash-properties.is-collapsed .mdash-properties-toggle { top: 50%; right: -1px; width: 18px; height: 18px; border-radius: 5px; }";
     styles += "#mdash-properties-panel .form-group { margin-bottom: 12px; }";
     styles += "#mdash-properties-panel label { font-size: 12px; font-weight: 700; color: var(--md-muted); letter-spacing: .2px; }";
     styles += "#mdash-properties-panel input:not([type='checkbox']), #mdash-properties-panel select { font-size: 13px; border-radius: 8px; border: 1px solid rgba(var(--md-primary-rgb),0.45); box-shadow: none; min-height: 34px; }";
     styles += "#mdash-properties-panel input:focus, #mdash-properties-panel select:focus { border-color: var(--md-primary); box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.16); outline: none; }";
     styles += "#mdash-properties-panel input[type='checkbox'] { width: 14px; height: 14px; min-height: 14px; accent-color: var(--md-primary); cursor: pointer; vertical-align: middle; margin: 0; }";
+    styles += "@media (max-width: 1440px) { .mdash-sidebar { width: 228px; min-width: 228px; } .mdash-properties { width: 262px; min-width: 262px; } .mdash-modern-layout { gap: 6px; padding: 6px; } }";
 
     // ===== MODALS =====
     styles += ".modal-header { background: linear-gradient(120deg, var(--md-primary), #0f172a); color: white; }";

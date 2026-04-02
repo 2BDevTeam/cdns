@@ -5145,12 +5145,12 @@ function Mrend(options) {
 
         grupoColuna.forEach(function (grupo) {
 
+            var minOrdemGrupo = Infinity;
             var tmpGrupoColunaDefinition = {
 
                 title: grupo.descgrupo,
                 frozen: grupo.fixa,
-                columns: [],
-                _minOrdem: Infinity
+                columns: []
             };
 
             var grupoColumnItems = grupoColunaItems.filter(function (objColumnItem) {
@@ -5181,8 +5181,8 @@ function Mrend(options) {
                         tmpGrupoColunaDefinition.columns.push(colDefinition);
                         addedToColGroup.push(colDefinition);
 
-                        if (colunaCnfgFound.ordem < tmpGrupoColunaDefinition._minOrdem) {
-                            tmpGrupoColunaDefinition._minOrdem = colunaCnfgFound.ordem;
+                        if (colunaCnfgFound.ordem < minOrdemGrupo) {
+                            minOrdemGrupo = colunaCnfgFound.ordem;
                         }
                     }
 
@@ -5190,7 +5190,9 @@ function Mrend(options) {
 
             });
 
-            sortableEntries.push({ ordem: tmpGrupoColunaDefinition._minOrdem, def: tmpGrupoColunaDefinition });
+            if (tmpGrupoColunaDefinition.columns.length > 0) {
+                sortableEntries.push({ ordem: minOrdemGrupo, def: tmpGrupoColunaDefinition });
+            }
 
         });
 
