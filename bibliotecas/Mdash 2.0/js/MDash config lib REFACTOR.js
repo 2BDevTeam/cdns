@@ -33,6 +33,12 @@ var GActiveTab = "general";
 var GMDashReactiveInstance = null;
 var GTemplateThumbCache = {};
 var GMDashIsResizingItem = false;
+var GExplicitDragState = {
+    itemStamp: "",
+    containerStamp: "",
+    slot: null,
+    validation: null
+};
 
 // ============================================================================
 // CORE ENTITY CONSTRUCTORS (100% Mantidos da versão original)
@@ -173,6 +179,7 @@ function MdashContainer(data) {
     this.titulo = data.titulo || "";
     this.tipo = data.tipo || "";
     this.tamanho = data.tamanho || 12;
+    this.layoutmode = data.layoutmode || "auto"; // auto | explicit
     this.ordem = data.ordem || (maxOrdem + 1);
     this.dashboardstamp = data.dashboardstamp || GMDashStamp;
     this.localsource = "GMDashContainers";
@@ -196,6 +203,11 @@ function MdashContainerItem(data) {
     this.tipo = data.tipo || "";
     this.inactivo = data.inactivo || false;
     this.tamanho = data.tamanho || 4;
+    this.layoutmode = data.layoutmode || "inherit"; // inherit | auto | explicit
+    this.gridrow = data.gridrow !== undefined && data.gridrow !== null && data.gridrow !== "" ? parseInt(data.gridrow, 10) : null;
+    this.gridcolstart = data.gridcolstart !== undefined && data.gridcolstart !== null && data.gridcolstart !== "" ? parseInt(data.gridcolstart, 10) : null;
+    this.gridcolspan = data.gridcolspan !== undefined && data.gridcolspan !== null && data.gridcolspan !== "" ? parseInt(data.gridcolspan, 10) : this.tamanho;
+    this.gridrowspan = data.gridrowspan !== undefined && data.gridrowspan !== null && data.gridrowspan !== "" ? parseInt(data.gridrowspan, 10) : 1;
     this.ordem = data.ordem || (maxOrdem + 1);
     this.templatelayout = data.templatelayout || getDefaultTemplateCodigo();  // IMPORTANTE: template do layout
     this.layoutcontaineritemdefault = data.layoutcontaineritemdefault || true;
@@ -219,7 +231,8 @@ function getContainerUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 6, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" })
+        new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "layoutmode", tipo: "select", titulo: "Modo de Layout (Container)", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: [{ option: "Auto", value: "auto" }, { option: "Explícito", value: "explicit" }] })
     ];
 
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashContainers", idField: "mdashcontainerstamp" };
@@ -238,6 +251,10 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "layoutmode", tipo: "select", titulo: "Modo de Layout (Override)", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: [{ option: "Herdar do Container", value: "inherit" }, { option: "Auto", value: "auto" }, { option: "Explícito", value: "explicit" }] }),
+        new UIObjectFormConfig({ colSize: 4, campo: "gridrow", tipo: "digit", titulo: "Linha (gridrow)", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "gridcolstart", tipo: "digit", titulo: "Coluna Inicial", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "gridcolspan", tipo: "digit", titulo: "Largura (colSpan)", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "templatelayout", tipo: "select", titulo: "Layout", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: templateOptions }),
         new UIObjectFormConfig({ colSize: 4, campo: "layoutcontaineritemdefault", tipo: "checkbox", titulo: "Usa layout default para item do container", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolayoutcontaineritem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de layout do item do container", classes: "input-source-form m-editor", contentType: "div" }),
@@ -1125,6 +1142,14 @@ function initModernDashboardUI() {
                     return item.mdashcontainerstamp === containerStamp; // mostrar mesmo inactivos para edição
                 })
                 .sort(function (a, b) {
+                    var aExplicit = isExplicitLayoutItem(a);
+                    var bExplicit = isExplicitLayoutItem(b);
+                    if (aExplicit || bExplicit) {
+                        var rowDiff = (a.gridrow || 0) - (b.gridrow || 0);
+                        if (rowDiff !== 0) return rowDiff;
+                        var colDiff = (a.gridcolstart || 0) - (b.gridcolstart || 0);
+                        if (colDiff !== 0) return colDiff;
+                    }
                     return (a.ordem || 0) - (b.ordem || 0);
                 });
         },
@@ -1136,10 +1161,7 @@ function initModernDashboardUI() {
         },
 
         getItemFlex: function (item) {
-            var size = parseInt(item.tamanho, 10) || 4;
-            if (size < 1) size = 1;
-            if (size > 12) size = 12;
-            return 'grid-column: span ' + size + '; min-width: 0;';
+            return getItemGridStyleString(item);
         },
 
         getTemplateLayouts: function () {
@@ -1330,7 +1352,291 @@ function initModernDashboardUI() {
 }
 
 // ============================================================================
-// DRAG & DROP + SORT (Containers e ContainerItems)
+// DRAG & DROP ENGINE - SENIOR LEVEL ARCHITECTURE
+// ============================================================================
+
+/**
+ * GridLayoutEngine - Responsável por cálculos de layout e validações
+ */
+var GridLayoutEngine = {
+    GRID_COLUMNS: 12,
+    
+    /**
+     * Valida se um item cabe numa linha específica
+     */
+    canFitInRow: function(containerStamp, targetRow, newItemSpan, excludeItemStamp) {
+        var itemsInRow = GMDashContainerItems.filter(function(item) {
+            return item.mdashcontainerstamp === containerStamp &&
+                   parseInt(item.gridrow, 10) === targetRow &&
+                   item.mdashcontaineritemstamp !== excludeItemStamp &&
+                   getEffectiveItemLayoutMode(item) === 'explicit';
+        });
+        
+        var usedColumns = itemsInRow.reduce(function(sum, item) {
+            return sum + getItemGridSpan(item);
+        }, 0);
+        
+        return (usedColumns + newItemSpan) <= this.GRID_COLUMNS;
+    },
+    
+    /**
+     * Calcula espaço disponível numa linha
+     */
+    getAvailableSpace: function(containerStamp, targetRow, excludeItemStamp) {
+        var itemsInRow = GMDashContainerItems.filter(function(item) {
+            return item.mdashcontainerstamp === containerStamp &&
+                   parseInt(item.gridrow, 10) === targetRow &&
+                   item.mdashcontaineritemstamp !== excludeItemStamp &&
+                   getEffectiveItemLayoutMode(item) === 'explicit';
+        });
+        
+        var usedColumns = itemsInRow.reduce(function(sum, item) {
+            return sum + getItemGridSpan(item);
+        }, 0);
+        
+        return this.GRID_COLUMNS - usedColumns;
+    },
+    
+    /**
+     * Encontra item na posição específica
+     */
+    findItemAtPosition: function(containerStamp, row, col) {
+        return GMDashContainerItems.find(function(item) {
+            if (item.mdashcontainerstamp !== containerStamp) return false;
+            if (getEffectiveItemLayoutMode(item) !== 'explicit') return false;
+            
+            var itemRow = parseInt(item.gridrow, 10);
+            var itemColStart = parseInt(item.gridcolstart, 10);
+            var itemSpan = getItemGridSpan(item);
+            var itemColEnd = itemColStart + itemSpan - 1;
+            
+            return itemRow === row && col >= itemColStart && col <= itemColEnd;
+        });
+    },
+    
+    /**
+     * Calcula reajuste automático de items numa linha
+     */
+    calculateAutoAdjust: function(containerStamp, targetRow, insertCol, insertSpan, excludeItemStamp) {
+        var itemsInRow = GMDashContainerItems.filter(function(item) {
+            return item.mdashcontainerstamp === containerStamp &&
+                   parseInt(item.gridrow, 10) === targetRow &&
+                   item.mdashcontaineritemstamp !== excludeItemStamp &&
+                   getEffectiveItemLayoutMode(item) === 'explicit';
+        }).sort(function(a, b) {
+            return parseInt(a.gridcolstart, 10) - parseInt(b.gridcolstart, 10);
+        });
+        
+        var adjustments = [];
+        var currentCol = 1;
+        
+        itemsInRow.forEach(function(item) {
+            var itemColStart = parseInt(item.gridcolstart, 10);
+            var itemSpan = getItemGridSpan(item);
+            
+            // Se o item atual está na posição de inserção, pula espaço
+            if (currentCol === insertCol) {
+                currentCol += insertSpan;
+            }
+            
+            if (itemColStart !== currentCol) {
+                adjustments.push({
+                    item: item,
+                    oldCol: itemColStart,
+                    newCol: currentCol
+                });
+            }
+            
+            currentCol += itemSpan;
+        });
+        
+        return {
+            adjustments: adjustments,
+            totalColumns: currentCol - 1,
+            isValid: currentCol <= this.GRID_COLUMNS
+        };
+    }
+};
+
+/**
+ * VisualFeedbackManager - Gere feedback visual durante drag
+ */
+var VisualFeedbackManager = {
+    
+    /**
+     * Mostra feedback de erro (linha vermelha + ícone stop)
+     */
+    showErrorFeedback: function($container, message) {
+        this.clearFeedback($container);
+        
+        $container.addClass('mdash-drop-error');
+        
+        var $errorOverlay = $('<div class="mdash-drop-error-overlay">' +
+            '<i class="glyphicon glyphicon-ban-circle"></i>' +
+            '<span>' + (message || 'Não cabe nesta linha') + '</span>' +
+        '</div>');
+        
+        $container.append($errorOverlay);
+    },
+    
+    /**
+     * Mostra feedback de sucesso (linha verde + prévia)
+     */
+    showSuccessFeedback: function($container, adjustments) {
+        this.clearFeedback($container);
+        $container.addClass('mdash-drop-success');
+        
+        if (adjustments && adjustments.length > 0) {
+            var message = adjustments.length + ' item(s) serão reajustados';
+            var $successOverlay = $('<div class="mdash-drop-success-overlay">' +
+                '<i class="glyphicon glyphicon-ok-circle"></i>' +
+                '<span>' + message + '</span>' +
+            '</div>');
+            $container.append($successOverlay);
+        }
+    },
+    
+    /**
+     * Mostra feedback de swap (troca na mesma linha)
+     */
+    showSwapFeedback: function($container, targetItem) {
+        this.clearFeedback($container);
+        $container.addClass('mdash-drop-swap');
+        
+        var $swapOverlay = $('<div class="mdash-drop-swap-overlay">' +
+            '<i class="glyphicon glyphicon-retweet"></i>' +
+            '<span>Trocar posições</span>' +
+        '</div>');
+        $container.append($swapOverlay);
+    },
+    
+    /**
+     * Limpa todo feedback visual
+     */
+    clearFeedback: function($container) {
+        $container.removeClass('mdash-drop-error mdash-drop-success mdash-drop-swap');
+        $container.find('.mdash-drop-error-overlay, .mdash-drop-success-overlay, .mdash-drop-swap-overlay').remove();
+    }
+};
+
+/**
+ * DragDropValidator - Valida operações de drag & drop
+ */
+var DragDropValidator = {
+    
+    /**
+     * Valida se o drop é possível e retorna estratégia
+     */
+    validateDrop: function(draggedItem, targetRow, targetCol, containerStamp) {
+        var draggedSpan = getItemGridSpan(draggedItem);
+        var draggedRow = parseInt(draggedItem.gridrow, 10);
+        
+        var result = {
+            isValid: false,
+            strategy: null, // 'swap', 'adjust', 'invalid'
+            targetItem: null,
+            adjustments: [],
+            message: ''
+        };
+        
+        // Encontra item na posição alvo
+        var targetItem = GridLayoutEngine.findItemAtPosition(containerStamp, targetRow, targetCol);
+        
+        // Caso 1: Mesma linha - SWAP
+        if (draggedRow === targetRow && targetItem) {
+            result.isValid = true;
+            result.strategy = 'swap';
+            result.targetItem = targetItem;
+            result.message = 'Trocar posições';
+            return result;
+        }
+        
+        // Caso 2: Linha diferente - verifica se cabe
+        var availableSpace = GridLayoutEngine.getAvailableSpace(containerStamp, targetRow, draggedItem.mdashcontaineritemstamp);
+        
+        if (draggedSpan > availableSpace) {
+            result.isValid = false;
+            result.strategy = 'invalid';
+            result.message = 'Não cabe: precisa ' + draggedSpan + ' col, disponível ' + availableSpace + ' col';
+            return result;
+        }
+        
+        // Caso 3: Cabe - calcula ajustes
+        var adjustResult = GridLayoutEngine.calculateAutoAdjust(
+            containerStamp, 
+            targetRow, 
+            targetCol, 
+            draggedSpan, 
+            draggedItem.mdashcontaineritemstamp
+        );
+        
+        if (adjustResult.isValid) {
+            result.isValid = true;
+            result.strategy = 'adjust';
+            result.adjustments = adjustResult.adjustments;
+            result.message = adjustResult.adjustments.length + ' item(s) reajustados';
+        } else {
+            result.isValid = false;
+            result.strategy = 'invalid';
+            result.message = 'Total ultrapassa ' + GridLayoutEngine.GRID_COLUMNS + ' colunas';
+        }
+        
+        return result;
+    }
+};
+
+/**
+ * DragDropExecutor - Executa operações de drag & drop
+ */
+var DragDropExecutor = {
+    
+    /**
+     * Executa swap entre dois items
+     */
+    executeSwap: function(item1, item2) {
+        var temp = {
+            row: item1.gridrow,
+            colStart: item1.gridcolstart
+        };
+        
+        item1.gridrow = item2.gridrow;
+        item1.gridcolstart = item2.gridcolstart;
+        
+        item2.gridrow = temp.row;
+        item2.gridcolstart = temp.colStart;
+        
+        console.log('🔄 SWAP executado:', {
+            item1: item1.mdashcontaineritemstamp.substring(0, 8),
+            item2: item2.mdashcontaineritemstamp.substring(0, 8)
+        });
+        
+        // Sincroniza ambos
+        if (typeof realTimeComponentSync === 'function') {
+            realTimeComponentSync(item1, item1.table, item1.idfield);
+            realTimeComponentSync(item2, item2.table, item2.idfield);
+        }
+    },
+    
+    /**
+     * Executa ajuste de items
+     */
+    executeAdjust: function(adjustments) {
+        adjustments.forEach(function(adj) {
+            adj.item.gridcolstart = adj.newCol;
+            
+            console.log('➡️ ADJUST:', {
+                item: adj.item.mdashcontaineritemstamp.substring(0, 8),
+                oldCol: adj.oldCol,
+                newCol: adj.newCol
+            });
+            
+            if (typeof realTimeComponentSync === 'function') {
+                realTimeComponentSync(adj.item, adj.item.table, adj.item.idfield);
+            }
+        });
+    }
+};
+
 // ============================================================================
 
 function initDragAndDrop() {
@@ -1351,25 +1657,578 @@ function syncAllContainerItemsLayout() {
     var items = (window.appState && window.appState.containerItems) ? window.appState.containerItems : GMDashContainerItems;
     if (!Array.isArray(items) || !items.length) return;
 
+    var handledContainers = {};
+    items.forEach(function (item) {
+        if (!item || !item.mdashcontainerstamp) return;
+        if (handledContainers[item.mdashcontainerstamp]) return;
+        handledContainers[item.mdashcontainerstamp] = true;
+        if (containerHasAutoLayoutItems(item.mdashcontainerstamp)) {
+            normalizeContainerItemsAutoLayout(item.mdashcontainerstamp);
+        } else {
+            ensureExplicitItemsHaveCoordinates(item.mdashcontainerstamp);
+        }
+    });
+
     items.forEach(function (item) {
         if (!item || !item.mdashcontaineritemstamp) return;
-        var size = parseInt(item.tamanho, 10) || 4;
-        if (size < 1) size = 1;
-        if (size > 12) size = 12;
 
         var selector = '.mdash-canvas-item[data-stamp="' + item.mdashcontaineritemstamp + '"]';
         var $el = $(selector);
         if (!$el.length) return;
 
+        var cssMap = getItemGridStyleMap(item);
+
         // Reforça o layout por span e limpa vestígios inline do sortable.
         $el.css({
-            'grid-column': 'span ' + size + ' / span ' + size,
+            'grid-column': cssMap.gridColumn,
+            'grid-row': cssMap.gridRow,
             'width': '',
             'max-width': '',
             'left': '',
             'top': ''
         });
     });
+}
+
+function containerHasAutoLayoutItems(containerStamp) {
+    if (!containerStamp) return false;
+
+    return GMDashContainerItems.some(function (item) {
+        return item.mdashcontainerstamp === containerStamp && getEffectiveItemLayoutMode(item) === "auto";
+    });
+}
+
+function getContainerLayoutMode(containerStamp) {
+    var containers = (window.appState && window.appState.containers) ? window.appState.containers : GMDashContainers;
+    if (!Array.isArray(containers) || !containers.length) return "auto";
+
+    var container = containers.find(function (c) {
+        return c && c.mdashcontainerstamp === containerStamp;
+    });
+
+    if (!container || !container.layoutmode) return "auto";
+    return container.layoutmode === "explicit" ? "explicit" : "auto";
+}
+
+function getEffectiveItemLayoutMode(item) {
+    if (!item) return "auto";
+
+    var itemMode = (item.layoutmode || "inherit").toString().toLowerCase();
+    if (itemMode === "explicit") return "explicit";
+    if (itemMode === "auto") return "auto";
+
+    return getContainerLayoutMode(item.mdashcontainerstamp);
+}
+
+function isExplicitLayoutItem(item) {
+    if (!item) return false;
+    if (getEffectiveItemLayoutMode(item) !== "explicit") return false;
+
+    var row = parseInt(item.gridrow, 10);
+    var colStart = parseInt(item.gridcolstart, 10);
+    return !!(row >= 1 && colStart >= 1);
+}
+
+function getItemGridSpan(item) {
+    var span = parseInt(item.gridcolspan, 10);
+    if (!span || span < 1) {
+        span = parseInt(item.tamanho, 10) || 4;
+    }
+    if (span > 12) span = 12;
+    return span;
+}
+
+function getItemGridStyleMap(item) {
+    var span = getItemGridSpan(item);
+
+    if (isExplicitLayoutItem(item)) {
+        var row = parseInt(item.gridrow, 10);
+        var colStart = parseInt(item.gridcolstart, 10);
+        var rowSpan = parseInt(item.gridrowspan, 10) || 1;
+
+        if (colStart < 1) colStart = 1;
+        if (colStart > 12) colStart = 12;
+        if ((colStart + span - 1) > 12) {
+            colStart = Math.max(1, 12 - span + 1);
+        }
+
+        return {
+            gridColumn: colStart + ' / span ' + span,
+            gridRow: row + ' / span ' + rowSpan
+        };
+    }
+
+    return {
+        gridColumn: 'span ' + span + ' / span ' + span,
+        gridRow: ''
+    };
+}
+
+function getItemGridStyleString(item) {
+    var cssMap = getItemGridStyleMap(item);
+    return 'grid-column: ' + cssMap.gridColumn + '; ' + (cssMap.gridRow ? ('grid-row: ' + cssMap.gridRow + '; ') : '') + 'min-width: 0;';
+}
+
+function isGridAreaFree(occupiedMap, rowStart, colStart, colSpan, rowSpan) {
+    for (var r = rowStart; r < (rowStart + rowSpan); r++) {
+        for (var c = colStart; c < (colStart + colSpan); c++) {
+            if (occupiedMap[r + ':' + c]) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function markGridAreaOccupied(occupiedMap, rowStart, colStart, colSpan, rowSpan) {
+    for (var r = rowStart; r < (rowStart + rowSpan); r++) {
+        for (var c = colStart; c < (colStart + colSpan); c++) {
+            occupiedMap[r + ':' + c] = true;
+        }
+    }
+}
+
+function findNextGridSlot(occupiedMap, preferredRow, preferredCol, colSpan, rowSpan) {
+    var row = parseInt(preferredRow, 10);
+    var col = parseInt(preferredCol, 10);
+
+    if (!row || row < 1) row = 1;
+    if (!col || col < 1) col = 1;
+
+    while (true) {
+        if (col > 12) {
+            row += Math.floor((col - 1) / 12);
+            col = ((col - 1) % 12) + 1;
+        }
+
+        if ((col + colSpan - 1) > 12) {
+            row += 1;
+            col = 1;
+            continue;
+        }
+
+        if (isGridAreaFree(occupiedMap, row, col, colSpan, rowSpan)) {
+            return { row: row, colStart: col };
+        }
+
+        col += 1;
+    }
+}
+
+function normalizeContainerItemsAutoLayout(containerStamp) {
+    if (!containerStamp) return;
+
+    var containerItems = GMDashContainerItems
+        .filter(function (item) {
+            return item.mdashcontainerstamp === containerStamp;
+        })
+        .sort(function (a, b) {
+            var aMode = getEffectiveItemLayoutMode(a);
+            var bMode = getEffectiveItemLayoutMode(b);
+
+            if (aMode === "explicit" && bMode === "explicit") {
+                var rowDiff = (parseInt(a.gridrow, 10) || 0) - (parseInt(b.gridrow, 10) || 0);
+                if (rowDiff !== 0) return rowDiff;
+
+                var colDiff = (parseInt(a.gridcolstart, 10) || 0) - (parseInt(b.gridcolstart, 10) || 0);
+                if (colDiff !== 0) return colDiff;
+            }
+
+            if (aMode === "explicit" && bMode !== "explicit") return -1;
+            if (aMode !== "explicit" && bMode === "explicit") return 1;
+
+            return (a.ordem || 0) - (b.ordem || 0);
+        });
+
+    var occupiedMap = {};
+    var autoCursorRow = 1;
+    var autoCursorCol = 1;
+
+    containerItems.forEach(function (item) {
+        var span = getItemGridSpan(item);
+        var rowSpan = parseInt(item.gridrowspan, 10) || 1;
+        var mode = getEffectiveItemLayoutMode(item);
+        var preferredRow = mode === "explicit" ? item.gridrow : autoCursorRow;
+        var preferredCol = mode === "explicit" ? item.gridcolstart : autoCursorCol;
+
+        var slot = findNextGridSlot(occupiedMap, preferredRow, preferredCol, span, rowSpan);
+
+        item.gridrow = slot.row;
+        item.gridcolstart = slot.colStart;
+        item.gridcolspan = span;
+        item.gridrowspan = rowSpan;
+
+        markGridAreaOccupied(occupiedMap, slot.row, slot.colStart, span, rowSpan);
+
+        if (mode === "auto") {
+            autoCursorRow = slot.row;
+            autoCursorCol = slot.colStart + span;
+            while (autoCursorCol > 12) {
+                autoCursorRow += 1;
+                autoCursorCol = 1;
+            }
+        }
+    });
+}
+
+function ensureExplicitItemsHaveCoordinates(containerStamp) {
+    if (!containerStamp) return;
+
+    var containerItems = GMDashContainerItems
+        .filter(function (item) {
+            return item.mdashcontainerstamp === containerStamp;
+        })
+        .sort(function (a, b) {
+            return (a.ordem || 0) - (b.ordem || 0);
+        });
+
+    var occupiedMap = {};
+
+    containerItems.forEach(function (item) {
+        if (!item) return;
+
+        var span = getItemGridSpan(item);
+        var rowSpan = parseInt(item.gridrowspan, 10) || 1;
+        var mode = getEffectiveItemLayoutMode(item);
+        var row = parseInt(item.gridrow, 10);
+        var colStart = parseInt(item.gridcolstart, 10);
+
+        if (mode !== "explicit") {
+            if (!(row >= 1 && colStart >= 1)) {
+                var autoSlot = findNextGridSlot(occupiedMap, 1, 1, span, rowSpan);
+                row = autoSlot.row;
+                colStart = autoSlot.colStart;
+                item.gridrow = row;
+                item.gridcolstart = colStart;
+            }
+
+            item.gridcolspan = span;
+            item.gridrowspan = rowSpan;
+            markGridAreaOccupied(occupiedMap, row, colStart, span, rowSpan);
+            return;
+        }
+
+        if (!(row >= 1 && colStart >= 1)) {
+            var explicitSlot = findNextGridSlot(occupiedMap, 1, 1, span, rowSpan);
+            item.gridrow = explicitSlot.row;
+            item.gridcolstart = explicitSlot.colStart;
+            item.gridcolspan = span;
+            item.gridrowspan = rowSpan;
+            markGridAreaOccupied(occupiedMap, explicitSlot.row, explicitSlot.colStart, span, rowSpan);
+            return;
+        }
+
+        if (colStart > 12) colStart = 12;
+        if ((colStart + span - 1) > 12) {
+            colStart = Math.max(1, 12 - span + 1);
+            item.gridcolstart = colStart;
+        }
+
+        if (!isGridAreaFree(occupiedMap, row, colStart, span, rowSpan)) {
+            var fallbackSlot = findNextGridSlot(occupiedMap, row, colStart, span, rowSpan);
+            item.gridrow = fallbackSlot.row;
+            item.gridcolstart = fallbackSlot.colStart;
+            item.gridcolspan = span;
+            item.gridrowspan = rowSpan;
+            markGridAreaOccupied(occupiedMap, fallbackSlot.row, fallbackSlot.colStart, span, rowSpan);
+            return;
+        }
+
+        item.gridcolspan = span;
+        item.gridrowspan = rowSpan;
+        markGridAreaOccupied(occupiedMap, row, colStart, span, rowSpan);
+    });
+}
+
+function resolveExplicitCollisions(containerStamp, anchorItemStamp) {
+    if (!containerStamp || !anchorItemStamp) return;
+
+    var items = GMDashContainerItems
+        .filter(function (item) {
+            return item.mdashcontainerstamp === containerStamp;
+        })
+        .sort(function (a, b) {
+            var aIsAnchor = a.mdashcontaineritemstamp === anchorItemStamp;
+            var bIsAnchor = b.mdashcontaineritemstamp === anchorItemStamp;
+            if (aIsAnchor && !bIsAnchor) return -1;
+            if (!aIsAnchor && bIsAnchor) return 1;
+            return (a.ordem || 0) - (b.ordem || 0);
+        });
+
+    if (!items.length) return;
+
+    var occupiedMap = {};
+
+    items.forEach(function (item) {
+        if (!item || getEffectiveItemLayoutMode(item) !== 'explicit') return;
+
+        var span = getItemGridSpan(item);
+        var rowSpan = parseInt(item.gridrowspan, 10) || 1;
+        var preferredRow = parseInt(item.gridrow, 10);
+        var preferredCol = parseInt(item.gridcolstart, 10);
+        var slot = findNextGridSlot(occupiedMap, preferredRow, preferredCol, span, rowSpan);
+
+        item.gridrow = slot.row;
+        item.gridcolstart = slot.colStart;
+        item.gridcolspan = span;
+        item.gridrowspan = rowSpan;
+        markGridAreaOccupied(occupiedMap, slot.row, slot.colStart, span, rowSpan);
+    });
+}
+
+function detectZone(event, ui, containerStamp, draggedItemStamp) {
+    if (!ui || !ui.item || !containerStamp) return null;
+
+    var $grid = ui.item.closest('.mdash-container-items-row');
+    if (!$grid.length) return null;
+
+    var gridRect = $grid.get(0).getBoundingClientRect();
+    if (!gridRect || !gridRect.width) return null;
+
+    // Obter coordenadas do mouse
+    var clientX = event.clientX;
+    var clientY = event.clientY;
+
+    if (!clientX && event.originalEvent) {
+        clientX = event.originalEvent.clientX;
+        clientY = event.originalEvent.clientY;
+    }
+
+    if (!clientX) {
+        var helperRect = ui.helper && ui.helper[0] ? ui.helper[0].getBoundingClientRect() : null;
+        if (helperRect) {
+            clientX = helperRect.left + helperRect.width / 2;
+            clientY = helperRect.top + helperRect.height / 2;
+        }
+    }
+
+    if (!clientX || !clientY) return null;
+
+    // Obter todos os items existentes neste container (exceto o que está a ser arrastado)
+    var existingItems = GMDashContainerItems.filter(function (item) {
+        return item.mdashcontainerstamp === containerStamp &&
+               item.mdashcontaineritemstamp !== draggedItemStamp &&
+               getEffectiveItemLayoutMode(item) === 'explicit' &&
+               item.gridrow >= 1 &&
+               item.gridcolstart >= 1;
+    });
+
+    // Agrupar items por linha
+    var rowGroups = {};
+    existingItems.forEach(function (item) {
+        var row = parseInt(item.gridrow, 10);
+        if (!rowGroups[row]) rowGroups[row] = [];
+        rowGroups[row].push({
+            colStart: parseInt(item.gridcolstart, 10),
+            colEnd: parseInt(item.gridcolstart, 10) + getItemGridSpan(item) - 1,
+            item: item
+        });
+    });
+
+    // Ordenar linhas
+    var sortedRows = Object.keys(rowGroups).map(function (r) { return parseInt(r, 10); }).sort(function (a, b) { return a - b; });
+
+    // Detectar linha baseada no Y
+    var yRelative = clientY - gridRect.top;
+    var detectedRow = 1;
+
+    // Procurar elementos DOM reais para detectar a linha
+    var $items = $grid.find('.mdash-canvas-item').not(ui.item);
+    var rowHeights = {};
+
+    $items.each(function () {
+        var $el = $(this);
+        var stamp = $el.data('stamp');
+        var itemData = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === stamp; });
+        if (!itemData || itemData.mdashcontaineritemstamp === draggedItemStamp) return;
+
+        var row = parseInt(itemData.gridrow, 10);
+        if (row < 1) return;
+
+        var rect = this.getBoundingClientRect();
+        var relativeTop = rect.top - gridRect.top;
+        var relativeBottom = rect.bottom - gridRect.top;
+
+        if (!rowHeights[row] || relativeTop < rowHeights[row].top) {
+            rowHeights[row] = {
+                top: relativeTop,
+                bottom: relativeBottom,
+                height: rect.height
+            };
+        } else if (relativeBottom > rowHeights[row].bottom) {
+            rowHeights[row].bottom = relativeBottom;
+        }
+    });
+
+    // Detectar em que linha o Y está
+    for (var row in rowHeights) {
+        var bounds = rowHeights[row];
+        if (yRelative >= bounds.top && yRelative <= bounds.bottom) {
+            detectedRow = parseInt(row, 10);
+            break;
+        }
+    }
+
+    // Se o Y está abaixo de todas as linhas, criar nova linha
+    if (sortedRows.length > 0) {
+        var lastRow = sortedRows[sortedRows.length - 1];
+        var lastBounds = rowHeights[lastRow];
+        if (lastBounds && yRelative > lastBounds.bottom) {
+            detectedRow = lastRow + 1;
+        }
+    }
+
+    // Detectar coluna baseada no X
+    var xRelative = clientX - gridRect.left;
+    var computed = window.getComputedStyle($grid.get(0));
+    var colGap = parseFloat(computed.columnGap || computed.gap || '14') || 14;
+    var colUnit = (gridRect.width - (colGap * 11)) / 12;
+    var detectedCol = Math.floor(xRelative / (colUnit + colGap)) + 1;
+
+    if (detectedCol < 1) detectedCol = 1;
+    if (detectedCol > 12) detectedCol = 12;
+
+  /*  console.log('🎯 detectZone:', {
+        mouseY: Math.round(yRelative),
+        mouseX: Math.round(xRelative),
+        detectedRow: detectedRow,
+        detectedCol: detectedCol,
+        rowHeights: rowHeights
+    });*/
+
+    return {
+        row: detectedRow,
+        col: detectedCol
+    };
+}
+
+function computeExplicitDropSlot(event, ui, containerStamp, item) {
+    if (!containerStamp || !item || !ui || !ui.item) return null;
+
+    var zone = detectZone(event, ui, containerStamp, item.mdashcontaineritemstamp);
+    if (!zone) return null;
+
+    var span = getItemGridSpan(item);
+    var rowSpan = parseInt(item.gridrowspan, 10) || 1;
+
+    var targetCol = zone.col;
+    var targetRow = zone.row;
+
+    // Garantir que o item não ultrapassa a coluna 12
+    if ((targetCol + span - 1) > 12) {
+        targetCol = Math.max(1, 12 - span + 1);
+    }
+
+    var slot = {
+        row: targetRow,
+        colStart: targetCol,
+        span: span,
+        rowSpan: rowSpan
+    };
+
+   // console.log('📦 computeExplicitDropSlot:', slot);
+
+    return slot;
+}
+
+function clearExplicitPlaceholder($scope) {
+    if (!$scope || !$scope.length) return;
+    $scope.find('.mdash-item-sort-placeholder')
+        .removeClass('is-explicit-preview')
+        .removeAttr('data-grid-label')
+        .css({
+            'grid-column': '',
+            'grid-row': ''
+        });
+}
+
+function setExplicitDragPreviewSlot(itemStamp, containerStamp, slot) {
+    if (!itemStamp || !slot) return;
+    GExplicitDragState.itemStamp = itemStamp;
+    GExplicitDragState.containerStamp = containerStamp || "";
+    GExplicitDragState.slot = {
+        row: slot.row,
+        colStart: slot.colStart,
+        span: slot.span,
+        rowSpan: slot.rowSpan
+    };
+}
+
+function getExplicitDragPreviewSlot(itemStamp, containerStamp) {
+    if (!itemStamp || !GExplicitDragState.slot) return null;
+    if (GExplicitDragState.itemStamp !== itemStamp) return null;
+    if (containerStamp && GExplicitDragState.containerStamp && GExplicitDragState.containerStamp !== containerStamp) return null;
+    return GExplicitDragState.slot;
+}
+
+function clearExplicitDragPreviewSlot() {
+    GExplicitDragState.itemStamp = "";
+    GExplicitDragState.containerStamp = "";
+    GExplicitDragState.slot = null;
+}
+
+function applyDroppedItemGridPosition(event, ui, containerStamp) {
+
+    console.log("INICIANDO applyDroppedItemGridPosition com containerStamp:", containerStamp);
+    if (!ui || !ui.item || !containerStamp) return;
+
+    var currentContainerStamp = ui.item.closest('.mdash-canvas-container').data('stamp');
+    if (currentContainerStamp && currentContainerStamp !== containerStamp) return;
+
+    var itemStamp = ui.item.data('stamp');
+    if (!itemStamp) return;
+
+    var item = GMDashContainerItems.find(function (i) {
+        return i.mdashcontaineritemstamp === itemStamp;
+    });
+    if (!item) return;
+
+    console.log('🔵 ANTES DO DROP:', {
+        itemStamp: itemStamp.substring(0, 8),
+        gridrow: item.gridrow,
+        gridcolstart: item.gridcolstart,
+        gridcolspan: item.gridcolspan,
+        layoutmode: item.layoutmode
+    });
+
+    item.mdashcontainerstamp = containerStamp;
+
+    if (getEffectiveItemLayoutMode(item) !== "explicit") {
+        return;
+    }
+
+    var slot = getExplicitDragPreviewSlot(item.mdashcontaineritemstamp, containerStamp);
+    if (!slot) {
+        slot = computeExplicitDropSlot(event, ui, containerStamp, item);
+    }
+    if (!slot) return;
+
+    console.log('✅ applyDroppedItemGridPosition - aplicando:', {
+        itemStamp: itemStamp.substring(0, 8),
+        row: slot.row,
+        colStart: slot.colStart,
+        span: slot.span
+    });
+
+    item.gridrow = slot.row;
+    item.gridcolstart = slot.colStart;
+    item.gridcolspan = slot.span;
+    item.gridrowspan = slot.rowSpan;
+
+    console.log('🔴 DEPOIS DO DROP (aplicado):', {
+        itemStamp: itemStamp.substring(0, 8),
+        gridrow: item.gridrow,
+        gridcolstart: item.gridcolstart,
+        gridcolspan: item.gridcolspan
+    });
+
+    // Sync imediato se existir
+    if (typeof realTimeComponentSync === 'function') {
+        console.log('💾 Chamando realTimeComponentSync...');
+        realTimeComponentSync(item, item.table, item.idfield);
+    }
+
+    // SEM resolveExplicitCollisions - item vai para posição exata
 }
 
 function initContainerItemResize() {
@@ -1461,6 +2320,7 @@ function initContainerItemResize() {
 
                 lastSize = proposed;
                 item.tamanho = proposed;
+                item.gridcolspan = proposed;
                 $itemEl.css('grid-column', 'span ' + proposed);
                 setTimeout(syncAllContainerItemsLayout, 0);
             }
@@ -1578,13 +2438,22 @@ function makeContainerItemsSortable() {
             tolerance: 'pointer',
             distance: 6,
             over: function () {
+                console.log('⬇️ OVER EVENT disparado');
                 $(this).addClass('is-drop-over');
             },
-            out: function () {
+            out: function (event, ui) {
+                console.log('⬆️ OUT EVENT disparado');
                 $(this).removeClass('is-drop-over');
+                clearExplicitPlaceholder($(this));
+                
+                // Limpa feedback visual ao sair da linha
+                var $container = ui.item.closest('.mdash-canvas-container');
+                VisualFeedbackManager.clearFeedback($container);
             },
             start: function (event, ui) {
+                console.log('🚀 START EVENT disparado');
                 if (GMDashIsResizingItem) return false;
+                clearExplicitDragPreviewSlot();
                 var itemSpan = ui.item && ui.item.css ? ui.item.css('grid-column') : '';
                 if (ui && ui.placeholder && ui.item) {
                     ui.placeholder.height(ui.item.outerHeight());
@@ -1606,6 +2475,8 @@ function makeContainerItemsSortable() {
                 }
             },
             receive: function (event, ui) {
+                console.log('📥 RECEIVE EVENT iniciado (item movido entre linhas diferentes)');
+                
                 var targetStamp = $(this).closest('.mdash-canvas-container').data('stamp');
                 var movedItemStamp = ui.item && ui.item.data('stamp');
                 var movedItem = GMDashContainerItems.find(function (i) {
@@ -1619,28 +2490,188 @@ function makeContainerItemsSortable() {
                     }
                 }
 
-                updateContainerItemsOrder(targetStamp);
+                var isExplicitMode = movedItem && getEffectiveItemLayoutMode(movedItem) === 'explicit';
+                
+                console.log('📥 RECEIVE: chamando applyDroppedItemGridPosition');
+                applyDroppedItemGridPosition(event, ui, targetStamp);
+                updateContainerItemsOrder(targetStamp, isExplicitMode);
 
                 var sourceStamp = ui.sender ? $(ui.sender).closest('.mdash-canvas-container').data('stamp') : '';
                 if (sourceStamp) {
                     updateContainerItemsOrder(sourceStamp);
                 }
 
+                setTimeout(function() {
+                    var finalItem = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === movedItemStamp; });
+                    console.log('🏁 ESTADO FINAL RECEIVE (após syncAllContainerItemsLayout):', {
+                        itemStamp: movedItemStamp.substring(0, 8),
+                        gridrow: finalItem ? finalItem.gridrow : 'item não encontrado',
+                        gridcolstart: finalItem ? finalItem.gridcolstart : 'item não encontrado',
+                        gridcolspan: finalItem ? finalItem.gridcolspan : 'item não encontrado'
+                    });
+                }, 100);
+
                 setTimeout(syncAllContainerItemsLayout, 0);
             },
             sort: function (event, ui) {
+                console.log('🔄 SORT EVENT disparado');
                 if (ui && ui.placeholder && ui.item) {
                     ui.placeholder.height(ui.item.outerHeight());
                     ui.placeholder.width(ui.item.outerWidth());
                 }
+
+                var targetStamp = $(this).closest('.mdash-canvas-container').data('stamp');
+                var itemStamp = ui.item && ui.item.data('stamp');
+                if (!targetStamp || !itemStamp) return;
+
+                var item = GMDashContainerItems.find(function (i) {
+                    return i.mdashcontaineritemstamp === itemStamp;
+                });
+                if (!item) return;
+
+                if (getEffectiveItemLayoutMode(item) !== 'explicit') {
+                    clearExplicitPlaceholder($(this));
+                    clearExplicitDragPreviewSlot();
+                    return;
+                }
+
+                var slot = computeExplicitDropSlot(event, ui, targetStamp, item);
+                if (!slot) {
+                    clearExplicitPlaceholder($(this));
+                    clearExplicitDragPreviewSlot();
+                    return;
+                }
+
+                // ⭐ VALIDAÇÃO EM TEMPO REAL
+                var validation = DragDropValidator.validateDrop(item, slot.row, slot.colStart, targetStamp);
+                
+                console.log('✅ Validação:', validation);
+                
+                var $container = ui.item.closest('.mdash-canvas-container');
+                
+                // Feedback visual baseado na validação
+                if (!validation.isValid) {
+                    VisualFeedbackManager.showErrorFeedback($container, validation.message);
+                    clearExplicitPlaceholder($(this));
+                    // Cancela o preview
+                    setExplicitDragPreviewSlot(null, null, null);
+                } else {
+                    // Salva validação para usar no STOP
+                    setExplicitDragPreviewSlot(item.mdashcontaineritemstamp, targetStamp, slot);
+                    GExplicitDragState.validation = validation;
+                    
+                    // Feedback visual baseado na estratégia
+                    switch (validation.strategy) {
+                        case 'swap':
+                            VisualFeedbackManager.showSwapFeedback($container, validation.targetItem);
+                            break;
+                        case 'adjust':
+                            VisualFeedbackManager.showSuccessFeedback($container, validation.adjustments);
+                            break;
+                    }
+                    
+                    // Atualiza placeholder
+                    if (ui.placeholder && ui.placeholder.css) {
+                        ui.placeholder
+                            .addClass('is-explicit-preview')
+                            .attr('data-grid-label', 'Linha ' + slot.row + ' Col ' + slot.colStart);
+                        ui.placeholder.css({
+                            'grid-column': slot.colStart + ' / span ' + slot.span,
+                            'grid-row': slot.row + ' / span ' + slot.rowSpan
+                        });
+                    }
+                }
             },
-            stop: function () {
+            stop: function (event, ui) {
+                console.log('🛑 STOP EVENT disparado');
                 $(this).removeClass('is-drop-over');
+                clearExplicitPlaceholder($(this));
+                
+                var $container = ui.item.closest('.mdash-canvas-container');
+                VisualFeedbackManager.clearFeedback($container);
+                
+                // APLICAR POSIÇÃO AQUI porque UPDATE/RECEIVE não disparam
+                var targetStamp = $(this).closest('.mdash-canvas-container').data('stamp');
+                var itemStamp = ui.item && ui.item.data('stamp');
+                var item = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
+                
+                if (item && targetStamp) {
+                    var isExplicitMode = getEffectiveItemLayoutMode(item) === 'explicit';
+                    
+                    if (isExplicitMode) {
+                        console.log('🔧 STOP: Aplicando posição em modo explicit');
+                        
+                        // ⭐ EXECUTA ESTRATÉGIA VALIDADA
+                        var validation = GExplicitDragState.validation;
+                        if (validation && validation.isValid) {
+                            console.log('📌 Executando estratégia:', validation.strategy);
+                            
+                            switch (validation.strategy) {
+                                case 'swap':
+                                    DragDropExecutor.executeSwap(item, validation.targetItem);
+                                    break;
+                                    
+                                case 'adjust':
+                                    // Aplica posição do item arrastado
+                                    applyDroppedItemGridPosition(event, ui, targetStamp);
+                                    // Executa ajustes dos outros items
+                                    DragDropExecutor.executeAdjust(validation.adjustments);
+                                    break;
+                                    
+                                default:
+                                    // Fallback: apenas aplica posição
+                                    applyDroppedItemGridPosition(event, ui, targetStamp);
+                            }
+                        } else {
+                            // Sem validação: comportamento padrão
+                            applyDroppedItemGridPosition(event, ui, targetStamp);
+                        }
+                        
+                        updateContainerItemsOrder(targetStamp, true);
+                        
+                        setTimeout(function() {
+                            var finalItem = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
+                            console.log('🏁 ESTADO FINAL STOP:', {
+                                itemStamp: itemStamp.substring(0, 8),
+                                gridrow: finalItem ? finalItem.gridrow : 'N/A',
+                                gridcolstart: finalItem ? finalItem.gridcolstart : 'N/A',
+                                gridcolspan: finalItem ? finalItem.gridcolspan : 'N/A'
+                            });
+                        }, 100);
+                    } else {
+                        updateContainerItemsOrder(targetStamp, false);
+                    }
+                }
+                
+                // Limpa estado global
+                clearExplicitDragPreviewSlot();
+                GExplicitDragState.validation = null;
+                
                 setTimeout(syncAllContainerItemsLayout, 0);
             },
-            update: function () {
+            update: function (event, ui) {
+                console.log('🎬 UPDATE EVENT disparado (movimento dentro da mesma linha)');
+                
                 var liveContainerStamp = $(this).closest('.mdash-canvas-container').data('stamp');
-                updateContainerItemsOrder(liveContainerStamp);
+                var itemStamp = ui.item && ui.item.data('stamp');
+                var item = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
+                var isExplicitMode = item && getEffectiveItemLayoutMode(item) === 'explicit';
+                
+                applyDroppedItemGridPosition(event, ui, liveContainerStamp);
+                updateContainerItemsOrder(liveContainerStamp, isExplicitMode);
+                clearExplicitPlaceholder($(this));
+                clearExplicitDragPreviewSlot();
+                
+                setTimeout(function() {
+                    var finalItem = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
+                    console.log('🏁 ESTADO FINAL (após syncAllContainerItemsLayout):', {
+                        itemStamp: itemStamp.substring(0, 8),
+                        gridrow: finalItem.gridrow,
+                        gridcolstart: finalItem.gridcolstart,
+                        gridcolspan: finalItem.gridcolspan
+                    });
+                }, 100);
+                
                 setTimeout(syncAllContainerItemsLayout, 0);
             }
         });
@@ -1650,6 +2681,12 @@ function makeContainerItemsSortable() {
 function createContainerByDrop() {
     var newContainer = new MdashContainer({ dashboardstamp: GMDashStamp });
     window.appState.containers.push(newContainer);
+    
+    // Sincroniza o novo container com a base de dados IMEDIATAMENTE
+    if (typeof realTimeComponentSync === 'function') {
+        realTimeComponentSync(newContainer, newContainer.table, newContainer.idfield);
+    }
+    
     if (GMDashReactiveInstance && GMDashReactiveInstance.selectedComponent) {
         GMDashReactiveInstance.selectedComponent = { type: "container", stamp: newContainer.mdashcontainerstamp, data: newContainer };
     }
@@ -1662,6 +2699,12 @@ function createContainerItemByDrop(containerStamp) {
     if (!containerStamp) return;
     var newItem = new MdashContainerItem({ mdashcontainerstamp: containerStamp, dashboardstamp: GMDashStamp });
     window.appState.containerItems.push(newItem);
+    
+    // Sincroniza o novo item com a base de dados IMEDIATAMENTE
+    if (typeof realTimeComponentSync === 'function') {
+        realTimeComponentSync(newItem, newItem.table, newItem.idfield);
+    }
+    
     if (GMDashReactiveInstance && GMDashReactiveInstance.selectedComponent) {
         GMDashReactiveInstance.selectedComponent = { type: "containerItem", stamp: newItem.mdashcontaineritemstamp, data: newItem };
     }
@@ -1686,19 +2729,56 @@ function updateContainerOrderFromDom() {
     });
 }
 
-function updateContainerItemsOrder(containerStamp) {
+function updateContainerItemsOrder(containerStamp, skipCoordinateCheck) {
+    if (!containerStamp) return;
+
+    console.log('📋 updateContainerItemsOrder chamado:', {
+        containerStamp: containerStamp.substring(0, 8),
+        skipCoordinateCheck: skipCoordinateCheck
+    });
+
     var selector = '.mdash-canvas-container[data-stamp=\"' + containerStamp + '\"] .mdash-canvas-item';
     $(selector).each(function (idx) {
         var stamp = $(this).data('stamp');
         var item = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === stamp; });
         if (item) {
+            var oldRow = item.gridrow;
+            var oldCol = item.gridcolstart;
+            
             item.ordem = idx + 1;
             item.mdashcontainerstamp = containerStamp;
-            if (typeof realTimeComponentSync === "function") {
+            if (!item.gridcolspan || item.gridcolspan < 1) {
+                item.gridcolspan = getItemGridSpan(item);
+            }
+            
+            if (item.gridrow !== oldRow || item.gridcolstart !== oldCol) {
+                console.log('⚠️ updateContainerItemsOrder MUDOU posição:', {
+                    itemStamp: stamp.substring(0, 8),
+                    antes: { row: oldRow, col: oldCol },
+                    depois: { row: item.gridrow, col: item.gridcolstart }
+                });
+            }
+            
+            // Só sincroniza se NÃO for skipCoordinateCheck (modo explicit já sincroniza em applyDroppedItemGridPosition)
+            if (!skipCoordinateCheck && typeof realTimeComponentSync === "function") {
                 realTimeComponentSync(item, item.table, item.idfield);
             }
         }
     });
+
+    if (skipCoordinateCheck) {
+        console.log('⏭️ updateContainerItemsOrder: skip coordinate check');
+        setTimeout(syncAllContainerItemsLayout, 0);
+        return;
+    }
+
+    if (containerHasAutoLayoutItems(containerStamp)) {
+        normalizeContainerItemsAutoLayout(containerStamp);
+    } else {
+        console.log('🔧 Chamando ensureExplicitItemsHaveCoordinates...');
+        ensureExplicitItemsHaveCoordinates(containerStamp);
+    }
+
     setTimeout(syncAllContainerItemsLayout, 0);
 }
 
@@ -1804,8 +2884,15 @@ function renderPropertiesForm(panel, entity, formConfig) {
         if (typeof realTimeComponentSync === "function") {
             realTimeComponentSync(entity, entity.table, entity.idfield);
         }
-        if (field === 'templatelayout' || field === 'tamanho' || field === 'titulo') {
+        var isContainerItemEntity = !!entity.mdashcontaineritemstamp;
+        if (isContainerItemEntity && (field === 'templatelayout' || field === 'tamanho' || field === 'titulo')) {
             renderContainerItemTemplate(entity);
+        }
+        if (field === 'tamanho' || field === 'gridrow' || field === 'gridcolstart' || field === 'gridcolspan' || field === 'layoutmode') {
+            if (isContainerItemEntity && field === 'tamanho' && (!entity.gridcolspan || parseInt(entity.gridcolspan, 10) < 1)) {
+                entity.gridcolspan = parseInt(entity.tamanho, 10) || 4;
+            }
+            setTimeout(syncAllContainerItemsLayout, 0);
         }
     });
 
@@ -2899,11 +3986,26 @@ function loadModernDashboardStyles() {
     styles += ".mdash-canvas-container-body { padding: 4px 0 0 0; min-height: 0; }";
 
     // Item no canvas
-    styles += ".mdash-container-items-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }";
+    styles += ".mdash-container-items-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; position: relative; }";
     styles += ".mdash-container-items-row.is-empty { min-height: 92px; align-content: start; }";
     styles += ".mdash-container-items-row.is-drop-over { outline: 2px dashed rgba(var(--md-primary-rgb),0.62); outline-offset: 3px; border-radius: 10px; background: rgba(var(--md-primary-rgb),0.04); }";
     styles += ".mdash-canvas-item { margin-bottom: 0; min-width: 0; }";
     styles += ".mdash-item-sort-placeholder { min-height: 96px; border: 2px dashed var(--md-primary); border-radius: 10px; background: rgba(var(--md-primary-rgb),0.10); box-sizing: border-box; }";
+    styles += ".mdash-item-sort-placeholder.is-explicit-preview { position: relative; border-color: rgba(var(--md-primary-rgb),0.95); background: rgba(var(--md-primary-rgb),0.14); z-index: 2; }";
+    styles += ".mdash-item-sort-placeholder.is-explicit-preview::after { content: attr(data-grid-label); position: absolute; top: 6px; right: 8px; font-size: 11px; font-weight: 700; color: var(--md-primary); background: rgba(255,255,255,0.92); border: 1px solid rgba(var(--md-primary-rgb),0.36); border-radius: 999px; padding: 2px 8px; }";
+    
+    // ⭐ DRAG & DROP VISUAL FEEDBACK
+    styles += ".mdash-canvas-container.mdash-drop-error .mdash-container-items-row { background-color: rgba(255, 0, 0, 0.08) !important; border: 2px dashed #d9534f !important; border-radius: 10px; position: relative; }";
+    styles += ".mdash-canvas-container.mdash-drop-success .mdash-container-items-row { background-color: rgba(0, 255, 0, 0.04) !important; border: 2px dashed #5cb85c !important; border-radius: 10px; }";
+    styles += ".mdash-canvas-container.mdash-drop-swap .mdash-container-items-row { background-color: rgba(0, 123, 255, 0.04) !important; border: 2px dashed #0275d8 !important; border-radius: 10px; }";
+    styles += ".mdash-drop-error-overlay, .mdash-drop-success-overlay, .mdash-drop-swap-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; background: white; padding: 10px 18px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 10px; pointer-events: none; font-weight: 600; font-size: 13px; }";
+    styles += ".mdash-drop-error-overlay { background: #d9534f; color: white; }";
+    styles += ".mdash-drop-error-overlay i { font-size: 22px; }";
+    styles += ".mdash-drop-success-overlay { background: #5cb85c; color: white; }";
+    styles += ".mdash-drop-success-overlay i { font-size: 20px; }";
+    styles += ".mdash-drop-swap-overlay { background: #0275d8; color: white; }";
+    styles += ".mdash-drop-swap-overlay i { font-size: 20px; }";
+    
     styles += ".mdash-item-drag-helper { opacity: 0.96; transform: none; box-shadow: 0 18px 32px rgba(2,6,23,0.30); border-radius: 10px; }";
     styles += ".ui-sortable-helper.mdash-canvas-item { z-index: 10050 !important; }";
     styles += ".mdash-canvas-item-card { position: relative; background: #fff; border: 1px solid var(--md-border); border-radius: 10px; padding: 10px 12px; min-height: 96px; box-shadow: 0 2px 8px rgba(2,6,23,0.06); }";

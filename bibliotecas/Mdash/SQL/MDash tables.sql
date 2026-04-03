@@ -74,6 +74,7 @@ Create table MdashContainer(
     titulo VARCHAR(250) DEFAULT '',
     tipo VARCHAR(100) DEFAULT '',
     tamanho INT DEFAULT 0,
+    layoutmode VARCHAR(20) DEFAULT 'auto',
     ordem INT DEFAULT 0,
     dashboardstamp VARCHAR(25) DEFAULT ''
 )
@@ -94,6 +95,11 @@ CREATE TABLE MdashContainerItem(
     fontelocal BIT DEFAULT 0,
     expressaodblistagem TEXT DEFAULT '',
     templatelayout TEXT DEFAULT '',
+    layoutmode VARCHAR(20) DEFAULT 'inherit',
+    gridrow INT NULL,
+    gridcolstart INT NULL,
+    gridcolspan INT DEFAULT 4,
+    gridrowspan INT DEFAULT 1,
     expressaoapresentacaodados TEXT DEFAULT '',
 );
 
