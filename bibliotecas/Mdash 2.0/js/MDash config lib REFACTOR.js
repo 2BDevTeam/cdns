@@ -33,7 +33,7 @@ var GActiveTab = "general";
 var GMDashReactiveInstance = null;
 var GTemplateThumbCache = {};
 var GMDashIsResizingItem = false;
-var GExplicitDragState = {
+var GManualDragState = {
     itemStamp: "",
     containerStamp: "",
     slot: null,
@@ -179,7 +179,7 @@ function MdashContainer(data) {
     this.titulo = data.titulo || "";
     this.tipo = data.tipo || "";
     this.tamanho = data.tamanho || 12;
-    this.layoutmode = data.layoutmode || "auto"; // auto | explicit
+    this.layoutmode = data.layoutmode || "auto"; // auto | manual (padrão: manual)
     this.ordem = data.ordem || (maxOrdem + 1);
     this.dashboardstamp = data.dashboardstamp || GMDashStamp;
     this.localsource = "GMDashContainers";
@@ -203,10 +203,9 @@ function MdashContainerItem(data) {
     this.tipo = data.tipo || "";
     this.inactivo = data.inactivo || false;
     this.tamanho = data.tamanho || 4;
-    this.layoutmode = data.layoutmode || "inherit"; // inherit | auto | explicit
+    this.layoutmode = data.layoutmode || "inherit"; // inherit | auto | manual
     this.gridrow = data.gridrow !== undefined && data.gridrow !== null && data.gridrow !== "" ? parseInt(data.gridrow, 10) : null;
     this.gridcolstart = data.gridcolstart !== undefined && data.gridcolstart !== null && data.gridcolstart !== "" ? parseInt(data.gridcolstart, 10) : null;
-    this.gridcolspan = data.gridcolspan !== undefined && data.gridcolspan !== null && data.gridcolspan !== "" ? parseInt(data.gridcolspan, 10) : this.tamanho;
     this.gridrowspan = data.gridrowspan !== undefined && data.gridrowspan !== null && data.gridrowspan !== "" ? parseInt(data.gridrowspan, 10) : 1;
     this.ordem = data.ordem || (maxOrdem + 1);
     this.templatelayout = data.templatelayout || getDefaultTemplateCodigo();  // IMPORTANTE: template do layout
@@ -232,7 +231,7 @@ function getContainerUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 6, campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 6, campo: "layoutmode", tipo: "select", titulo: "Modo de Layout (Container)", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: [{ option: "Auto", value: "auto" }, { option: "Explícito", value: "explicit" }] })
+        new UIObjectFormConfig({ colSize: 6, campo: "layoutmode", tipo: "select", titulo: "Modo de Layout (Container)", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: [{ option: "Auto", value: "auto" }, { option: "Manual", value: "manual" }] })
     ];
 
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashContainers", idField: "mdashcontainerstamp" };
@@ -251,10 +250,9 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 6, campo: "layoutmode", tipo: "select", titulo: "Modo de Layout (Override)", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: [{ option: "Herdar do Container", value: "inherit" }, { option: "Auto", value: "auto" }, { option: "Explícito", value: "explicit" }] }),
+        new UIObjectFormConfig({ colSize: 6, campo: "layoutmode", tipo: "select", titulo: "Modo de Layout (Override)", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: [{ option: "Herdar do Container", value: "inherit" }, { option: "Auto", value: "auto" }, { option: "Manual", value: "manual" }] }),
         new UIObjectFormConfig({ colSize: 4, campo: "gridrow", tipo: "digit", titulo: "Linha (gridrow)", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "gridcolstart", tipo: "digit", titulo: "Coluna Inicial", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "gridcolspan", tipo: "digit", titulo: "Largura (colSpan)", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "templatelayout", tipo: "select", titulo: "Layout", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: templateOptions }),
         new UIObjectFormConfig({ colSize: 4, campo: "layoutcontaineritemdefault", tipo: "checkbox", titulo: "Usa layout default para item do container", classes: "input-source-form", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolayoutcontaineritem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de layout do item do container", classes: "input-source-form m-editor", contentType: "div" }),
@@ -1018,7 +1016,10 @@ function initModernDashboardUI() {
     mainHtml += '                <div class="mdash-item-resize-handle mdash-item-resize-handle-right" title="Redimensionar (2-12 colunas; ALT para 1)"></div>';
     mainHtml += '                <div class="mdash-canvas-item-header">';
     mainHtml += '                  <div class="mdash-item-header-top">';
-    mainHtml += '                    <input type="text" class="mdash-inline-title mdash-inline-title-sm" :value="item.titulo" @change.stop="updateItemTitle(item, $event)" @click.stop placeholder="Item sem título" />';
+    mainHtml += '                    <div class="mdash-item-title-wrapper" @mousedown.stop>';
+    mainHtml += '                      <input type="text" class="mdash-inline-title mdash-inline-title-sm" :value="item.titulo" @input="updateItemTitleInput(item, $event)" @blur="updateItemTitleBlur(item, $event)" placeholder="Item sem título" />';
+    mainHtml += '                      <span class="mdash-item-size-badge" :data-item-stamp="item.mdashcontaineritemstamp" :title="\'Largura: \' + getItemSize(item) + \' colunas\'">{{ getItemSize(item) }} col</span>';
+    mainHtml += '                    </div>';
     mainHtml += '                  </div>';
     mainHtml += '                  <div class="mdash-item-header-bottom">';
     mainHtml += '                    <div class="mdash-inline-layout-picker" @click.stop>';
@@ -1142,9 +1143,9 @@ function initModernDashboardUI() {
                     return item.mdashcontainerstamp === containerStamp; // mostrar mesmo inactivos para edição
                 })
                 .sort(function (a, b) {
-                    var aExplicit = isExplicitLayoutItem(a);
-                    var bExplicit = isExplicitLayoutItem(b);
-                    if (aExplicit || bExplicit) {
+                    var aManual = isManualLayoutItem(a);
+                    var bManual = isManualLayoutItem(b);
+                    if (aManual || bManual) {
                         var rowDiff = (a.gridrow || 0) - (b.gridrow || 0);
                         if (rowDiff !== 0) return rowDiff;
                         var colDiff = (a.gridcolstart || 0) - (b.gridcolstart || 0);
@@ -1162,6 +1163,10 @@ function initModernDashboardUI() {
 
         getItemFlex: function (item) {
             return getItemGridStyleString(item);
+        },
+        
+        getItemSize: function (item) {
+            return getItemGridSpan(item);
         },
 
         getTemplateLayouts: function () {
@@ -1322,6 +1327,21 @@ function initModernDashboardUI() {
             }
         },
 
+        updateItemTitleInput: function (item, event) {
+            // Durante a digitação, não faz trim para permitir espaços
+            item.titulo = event.target.value;
+        },
+        
+        updateItemTitleBlur: function (item, event) {
+            // Quando perde foco, faz trim e sincroniza
+            item.titulo = event.target.value.trim();
+            renderContainerItemTemplate(item);
+            setTimeout(syncAllContainerItemsLayout, 0);
+            if (typeof realTimeComponentSync === 'function') {
+                realTimeComponentSync(item, item.table, item.idfield);
+            }
+        },
+        
         updateItemTitle: function (item, event) {
             item.titulo = event.target.value.trim();
             renderContainerItemTemplate(item);
@@ -1369,7 +1389,7 @@ var GridLayoutEngine = {
             return item.mdashcontainerstamp === containerStamp &&
                    parseInt(item.gridrow, 10) === targetRow &&
                    item.mdashcontaineritemstamp !== excludeItemStamp &&
-                   getEffectiveItemLayoutMode(item) === 'explicit';
+                   getEffectiveItemLayoutMode(item) === 'manual';
         });
         
         var usedColumns = itemsInRow.reduce(function(sum, item) {
@@ -1387,7 +1407,7 @@ var GridLayoutEngine = {
             return item.mdashcontainerstamp === containerStamp &&
                    parseInt(item.gridrow, 10) === targetRow &&
                    item.mdashcontaineritemstamp !== excludeItemStamp &&
-                   getEffectiveItemLayoutMode(item) === 'explicit';
+                   getEffectiveItemLayoutMode(item) === 'manual';
         });
         
         var usedColumns = itemsInRow.reduce(function(sum, item) {
@@ -1403,7 +1423,7 @@ var GridLayoutEngine = {
     findItemAtPosition: function(containerStamp, row, col) {
         return GMDashContainerItems.find(function(item) {
             if (item.mdashcontainerstamp !== containerStamp) return false;
-            if (getEffectiveItemLayoutMode(item) !== 'explicit') return false;
+            if (getEffectiveItemLayoutMode(item) !== 'manual') return false;
             
             var itemRow = parseInt(item.gridrow, 10);
             var itemColStart = parseInt(item.gridcolstart, 10);
@@ -1422,24 +1442,37 @@ var GridLayoutEngine = {
             return item.mdashcontainerstamp === containerStamp &&
                    parseInt(item.gridrow, 10) === targetRow &&
                    item.mdashcontaineritemstamp !== excludeItemStamp &&
-                   getEffectiveItemLayoutMode(item) === 'explicit';
+                   getEffectiveItemLayoutMode(item) === 'manual';
         }).sort(function(a, b) {
             return parseInt(a.gridcolstart, 10) - parseInt(b.gridcolstart, 10);
         });
         
+        console.log('🔧 calculateAutoAdjust:', {
+            targetRow: targetRow,
+            insertCol: insertCol,
+            insertSpan: insertSpan,
+            excludeItemStamp: excludeItemStamp ? excludeItemStamp.substring(0, 8) : 'none',
+            itemsInRow: itemsInRow.length
+        });
+        
         var adjustments = [];
         var currentCol = 1;
+        var itemInserted = false; // Flag para saber se já inserimos o item
         
         itemsInRow.forEach(function(item) {
             var itemColStart = parseInt(item.gridcolstart, 10);
             var itemSpan = getItemGridSpan(item);
             
-            // Se o item atual está na posição de inserção, pula espaço
-            if (currentCol === insertCol) {
-                currentCol += insertSpan;
+            // Se chegamos na posição de inserção e ainda não inserimos, reserva espaço
+            if (!itemInserted && currentCol >= insertCol) {
+                console.log('  📍 Inserindo item na col', insertCol);
+                currentCol = insertCol + insertSpan;
+                itemInserted = true;
             }
             
+            // Se o item atual precisa ser movido
             if (itemColStart !== currentCol) {
+                console.log('  ↔️ Ajuste:', item.mdashcontaineritemstamp.substring(0, 8), 'de col', itemColStart, 'para col', currentCol);
                 adjustments.push({
                     item: item,
                     oldCol: itemColStart,
@@ -1450,10 +1483,25 @@ var GridLayoutEngine = {
             currentCol += itemSpan;
         });
         
+        // Se o item deve ser inserido no final
+        if (!itemInserted) {
+            console.log('  📍 Inserindo item no final, col', currentCol);
+            currentCol += insertSpan;
+        }
+        
+        var totalColumns = currentCol - 1;
+        var isValid = totalColumns <= this.GRID_COLUMNS;
+        
+        console.log('✅ Resultado:', {
+            totalColumns: totalColumns,
+            isValid: isValid,
+            adjustments: adjustments.length
+        });
+        
         return {
             adjustments: adjustments,
-            totalColumns: currentCol - 1,
-            isValid: currentCol <= this.GRID_COLUMNS
+            totalColumns: totalColumns,
+            isValid: isValid
         };
     }
 };
@@ -1465,57 +1513,74 @@ var VisualFeedbackManager = {
     
     /**
      * Mostra feedback de erro (linha vermelha + ícone stop)
+     * @param {jQuery} $row - O container de items (grid)
+     * @param {number} targetGridRow - Número da grid-row específica
+     * @param {string} message - Mensagem de erro
      */
-    showErrorFeedback: function($container, message) {
-        this.clearFeedback($container);
+    showErrorFeedback: function($row, targetGridRow, message) {
+        this.clearFeedback($row);
         
-        $container.addClass('mdash-drop-error');
-        
-        var $errorOverlay = $('<div class="mdash-drop-error-overlay">' +
-            '<i class="glyphicon glyphicon-ban-circle"></i>' +
-            '<span>' + (message || 'Não cabe nesta linha') + '</span>' +
+        // Cria overlay que se posiciona na grid-row específica
+        var $errorOverlay = $('<div class="mdash-drop-error-overlay" style="grid-row: ' + targetGridRow + '; grid-column: 1 / -1;">' +
+            '<div class="mdash-drop-overlay-bg mdash-drop-error-bg"></div>' +
+            '<div class="mdash-drop-overlay-content">' +
+                '<i class="glyphicon glyphicon-ban-circle"></i>' +
+                '<span>' + (message || 'Não cabe nesta linha') + '</span>' +
+            '</div>' +
         '</div>');
         
-        $container.append($errorOverlay);
+        $row.append($errorOverlay);
     },
     
     /**
      * Mostra feedback de sucesso (linha verde + prévia)
+     * @param {jQuery} $row - O container de items (grid)
+     * @param {number} targetGridRow - Número da grid-row específica
+     * @param {Array} adjustments - Items que serão reajustados
      */
-    showSuccessFeedback: function($container, adjustments) {
-        this.clearFeedback($container);
-        $container.addClass('mdash-drop-success');
+    showSuccessFeedback: function($row, targetGridRow, adjustments) {
+        this.clearFeedback($row);
         
-        if (adjustments && adjustments.length > 0) {
-            var message = adjustments.length + ' item(s) serão reajustados';
-            var $successOverlay = $('<div class="mdash-drop-success-overlay">' +
+        // Sempre mostra feedback verde quando validação passa
+        var message = (adjustments && adjustments.length > 0) 
+            ? adjustments.length + ' item(s) serão reajustados'
+            : '✓ Válido';
+            
+        var $successOverlay = $('<div class="mdash-drop-success-overlay" style="grid-row: ' + targetGridRow + '; grid-column: 1 / -1;">' +
+            '<div class="mdash-drop-overlay-bg mdash-drop-success-bg"></div>' +
+            '<div class="mdash-drop-overlay-content">' +
                 '<i class="glyphicon glyphicon-ok-circle"></i>' +
                 '<span>' + message + '</span>' +
-            '</div>');
-            $container.append($successOverlay);
-        }
+            '</div>' +
+        '</div>');
+        $row.append($successOverlay);
     },
     
     /**
      * Mostra feedback de swap (troca na mesma linha)
+     * @param {jQuery} $row - O container de items (grid)
+     * @param {number} targetGridRow - Número da grid-row específica
+     * @param {Object} targetItem - Item com quem vai trocar
      */
-    showSwapFeedback: function($container, targetItem) {
-        this.clearFeedback($container);
-        $container.addClass('mdash-drop-swap');
+    showSwapFeedback: function($row, targetGridRow, targetItem) {
+        this.clearFeedback($row);
         
-        var $swapOverlay = $('<div class="mdash-drop-swap-overlay">' +
-            '<i class="glyphicon glyphicon-retweet"></i>' +
-            '<span>Trocar posições</span>' +
+        var $swapOverlay = $('<div class="mdash-drop-swap-overlay" style="grid-row: ' + targetGridRow + '; grid-column: 1 / -1;">' +
+            '<div class="mdash-drop-overlay-bg mdash-drop-swap-bg"></div>' +
+            '<div class="mdash-drop-overlay-content">' +
+                '<i class="glyphicon glyphicon-retweet"></i>' +
+                '<span>Trocar posições</span>' +
+            '</div>' +
         '</div>');
-        $container.append($swapOverlay);
+        $row.append($swapOverlay);
     },
     
     /**
      * Limpa todo feedback visual
+     * @param {jQuery} $row - A linha ou container para limpar
      */
-    clearFeedback: function($container) {
-        $container.removeClass('mdash-drop-error mdash-drop-success mdash-drop-swap');
-        $container.find('.mdash-drop-error-overlay, .mdash-drop-success-overlay, .mdash-drop-swap-overlay').remove();
+    clearFeedback: function($row) {
+        $row.find('.mdash-drop-error-overlay, .mdash-drop-success-overlay, .mdash-drop-swap-overlay').remove();
     }
 };
 
@@ -1531,9 +1596,17 @@ var DragDropValidator = {
         var draggedSpan = getItemGridSpan(draggedItem);
         var draggedRow = parseInt(draggedItem.gridrow, 10);
         
+        console.log('🔍 validateDrop:', {
+            item: draggedItem.mdashcontaineritemstamp.substring(0, 8),
+            fromRow: draggedRow,
+            toRow: targetRow,
+            toCol: targetCol,
+            span: draggedSpan
+        });
+        
         var result = {
             isValid: false,
-            strategy: null, // 'swap', 'adjust', 'invalid'
+            strategy: null, // 'swap', 'adjust', 'reposition', 'invalid'
             targetItem: null,
             adjustments: [],
             message: ''
@@ -1542,26 +1615,62 @@ var DragDropValidator = {
         // Encontra item na posição alvo
         var targetItem = GridLayoutEngine.findItemAtPosition(containerStamp, targetRow, targetCol);
         
-        // Caso 1: Mesma linha - SWAP
-        if (draggedRow === targetRow && targetItem) {
-            result.isValid = true;
-            result.strategy = 'swap';
-            result.targetItem = targetItem;
-            result.message = 'Trocar posições';
+        // ⭐ CASO 1: MESMA LINHA
+        if (draggedRow === targetRow) {
+            console.log('  🔄 Mesma linha detectada');
+            
+            // Subcaso 1a: Arrastando SOBRE outro item na mesma linha → SWAP
+            if (targetItem && targetItem.mdashcontaineritemstamp !== draggedItem.mdashcontaineritemstamp) {
+                console.log('  🔀 SWAP com', targetItem.mdashcontaineritemstamp.substring(0, 8));
+                result.isValid = true;
+                result.strategy = 'swap';
+                result.targetItem = targetItem;
+                result.message = 'Trocar posições';
+                return result;
+            }
+            
+            // Subcaso 1b: Reposicionando na mesma linha (espaço vazio ou mesma posição)
+            console.log('  📌 REPOSITION na mesma linha');
+            // Valida se o reajuste cabe na linha
+            var adjustResult = GridLayoutEngine.calculateAutoAdjust(
+                containerStamp, 
+                targetRow, 
+                targetCol, 
+                draggedSpan, 
+                draggedItem.mdashcontaineritemstamp
+            );
+            
+            if (adjustResult.isValid) {
+                result.isValid = true;
+                result.strategy = 'reposition'; // Nova estratégia para mesma linha
+                result.adjustments = adjustResult.adjustments;
+                result.message = adjustResult.adjustments.length > 0 
+                    ? adjustResult.adjustments.length + ' item(s) reajustados'
+                    : 'Reposicionar';
+                console.log('  ✅ REPOSITION válido');
+            } else {
+                result.isValid = false;
+                result.strategy = 'invalid';
+                result.message = 'Total ultrapassa ' + GridLayoutEngine.GRID_COLUMNS + ' colunas após reajuste';
+                console.log('  ❌ REPOSITION inválido:', result.message);
+            }
+            
             return result;
         }
         
-        // Caso 2: Linha diferente - verifica se cabe
+        // ⭐ CASO 2: LINHA DIFERENTE - verifica se cabe
+        console.log('  🆕 Linha diferente detectada');
         var availableSpace = GridLayoutEngine.getAvailableSpace(containerStamp, targetRow, draggedItem.mdashcontaineritemstamp);
         
         if (draggedSpan > availableSpace) {
             result.isValid = false;
             result.strategy = 'invalid';
             result.message = 'Não cabe: precisa ' + draggedSpan + ' col, disponível ' + availableSpace + ' col';
+            console.log('  ❌ Não cabe:', result.message);
             return result;
         }
         
-        // Caso 3: Cabe - calcula ajustes
+        // ⭐ CASO 3: Cabe - calcula ajustes
         var adjustResult = GridLayoutEngine.calculateAutoAdjust(
             containerStamp, 
             targetRow, 
@@ -1575,10 +1684,12 @@ var DragDropValidator = {
             result.strategy = 'adjust';
             result.adjustments = adjustResult.adjustments;
             result.message = adjustResult.adjustments.length + ' item(s) reajustados';
+            console.log('  ✅ ADJUST válido');
         } else {
             result.isValid = false;
             result.strategy = 'invalid';
             result.message = 'Total ultrapassa ' + GridLayoutEngine.GRID_COLUMNS + ' colunas';
+            console.log('  ❌ ADJUST inválido:', result.message);
         }
         
         return result;
@@ -1665,7 +1776,7 @@ function syncAllContainerItemsLayout() {
         if (containerHasAutoLayoutItems(item.mdashcontainerstamp)) {
             normalizeContainerItemsAutoLayout(item.mdashcontainerstamp);
         } else {
-            ensureExplicitItemsHaveCoordinates(item.mdashcontainerstamp);
+            ensureManualItemsHaveCoordinates(item.mdashcontainerstamp);
         }
     });
 
@@ -1707,22 +1818,22 @@ function getContainerLayoutMode(containerStamp) {
     });
 
     if (!container || !container.layoutmode) return "auto";
-    return container.layoutmode === "explicit" ? "explicit" : "auto";
+    return container.layoutmode === "manual" ? "manual" : "auto";
 }
 
 function getEffectiveItemLayoutMode(item) {
     if (!item) return "auto";
 
     var itemMode = (item.layoutmode || "inherit").toString().toLowerCase();
-    if (itemMode === "explicit") return "explicit";
+    if (itemMode === "manual") return "manual";
     if (itemMode === "auto") return "auto";
 
     return getContainerLayoutMode(item.mdashcontainerstamp);
 }
 
-function isExplicitLayoutItem(item) {
+function isManualLayoutItem(item) {
     if (!item) return false;
-    if (getEffectiveItemLayoutMode(item) !== "explicit") return false;
+    if (getEffectiveItemLayoutMode(item) !== "manual") return false;
 
     var row = parseInt(item.gridrow, 10);
     var colStart = parseInt(item.gridcolstart, 10);
@@ -1730,9 +1841,9 @@ function isExplicitLayoutItem(item) {
 }
 
 function getItemGridSpan(item) {
-    var span = parseInt(item.gridcolspan, 10);
+    var span = parseInt(item.tamanho, 10);
     if (!span || span < 1) {
-        span = parseInt(item.tamanho, 10) || 4;
+        span = 4;
     }
     if (span > 12) span = 12;
     return span;
@@ -1741,7 +1852,7 @@ function getItemGridSpan(item) {
 function getItemGridStyleMap(item) {
     var span = getItemGridSpan(item);
 
-    if (isExplicitLayoutItem(item)) {
+    if (isManualLayoutItem(item)) {
         var row = parseInt(item.gridrow, 10);
         var colStart = parseInt(item.gridcolstart, 10);
         var rowSpan = parseInt(item.gridrowspan, 10) || 1;
@@ -1826,7 +1937,7 @@ function normalizeContainerItemsAutoLayout(containerStamp) {
             var aMode = getEffectiveItemLayoutMode(a);
             var bMode = getEffectiveItemLayoutMode(b);
 
-            if (aMode === "explicit" && bMode === "explicit") {
+            if (aMode === "manual" && bMode === "manual") {
                 var rowDiff = (parseInt(a.gridrow, 10) || 0) - (parseInt(b.gridrow, 10) || 0);
                 if (rowDiff !== 0) return rowDiff;
 
@@ -1834,8 +1945,8 @@ function normalizeContainerItemsAutoLayout(containerStamp) {
                 if (colDiff !== 0) return colDiff;
             }
 
-            if (aMode === "explicit" && bMode !== "explicit") return -1;
-            if (aMode !== "explicit" && bMode === "explicit") return 1;
+            if (aMode === "manual" && bMode !== "manual") return -1;
+            if (aMode !== "manual" && bMode === "manual") return 1;
 
             return (a.ordem || 0) - (b.ordem || 0);
         });
@@ -1848,14 +1959,14 @@ function normalizeContainerItemsAutoLayout(containerStamp) {
         var span = getItemGridSpan(item);
         var rowSpan = parseInt(item.gridrowspan, 10) || 1;
         var mode = getEffectiveItemLayoutMode(item);
-        var preferredRow = mode === "explicit" ? item.gridrow : autoCursorRow;
-        var preferredCol = mode === "explicit" ? item.gridcolstart : autoCursorCol;
+        var preferredRow = mode === "manual" ? item.gridrow : autoCursorRow;
+        var preferredCol = mode === "manual" ? item.gridcolstart : autoCursorCol;
 
         var slot = findNextGridSlot(occupiedMap, preferredRow, preferredCol, span, rowSpan);
 
         item.gridrow = slot.row;
         item.gridcolstart = slot.colStart;
-        item.gridcolspan = span;
+        item.tamanho = span;
         item.gridrowspan = rowSpan;
 
         markGridAreaOccupied(occupiedMap, slot.row, slot.colStart, span, rowSpan);
@@ -1871,7 +1982,7 @@ function normalizeContainerItemsAutoLayout(containerStamp) {
     });
 }
 
-function ensureExplicitItemsHaveCoordinates(containerStamp) {
+function ensureManualItemsHaveCoordinates(containerStamp) {
     if (!containerStamp) return;
 
     var containerItems = GMDashContainerItems
@@ -1893,7 +2004,7 @@ function ensureExplicitItemsHaveCoordinates(containerStamp) {
         var row = parseInt(item.gridrow, 10);
         var colStart = parseInt(item.gridcolstart, 10);
 
-        if (mode !== "explicit") {
+        if (mode !== "manual") {
             if (!(row >= 1 && colStart >= 1)) {
                 var autoSlot = findNextGridSlot(occupiedMap, 1, 1, span, rowSpan);
                 row = autoSlot.row;
@@ -1902,19 +2013,19 @@ function ensureExplicitItemsHaveCoordinates(containerStamp) {
                 item.gridcolstart = colStart;
             }
 
-            item.gridcolspan = span;
+            item.tamanho = span;
             item.gridrowspan = rowSpan;
             markGridAreaOccupied(occupiedMap, row, colStart, span, rowSpan);
             return;
         }
 
         if (!(row >= 1 && colStart >= 1)) {
-            var explicitSlot = findNextGridSlot(occupiedMap, 1, 1, span, rowSpan);
-            item.gridrow = explicitSlot.row;
-            item.gridcolstart = explicitSlot.colStart;
-            item.gridcolspan = span;
+            var manualSlot = findNextGridSlot(occupiedMap, 1, 1, span, rowSpan);
+            item.gridrow = manualSlot.row;
+            item.gridcolstart = manualSlot.colStart;
+            item.tamanho = span;
             item.gridrowspan = rowSpan;
-            markGridAreaOccupied(occupiedMap, explicitSlot.row, explicitSlot.colStart, span, rowSpan);
+            markGridAreaOccupied(occupiedMap, manualSlot.row, manualSlot.colStart, span, rowSpan);
             return;
         }
 
@@ -1928,19 +2039,19 @@ function ensureExplicitItemsHaveCoordinates(containerStamp) {
             var fallbackSlot = findNextGridSlot(occupiedMap, row, colStart, span, rowSpan);
             item.gridrow = fallbackSlot.row;
             item.gridcolstart = fallbackSlot.colStart;
-            item.gridcolspan = span;
+            item.tamanho = span;
             item.gridrowspan = rowSpan;
             markGridAreaOccupied(occupiedMap, fallbackSlot.row, fallbackSlot.colStart, span, rowSpan);
             return;
         }
 
-        item.gridcolspan = span;
+        item.tamanho = span;
         item.gridrowspan = rowSpan;
         markGridAreaOccupied(occupiedMap, row, colStart, span, rowSpan);
     });
 }
 
-function resolveExplicitCollisions(containerStamp, anchorItemStamp) {
+function resolveManualCollisions(containerStamp, anchorItemStamp) {
     if (!containerStamp || !anchorItemStamp) return;
 
     var items = GMDashContainerItems
@@ -1960,7 +2071,7 @@ function resolveExplicitCollisions(containerStamp, anchorItemStamp) {
     var occupiedMap = {};
 
     items.forEach(function (item) {
-        if (!item || getEffectiveItemLayoutMode(item) !== 'explicit') return;
+        if (!item || getEffectiveItemLayoutMode(item) !== 'manual') return;
 
         var span = getItemGridSpan(item);
         var rowSpan = parseInt(item.gridrowspan, 10) || 1;
@@ -1970,7 +2081,7 @@ function resolveExplicitCollisions(containerStamp, anchorItemStamp) {
 
         item.gridrow = slot.row;
         item.gridcolstart = slot.colStart;
-        item.gridcolspan = span;
+        item.tamanho = span;
         item.gridrowspan = rowSpan;
         markGridAreaOccupied(occupiedMap, slot.row, slot.colStart, span, rowSpan);
     });
@@ -2008,7 +2119,7 @@ function detectZone(event, ui, containerStamp, draggedItemStamp) {
     var existingItems = GMDashContainerItems.filter(function (item) {
         return item.mdashcontainerstamp === containerStamp &&
                item.mdashcontaineritemstamp !== draggedItemStamp &&
-               getEffectiveItemLayoutMode(item) === 'explicit' &&
+               getEffectiveItemLayoutMode(item) === 'manual' &&
                item.gridrow >= 1 &&
                item.gridcolstart >= 1;
     });
@@ -2102,7 +2213,7 @@ function detectZone(event, ui, containerStamp, draggedItemStamp) {
     };
 }
 
-function computeExplicitDropSlot(event, ui, containerStamp, item) {
+function computeManualDropSlot(event, ui, containerStamp, item) {
     if (!containerStamp || !item || !ui || !ui.item) return null;
 
     var zone = detectZone(event, ui, containerStamp, item.mdashcontaineritemstamp);
@@ -2126,15 +2237,15 @@ function computeExplicitDropSlot(event, ui, containerStamp, item) {
         rowSpan: rowSpan
     };
 
-   // console.log('📦 computeExplicitDropSlot:', slot);
+   // console.log('📦 computeManualDropSlot:', slot);
 
     return slot;
 }
 
-function clearExplicitPlaceholder($scope) {
+function clearManualPlaceholder($scope) {
     if (!$scope || !$scope.length) return;
     $scope.find('.mdash-item-sort-placeholder')
-        .removeClass('is-explicit-preview')
+        .removeClass('is-manual-preview')
         .removeAttr('data-grid-label')
         .css({
             'grid-column': '',
@@ -2142,11 +2253,11 @@ function clearExplicitPlaceholder($scope) {
         });
 }
 
-function setExplicitDragPreviewSlot(itemStamp, containerStamp, slot) {
+function setManualDragPreviewSlot(itemStamp, containerStamp, slot) {
     if (!itemStamp || !slot) return;
-    GExplicitDragState.itemStamp = itemStamp;
-    GExplicitDragState.containerStamp = containerStamp || "";
-    GExplicitDragState.slot = {
+    GManualDragState.itemStamp = itemStamp;
+    GManualDragState.containerStamp = containerStamp || "";
+    GManualDragState.slot = {
         row: slot.row,
         colStart: slot.colStart,
         span: slot.span,
@@ -2154,17 +2265,17 @@ function setExplicitDragPreviewSlot(itemStamp, containerStamp, slot) {
     };
 }
 
-function getExplicitDragPreviewSlot(itemStamp, containerStamp) {
-    if (!itemStamp || !GExplicitDragState.slot) return null;
-    if (GExplicitDragState.itemStamp !== itemStamp) return null;
-    if (containerStamp && GExplicitDragState.containerStamp && GExplicitDragState.containerStamp !== containerStamp) return null;
-    return GExplicitDragState.slot;
+function getManualDragPreviewSlot(itemStamp, containerStamp) {
+    if (!itemStamp || !GManualDragState.slot) return null;
+    if (GManualDragState.itemStamp !== itemStamp) return null;
+    if (containerStamp && GManualDragState.containerStamp && GManualDragState.containerStamp !== containerStamp) return null;
+    return GManualDragState.slot;
 }
 
-function clearExplicitDragPreviewSlot() {
-    GExplicitDragState.itemStamp = "";
-    GExplicitDragState.containerStamp = "";
-    GExplicitDragState.slot = null;
+function clearManualDragPreviewSlot() {
+    GManualDragState.itemStamp = "";
+    GManualDragState.containerStamp = "";
+    GManualDragState.slot = null;
 }
 
 function applyDroppedItemGridPosition(event, ui, containerStamp) {
@@ -2187,19 +2298,19 @@ function applyDroppedItemGridPosition(event, ui, containerStamp) {
         itemStamp: itemStamp.substring(0, 8),
         gridrow: item.gridrow,
         gridcolstart: item.gridcolstart,
-        gridcolspan: item.gridcolspan,
+        tamanho: item.tamanho,
         layoutmode: item.layoutmode
     });
 
     item.mdashcontainerstamp = containerStamp;
 
-    if (getEffectiveItemLayoutMode(item) !== "explicit") {
+    if (getEffectiveItemLayoutMode(item) !== "manual") {
         return;
     }
 
-    var slot = getExplicitDragPreviewSlot(item.mdashcontaineritemstamp, containerStamp);
+    var slot = getManualDragPreviewSlot(item.mdashcontaineritemstamp, containerStamp);
     if (!slot) {
-        slot = computeExplicitDropSlot(event, ui, containerStamp, item);
+        slot = computeManualDropSlot(event, ui, containerStamp, item);
     }
     if (!slot) return;
 
@@ -2212,14 +2323,14 @@ function applyDroppedItemGridPosition(event, ui, containerStamp) {
 
     item.gridrow = slot.row;
     item.gridcolstart = slot.colStart;
-    item.gridcolspan = slot.span;
+    item.tamanho = slot.span;
     item.gridrowspan = slot.rowSpan;
 
     console.log('🔴 DEPOIS DO DROP (aplicado):', {
         itemStamp: itemStamp.substring(0, 8),
         gridrow: item.gridrow,
         gridcolstart: item.gridcolstart,
-        gridcolspan: item.gridcolspan
+        tamanho: item.tamanho
     });
 
     // Sync imediato se existir
@@ -2228,7 +2339,7 @@ function applyDroppedItemGridPosition(event, ui, containerStamp) {
         realTimeComponentSync(item, item.table, item.idfield);
     }
 
-    // SEM resolveExplicitCollisions - item vai para posição exata
+    // SEM resolveManualCollisions - item vai para posição exata
 }
 
 function initContainerItemResize() {
@@ -2320,8 +2431,15 @@ function initContainerItemResize() {
 
                 lastSize = proposed;
                 item.tamanho = proposed;
-                item.gridcolspan = proposed;
                 $itemEl.css('grid-column', 'span ' + proposed);
+                
+                // Atualiza o badge diretamente no DOM durante o resize usando data-attribute
+                var $badge = $itemEl.find('.mdash-item-size-badge[data-item-stamp="' + itemStamp + '"]');
+                if ($badge.length) {
+                    $badge.text(proposed + ' col');
+                    $badge.attr('title', 'Largura: ' + proposed + ' colunas');
+                }
+                
                 setTimeout(syncAllContainerItemsLayout, 0);
             }
 
@@ -2444,16 +2562,15 @@ function makeContainerItemsSortable() {
             out: function (event, ui) {
                 console.log('⬆️ OUT EVENT disparado');
                 $(this).removeClass('is-drop-over');
-                clearExplicitPlaceholder($(this));
+                clearManualPlaceholder($(this));
                 
                 // Limpa feedback visual ao sair da linha
-                var $container = ui.item.closest('.mdash-canvas-container');
-                VisualFeedbackManager.clearFeedback($container);
+                VisualFeedbackManager.clearFeedback($(this));
             },
             start: function (event, ui) {
                 console.log('🚀 START EVENT disparado');
                 if (GMDashIsResizingItem) return false;
-                clearExplicitDragPreviewSlot();
+                clearManualDragPreviewSlot();
                 var itemSpan = ui.item && ui.item.css ? ui.item.css('grid-column') : '';
                 if (ui && ui.placeholder && ui.item) {
                     ui.placeholder.height(ui.item.outerHeight());
@@ -2480,8 +2597,20 @@ function makeContainerItemsSortable() {
                 var targetStamp = $(this).closest('.mdash-canvas-container').data('stamp');
                 var movedItemStamp = ui.item && ui.item.data('stamp');
                 var movedItem = GMDashContainerItems.find(function (i) {
-                    return i.mdashcontaineritemstamp === movedItemStamp;
+                    return i.mdashcontainerstamp === movedItemStamp;
                 });
+                
+                var isManualMode = movedItem && getEffectiveItemLayoutMode(movedItem) === 'manual';
+                
+                // ⭐ VERIFICA VALIDAÇÃO ANTES DE EXECUTAR
+                if (isManualMode) {
+                    var validation = GManualDragState.validation;
+                    if (!validation || !validation.isValid) {
+                        console.log('❌ RECEIVE: Validação falhou - bloqueando operação');
+                        $(this).sortable('cancel');
+                        return; // SAI sem fazer nada
+                    }
+                }
 
                 if (movedItem && targetStamp && movedItem.mdashcontainerstamp !== targetStamp) {
                     movedItem.mdashcontainerstamp = targetStamp;
@@ -2489,12 +2618,10 @@ function makeContainerItemsSortable() {
                         realTimeComponentSync(movedItem, movedItem.table, movedItem.idfield);
                     }
                 }
-
-                var isExplicitMode = movedItem && getEffectiveItemLayoutMode(movedItem) === 'explicit';
                 
                 console.log('📥 RECEIVE: chamando applyDroppedItemGridPosition');
                 applyDroppedItemGridPosition(event, ui, targetStamp);
-                updateContainerItemsOrder(targetStamp, isExplicitMode);
+                updateContainerItemsOrder(targetStamp, isManualMode);
 
                 var sourceStamp = ui.sender ? $(ui.sender).closest('.mdash-canvas-container').data('stamp') : '';
                 if (sourceStamp) {
@@ -2507,7 +2634,7 @@ function makeContainerItemsSortable() {
                         itemStamp: movedItemStamp.substring(0, 8),
                         gridrow: finalItem ? finalItem.gridrow : 'item não encontrado',
                         gridcolstart: finalItem ? finalItem.gridcolstart : 'item não encontrado',
-                        gridcolspan: finalItem ? finalItem.gridcolspan : 'item não encontrado'
+                        tamanho: finalItem ? finalItem.tamanho : 'item não encontrado'
                     });
                 }, 100);
 
@@ -2529,16 +2656,16 @@ function makeContainerItemsSortable() {
                 });
                 if (!item) return;
 
-                if (getEffectiveItemLayoutMode(item) !== 'explicit') {
-                    clearExplicitPlaceholder($(this));
-                    clearExplicitDragPreviewSlot();
+                if (getEffectiveItemLayoutMode(item) !== 'manual') {
+                    clearManualPlaceholder($(this));
+                    clearManualDragPreviewSlot();
                     return;
                 }
 
-                var slot = computeExplicitDropSlot(event, ui, targetStamp, item);
+                var slot = computeManualDropSlot(event, ui, targetStamp, item);
                 if (!slot) {
-                    clearExplicitPlaceholder($(this));
-                    clearExplicitDragPreviewSlot();
+                    clearManualPlaceholder($(this));
+                    clearManualDragPreviewSlot();
                     return;
                 }
 
@@ -2547,34 +2674,49 @@ function makeContainerItemsSortable() {
                 
                 console.log('✅ Validação:', validation);
                 
-                var $container = ui.item.closest('.mdash-canvas-container');
+                var $targetRow = $(this); // A grid onde está a arrastar
                 
-                // Feedback visual baseado na validação
+                // Feedback visual baseado na validação (apenas na grid-row específica)
                 if (!validation.isValid) {
-                    VisualFeedbackManager.showErrorFeedback($container, validation.message);
-                    clearExplicitPlaceholder($(this));
-                    // Cancela o preview
-                    setExplicitDragPreviewSlot(null, null, null);
+                    VisualFeedbackManager.showErrorFeedback($targetRow, slot.row, validation.message);
+                    // Mantém o placeholder para mostrar onde está a tentar soltar
+                    if (ui.placeholder && ui.placeholder.css) {
+                        ui.placeholder
+                            .removeClass('mdash-placeholder-success') // Remove classe de sucesso
+                            .addClass('is-manual-preview mdash-placeholder-error')
+                            .attr('data-grid-label', '❌ ' + validation.message);
+                        ui.placeholder.css({
+                            'grid-column': slot.colStart + ' / span ' + slot.span,
+                            'grid-row': slot.row + ' / span ' + slot.rowSpan
+                        });
+                    }
+                    // ⭐ CANCELA O ESTADO - DROP SERÁ BLOQUEADO NO STOP
+                    setManualDragPreviewSlot(null, null, null);
+                    GManualDragState.validation = null;
+                    
+                    console.log('❌ SORT: Validação falhou - drop será bloqueado');
                 } else {
                     // Salva validação para usar no STOP
-                    setExplicitDragPreviewSlot(item.mdashcontaineritemstamp, targetStamp, slot);
-                    GExplicitDragState.validation = validation;
+                    setManualDragPreviewSlot(item.mdashcontaineritemstamp, targetStamp, slot);
+                    GManualDragState.validation = validation;
                     
-                    // Feedback visual baseado na estratégia
+                    // Feedback visual baseado na estratégia (apenas na grid-row específica)
                     switch (validation.strategy) {
                         case 'swap':
-                            VisualFeedbackManager.showSwapFeedback($container, validation.targetItem);
+                            VisualFeedbackManager.showSwapFeedback($targetRow, slot.row, validation.targetItem);
                             break;
                         case 'adjust':
-                            VisualFeedbackManager.showSuccessFeedback($container, validation.adjustments);
+                        case 'reposition': // Mesma linha ou linha diferente com ajustes
+                            VisualFeedbackManager.showSuccessFeedback($targetRow, slot.row, validation.adjustments);
                             break;
                     }
                     
                     // Atualiza placeholder
                     if (ui.placeholder && ui.placeholder.css) {
                         ui.placeholder
-                            .addClass('is-explicit-preview')
-                            .attr('data-grid-label', 'Linha ' + slot.row + ' Col ' + slot.colStart);
+                            .removeClass('mdash-placeholder-error') // Remove classe de erro
+                            .addClass('is-manual-preview mdash-placeholder-success')
+                            .attr('data-grid-label', '✓ Linha ' + slot.row + ' Col ' + slot.colStart);
                         ui.placeholder.css({
                             'grid-column': slot.colStart + ' / span ' + slot.span,
                             'grid-row': slot.row + ' / span ' + slot.rowSpan
@@ -2585,48 +2727,69 @@ function makeContainerItemsSortable() {
             stop: function (event, ui) {
                 console.log('🛑 STOP EVENT disparado');
                 $(this).removeClass('is-drop-over');
-                clearExplicitPlaceholder($(this));
+                clearManualPlaceholder($(this));
                 
-                var $container = ui.item.closest('.mdash-canvas-container');
-                VisualFeedbackManager.clearFeedback($container);
+                // Limpa feedback visual da linha
+                VisualFeedbackManager.clearFeedback($(this));
                 
-                // APLICAR POSIÇÃO AQUI porque UPDATE/RECEIVE não disparam
                 var targetStamp = $(this).closest('.mdash-canvas-container').data('stamp');
                 var itemStamp = ui.item && ui.item.data('stamp');
                 var item = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
                 
                 if (item && targetStamp) {
-                    var isExplicitMode = getEffectiveItemLayoutMode(item) === 'explicit';
+                    var isManualMode = getEffectiveItemLayoutMode(item) === 'manual';
                     
-                    if (isExplicitMode) {
-                        console.log('🔧 STOP: Aplicando posição em modo explicit');
+                    if (isManualMode) {
+                        var validation = GManualDragState.validation;
                         
-                        // ⭐ EXECUTA ESTRATÉGIA VALIDADA
-                        var validation = GExplicitDragState.validation;
-                        if (validation && validation.isValid) {
-                            console.log('📌 Executando estratégia:', validation.strategy);
+                        // ⭐ BLOQUEIA DROP SE VALIDAÇÃO FALHOU
+                        if (!validation || !validation.isValid) {
+                            console.log('❌ STOP: Validação falhou - cancelando drop e revertendo');
                             
-                            switch (validation.strategy) {
-                                case 'swap':
-                                    DragDropExecutor.executeSwap(item, validation.targetItem);
-                                    break;
-                                    
-                                case 'adjust':
-                                    // Aplica posição do item arrastado
-                                    applyDroppedItemGridPosition(event, ui, targetStamp);
-                                    // Executa ajustes dos outros items
-                                    DragDropExecutor.executeAdjust(validation.adjustments);
-                                    break;
-                                    
-                                default:
-                                    // Fallback: apenas aplica posição
-                                    applyDroppedItemGridPosition(event, ui, targetStamp);
-                            }
-                        } else {
-                            // Sem validação: comportamento padrão
-                            applyDroppedItemGridPosition(event, ui, targetStamp);
+                            // Cancela o sortable - item volta ao lugar original
+                            $(this).sortable('cancel');
+                            
+                            // Limpa estado global
+                            clearManualDragPreviewSlot();
+                            GManualDragState.validation = null;
+                            
+                            // Força re-render IMEDIATO para garantir que item voltou visualmente
+                            syncAllContainerItemsLayout();
+                            
+                            console.log('🔙 Item revertido para posição original');
+                            return; // SAI AQUI - não executa mais nada
                         }
                         
+                        // ✅ VALIDAÇÃO OK - EXECUTA ESTRATÉGIA
+                        console.log('📌 Executando estratégia:', validation.strategy);
+                        
+                        switch (validation.strategy) {
+                            case 'swap':
+                                DragDropExecutor.executeSwap(item, validation.targetItem);
+                                break;
+                                
+                            case 'reposition':
+                                // Reposiciona na mesma linha
+                                applyDroppedItemGridPosition(event, ui, targetStamp);
+                                // Executa ajustes dos outros items (se houver)
+                                if (validation.adjustments && validation.adjustments.length > 0) {
+                                    DragDropExecutor.executeAdjust(validation.adjustments);
+                                }
+                                break;
+                                
+                            case 'adjust':
+                                // Aplica posição do item arrastado (linha diferente)
+                                applyDroppedItemGridPosition(event, ui, targetStamp);
+                                // Executa ajustes dos outros items
+                                DragDropExecutor.executeAdjust(validation.adjustments);
+                                break;
+                                
+                            default:
+                                // Fallback: apenas aplica posição
+                                applyDroppedItemGridPosition(event, ui, targetStamp);
+                        }
+                        
+                        // Atualiza ordem (com flag para NÃO sincronizar coordinates - já foi feito acima)
                         updateContainerItemsOrder(targetStamp, true);
                         
                         setTimeout(function() {
@@ -2635,17 +2798,18 @@ function makeContainerItemsSortable() {
                                 itemStamp: itemStamp.substring(0, 8),
                                 gridrow: finalItem ? finalItem.gridrow : 'N/A',
                                 gridcolstart: finalItem ? finalItem.gridcolstart : 'N/A',
-                                gridcolspan: finalItem ? finalItem.gridcolspan : 'N/A'
+                                tamanho: finalItem ? finalItem.tamanho : 'N/A'
                             });
                         }, 100);
                     } else {
+                        // Modo auto: sempre permite
                         updateContainerItemsOrder(targetStamp, false);
                     }
                 }
                 
                 // Limpa estado global
-                clearExplicitDragPreviewSlot();
-                GExplicitDragState.validation = null;
+                clearManualDragPreviewSlot();
+                GManualDragState.validation = null;
                 
                 setTimeout(syncAllContainerItemsLayout, 0);
             },
@@ -2655,12 +2819,24 @@ function makeContainerItemsSortable() {
                 var liveContainerStamp = $(this).closest('.mdash-canvas-container').data('stamp');
                 var itemStamp = ui.item && ui.item.data('stamp');
                 var item = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
-                var isExplicitMode = item && getEffectiveItemLayoutMode(item) === 'explicit';
+                var isManualMode = item && getEffectiveItemLayoutMode(item) === 'manual';
+                
+                // ⭐ VERIFICA VALIDAÇÃO ANTES DE EXECUTAR
+                if (isManualMode) {
+                    var validation = GManualDragState.validation;
+                    if (!validation || !validation.isValid) {
+                        console.log('❌ UPDATE: Validação falhou - bloqueando operação');
+                        $(this).sortable('cancel');
+                        clearManualPlaceholder($(this));
+                        clearManualDragPreviewSlot();
+                        return; // SAI sem fazer nada
+                    }
+                }
                 
                 applyDroppedItemGridPosition(event, ui, liveContainerStamp);
-                updateContainerItemsOrder(liveContainerStamp, isExplicitMode);
-                clearExplicitPlaceholder($(this));
-                clearExplicitDragPreviewSlot();
+                updateContainerItemsOrder(liveContainerStamp, isManualMode);
+                clearManualPlaceholder($(this));
+                clearManualDragPreviewSlot();
                 
                 setTimeout(function() {
                     var finalItem = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
@@ -2668,7 +2844,7 @@ function makeContainerItemsSortable() {
                         itemStamp: itemStamp.substring(0, 8),
                         gridrow: finalItem.gridrow,
                         gridcolstart: finalItem.gridcolstart,
-                        gridcolspan: finalItem.gridcolspan
+                        tamanho: finalItem.tamanho
                     });
                 }, 100);
                 
@@ -2679,7 +2855,7 @@ function makeContainerItemsSortable() {
 }
 
 function createContainerByDrop() {
-    var newContainer = new MdashContainer({ dashboardstamp: GMDashStamp });
+    var newContainer = new MdashContainer({ dashboardstamp: GMDashStamp, layoutmode: "manual" });
     window.appState.containers.push(newContainer);
     
     // Sincroniza o novo container com a base de dados IMEDIATAMENTE
@@ -2747,8 +2923,8 @@ function updateContainerItemsOrder(containerStamp, skipCoordinateCheck) {
             
             item.ordem = idx + 1;
             item.mdashcontainerstamp = containerStamp;
-            if (!item.gridcolspan || item.gridcolspan < 1) {
-                item.gridcolspan = getItemGridSpan(item);
+            if (!item.tamanho || item.tamanho < 1) {
+                item.tamanho = getItemGridSpan(item);
             }
             
             if (item.gridrow !== oldRow || item.gridcolstart !== oldCol) {
@@ -2759,7 +2935,7 @@ function updateContainerItemsOrder(containerStamp, skipCoordinateCheck) {
                 });
             }
             
-            // Só sincroniza se NÃO for skipCoordinateCheck (modo explicit já sincroniza em applyDroppedItemGridPosition)
+            // Só sincroniza se NÃO for skipCoordinateCheck (modo manual já sincroniza em applyDroppedItemGridPosition)
             if (!skipCoordinateCheck && typeof realTimeComponentSync === "function") {
                 realTimeComponentSync(item, item.table, item.idfield);
             }
@@ -2775,8 +2951,8 @@ function updateContainerItemsOrder(containerStamp, skipCoordinateCheck) {
     if (containerHasAutoLayoutItems(containerStamp)) {
         normalizeContainerItemsAutoLayout(containerStamp);
     } else {
-        console.log('🔧 Chamando ensureExplicitItemsHaveCoordinates...');
-        ensureExplicitItemsHaveCoordinates(containerStamp);
+        console.log('🔧 Chamando ensureManualItemsHaveCoordinates...');
+        ensureManualItemsHaveCoordinates(containerStamp);
     }
 
     setTimeout(syncAllContainerItemsLayout, 0);
@@ -2888,10 +3064,7 @@ function renderPropertiesForm(panel, entity, formConfig) {
         if (isContainerItemEntity && (field === 'templatelayout' || field === 'tamanho' || field === 'titulo')) {
             renderContainerItemTemplate(entity);
         }
-        if (field === 'tamanho' || field === 'gridrow' || field === 'gridcolstart' || field === 'gridcolspan' || field === 'layoutmode') {
-            if (isContainerItemEntity && field === 'tamanho' && (!entity.gridcolspan || parseInt(entity.gridcolspan, 10) < 1)) {
-                entity.gridcolspan = parseInt(entity.tamanho, 10) || 4;
-            }
+        if (field === 'tamanho' || field === 'gridrow' || field === 'gridcolstart' || field === 'layoutmode') {
             setTimeout(syncAllContainerItemsLayout, 0);
         }
     });
@@ -2927,7 +3100,8 @@ function getObjectTypeIcon(tipo) {
  */
 function addNewContainer() {
     var newContainer = new MdashContainer({
-        dashboardstamp: GMDashStamp
+        dashboardstamp: GMDashStamp,
+        layoutmode: "manual"
     });
 
     // Adiciona ao estado reativo
@@ -3991,20 +4165,43 @@ function loadModernDashboardStyles() {
     styles += ".mdash-container-items-row.is-drop-over { outline: 2px dashed rgba(var(--md-primary-rgb),0.62); outline-offset: 3px; border-radius: 10px; background: rgba(var(--md-primary-rgb),0.04); }";
     styles += ".mdash-canvas-item { margin-bottom: 0; min-width: 0; }";
     styles += ".mdash-item-sort-placeholder { min-height: 96px; border: 2px dashed var(--md-primary); border-radius: 10px; background: rgba(var(--md-primary-rgb),0.10); box-sizing: border-box; }";
-    styles += ".mdash-item-sort-placeholder.is-explicit-preview { position: relative; border-color: rgba(var(--md-primary-rgb),0.95); background: rgba(var(--md-primary-rgb),0.14); z-index: 2; }";
-    styles += ".mdash-item-sort-placeholder.is-explicit-preview::after { content: attr(data-grid-label); position: absolute; top: 6px; right: 8px; font-size: 11px; font-weight: 700; color: var(--md-primary); background: rgba(255,255,255,0.92); border: 1px solid rgba(var(--md-primary-rgb),0.36); border-radius: 999px; padding: 2px 8px; }";
+    styles += ".mdash-item-sort-placeholder.is-manual-preview { position: relative; border-color: rgba(var(--md-primary-rgb),0.95); background: rgba(var(--md-primary-rgb),0.14); z-index: 2; }";
+    styles += ".mdash-item-sort-placeholder.is-manual-preview::after { content: attr(data-grid-label); position: absolute; top: 6px; right: 8px; font-size: 11px; font-weight: 700; color: var(--md-primary); background: rgba(255,255,255,0.92); border: 1px solid rgba(var(--md-primary-rgb),0.36); border-radius: 999px; padding: 2px 8px; }";
     
-    // ⭐ DRAG & DROP VISUAL FEEDBACK
-    styles += ".mdash-canvas-container.mdash-drop-error .mdash-container-items-row { background-color: rgba(255, 0, 0, 0.08) !important; border: 2px dashed #d9534f !important; border-radius: 10px; position: relative; }";
-    styles += ".mdash-canvas-container.mdash-drop-success .mdash-container-items-row { background-color: rgba(0, 255, 0, 0.04) !important; border: 2px dashed #5cb85c !important; border-radius: 10px; }";
-    styles += ".mdash-canvas-container.mdash-drop-swap .mdash-container-items-row { background-color: rgba(0, 123, 255, 0.04) !important; border: 2px dashed #0275d8 !important; border-radius: 10px; }";
-    styles += ".mdash-drop-error-overlay, .mdash-drop-success-overlay, .mdash-drop-swap-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; background: white; padding: 10px 18px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 10px; pointer-events: none; font-weight: 600; font-size: 13px; }";
-    styles += ".mdash-drop-error-overlay { background: #d9534f; color: white; }";
-    styles += ".mdash-drop-error-overlay i { font-size: 22px; }";
-    styles += ".mdash-drop-success-overlay { background: #5cb85c; color: white; }";
+    // ⭐ DRAG & DROP VISUAL FEEDBACK (posicionado na grid-row específica)
+    styles += ".mdash-drop-error-overlay, .mdash-drop-success-overlay, .mdash-drop-swap-overlay { position: relative; display: grid; min-height: 100px; z-index: 5; }";
+    
+    // Background que cobre toda a grid-row
+    styles += ".mdash-drop-overlay-bg { grid-column: 1 / -1; grid-row: 1; min-height: 100px; border-radius: 10px; }";
+    styles += ".mdash-drop-error-bg { background-color: rgba(255, 0, 0, 0.06); border: 3px dashed #d9534f; }";
+    styles += ".mdash-drop-success-bg { background-color: rgba(0, 255, 0, 0.03); border: 3px dashed #5cb85c; }";
+    styles += ".mdash-drop-swap-bg { background-color: rgba(0, 123, 255, 0.03); border: 3px dashed #0275d8; }";
+    
+    // Conteúdo centralizado (overlay com mensagem)
+    styles += ".mdash-drop-overlay-content { grid-column: 1 / -1; grid-row: 1; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 18px; z-index: 6; pointer-events: none; }";
+    styles += ".mdash-drop-overlay-content { background: transparent; }";
+    
+    // Badge com mensagem
+    styles += ".mdash-drop-error-overlay .mdash-drop-overlay-content { background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%); color: white; border: 2px solid rgba(255,255,255,0.4); border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); font-weight: 700; font-size: 13px; white-space: nowrap; width: fit-content; margin: auto; }";
+    styles += ".mdash-drop-success-overlay .mdash-drop-overlay-content { background: linear-gradient(135deg, #5cb85c 0%, #449d44 100%); color: white; border: 2px solid rgba(255,255,255,0.4); border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); font-weight: 700; font-size: 13px; white-space: nowrap; width: fit-content; margin: auto; }";
+    styles += ".mdash-drop-swap-overlay .mdash-drop-overlay-content { background: linear-gradient(135deg, #0275d8 0%, #025aa5 100%); color: white; border: 2px solid rgba(255,255,255,0.4); border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); font-weight: 700; font-size: 13px; white-space: nowrap; width: fit-content; margin: auto; }";
+    
+    // Ícones com animações
+    styles += ".mdash-drop-error-overlay i { font-size: 24px; animation: shake 0.5s ease-in-out infinite; }";
+    styles += "@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }";
+    
     styles += ".mdash-drop-success-overlay i { font-size: 20px; }";
-    styles += ".mdash-drop-swap-overlay { background: #0275d8; color: white; }";
-    styles += ".mdash-drop-swap-overlay i { font-size: 20px; }";
+    
+    styles += ".mdash-drop-swap-overlay i { font-size: 20px; animation: rotate 1s ease-in-out infinite; }";
+    styles += "@keyframes rotate { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(180deg); } }";
+    
+    // Placeholder em estado de erro
+    styles += ".mdash-item-sort-placeholder.mdash-placeholder-error { border-color: #d9534f !important; background: rgba(217, 83, 79, 0.15) !important; }";
+    styles += ".mdash-item-sort-placeholder.mdash-placeholder-error::after { background: #d9534f !important; color: white !important; border-color: rgba(255,255,255,0.6) !important; font-weight: 700 !important; }";
+    
+    // Placeholder em estado de sucesso (válido)
+    styles += ".mdash-item-sort-placeholder.mdash-placeholder-success { border-color: #5cb85c !important; background: rgba(92, 184, 92, 0.15) !important; }";
+    styles += ".mdash-item-sort-placeholder.mdash-placeholder-success::after { background: #5cb85c !important; color: white !important; border-color: rgba(255,255,255,0.6) !important; font-weight: 700 !important; }";
     
     styles += ".mdash-item-drag-helper { opacity: 0.96; transform: none; box-shadow: 0 18px 32px rgba(2,6,23,0.30); border-radius: 10px; }";
     styles += ".ui-sortable-helper.mdash-canvas-item { z-index: 10050 !important; }";
@@ -4031,7 +4228,13 @@ function loadModernDashboardStyles() {
     styles += ".mdash-inline-title:hover { background: rgba(var(--md-primary-rgb),0.06); border-bottom-color: rgba(var(--md-primary-rgb),0.42); }";
     styles += ".mdash-inline-title:focus { background: rgba(var(--md-primary-rgb),0.09); border-bottom-color: var(--md-primary); }";
     styles += ".mdash-inline-title::placeholder { color: var(--md-muted); font-weight: 500; }";
-    styles += ".mdash-inline-title-sm { font-size: 13px !important; font-weight: 600 !important; width: 100%; }";
+    styles += ".mdash-inline-title-sm { font-size: 13px !important; font-weight: 600 !important; flex: 1; min-width: 0; cursor: text !important; }";
+    
+    // Wrapper do título com badge de tamanho
+    styles += ".mdash-item-title-wrapper { display: flex; align-items: center; gap: 8px; width: 100%; }";
+    styles += ".mdash-item-size-badge { flex-shrink: 0; background: linear-gradient(135deg, rgba(var(--md-primary-rgb), 0.12) 0%, rgba(var(--md-primary-rgb), 0.08) 100%); border: 1px solid rgba(var(--md-primary-rgb), 0.24); color: var(--md-primary); font-size: 9px; font-weight: 700; padding: 3px 6px; border-radius: 5px; letter-spacing: 0.5px; text-transform: uppercase; cursor: default; transition: all 0.2s ease; white-space: nowrap; line-height: 1; user-select: none; }";
+    styles += ".mdash-item-size-badge:hover { background: linear-gradient(135deg, rgba(var(--md-primary-rgb), 0.18) 0%, rgba(var(--md-primary-rgb), 0.12) 100%); border-color: rgba(var(--md-primary-rgb), 0.36); }";
+    
     styles += ".mdash-inline-layout-picker { position: relative; flex: 1; min-width: 0; }";
     styles += ".mdash-inline-layout-trigger { width: 100%; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(var(--md-primary-rgb),0.35); border-radius: 8px; background: #fff; color: var(--md-text); font-size: 12px; height: 40px; padding: 4px 10px; box-shadow: none; text-align: left; }";
     styles += ".mdash-inline-layout-trigger:hover { border-color: var(--md-primary); }";
