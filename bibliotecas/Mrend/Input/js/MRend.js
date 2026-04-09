@@ -221,6 +221,7 @@ function Mrend(options) {
     this.reportConfig = options.reportConfig ? new ReportConfigWrapper(options.reportConfig) : {};
     this.remoteFetch = options.remoteFetch || false;
     this.remoteFetchData = options.remoteFetchData ? new RemoteFetchData(options.remoteFetchData) : new RemoteFetchData({});
+    this.tabulatorHeight = options.tabulatorHeight || "400px";
 
     this.getTotalCelulasByFiltro = function (filtro) {
         _.sumBy(propostaMrendConfig.GCellObjectsConfig, function (cellObject) {
@@ -4971,7 +4972,7 @@ function Mrend(options) {
         $(mrendThis.containerToRender).css({
             "font-family": "Nunito, sans-serif",
             "color": "#161616",
-            "zoom": "0.75",
+            "zoom": "1",
             "padding-bottom": "30px",
             "overflow-x": "auto",
             "max-width": "100%"
@@ -5221,27 +5222,38 @@ function Mrend(options) {
             columnsDefinition.push(entry.def);
         });
 
-        // Com poucas colunas usa fitColumns com widthGrow proporcional ao tamanho
-        // configurado — mantém as proporções mas preenche 100% da largura.
-        var tabulatorLayout = mrendThis.GRenderedColunas.length <= 4 ? "fitColumns" : "fitData";
-
-        if (tabulatorLayout === "fitColumns") {
-            var nonFrozenCols = [];
-            (function collectNonFrozen(colDefs) {
-                colDefs.forEach(function (col) {
-                    if (col.columns) { collectNonFrozen(col.columns); }
-                    else if (!col.frozen) { nonFrozenCols.push(col); }
+        // ── Distribuição de largura estilo Bootstrap ──────────────────────────
+        // Com ≤ 5 colunas de dados: mede o container (já a zoom=1), subtrai as
+        // colunas frozen e os tamanhos definidos, e distribui o espaço restante
+        // igualmente pelas colunas de dados — preenchendo a largura total.
+        // Com > 5 colunas: usa fitDataFill com os tamanhos definidos e scroll-x.
+        var nDataCols = 0;
+        (function distribuirLarguras() {
+            // Colunas de dados (não-frozen) da columnsDefinition
+            var dataCols = [];
+            (function collectData(defs) {
+                defs.forEach(function (col) {
+                    if (col.columns) { collectData(col.columns); }
+                    else if (!col.frozen) { dataCols.push(col); }
                 });
             })(columnsDefinition);
 
-            var totalW = nonFrozenCols.reduce(function (sum, col) {
-                return sum + (col.width || 100);
-            }, 0);
-            nonFrozenCols.forEach(function (col) {
-                col.widthGrow = ((col.width || 100) / totalW) * nonFrozenCols.length;
-                delete col.width;
-            });
-        }
+            nDataCols = dataCols.length;
+
+            if (dataCols.length > 0 && dataCols.length <= 5) {
+                // fitColumns com widthGrow=1 em todas as colunas de dados:
+                // O Tabulator distribui o espaço restante (após as frozen) de forma
+                // perfectamente igual — sem medições manuais de scrollbar, zoom ou
+                // containerWidth. widthGrow=1 em todas = partes iguais garantidas,
+                // independentemente de dataTree controls, padding, ou bordas.
+                dataCols.forEach(function (col) {
+                    delete col.width;
+                    col.widthGrow = 1;
+                });
+            }
+        })();
+
+        var tabulatorLayout = nDataCols <= 5 ? "fitColumns" : "fitDataFill";
 
         if (mrendThis.GTable) {
             try { mrendThis.GTable.destroy(); } catch (e) { /* ignore destroy errors on re-render */ }
@@ -5267,7 +5279,7 @@ function Mrend(options) {
             popupContainer: "body",
             layout: tabulatorLayout,
             columnHeaderVertAlign: "bottom",
-            height: "400px", // altura fixa para ativar scroll e fixar cabeçalho
+            height: mrendThis.tabulatorHeight || "400px", // altura configurável via optrender
             rowFormatter: function (row) {
 
                 var data = row.getData();
@@ -5409,30 +5421,18 @@ function Mrend(options) {
 
         var tableBuiltEvent = function (data) {
 
-
             var currentScale = 0.75;
             var UIConfig = localStorage.getItem("UICONFIG_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName);
             if (UIConfig) {
-
                 try {
                     var parsedConfig = JSON.parse(UIConfig);
-
                     if (parsedConfig.zoomScale) {
                         currentScale = parsedConfig.zoomScale;
                     }
-
-                    $(mrendThis.containerToRender).css({
-                        "font-family": "Nunito, sans-serif",
-                        "color": "#161616",
-                        "zoom": currentScale
-                    });
-
-
                 } catch (e) {
                     console.error("Erro ao analisar UIConfig:", e);
                 }
             }
-            $(mrendThis.containerToRender).attr("data-zoom-scale", currentScale);
 
             // Resolve a promise para que addColunasByModelo possa chamar addColumn com segurança
             if (mrendThis._tableBuiltResolve) {
@@ -5440,20 +5440,20 @@ function Mrend(options) {
                 mrendThis._tableBuiltResolve = null;
             }
 
+            // Redraw enquanto zoom=1 para que fitColumns meça a largura real do container.
+            // As colunas ficam definidas em px naturais. O zoom CSS aplicado a seguir
+            // escala-as proporcionalmente — preenchendo sempre a largura visual como
+            // uma tabela Bootstrap independentemente do nível de zoom.
+            mrendThis.GTable.redraw(true);
+
+            // Aplicar zoom APÓS o redraw para não influenciar a medição das colunas
+            $(mrendThis.containerToRender).css("zoom", currentScale);
+            $(mrendThis.containerToRender).attr("data-zoom-scale", currentScale);
+
             mrendThis.applyTabulatorStylesWithJquery(mrendThis);
 
             // ── Adicionar linhas de totais ──
             adicionarLinhasDeTotais();
-
-            // Force Tabulator to re-measure column widths after the container
-            // has fully painted (zoom + surrounding layout settled).
-            // This replicates the fix that happens automatically on window resize.
-            setTimeout(function () {
-                if (mrendThis.GTable) {
-                    mrendThis.GTable.redraw(true);
-                    window.dispatchEvent(new Event('resize'));
-                }
-            }, 200);
 
             var cells = JSON.parse(JSON.stringify(mrendThis.GCellObjectsConfig));
 
@@ -5461,11 +5461,6 @@ function Mrend(options) {
                 global: mrendThis,
                 cells: cells
             });
-
-
-            /* setInterval(function () {
-              //   applyTabulatorStylesWithJquery();
-             }, 1000);*/
         }
 
         mrendThis.GTable.on("rowAdded", function (row) {
@@ -6662,12 +6657,13 @@ function Mrend(options) {
         if (repInstance.reportConfig.config.extra) {
             customStyles = repInstance.reportConfig.config.extra.customStyles || {};
         }
-        // Tabulator container
+        // Tabulator container — ocupa 100% do container pai (comportamento Bootstrap).
         $(".tabulator").css({
             "background-color": "white",
             "border-radius": "10px",
             "box-shadow": "0 4px 20px rgba(0, 0, 0, 0.08)",
-            "border": "none"
+            "border": "none",
+            "width": "100%"
         });
 
         // Header — base

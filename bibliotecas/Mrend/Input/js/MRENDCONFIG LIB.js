@@ -916,6 +916,7 @@ function MrendInitConfig(data) {
     this.configjson = data.configjson || "";
     this.config = data.config || {};
     this.schemas = data.schemas || [];
+    this.tabulatorHeight = data.tabulatorHeight || "400px";
 }
 
 MrendInitConfig.createDynamicSchema = function () {
@@ -986,7 +987,8 @@ MrendInitConfig.createDynamicSchema = function () {
                     "stamp": { "type": "string", "title": "Stamp (expressão JS)", "description": "Ex: getReportStamp() ou $(\"#ctl00_conteudo_mlstamp_mLabel1\").text()", "default": "" }
                 }
             },
-            "afterRenderCallback": { "type": "string", "title": "Callback Apos Render (nome da funcao)" }
+            "afterRenderCallback": { "type": "string", "title": "Callback Apos Render (nome da funcao)" },
+            "tabulatorHeight": { "type": "string", "title": "Altura da grelha (ex: 400px, 600px)", "description": "Altura fixa para ativar scroll e fixar cabeçalho", "default": "400px" }
 
         }
     };
@@ -1058,6 +1060,22 @@ function initJSONEditorMrendConfig(relatorioConfig) {
             configToLoad.schemas = configToLoad.schemas[0].tableSourceSchema || [];
         }
         editor.setValue(configToLoad);
+
+        // Manter collapsed após setValue (setValue expande todos os nós)
+        setTimeout(function () {
+            for (var key in editor.editors) {
+                if (editor.editors.hasOwnProperty(key)) {
+                    var ed = editor.editors[key];
+                    if (['array', 'object'].indexOf(ed.schema && ed.schema.type) !== -1 && ed.editor_holder) {
+                        ed.editor_holder.style.display = 'none';
+                        ed.collapsed = true;
+                        if (ed.toggle_button) {
+                            ed.setButtonText(ed.toggle_button, '', 'expand', ed.translate('button_expand'));
+                        }
+                    }
+                }
+            }
+        }, 0);
     });
 
     editor.on('change', function () {
