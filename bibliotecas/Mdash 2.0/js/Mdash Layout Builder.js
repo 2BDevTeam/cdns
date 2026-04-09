@@ -473,7 +473,7 @@ function updateLayoutPreview() {
     $('[data-lb-preview-cdn]').remove();
 
     // Inject CDN links from layout
-    var layout = getSelectedLayout();
+    var layout = getSelectedLayout(); 
     if (layout) {
         (layout.cssCdnsList || []).forEach(function (url) {
             $('head').append('<link rel="stylesheet" data-lb-preview-cdn href="' + encodeURI(url) + '" />');
