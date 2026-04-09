@@ -179,3 +179,29 @@ CREATE TABLE MdashContainerItemObjectDetail(
     titulobtndetalhes VARCHAR(250) DEFAULT ''
 )
 
+
+-- ============================================================================
+-- MdashContainerItemLayout - Layouts reutilizáveis para cards de dashboard
+-- Não está ligado a nenhum dashboard (sem dashboardstamp)
+-- ============================================================================
+CREATE TABLE MdashContainerItemLayout(
+
+    mdashcontaineritemlayoutstamp VARCHAR(25) PRIMARY KEY,
+    codigo VARCHAR(250) DEFAULT '',
+    descricao VARCHAR(250) DEFAULT '',
+    layoutsystem VARCHAR(50) DEFAULT 'HBF',         -- Sistema de layout: HBF (Header/Body/Footer), extensível
+    htmltemplate TEXT DEFAULT '',                      -- Template HTML com data-mdash-slot para zonas editáveis
+    csstemplate TEXT DEFAULT '',                       -- CSS do template
+    jstemplate TEXT DEFAULT '',                        -- JavaScript do template
+    slotsdefinition TEXT DEFAULT '[]',                 -- JSON: definição dos slots editáveis [{id, label, type, defaultContent}]
+    iconcdn TEXT DEFAULT '',                           -- URL do ícone/thumbnail CDN
+    jscdns TEXT DEFAULT '[]',                          -- JSON: array de CDNs JS necessários
+    csscdns TEXT DEFAULT '[]',                         -- JSON: array de CDNs CSS necessários
+    thumbnail TEXT DEFAULT '',                         -- Base64 ou URL da pré-visualização
+    ispublic BIT DEFAULT 1,                           -- Visível para todos os dashboards
+    versao INT DEFAULT 1,                             -- Controlo de versão
+    categoria VARCHAR(250) DEFAULT '',                -- Categoria para organização (ex: "Snapshot", "Card", "Chart")
+    ordem INT DEFAULT 0,
+    inactivo BIT DEFAULT 0
+)
+

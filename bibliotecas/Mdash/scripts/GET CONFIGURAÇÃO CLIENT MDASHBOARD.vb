@@ -62,6 +62,8 @@ Try
     Dim sqlParametersContainerItemObject as new List(Of System.Data.SqlClient.SqlParameter)
     sqlParametersContainerItemObject.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
     Dim queryResultContainerItemObject as DataTable= ExecuteQuery(queryMdashContainerItemObject,sqlParametersContainerItemObject)
+    Dim queryMdashContainerItemLayout="SELECT * FROM MdashContainerItemLayout WHERE inactivo=0 ORDER BY ordem ASC"
+    Dim queryResultContainerItemLayout as DataTable= ExecuteQuery(queryMdashContainerItemLayout, Nothing)
 
 
        ' Adiciona a nova coluna "filters" do tipo Object
@@ -102,7 +104,8 @@ Try
         .containers = queryResultContainer,
         .containerItems = queryResultContainerItem,
         .containerItemObjects = queryResultContainerItemObject,
-        .filters = queryResultFilter
+        .filters = queryResultFilter,
+        .containerItemLayouts = queryResultContainerItemLayout
         }
      
      Dim responseDTO= New With {.cod ="0000" ,.codDesc="Success",.message="Success",.data=dadosRelatorio}

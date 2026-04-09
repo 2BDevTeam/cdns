@@ -214,6 +214,15 @@ Try
    Dim config As Newtonsoft.Json.Linq.JArray = Newtonsoft.Json.Linq.JArray.Parse(parametro)(0)("config")
    Dim recordsToDelete As Newtonsoft.Json.Linq.JArray = Newtonsoft.Json.Linq.JArray.Parse(parametro)(0)("recordsToDelete")
 
+   ' Construir queries de DELETE a partir dos recordsToDelete
+   For Each deleteRecord As Newtonsoft.Json.Linq.JObject In recordsToDelete
+       Dim delTable As String = MapToDefaultValue(deleteRecord("table"))
+       Dim delStamp As String = MapToDefaultValue(deleteRecord("stamp"))
+       If Not String.IsNullOrEmpty(delTable) AndAlso Not String.IsNullOrEmpty(delStamp) Then
+           deleteConfiguracaQuery += "DELETE FROM " & delTable & " WHERE " & delTable & "stamp = '" & delStamp.Replace("'", "''") & "';" & vbCrLf
+       End If
+   Next
+
 
  Using connection as SqlClient.SqlConnection = SqlHelp.GetNewConnection()
    
@@ -262,16 +271,18 @@ Try
         End If
       
 
-        Dim sqlParametersDynamic as new List(Of System.Data.SqlClient.SqlParameter)
+        If Not String.IsNullOrEmpty(dynamicGlobalQuery) Then
+            Dim sqlParametersDynamic as new List(Of System.Data.SqlClient.SqlParameter)
 
-        Using command As New System.Data.SqlClient.SqlCommand(dynamicGlobalQuery, connection, transaction)
-            If sqlParametersDynamic IsNot Nothing Then
-                For Each sqlParameter As System.Data.SqlClient.SqlParameter In sqlParametersDynamic
-                    command.Parameters.Add(sqlParameter)
-                Next
-            End If
-            command.ExecuteNonQuery()
-        End Using
+            Using command As New System.Data.SqlClient.SqlCommand(dynamicGlobalQuery, connection, transaction)
+                If sqlParametersDynamic IsNot Nothing Then
+                    For Each sqlParameter As System.Data.SqlClient.SqlParameter In sqlParametersDynamic
+                        command.Parameters.Add(sqlParameter)
+                    Next
+                End If
+                command.ExecuteNonQuery()
+            End Using
+        End If
 
         transaction.Commit()
 

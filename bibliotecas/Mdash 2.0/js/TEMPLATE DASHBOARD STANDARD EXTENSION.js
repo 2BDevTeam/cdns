@@ -2570,228 +2570,183 @@ function expandChildrenRecursive(row) {
 
 
 
-function getTemplateLayoutOptions() {
+/**
+ * getDefaultLayoutDefinitions()
+ * Retorna as definições de layouts padrão no formato MdashContainerItemLayout.
+ * Cada layout tem: htmltemplate (com data-mdash-slot), csstemplate, slotsdefinition, containerSelectorToRender.
+ * As funções generate* originais permanecem para retrocompatibilidade geral,
+ * mas o pipeline de renderização agora é unificado via renderUnifiedLayout().
+ */
+function getDefaultLayoutDefinitions() {
+
+    // ── HTML Templates partilhados ──────────────────────────────────────────
+
+    var _tplDashCardInfo =
+        '<div id="mdash{{id}}" class="c-dashboardInfo {{classes}}" style="height:100%!important;{{styles}}">' +
+        '<div class="wrap c-dashboardInfo_{{tipo}}">' +
+        '<h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">' +
+        '<span data-mdash-slot="title"></span> <i data-mdash-slot="icon" data-mdash-slot-mode="class"></i>' +
+        '</h4>' +
+        '<div data-mdash-slot="header" class="{{headerClasses}}"></div>' +
+        '<div data-mdash-slot="body" class="m-dash-card-body-content dashcard-body"></div>' +
+        '<div data-mdash-slot="footer" class="dashcard-footer"></div>' +
+        '</div></div>';
+
+    var _tplDashCardSnapshot =
+        '<div id="{{id}}" class="m-dash-item snapshot {{classes}}" style="height:100%!important;{{styles}}">' +
+        '<div class="stats-card-value-container">' +
+        '<span data-mdash-slot="title" class="stats-card-label"></span>' +
+        '<div data-mdash-slot="body" class="stats-card-body"></div>' +
+        '</div></div>';
+
+    var _tplMDashCardSnapV2 =
+        '<div id="{{id}}" class="m-dash-card-snap-v2 {{classes}}" style="{{styles}}">' +
+        '<div class="m-dash-card-snap-v2-content">' +
+        '<div class="m-dash-card-snap-v2-icon bg-{{tipo}}">' +
+        '<i data-mdash-slot="icon" class="material-symbols-rounded">analytics</i>' +
+        '</div>' +
+        '<div style="display:flex!important;flex-direction:column!important" class="m-dash-card-snap-v2-info">' +
+        '<div><h4 data-mdash-slot="title" class="m-dash-card-snap-v2-title"></h4></div>' +
+        '<div data-mdash-slot="body" class="m-dash-card-snap-v2-value"></div>' +
+        '</div></div>' +
+        '<div data-mdash-slot="footer" class="m-dash-card-snap-v2-footer"></div>' +
+        '</div>';
+
+    var _tplDashCardStandard =
+        '<div id="{{id}}" class="m-dash-item {{classes}}" style="height:100%!important;{{styles}}">' +
+        '<h1 data-mdash-slot="title" class="m-dash-item-title"></h1>' +
+        '<div data-mdash-slot="body" class="m-dash-standard-card-body"></div>' +
+        '</div>';
+
+    var _tplDashCardHTML =
+        '<div id="{{id}}" style="height:100%!important;" class="dashcard">' +
+        '<div class="dashcard-header dashcard-header-{{tipo}}">' +
+        '<span data-mdash-slot="title" class="dashcard-title"></span>' +
+        '</div>' +
+        '<div data-mdash-slot="body" class="dashcard-body table-responsive"></div>' +
+        '</div>';
+
+    var _tplPlainCard =
+        '<div id="mdash{{id}}" class="m-dash-plain-card {{classes}}" style="height:100%!important;{{styles}}">' +
+        '<div class="wrap m-dash-plain-card_{{tipo}}">' +
+        '<h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">' +
+        '<i data-mdash-slot="icon" data-mdash-slot-mode="class"></i>' +
+        '</h4>' +
+        '<div data-mdash-slot="header" class="{{headerClasses}}"></div>' +
+        '<div data-mdash-slot="body" class="m-dash-plain-card-body-content"></div>' +
+        '<div data-mdash-slot="footer" class="m-dash-plain-card-footer"></div>' +
+        '</div></div>';
+
+    var _tplBrdMetric =
+        '<div id="{{id}}" class="brd-card-advanced brd-card-advanced-metrica {{classes}}" style="{{styles}}">' +
+        '<div class="brd-card-advanced-icon brd-card-advanced-icon-{{tipo}}">' +
+        '<i data-mdash-slot="icon" class="material-symbols-rounded">analytics</i>' +
+        '</div>' +
+        '<div data-mdash-slot="body" class="brd-card-advanced-content"></div>' +
+        '</div>';
+
+    var _tplBrdStatus =
+        '<div id="{{id}}" class="brd-card-advanced brd-card-advanced-status {{classes}} brd-card-advanced-status-{{tipo}}" style="{{styles}}">' +
+        '<div class="brd-card-advanced-status-header">' +
+        '<i data-mdash-slot="icon" data-mdash-slot-mode="class"></i>' +
+        '<span data-mdash-slot="status-badge" class="brd-card-advanced-status-badge"></span>' +
+        '</div>' +
+        '<div data-mdash-slot="body" class="brd-card-advanced-status-body"></div>' +
+        '</div>';
+
+    var _tplBrdAlert =
+        '<div id="{{id}}" class="brd-card-advanced brd-card-advanced-alert {{classes}} brd-card-advanced-alert-{{tipo}}" style="{{styles}}">' +
+        '<div class="brd-card-advanced-alert-icon">' +
+        '<i data-mdash-slot="icon" data-mdash-slot-mode="class"></i>' +
+        '</div>' +
+        '<div data-mdash-slot="body" class="brd-card-advanced-alert-content"></div>' +
+        '</div>';
+
+    // ── Definições de slots partilhadas ─────────────────────────────────────
+
+    var _slotsDashCardInfo = JSON.stringify([
+        { id: "title", label: "Título", type: "text" },
+        { id: "icon", label: "Ícone", type: "icon" },
+        { id: "header", label: "Cabeçalho", type: "content" },
+        { id: "body", label: "Corpo", type: "content", isMainContent: true },
+        { id: "footer", label: "Rodapé", type: "content" }
+    ]);
+
+    var _slotsDashCardSnapshot = JSON.stringify([
+        { id: "title", label: "Título", type: "text" },
+        { id: "body", label: "Corpo", type: "content", isMainContent: true }
+    ]);
+
+    var _slotsMDashCardSnapV2 = JSON.stringify([
+        { id: "title", label: "Título", type: "text" },
+        { id: "icon", label: "Ícone", type: "icon" },
+        { id: "body", label: "Valor", type: "content", isMainContent: true },
+        { id: "footer", label: "Rodapé", type: "content" }
+    ]);
+
+    var _slotsDashCardStandard = JSON.stringify([
+        { id: "title", label: "Título", type: "text" },
+        { id: "body", label: "Corpo", type: "content", isMainContent: true }
+    ]);
+
+    var _slotsDashCardHTML = JSON.stringify([
+        { id: "title", label: "Título", type: "text" },
+        { id: "body", label: "Corpo", type: "content", isMainContent: true }
+    ]);
+
+    var _slotsPlainCard = JSON.stringify([
+        { id: "icon", label: "Ícone", type: "icon" },
+        { id: "header", label: "Cabeçalho", type: "content" },
+        { id: "body", label: "Corpo", type: "content", isMainContent: true },
+        { id: "footer", label: "Rodapé", type: "content" }
+    ]);
+
+    var _slotsBrdMetric = JSON.stringify([
+        { id: "icon", label: "Ícone", type: "icon" },
+        { id: "body", label: "Conteúdo", type: "content", isMainContent: true }
+    ]);
+
+    var _slotsBrdStatus = JSON.stringify([
+        { id: "icon", label: "Ícone", type: "icon" },
+        { id: "status-badge", label: "Badge de Estado", type: "text" },
+        { id: "body", label: "Corpo", type: "content", isMainContent: true }
+    ]);
+
+    var _slotsBrdAlert = JSON.stringify([
+        { id: "icon", label: "Ícone", type: "icon" },
+        { id: "body", label: "Conteúdo", type: "content", isMainContent: true }
+    ]);
+
+    // ── Definições dos layouts ──────────────────────────────────────────────
+
     return [
-        {
-            descricao: "Snapshot Layout v1",
-            codigo: "snapshot_layout_v1",
-            tipo: "snapshot",
-            generateCard: generateDashCardInfo,
-            UIData: {
-                tipo: "primary"
-            },
-            containerSelectorToRender: ".m-dash-card-body-content"
-        },
-        {
-            descricao: "Snapshot Layout v1 Warning",
-            codigo: "snapshot_layout_v1_warning",
-            tipo: "snapshot",
-            UIData: {
-                tipo: "warning"
-            },
-            generateCard: generateDashCardInfo,
-            containerSelectorToRender: ".m-dash-card-body-content"
-        },
-        {
-            descricao: "Snapshot layout v2",
-            codigo: "snapshot_layout_v2",
-            tipo: "snapshot",
-            UIData: {
-                tipo: "primary"
-            },
-            generateCard: generateDashCardSnapshot,
-            containerSelectorToRender: ".stats-card-body"
-        },
-        {
-            descricao: "Snap card Warning",
-            codigo: "snapshot_card_warning",
-            tipo: "snapshot",
-            UIData: {
-                tipo: "warning"
-            },
-            generateCard: generateMDashCardSnapV2,
-            containerSelectorToRender: ".m-dash-card-snap-v2-value"
-        },
-        {
-            descricao: "Snap Card",
-            codigo: "snap_card",
-            tipo: "snapshot",
-            UIData: {
-                tipo: "primary"
-            },
-            generateCard: generateMDashCardSnapV2,
-            containerSelectorToRender: ".m-dash-card-snap-v2-value"
-        },
-        {
-            descricao: "Snap Card Success",
-            codigo: "snap_card_success",
-            tipo: "snapshot",
-            UIData: {
-                tipo: "success"
-            },
-            generateCard: generateMDashCardSnapV2,
-            containerSelectorToRender: ".m-dash-card-snap-v2-value"
-        },
-        {
-            descricao: "Snap card Danger",
-            codigo: "snapshot_card_danger",
-            tipo: "snapshot",
-            UIData: {
-                tipo: "danger"
-            },
-            generateCard: generateMDashCardSnapV2,
-            containerSelectorToRender: ".m-dash-card-snap-v2-value"
-        },
-        {
-            descricao: "Card standard",
-            codigo: "card_standard",
-            tipo: "card",
-            UIData: {
-                tipo: "primary"
-            },
-            generateCard: generateDashCardStandard,
-            containerSelectorToRender: ".m-dash-standard-card-body"
-        },
-        {
-            descricao: "Card header destacado",
-            codigo: "card_header_highlighted",
-            tipo: "card",
-            UIData: {
-                tipo: "primary"
-            },
-            generateCard: generateDashCardHTML,
-            containerSelectorToRender: ".dashcard-body"
-        },
-        {
-            descricao: "Plain Card",
-            codigo: "plain_card",
-            tipo: "card",
-            UIData: {
-                tipo: "primary"
-            },
-            generateCard: generatePlainCard,
-            containerSelectorToRender: ".m-dash-plain-card-body-content"
-        },
-        {
-            descricao: "Top Border Card Advanced - Metric Primary",
-            codigo: "brd_card_advanced_metric_primary",
-            tipo: "card",
-            UIData: {
-                tipo: "primary"
-            },
-            generateCard: generateBrdCardAdvancedMetric,
-            containerSelectorToRender: ".brd-card-advanced-content"
-        },
-        {
-            descricao: "Top Border Card Advanced - Metric Success",
-            codigo: "brd_card_advanced_metric_success",
-            tipo: "card",
-            UIData: {
-                tipo: "success"
-            },
-            generateCard: generateBrdCardAdvancedMetric,
-            containerSelectorToRender: ".brd-card-advanced-content"
-        },
-        {
-            descricao: "Top Border Card Advanced - Metric Warning",
-            codigo: "brd_card_advanced_metric_warning",
-            tipo: "card",
-            UIData: {
-                tipo: "warning"
-            },
-            generateCard: generateBrdCardAdvancedMetric,
-            containerSelectorToRender: ".brd-card-advanced-content"
-        },
-        {
-            descricao: "Top Border Card Advanced - Metric Danger",
-            codigo: "brd_card_advanced_metric_danger",
-            tipo: "card",
-            UIData: {
-                tipo: "danger"
-            },
-            generateCard: generateBrdCardAdvancedMetric,
-            containerSelectorToRender: ".brd-card-advanced-content"
-        },
-        {
-            descricao: "Top Border Card Advanced - Status Primary",
-            codigo: "brd_card_advanced_status_primary",
-            tipo: "card",
-            UIData: {
-                tipo: "primary"
-            },
-            generateCard: generateBrdCardAdvancedStatus,
-            containerSelectorToRender: ".brd-card-advanced-status-body"
-        },
-        {
-            descricao: "Top Border Card Advanced - Status Success",
-            codigo: "brd_card_advanced_status_success",
-            tipo: "card",
-            UIData: {
-                tipo: "success"
-            },
-            generateCard: generateBrdCardAdvancedStatus,
-            containerSelectorToRender: ".brd-card-advanced-status-body"
-        },
-        {
-            descricao: "Top Border Card Advanced - Status Warning",
-            codigo: "brd_card_advanced_status_warning",
-            tipo: "card",
-            UIData: {
-                tipo: "warning"
-            },
-            generateCard: generateBrdCardAdvancedStatus,
-            containerSelectorToRender: ".brd-card-advanced-status-body"
-        },
-        {
-            descricao: "Top Border Card Advanced - Status Danger",
-            codigo: "brd_card_advanced_status_danger",
-            tipo: "card",
-            UIData: {
-                tipo: "danger"
-            },
-            generateCard: generateBrdCardAdvancedStatus,
-            containerSelectorToRender: ".brd-card-advanced-status-body"
-        },
-        {
-            descricao: "Top Border Card Advanced - Alert Primary",
-            codigo: "brd_card_advanced_alert_primary",
-            tipo: "card",
-            UIData: {
-                tipo: "primary"
-            },
-            generateCard: generateBrdCardAdvancedAlert,
-            containerSelectorToRender: ".brd-card-advanced-alert-content"
-        },
-        {
-            descricao: "Top Border Card Advanced - Alert Success",
-            codigo: "brd_card_advanced_alert_success",
-            tipo: "card",
-            UIData: {
-                tipo: "success"
-            },
-            generateCard: generateBrdCardAdvancedAlert,
-            containerSelectorToRender: ".brd-card-advanced-alert-content"
-        },
-        {
-            descricao: "Top Border Card Advanced - Alert Warning",
-            codigo: "brd_card_advanced_alert_warning",
-            tipo: "card",
-            UIData: {
-                tipo: "warning"
-            },
-            generateCard: generateBrdCardAdvancedAlert,
-            containerSelectorToRender: ".brd-card-advanced-alert-content"
-        },
-        {
-            descricao: "Top Border Card Advanced - Alert Danger",
-            codigo: "brd_card_advanced_alert_danger",
-            tipo: "card",
-            UIData: {
-                tipo: "danger"
-            },
-            generateCard: generateBrdCardAdvancedAlert,
-            containerSelectorToRender: ".brd-card-advanced-alert-content"
-        }
+        // ───── Snapshots ─────
+        { descricao: "Snapshot Layout v1",          codigo: "snapshot_layout_v1",          tipo: "snapshot", UIData: { tipo: "primary" },  htmltemplate: _tplDashCardInfo,     csstemplate: "", slotsdefinition: _slotsDashCardInfo,     containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snapshot Layout v1 Warning",  codigo: "snapshot_layout_v1_warning",  tipo: "snapshot", UIData: { tipo: "warning" },  htmltemplate: _tplDashCardInfo,     csstemplate: "", slotsdefinition: _slotsDashCardInfo,     containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snapshot layout v2",          codigo: "snapshot_layout_v2",          tipo: "snapshot", UIData: { tipo: "primary" },  htmltemplate: _tplDashCardSnapshot, csstemplate: "", slotsdefinition: _slotsDashCardSnapshot, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snap card Warning",           codigo: "snapshot_card_warning",       tipo: "snapshot", UIData: { tipo: "warning" },  htmltemplate: _tplMDashCardSnapV2,  csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2,  containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snap Card",                   codigo: "snap_card",                   tipo: "snapshot", UIData: { tipo: "primary" },  htmltemplate: _tplMDashCardSnapV2,  csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2,  containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snap Card Success",           codigo: "snap_card_success",           tipo: "snapshot", UIData: { tipo: "success" },  htmltemplate: _tplMDashCardSnapV2,  csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2,  containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snap card Danger",            codigo: "snapshot_card_danger",        tipo: "snapshot", UIData: { tipo: "danger" },   htmltemplate: _tplMDashCardSnapV2,  csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2,  containerSelectorToRender: '[data-mdash-slot="body"]' },
+        // ───── Cards ─────
+        { descricao: "Card standard",               codigo: "card_standard",               tipo: "card", UIData: { tipo: "primary" },  htmltemplate: _tplDashCardStandard, csstemplate: "", slotsdefinition: _slotsDashCardStandard, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Card header destacado",       codigo: "card_header_highlighted",     tipo: "card", UIData: { tipo: "primary" },  htmltemplate: _tplDashCardHTML,     csstemplate: "", slotsdefinition: _slotsDashCardHTML,     containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Plain Card",                  codigo: "plain_card",                  tipo: "card", UIData: { tipo: "primary" },  htmltemplate: _tplPlainCard,        csstemplate: "", slotsdefinition: _slotsPlainCard,        containerSelectorToRender: '[data-mdash-slot="body"]' },
+        // ───── BRD Metric ─────
+        { descricao: "Top Border Card Advanced - Metric Primary", codigo: "brd_card_advanced_metric_primary", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Metric Success", codigo: "brd_card_advanced_metric_success", tipo: "card", UIData: { tipo: "success" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Metric Warning", codigo: "brd_card_advanced_metric_warning", tipo: "card", UIData: { tipo: "warning" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Metric Danger",  codigo: "brd_card_advanced_metric_danger",  tipo: "card", UIData: { tipo: "danger" },  htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        // ───── BRD Status ─────
+        { descricao: "Top Border Card Advanced - Status Primary", codigo: "brd_card_advanced_status_primary", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Status Success", codigo: "brd_card_advanced_status_success", tipo: "card", UIData: { tipo: "success" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Status Warning", codigo: "brd_card_advanced_status_warning", tipo: "card", UIData: { tipo: "warning" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Status Danger",  codigo: "brd_card_advanced_status_danger",  tipo: "card", UIData: { tipo: "danger" },  htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        // ───── BRD Alert ─────
+        { descricao: "Top Border Card Advanced - Alert Primary",  codigo: "brd_card_advanced_alert_primary",  tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Alert Success",  codigo: "brd_card_advanced_alert_success",  tipo: "card", UIData: { tipo: "success" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Alert Warning",  codigo: "brd_card_advanced_alert_warning",  tipo: "card", UIData: { tipo: "warning" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Alert Danger",   codigo: "brd_card_advanced_alert_danger",   tipo: "card", UIData: { tipo: "danger" },  htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' }
     ];
 }
 
@@ -3246,11 +3201,12 @@ function addDashboardStyles(styles) {
     dashboardCSS += "color:#2ecc71;";
     dashboardCSS += "font-weight:600;";
     dashboardCSS += "}";
-    dashboardCSS += ".bg-primary{background:linear-gradient(135deg," + getColorByType("primary").background + "," + getColorByType("primary").background + ");}";
-    dashboardCSS += ".bg-success{background:linear-gradient(135deg,#16a34a,#15803d);}";
-    dashboardCSS += ".bg-warning{background:linear-gradient(135deg," + getColorByType("warning").background + "," + getColorByType("warning").background + ");}";
-    dashboardCSS += ".bg-danger{background:linear-gradient(135deg,#ef4444,#b91c1c);}";
-    dashboardCSS += ".bg-dark{background:linear-gradient(135deg,#334155,#0f172a);}";
+    // bg-* SCOPED para ícones de snap cards (evitar override global do Bootstrap .bg-*)
+    dashboardCSS += ".m-dash-card-snap-v2-icon.bg-primary{background:linear-gradient(135deg," + getColorByType("primary").background + "," + getColorByType("primary").background + ");}";
+    dashboardCSS += ".m-dash-card-snap-v2-icon.bg-success{background:linear-gradient(135deg,#16a34a,#15803d);}";
+    dashboardCSS += ".m-dash-card-snap-v2-icon.bg-warning{background:linear-gradient(135deg," + getColorByType("warning").background + "," + getColorByType("warning").background + ");}";
+    dashboardCSS += ".m-dash-card-snap-v2-icon.bg-danger{background:linear-gradient(135deg,#ef4444,#b91c1c);}";
+    dashboardCSS += ".m-dash-card-snap-v2-icon.bg-dark{background:linear-gradient(135deg,#334155,#0f172a);}";
 
     dashboardCSS += ".m-dash-card-snap-v2-icon i{transition:transform 0.4s ease;}";
     dashboardCSS += ".m-dash-card-snap-v2:hover .m-dash-card-snap-v2-icon i{transform:scale(1.15) rotate(5deg);}";
@@ -4091,7 +4047,7 @@ function addDashboardStyles(styles) {
     
     // Buttons Modern Style
     dashboardCSS += ".mdash-canvas-actions .btn,";
-    dashboardCSS += ".panel-body .btn-block{";
+    dashboardCSS += ".mdash-editor-wrapper .panel-body .btn-block{";
     dashboardCSS += "padding:10px 20px;";
     dashboardCSS += "border-radius:10px;";
     dashboardCSS += "font-weight:600;";
@@ -4103,34 +4059,35 @@ function addDashboardStyles(styles) {
     dashboardCSS += "overflow:hidden;";
     dashboardCSS += "}";
     
-    dashboardCSS += ".btn-primary{";
+    // Botões do editor MDash 2.0 - SCOPED para não afetar botões fora do editor
+    dashboardCSS += ".mdash-editor-wrapper .btn-primary{";
     dashboardCSS += "background:" + getColorByType("primary").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
     
-    dashboardCSS += ".btn-primary:hover{";
+    dashboardCSS += ".mdash-editor-wrapper .btn-primary:hover{";
     dashboardCSS += "background:" + getColorByType("primary").background + ";";
     dashboardCSS += "transform:translateY(-2px);";
     dashboardCSS += "box-shadow:0 6px 20px rgba(102,126,234,0.4);";
     dashboardCSS += "}";
     
-    dashboardCSS += ".btn-success{";
+    dashboardCSS += ".mdash-editor-wrapper .btn-success{";
     dashboardCSS += "background:" + getColorByType("success").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
     
-    dashboardCSS += ".btn-success:hover{";
+    dashboardCSS += ".mdash-editor-wrapper .btn-success:hover{";
     dashboardCSS += "background:" + getColorByType("success").background + ";";
     dashboardCSS += "transform:translateY(-2px);";
     dashboardCSS += "box-shadow:0 6px 20px rgba(16,185,129,0.4);";
     dashboardCSS += "}";
     
-    dashboardCSS += ".btn-info{";
+    dashboardCSS += ".mdash-editor-wrapper .btn-info{";
     dashboardCSS += "background:" + getColorByType("info").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
     
-    dashboardCSS += ".btn-info:hover{";
+    dashboardCSS += ".mdash-editor-wrapper .btn-info:hover{";
     dashboardCSS += "background:" + getColorByType("info").background + ";";
     dashboardCSS += "transform:translateY(-2px);";
     dashboardCSS += "box-shadow:0 6px 20px rgba(59,130,246,0.4);";

@@ -24,7 +24,9 @@ var GMDashContainerItemObjects = [];
 var GMDashContainerItemObjectDetails = [];
 var GMDashFilters = [];
 var GMDashFontes = [];
+var GMDashContainerItemLayouts = [];
 var GMdashDeleteRecords = [];
+var GMDashTempRecordToDelete = null; // Armazém temporário para confirmações de eliminação
 var GMDashStamp = "";
 var selectedObject = {};
 var GSelectedElement = null;
@@ -81,6 +83,8 @@ function renderContainerItemTemplate(item) {
             tipo: (template.UIData && template.UIData.tipo) || "primary",
             bodyContent: "Pré-visualização"
         });
+        // Strip <style> tags from preview to prevent CSS from bleeding into the MDash 2.0 UI
+        html = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
     } else if (template && template.sampleHtml) {
         html = template.sampleHtml;
     } else {
@@ -443,8 +447,208 @@ MDashFonte.prototype.stringifyJSONFields = function () {
 }
 
 // ============================================================================
+// MdashContainerItemLayout - Layouts reutilizáveis para cards
+// ============================================================================
+
+function MdashContainerItemLayout(data) {
+    var maxOrdem = 0;
+    if (Array.isArray(GMDashContainerItemLayouts) && GMDashContainerItemLayouts.length > 0) {
+        maxOrdem = GMDashContainerItemLayouts.reduce(function (max, item) {
+            return Math.max(max, item.ordem || 0);
+        }, 0);
+    }
+
+    this.mdashcontaineritemlayoutstamp = data.mdashcontaineritemlayoutstamp || generateUUID();
+    this.codigo = data.codigo || "Layout" + gerarIdNumerico();
+    this.descricao = data.descricao || 'Novo Layout ' + (data.ordem || (maxOrdem + 1));
+    this.layoutsystem = data.layoutsystem || 'HBF';
+    this.htmltemplate = data.htmltemplate || '';
+    this.csstemplate = data.csstemplate || '';
+    this.jstemplate = data.jstemplate || '';
+    this.slotsdefinition = data.slotsdefinition || '[]';
+    this.iconcdn = data.iconcdn || '';
+    this.jscdns = data.jscdns || '[]';
+    this.csscdns = data.csscdns || '[]';
+    this.thumbnail = data.thumbnail || '';
+    this.ispublic = data.ispublic !== undefined ? data.ispublic : true;
+    this.versao = data.versao || 1;
+    this.categoria = data.categoria || '';
+    this.ordem = data.ordem || (maxOrdem + 1);
+    this.inactivo = data.inactivo || false;
+
+    // Parsed JSON fields (in-memory only)
+    this.slots = forceJSONParse(this.slotsdefinition, []);
+    this.jsCdnsList = forceJSONParse(this.jscdns, []);
+    this.cssCdnsList = forceJSONParse(this.csscdns, []);
+
+    // Metadata for CRUD operations
+    this.localsource = "GMDashContainerItemLayouts";
+    this.idfield = "mdashcontaineritemlayoutstamp";
+    this.table = "MdashContainerItemLayout";
+}
+
+MdashContainerItemLayout.prototype.stringifyJSONFields = function () {
+    this.slotsdefinition = JSON.stringify(this.slots || []);
+    this.jscdns = JSON.stringify(this.jsCdnsList || []);
+    this.csscdns = JSON.stringify(this.cssCdnsList || []);
+    return this;
+}
+
+/**
+ * Gera o HTML completo do layout com CSS e JS injectados
+ * Usado para pré-visualização no builder e renderização no dashboard
+ */
+MdashContainerItemLayout.prototype.renderPreview = function (containerSelector) {
+    var html = '';
+    html += '<style>' + (this.csstemplate || '') + '</style>';
+    html += this.htmltemplate || '<div class="text-muted text-center p-3">Sem template HTML definido</div>';
+    
+    if (containerSelector) {
+        $(containerSelector).html(html);
+        // Execute JS template in context
+        if (this.jstemplate) {
+            try { eval(this.jstemplate); } catch (e) { console.error("Erro no JS do layout:", e); }
+        }
+    }
+    return html;
+}
+
+/**
+ * Retorna este layout como template option compatível com o sistema unificado.
+ * Usa renderUnifiedLayout() — o mesmo pipeline de defaults e customs.
+ */
+MdashContainerItemLayout.prototype.toTemplateOption = function () {
+    var self = this;
+    return {
+        descricao: this.descricao || this.codigo,
+        codigo: 'custom_' + this.mdashcontaineritemlayoutstamp,
+        tipo: 'custom',
+        isCustomLayout: true,
+        layoutStamp: this.mdashcontaineritemlayoutstamp,
+        UIData: { tipo: 'primary' },
+        htmltemplate: this.htmltemplate || '',
+        csstemplate: this.csstemplate || '',
+        slotsdefinition: this.slotsdefinition || '[]',
+        slots: this.slots || [],
+        containerSelectorToRender: '[data-mdash-slot="body"]',
+        generateCard: function (cardData) {
+            return renderUnifiedLayout(this, cardData);
+        }
+    };
+}
+
+function getContainerItemLayoutUIObjectFormConfigAndSourceValues() {
+    var layoutSystemOptions = [
+        { option: "Header / Body / Footer (HBF)", value: "HBF" }
+        // Extensível: adicionar novos sistemas aqui
+    ];
+
+    var categoriaOptions = [
+        { option: "Snapshot", value: "snapshot" },
+        { option: "Card", value: "card" },
+        { option: "Chart", value: "chart" },
+        { option: "Table", value: "table" },
+        { option: "Custom", value: "custom" }
+    ];
+
+    var objectsUIFormConfig = [
+        new UIObjectFormConfig({ colSize: 4, campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "descricao", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "layoutsystem", tipo: "select", titulo: "Sistema de Layout", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: layoutSystemOptions }),
+        new UIObjectFormConfig({ colSize: 6, campo: "categoria", tipo: "select", titulo: "Categoria", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: categoriaOptions }),
+        new UIObjectFormConfig({ colSize: 4, campo: "versao", tipo: "digit", titulo: "Versão", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "ordem", tipo: "digit", titulo: "Ordem", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "ispublic", tipo: "checkbox", titulo: "Público", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "iconcdn", tipo: "text", titulo: "URL Ícone CDN", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 300px;", campo: "htmltemplate", tipo: "div", titulo: "HTML Template", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "csstemplate", tipo: "div", titulo: "CSS Template", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "jstemplate", tipo: "div", titulo: "JS Template", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 150px;", campo: "slotsdefinition", tipo: "div", titulo: "Slots Definition (JSON)", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 100px;", campo: "jscdns", tipo: "div", titulo: "JS CDNs (JSON array)", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 100px;", campo: "csscdns", tipo: "div", titulo: "CSS CDNs (JSON array)", classes: "input-source-form m-editor", contentType: "div" })
+    ];
+
+    return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashContainerItemLayouts", idField: "mdashcontaineritemlayoutstamp" };
+}
+
+// ============================================================================
 // UTILITY FUNCTIONS (Mantidas)
 // ============================================================================
+
+/**
+ * Modal genérica de confirmação de eliminação
+ * Coloca o registo em GMDashTempRecordToDelete e só move para GMdashDeleteRecords se confirmar
+ */
+function showDeleteConfirmation(options) {
+    // options: { title, message, recordToDelete, onConfirm, onCancel }
+    GMDashTempRecordToDelete = options.recordToDelete || null;
+    
+    // Remove modal anterior se existir
+    $('#mdash-delete-confirm-modal').remove();
+    
+    // Cria modal Bootstrap customizada
+    var modalHtml = '';
+    modalHtml += '<div class="modal fade" id="mdash-delete-confirm-modal" tabindex="-1" role="dialog">';
+    modalHtml += '  <div class="modal-dialog modal-sm" role="document">';
+    modalHtml += '    <div class="modal-content">';
+    modalHtml += '      <div class="modal-header bg-danger text-white">';
+    modalHtml += '        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fechar">';
+    modalHtml += '          <span aria-hidden="true">&times;</span>';
+    modalHtml += '        </button>';
+    modalHtml += '        <h4 class="modal-title"><i class="glyphicon glyphicon-exclamation-sign"></i> ' + (options.title || 'Confirmar eliminação') + '</h4>';
+    modalHtml += '      </div>';
+    modalHtml += '      <div class="modal-body">';
+    modalHtml += '        <p>' + (options.message || 'Tem a certeza?') + '</p>';
+    modalHtml += '      </div>';
+    modalHtml += '      <div class="modal-footer">';
+    modalHtml += '        <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>';
+    modalHtml += '        <button type="button" class="btn btn-danger" id="mdash-delete-confirm-btn">Eliminar</button>';
+    modalHtml += '      </div>';
+    modalHtml += '    </div>';
+    modalHtml += '  </div>';
+    modalHtml += '</div>';
+    
+    $('body').append(modalHtml);
+    
+    // Handler do botão confirmar
+    $('#mdash-delete-confirm-btn').off('click').on('click', function() {
+        // Confirmado: move para GMdashDeleteRecords e executa callback
+        if (GMDashTempRecordToDelete) {
+            GMdashDeleteRecords.push(GMDashTempRecordToDelete);
+        }
+        GMDashTempRecordToDelete = null;
+        
+        $('#mdash-delete-confirm-modal').modal('hide');
+        
+        if (typeof options.onConfirm === 'function') {
+            options.onConfirm();
+        }
+    });
+    
+    // Handler do cancelamento (fechar modal ou botão cancelar)
+    $('#mdash-delete-confirm-modal').off('hidden.bs.modal').on('hidden.bs.modal', function() {
+        // Se ainda há registo temporário, foi cancelado
+        if (GMDashTempRecordToDelete !== null) {
+            GMDashTempRecordToDelete = null;
+            
+            if (typeof options.onCancel === 'function') {
+                options.onCancel();
+            } else {
+                alertify.message('Eliminação cancelada');
+            }
+        }
+        
+        // Remove modal do DOM
+        $(this).remove();
+    });
+    
+    // Mostra modal
+    $('#mdash-delete-confirm-modal').modal({
+        backdrop: 'static',
+        keyboard: true
+    });
+}
 
 
 
@@ -706,6 +910,13 @@ function loadDashboardDataFromServer(config) {
                             return new MDashFonte(fonte);
                         });
                     }
+
+                    // Container Item Layouts (global, sem dashboardstamp)
+                    if (dashboardData.containerItemLayouts) {
+                        GMDashContainerItemLayouts = dashboardData.containerItemLayouts.map(function (l) {
+                            return new MdashContainerItemLayout(l);
+                        });
+                    }
                 }
 
                 console.log("Dados carregados:", {
@@ -714,6 +925,7 @@ function loadDashboardDataFromServer(config) {
                     objects: GMDashContainerItemObjects.length,
                     filters: GMDashFilters.length,
                     fontes: GMDashFontes.length,
+                    layouts: GMDashContainerItemLayouts.length,
                     codigoDash:config.codigo
                 });
 
@@ -724,41 +936,127 @@ function loadDashboardDataFromServer(config) {
     });
 }
 
+// ============================================================================
+// RENDERIZAÇÃO UNIFICADA DE LAYOUTS (default + custom)
+// ============================================================================
+
+/**
+ * renderUnifiedLayout(layout, cardData)
+ * Pipeline único de renderização para qualquer layout (default ou custom).
+ * 1. Substitui tokens {{variable}} no htmltemplate
+ * 2. Preenche data-mdash-slot com dados do cardData (via regex string, sem jQuery)
+ * 3. Prepende CSS se existir
+ * @param {Object} layout - Objecto de layout com htmltemplate, csstemplate, UIData
+ * @param {Object} cardData - Dados do card (title, id, tipo, bodyContent, icon, etc.)
+ * @returns {string} HTML final renderizado
+ */
+function renderUnifiedLayout(layout, cardData) {
+    var html = layout.htmltemplate || '';
+    var css = layout.csstemplate || '';
+
+    // Build token replacement map
+    var tipo = cardData.tipo || (layout.UIData && layout.UIData.tipo) || 'primary';
+    var tokenMap = {
+        id: cardData.id || '',
+        tipo: tipo,
+        classes: cardData.classes || '',
+        styles: cardData.styles || '',
+        headerClasses: cardData.headerClasses || '',
+        title: cardData.title || '',
+        bodyContent: cardData.bodyContent || '',
+        icon: cardData.icon || '',
+        footer: cardData.footer || '',
+        header: cardData.header || '',
+        subtitle: (cardData.extraData && cardData.extraData.subtitle) || '',
+        status: (cardData.extraData && cardData.extraData.status) || ''
+    };
+
+    // Replace {{variable}} tokens
+    html = html.replace(/\{\{(\w+)\}\}/g, function (match, key) {
+        return tokenMap.hasOwnProperty(key) ? tokenMap[key] : '';
+    });
+
+    // Slot content map
+    var slotContent = {
+        'title': cardData.title || '',
+        'icon': cardData.icon || '',
+        'header': cardData.header || '',
+        'body': cardData.bodyContent || '',
+        'footer': cardData.footer || '',
+        'subtitle': (cardData.extraData && cardData.extraData.subtitle) || '',
+        'status-badge': (cardData.extraData && cardData.extraData.status) || ''
+    };
+
+    // Fill data-mdash-slot elements via pure string regex (no jQuery DOM creation)
+    // Pattern: match an opening tag with data-mdash-slot="slotName", capture up to the closing tag
+    html = html.replace(/<([a-z][a-z0-9]*)\b([^>]*data-mdash-slot="([^"]+)"[^>]*)>([\s\S]*?)(<\/\1>)/gi, function (fullMatch, tag, attrs, slotName, innerContent, closeTag) {
+        var content = slotContent[slotName];
+        if (content === undefined || content === '') return fullMatch;
+
+        // Check for class-mode (icons)
+        if (/data-mdash-slot-mode="class"/.test(attrs)) {
+            // Replace the class attribute entirely, or add class if none
+            if (/\bclass="[^"]*"/.test(attrs)) {
+                attrs = attrs.replace(/\bclass="[^"]*"/, 'class="' + content + '"');
+            } else {
+                attrs += ' class="' + content + '"';
+            }
+            return '<' + tag + attrs + '>' + innerContent + closeTag;
+        }
+
+        // Default: replace innerHTML
+        return '<' + tag + attrs + '>' + content + closeTag;
+    });
+
+    var result = '';
+    if (css) {
+        result += '<style>' + css + '</style>';
+    }
+    result += html;
+    return result;
+}
+
 function getTemplateLayoutOptions() {
-    // Usa os layouts reais definidos em TEMPLATE DASHBOARD STANDARD EXTENSION.js quando disponível.
-    if (typeof generateDashCardInfo === "function") {
-        return [
-            { descricao: "Snapshot Layout v1", codigo: "snapshot_layout_v1", tipo: "snapshot", generateCard: generateDashCardInfo, UIData: { tipo: "primary" }, containerSelectorToRender: ".m-dash-card-body-content" },
-            { descricao: "Snapshot Layout v1 Warning", codigo: "snapshot_layout_v1_warning", tipo: "snapshot", UIData: { tipo: "warning" }, generateCard: generateDashCardInfo, containerSelectorToRender: ".m-dash-card-body-content" },
-            { descricao: "Snapshot layout v2", codigo: "snapshot_layout_v2", tipo: "snapshot", UIData: { tipo: "primary" }, generateCard: generateDashCardSnapshot, containerSelectorToRender: ".stats-card-body" },
-            { descricao: "Snap card Warning", codigo: "snapshot_card_warning", tipo: "snapshot", UIData: { tipo: "warning" }, generateCard: generateMDashCardSnapV2, containerSelectorToRender: ".m-dash-card-snap-v2-value" },
-            { descricao: "Snap Card", codigo: "snap_card", tipo: "snapshot", UIData: { tipo: "primary" }, generateCard: generateMDashCardSnapV2, containerSelectorToRender: ".m-dash-card-snap-v2-value" },
-            { descricao: "Snap Card Success", codigo: "snap_card_success", tipo: "snapshot", UIData: { tipo: "success" }, generateCard: generateMDashCardSnapV2, containerSelectorToRender: ".m-dash-card-snap-v2-value" },
-            { descricao: "Snap card Danger", codigo: "snapshot_card_danger", tipo: "snapshot", UIData: { tipo: "danger" }, generateCard: generateMDashCardSnapV2, containerSelectorToRender: ".m-dash-card-snap-v2-value" },
-            { descricao: "Card standard", codigo: "card_standard", tipo: "card", UIData: { tipo: "primary" }, generateCard: generateDashCardStandard, containerSelectorToRender: ".m-dash-standard-card-body" },
-            { descricao: "Card header destacado", codigo: "card_header_highlighted", tipo: "card", UIData: { tipo: "primary" }, generateCard: generateDashCardHTML, containerSelectorToRender: ".dashcard-body" },
-            { descricao: "Plain Card", codigo: "plain_card", tipo: "card", UIData: { tipo: "primary" }, generateCard: generatePlainCard, containerSelectorToRender: ".m-dash-plain-card-body-content" },
-            { descricao: "Top Border Card Advanced - Metric Primary", codigo: "brd_card_advanced_metric_primary", tipo: "card", UIData: { tipo: "primary" }, generateCard: generateBrdCardAdvancedMetric, containerSelectorToRender: ".brd-card-advanced-content" },
-            { descricao: "Top Border Card Advanced - Metric Success", codigo: "brd_card_advanced_metric_success", tipo: "card", UIData: { tipo: "success" }, generateCard: generateBrdCardAdvancedMetric, containerSelectorToRender: ".brd-card-advanced-content" },
-            { descricao: "Top Border Card Advanced - Metric Warning", codigo: "brd_card_advanced_metric_warning", tipo: "card", UIData: { tipo: "warning" }, generateCard: generateBrdCardAdvancedMetric, containerSelectorToRender: ".brd-card-advanced-content" },
-            { descricao: "Top Border Card Advanced - Metric Danger", codigo: "brd_card_advanced_metric_danger", tipo: "card", UIData: { tipo: "danger" }, generateCard: generateBrdCardAdvancedMetric, containerSelectorToRender: ".brd-card-advanced-content" },
-            { descricao: "Top Border Card Advanced - Status Primary", codigo: "brd_card_advanced_status_primary", tipo: "card", UIData: { tipo: "primary" }, generateCard: generateBrdCardAdvancedStatus, containerSelectorToRender: ".brd-card-advanced-status-body" },
-            { descricao: "Top Border Card Advanced - Status Success", codigo: "brd_card_advanced_status_success", tipo: "card", UIData: { tipo: "success" }, generateCard: generateBrdCardAdvancedStatus, containerSelectorToRender: ".brd-card-advanced-status-body" },
-            { descricao: "Top Border Card Advanced - Status Warning", codigo: "brd_card_advanced_status_warning", tipo: "card", UIData: { tipo: "warning" }, generateCard: generateBrdCardAdvancedStatus, containerSelectorToRender: ".brd-card-advanced-status-body" },
-            { descricao: "Top Border Card Advanced - Status Danger", codigo: "brd_card_advanced_status_danger", tipo: "card", UIData: { tipo: "danger" }, generateCard: generateBrdCardAdvancedStatus, containerSelectorToRender: ".brd-card-advanced-status-body" },
-            { descricao: "Top Border Card Advanced - Alert Primary", codigo: "brd_card_advanced_alert_primary", tipo: "card", UIData: { tipo: "primary" }, generateCard: generateBrdCardAdvancedAlert, containerSelectorToRender: ".brd-card-advanced-alert-content" },
-            { descricao: "Top Border Card Advanced - Alert Success", codigo: "brd_card_advanced_alert_success", tipo: "card", UIData: { tipo: "success" }, generateCard: generateBrdCardAdvancedAlert, containerSelectorToRender: ".brd-card-advanced-alert-content" },
-            { descricao: "Top Border Card Advanced - Alert Warning", codigo: "brd_card_advanced_alert_warning", tipo: "card", UIData: { tipo: "warning" }, generateCard: generateBrdCardAdvancedAlert, containerSelectorToRender: ".brd-card-advanced-alert-content" },
-            { descricao: "Top Border Card Advanced - Alert Danger", codigo: "brd_card_advanced_alert_danger", tipo: "card", UIData: { tipo: "danger" }, generateCard: generateBrdCardAdvancedAlert, containerSelectorToRender: ".brd-card-advanced-alert-content" }
+    var templates = [];
+
+    // Layouts padrão definidos em TEMPLATE DASHBOARD STANDARD EXTENSION.js
+    if (typeof getDefaultLayoutDefinitions === "function") {
+        var defaults = getDefaultLayoutDefinitions();
+        templates = defaults.map(function (def) {
+            return {
+                descricao: def.descricao,
+                codigo: def.codigo,
+                tipo: def.tipo,
+                UIData: def.UIData,
+                htmltemplate: def.htmltemplate,
+                csstemplate: def.csstemplate || '',
+                slotsdefinition: def.slotsdefinition || '[]',
+                slots: forceJSONParse(def.slotsdefinition, []),
+                containerSelectorToRender: def.containerSelectorToRender || '[data-mdash-slot="body"]',
+                isCustomLayout: false,
+                generateCard: function (cardData) {
+                    return renderUnifiedLayout(this, cardData);
+                }
+            };
+        });
+    } else {
+        // Fallback mínimo para ambientes onde o ficheiro de templates não esteja carregado.
+        templates = [
+            { codigo: "template_kpi", descricao: "KPI Card", slots: [], slotsdefinition: '[]', sampleHtml: '<div class="preview-card kpi"><div class="kpi-label">Vendas</div><div class="kpi-value">123.4K</div><div class="kpi-trend up">+4.6%</div></div>' },
+            { codigo: "template_table", descricao: "Tabela simples", slots: [], slotsdefinition: '[]', sampleHtml: '<div class="preview-card table"><table class="table table-condensed"><thead><tr><th>Col 1</th><th>Col 2</th></tr></thead><tbody><tr><td>Valor</td><td>42</td></tr><tr><td>Valor</td><td>58</td></tr></tbody></table></div>' },
+            { codigo: "template_chart", descricao: "Gráfico (placeholder)", slots: [], slotsdefinition: '[]', sampleHtml: '<div class="preview-card chart"><div class="chart-placeholder">Gráfico aqui</div></div>' }
         ];
     }
 
-    // Fallback mínimo para ambientes onde o ficheiro de templates não esteja carregado.
-    return [
-        { codigo: "template_kpi", descricao: "KPI Card", sampleHtml: '<div class="preview-card kpi"><div class="kpi-label">Vendas</div><div class="kpi-value">123.4K</div><div class="kpi-trend up">+4.6%</div></div>' },
-        { codigo: "template_table", descricao: "Tabela simples", sampleHtml: '<div class="preview-card table"><table class="table table-condensed"><thead><tr><th>Col 1</th><th>Col 2</th></tr></thead><tbody><tr><td>Valor</td><td>42</td></tr><tr><td>Valor</td><td>58</td></tr></tbody></table></div>' },
-        { codigo: "template_chart", descricao: "Gráfico (placeholder)", sampleHtml: '<div class="preview-card chart"><div class="chart-placeholder">Gráfico aqui</div></div>' }
-    ];
+    // Integração híbrida: adicionar layouts customizados do Layout Builder
+    if (typeof getCustomLayoutTemplateOptions === "function") {
+        var customLayouts = getCustomLayoutTemplateOptions();
+        if (customLayouts.length > 0) {
+            templates = templates.concat(customLayouts);
+        }
+    }
+
+    return templates;
 }
 
 function getDefaultTemplateCodigo() {
@@ -791,6 +1089,8 @@ function getTemplateThumbnailHtml(templateCode) {
                 tipo: (template.UIData && template.UIData.tipo) || "primary",
                 bodyContent: "Demo"
             });
+            // Strip <style> tags from thumbnails to prevent CSS from bleeding into the page
+            thumbHtml = thumbHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
         } catch (error) {
             thumbHtml = "";
         }
@@ -877,6 +1177,9 @@ function initModernDashboardUI() {
     mainHtml += '          </div>';
     mainHtml += '          <div class="mdash-widget-tile" @click="addNewFonte" title="Adicionar Fonte">';
     mainHtml += '            <i class="glyphicon glyphicon-oil"></i><span>Fonte</span>';
+    mainHtml += '          </div>';
+    mainHtml += '          <div class="mdash-widget-tile" @click="openLayoutBuilder" title="Layout Builder">';
+    mainHtml += '            <i class="glyphicon glyphicon-blackboard"></i><span>Layouts</span>';
     mainHtml += '          </div>';
     mainHtml += '        </div>';
     mainHtml += '      </div>';
@@ -1002,7 +1305,7 @@ function initModernDashboardUI() {
     mainHtml += '          <input type="text" class="mdash-inline-title" :value="container.titulo" @change.stop="updateContainerTitle(container, $event)" @click.stop placeholder="Container sem título" />';
     mainHtml += '          <div class="mdash-canvas-container-actions">';
     mainHtml += '            <button type="button" @click.stop="editContainer(container.mdashcontainerstamp)" class="btn btn-xs btn-default" title="Configurar"><i class="glyphicon glyphicon-cog"></i></button>';
-    mainHtml += '            <button type="button" @click.stop="deleteContainer(container.mdashcontainerstamp)" class="btn btn-xs btn-danger" title="Eliminar"><i class="glyphicon glyphicon-trash"></i></button>';
+    mainHtml += '            <button type="button" @click.stop="deleteContainer(container.mdashcontainerstamp)" class="btn btn-xs btn-primary" title="Eliminar"><i class="glyphicon glyphicon-trash"></i></button>';
     mainHtml += '          </div>';
     mainHtml += '        </div>';
     mainHtml += '        <div class="mdash-canvas-container-body mdash-drop-target mdash-container-items" :data-container="container.mdashcontainerstamp">';
@@ -1037,8 +1340,17 @@ function initModernDashboardUI() {
     mainHtml += '                    </div>';
     mainHtml += '                    <div class="mdash-item-header-actions">';
     mainHtml += '                    <button type="button" @click.stop="editContainerItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-default" title="Configurar"><i class="glyphicon glyphicon-cog"></i></button>';
-    mainHtml += '                    <button type="button" @click.stop="deleteContainerItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-danger" title="Eliminar"><i class="glyphicon glyphicon-trash"></i></button>';
+    mainHtml += '                    <button type="button" @click.stop="deleteContainerItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-primary" title="Eliminar"><i class="glyphicon glyphicon-trash"></i></button>';
     mainHtml += '                  </div>';
+    mainHtml += '                  </div>';
+    // ── Slot badges ──
+    mainHtml += '                  <div v-if="getLayoutSlots(item.templatelayout).length > 0" class="mdash-slots-display">';
+    mainHtml += '                    <div class="mdash-slots-header"><i class="glyphicon glyphicon-th-large"></i> Slots</div>';
+    mainHtml += '                    <div class="mdash-slots-list">';
+    mainHtml += '                      <span v-for="slot in getLayoutSlots(item.templatelayout)" :key="slot.id" class="mdash-slot-badge" :class="{\'is-main\': slot.isMainContent}" :title="slot.label + \' (\' + slot.type + \')\\nSelector: [data-mdash-slot=&quot;\' + slot.id + \'&quot;]\'">';
+    mainHtml += '                        <i :class="getSlotTypeIcon(slot.type)"></i> {{ slot.label }}';
+    mainHtml += '                      </span>';
+    mainHtml += '                    </div>';
     mainHtml += '                  </div>';
     mainHtml += '                </div>';
     mainHtml += '                <div class="mdash-canvas-item-body">';
@@ -1173,6 +1485,21 @@ function initModernDashboardUI() {
             return getTemplateLayoutOptions();
         },
 
+        getLayoutSlots: function (templateCode) {
+            var template = getTemplateLayoutByCode(templateCode);
+            if (!template) return [];
+            return template.slots || forceJSONParse(template.slotsdefinition, []);
+        },
+
+        getSlotTypeIcon: function (type) {
+            switch (type) {
+                case 'text': return 'glyphicon glyphicon-font';
+                case 'icon': return 'glyphicon glyphicon-picture';
+                case 'content': return 'glyphicon glyphicon-th-large';
+                default: return 'glyphicon glyphicon-stop';
+            }
+        },
+
         getTemplateLabel: function (templateCode) {
             var template = getTemplateLayoutByCode(templateCode);
             return (template && (template.descricao || template.codigo)) || "Selecionar layout";
@@ -1256,6 +1583,10 @@ function initModernDashboardUI() {
 
         addNewFonte: function () {
             addNewFonte();
+        },
+
+        openLayoutBuilder: function () {
+            openLayoutBuilder();
         },
 
         editFonte: function (stamp) {
@@ -3228,9 +3559,28 @@ function deleteContainer(containerStamp) {
         return;
     }
 
-    if (!confirm('Tem a certeza que deseja eliminar o container "' + container.titulo + '"?\nTodos os items e objetos serão eliminados também.')) {
-        return;
-    }
+    var containerTitle = container.titulo || 'Container sem título';
+    
+    showDeleteConfirmation({
+        title: 'Confirmar eliminação',
+        message: 'Tem a certeza que deseja eliminar o container "' + containerTitle + '"?<br><small>Todos os items e objetos serão eliminados também.</small>',
+        recordToDelete: {
+            table: "MdashContainer",
+            stamp: containerStamp,
+            tableKey: "mdashcontainerstamp"
+        },
+        onConfirm: function() {
+            executeDeleteContainer(containerStamp);
+        }
+    });
+}
+
+function executeDeleteContainer(containerStamp) {
+    var container = GMDashContainers.find(function (c) {
+        return c.mdashcontainerstamp === containerStamp;
+    });
+
+    if (!container) return;
 
     // Remove items do container
     var items = GMDashContainerItems.filter(function (item) {
@@ -3246,13 +3596,6 @@ function deleteContainer(containerStamp) {
     if (index > -1) {
         window.appState.containers.splice(index, 1);
     }
-
-    // Adiciona ao array de registos a eliminar
-    GMdashDeleteRecords.push({
-        table: "MdashContainer",
-        stamp: containerStamp,
-        tableKey: "mdashcontainerstamp"
-    });
 
     alertify.success('Container eliminado com sucesso!');
 }
@@ -3412,21 +3755,65 @@ function openContainerItemEditModal(item) {
  * Elimina um container item
  */
 function deleteContainerItem(itemStamp, silent) {
-    var item = GMDashContainerItems.find(function (i) {
+    // Usa o array reativo se disponível
+    var containerItemsArray = (window.appState && window.appState.containerItems) ? window.appState.containerItems : GMDashContainerItems;
+    var containerItemObjectsArray = (window.appState && window.appState.containerItemObjects) ? window.appState.containerItemObjects : GMDashContainerItemObjects;
+    
+    var item = containerItemsArray.find(function (i) {
+        return i.mdashcontaineritemstamp === itemStamp;
+    });
+
+    if (!item) return;
+    
+    // Confirmação antes de eliminar (exceto quando silent)
+    if (!silent) {
+        var itemTitle = item.titulo || 'Item sem título';
+        
+        showDeleteConfirmation({
+            title: 'Confirmar eliminação',
+            message: 'Tem a certeza que deseja eliminar o item "' + itemTitle + '"?<br><small>Todos os objetos associados serão eliminados também.</small>',
+            recordToDelete: {
+                table: "MdashContainerItem",
+                stamp: itemStamp,
+                tableKey: "mdashcontaineritemstamp"
+            },
+            onConfirm: function() {
+                executeDeleteContainerItem(itemStamp, containerItemsArray, containerItemObjectsArray);
+                alertify.success('Item eliminado com sucesso!');
+            }
+        });
+        return;
+    }
+    
+    // Se silent = true, elimina diretamente sem confirmação
+    // Neste caso precisa adicionar o registo ao GMdashDeleteRecords
+    if (silent) {
+        GMdashDeleteRecords.push({
+            table: "MdashContainerItem",
+            stamp: itemStamp,
+            tableKey: "mdashcontaineritemstamp"
+        });
+    }
+    
+    executeDeleteContainerItem(itemStamp, containerItemsArray, containerItemObjectsArray);
+}
+
+function executeDeleteContainerItem(itemStamp, containerItemsArray, containerItemObjectsArray) {
+    var item = containerItemsArray.find(function (i) {
         return i.mdashcontaineritemstamp === itemStamp;
     });
 
     if (!item) return;
 
-    // Remove objetos do item
-    var objects = GMDashContainerItemObjects.filter(function (obj) {
+    // Remove objetos do item do array reativo
+    var objects = containerItemObjectsArray.filter(function (obj) {
         return obj.mdashcontaineritemstamp === itemStamp;
     });
 
     objects.forEach(function (obj) {
-        var objIndex = GMDashContainerItemObjects.indexOf(obj);
+        var objIndex = containerItemObjectsArray.indexOf(obj);
         if (objIndex > -1) {
-            GMDashContainerItemObjects.splice(objIndex, 1);
+            containerItemObjectsArray.splice(objIndex, 1);
         }
         GMdashDeleteRecords.push({
             table: "MdashContainerItemObject",
@@ -3435,20 +3822,10 @@ function deleteContainerItem(itemStamp, silent) {
         });
     });
 
-    // Remove item
-    var index = GMDashContainerItems.indexOf(item);
+    // Remove item do array reativo
+    var index = containerItemsArray.indexOf(item);
     if (index > -1) {
-        GMDashContainerItems.splice(index, 1);
-    }
-
-    GMdashDeleteRecords.push({
-        table: "MdashContainerItem",
-        stamp: itemStamp,
-        tableKey: "mdashcontaineritemstamp"
-    });
-
-    if (!silent) {
-        alertify.success('Item eliminado com sucesso!');
+        containerItemsArray.splice(index, 1);
     }
 }
 
@@ -3697,21 +4074,34 @@ function deleteFonte(fonteStamp) {
         return;
     }
 
-    if (!confirm('Tem a certeza que deseja eliminar a fonte "' + fonte.descricao + '"?')) {
-        return;
-    }
+    var fonteDesc = fonte.descricao || 'Fonte sem descrição';
+    
+    showDeleteConfirmation({
+        title: 'Confirmar eliminação',
+        message: 'Tem a certeza que deseja eliminar a fonte "' + fonteDesc + '"?',
+        recordToDelete: {
+            table: "MDashFonte",
+            stamp: fonteStamp,
+            tableKey: "mdashfontestamp"
+        },
+        onConfirm: function() {
+            executeDeleteFonte(fonteStamp);
+        }
+    });
+}
+
+function executeDeleteFonte(fonteStamp) {
+    var fonte = GMDashFontes.find(function (f) {
+        return f.mdashfontestamp === fonteStamp;
+    });
+
+    if (!fonte) return;
 
     // Remove do estado reativo
     var index = window.appState.fontes.indexOf(fonte);
     if (index > -1) {
         window.appState.fontes.splice(index, 1);
     }
-
-    GMdashDeleteRecords.push({
-        table: "MDashFonte",
-        stamp: fonteStamp,
-        tableKey: "mdashfontestamp"
-    });
 
     alertify.success('Fonte eliminada com sucesso!');
 }
@@ -3802,7 +4192,7 @@ function openFiltersManagerModal() {
             listHtml += '    <button type="button" class="btn btn-xs btn-default" onclick="$(\'#mdash-filters-manager-modal\').modal(\'hide\'); editFilter(\'' + filter.mdashfilterstamp + '\');" title="Editar">';
             listHtml += '      <i class="glyphicon glyphicon-cog"></i>';
             listHtml += '    </button>';
-            listHtml += '    <button type="button" class="btn btn-xs btn-danger" onclick="deleteFilter(\'' + filter.mdashfilterstamp + '\'); openFiltersManagerModal();" title="Eliminar">';
+            listHtml += '    <button type="button" class="btn btn-xs btn-primary" onclick="deleteFilter(\'' + filter.mdashfilterstamp + '\'); openFiltersManagerModal();" title="Eliminar">';
             listHtml += '      <i class="glyphicon glyphicon-trash"></i>';
             listHtml += '    </button>';
             listHtml += '  </div>';
@@ -4021,22 +4411,34 @@ function deleteFilter(filterStamp) {
         return;
     }
 
-    if (!confirm('Tem a certeza que deseja eliminar o filtro "' + filter.descricao + '"?')) {
-        return;
-    }
+    var filterDesc = filter.descricao || 'Filtro sem descrição';
+    
+    showDeleteConfirmation({
+        title: 'Confirmar eliminação',
+        message: 'Tem a certeza que deseja eliminar o filtro "' + filterDesc + '"?',
+        recordToDelete: {
+            table: "MdashFilter",
+            stamp: filterStamp,
+            tableKey: "mdashfilterstamp"
+        },
+        onConfirm: function() {
+            executeDeleteFilter(filterStamp);
+        }
+    });
+}
+
+function executeDeleteFilter(filterStamp) {
+    var filter = GMDashFilters.find(function (f) {
+        return f.mdashfilterstamp === filterStamp;
+    });
+
+    if (!filter) return;
 
     // Remove do estado reativo
     var index = window.appState.filters.indexOf(filter);
     if (index > -1) {
         window.appState.filters.splice(index, 1);
     }
-
-    // Adiciona ao array de registos a eliminar
-    GMdashDeleteRecords.push({
-        table: "MdashFilter",
-        stamp: filterStamp,
-        tableKey: "mdashfilterstamp"
-    });
 
     alertify.success('Filtro eliminado com sucesso!');
 }
@@ -4217,7 +4619,7 @@ function loadModernDashboardStyles() {
     styles += ".mdash-item-header-top { width: 100%; }";
     styles += ".mdash-item-header-bottom { display: flex; align-items: center; gap: 10px; }";
     styles += ".mdash-item-header-actions { display: flex; gap: 3px; flex-shrink: 0; margin-left: auto; }";
-    styles += ".mdash-canvas-item-body { min-height: 60px; }";
+    styles += ".mdash-canvas-item-body { min-height: 60px; contain: content; isolation: isolate; }";
     styles += ".is-selected { outline: 2px solid rgba(var(--md-primary-rgb),0.3); outline-offset: 0; }";
 
     // Empty items
@@ -4241,13 +4643,22 @@ function loadModernDashboardStyles() {
     styles += ".mdash-inline-layout-trigger:focus { outline: none; border-color: var(--md-primary); box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.16); }";
     styles += ".mdash-inline-layout-trigger i { margin-left: auto; color: var(--md-muted); }";
     styles += ".mdash-inline-layout-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }";
-    styles += ".mdash-inline-layout-thumb { width: 64px; height: 36px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(var(--md-primary-rgb),0.26); background: #f8fafc; flex-shrink: 0; display: block; }";
-    styles += ".mdash-template-thumb-render { width: 240px; transform: scale(0.25); transform-origin: top left; pointer-events: none; }";
+    styles += ".mdash-inline-layout-thumb { width: 64px; height: 36px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(var(--md-primary-rgb),0.26); background: #f8fafc; flex-shrink: 0; display: block; contain: strict; isolation: isolate; }";
+    styles += ".mdash-template-thumb-render { width: 240px; transform: scale(0.25); transform-origin: top left; pointer-events: none; all: initial; display: block; font-family: 'Inter',system-ui,sans-serif; }";
     styles += ".mdash-template-thumb-empty { width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; font-weight:700; color: var(--md-primary); font-size: 12px; }";
     styles += ".mdash-inline-layout-menu { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 60; max-height: 260px; overflow-y: auto; background: #fff; border: 1px solid rgba(var(--md-primary-rgb),0.24); border-radius: 10px; box-shadow: 0 14px 26px rgba(2,6,23,0.16); padding: 6px; }";
     styles += ".mdash-inline-layout-option { width: 100%; display: flex; align-items: center; gap: 10px; border: 1px solid transparent; background: #fff; border-radius: 8px; padding: 7px; color: var(--md-text); text-align: left; margin-bottom: 4px; }";
     styles += ".mdash-inline-layout-option:last-child { margin-bottom: 0; }";
     styles += ".mdash-inline-layout-option:hover { background: rgba(var(--md-primary-rgb),0.08); border-color: rgba(var(--md-primary-rgb),0.24); }";
+
+    // Slot badges
+    styles += ".mdash-slots-display { padding: 5px 12px 6px; border-top: 1px solid rgba(var(--md-primary-rgb),0.10); }";
+    styles += ".mdash-slots-header { font-size: 10px; color: var(--md-muted, #8b949e); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }";
+    styles += ".mdash-slots-header .glyphicon { font-size: 9px; }";
+    styles += ".mdash-slots-list { display: flex; flex-wrap: wrap; gap: 3px; }";
+    styles += ".mdash-slot-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; padding: 2px 6px; background: #f1f5f9; color: var(--md-text, #334155); border-radius: 4px; border: 1px solid rgba(var(--md-primary-rgb),0.15); }";
+    styles += ".mdash-slot-badge .glyphicon { font-size: 9px; opacity: 0.6; }";
+    styles += ".mdash-slot-badge.is-main { border-color: var(--md-primary, #58a6ff); background: rgba(var(--md-primary-rgb),0.08); color: var(--md-primary, #58a6ff); font-weight: 600; }";
 
     // Objects badges + previews
     styles += ".mdash-canvas-objects-list { display: flex; flex-wrap: wrap; gap: 8px; }";
@@ -4289,6 +4700,20 @@ function loadModernDashboardStyles() {
     styles += ".modal-header .close:hover { opacity: 1; }";
     styles += ".modal-header .modal-title { margin: 0; color: " + primaryColor + " !important; }";
     styles += ".modal-header .modal-title i { color: " + primaryColor + " !important; }";
+    
+    // ===== MODAL DE CONFIRMAÇÃO DE ELIMINAÇÃO =====
+    styles += "#mdash-delete-confirm-modal .modal-dialog { margin-top: 160px; }";
+    styles += "#mdash-delete-confirm-modal .modal-header { background: linear-gradient(120deg, #dc3545, #991d28); padding: 14px 18px; }";
+    styles += "#mdash-delete-confirm-modal .modal-header .modal-title { font-size: 16px; font-weight: 700; color: white !important; }";
+    styles += "#mdash-delete-confirm-modal .modal-header i { margin-right: 6px; color: white !important; }";
+    styles += "#mdash-delete-confirm-modal .modal-body { padding: 24px 18px; font-size: 14px; color: #1f2937; line-height: 1.6; }";
+    styles += "#mdash-delete-confirm-modal .modal-body small { display: block; margin-top: 8px; color: #64748b; font-size: 12px; }";
+    styles += "#mdash-delete-confirm-modal .modal-footer { padding: 12px 18px; background: #f9fafb; border-top: 1px solid #e5e7eb; }";
+    styles += "#mdash-delete-confirm-modal .btn { border-radius: 6px; font-weight: 600; font-size: 13px; padding: 8px 18px; transition: all 0.2s; }";
+    styles += "#mdash-delete-confirm-modal .btn-default { background: white; border: 1px solid #d1d5db; color: #374151; }";
+    styles += "#mdash-delete-confirm-modal .btn-default:hover { background: #f9fafb; border-color: #9ca3af; }";
+    styles += "#mdash-delete-confirm-modal .btn-danger { background: linear-gradient(135deg, #dc3545, #c82333); border: none; color: white; box-shadow: 0 2px 8px rgba(220,53,69,0.3); }";
+    styles += "#mdash-delete-confirm-modal .btn-danger:hover { background: linear-gradient(135deg, #c82333, #bd2130); box-shadow: 0 4px 12px rgba(220,53,69,0.4); transform: translateY(-1px); }";
 
     $('<style id="mdash-modern-styles" data-mdash-style-version="' + styleVersion + '">').text(styles).appendTo('head');
 
