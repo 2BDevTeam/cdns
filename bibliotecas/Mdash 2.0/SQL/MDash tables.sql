@@ -162,7 +162,10 @@ CREATE TABLE MdashContainerItemObject(
     objectexpressaodblistagem TEXT DEFAULT '',
     tipoobjectodetalhes VARCHAR(100) DEFAULT '',
     titulodetalhes VARCHAR(250) DEFAULT '',
-    titulobtndetalhes VARCHAR(250) DEFAULT ''
+    titulobtndetalhes VARCHAR(250) DEFAULT '',
+    fontestamp VARCHAR(25) DEFAULT '',
+    slotid VARCHAR(100) DEFAULT '',
+    processaFonte BIT DEFAULT 1
 );
 
 CREATE TABLE MdashContainerItemObjectDetail(

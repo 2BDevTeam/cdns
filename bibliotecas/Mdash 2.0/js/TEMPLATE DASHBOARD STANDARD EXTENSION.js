@@ -926,6 +926,7 @@ function updateChartOnContainer(chart, config, data, chartId) {
     }
 }
 function getTiposObjectoConfig() {
+    console.log('[MDash EXTENSION VERSION] getTiposObjectoConfig v20260413 carregado');
     /*
      { tipo: 'chart', label: 'Gráfico', icon: '	fa fa-bar-chart' },
                 { tipo: 'pie', label: 'Pizza', icon: '	fa fa-pie-chart' },
@@ -1259,6 +1260,50 @@ function getTiposObjectoConfig() {
         createDynamicSchema: crateDynamicSchemaCustomCode,
         renderObject: function (params) {
             console.log("Renderizar código personalizado - não implementado");
+        }
+    },
+    {
+        tipo: "title",
+        descricao: "Título do Item",
+        label: "Título do Item",
+        icon: "fa fa-header",
+        categoria: "display",
+        processaFonte: false,
+        createDynamicSchema: function () { return null; },
+        renderObject: function (params) {
+            var containerItem = params.containerItem;
+            var titulo = containerItem ? (containerItem.titulo || '') : '';
+            if (!titulo) {
+                $(params.containerSelector).html('<div class="mdash-titulo-item" style="color:#aaa;font-style:italic;padding:6px 0;">(sem título)</div>');
+                return;
+            }
+            $(params.containerSelector).html(
+                '<div class="mdash-titulo-item" style="font-size:1.15em;font-weight:600;padding:6px 0;">'
+                + $('<span>').text(titulo).html()
+                + '</div>'
+            );
+        }
+    },
+    {
+        tipo: "TituloItem",
+        descricao: "Título do Item",
+        label: "Título do Item",
+        icon: "fa fa-header",
+        categoria: "display",
+        processaFonte: false,
+        createDynamicSchema: function () { return null; },
+        renderObject: function (params) {
+            var containerItem = params.containerItem;
+            var titulo = containerItem ? (containerItem.titulo || '') : '';
+            if (!titulo) {
+                $(params.containerSelector).html('<div class="mdash-titulo-item" style="color:#aaa;font-style:italic;padding:6px 0;">(sem título)</div>');
+                return;
+            }
+            $(params.containerSelector).html(
+                '<div class="mdash-titulo-item" style="font-size:1.15em;font-weight:600;padding:6px 0;">'
+                + $('<span>').text(titulo).html()
+                + '</div>'
+            );
         }
     }
     ]

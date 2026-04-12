@@ -411,6 +411,7 @@ function MdashContainerItemObject(data) {
     this.slotid = data.slotid || "";
     this.objectexpressaodblistagem = data.objectexpressaodblistagem || "";
     this.fontestamp = data.fontestamp || "";          // vínculo directo à fonte de dados
+    this.processaFonte = data.processaFonte !== undefined ? data.processaFonte : true;  // false = objecto estático (não precisa de dados)
     this.localsource = "GMDashContainerItemObjects";
 
     var config = {};
@@ -427,6 +428,8 @@ function MdashContainerItemObject(data) {
     this.idfield = "mdashcontaineritemobjectstamp";
     this.table = "MdashContainerItemObject";
     this.objectoConfig = data.objectoConfig || {};
+    // Nota: objectoConfig é resolvido de forma lazy via resolveObjectoConfig()
+    // quando renderObject for chamado — nunca no construtor.
 
     var queryConfig = {
         selectFields: [],
@@ -450,19 +453,104 @@ function MdashContainerItemObject(data) {
     this.queryconfigjson = JSON.stringify(queryConfig);
 }
 
+/**
+ * getMdashObjectTypeEntry(tipo)
+ * Função utilitária pura — nunca guarda nada em propriedades reactivas.
+ * Devolve a entrada de getTiposObjectoConfig() para o tipo indicado, ou null.
+ * Pode ser chamada a qualquer momento, mesmo antes da extensão estar carregada
+ * (devolve null nesse caso).
+ */
+function getMdashObjectTypeEntry(tipo) {
+    if (!tipo) return null;
+    var tipoStr = '' + tipo;
+    if (typeof getTiposObjectoConfig !== 'function') {
+        console.error('[MDash DEBUG] getMdashObjectTypeEntry: getTiposObjectoConfig NÃO EXISTE — a extensão não está carregada. tipo="' + tipoStr + '"');
+        return null;
+    }
+    var allTypes = getTiposObjectoConfig();
+    var entry = allTypes.find(function (t) { return t.tipo === tipoStr; }) || null;
+    if (!entry) {
+        console.error('[MDash DEBUG] getMdashObjectTypeEntry: tipo="' + tipoStr + '" NÃO ENCONTRADO. Tipos registados: [' + allTypes.map(function(t){ return t.tipo; }).join(', ') + ']');
+    }
+    return entry;
+}
+
+/**
+ * getMdashObjectProcessaFonte(tipo, dataProcessaFonte)
+ * Devolve o valor correcto de processaFonte para um tipo de objecto.
+ * O tipo tem precedência sobre o default guardado em base de dados,
+ * a menos que `dataProcessaFonte` tenha sido explicitamente guardado (BD).
+ */
+function getMdashObjectProcessaFonte(tipo, dataProcessaFonte) {
+    var entry = getMdashObjectTypeEntry(tipo);
+    if (entry && entry.processaFonte !== undefined) {
+        return entry.processaFonte;
+    }
+    return dataProcessaFonte !== undefined ? dataProcessaFonte : true;
+}
+
+/**
+ * resolveObjectoConfig()
+ * Mantido para compatibilidade e para resolver processaFonte na instância
+ * quando esta não vem da BD. NÃO guarda objectoConfig na instância — a lookup
+ * é feita sempre via getMdashObjectTypeEntry() em tempo de render para evitar
+ * problemas com o sistema reactivo PetiteVue (o proxy Vue não preserva funções
+ * em propriedades de objectos nested de forma fiável).
+ */
+MdashContainerItemObject.prototype.resolveObjectoConfig = function () {
+    if (!this.tipo) return;
+    // Resolve processaFonte se ainda não foi resolvido a partir do tipo
+    if (this.processaFonte === true && !this._processaFonteFromDB) {
+        var entry = getMdashObjectTypeEntry(this.tipo);
+        if (entry && entry.processaFonte !== undefined) {
+            this.processaFonte = entry.processaFonte;
+        }
+    }
+};
+
 MdashContainerItemObject.prototype.renderObjectByContainerItem = function (containerSelector, containerItem) {
     var self = this;
-    var contentRecords = containerItem.records || [];
 
-    if (Object.keys(self.objectoConfig).length > 0 && containerItem.records.length > 0) {
-        self.objectoConfig.renderObject({
-            containerSelector: containerSelector,
-            itemObject: self,
-            queryConfig: self.queryConfig,
-            config: self.config,
-            containerItem: containerItem,
-            data: containerItem.records || [],
-        });
+    var tipoStr = '' + (self.tipo || '');
+    console.group('[MDash DEBUG] renderObjectByContainerItem tipo="' + tipoStr + '" selector="' + containerSelector + '"');
+    console.log('  containerItem.titulo =', containerItem ? containerItem.titulo : '(sem containerItem)');
+    console.log('  containerItem.records.length =', (containerItem && containerItem.records) ? containerItem.records.length : 'N/A');
+
+    var entry = getMdashObjectTypeEntry(tipoStr);
+    console.log('  entry encontrado =', !!entry);
+    if (entry) {
+        console.log('  entry.processaFonte =', entry.processaFonte);
+        console.log('  typeof entry.renderObject =', typeof entry.renderObject);
+    }
+
+    if (entry && typeof entry.renderObject === 'function') {
+        var processaFonte = (entry.processaFonte !== undefined) ? entry.processaFonte : self.processaFonte;
+        var podeRenderizar = processaFonte === false || (containerItem.records && containerItem.records.length > 0);
+        console.log('  processaFonte =', processaFonte, '| podeRenderizar =', podeRenderizar);
+        if (podeRenderizar) {
+            console.log('  → A CHAMAR entry.renderObject()');
+            console.groupEnd();
+            entry.renderObject({
+                containerSelector: containerSelector,
+                itemObject: self,
+                queryConfig: self.queryConfig,
+                config: self.config,
+                containerItem: containerItem,
+                data: containerItem.records || [],
+            });
+        } else {
+            console.log('  → placeholder (aguarda dados)');
+            console.groupEnd();
+            $(containerSelector).html(
+                '<div class="mdash-slot-zone-render-placeholder"><i class="' + (getObjectTypeIcon(tipoStr) || 'glyphicon glyphicon-stop') + '"></i> ' + (tipoStr || 'Objecto') + '</div>'
+            );
+        }
+    } else {
+        console.error('  → WARNING ICON — entry null ou sem renderObject');
+        console.groupEnd();
+        $(containerSelector).html(
+            '<div class="mdash-slot-zone-render-placeholder" style="color:#c0392b;"><i class="glyphicon glyphicon-warning-sign"></i> ' + (tipoStr || '?') + '</div>'
+        );
     }
 
     if (self.expressaoobjecto) {
@@ -1715,37 +1803,64 @@ function injectSlotDropOverlays(itemStamp, template) {
 
         // Limpa conteúdo do slot e injeta drop zone
         $el.empty();
-        var obj = window.appState.containerItemObjects.find(function (o) {
+        var objs = window.appState.containerItemObjects.filter(function (o) {
             return o.mdashcontaineritemstamp === itemStamp && o.slotid === slotId;
         });
 
-        var dropHtml = '<div class="mdash-slot-zone-drop" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '">';
+        var dropHtml;
 
-        // Botão de propriedades do slot (gear icon)
-        dropHtml += '<button type="button" class="mdash-slot-zone-settings" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i></button>';
-
-        if (obj) {
-            dropHtml += '<div class="mdash-slot-zone-object" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '">';
-            dropHtml += '<i class="' + getObjectTypeIcon(obj.tipo) + '"></i>';
-            dropHtml += '<span>' + (obj.tipo || 'Objeto') + '</span>';
-            dropHtml += '<button type="button" class="mdash-slot-zone-remove" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Remover"><i class="glyphicon glyphicon-remove"></i></button>';
+        if (objs.length > 0) {
+            // ── Slot ocupado: um bloco empilhado por objecto ──
+            dropHtml = '<div class="mdash-slot-zone-drop has-object" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '">';
+            objs.forEach(function (obj) {
+                var renderDivId = 'mdash-slot-render-' + obj.mdashcontaineritemobjectstamp;
+                var objEntry = getMdashObjectTypeEntry(obj.tipo);
+                var objProcessaFonte = objEntry ? (objEntry.processaFonte !== undefined ? objEntry.processaFonte : obj.processaFonte) : obj.processaFonte;
+                dropHtml += '<div class="mdash-slot-zone-obj-block">';
+                dropHtml += '<div class="mdash-slot-zone-toolbar">';
+                // Lado esquerdo: opções do SLOT
+                dropHtml += '<button type="button" class="mdash-slot-zone-settings mdash-slot-zone-toolbar-left" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i></button>';
+                dropHtml += '  <i class="' + getObjectTypeIcon(obj.tipo) + '"></i>';
+                dropHtml += '  <span>' + (obj.tipo || 'Objecto') + '</span>';
+                // Lado direito: opções do OBJECTO
+                dropHtml += '<button type="button" class="mdash-slot-zone-remove mdash-slot-zone-toolbar-right" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Remover objecto"><i class="glyphicon glyphicon-remove"></i></button>';
+                dropHtml += '</div>';
+                dropHtml += '<div class="mdash-slot-zone-render" id="' + renderDivId + '" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '">';
+                if (objProcessaFonte !== false) {
+                    dropHtml += '<div class="mdash-slot-zone-render-placeholder"><i class="' + getObjectTypeIcon(obj.tipo) + '"></i> ' + (obj.tipo || 'Objecto') + '</div>';
+                }
+                dropHtml += '</div>';
+                dropHtml += '</div>'; // .mdash-slot-zone-obj-block
+            });
             dropHtml += '</div>';
         } else {
+            // ── Slot vazio: hint de drag + gear ──
+            dropHtml = '<div class="mdash-slot-zone-drop" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '">';
+            dropHtml += '<button type="button" class="mdash-slot-zone-settings" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i></button>';
             dropHtml += '<span class="mdash-slot-zone-hint"><i class="glyphicon glyphicon-plus-sign"></i> ' + (slotDef.label || slotId) + '</span>';
+            dropHtml += '</div>';
         }
-        dropHtml += '</div>';
+
         $el.html(dropHtml);
 
-        // Aplicar configuração persistida do slot (só nos slots válidos, após injectar HTML)
+        // Aplicar configuração persistida do slot
         if (item) {
             var mdashSlot = item.getSlot(slotId);
-            if (mdashSlot) {
-                mdashSlot.applyToElement($el);
-            }
+            if (mdashSlot) mdashSlot.applyToElement($el);
+        }
+
+        // Renderizar imediatamente no editor — um render por objecto
+        if (objs.length > 0 && item) {
+            objs.forEach(function (obj) {
+                var renderDivId = 'mdash-slot-render-' + obj.mdashcontaineritemobjectstamp;
+                var $renderDiv = $('#' + renderDivId);
+                if ($renderDiv.length) {
+                    obj.renderObjectByContainerItem('#' + renderDivId, item);
+                }
+            });
         }
 
         // ── Bind directo nos elementos criados (não delegado) ──
-        // Necessário porque @click.stop no .mdash-canvas-item (PetiteVue) bloqueia bubbling para delegação jQuery
         var $drop = $el.find('.mdash-slot-zone-drop');
         bindSlotDropZoneEvents($drop, itemStamp, slotId);
     });
@@ -1785,19 +1900,24 @@ function bindSlotDropZoneEvents($drop, itemStamp, slotId) {
         }
     });
 
-    // Click no drop zone → seleccionar slot e abrir propriedades
-    $drop.on('click', function (e) {
-        var $target = $(e.target);
-        // Se clicou num objecto ou no remove, deixar passar para os handlers abaixo
-        if ($target.closest('.mdash-slot-zone-object').length || $target.closest('.mdash-slot-zone-remove').length) return;
-        e.preventDefault();
+    // Click na área de renderização → propriedades do objecto
+    $drop.on('click', '.mdash-slot-zone-render', function (e) {
         e.stopPropagation();
-
-        // Selecção visual
-        $('.mdash-slot-zone-drop.is-selected').removeClass('is-selected');
+        var stamp = $(this).data('object-stamp');
+        if (!stamp) return;
+        var obj = window.appState.containerItemObjects.find(function (o) {
+            return o.mdashcontaineritemobjectstamp === stamp;
+        });
+        if (!obj) return;
+        $('.mdash-slot-zone-render.is-selected').removeClass('is-selected');
         $(this).addClass('is-selected');
+        _currentSelectedComponent = { type: 'object', stamp: stamp, data: obj };
+        handleComponentProperties(_currentSelectedComponent);
+    });
 
-        // Actualizar referência global
+    // Click no gear (toolbar ou slot vazio) → propriedades do slot
+    $drop.on('click', '.mdash-slot-zone-settings', function (e) {
+        e.stopPropagation();
         var item = window.appState.containerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
         var slot = item ? item.getSlot(slotId) : null;
         _currentSelectedComponent = {
@@ -1805,34 +1925,60 @@ function bindSlotDropZoneEvents($drop, itemStamp, slotId) {
             stamp: itemStamp + '::' + slotId,
             data: { item: item, slot: slot, itemStamp: itemStamp, slotId: slotId }
         };
-
+        $('.mdash-slot-zone-drop.is-selected').removeClass('is-selected');
+        $drop.addClass('is-selected');
         showSlotPropertiesEditor(itemStamp, slotId);
     });
 
-    // Click no objecto → editar
-    $drop.on('click', '.mdash-slot-zone-object', function (e) {
-        e.stopPropagation();
-        var stamp = $(this).data('object-stamp');
-        if (stamp && typeof editContainerItemObject === 'function') {
-            editContainerItemObject(stamp);
-        }
-    });
-
-    // Click no remove → remover objecto
+    // Click no remove → confirmação + registo em GMdashDeleteRecords para guardar a posteriori
     $drop.on('click', '.mdash-slot-zone-remove', function (e) {
         e.preventDefault();
         e.stopPropagation();
+        var objectStamp = $(this).data('object-stamp');
         var idx = window.appState.containerItemObjects.findIndex(function (obj) {
-            return obj.mdashcontaineritemstamp === itemStamp && obj.slotid === slotId;
+            return obj.mdashcontaineritemobjectstamp === objectStamp;
         });
-        if (idx !== -1) {
-            var obj = window.appState.containerItemObjects[idx];
-            window.appState.containerItemObjects.splice(idx, 1);
-            if (typeof deleteGenericRecord === 'function') {
-                deleteGenericRecord(obj.table, obj.idfield, obj[obj.idfield]);
+        if (idx === -1) return;
+        var obj = window.appState.containerItemObjects[idx];
+        showDeleteConfirmation({
+            title: 'Remover objecto',
+            message: 'Tem a certeza que pretende remover o objecto <strong>' + (obj.tipo || 'Objecto') + '</strong> deste slot?',
+            recordToDelete: {
+                table: obj.table,
+                tableKey: obj.idfield,
+                stamp: obj[obj.idfield]
+            },
+            onConfirm: function () {
+                // Remove do array reactivo apenas após confirmação
+                var currentIdx = window.appState.containerItemObjects.findIndex(function (o) {
+                    return o.mdashcontaineritemobjectstamp === objectStamp;
+                });
+                if (currentIdx !== -1) {
+                    window.appState.containerItemObjects.splice(currentIdx, 1);
+                }
+                refreshSlotOverlays(itemStamp);
             }
-        }
-        refreshSlotOverlays(itemStamp);
+        });
+    });
+
+    // Click no slot vazio (não na render area, não no gear, não no remove) → slot properties
+    $drop.on('click', function (e) {
+        var $t = $(e.target);
+        if ($t.closest('.mdash-slot-zone-render').length) return;
+        if ($t.closest('.mdash-slot-zone-settings').length) return;
+        if ($t.closest('.mdash-slot-zone-remove').length) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var item = window.appState.containerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
+        var slot = item ? item.getSlot(slotId) : null;
+        _currentSelectedComponent = {
+            type: 'slot',
+            stamp: itemStamp + '::' + slotId,
+            data: { item: item, slot: slot, itemStamp: itemStamp, slotId: slotId }
+        };
+        $('.mdash-slot-zone-drop.is-selected').removeClass('is-selected');
+        $drop.addClass('is-selected');
+        showSlotPropertiesEditor(itemStamp, slotId);
     });
 }
 
@@ -4852,6 +4998,14 @@ function updatePropsComponentHeader(selectedComponent) {
             iconClass = 'glyphicon glyphicon-modal-window';
             typeLabel = 'Slot';
             nameLabel = d.slotId || '';
+        } else if (selectedComponent.type === 'object') {
+            iconClass = getObjectTypeIcon(d.tipo || '') || 'glyphicon glyphicon-stop';
+            typeLabel = 'Objecto';
+            nameLabel = d.tipo || d.mdashcontaineritemobjectstamp || '';
+        } else if (selectedComponent.type === 'object') {
+            iconClass = 'glyphicon glyphicon-stop';
+            typeLabel = 'Objecto';
+            nameLabel = d.tipo || d.mdashcontaineritemobjectstamp || '';
         }
     }
 
@@ -4866,6 +5020,9 @@ function updatePropsComponentHeader(selectedComponent) {
 function handleComponentProperties(selectedComponent) {
     var panel = $('#mdash-properties-panel');
     if (!panel.length) return;
+
+    // Restaurar tabs (podem estar ocultas se o último contexto era um slot)
+    $('.mdash-props-tab[data-tab="fontes"], .mdash-props-tab[data-tab="actions"]').show();
 
     // Activa sempre a tab de propriedades quando muda componente
     activatePropertiesTab('properties');
@@ -4894,6 +5051,9 @@ function handleComponentProperties(selectedComponent) {
         if (slotData && slotData.itemStamp && slotData.slotId) {
             showSlotPropertiesEditor(slotData.itemStamp, slotData.slotId);
         }
+    } else if (selectedComponent.type === "object") {
+        showObjectPropertiesEditor(selectedComponent.data);
+        return; // showObjectPropertiesEditor chama activatePropertiesTab internamente
     } else {
         panel.html('<p class=\"text-muted\">Tipo ainda não suportado.</p>');
     }
@@ -5079,7 +5239,7 @@ function getObjectCatalogDefinitions() {
         {
             category: 'Conteúdo',
             items: [
-                { value: 'title', label: 'Título', icon: 'glyphicon glyphicon-header', color: 'rgba(236,72,153,0.12)', description: 'Título do item ou secção' },
+                { value: 'TituloItem', label: 'Título do Item', icon: 'glyphicon glyphicon-header', color: 'rgba(236,72,153,0.12)', description: 'Mostra o título do Card (sem fonte de dados)' },
                 { value: 'text', label: 'Texto', icon: 'glyphicon glyphicon-font', color: 'rgba(107,114,128,0.12)', description: 'Bloco de texto livre' },
                 { value: 'image', label: 'Imagem', icon: 'glyphicon glyphicon-picture', color: 'rgba(6,182,212,0.12)', description: 'Imagem ou ícone visual' },
                 { value: 'html', label: 'HTML', icon: 'glyphicon glyphicon-console', color: 'rgba(249,115,22,0.12)', description: 'Conteúdo HTML personalizado' }
@@ -5614,6 +5774,118 @@ function openContainerItemObjectEditModal(obj) {
 }
 
 // ============================================================================
+// EDITOR DE PROPRIEDADES DO OBJECTO
+// ============================================================================
+
+/**
+ * Mostra as propriedades de um MdashContainerItemObject no painel col 3.
+ * @param {MdashContainerItemObject} obj
+ */
+function showObjectPropertiesEditor(obj) {
+    var panel = $('#mdash-properties-panel');
+    if (!panel.length) return;
+    if (!obj) {
+        panel.html('<div class="mdash-props-empty-state"><i class="glyphicon glyphicon-stop"></i><p>Objecto não encontrado</p></div>');
+        return;
+    }
+
+    activatePropertiesTab('properties');
+    var $propsPanel = $('.mdash-properties');
+    if ($propsPanel.hasClass('is-collapsed')) $propsPanel.removeClass('is-collapsed');
+
+    // Ocultar tabs Fontes e Acções para objectos estáticos
+    if (obj.processaFonte === false) {
+        $('.mdash-props-tab[data-tab="fontes"], .mdash-props-tab[data-tab="actions"]').hide();
+    } else {
+        $('.mdash-props-tab[data-tab="fontes"], .mdash-props-tab[data-tab="actions"]').show();
+    }
+
+    var fonteOptions = (window.appState ? window.appState.fontes : GMDashFontes).map(function (f) {
+        return '<option value="' + f.mdashfontestamp + '"' + (obj.fontestamp === f.mdashfontestamp ? ' selected' : '') + '>'
+            + (f.descricao || f.codigo || f.mdashfontestamp) + '</option>';
+    }).join('');
+
+    var html = '<div class="mdash-object-props-editor" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '">';
+
+    // ── Secção Identidade ──
+    html += '<div class="mdash-prop-section">';
+    html += '  <div class="mdash-prop-section-header" data-toggle-section="obj-sec-identity">';
+    html += '    <span class="mdash-prop-section-title"><i class="glyphicon glyphicon-info-sign"></i> Identidade</span>';
+    html += '    <i class="glyphicon glyphicon-chevron-down mdash-prop-section-chevron"></i>';
+    html += '  </div>';
+    html += '  <div class="mdash-prop-section-body" id="obj-sec-identity">';
+    html += '    <div class="row">';
+    html += '      <div class="col-md-12" style="margin-bottom:6px;"><div class="mdash-prop-field">';
+    html += '        <label>Tipo</label>';
+    html += '        <input type="text" class="form-control input-sm" value="' + (obj.tipo || '') + '" readonly style="background:var(--md-surface-2,#f5f5f5);color:var(--md-muted);" />';
+    html += '      </div></div>';
+    html += '      <div class="col-md-12" style="margin-bottom:6px;"><div class="mdash-prop-field">';
+    html += '        <label>Slot</label>';
+    html += '        <input type="text" class="form-control input-sm" value="' + (obj.slotid || '') + '" readonly style="background:var(--md-surface-2,#f5f5f5);color:var(--md-muted);" />';
+    html += '      </div></div>';
+    html += '    </div>';
+    html += '  </div>';
+    html += '</div>';
+
+    // ── Secção Dados ──
+    html += '<div class="mdash-prop-section">';
+    html += '  <div class="mdash-prop-section-header" data-toggle-section="obj-sec-data">';
+    html += '    <span class="mdash-prop-section-title"><i class="glyphicon glyphicon-hdd"></i> Dados</span>';
+    html += '    <i class="glyphicon glyphicon-chevron-down mdash-prop-section-chevron"></i>';
+    html += '  </div>';
+    html += '  <div class="mdash-prop-section-body" id="obj-sec-data">';
+    html += '    <div class="row">';
+    var processaBadgeColor = obj.processaFonte !== false ? 'rgba(16,185,129,0.12)' : 'rgba(107,114,128,0.12)';
+    var processaBadgeText = obj.processaFonte !== false ? 'Sim' : 'Não';
+    var processaBadgeBorder = obj.processaFonte !== false ? 'rgba(16,185,129,0.4)' : 'rgba(107,114,128,0.3)';
+    var processaBadgeFg = obj.processaFonte !== false ? '#0d7a55' : '#555';
+    html += '      <div class="col-md-12" style="margin-bottom:6px;"><div class="mdash-prop-field">';
+    html += '        <label>Processa Fonte</label>';
+    html += '        <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">';
+    html += '          <span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;background:' + processaBadgeColor + ';border:1px solid ' + processaBadgeBorder + ';color:' + processaBadgeFg + ';">' + processaBadgeText + '</span>';
+    html += '          <span style="font-size:11px;color:var(--md-muted);">Definido pelo tipo de objecto</span>';
+    html += '        </div>';
+    html += '      </div></div>';
+    if (obj.processaFonte !== false) {
+        html += '      <div class="col-md-12 mdash-obj-fonte-row" style="margin-bottom:6px;"><div class="mdash-prop-field">';
+        html += '        <label>Fonte de Dados</label>';
+        html += '        <select class="form-control input-sm mdash-obj-prop" data-field="fontestamp"><option value="">-- Sem fonte --</option>' + fonteOptions + '</select>';
+        html += '      </div></div>';
+    }
+    html += '    </div>';
+    html += '  </div>';
+    html += '</div>';
+
+    // ── Botão abrir editor completo ──
+    html += '<div style="padding:10px 0 4px;">';
+    html += '  <button type="button" class="btn btn-sm btn-default btn-block mdash-obj-open-editor"><i class="glyphicon glyphicon-pencil"></i> Abrir editor completo</button>';
+    html += '</div>';
+
+    html += '</div>';
+    panel.html(html);
+
+    // Toggle de secções
+    panel.find('.mdash-prop-section-header').on('click', function () {
+        $(this).closest('.mdash-prop-section').toggleClass('is-collapsed');
+    });
+
+    panel.off('change.objprops');
+    panel.on('change.objprops', '.mdash-obj-prop', function () {
+        var field = $(this).data('field');
+        var val = $(this).is(':checkbox') ? $(this).is(':checked') : $(this).val();
+        obj[field] = val;
+        if (typeof realTimeComponentSync === 'function') {
+            realTimeComponentSync(obj, obj.table, obj.idfield);
+        }
+    });
+
+    panel.off('click.objprops');
+    panel.on('click.objprops', '.mdash-obj-open-editor', function () {
+        openContainerItemObjectEditModal(obj);
+    });
+}
+
+// ============================================================================
 // EDITOR DE PROPRIEDADES DO SLOT
 // ============================================================================
 
@@ -5646,39 +5918,71 @@ function showSlotPropertiesEditor(itemStamp, slotId) {
     }
 
     var props = MdashSlot.getEditableProperties();
-    var slotTitle = buildModalEntityTitle('Slot', slot.label || slot.id);
+
+    // Ocultar tabs Fontes e Acções — não aplicável a slots
+    $('.mdash-props-tab[data-tab="fontes"], .mdash-props-tab[data-tab="actions"]').hide();
+
+    // Agrupar props por secção (mesma lógica de renderPropertiesForm)
+    var sections = {};
+    var sectionOrder = [];
+    props.forEach(function (prop) {
+        var sec = prop.section || 'Geral';
+        if (!sections[sec]) { sections[sec] = []; sectionOrder.push(sec); }
+        sections[sec].push(prop);
+    });
+    var sectionIcons = { 'Layout': 'glyphicon-th-large', 'Estilo': 'glyphicon-adjust', 'Geral': 'glyphicon-cog' };
 
     var html = '<div class="mdash-slot-props-editor" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '">';
-    html += '<h5 style="margin:0 0 12px 0;font-weight:700;display:flex;align-items:center;gap:6px;"><i class="glyphicon glyphicon-cog" style="color:var(--md-primary);"></i> ' + slotTitle + '</h5>';
 
-    props.forEach(function (prop) {
-        var val = slot.config[prop.field] !== undefined ? slot.config[prop.field] : prop.defaultValue;
-        html += '<div class="form-group" style="margin-bottom:8px;">';
-        html += '<label style="font-size:11px;font-weight:600;margin-bottom:3px;display:block;">' + prop.title + '</label>';
+    sectionOrder.forEach(function (secName) {
+        var secIcon = sectionIcons[secName] || 'glyphicon-option-horizontal';
+        var secId = 'mdash-slot-sec-' + secName.toLowerCase().replace(/\s+/g, '-');
+        html += '<div class="mdash-prop-section" data-section="' + secId + '">';
+        html += '  <div class="mdash-prop-section-header" data-toggle-section="' + secId + '">';
+        html += '    <span class="mdash-prop-section-title"><i class="glyphicon ' + secIcon + '"></i> ' + secName + '</span>';
+        html += '    <i class="glyphicon glyphicon-chevron-down mdash-prop-section-chevron"></i>';
+        html += '  </div>';
+        html += '  <div class="mdash-prop-section-body" id="' + secId + '">';
+        html += '    <div class="row">';
 
-        if (prop.type === 'select' && prop.options) {
-            html += '<select class="form-control input-sm mdash-slot-prop" data-field="' + prop.field + '">';
-            prop.options.forEach(function (opt) {
-                var sel = (val === opt) ? ' selected' : '';
-                html += '<option value="' + opt + '"' + sel + '>' + opt + '</option>';
-            });
-            html += '</select>';
-        } else if (prop.type === 'checkbox') {
-            var chk = val ? ' checked' : '';
-            html += '<div style="padding-top:4px;"><input type="checkbox" class="mdash-slot-prop" data-field="' + prop.field + '"' + chk + ' /></div>';
-        } else if (prop.type === 'color') {
-            html += '<div style="display:flex;gap:6px;align-items:center;">';
-            html += '<input type="color" class="mdash-slot-prop" data-field="' + prop.field + '" value="' + (val || '#ffffff') + '" style="width:32px;height:28px;padding:1px;border:1px solid #ccc;border-radius:3px;cursor:pointer;" />';
-            html += '<input type="text" class="form-control input-sm mdash-slot-prop-text" data-field="' + prop.field + '" value="' + (val || '') + '" placeholder="#f5f5f5, rgba(...)" />';
-            html += '</div>';
-        } else {
-            html += '<input type="text" class="form-control input-sm mdash-slot-prop" data-field="' + prop.field + '" value="' + (val || '') + '" />';
-        }
-        html += '</div>';
+        sections[secName].forEach(function (prop) {
+            var val = slot.config[prop.field] !== undefined ? slot.config[prop.field] : (prop.defaultValue || '');
+            html += '<div class="col-md-12" style="margin-bottom:6px;"><div class="mdash-prop-field">';
+
+            if (prop.type === 'checkbox') {
+                html += '<label class="mdash-prop-field-check"><input type="checkbox" class="mdash-slot-prop" data-field="' + prop.field + '"' + (val ? ' checked' : '') + ' /><span>' + prop.title + '</span></label>';
+            } else if (prop.type === 'select' && prop.options) {
+                html += '<label>' + prop.title + '</label>';
+                html += '<select class="form-control input-sm mdash-slot-prop" data-field="' + prop.field + '">';
+                prop.options.forEach(function (opt) {
+                    html += '<option value="' + opt + '"' + (val === opt ? ' selected' : '') + '>' + opt + '</option>';
+                });
+                html += '</select>';
+            } else if (prop.type === 'color') {
+                html += '<label>' + prop.title + '</label>';
+                html += '<div style="display:flex;gap:6px;align-items:center;">';
+                html += '<input type="color" class="mdash-slot-prop" data-field="' + prop.field + '" value="' + (val || '#ffffff') + '" style="width:32px;height:28px;padding:1px;border:1px solid rgba(0,0,0,0.15);border-radius:6px;cursor:pointer;" />';
+                html += '<input type="text" class="form-control input-sm mdash-slot-prop-text" data-field="' + prop.field + '" value="' + (val || '') + '" placeholder="#f5f5f5 / rgba(...)" />';
+                html += '</div>';
+            } else {
+                html += '<label>' + prop.title + '</label>';
+                html += '<input type="text" class="form-control input-sm mdash-slot-prop" data-field="' + prop.field + '" value="' + (val || '') + '" />';
+            }
+
+            html += '</div></div>';
+        });
+
+        html += '    </div></div></div>';
     });
+
     html += '</div>';
 
     panel.html(html);
+
+    // Bind: toggle secções (mesma lógica de renderPropertiesForm)
+    panel.find('.mdash-prop-section-header').on('click', function () {
+        $(this).closest('.mdash-prop-section').toggleClass('is-collapsed');
+    });
 
     // Remover handlers anteriores para evitar que alterações afectem slots/items antigos
     panel.off('change.slotprops');
@@ -6507,20 +6811,36 @@ function loadModernDashboardStyles() {
     styles += ".mdash-slot-ph-objects-list { display: flex; flex-direction: column; gap: 4px; width: 100%; }";
 
     // ===== SLOT ZONES (mini drop overlays inside rendered cards) =====
-    styles += ".mdash-slot-zone-drop { min-height: 28px; padding: 4px 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(var(--md-primary-rgb),0.35); border-radius: 5px; background: rgba(var(--md-primary-rgb),0.03); transition: background 0.15s, border-color 0.15s; position: relative; }";
+    styles += ".mdash-slot-zone-drop { min-height: 24px; padding: 3px 8px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; border: 1px dashed rgba(var(--md-primary-rgb),0.35); border-radius: 5px; background: rgba(var(--md-primary-rgb),0.03); transition: background 0.15s, border-color 0.15s; position: relative; }";
+    styles += ".mdash-slot-zone-drop.has-object { min-height: 0; padding: 0; border-style: solid; border-color: rgba(var(--md-primary-rgb),0.20); }";
     styles += ".mdash-slot-zone-drop.drag-over { background: rgba(var(--md-primary-rgb),0.10); border-color: var(--md-primary); border-style: solid; }";
-    styles += ".mdash-slot-zone-hint { display: flex; align-items: center; gap: 4px; color: var(--md-muted); font-size: 10px; }";
+    styles += ".mdash-slot-zone-drop.is-selected { border-color: var(--md-primary); border-style: solid; box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.18); }";
+    // Hint for empty slots
+    styles += ".mdash-slot-zone-hint { display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--md-muted); font-size: 10px; }";
     styles += ".mdash-slot-zone-hint i { font-size: 10px; opacity: 0.5; }";
-    styles += ".mdash-slot-zone-object { display: flex; align-items: center; gap: 5px; padding: 3px 8px; background: rgba(255,255,255,0.9); border: 1px solid rgba(var(--md-primary-rgb),0.28); border-radius: 5px; font-size: 11px; cursor: pointer; transition: all 0.15s; color: var(--md-text); width: 100%; }";
-    styles += ".mdash-slot-zone-object:hover { border-color: var(--md-primary); box-shadow: 0 1px 4px rgba(var(--md-primary-rgb),0.10); }";
-    styles += ".mdash-slot-zone-object i { color: var(--md-primary); font-size: 11px; }";
-    styles += ".mdash-slot-zone-remove { margin-left: auto; border: none; background: none; color: var(--md-muted); cursor: pointer; padding: 1px 3px; font-size: 9px; opacity: 0; transition: opacity 0.15s, color 0.15s; }";
-    styles += ".mdash-slot-zone-object:hover .mdash-slot-zone-remove { opacity: 1; }";
+    // Toolbar: absolute overlay — never pushes content down
+    styles += ".mdash-slot-zone-toolbar { position: absolute; top: 0; left: 0; right: 0; z-index: 5; display: flex; align-items: center; gap: 4px; padding: 2px 4px; background: rgba(0,0,0,0.55); border-radius: 4px 4px 0 0; font-size: 11px; color: #fff; opacity: 0; pointer-events: none; transition: opacity 0.15s; }";
+    styles += ".mdash-slot-zone-drop.has-object:hover .mdash-slot-zone-toolbar { opacity: 1; pointer-events: auto; }";
+    styles += ".mdash-slot-zone-toolbar i { color: #fff; font-size: 11px; }";
+    styles += ".mdash-slot-zone-toolbar span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }";
+    // Left (slot) and right (object) anchors inside toolbar
+    styles += ".mdash-slot-zone-toolbar-left { margin-right: 2px; }";
+    styles += ".mdash-slot-zone-toolbar-right { margin-left: auto; }";
+    // Each object block inside an occupied slot
+    styles += ".mdash-slot-zone-obj-block { position: relative; overflow: hidden; }";
+    // Render area — content rendered directly here, no min-height so slot fits content
+    styles += ".mdash-slot-zone-render { width: 100%; cursor: pointer; }";
+    styles += ".mdash-slot-zone-render.is-selected { outline: 2px solid var(--md-primary); outline-offset: -1px; }";
+    styles += ".mdash-slot-zone-render-placeholder { padding: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--md-muted); font-size: 11px; font-style: italic; }";
+    styles += ".mdash-slot-zone-render-placeholder i { color: var(--md-muted); font-size: 12px; }";
+    // Gear button
+    styles += ".mdash-slot-zone-settings { border: none; background: none; color: var(--md-muted); cursor: pointer; padding: 2px 4px; font-size: 10px; transition: color 0.15s; line-height: 1; }";
+    styles += ".mdash-slot-zone-settings:hover { color: var(--md-primary); }";
+    styles += ".mdash-slot-zone-drop:not(.has-object) .mdash-slot-zone-settings { position: absolute; top: 2px; right: 2px; opacity: 0; transition: opacity 0.15s, color 0.15s; z-index: 2; }";
+    styles += ".mdash-slot-zone-drop:not(.has-object):hover .mdash-slot-zone-settings { opacity: 0.7; }";
+    // Remove button (in toolbar)
+    styles += ".mdash-slot-zone-remove { border: none; background: none; color: var(--md-muted); cursor: pointer; padding: 1px 3px; font-size: 10px; transition: color 0.15s; line-height: 1; margin-left: 2px; }";
     styles += ".mdash-slot-zone-remove:hover { color: #d9534f; }";
-    styles += ".mdash-slot-zone-settings { position: absolute; top: 2px; right: 2px; border: none; background: none; color: var(--md-muted); cursor: pointer; padding: 2px 4px; font-size: 10px; opacity: 0; transition: opacity 0.15s, color 0.15s; z-index: 2; }";
-    styles += ".mdash-slot-zone-drop:hover .mdash-slot-zone-settings { opacity: 0.7; }";
-    styles += ".mdash-slot-zone-settings:hover { opacity: 1 !important; color: var(--md-primary); }";
-    styles += ".mdash-slot-zone-drop.is-selected { border-color: var(--md-primary); border-style: solid; box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.18); background: rgba(var(--md-primary-rgb),0.06); }";
 
     // ===== OBJECTS PANEL (sidebar) =====
     styles += ".mdash-objects-panel { padding: 8px !important; }";
