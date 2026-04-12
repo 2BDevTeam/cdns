@@ -1,4 +1,16 @@
+﻿// ── Cache de cores por tipo (evita ~40 manipulações DOM repetidas) ───────────
+var _colorCache = {};
+function getCachedColor(type) {
+    if (!_colorCache[type]) {
+        _colorCache[type] = getColorByType(type);
+    }
+    return _colorCache[type];
+}
+
 $(document).ready(function () {
+    // Pré-carregar cache de cores antes de gerar CSS
+    ['primary', 'warning', 'success', 'danger', 'info'].forEach(function (t) { getCachedColor(t); });
+
     var styles = []
     addDashboardStyles(styles);
     addTabulatorStyles(styles);
@@ -9,7 +21,6 @@ $(document).ready(function () {
         globalStyle += style;
     });
     $('head').append('<style>' + globalStyle + '</style>');
-    applyTabulatorStylesWithJqueryMdash()
 });
 
 
@@ -17,7 +28,7 @@ function otherStyles(styles) {
 
     var cssString = "";
     cssString += "input::file-selector-button {";
-    cssString += "    background: linear-gradient(60deg, " + getColorByType("primary").background + ", " + getColorByType("primary").background + ");";
+    cssString += "    background: linear-gradient(60deg, " + getCachedColor("primary").background + ", " + getCachedColor("primary").background + ");";
     cssString += "    color: white;";
     cssString += "    border: none;";
     cssString += "    border-radius: 8px;";
@@ -61,12 +72,12 @@ function addTabulatorStyles(styles) {
     tabulatorCSS += "    border: none;";
     tabulatorCSS += "}";
     tabulatorCSS += ".tabulator .tabulator-header {";
-    tabulatorCSS += "    background-color:" + getColorByType("primary").background + ";";
+    tabulatorCSS += "    background-color:" + getCachedColor("primary").background + ";";
     tabulatorCSS += "    border-bottom: none;";
     tabulatorCSS += "    border-radius: 10px 10px 0 0;";
     tabulatorCSS += "}";
     tabulatorCSS += ".tabulator .tabulator-header .tabulator-col {";
-    tabulatorCSS += "    background-color:" + getColorByType("primary").background;
+    tabulatorCSS += "    background-color:" + getCachedColor("primary").background;
     tabulatorCSS += "    color: white;";
     tabulatorCSS += "    border-right: none;";
     tabulatorCSS += "    padding: 12px 15px;";
@@ -111,30 +122,30 @@ function addTabulatorStyles(styles) {
     tabulatorCSS += "    background-color: white;";
     tabulatorCSS += "}";
     tabulatorCSS += ".tabulator .tabulator-col-resize-handle:hover {"
-    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "border:9px solid " + getCachedColor("primary").background + "!important;border-radius:8px"
     tabulatorCSS += "}"
     tabulatorCSS += ".tabulator .tabulator-col-resize-handle:hover {"
-    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "border:9px solid " + getCachedColor("primary").background + "!important;border-radius:8px"
     tabulatorCSS += "}"
     tabulatorCSS += ".tabulator-col:hover .tabulator-col-resize-handle {"
-    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "border:9px solid " + getCachedColor("primary").background + "!important;border-radius:8px"
     tabulatorCSS += "}"
     tabulatorCSS += ".tabulator-cell:hover .tabulator-col-resize-handle {"
-    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "border:9px solid " + getCachedColor("primary").background + "!important;border-radius:8px"
     tabulatorCSS += "}"
     /* tabulatorCSS += ".tabulator-cell:hover ~ .tabulator-col-resize-handle {"
-     tabulatorCSS += "border:6px solid " + getColorByType("primary").background + "!important;"
+     tabulatorCSS += "border:6px solid " + getCachedColor("primary").background + "!important;"
      tabulatorCSS += "}"*/
     tabulatorCSS += ".tabulator-cell:hover + .tabulator-col-resize-handle {"
-    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "border:9px solid " + getCachedColor("primary").background + "!important;border-radius:8px"
     tabulatorCSS += "}"
     tabulatorCSS += ".tabulator-cell:hover .tabulator-col-resize-handle {"
-    tabulatorCSS += "border:9px solid " + getColorByType("primary").background + "!important;border-radius:8px"
+    tabulatorCSS += "border:9px solid " + getCachedColor("primary").background + "!important;border-radius:8px"
     tabulatorCSS += "}"
     tabulatorCSS += ".tabulator-cell input[type='checkbox'] {";
     tabulatorCSS + " -webkit-appearance: none!important;"
-    tabulatorCSS += "border: 1px solid " + getColorByType("primary").background + "!important;";
-    tabulatorCSS += "accent-color: " + getColorByType("warning").background + "!important;";
+    tabulatorCSS += "border: 1px solid " + getCachedColor("primary").background + "!important;";
+    tabulatorCSS += "accent-color: " + getCachedColor("warning").background + "!important;";
     tabulatorCSS += "transform: scale(1.7)!important;";
     tabulatorCSS += "}";
     tabulatorCSS += ".tabulator-data-tree-control{ "
@@ -151,8 +162,8 @@ function addTabulatorStyles(styles) {
     tabulatorCSS += "     align-items: center;"
     tabulatorCSS += "}"
     tabulatorCSS += ".tabulator .tabulator-footer .tabulator-page.active {";
-    tabulatorCSS += "    border-color: " + getColorByType("primary").background + "!important;";
-    tabulatorCSS += "    background-color: " + getColorByType("primary").background + "!important;";
+    tabulatorCSS += "    border-color: " + getCachedColor("primary").background + "!important;";
+    tabulatorCSS += "    background-color: " + getCachedColor("primary").background + "!important;";
     tabulatorCSS += "    color: #fff!important;";
     tabulatorCSS += "}";
     tabulatorCSS += ".tabulator-footer{ ";
@@ -161,157 +172,8 @@ function addTabulatorStyles(styles) {
 
     styles.push(tabulatorCSS);
 }
-function applyTabulatorStylesWithJqueryMdash() {
-    var customStyles = {}
-    //console.log(("mrendThis.reportConfig", mrendThis.reportConfig)
-    // Tabulator container
-    $(".tabulator").css({
-        "background-color": "white",
-        "border-radius": "10px",
-        "box-shadow": "0 4px 20px rgba(0, 0, 0, 0.08)",
-        "border": "none"
-    });
-    // Header
-    $(".tabulator .tabulator-header").css({
-        "background-color": customStyles.headerBackground ? customStyles.headerBackground : getColorByType("primary").background,
-        "border-bottom": "none",
-        "border-radius": "10px 10px 0 0",
-        "padding": "13px"
-    });
-    // Header columns
-    $(".tabulator .tabulator-header .tabulator-col").css({
-        "background-color": customStyles.headerBackground ? customStyles.headerBackground : getColorByType("primary").background,
-        "color": "white",
-        "border-right": "none",
-        /*  "padding": "12px 15px",*/
-        "font-weight": "500"
-    });
-    $(".tabulator .tabulator-header .tabulator-col:first-child").css("border-top-left-radius", "10px");
-    $(".tabulator .tabulator-header .tabulator-col:last-child").css("border-top-right-radius", "10px");
-    // Rows
-    $(".tabulator-row").css({
-        "border-bottom": "1px solid #e0e6ed",
-        "transition": "background-color 0.2s ease"
-    });
-    // $(".tabulator-row.tabulator-row-even").css("background-color", "#fcfdfe");
-    $(".tabulator-row")/*.hover(
-        function () { $(this).css("background-color", "#f5f9ff"); },
-        function () { $(this).css("background-color", ""); }
-    );*/
-    $(".tabulator .tabulator-header .tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid red");
-    $(".tabulator-row .tabulator-cell.tabulator-frozen.tabulator-frozen-right").css("border-left", "0px solid #0000");
 
-    // Cells
-    $(".tabulator-cell").css({
-        "padding": "12px 15px",
-        "border-right": "none"
-    });
-    // Botão adicionar
-    $(".btn-add").css({
-        "margin": "0 0 15px 0",
-        "padding": "10px 18px",
-        "background-color": getColorByType("primary").background,
-        "color": "white",
-        "border": "none",
-        "border-radius": "6px",
-        "cursor": "pointer",
-        "font-weight": "500",
-        "font-size": "14px",
-        "transition": "all 0.2s ease",
-        "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
-    }).hover(
-        function () {
-            $(this).css({
-                "background-color": "#06539e",
-                "transform": "translateY(-1px)",
-                "box-shadow": "0 4px 12px rgba(7, 101, 183, 0.3)"
-            });
-        },
-        function () {
-            $(this).css({
-                "background-color": getColorByType("primary").background,
-                "transform": "",
-                "box-shadow": "0 2px 8px rgba(7, 101, 183, 0.2)"
-            });
-        }
-    );
-    $(".btn-add i").css("margin-right", "6px");
-    // Botões de ação
-    $(".action-btn").css({
-        "background": "none",
-        "border": "none",
-        //  "color": "#5a8de6",
-        "cursor": "pointer",
-        "font-size": "15px",
-        "margin": "0 5px",
-        "transition": "all 0.2s ease"
-    }).hover(
-        function () {
-            $(this).css({
-                //   "color": getColorByType("primary").background ,
-                "transform": "scale(1.1)"
-            });
-        },
-        function () {
-            $(this).css({
-                //   "color": "#5a8de6",
-                "transform": ""
-            });
-        }
-    );
-    // Tree/indent
-    $(".tabulator-row .tabulator-cell.tabulator-tree-col").css("padding-left", "15px");
-    $(".tabulator-tree-branch").css({
-        "border-left": "2px solid #d1e3ff",
-        "margin-left": "7.5px"
-    });
-    $(".tabulator-tree-level-1 .tabulator-cell.tabulator-tree-col").css("padding-left", "30px");
-    $(".tabulator-tree-level-2 .tabulator-cell.tabulator-tree-col").css("padding-left", "45px");
-    $(".tabulator-tree-level-3 .tabulator-cell.tabulator-tree-col").css("padding-left", "60px");
-    // Tree controls
-    $(".tabulator-row .tabulator-cell .tabulator-data-tree-control").css({
-        "align-items": "center",
-        "background": "rgb(255 255 255 / 10%)",
-        "border": "1px solid #2975dd",
-        "border-radius": "2px",
-        "display": "inline-flex",
-        "height": "11px",
-        "justify-content": "center",
-        "margin-right": "5px",
-        "overflow": "hidden",
-        "vertical-align": "middle",
-        "width": "11px"
-    });
-    $(".tabulator-tree-collapse, .tabulator-tree-expand").css({
-        "color": getColorByType("primary").background,
-        "border-radius": "50%",
-        "width": "18px",
-        "height": "18px",
-        "display": "inline-flex",
-        "align-items": "center",
-        "justify-content": "center",
-        "margin-right": "8px",
-        "transition": "all 0.2s ease"
-    }).hover(
-        function () { $(this).css("background-color", "rgba(7, 101, 183, 0.1)"); },
-        function () { $(this).css("background-color", ""); }
-    );
-    // Edit list
-    $(".tabulator-edit-list").css({
-        "z-index": "9999",
-        "position": "absolute",
-        "border-radius": "6px",
-        "box-shadow": "0 5px 15px rgba(0, 0, 0, 0.1)",
-        "border": "1px solid #e0e6ed"
-    });
-    $(".tabulator-edit-list .tabulator-edit-list-item").css("padding", "8px 15px");
-    $(".tabulator-edit-list .tabulator-edit-list-item.active").css({
-        "background-color": "rgba(7, 101, 183, 0.1)",
-        "color": getColorByType("primary").background
-    });
-    // Scrollbar (apenas para webkit browsers)
-    // $("body").append('<style>::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; } ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; } ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }</style>');
-}
+// ── applyTabulatorStylesWithJqueryMdash removida — estilos já via CSS string ──
 
 // ...existing code...
 function generateCardTimeLine(cardData) {
@@ -1368,327 +1230,7 @@ function getTiposObjectoConfig() {
         label: "Texto",
         icon: "fa fa-font",
         categoria: "editor",
-        createDynamicSchema: function (data) {
-            var fieldOptions = [];
-            if (data && data.length > 0) {
-                Object.keys(data[0]).forEach(function (key) {
-                    fieldOptions.push(key);
-                });
-            }
-            return {
-                type: "object",
-                title: "Configuração de Texto",
-                properties: {
-                    // CAMPOS DE DADOS - IGUAL AOS OUTROS OBJETOS
-                    dataField: {
-                        type: "string",
-                        title: "Campo de Dados",
-                        'enum': fieldOptions,
-                        description: "Campo dos dados que será exibido como texto"
-                    },
-                    staticText: {
-                        type: "string",
-                        title: "Texto Estático (alternativo)",
-                        'default': "",
-                        description: "Se não selecionar campo de dados, pode inserir texto fixo"
-                    },
-                    // Configurações de formatação de dados
-                    dataFormat: {
-                        type: "object",
-                        title: "Formatação de Dados",
-                        properties: {
-                            type: {
-                                type: "string",
-                                title: "Tipo de Formatação",
-                                'enum': ["text", "number", "currency", "percentage", "date"],
-                                'default': "text"
-                            },
-                            locale: {
-                                type: "string",
-                                title: "Localização",
-                                'enum': ["pt-PT", "pt-BR", "en-US", "en-GB", "fr-FR", "de-DE", "es-ES"],
-                                'default': "pt-PT"
-                            },
-                            currency: {
-                                type: "string",
-                                title: "Código da Moeda",
-                                'default': "EUR",
-                                description: "Para tipo currency: EUR, USD, GBP, BRL"
-                            },
-                            currencyPosition: {
-                                type: "string",
-                                title: "Posição da Moeda",
-                                'enum': ["left", "right"],
-                                'default': "right",
-                                description: "Posição do símbolo da moeda"
-                            },
-                            minimumFractionDigits: {
-                                type: "integer",
-                                title: "Mínimo de Casas Decimais",
-                                'default': 0,
-                                minimum: 0,
-                                maximum: 20
-                            },
-                            maximumFractionDigits: {
-                                type: "integer",
-                                title: "Máximo de Casas Decimais",
-                                'default': 2,
-                                minimum: 0,
-                                maximum: 20
-                            },
-                            prefix: {
-                                type: "string",
-                                title: "Prefixo",
-                                'default': "",
-                                description: "Texto antes do valor"
-                            },
-                            suffix: {
-                                type: "string",
-                                title: "Sufixo",
-                                'default': "",
-                                description: "Texto após o valor"
-                            }
-                        }
-                    },
-                    // Conteúdo do texto - MODIFICADO
-                    content: {
-                        type: "object",
-                        title: "Configurações de Conteúdo",
-                        properties: {
-                            htmlEnabled: {
-                                type: "boolean",
-                                title: "Permitir HTML",
-                                'default': false,
-                                description: "Permite usar tags HTML no texto"
-                            },
-                            multipleValues: {
-                                type: "boolean",
-                                title: "Múltiplos Valores",
-                                'default': false,
-                                description: "Exibir todos os valores do campo (em vez de apenas o primeiro)"
-                            },
-                            separator: {
-                                type: "string",
-                                title: "Separador (para múltiplos valores)",
-                                'default': ", ",
-                                description: "Como separar múltiplos valores"
-                            }
-                        }
-                    },
-                    // Formatação de texto
-                    textFormat: {
-                        type: "object",
-                        title: "Formatação do Texto",
-                        properties: {
-                            fontSize: {
-                                type: "integer",
-                                title: "Tamanho da Fonte (px)",
-                                'default': 16,
-                                minimum: 8,
-                                maximum: 72
-                            },
-                            fontWeight: {
-                                type: "string",
-                                title: "Peso da Fonte",
-                                'enum': ["normal", "bold", "lighter", "bolder", "100", "200", "300", "400", "500", "600", "700", "800", "900"],
-                                'default': "bold"
-                            },
-                            fontStyle: {
-                                type: "string",
-                                title: "Estilo da Fonte",
-                                'enum': ["normal", "italic", "oblique"],
-                                'default': "normal"
-                            },
-                            fontFamily: {
-                                type: "string",
-                                title: "Família da Fonte",
-                                'enum': ["Arial", "Nunito, sans-serif", "Helvetica", "Times New Roman", "Georgia", "Verdana", "Courier New", "Comic Sans MS", "Impact", "Trebuchet MS", "Arial Black"],
-                                'default': "Nunito, sans-serif"
-                            },
-                            textAlign: {
-                                type: "string",
-                                title: "Alinhamento",
-                                'enum': ["left", "center", "right", "justify"],
-                                'default': "center"
-                            },
-                            lineHeight: {
-                                type: "number",
-                                title: "Altura da Linha",
-                                'default': 1.5,
-                                minimum: 0.5,
-                                maximum: 3,
-                                step: 0.1
-                            }
-                        }
-                    },
-                    // Cores
-                    colors: {
-                        type: "object",
-                        title: "Cores",
-                        properties: {
-                            textColor: {
-                                type: "string",
-                                title: "Cor do Texto",
-                                format: "color",
-                                'default': "#333333"
-                            },
-                            backgroundColor: {
-                                type: "string",
-                                title: "Cor de Fundo",
-                                format: "color",
-                                'default': "#fff"
-                            },
-                            borderColor: {
-                                type: "string",
-                                title: "Cor da Borda",
-                                format: "color",
-                                'default': "transparent"
-                            }
-                        }
-                    },
-                    // Espaçamento e layout
-                    spacing: {
-                        type: "object",
-                        title: "Espaçamento",
-                        properties: {
-                            paddingTop: {
-                                type: "integer",
-                                title: "Padding Superior (px)",
-                                'default': 10,
-                                minimum: 0,
-                                maximum: 100
-                            },
-                            paddingRight: {
-                                type: "integer",
-                                title: "Padding Direito (px)",
-                                'default': 10,
-                                minimum: 0,
-                                maximum: 100
-                            },
-                            paddingBottom: {
-                                type: "integer",
-                                title: "Padding Inferior (px)",
-                                'default': 10,
-                                minimum: 0,
-                                maximum: 100
-                            },
-                            paddingLeft: {
-                                type: "integer",
-                                title: "Padding Esquerdo (px)",
-                                'default': 10,
-                                minimum: 0,
-                                maximum: 100
-                            },
-                            marginTop: {
-                                type: "integer",
-                                title: "Margem Superior (px)",
-                                'default': 0,
-                                minimum: 0,
-                                maximum: 100
-                            },
-                            marginBottom: {
-                                type: "integer",
-                                title: "Margem Inferior (px)",
-                                'default': 0,
-                                minimum: 0,
-                                maximum: 100
-                            }
-                        }
-                    },
-                    // Bordas
-                    border: {
-                        type: "object",
-                        title: "Bordas",
-                        properties: {
-                            width: {
-                                type: "integer",
-                                title: "Largura da Borda (px)",
-                                'default': 0,
-                                minimum: 0,
-                                maximum: 20
-                            },
-                            style: {
-                                type: "string",
-                                title: "Estilo da Borda",
-                                'enum': ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"],
-                                'default': "solid"
-                            },
-                            radius: {
-                                type: "integer",
-                                title: "Raio da Borda (px)",
-                                'default': 0,
-                                minimum: 0,
-                                maximum: 50
-                            }
-                        }
-                    },
-                    // Efeitos
-                    effects: {
-                        type: "object",
-                        title: "Efeitos",
-                        properties: {
-                            textShadow: {
-                                type: "boolean",
-                                title: "Sombra do Texto",
-                                'default': false
-                            },
-                            shadowColor: {
-                                type: "string",
-                                title: "Cor da Sombra",
-                                format: "color",
-                                'default': "#666666"
-                            },
-                            shadowBlur: {
-                                type: "integer",
-                                title: "Desfoque da Sombra (px)",
-                                'default': 2,
-                                minimum: 0,
-                                maximum: 20
-                            },
-                            shadowOffsetX: {
-                                type: "integer",
-                                title: "Deslocamento X da Sombra (px)",
-                                'default': 1,
-                                minimum: -20,
-                                maximum: 20
-                            },
-                            shadowOffsetY: {
-                                type: "integer",
-                                title: "Deslocamento Y da Sombra (px)",
-                                'default': 1,
-                                minimum: -20,
-                                maximum: 20
-                            }
-                        }
-                    },
-                    // Dimensões
-                    dimensions: {
-                        type: "object",
-                        title: "Dimensões",
-                        properties: {
-                            width: {
-                                type: "string",
-                                title: "Largura",
-                                'enum': ["auto", "100%", "50%", "25%", "75%"],
-                                'default': "100%"
-                            },
-                            height: {
-                                type: "string",
-                                title: "Altura",
-                                'enum': ["auto", "100px", "200px", "300px", "400px"],
-                                'default': "auto"
-                            },
-                            maxWidth: {
-                                type: "string",
-                                title: "Largura Máxima",
-                                'enum': ["none", "100%", "500px", "800px", "1200px"],
-                                'default': "none"
-                            }
-                        }
-                    }
-                }
-            };
-        },
+        createDynamicSchema: createDynamicSchemaTexto,
         renderObject: function (params) {
             var containerSelector = params.containerSelector;
             var itemObject = params.itemObject;
@@ -1722,6 +1264,101 @@ function getTiposObjectoConfig() {
     ]
 
 
+}
+
+// ── Schema extraído do objecto "Texto" ──────────────────────────────────────
+function createDynamicSchemaTexto(data) {
+    var fieldOptions = [];
+    if (data && data.length > 0) {
+        Object.keys(data[0]).forEach(function (key) {
+            fieldOptions.push(key);
+        });
+    }
+    return {
+        type: "object",
+        title: "Configuração de Texto",
+        properties: {
+            dataField: { type: "string", title: "Campo de Dados", 'enum': fieldOptions, description: "Campo dos dados que será exibido como texto" },
+            staticText: { type: "string", title: "Texto Estático (alternativo)", 'default': "", description: "Se não selecionar campo de dados, pode inserir texto fixo" },
+            dataFormat: {
+                type: "object", title: "Formatação de Dados",
+                properties: {
+                    type: { type: "string", title: "Tipo de Formatação", 'enum': ["text", "number", "currency", "percentage", "date"], 'default': "text" },
+                    locale: { type: "string", title: "Localização", 'enum': ["pt-PT", "pt-BR", "en-US", "en-GB", "fr-FR", "de-DE", "es-ES"], 'default': "pt-PT" },
+                    currency: { type: "string", title: "Código da Moeda", 'default': "EUR" },
+                    currencyPosition: { type: "string", title: "Posição da Moeda", 'enum': ["left", "right"], 'default': "right" },
+                    minimumFractionDigits: { type: "integer", title: "Mínimo de Casas Decimais", 'default': 0, minimum: 0, maximum: 20 },
+                    maximumFractionDigits: { type: "integer", title: "Máximo de Casas Decimais", 'default': 2, minimum: 0, maximum: 20 },
+                    prefix: { type: "string", title: "Prefixo", 'default': "" },
+                    suffix: { type: "string", title: "Sufixo", 'default': "" }
+                }
+            },
+            content: {
+                type: "object", title: "Configurações de Conteúdo",
+                properties: {
+                    htmlEnabled: { type: "boolean", title: "Permitir HTML", 'default': false },
+                    multipleValues: { type: "boolean", title: "Múltiplos Valores", 'default': false },
+                    separator: { type: "string", title: "Separador (para múltiplos valores)", 'default': ", " }
+                }
+            },
+            textFormat: {
+                type: "object", title: "Formatação do Texto",
+                properties: {
+                    fontSize: { type: "integer", title: "Tamanho da Fonte (px)", 'default': 16, minimum: 8, maximum: 72 },
+                    fontWeight: { type: "string", title: "Peso da Fonte", 'enum': ["normal", "bold", "lighter", "bolder", "100", "200", "300", "400", "500", "600", "700", "800", "900"], 'default': "bold" },
+                    fontStyle: { type: "string", title: "Estilo da Fonte", 'enum': ["normal", "italic", "oblique"], 'default': "normal" },
+                    fontFamily: { type: "string", title: "Família da Fonte", 'enum': ["Arial", "Nunito, sans-serif", "Helvetica", "Times New Roman", "Georgia", "Verdana", "Courier New", "Comic Sans MS", "Impact", "Trebuchet MS", "Arial Black"], 'default': "Nunito, sans-serif" },
+                    textAlign: { type: "string", title: "Alinhamento", 'enum': ["left", "center", "right", "justify"], 'default': "center" },
+                    lineHeight: { type: "number", title: "Altura da Linha", 'default': 1.5, minimum: 0.5, maximum: 3 }
+                }
+            },
+            colors: {
+                type: "object", title: "Cores",
+                properties: {
+                    textColor: { type: "string", title: "Cor do Texto", format: "color", 'default': "#333333" },
+                    backgroundColor: { type: "string", title: "Cor de Fundo", format: "color", 'default': "#fff" },
+                    borderColor: { type: "string", title: "Cor da Borda", format: "color", 'default': "transparent" }
+                }
+            },
+            spacing: {
+                type: "object", title: "Espaçamento",
+                properties: {
+                    paddingTop: { type: "integer", title: "Padding Superior (px)", 'default': 10, minimum: 0, maximum: 100 },
+                    paddingRight: { type: "integer", title: "Padding Direito (px)", 'default': 10, minimum: 0, maximum: 100 },
+                    paddingBottom: { type: "integer", title: "Padding Inferior (px)", 'default': 10, minimum: 0, maximum: 100 },
+                    paddingLeft: { type: "integer", title: "Padding Esquerdo (px)", 'default': 10, minimum: 0, maximum: 100 },
+                    marginTop: { type: "integer", title: "Margem Superior (px)", 'default': 0, minimum: 0, maximum: 100 },
+                    marginBottom: { type: "integer", title: "Margem Inferior (px)", 'default': 0, minimum: 0, maximum: 100 }
+                }
+            },
+            border: {
+                type: "object", title: "Bordas",
+                properties: {
+                    width: { type: "integer", title: "Largura da Borda (px)", 'default': 0, minimum: 0, maximum: 20 },
+                    style: { type: "string", title: "Estilo da Borda", 'enum': ["none", "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"], 'default': "solid" },
+                    radius: { type: "integer", title: "Raio da Borda (px)", 'default': 0, minimum: 0, maximum: 50 }
+                }
+            },
+            effects: {
+                type: "object", title: "Efeitos",
+                properties: {
+                    textShadow: { type: "boolean", title: "Sombra do Texto", 'default': false },
+                    shadowColor: { type: "string", title: "Cor da Sombra", format: "color", 'default': "#666666" },
+                    shadowBlur: { type: "integer", title: "Desfoque da Sombra (px)", 'default': 2, minimum: 0, maximum: 20 },
+                    shadowOffsetX: { type: "integer", title: "Deslocamento X (px)", 'default': 1, minimum: -20, maximum: 20 },
+                    shadowOffsetY: { type: "integer", title: "Deslocamento Y (px)", 'default': 1, minimum: -20, maximum: 20 }
+                }
+            },
+            dimensions: {
+                type: "object", title: "Dimensões",
+                properties: {
+                    width: { type: "string", title: "Largura", 'enum': ["auto", "100%", "50%", "25%", "75%"], 'default': "100%" },
+                    height: { type: "string", title: "Altura", 'enum': ["auto", "100px", "200px", "300px", "400px"], 'default': "auto" },
+                    maxWidth: { type: "string", title: "Largura Máxima", 'enum': ["none", "100%", "500px", "800px", "1200px"], 'default': "none" }
+                }
+            }
+        }
+    };
 }
 
 function updateTextElement(containerSelector, itemObject, config, data, isConfig) {
@@ -2147,7 +1784,7 @@ function createTableSchema(data) {
                         type: "string",
                         title: "Cor de Fundo do Cabeçalho",
                         format: "color",
-                        'default': getColorByType("primary").background
+                        'default': getCachedColor("primary").background
                     },
                     headerTextColor: {
                         type: "string",
@@ -2750,74 +2387,7 @@ function getDefaultLayoutDefinitions() {
     ];
 }
 
-function generateDashCardHTML(cardData) {
-    var dashCard = new MDashCard(cardData);
-    var cardHTML = '<div style="height: 100%!important;" id="' + (dashCard.id || '') + '" class="dashcard">';
-    // Header
-    cardHTML += '<div class="dashcard-header dashcard-header-' + (dashCard.type || "primary") + '">';
-    cardHTML += '<span class="dashcard-title">' + (dashCard.title || "") + '</span>';
-    cardHTML += '</div>';
-    // Body
-    cardHTML += '<div class="dashcard-body table-responsive">';
-    cardHTML += (dashCard.bodyContent || "");
-    cardHTML += '</div>';
-    cardHTML += '</div>';
-    return cardHTML.trim();
-}
-
-
-function generatePlainCard(cardData) {
-    var dashCard = new MDashCard(cardData);
-    var cardHTML = "";
-    cardHTML += '<div id="mdash' + dashCard.id + '" class="m-dash-plain-card ' + dashCard.classes + '" style="height: 100%!important;' + dashCard.styles + '">';
-    cardHTML += '  <div class="wrap m-dash-plain-card_' + dashCard.tipo + '">';
-    cardHTML += '    <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">';
-    cardHTML += "";
-    if (dashCard.icon) {
-        cardHTML += ' <i class="' + dashCard.icon + '"></i>';
-    }
-    cardHTML += '    </h4>';
-    if (dashCard.header) {
-        cardHTML += '    <div class="' + dashCard.headerClasses + '">' + dashCard.header + '</div>';
-    }
-    cardHTML += '    <div class="m-dash-plain-card-body-content ">';
-    cardHTML += dashCard.bodyContent;
-    cardHTML += '    </div>';
-    if (dashCard.footer) {
-        cardHTML += '    <div class="m-dash-plain-card-footer">' + dashCard.footer + '</div>';
-    }
-    cardHTML += '  </div>';
-    cardHTML += '</div>';
-    return cardHTML;
-
-}
-
-function generateDashCardInfo(cardData) {
-    var dashCard = new MDashCard(cardData);
-    var cardHTML = "";
-    cardHTML += '<div id="mdash' + dashCard.id + '" class="c-dashboardInfo ' + dashCard.classes + '" style="height: 100%!important;' + dashCard.styles + '">';
-    cardHTML += '  <div class="wrap c-dashboardInfo_' + dashCard.tipo + '">';
-    cardHTML += '    <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">';
-    cardHTML += dashCard.title;
-    if (dashCard.icon) {
-        cardHTML += ' <i class="' + dashCard.icon + '"></i>';
-    }
-    cardHTML += '    </h4>';
-    if (dashCard.header) {
-        cardHTML += '    <div class="' + dashCard.headerClasses + '">' + dashCard.header + '</div>';
-    }
-    cardHTML += '    <div class="m-dash-card-body-content dashcard-body">';
-    cardHTML += dashCard.bodyContent;
-    cardHTML += '    </div>';
-    if (dashCard.footer) {
-        cardHTML += '    <div class="dashcard-footer">' + dashCard.footer + '</div>';
-    }
-    cardHTML += '  </div>';
-    cardHTML += '</div>';
-    return cardHTML;
-
-}
-
+// ── Legacy generate* removidas — renderização agora via renderUnifiedLayout() ──
 
 function MDashCard(data) {
     this.title = data.title || "";
@@ -2832,32 +2402,6 @@ function MDashCard(data) {
     this.header = data.header || "";
     this.headerClasses = data.headerClasses || "";
     this.extraData = data.extraData || {};
-}
-MDashCard.prototype.generateDashCardInfo = function () {
-    var cardHTML = "";
-    cardHTML += '<div id="mdash' + this.id + '" class="c-dashboardInfo ' + this.classes + '" style="' + this.styles + '">';
-    cardHTML += '  <div class="wrap c-dashboardInfo_' + this.tipo + '">';
-    cardHTML += '    <h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">';
-    cardHTML += this.title;
-    if (this.icon) {
-        cardHTML += ' <i class="' + this.icon + '"></i>';
-    }
-    cardHTML += '    </h4>';
-    if (this.header) {
-        cardHTML += '    <div class="' + this.headerClasses + '">' + this.header + '</div>';
-    }
-    cardHTML += '    <div class="m-dash-card-body-content dashcard-body">';
-    cardHTML += this.bodyContent;
-    cardHTML += '    </div>';
-    if (this.footer) {
-        cardHTML += '    <div class="dashcard-footer">' + this.footer + '</div>';
-    }
-    cardHTML += '  </div>';
-    cardHTML += '</div>';
-    return cardHTML;
-};
-MDashCard.prototype.appendToBody = function (content) {
-    $("#mdash" + this.id + " .m-dash-card-body-content").append(content);
 }
 
 function addBtnStyles(styles) {
@@ -2922,10 +2466,10 @@ function addDashboardStyles(styles) {
     dashboardCSS += "}";
     dashboardCSS += ".c-dashboardInfo .c-dashboardInfo_primary:after {";
     //dashboardCSS += "    background: linear-gradient(82.59deg, #00897B 0%, #00a173 100%);";
-    dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
+    dashboardCSS += "    background: linear-gradient(82.59deg, " + getCachedColor("primary").background + " 0%, " + getCachedColor("primary").background + " 100%);";
     dashboardCSS += "}";
     dashboardCSS += ".c-dashboardInfo .c-dashboardInfo_warning:after {";
-    dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("warning").background + " 0%, " + getColorByType("warning").background + " 100%);";
+    dashboardCSS += "    background: linear-gradient(82.59deg, " + getCachedColor("warning").background + " 0%, " + getCachedColor("warning").background + " 100%);";
     // dashboardCSS += "    background: linear-gradient(82.59deg, #f79523 0%, #d88627 100%);";
     dashboardCSS += "}";
     dashboardCSS += ".c-dashboardInfo__title svg {";
@@ -3008,16 +2552,16 @@ function addDashboardStyles(styles) {
     dashboardCSS += "}";
     dashboardCSS += ".dashcard .dashcard-header-warning:not(.dashcard-header-icon):not(.dashcard-header-text) {";
     //dashboardCSS += "    background: linear-gradient(60deg, #f79523, #f79523);";
-    dashboardCSS += "    background: linear-gradient(60deg, " + getColorByType("warning").background + ", " + getColorByType("warning").background + ");";
+    dashboardCSS += "    background: linear-gradient(60deg, " + getCachedColor("warning").background + ", " + getCachedColor("warning").background + ");";
     dashboardCSS += "    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .14), 0 7px 10px -5px rgba(187, 113, 16, 0.4);";
     dashboardCSS += "}";
     dashboardCSS += ".dashcard .dashcard-header-success:not(.dashcard-header-icon):not(.dashcard-header-text) {";
     // dashboardCSS += "    background: linear-gradient(60deg, #3ba94e, #3ba94e);";
-    // dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
+    // dashboardCSS += "    background: linear-gradient(82.59deg, " + getCachedColor("primary").background + " 0%, " + getCachedColor("primary").background + " 100%);";
     dashboardCSS += "    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .14), 0 7px 10px -5px rgba(55, 119, 26, 0.4);";
     dashboardCSS += "}";
     dashboardCSS += ".dashcard .dashcard-header-primary:not(.dashcard-header-icon):not(.dashcard-header-text) {";
-    dashboardCSS += "    background: linear-gradient(82.59deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
+    dashboardCSS += "    background: linear-gradient(82.59deg, " + getCachedColor("primary").background + " 0%, " + getCachedColor("primary").background + " 100%);";
     // dashboardCSS += "    background: linear-gradient(82.59deg, #00897B 0%, #00897B 100%);";
     dashboardCSS += "    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .14), 0 7px 10px -5px rgba(39, 30, 126, 0.4);";
     dashboardCSS += "}";
@@ -3037,7 +2581,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "    box-shadow: 0 0 2px 2px #dbdbdb;";
     dashboardCSS += "}";
     dashboardCSS += ".dashcard-fact-header {";
-    dashboardCSS += "    background: linear-gradient(to right, " + getColorByType("primary").background + ", " + getColorByType("primary").background + ");";
+    dashboardCSS += "    background: linear-gradient(to right, " + getCachedColor("primary").background + ", " + getCachedColor("primary").background + ");";
     dashboardCSS += "    color: white;";
     dashboardCSS += "    padding: 10px;";
     dashboardCSS += "    border-top-left-radius: 17px;";
@@ -3141,7 +2685,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "        gap: 30px;";
     dashboardCSS += "    }";
     dashboardCSS += "}";
-    var color = getColorByType("primary").background;
+    var color = getCachedColor("primary").background;
 
     dashboardCSS += ".m-dash-card-snap-v2 {";
     dashboardCSS += "display:flex;";
@@ -3202,9 +2746,9 @@ function addDashboardStyles(styles) {
     dashboardCSS += "font-weight:600;";
     dashboardCSS += "}";
     // bg-* SCOPED para ícones de snap cards (evitar override global do Bootstrap .bg-*)
-    dashboardCSS += ".m-dash-card-snap-v2-icon.bg-primary{background:linear-gradient(135deg," + getColorByType("primary").background + "," + getColorByType("primary").background + ");}";
+    dashboardCSS += ".m-dash-card-snap-v2-icon.bg-primary{background:linear-gradient(135deg," + getCachedColor("primary").background + "," + getCachedColor("primary").background + ");}";
     dashboardCSS += ".m-dash-card-snap-v2-icon.bg-success{background:linear-gradient(135deg,#16a34a,#15803d);}";
-    dashboardCSS += ".m-dash-card-snap-v2-icon.bg-warning{background:linear-gradient(135deg," + getColorByType("warning").background + "," + getColorByType("warning").background + ");}";
+    dashboardCSS += ".m-dash-card-snap-v2-icon.bg-warning{background:linear-gradient(135deg," + getCachedColor("warning").background + "," + getCachedColor("warning").background + ");}";
     dashboardCSS += ".m-dash-card-snap-v2-icon.bg-danger{background:linear-gradient(135deg,#ef4444,#b91c1c);}";
     dashboardCSS += ".m-dash-card-snap-v2-icon.bg-dark{background:linear-gradient(135deg,#334155,#0f172a);}";
 
@@ -3212,7 +2756,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += ".m-dash-card-snap-v2:hover .m-dash-card-snap-v2-icon i{transform:scale(1.15) rotate(5deg);}";
 
     dashboardCSS += ".budget-card{";
-    dashboardCSS += "background: linear-gradient(135deg, " + getColorByType("primary").background + " 0%, " + getColorByType("primary").background + " 100%);";
+    dashboardCSS += "background: linear-gradient(135deg, " + getCachedColor("primary").background + " 0%, " + getCachedColor("primary").background + " 100%);";
     dashboardCSS += "border-radius: 16px;";
     dashboardCSS += "box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);";
     dashboardCSS += "color: white;";
@@ -3318,7 +2862,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += ".m-time-line-card:hover{transform:translateY(-5px);box-shadow:0 12px 30px rgba(0,0,0,0.15);}";
     dashboardCSS += ".m-time-line-card-header{display:flex;align-items:center;margin-bottom:18px;padding-top:5px;}";
     dashboardCSS += ".m-time-line-status-count{font-size:2.2rem;font-weight:800;margin-right:15px;width:65px;height:65px;display:flex;align-items:center;justify-content:center;border-radius:16px;color:#fff;box-shadow:0 5px 15px rgba(0,0,0,0.15);}";
-    dashboardCSS += ".m-time-line-card.m-time-line-dentro-prazo .m-time-line-status-count{background:linear-gradient(135deg," + getColorByType("primary").background + "," + getColorByType("primary").background + ");}";
+    dashboardCSS += ".m-time-line-card.m-time-line-dentro-prazo .m-time-line-status-count{background:linear-gradient(135deg," + getCachedColor("primary").background + "," + getCachedColor("primary").background + ");}";
     dashboardCSS += ".m-time-line-card.m-time-line-prestes-expirar .m-time-line-status-count{background:linear-gradient(135deg,var(--m-time-line-prestes-expirar),#ffb74d);}";
     dashboardCSS += ".m-time-line-card.m-time-line-expirados .m-time-line-status-count{background:linear-gradient(135deg,var(--m-time-line-expirados),#ef5350);}";
     dashboardCSS += ".m-time-line-status-info{flex:1;}";
@@ -3381,7 +2925,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "transition:all 0.3s cubic-bezier(0.4,0,0.2,1);";
     dashboardCSS += "position:relative;";
     dashboardCSS += "overflow:hidden;";
-    dashboardCSS += "border-top:4px solid " + getColorByType("primary").background + ";";
+    dashboardCSS += "border-top:4px solid " + getCachedColor("primary").background + ";";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced:hover{";
     dashboardCSS += "transform:translateY(-4px);";
@@ -3422,7 +2966,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "transform:scale(1.1) rotate(5deg);";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-icon-primary{";
-    dashboardCSS += "background:linear-gradient(135deg," + getColorByType("primary").background + "," + getColorByType("primary").background + ");";
+    dashboardCSS += "background:linear-gradient(135deg," + getCachedColor("primary").background + "," + getCachedColor("primary").background + ");";
     dashboardCSS += "color:#ffffff;";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-icon-success{";
@@ -3430,7 +2974,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "color:#ffffff;";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-icon-warning{";
-    dashboardCSS += "background:linear-gradient(135deg," + getColorByType("warning").background + "," + getColorByType("warning").background + ");";
+    dashboardCSS += "background:linear-gradient(135deg," + getCachedColor("warning").background + "," + getCachedColor("warning").background + ");";
     dashboardCSS += "color:#ffffff;";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-icon-danger{";
@@ -3485,14 +3029,14 @@ function addDashboardStyles(styles) {
     dashboardCSS += "letter-spacing:0.5px;";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-status-primary{";
-    dashboardCSS += "border-top-color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "border-top-color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-status-primary .brd-card-advanced-status-header i{";
-    dashboardCSS += "color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-status-primary .brd-card-advanced-status-badge{";
-    dashboardCSS += "background:rgba(" + hexToRgb(getColorByType("primary").background) + ",0.1);";
-    dashboardCSS += "color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:rgba(" + hexToRgb(getCachedColor("primary").background) + ",0.1);";
+    dashboardCSS += "color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-status-success{";
     dashboardCSS += "border-top-color:#4CAF50;";
@@ -3505,14 +3049,14 @@ function addDashboardStyles(styles) {
     dashboardCSS += "color:#4CAF50;";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-status-warning{";
-    dashboardCSS += "border-top-color:" + getColorByType("warning").background + ";";
+    dashboardCSS += "border-top-color:" + getCachedColor("warning").background + ";";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-status-warning .brd-card-advanced-status-header i{";
-    dashboardCSS += "color:" + getColorByType("warning").background + ";";
+    dashboardCSS += "color:" + getCachedColor("warning").background + ";";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-status-warning .brd-card-advanced-status-badge{";
-    dashboardCSS += "background:rgba(" + hexToRgb(getColorByType("warning").background) + ",0.1);";
-    dashboardCSS += "color:" + getColorByType("warning").background + ";";
+    dashboardCSS += "background:rgba(" + hexToRgb(getCachedColor("warning").background) + ",0.1);";
+    dashboardCSS += "color:" + getCachedColor("warning").background + ";";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-status-danger{";
     dashboardCSS += "border-top-color:#f44336;";
@@ -3561,20 +3105,20 @@ function addDashboardStyles(styles) {
     dashboardCSS += "flex-shrink:0;";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-alert-primary{";
-    dashboardCSS += "border-top-color:" + getColorByType("primary").background + ";";
-    dashboardCSS += "background:rgba(" + hexToRgb(getColorByType("primary").background) + ",0.03);";
+    dashboardCSS += "border-top-color:" + getCachedColor("primary").background + ";";
+    dashboardCSS += "background:rgba(" + hexToRgb(getCachedColor("primary").background) + ",0.03);";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-alert-primary .brd-card-advanced-alert-icon{";
-    dashboardCSS += "background:rgba(" + hexToRgb(getColorByType("primary").background) + ",0.1);";
-    dashboardCSS += "color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:rgba(" + hexToRgb(getCachedColor("primary").background) + ",0.1);";
+    dashboardCSS += "color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-alert-warning{";
-    dashboardCSS += "border-top-color:" + getColorByType("warning").background + ";";
-    dashboardCSS += "background:rgba(" + hexToRgb(getColorByType("warning").background) + ",0.03);";
+    dashboardCSS += "border-top-color:" + getCachedColor("warning").background + ";";
+    dashboardCSS += "background:rgba(" + hexToRgb(getCachedColor("warning").background) + ",0.03);";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-alert-warning .brd-card-advanced-alert-icon{";
-    dashboardCSS += "background:rgba(" + hexToRgb(getColorByType("warning").background) + ",0.1);";
-    dashboardCSS += "color:" + getColorByType("warning").background + ";";
+    dashboardCSS += "background:rgba(" + hexToRgb(getCachedColor("warning").background) + ",0.1);";
+    dashboardCSS += "color:" + getCachedColor("warning").background + ";";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-alert-danger{";
     dashboardCSS += "border-top-color:#f44336;";
@@ -3631,7 +3175,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += ".mdash-modern-layout{";
     dashboardCSS += "display:flex;";
     dashboardCSS += "height:calc(100vh - 100px);";
-    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "position:relative;";
     dashboardCSS += "overflow:hidden;";
     dashboardCSS += "}";
@@ -3670,7 +3214,7 @@ function addDashboardStyles(styles) {
     // Sidebar Header - Gradient with Animation
     dashboardCSS += ".mdash-sidebar-header{";
     dashboardCSS += "padding:24px 20px;";
-    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "position:relative;";
     dashboardCSS += "overflow:hidden;";
@@ -3729,12 +3273,12 @@ function addDashboardStyles(styles) {
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-sidebar-body::-webkit-scrollbar-thumb{";
-    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "border-radius:10px;";
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-sidebar-body::-webkit-scrollbar-thumb:hover{";
-    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "}";
     
     // Accordion - Modern Cards Style
@@ -3771,7 +3315,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "left:0;";
     dashboardCSS += "width:4px;";
     dashboardCSS += "height:100%;";
-    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "transform:scaleY(0);";
     dashboardCSS += "transition:transform 0.3s ease;";
     dashboardCSS += "}";
@@ -3798,7 +3342,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "#mdash-accordion .panel-title i{";
     dashboardCSS += "margin-right:12px;";
     dashboardCSS += "font-size:18px;";
-    dashboardCSS += "color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "transition:transform 0.3s ease;";
     dashboardCSS += "}";
     
@@ -3807,7 +3351,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "}";
     
     dashboardCSS += "#mdash-accordion .panel-title .badge{";
-    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "font-size:11px;";
     dashboardCSS += "font-weight:600;";
     dashboardCSS += "padding:4px 10px;";
@@ -3857,7 +3401,7 @@ function addDashboardStyles(styles) {
     
     dashboardCSS += ".mdash-sidebar-item:hover{";
     dashboardCSS += "background:linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);";
-    dashboardCSS += "border-color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "border-color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "transform:translateX(4px) scale(1.02);";
     dashboardCSS += "box-shadow:0 4px 16px rgba(102,126,234,0.15);";
     dashboardCSS += "}";
@@ -3875,7 +3419,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-sidebar-item-content i{";
-    dashboardCSS += "color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "font-size:16px;";
     dashboardCSS += "min-width:20px;";
     dashboardCSS += "text-align:center;";
@@ -3888,7 +3432,7 @@ function addDashboardStyles(styles) {
     
     dashboardCSS += ".mdash-sidebar-item-content .badge{";
     dashboardCSS += "margin-left:auto;";
-    dashboardCSS += "background:" + getColorByType("info").background + ";";
+    dashboardCSS += "background:" + getCachedColor("info").background + ";";
     dashboardCSS += "font-size:10px;";
     dashboardCSS += "padding:3px 8px;";
     dashboardCSS += "border-radius:10px;";
@@ -3920,23 +3464,23 @@ function addDashboardStyles(styles) {
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-sidebar-item-actions .btn-primary{";
-    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-sidebar-item-actions .btn-primary:hover{";
-    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "transform:scale(1.1);";
     dashboardCSS += "box-shadow:0 4px 12px rgba(102,126,234,0.4);";
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-sidebar-item-actions .btn-danger{";
-    dashboardCSS += "background:" + getColorByType("danger").background + ";";
+    dashboardCSS += "background:" + getCachedColor("danger").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-sidebar-item-actions .btn-danger:hover{";
-    dashboardCSS += "background:" + getColorByType("danger").background + ";";
+    dashboardCSS += "background:" + getCachedColor("danger").background + ";";
     dashboardCSS += "transform:scale(1.1);";
     dashboardCSS += "box-shadow:0 4px 12px rgba(239,68,68,0.4);";
     dashboardCSS += "}";
@@ -3972,7 +3516,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-canvas-header h3 i{";
-    dashboardCSS += "color:" + getColorByType("primary").background + ";";
+    dashboardCSS += "color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-canvas-body{";
@@ -3990,7 +3534,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-canvas-body::-webkit-scrollbar-thumb{";
-    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "border-radius:10px;";
     dashboardCSS += "}";
     
@@ -4061,34 +3605,34 @@ function addDashboardStyles(styles) {
     
     // Botões do editor MDash 2.0 - SCOPED para não afetar botões fora do editor
     dashboardCSS += ".mdash-editor-wrapper .btn-primary{";
-    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-editor-wrapper .btn-primary:hover{";
-    dashboardCSS += "background:" + getColorByType("primary").background + ";";
+    dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "transform:translateY(-2px);";
     dashboardCSS += "box-shadow:0 6px 20px rgba(102,126,234,0.4);";
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-editor-wrapper .btn-success{";
-    dashboardCSS += "background:" + getColorByType("success").background + ";";
+    dashboardCSS += "background:" + getCachedColor("success").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-editor-wrapper .btn-success:hover{";
-    dashboardCSS += "background:" + getColorByType("success").background + ";";
+    dashboardCSS += "background:" + getCachedColor("success").background + ";";
     dashboardCSS += "transform:translateY(-2px);";
     dashboardCSS += "box-shadow:0 6px 20px rgba(16,185,129,0.4);";
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-editor-wrapper .btn-info{";
-    dashboardCSS += "background:" + getColorByType("info").background + ";";
+    dashboardCSS += "background:" + getCachedColor("info").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
     
     dashboardCSS += ".mdash-editor-wrapper .btn-info:hover{";
-    dashboardCSS += "background:" + getColorByType("info").background + ";";
+    dashboardCSS += "background:" + getCachedColor("info").background + ";";
     dashboardCSS += "transform:translateY(-2px);";
     dashboardCSS += "box-shadow:0 6px 20px rgba(59,130,246,0.4);";
     dashboardCSS += "}";
@@ -4149,9 +3693,9 @@ function loadSortableStyles() {
  * Carrega estilos para MDash 2.0 Builder (3 colunas drag-and-drop)
  */
 function loadModernDashboardStyles() {
-    var primaryColor = getColorByType("primary").background;
-    var successColor = getColorByType("success").background;
-    var dangerColor = getColorByType("danger").background;
+    var primaryColor = getCachedColor("primary").background;
+    var successColor = getCachedColor("success").background;
+    var dangerColor = getCachedColor("danger").background;
 
     var builderCSS = "";
 

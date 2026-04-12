@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard ES5 + petite-vue</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/petite-vue@0.4.1/dist/petite-vue.iife.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    .dropzone {
+      border: 2px dashed #4a6cf7;
+      border-radius: 12px;
+      min-height: 300px;
+      padding: 15px;
+    }
+
+    .dashboard-object {
+      background: #dee2e6;
+      border-radius: 10px;
+      margin: 10px 0;
+      padding: 15px;
+      position: relative;
+      text-align: center;
+      cursor: grab;
+    }
+
+    .btn-remove {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 12px;
+      cursor: pointer;
+      display: none;
+    }
+
+    .dashboard-object:hover .btn-remove {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app" >
+    <div class="row g-3">
+      <!-- Sidebar -->
+      <div class="col-md-3">
+        <div class="p-3 bg-white rounded shadow-sm">
+          <h5>Objetos</h5>
+          <div class="object-item mb-2 p-2 border rounded bg-light" v-for="item in availableObjects" draggable="true"
+            @dragstart="dragStart(item)">
+            <i :class="item.icon"></i> {{ item.label }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="col-md-6">
+        <div class="p-3 bg-white rounded shadow-sm">
+          <h5>Pré-visualização</h5>
+          <div class="dropzone" @dragover.prevent @drop="drop(null)">
+            <div v-for="obj in getObjectsSorted()" :key="obj.id" class="dashboard-object" draggable="true"
+              @dragstart="dragExisting(obj.id)" @drop.prevent="drop(obj.id)" @dragover.prevent>
+              {{ obj.type }} (ID: {{ obj.id }}, Ordem: {{ obj.order }})
+              <button class="btn-remove" @click="removeObject(obj.id)">×</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Propriedades -->
+      <div class="col-md-3">
+        <div class="p-3 bg-white rounded shadow-sm">
+          <h5>Propriedades</h5>
+          <pre>{{ objects }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
+  <script>
+    var dashboardApp = {
+      availableObjects: [
+        { type: 'chart', label: 'Gráfico', icon: 'fa-solid fa-chart-column' },
+        { type: 'pie', label: 'Pizza', icon: 'fa-solid fa-chart-pie' },
+        { type: 'text', label: 'Texto', icon: 'fa-solid fa-font' },
+        { type: 'table', label: 'Tabela', icon: 'fa-solid fa-table' }
+      ],
+      objects: [],
+      dragItem: null,
+      dragId: null,
+      nextOrder: 1,
+
+      getObjectsSorted: function () {
+        return this.objects.slice().sort(function (a, b) {
+          return a.order - b.order;
+        });
+      },
+
+      dragStart: function (item) {
+        this.dragItem = item;
+        this.dragId = null;
+      },
+      dragExisting: function (id) {
+        this.dragId = id;
+        this.dragItem = this.objects.filter(function (o) { return o.id === id; })[0] || null;
+      },
+      drop: function (targetId) {
+        console.log("dragItem",this.dragItem)
+        if (!this.dragItem) return;
+
+        var targetIndex = this.objects.length;
+        if (targetId) {
+          targetIndex = this.objects.findIndex(function (o) { return o.id === targetId; });
+        }
+
+        if (this.dragId !== null) {
+          // mover existente
+          var index = this.objects.findIndex(function (o) { return o.id === this.dragId; }.bind(this));
+          var dragged = this.objects[index];
+          this.objects.splice(index, 1);
+          this.objects.splice(targetIndex, 0, dragged);
+        } else {
+
+          this.objects.splice(targetIndex, 0, {
+            id: new Date().getTime(),
+            type: this.dragItem.type,
+            order: this.nextOrder++
+          });
+        }
+
+        this.objects.forEach(function (o, idx) { o.order = idx + 1; });
+
+        this.dragItem = null;
+        this.dragId = null;
+      },
+      removeObject: function (id) {
+        var self = this;
+        Swal.fire({
+          title: 'Tem certeza?',
+          text: "Deseja remover este objeto?",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#6c757d',
+          confirmButtonText: 'Sim, remover',
+          cancelButtonText: 'Cancelar'
+        }).then(function (result) {
+          if (result.isConfirmed) {
+            self.objects = self.objects.filter(function (o) { return o.id !== id; });
+            self.objects.forEach(function (o, idx) { o.order = idx + 1; });
+            Swal.fire('Removido!', 'O objeto foi removido.', 'success');
+          }
+        });
+      }
+    };
+
+    PetiteVue.createApp(dashboardApp).mount("#app");
+  </script>
+
+</body>
+
+</html>

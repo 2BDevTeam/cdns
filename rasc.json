@@ -1,141 +1,48 @@
-{
-    "response": {
-        "cod": "0000",
-        "id": 1768218421637,
-        "codDesc": "Success"
-    },
-    "data": {
-        "mpdcRequestForSupplyNumber": "4793",
-        "submittedAt": "1900-01-01T00:00:00",
-        "bolletin": "",
-        "wagons": [
+[
+    {
+        "config": [
             {
-                "wagonNumber": "9171710",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9171710 not found"
-            },
-            {
-                "wagonNumber": "9170737",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9170737 not found"
-            },
-            {
-                "wagonNumber": "9173242",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9173242 not found"
-            },
-            {
-                "wagonNumber": "9171707",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9171707 not found"
-            },
-            {
-                "wagonNumber": "9173695",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9173695 not found"
-            },
-            {
-                "wagonNumber": "9173598",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9173598 not found"
-            },
-            {
-                "wagonNumber": "9174649",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9174649 not found"
-            },
-            {
-                "wagonNumber": "9131844",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9131844 not found"
-            },
-            {
-                "wagonNumber": "9171817",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9171817 not found"
-            },
-            {
-                "wagonNumber": "9130968",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9130968 not found"
-            },
-            {
-                "wagonNumber": "9171008",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9171008 not found"
-            },
-            {
-                "wagonNumber": "9171257",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9171257 not found"
-            },
-            {
-                "wagonNumber": "9176016",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9176016 not found"
-            },
-            {
-                "wagonNumber": "9130133",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9130133 not found"
-            },
-            {
-                "wagonNumber": "9175619",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9175619 not found"
-            },
-            {
-                "wagonNumber": "9175978",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9175978 not found"
-            },
-            {
-                "wagonNumber": "9172418",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9172418 not found"
-            },
-            {
-                "wagonNumber": "9173608",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9173608 not found"
-            },
-            {
-                "wagonNumber": "9174209",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9174209 not found"
-            },
-            {
-                "wagonNumber": "9130803",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9130803 not found"
-            },
-            {
-                "wagonNumber": "9174160",
-                "consignmentNumber": "31122025123600",
-                "processed": false,
-                "errorMessage": "Wagon 9174160 not found"
+                "sourceTable": "MDashFonte",
+                "sourceKey": "mdashfontestamp",
+                "records": [
+                    {
+                        "mdashfontestamp": "36d2afa6-0202-4f80-8dec-7",
+                        "dashboardstamp": "1444d29e39a0c3030a6dfb",
+                        "codigo": "Fonte1775868704",
+                        "descricao": "Fonte+teste+",
+                        "ordem": 2,
+                        "inactivo": false,
+                        "scope": "containeritem",
+                        "scopestamp": "d297419e-d9eb-4d3e-b95a-2",
+                        "tipo": "directquery",
+                        "expressaolistagem": "",
+                        "urlfetch": "../programs/gensel.aspx?cscript=getdbcontaineritemdata",
+                        "expressaojslistagem": "",
+                        "apiurl": "",
+                        "apimethod": "GET",
+                        "apiheadersjson": "{}",
+                        "apibodyjson": "{}",
+                        "schemamode": "auto",
+                        "schemajson": "[]",
+                        "schema": [],
+                        "parametrosjson": "[]",
+                        "parametros": [],
+                        "refreshmode": "onload",
+                        "refreshintervalsec": 0,
+                        "lastResultscached": "[]",
+                        "lastResults": [],
+                        "lastexecuted": "1900-01-01T00:00:00",
+                        "apiheaders": {},
+                        "apibody": {},
+                        "status": "idle",
+                        "errorMessage": "",
+                        "localsource": "GMDashFontes",
+                        "idfield": "mdashfontestamp",
+                        "table": "MDashFonte"
+                    }
+                ]
             }
-        ]
-    },
-    "content": null
-}
+        ],
+        "recordsToDelete": []
+    }
+]

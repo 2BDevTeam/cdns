@@ -33,6 +33,7 @@ var GSelectedElement = null;
 var GSelectedType = "";
 var GActiveTab = "general";
 var GMDashReactiveInstance = null;
+var _currentSelectedComponent = null; // espelho externo do selectedComponent (PetiteVue mount() não expõe o scope reactivo)
 var GTemplateThumbCache = {};
 var GMDashIsResizingItem = false;
 var GManualDragState = {
@@ -58,6 +59,7 @@ function UIObjectFormConfig(data) {
     this.fieldToOption = data.fieldToOption || "";
     this.fieldToValue = data.fieldToValue || "";
     this.contentType = data.contentType || "input";
+    this.seccao = data.seccao || "Geral";
 }
 
 function renderAllContainerItemTemplates() {
@@ -76,15 +78,16 @@ function renderContainerItemTemplate(item) {
     var html = "";
 
     if (template && typeof template.generateCard === "function") {
-        // Usa o gerador do template, se existir
+        // Carrega CDNs do layout (deduplicated — só carrega novos)
+        ensureMdashCDNsLoaded(template.cssCdnsList, template.jsCdnsList);
+
+        // Renderiza o card real com dados de pré-visualização (cores, icons, título)
         html = template.generateCard({
             title: item.titulo || "Item",
             id: item.mdashcontaineritemstamp,
             tipo: (template.UIData && template.UIData.tipo) || "primary",
-            bodyContent: "Pré-visualização"
+            bodyContent: ""
         });
-        // Strip <style> tags from preview to prevent CSS from bleeding into the MDash 2.0 UI
-        html = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
     } else if (template && template.sampleHtml) {
         html = template.sampleHtml;
     } else {
@@ -96,6 +99,11 @@ function renderContainerItemTemplate(item) {
     }
 
     $body.html(html);
+
+    // Injeta mini drop-zones apenas nos slots de conteúdo
+    if (template && template.htmltemplate) {
+        injectSlotDropOverlays(item.mdashcontaineritemstamp, template);
+    }
 }
 
 function MdashConfig(data) {
@@ -223,19 +231,79 @@ function MdashContainerItem(data) {
     this.filters = data.filters || [];
     this.records = data.records || [];
     this.dadosTemplate = data.dadosTemplate || {};
+    // ── Configuração dos slots (JSON persistido na BD) ──
+    this.slotsconfigjson = data.slotsconfigjson || '[]';
+    this.slotsconfig = []; // array de MdashSlot — preenchido pelo initSlotsConfig()
     this.localsource = "GMDashContainerItems";
     this.idfield = "mdashcontaineritemstamp";
     this.table = "MdashContainerItem";
+
+    // Inicializar slots a partir do JSON persistido
+    this.initSlotsConfig();
 }
+
+/**
+ * Inicializa this.slotsconfig a partir do JSON persistido.
+ * Merge com a definição do template (garante que novos slots do layout são adicionados).
+ */
+MdashContainerItem.prototype.initSlotsConfig = function () {
+    var saved = forceJSONParse(this.slotsconfigjson, []);
+    var savedMap = {};
+    saved.forEach(function (s) { savedMap[s.id] = s; });
+
+    // Obter definição de slots do template actual
+    var template = getTemplateLayoutByCode(this.templatelayout);
+    var templateSlots = template ? (template.slots || forceJSONParse(template.slotsdefinition, [])) : [];
+
+    var result = [];
+    templateSlots.forEach(function (tplSlot) {
+        var merged = savedMap[tplSlot.id]
+            ? Object.assign({}, tplSlot, savedMap[tplSlot.id])  // persistido sobrepõe template
+            : Object.assign({}, tplSlot);
+        result.push(new MdashSlot(merged));
+        delete savedMap[tplSlot.id]; // marcar como processado
+    });
+
+    // Slots extra que existem no JSON mas não no template (custom layouts antigos, etc.)
+    Object.keys(savedMap).forEach(function (key) {
+        result.push(new MdashSlot(savedMap[key]));
+    });
+
+    this.slotsconfig = result;
+};
+
+/**
+ * Devolve o MdashSlot com o id indicado, ou null.
+ */
+MdashContainerItem.prototype.getSlot = function (slotId) {
+    return this.slotsconfig.find(function (s) { return s.id === slotId; }) || null;
+};
+
+/**
+ * Actualiza a config de um slot e persiste.
+ */
+MdashContainerItem.prototype.updateSlotConfig = function (slotId, newConfig) {
+    var slot = this.getSlot(slotId);
+    if (!slot) return;
+    slot.config = Object.assign({}, slot.config, newConfig);
+    this.stringifySlotsConfig();
+};
+
+/**
+ * Serializa slotsconfig para JSON (para persistência na BD).
+ */
+MdashContainerItem.prototype.stringifySlotsConfig = function () {
+    this.slotsconfigjson = JSON.stringify(this.slotsconfig.map(function (s) { return s.toJSON(); }));
+};
 
 // UI config do Container (herdado da versão original)
 function getContainerUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
-        new UIObjectFormConfig({ colSize: 6, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 6, campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 6, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 6, campo: "layoutmode", tipo: "select", titulo: "Modo de Layout (Container)", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: [{ option: "Auto", value: "auto" }, { option: "Manual", value: "manual" }] })
+        new UIObjectFormConfig({ seccao: "Identidade", colSize: 6, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Identidade", colSize: 6, campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Identidade", colSize: 6, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Layout", colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Layout", colSize: 6, campo: "layoutmode", tipo: "select", titulo: "Modo de Layout (Container)", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: [{ option: "Auto", value: "auto" }, { option: "Manual", value: "manual" }] })
     ];
 
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashContainers", idField: "mdashcontainerstamp" };
@@ -249,21 +317,21 @@ function getContainerItemUIObjectFormConfigAndSourceValues() {
     });
 
     var objectsUIFormConfig = [
-        new UIObjectFormConfig({ colSize: 4, campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 12, campo: "ordem", tipo: "text", titulo: "Ordem", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 6, campo: "layoutmode", tipo: "select", titulo: "Modo de Layout (Override)", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: [{ option: "Herdar do Container", value: "inherit" }, { option: "Auto", value: "auto" }, { option: "Manual", value: "manual" }] }),
-        new UIObjectFormConfig({ colSize: 4, campo: "gridrow", tipo: "digit", titulo: "Linha (gridrow)", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "gridcolstart", tipo: "digit", titulo: "Coluna Inicial", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 6, campo: "templatelayout", tipo: "select", titulo: "Layout", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: templateOptions }),
-        new UIObjectFormConfig({ colSize: 4, campo: "layoutcontaineritemdefault", tipo: "checkbox", titulo: "Usa layout default para item do container", classes: "input-source-form", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolayoutcontaineritem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de layout do item do container", classes: "input-source-form m-editor", contentType: "div" }),
-        new UIObjectFormConfig({ colSize: 12, campo: "urlfetch", tipo: "text", titulo: "URL de Fetch", classes: "form-control input-source-form input-sm", contentType: "input" }),
-        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaodblistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de DB Listagem", classes: "m-editor input-source-form", contentType: "div" }),
-        new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
-        new UIObjectFormConfig({ colSize: 12, campo: "fontelocal", tipo: "checkbox", titulo: "Fonte local", classes: "input-source-form", contentType: "input" })
+        new UIObjectFormConfig({ seccao: "Identidade", colSize: 4, campo: "inactivo", tipo: "checkbox", titulo: "Inactivo", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Identidade", colSize: 12, campo: "ordem", tipo: "text", titulo: "Ordem", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Identidade", colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Identidade", colSize: 4, campo: "titulo", tipo: "text", titulo: "Título", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Layout", colSize: 6, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Layout", colSize: 6, campo: "layoutmode", tipo: "select", titulo: "Modo de Layout (Override)", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: [{ option: "Herdar do Container", value: "inherit" }, { option: "Auto", value: "auto" }, { option: "Manual", value: "manual" }] }),
+        new UIObjectFormConfig({ seccao: "Layout", colSize: 4, campo: "gridrow", tipo: "digit", titulo: "Linha (gridrow)", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Layout", colSize: 4, campo: "gridcolstart", tipo: "digit", titulo: "Coluna Inicial", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Layout", colSize: 6, campo: "templatelayout", tipo: "select", titulo: "Layout", classes: "form-control input-source-form input-sm", contentType: "select", fieldToOption: "option", fieldToValue: "value", selectValues: templateOptions }),
+        new UIObjectFormConfig({ seccao: "Layout", colSize: 4, campo: "layoutcontaineritemdefault", tipo: "checkbox", titulo: "Usa layout default para item do container", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Layout", colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolayoutcontaineritem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de layout do item do container", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ seccao: "Dados", colSize: 12, campo: "urlfetch", tipo: "text", titulo: "URL de Fetch", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ seccao: "Dados", colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaodblistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de DB Listagem", classes: "m-editor input-source-form", contentType: "div" }),
+        new UIObjectFormConfig({ seccao: "Dados", colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaoapresentacaodados", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de apresentação de dados", classes: "input-source-form m-editor", contentType: "div" }),
+        new UIObjectFormConfig({ seccao: "Dados", colSize: 12, campo: "fontelocal", tipo: "checkbox", titulo: "Fonte local", classes: "input-source-form", contentType: "input" })
     ];
 
     return { objectsUIFormConfig: objectsUIFormConfig, localsource: "GMDashContainerItems", idField: "mdashcontaineritemstamp" };
@@ -278,6 +346,10 @@ MdashContainerItem.prototype.renderLayout = function (container, cleanContainer)
 
     if (selectedTemplate) {
         self.dadosTemplate = selectedTemplate;
+
+        // Carrega CDNs do layout (deduplicated — reutiliza os já carregados)
+        ensureMdashCDNsLoaded(selectedTemplate.cssCdnsList, selectedTemplate.jsCdnsList);
+
         if (cleanContainer) {
             $(container).empty();
         }
@@ -336,7 +408,9 @@ function MdashContainerItemObject(data) {
     this.titulobtndetalhes = data.titulobtndetalhes || "";
     this.categoria = data.categoria || "editor";
     this.tipoquery = data.tipoquery || "item";
+    this.slotid = data.slotid || "";
     this.objectexpressaodblistagem = data.objectexpressaodblistagem || "";
+    this.fontestamp = data.fontestamp || "";          // vínculo directo à fonte de dados
     this.localsource = "GMDashContainerItemObjects";
 
     var config = {};
@@ -400,6 +474,11 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
     }
 }
 
+// ============================================================================
+// MDashFonte v2 - Fontes de dados generalizadas com scope hierárquico
+// scope: 'global' | 'container' | 'containeritem' | 'object'
+// tipo:  'directquery' | 'javascript' | 'api' | 'stored'
+// ============================================================================
 function MDashFonte(data) {
     var maxOrdem = 0;
     if (Array.isArray(GMDashFontes) && GMDashFontes.length > 0) {
@@ -408,43 +487,263 @@ function MDashFonte(data) {
         }, 0);
     }
 
+    // ── Identidade ──
     this.mdashfontestamp = data.mdashfontestamp || generateUUID();
     this.dashboardstamp = data.dashboardstamp || GMDashStamp;
     this.codigo = data.codigo || "Fonte" + gerarIdNumerico();
     this.descricao = data.descricao || 'Nova Fonte ' + (data.ordem || (maxOrdem + 1));
-    this.tipo = data.tipo || 'query';
-    this.expressaolistagem = data.expressaolistagem || '';
-    this.expressaojslistagem = data.expressaojslistagem || '';
     this.ordem = data.ordem || (maxOrdem + 1);
+    this.inactivo = data.inactivo || false;
+
+    // ── Scope: a quem pertence esta fonte ──
+    this.scope = data.scope || 'global';           // 'global' | 'container' | 'containeritem' | 'object'
+    this.scopestamp = data.scopestamp || '';         // stamp do owner (vazio = global)
+
+    // ── Tipo de fonte ──
+    this.tipo = data.tipo || 'directquery';         // 'directquery' | 'javascript' | 'api' | 'stored'
+
+    // ── DirectQuery ──
+    this.expressaolistagem = data.expressaolistagem || '';
+    this.urlfetch = data.urlfetch || '../programs/gensel.aspx?cscript=getdbcontaineritemdata';
+
+    // ── JavaScript ──
+    this.expressaojslistagem = data.expressaojslistagem || '';
+
+    // ── API (preparado para futuro) ──
+    this.apiurl = data.apiurl || '';
+    this.apimethod = data.apimethod || 'GET';
+    this.apiheadersjson = data.apiheadersjson || '{}';
+    this.apibodyjson = data.apibodyjson || '{}';
+
+    // ── Schema ──
+    this.schemamode = data.schemamode || 'auto';    // 'auto' | 'manual'
     this.schemajson = data.schemajson || '[]';
-    this.lastResultscached = data.lastResultscached || '[]';
-    this.schema = [];
-    this.lastResults = [];
-
-    this.lastResults = forceJSONParse(this.lastResultscached, []);
     this.schema = forceJSONParse(this.schemajson, []);
-    this.testData = data.testData || [];
-    this.lastExecuted = data.lastExecuted || [];
-    this.isActive = data.isActive !== undefined ? data.isActive : true;
 
+    // ── Parâmetros dinâmicos ──
+    this.parametrosjson = data.parametrosjson || '[]';
+    this.parametros = forceJSONParse(this.parametrosjson, []);
+
+    // ── Refresh ──
+    this.refreshmode = data.refreshmode || 'onload';  // 'onload' | 'onfilterchange' | 'manual' | 'interval'
+    this.refreshintervalsec = data.refreshintervalsec || 0;
+
+    // ── Cache/Resultados ──
+    this.lastResultscached = data.lastResultscached || '[]';
+    this.lastResults = forceJSONParse(this.lastResultscached, []);
+    this.lastexecuted = data.lastexecuted || null;
+
+    // ── Runtime (não persistido) ──
+    this.apiheaders = forceJSONParse(this.apiheadersjson, {});
+    this.apibody = forceJSONParse(this.apibodyjson, {});
+    this.status = 'idle';                           // 'idle' | 'loading' | 'loaded' | 'error'
+    this.errorMessage = '';
+
+    // ── Metadata CRUD ──
     this.localsource = "GMDashFontes";
     this.idfield = "mdashfontestamp";
     this.table = "MDashFonte";
 }
 
-MDashFonte.prototype.setTupDataOnLocalDb = function (data) {
-    if (!Array.isArray(this.lastResults) || this.lastResults.length === 0) return;
-
-    var tableSchema = extractLocalDbSchema(this.lastResults[0]);
-    setTupDataOnLocalDb("MDashDB", this.codigo, tableSchema, this.lastResults, this.mdashfontestamp);
-}
-
+/**
+ * Serializa todos os campos JSON para persistência na BD.
+ */
 MDashFonte.prototype.stringifyJSONFields = function () {
-    var data = this;
-    data.schemajson = JSON.stringify(data.schema || []);
-    data.lastResultscached = JSON.stringify(data.lastResults || []);
-    return data;
+    this.schemajson = JSON.stringify(this.schema || []);
+    this.lastResultscached = JSON.stringify(this.lastResults || []);
+    this.parametrosjson = JSON.stringify(this.parametros || []);
+    this.apiheadersjson = JSON.stringify(this.apiheaders || {});
+    this.apibodyjson = JSON.stringify(this.apibody || {});
+    return this;
 }
+
+/**
+ * Extrai automaticamente o schema a partir dos últimos resultados.
+ * Retorna array de { field, type, label }.
+ */
+MDashFonte.prototype.extractSchemaFromResults = function () {
+    if (!Array.isArray(this.lastResults) || this.lastResults.length === 0) return [];
+    var firstRow = this.lastResults[0];
+    var schema = [];
+    Object.keys(firstRow).forEach(function (key) {
+        var val = firstRow[key];
+        var type = 'string';
+        if (typeof val === 'number') type = 'number';
+        else if (typeof val === 'boolean') type = 'boolean';
+        else if (val instanceof Date || (typeof val === 'string' && !isNaN(Date.parse(val)) && /^\d{4}-\d{2}-\d{2}/.test(val))) type = 'date';
+        schema.push({ field: key, type: type, label: key });
+    });
+    return schema;
+}
+
+/**
+ * Executa a fonte. Delega no MdashExecutorRegistry (DATA SOURCE Operations.js).
+ * Garante que o método existe mesmo que DATA SOURCE Operations.js ainda não tenha sido carregado.
+ */
+MDashFonte.prototype.execute = function (context, callback) {
+    var self = this;
+    context = context || {};
+
+    // Se o registry já foi carregado, delega nele (DATA SOURCE Operations.js)
+    if (typeof MdashExecutorRegistry !== 'undefined') {
+        var handler = MdashExecutorRegistry.getHandler(self.tipo);
+        if (handler) {
+            self.status = 'loading';
+            self.errorMessage = '';
+            handler.execute(self, context, function (err, rows) {
+                if (err) {
+                    self.status = 'error';
+                    self.errorMessage = err.message || String(err);
+                    console.error('[MDashFonte] Erro na fonte "' + self.codigo + '":', err);
+                    if (typeof callback === 'function') callback(err, null);
+                    return;
+                }
+                self.lastResults  = Array.isArray(rows) ? rows : [];
+                self.lastexecuted = new Date().toISOString();
+                self.status       = 'loaded';
+                if (self.schemamode === 'auto' && self.lastResults.length > 0) {
+                    self.schema = self.extractSchemaFromResults();
+                }
+                if (self.lastResults.length > 0 && typeof mdashLoadFonteIntoDb === 'function') {
+                    mdashLoadFonteIntoDb(self, self.lastResults);
+                }
+                if (typeof callback === 'function') callback(null, self.lastResults);
+            });
+            return;
+        }
+    }
+
+    // Fallback: directquery via AJAX (caso DATA SOURCE Operations.js não esteja carregado)
+    self.status = 'loading';
+    self.errorMessage = '';
+    var expression = self.expressaolistagem || '';
+    if (typeof resolveExpressionTokens === 'function') {
+        expression = resolveExpressionTokens(expression, self.parametros, context.parameters);
+    }
+    $.ajax({
+        type: 'POST',
+        url: '../programs/gensel.aspx?cscript=executeexpressaolistagemdb',
+        async: true,
+        data: { '__EVENTARGUMENT': JSON.stringify([{ expressaodblistagem: expression, filters: {} }]) },
+        success: function (response) {
+            if (response && response.cod === '0000') {
+                self.lastResults  = response.data || [];
+                self.lastexecuted = new Date().toISOString();
+                self.status       = 'loaded';
+                if (typeof callback === 'function') callback(null, self.lastResults);
+            } else {
+                self.status = 'error';
+                self.errorMessage = (response && response.message) || 'Resposta inválida';
+                if (typeof callback === 'function') callback(new Error(self.errorMessage), null);
+            }
+        },
+        error: function (xhr, status, error) {
+            self.status = 'error';
+            self.errorMessage = 'AJAX error: ' + (error || status);
+            if (typeof callback === 'function') callback(new Error(self.errorMessage), null);
+        }
+    });
+};
+
+/**
+ * Devolve as fontes visíveis para um determinado scope (herança em cascata).
+ * Um Object vê: fontes do object + containeritem + container + global
+ * Um ContainerItem vê: fontes do containeritem + container + global
+ * Um Container vê: fontes do container + global
+ * @param {string} scopeType - 'object' | 'containeritem' | 'container' | 'global'
+ * @param {string} scopeStamp - stamp da entidade
+ * @param {string} [parentContainerItemStamp] - stamp do containerItem pai (para objects)
+ * @param {string} [parentContainerStamp] - stamp do container pai
+ * @returns {MDashFonte[]} array de fontes acessíveis
+ */
+MDashFonte.getAvailableFontes = function (scopeType, scopeStamp, parentContainerItemStamp, parentContainerStamp) {
+    var fontes = window.appState ? window.appState.fontes : GMDashFontes;
+    return fontes.filter(function (f) {
+        if (f.inactivo) return false;
+        // Globais são sempre visíveis
+        if (f.scope === 'global') return true;
+        // Fontes do próprio scope
+        if (f.scope === scopeType && f.scopestamp === scopeStamp) return true;
+        // Herança: object herda de containeritem e container
+        if (scopeType === 'object') {
+            if (f.scope === 'containeritem' && f.scopestamp === parentContainerItemStamp) return true;
+            if (f.scope === 'container' && f.scopestamp === parentContainerStamp) return true;
+        }
+        // Herança: containeritem herda de container
+        if (scopeType === 'containeritem') {
+            if (f.scope === 'container' && f.scopestamp === parentContainerStamp) return true;
+        }
+        return false;
+    });
+}
+
+/**
+ * Devolve as fontes globais do dashboard (para a sidebar).
+ * @returns {MDashFonte[]}
+ */
+MDashFonte.getGlobalFontes = function () {
+    var fontes = window.appState ? window.appState.fontes : GMDashFontes;
+    return fontes.filter(function (f) { return f.scope === 'global'; });
+}
+
+// ============================================================================
+// MdashSlot - Instância de slot de um ContainerItem (runtime + persistência)
+// ============================================================================
+// Cada ContainerItem armazena um array JSON `slotsconfig` com a config dos
+// seus slots. MdashSlot é a representação em memória de cada slot.
+// Propriedades: id, label, type + config editável pelo utilizador.
+
+function MdashSlot(data) {
+    this.id = data.id || "";                       // identificador do slot (ex: "body", "header")
+    this.label = data.label || data.id || "";       // nome amigável
+    this.type = data.type || "content";             // "text" | "icon" | "content" | "html"
+    this.isMainContent = data.isMainContent || false;
+
+    // ── Propriedades editáveis pelo utilizador ──
+    this.config = data.config || {};
+    // config pode conter: { cssClass, inlineStyle, minHeight, maxHeight, overflow, background, padding, hidden }
+}
+
+/**
+ * Devolve as propriedades editáveis e os seus defaults.
+ * Usado para gerar o formulário de propriedades do slot.
+ */
+MdashSlot.getEditableProperties = function () {
+    return [
+        { field: "cssClass",    title: "Classes CSS",      type: "text",     defaultValue: "" },
+        { field: "inlineStyle", title: "Estilo Inline",    type: "text",     defaultValue: "" },
+        { field: "minHeight",   title: "Altura Mínima",    type: "text",     defaultValue: "" },
+        { field: "maxHeight",   title: "Altura Máxima",    type: "text",     defaultValue: "" },
+        { field: "overflow",    title: "Overflow",         type: "select",   defaultValue: "visible", options: ["visible", "hidden", "auto", "scroll"] },
+        { field: "background",  title: "Fundo",            type: "color",    defaultValue: "" },
+        { field: "padding",     title: "Padding",          type: "text",     defaultValue: "" }
+    ];
+};
+
+MdashSlot.prototype.toJSON = function () {
+    return {
+        id: this.id,
+        label: this.label,
+        type: this.type,
+        isMainContent: this.isMainContent,
+        config: this.config
+    };
+};
+
+/**
+ * Aplica estilos inline ao elemento DOM do slot (data-mdash-slot).
+ */
+MdashSlot.prototype.applyToElement = function ($el) {
+    if (!$el || !$el.length) return;
+    var c = this.config || {};
+    if (c.cssClass)    $el.addClass(c.cssClass);
+    if (c.inlineStyle) $el.attr('style', ($el.attr('style') || '') + ';' + c.inlineStyle);
+    if (c.minHeight)   $el.css('min-height', c.minHeight);
+    if (c.maxHeight)   $el.css('max-height', c.maxHeight);
+    if (c.overflow)    $el.css('overflow', c.overflow);
+    if (c.background)  $el.css('background', c.background);
+    if (c.padding)     $el.css('padding', c.padding);
+};
 
 // ============================================================================
 // MdashContainerItemLayout - Layouts reutilizáveis para cards
@@ -495,13 +794,18 @@ MdashContainerItemLayout.prototype.stringifyJSONFields = function () {
 }
 
 /**
- * Gera o HTML completo do layout com CSS e JS injectados
+ * Gera o HTML completo do layout com CSS scoped e JS injectados
  * Usado para pré-visualização no builder e renderização no dashboard
  */
 MdashContainerItemLayout.prototype.renderPreview = function (containerSelector) {
+    var scopeId = 'lb_' + this.mdashcontaineritemlayoutstamp;
     var html = '';
-    html += '<style>' + (this.csstemplate || '') + '</style>';
+    if (this.csstemplate) {
+        html += '<style>' + scopeLayoutCSS(this.csstemplate, scopeId) + '</style>';
+    }
+    html += '<div data-mdash-scope="' + scopeId + '">';
     html += this.htmltemplate || '<div class="text-muted text-center p-3">Sem template HTML definido</div>';
+    html += '</div>';
     
     if (containerSelector) {
         $(containerSelector).html(html);
@@ -530,6 +834,8 @@ MdashContainerItemLayout.prototype.toTemplateOption = function () {
         csstemplate: this.csstemplate || '',
         slotsdefinition: this.slotsdefinition || '[]',
         slots: this.slots || [],
+        cssCdnsList: this.cssCdnsList || [],
+        jsCdnsList: this.jsCdnsList || [],
         containerSelectorToRender: '[data-mdash-slot="body"]',
         generateCard: function (cardData) {
             return renderUnifiedLayout(this, cardData);
@@ -670,6 +976,131 @@ function forceJSONParse(data, defaultValue) {
     return data || defaultValue;
 }
 
+/**
+ * Extrai tokens {token} de uma expressão (SQL, JS, URL, etc.).
+ * Formato: {nomeDoToken} — chavetas simples, compatível com MDash v1.
+ * Retorna array de nomes únicos (sem duplicatas).
+ * @param {string} expression - A expressão a analisar
+ * @returns {string[]} Array de nomes de tokens encontrados
+ */
+function extractTokensFromExpression(expression) {
+    if (!expression) return [];
+    var regex = /\{([^}]+)\}/g;
+    var tokens = [];
+    var match;
+    while ((match = regex.exec(expression)) !== null) {
+        var token = match[1].trim();
+        if (token && tokens.indexOf(token) === -1) {
+            tokens.push(token);
+        }
+    }
+    return tokens;
+}
+
+/**
+ * Resolve os tokens {token} numa expressão usando os parâmetros da fonte e os filtros do dashboard.
+ * Ordem de resolução: 1) Valor do filtro mapeado, 2) context.parameters, 3) defaultValue do parâmetro
+ * @param {string} expression - Expressão com tokens {token}
+ * @param {Array} parametros - Array de parâmetros da fonte [{token, source, filterstamp, defaultValue}]
+ * @param {object} contextParams - Parâmetros passados no context.parameters
+ * @returns {string} Expressão com tokens substituídos
+ */
+function resolveExpressionTokens(expression, parametros, contextParams) {
+    if (!expression) return expression;
+    var filters = window.appState ? window.appState.filters : GMDashFilters;
+
+    return expression.replace(/\{([^}]+)\}/g, function (fullMatch, tokenName) {
+        tokenName = tokenName.trim();
+
+        // Procurar o parâmetro correspondente
+        var param = null;
+        if (Array.isArray(parametros)) {
+            param = parametros.find(function (p) { return p.token === tokenName; });
+        }
+
+        // 1) Se mapeado a um filtro, usar o valor actual do filtro
+        if (param && param.source === 'filter' && param.filterstamp) {
+            var filter = filters.find(function (f) { return f.mdashfilterstamp === param.filterstamp; });
+            if (filter) {
+                // Tentar obter o valor do input do filtro no DOM
+                var filterInput = document.querySelector('[data-filterstamp="' + param.filterstamp + '"]');
+                if (filterInput) return filterInput.value || param.defaultValue || '';
+                // Fallback: valor de defeito do filtro
+                return filter.valordefeito || param.defaultValue || '';
+            }
+        }
+
+        // 2) Valor passado via context.parameters
+        if (contextParams && contextParams[tokenName] !== undefined) {
+            return contextParams[tokenName];
+        }
+
+        // 3) defaultValue do parâmetro
+        if (param && param.defaultValue) return param.defaultValue;
+
+        // 4) Sem resolução — manter o token original
+        return fullMatch;
+    });
+}
+
+/**
+ * Sincroniza os parâmetros de uma fonte com os tokens detectados na expressão activa.
+ * Adiciona parâmetros novos e remove os que já não existem na expressão.
+ * @param {MDashFonte} fonte - A fonte a sincronizar
+ * @returns {boolean} true se houve alterações
+ */
+function syncFonteParametros(fonte) {
+    var expression = '';
+    if (fonte.tipo === 'directquery') expression = fonte.expressaolistagem || '';
+    else if (fonte.tipo === 'javascript') expression = fonte.expressaojslistagem || '';
+    else if (fonte.tipo === 'api') expression = (fonte.apiurl || '') + ' ' + (fonte.apibodyjson || '');
+
+    var detectedTokens = extractTokensFromExpression(expression);
+    var existing = Array.isArray(fonte.parametros) ? fonte.parametros : [];
+    var changed = false;
+
+    // Adicionar novos tokens
+    detectedTokens.forEach(function (token) {
+        var exists = existing.find(function (p) { return p.token === token; });
+        if (!exists) {
+            existing.push({
+                token: token,
+                source: 'filter',          // defeito: mapeado a filtro
+                filterstamp: '',            // por mapear
+                defaultValue: '',
+                description: ''
+            });
+            changed = true;
+        }
+    });
+
+    // Remover tokens que já não existem na expressão
+    var before = existing.length;
+    fonte.parametros = existing.filter(function (p) {
+        return detectedTokens.indexOf(p.token) !== -1;
+    });
+    if (fonte.parametros.length !== before) changed = true;
+
+    return changed;
+}
+
+/**
+ * Gera o HTML do interior da lista de parâmetros de uma fonte.
+ * Usada tanto na renderização inicial como para actualizações live.
+ */
+function buildFonteParamsListHtml(fonte) {
+    var html = '';
+    if (fonte.parametros && fonte.parametros.length > 0) {
+        fonte.parametros.forEach(function (param, idx) {
+            html += '<div class="mdash-fonte-param-row" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;" data-param-idx="' + idx + '">';
+            html += '  <label style="margin:0;min-width:70px;font-size:12px;"><code>{' + param.token + '}</code></label>';
+            html += '  <input type="text" class="form-control input-sm mdash-param-value" data-param-idx="' + idx + '" placeholder="valor de teste" value="' + (param.defaultValue || '') + '" style="flex:1;" />';
+            html += '</div>';
+        });
+    }
+    return html;
+}
+
 // ============================================================================
 // DATA MANAGEMENT FUNCTIONS (Mantidas)
 // ============================================================================
@@ -728,12 +1159,20 @@ function exportarConfiguracaoMDashboard() {
 }
 
 function actualizarConfiguracaoMDashboard() {
+    // Usar sempre o array reactivo que tem os valores mais recentes (escritas via proxy PetiteVue)
+    var fontesParaGravar = (window.appState && window.appState.fontes) ? window.appState.fontes : GMDashFontes;
+
+    // Serializar campos JSON de todas as fontes antes de enviar para a BD
+    fontesParaGravar.forEach(function (f) {
+        if (typeof f.stringifyJSONFields === 'function') f.stringifyJSONFields();
+    });
+
     var configData = [
         { sourceTable: "MdashContainer", sourceKey: "mdashcontainerstamp", records: GMDashContainers },
         { sourceTable: "MdashContainerItem", sourceKey: "mdashcontaineritemstamp", records: GMDashContainerItems },
         { sourceTable: "MdashFilter", sourceKey: "mdashfilterstamp", records: GMDashFilters },
         { sourceTable: "MdashContainerItemObject", sourceKey: "mdashcontaineritemobjectstamp", records: GMDashContainerItemObjects },
-        { sourceTable: "MDashFonte", sourceKey: "mdashfontestamp", records: GMDashFontes }
+        { sourceTable: "MDashFonte", sourceKey: "mdashfontestamp", records: fontesParaGravar }
     ];
 
     $.ajax({
@@ -909,6 +1348,10 @@ function loadDashboardDataFromServer(config) {
                         GMDashFontes = dashboardData.fontes.map(function (fonte) {
                             return new MDashFonte(fonte);
                         });
+                        // Carrega lastResultscached de todas as fontes para a DB in-memory
+                        if (typeof mdashInitFontesFromCache === 'function') {
+                            mdashInitFontesFromCache(GMDashFontes);
+                        }
                     }
 
                     // Container Item Layouts (global, sem dashboardstamp)
@@ -937,18 +1380,229 @@ function loadDashboardDataFromServer(config) {
 }
 
 // ============================================================================
+// CDN LOADER — Carregamento lazy e deduplicated de CDNs para layouts
+// ============================================================================
+
+var GMdashLoadedCDNs = {}; // { url: 'css'|'js' } — registo de CDNs já injectados no DOM
+
+/**
+ * ensureMdashCDNsLoaded(cssCdns, jsCdns)
+ * Injecta CDNs em <head> de forma deduplicated (cada URL só é carregada uma vez).
+ * CSS: <link rel="stylesheet"> — non-blocking (browser aplica quando pronto)
+ * JS: <script> — carregados sequencialmente para preservar ordem de dependências
+ *
+ * Performance:
+ * - Deduplicação global via GMdashLoadedCDNs (O(1) lookup)
+ * - CSS nunca bloqueia — injectado imediatamente
+ * - JS carregado sequencialmente com onload (garante dependências)
+ * - CDNs ficam em cache do browser após primeiro carregamento
+ * - Usado tanto no editor como na renderização do dashboard
+ *
+ * @param {string[]} cssCdns - Array de URLs de CSS CDNs
+ * @param {string[]} jsCdns  - Array de URLs de JS CDNs
+ * @returns {Promise|undefined} Promise que resolve quando todos os JS estiverem carregados
+ */
+function ensureMdashCDNsLoaded(cssCdns, jsCdns) {
+    var cssList = cssCdns || [];
+    var jsList = jsCdns || [];
+
+    // Inject CSS CDNs (non-blocking — browser aplica quando ready)
+    cssList.forEach(function (url) {
+        url = (url || '').trim();
+        if (!url || GMdashLoadedCDNs[url]) return;
+        GMdashLoadedCDNs[url] = 'css';
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url;
+        link.setAttribute('data-mdash-cdn', url);
+        document.head.appendChild(link);
+    });
+
+    // Filter JS CDNs que ainda não foram carregados
+    var jsToLoad = jsList.filter(function (url) {
+        return (url || '').trim() && !GMdashLoadedCDNs[(url || '').trim()];
+    });
+
+    if (jsToLoad.length === 0) {
+        return typeof Promise !== 'undefined' ? Promise.resolve() : undefined;
+    }
+
+    // Carrega JS sequencialmente (preserva ordem de dependências)
+    if (typeof Promise !== 'undefined') {
+        return jsToLoad.reduce(function (chain, url) {
+            return chain.then(function () {
+                return new Promise(function (resolve) {
+                    url = url.trim();
+                    GMdashLoadedCDNs[url] = 'js';
+                    var script = document.createElement('script');
+                    script.src = url;
+                    script.setAttribute('data-mdash-cdn', url);
+                    script.onload = resolve;
+                    script.onerror = function () {
+                        console.warn('[MDash] CDN load failed:', url);
+                        resolve(); // Não bloqueia em caso de falha
+                    };
+                    document.head.appendChild(script);
+                });
+            });
+        }, Promise.resolve());
+    } else {
+        // Fallback sem Promise — fire and forget
+        jsToLoad.forEach(function (url) {
+            url = url.trim();
+            GMdashLoadedCDNs[url] = 'js';
+            var script = document.createElement('script');
+            script.src = url;
+            script.setAttribute('data-mdash-cdn', url);
+            document.head.appendChild(script);
+        });
+    }
+}
+
+/**
+ * Verifica se um URL de CDN já está carregado.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isMdashCDNLoaded(url) {
+    return !!GMdashLoadedCDNs[(url || '').trim()];
+}
+
+// ============================================================================
 // RENDERIZAÇÃO UNIFICADA DE LAYOUTS (default + custom)
 // ============================================================================
+
+/**
+ * scopeLayoutCSS(css, scopeAttrValue)
+ * Transforma CSS livre em CSS isolado (scoped) para um layout específico.
+ * Cada regra é prefixada com [data-mdash-scope="<scopeAttrValue>"] de modo
+ * a que o CSS NUNCA afecte elementos fora desse wrapper.
+ *
+ * Trata correctamente:
+ * - @media, @keyframes, @font-face, @supports (não prefixa @-rules, mas prefixa o conteúdo)
+ * - Múltiplos selectores separados por vírgula
+ * - body/html → substituído pelo scope selector
+ * - :root → substituído pelo scope selector
+ *
+ * @param {string} css  - CSS original escrito pelo dev
+ * @param {string} scopeAttrValue - valor único para o atributo data-mdash-scope
+ * @returns {string} CSS com todas as regras prefixadas
+ */
+function scopeLayoutCSS(css, scopeAttrValue) {
+    if (!css || !scopeAttrValue) return css || '';
+    var scope = '[data-mdash-scope="' + scopeAttrValue + '"]';
+
+    // Strip comments
+    css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+
+    // Resultados
+    var output = '';
+    var i = 0;
+    var len = css.length;
+
+    while (i < len) {
+        // Skip whitespace
+        while (i < len && /\s/.test(css[i])) { output += css[i]; i++; }
+        if (i >= len) break;
+
+        // Detect @-rules
+        if (css[i] === '@') {
+            var atRuleStart = i;
+            // Read the @-rule name
+            var atMatch = css.substring(i).match(/^@([\w-]+)/);
+            if (!atMatch) { output += css[i]; i++; continue; }
+
+            var atName = atMatch[1].toLowerCase();
+
+            if (atName === 'media' || atName === 'supports') {
+                // Read up to opening brace — the condition
+                var bracePos = css.indexOf('{', i);
+                if (bracePos === -1) { output += css.substring(i); break; }
+                output += css.substring(i, bracePos + 1);
+                i = bracePos + 1;
+                // Now recursively scope the content inside
+                var depth = 1;
+                var innerStart = i;
+                while (i < len && depth > 0) {
+                    if (css[i] === '{') depth++;
+                    else if (css[i] === '}') depth--;
+                    if (depth > 0) i++;
+                }
+                var innerCSS = css.substring(innerStart, i);
+                output += scopeLayoutCSS(innerCSS, scopeAttrValue);
+                output += '}';
+                i++; // skip closing }
+                continue;
+            }
+
+            if (atName === 'keyframes' || atName === 'font-face' || atName === 'import') {
+                // Pass through unchanged — find matching closing brace
+                var bracePos2 = css.indexOf('{', i);
+                if (bracePos2 === -1) { output += css.substring(i); break; }
+                var depth2 = 1;
+                var j = bracePos2 + 1;
+                while (j < len && depth2 > 0) {
+                    if (css[j] === '{') depth2++;
+                    else if (css[j] === '}') depth2--;
+                    j++;
+                }
+                output += css.substring(i, j);
+                i = j;
+                continue;
+            }
+
+            // Other @-rules (e.g. @charset) — pass through to semicolon
+            var semiPos = css.indexOf(';', i);
+            if (semiPos === -1) { output += css.substring(i); break; }
+            output += css.substring(i, semiPos + 1);
+            i = semiPos + 1;
+            continue;
+        }
+
+        // Normal rule: read selectors up to '{'
+        var braceIdx = css.indexOf('{', i);
+        if (braceIdx === -1) { output += css.substring(i); break; }
+
+        var selectorsStr = css.substring(i, braceIdx);
+        i = braceIdx + 1;
+
+        // Find matching closing brace for the declaration block
+        var depth3 = 1;
+        var declStart = i;
+        while (i < len && depth3 > 0) {
+            if (css[i] === '{') depth3++;
+            else if (css[i] === '}') depth3--;
+            if (depth3 > 0) i++;
+        }
+        var declarations = css.substring(declStart, i);
+        i++; // skip closing }
+
+        // Scope each selector
+        var scopedSelectors = selectorsStr.split(',').map(function (sel) {
+            sel = sel.trim();
+            if (!sel) return sel;
+            // body, html, :root → scope itself
+            if (/^(body|html|:root)$/i.test(sel)) return scope;
+            if (/^(body|html|:root)\s+/i.test(sel)) return sel.replace(/^(body|html|:root)\s+/i, scope + ' ');
+            return scope + ' ' + sel;
+        }).join(', ');
+
+        output += scopedSelectors + ' {' + declarations + '}';
+    }
+
+    return output;
+}
 
 /**
  * renderUnifiedLayout(layout, cardData)
  * Pipeline único de renderização para qualquer layout (default ou custom).
  * 1. Substitui tokens {{variable}} no htmltemplate
  * 2. Preenche data-mdash-slot com dados do cardData (via regex string, sem jQuery)
- * 3. Prepende CSS se existir
+ * 3. Isola o CSS com scope automático (data-mdash-scope) se existir csstemplate
+ * 4. Envolve tudo num wrapper com o atributo de scope
  * @param {Object} layout - Objecto de layout com htmltemplate, csstemplate, UIData
  * @param {Object} cardData - Dados do card (title, id, tipo, bodyContent, icon, etc.)
- * @returns {string} HTML final renderizado
+ * @returns {string} HTML final renderizado com CSS scoped
  */
 function renderUnifiedLayout(layout, cardData) {
     var html = layout.htmltemplate || '';
@@ -1008,12 +1662,191 @@ function renderUnifiedLayout(layout, cardData) {
         return '<' + tag + attrs + '>' + content + closeTag;
     });
 
+    // Gera scope ID único: layout codigo + card id (garante isolamento por instância)
+    var scopeId = (layout.codigo || 'layout') + '_' + (cardData.id || Math.random().toString(36).substr(2, 6));
+
     var result = '';
     if (css) {
-        result += '<style>' + css + '</style>';
+        result += '<style>' + scopeLayoutCSS(css, scopeId) + '</style>';
     }
-    result += html;
+    // Wrapper com atributo de scope — todas as regras CSS ficam contidas aqui
+    result += '<div data-mdash-scope="' + scopeId + '">' + html + '</div>';
     return result;
+}
+
+/**
+ * injectSlotDropOverlays(itemStamp, template)
+ * Após o card ser renderizado com renderUnifiedLayout (cores/icons visíveis),
+ * injeta mini drop-zones apenas nos slots de tipo "content" (body, header, footer).
+ * Slots de tipo "text" e "icon" mantêm o conteúdo default do card.
+ */
+function injectSlotDropOverlays(itemStamp, template) {
+    var $body = $(".mdash-canvas-item[data-stamp='" + itemStamp + "'] .mdash-canvas-item-body");
+    if (!$body.length) return;
+
+    // Determina quais slots recebem drop zone
+    var slots = template.slots || forceJSONParse(template.slotsdefinition, []);
+    var contentSlotIds = {};
+    var isCustom = template.isCustomLayout;
+
+    // Nos layouts default, só "content" são slots de drop
+    // Nos layouts custom (Layout Builder), todos os slots (type "html") recebem drop zone
+    slots.forEach(function (s) {
+        if (s.type === 'content' || s.type === 'html') {
+            contentSlotIds[s.id] = s;
+        } else if (isCustom) {
+            contentSlotIds[s.id] = s;
+        }
+    });
+
+    // Obter instância do item para aceder à slotsconfig
+    var item = window.appState.containerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
+
+    $body.find('[data-mdash-slot]').each(function () {
+        var $el = $(this);
+        var slotId = $el.attr('data-mdash-slot');
+        var slotDef = contentSlotIds[slotId];
+
+        // Custom layouts: slot no HTML sem definição → trata como content
+        if (!slotDef && isCustom) {
+            slotDef = { id: slotId, label: slotId, type: 'html' };
+        }
+        if (!slotDef) return; // Layout default, slot visual — manter visual default
+
+        // Limpa conteúdo do slot e injeta drop zone
+        $el.empty();
+        var obj = window.appState.containerItemObjects.find(function (o) {
+            return o.mdashcontaineritemstamp === itemStamp && o.slotid === slotId;
+        });
+
+        var dropHtml = '<div class="mdash-slot-zone-drop" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '">';
+
+        // Botão de propriedades do slot (gear icon)
+        dropHtml += '<button type="button" class="mdash-slot-zone-settings" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i></button>';
+
+        if (obj) {
+            dropHtml += '<div class="mdash-slot-zone-object" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '">';
+            dropHtml += '<i class="' + getObjectTypeIcon(obj.tipo) + '"></i>';
+            dropHtml += '<span>' + (obj.tipo || 'Objeto') + '</span>';
+            dropHtml += '<button type="button" class="mdash-slot-zone-remove" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Remover"><i class="glyphicon glyphicon-remove"></i></button>';
+            dropHtml += '</div>';
+        } else {
+            dropHtml += '<span class="mdash-slot-zone-hint"><i class="glyphicon glyphicon-plus-sign"></i> ' + (slotDef.label || slotId) + '</span>';
+        }
+        dropHtml += '</div>';
+        $el.html(dropHtml);
+
+        // Aplicar configuração persistida do slot (só nos slots válidos, após injectar HTML)
+        if (item) {
+            var mdashSlot = item.getSlot(slotId);
+            if (mdashSlot) {
+                mdashSlot.applyToElement($el);
+            }
+        }
+
+        // ── Bind directo nos elementos criados (não delegado) ──
+        // Necessário porque @click.stop no .mdash-canvas-item (PetiteVue) bloqueia bubbling para delegação jQuery
+        var $drop = $el.find('.mdash-slot-zone-drop');
+        bindSlotDropZoneEvents($drop, itemStamp, slotId);
+    });
+}
+
+/**
+ * Bind directo dos eventos de click (slot settings, object edit, remove) + drag/drop
+ * num .mdash-slot-zone-drop específico.
+ */
+function bindSlotDropZoneEvents($drop, itemStamp, slotId) {
+    // Drag/drop para receber objectos
+    $drop.on('dragover', function (e) {
+        e.preventDefault();
+        e.originalEvent.dataTransfer.dropEffect = 'copy';
+        $(this).addClass('drag-over');
+    });
+    $drop.on('dragleave', function () {
+        $(this).removeClass('drag-over');
+    });
+    $drop.on('drop', function (e) {
+        e.preventDefault();
+        $(this).removeClass('drag-over');
+        var raw = e.originalEvent.dataTransfer.getData('application/mdash-object');
+        if (!raw) return;
+        var objDef;
+        try { objDef = JSON.parse(raw); } catch (err) { return; }
+        var newObj = new MdashContainerItemObject({
+            mdashcontaineritemstamp: itemStamp,
+            dashboardstamp: GMDashStamp,
+            tipo: objDef.value,
+            slotid: slotId
+        });
+        window.appState.containerItemObjects.push(newObj);
+        refreshSlotOverlays(itemStamp);
+        if (typeof realTimeComponentSync === 'function') {
+            realTimeComponentSync(newObj, newObj.table, newObj.idfield);
+        }
+    });
+
+    // Click no drop zone → seleccionar slot e abrir propriedades
+    $drop.on('click', function (e) {
+        var $target = $(e.target);
+        // Se clicou num objecto ou no remove, deixar passar para os handlers abaixo
+        if ($target.closest('.mdash-slot-zone-object').length || $target.closest('.mdash-slot-zone-remove').length) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Selecção visual
+        $('.mdash-slot-zone-drop.is-selected').removeClass('is-selected');
+        $(this).addClass('is-selected');
+
+        // Actualizar referência global
+        var item = window.appState.containerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
+        var slot = item ? item.getSlot(slotId) : null;
+        _currentSelectedComponent = {
+            type: 'slot',
+            stamp: itemStamp + '::' + slotId,
+            data: { item: item, slot: slot, itemStamp: itemStamp, slotId: slotId }
+        };
+
+        showSlotPropertiesEditor(itemStamp, slotId);
+    });
+
+    // Click no objecto → editar
+    $drop.on('click', '.mdash-slot-zone-object', function (e) {
+        e.stopPropagation();
+        var stamp = $(this).data('object-stamp');
+        if (stamp && typeof editContainerItemObject === 'function') {
+            editContainerItemObject(stamp);
+        }
+    });
+
+    // Click no remove → remover objecto
+    $drop.on('click', '.mdash-slot-zone-remove', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var idx = window.appState.containerItemObjects.findIndex(function (obj) {
+            return obj.mdashcontaineritemstamp === itemStamp && obj.slotid === slotId;
+        });
+        if (idx !== -1) {
+            var obj = window.appState.containerItemObjects[idx];
+            window.appState.containerItemObjects.splice(idx, 1);
+            if (typeof deleteGenericRecord === 'function') {
+                deleteGenericRecord(obj.table, obj.idfield, obj[obj.idfield]);
+            }
+        }
+        refreshSlotOverlays(itemStamp);
+    });
+}
+
+/**
+ * refreshSlotOverlays(itemStamp)
+ * Recalcula os drop overlays para um item — chamado após drag/drop.
+ */
+function refreshSlotOverlays(itemStamp) {
+    var item = window.appState.containerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
+    if (!item) return;
+    var template = getTemplateLayoutOptions().find(function (t) { return t.codigo === item.templatelayout; });
+    if (template && template.htmltemplate) {
+        injectSlotDropOverlays(itemStamp, template);
+    }
 }
 
 function getTemplateLayoutOptions() {
@@ -1032,6 +1865,8 @@ function getTemplateLayoutOptions() {
                 csstemplate: def.csstemplate || '',
                 slotsdefinition: def.slotsdefinition || '[]',
                 slots: forceJSONParse(def.slotsdefinition, []),
+                cssCdnsList: def.cssCdnsList || [],
+                jsCdnsList: def.jsCdnsList || [],
                 containerSelectorToRender: def.containerSelectorToRender || '[data-mdash-slot="body"]',
                 isCustomLayout: false,
                 generateCard: function (cardData) {
@@ -1089,8 +1924,7 @@ function getTemplateThumbnailHtml(templateCode) {
                 tipo: (template.UIData && template.UIData.tipo) || "primary",
                 bodyContent: "Demo"
             });
-            // Strip <style> tags from thumbnails to prevent CSS from bleeding into the page
-            thumbHtml = thumbHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+            // CSS é automaticamente scoped via scopeLayoutCSS() → data-mdash-scope wrapper
         } catch (error) {
             thumbHtml = "";
         }
@@ -1160,7 +1994,7 @@ function initModernDashboardUI() {
     mainHtml += '      <button type="button" class="btn btn-default btn-sm toolbox-container mdash-toolbox-item" data-component="container" @click="addNewContainer" title="Container (clique ou arraste para o canvas)"><i class="glyphicon glyphicon-th-large"></i></button>';
     mainHtml += '      <button type="button" class="btn btn-default btn-sm toolbox-container-item mdash-toolbox-item" data-component="containerItem" @click="quickAddItemFromRail" title="Item (clique ou arraste para um container)"><i class="glyphicon glyphicon-list-alt"></i></button>';
     mainHtml += '      <button type="button" class="btn btn-default btn-sm" @click="openFiltersManagerModal" title="Gerir filtros"><i class="glyphicon glyphicon-filter"></i></button>';
-    mainHtml += '      <button type="button" class="btn btn-default btn-sm" @click="addNewFonte" title="Nova Fonte"><i class="glyphicon glyphicon-oil"></i></button>';
+    mainHtml += '      <button type="button" class="btn btn-default btn-sm" @click="addNewFonte" title="Nova Fonte"><i class="glyphicon glyphicon-hdd"></i></button>';
     mainHtml += '    </div>';
     mainHtml += '    <div class="mdash-sidebar-body">';
     mainHtml += '      <div class="mdash-widget-section">';
@@ -1176,7 +2010,7 @@ function initModernDashboardUI() {
     mainHtml += '            <i class="glyphicon glyphicon-filter"></i><span>Filtro</span>';
     mainHtml += '          </div>';
     mainHtml += '          <div class="mdash-widget-tile" @click="addNewFonte" title="Adicionar Fonte">';
-    mainHtml += '            <i class="glyphicon glyphicon-oil"></i><span>Fonte</span>';
+    mainHtml += '            <i class="glyphicon glyphicon-hdd"></i><span>Fonte</span>';
     mainHtml += '          </div>';
     mainHtml += '          <div class="mdash-widget-tile" @click="openLayoutBuilder" title="Layout Builder">';
     mainHtml += '            <i class="glyphicon glyphicon-blackboard"></i><span>Layouts</span>';
@@ -1188,6 +2022,41 @@ function initModernDashboardUI() {
     // Accordion com os componentes (mantém filtros, listas)
     mainHtml += '      <div class="panel-group" id="mdash-accordion">';
 
+    // ── Objetos (catálogo de componentes visuais) ──
+    mainHtml += '        <div class="panel panel-default">';
+    mainHtml += '          <div class="panel-heading" data-toggle="collapse" data-target="#collapse-objects">';
+    mainHtml += '            <h4 class="panel-title">';
+    mainHtml += '              <i class="glyphicon glyphicon-object-align-bottom"></i> Objetos';
+    mainHtml += '              <span class="badge pull-right">{{ getObjectCatalogCount() }}</span>';
+    mainHtml += '            </h4>';
+    mainHtml += '          </div>';
+    mainHtml += '          <div id="collapse-objects" class="panel-collapse collapse">';
+    mainHtml += '            <div class="panel-body mdash-objects-panel">';
+    mainHtml += '              <div class="mdash-objects-search-wrapper">';
+    mainHtml += '                <i class="glyphicon glyphicon-search"></i>';
+    mainHtml += '                <input type="text" class="mdash-objects-search" placeholder="Pesquisar objetos..." v-model="objectSearchQuery" />';
+    mainHtml += '              </div>';
+    mainHtml += '              <div class="mdash-objects-catalog">';
+    mainHtml += '                <div v-for="cat in getFilteredObjectCatalog()" :key="cat.category" class="mdash-obj-category">';
+    mainHtml += '                  <p class="mdash-obj-category-label">{{ cat.category }}</p>';
+    mainHtml += '                  <div class="mdash-obj-tiles">';
+    mainHtml += '                    <div v-for="obj in cat.items" :key="obj.value" class="mdash-obj-tile" :data-object-type="obj.value" :title="obj.description" draggable="true" @dragstart="onObjectDragStart($event, obj)">';
+    mainHtml += '                      <div class="mdash-obj-tile-icon" :style="\'background:\' + obj.color">';
+    mainHtml += '                        <i :class="obj.icon"></i>';
+    mainHtml += '                      </div>';
+    mainHtml += '                      <div class="mdash-obj-tile-info">';
+    mainHtml += '                        <span class="mdash-obj-tile-name">{{ obj.label }}</span>';
+    mainHtml += '                        <span class="mdash-obj-tile-desc">{{ obj.description }}</span>';
+    mainHtml += '                      </div>';
+    mainHtml += '                    </div>';
+    mainHtml += '                  </div>';
+    mainHtml += '                </div>';
+    mainHtml += '                <p v-if="getFilteredObjectCatalog().length === 0" class="text-muted text-center" style="padding:16px 0;"><small><i class="glyphicon glyphicon-info-sign"></i> Nenhum objeto encontrado</small></p>';
+    mainHtml += '              </div>';
+    mainHtml += '            </div>';
+    mainHtml += '          </div>';
+    mainHtml += '        </div>';
+
     // Filtros
     mainHtml += '        <div class="panel panel-default">';
     mainHtml += '          <div class="panel-heading" data-toggle="collapse" data-target="#collapse-filters">';
@@ -1196,7 +2065,7 @@ function initModernDashboardUI() {
     mainHtml += '              <span class="badge pull-right">{{ filters.length }}</span>';
     mainHtml += '            </h4>';
     mainHtml += '          </div>';
-    mainHtml += '          <div id="collapse-filters" class="panel-collapse collapse in">';
+    mainHtml += '          <div id="collapse-filters" class="panel-collapse collapse">';
     mainHtml += '            <div class="panel-body">';
     mainHtml += '              <button type="button" @click="addNewFilter" class="btn btn-primary btn-sm btn-block">';
     mainHtml += '                <i class="glyphicon glyphicon-plus"></i> Adicionar Filtro';
@@ -1248,25 +2117,26 @@ function initModernDashboardUI() {
     mainHtml += '          </div>';
     mainHtml += '        </div>';
 
-    // Fontes de Dados
+    // Fontes de Dados (apenas globais na sidebar)
     mainHtml += '        <div class="panel panel-default">';
     mainHtml += '          <div class="panel-heading" data-toggle="collapse" data-target="#collapse-fontes">';
     mainHtml += '            <h4 class="panel-title">';
-    mainHtml += '              <i class="glyphicon glyphicon-oil"></i> Fontes de Dados';
-    mainHtml += '              <span class="badge pull-right">{{ fontes.length }}</span>';
+    mainHtml += '              <i class="glyphicon glyphicon-hdd"></i> Fontes Globais';
+    mainHtml += '              <span class="badge pull-right">{{ getGlobalFontesCount() }}</span>';
     mainHtml += '            </h4>';
     mainHtml += '          </div>';
     mainHtml += '          <div id="collapse-fontes" class="panel-collapse collapse">';
     mainHtml += '            <div class="panel-body">';
     mainHtml += '              <button type="button" @click="addNewFonte" class="btn btn-primary btn-sm btn-block">';
-    mainHtml += '                <i class="glyphicon glyphicon-plus"></i> Adicionar Fonte';
+    mainHtml += '                <i class="glyphicon glyphicon-plus"></i> Adicionar Fonte Global';
     mainHtml += '              </button>';
     mainHtml += '              <div class="mdash-sidebar-list">';
-    mainHtml += '                <p v-if="fontes.length === 0" class="text-muted text-center" style="margin-top: 10px;"><small>Nenhuma fonte</small></p>';
-    mainHtml += '                <div v-for="(fonte, index) in fontes" :key="fonte.mdashfontestamp" class="mdash-sidebar-item" :data-stamp="fonte.mdashfontestamp">';
+    mainHtml += '                <p v-if="getGlobalFontesCount() === 0" class="text-muted text-center" style="margin-top: 10px;"><small>Nenhuma fonte global</small></p>';
+    mainHtml += '                <div v-for="(fonte, index) in getGlobalFontes()" :key="fonte.mdashfontestamp" class="mdash-sidebar-item" :data-stamp="fonte.mdashfontestamp">';
     mainHtml += '                  <div class="mdash-sidebar-item-content" @click="editFonte(fonte.mdashfontestamp)">';
-    mainHtml += '                    <i class="glyphicon glyphicon-oil"></i>';
+    mainHtml += '                    <i class="glyphicon glyphicon-hdd"></i>';
     mainHtml += '                    <span>{{ fonte.descricao || fonte.codigo || \'Sem nome\' }}</span>';
+    mainHtml += '                    <span class="mdash-fonte-status" :class="\'status-\' + (fonte.status || \'idle\')"></span>';
     mainHtml += '                  </div>';
     mainHtml += '                  <div class="mdash-sidebar-item-actions">';
     mainHtml += '                    <button type="button" @click.stop="deleteFonte(fonte.mdashfontestamp)" class="btn btn-xs btn-danger">';
@@ -1343,28 +2213,9 @@ function initModernDashboardUI() {
     mainHtml += '                    <button type="button" @click.stop="deleteContainerItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-primary" title="Eliminar"><i class="glyphicon glyphicon-trash"></i></button>';
     mainHtml += '                  </div>';
     mainHtml += '                  </div>';
-    // ── Slot badges ──
-    mainHtml += '                  <div v-if="getLayoutSlots(item.templatelayout).length > 0" class="mdash-slots-display">';
-    mainHtml += '                    <div class="mdash-slots-header"><i class="glyphicon glyphicon-th-large"></i> Slots</div>';
-    mainHtml += '                    <div class="mdash-slots-list">';
-    mainHtml += '                      <span v-for="slot in getLayoutSlots(item.templatelayout)" :key="slot.id" class="mdash-slot-badge" :class="{\'is-main\': slot.isMainContent}" :title="slot.label + \' (\' + slot.type + \')\\nSelector: [data-mdash-slot=&quot;\' + slot.id + \'&quot;]\'">';
-    mainHtml += '                        <i :class="getSlotTypeIcon(slot.type)"></i> {{ slot.label }}';
-    mainHtml += '                      </span>';
-    mainHtml += '                    </div>';
-    mainHtml += '                  </div>';
     mainHtml += '                </div>';
+    // ── Canvas item body: renderizado via renderContainerItemTemplate() + injectSlotDropOverlays() ──
     mainHtml += '                <div class="mdash-canvas-item-body">';
-    mainHtml += '                  <small v-if="getItemObjects(item.mdashcontaineritemstamp).length === 0" class="text-muted">Nenhum objeto</small>';
-    mainHtml += '                  <div v-else class="mdash-canvas-objects-list">';
-    mainHtml += '                    <div v-for="obj in getItemObjects(item.mdashcontaineritemstamp)" :key="obj.mdashcontaineritemobjectstamp" @click="editContainerItemObject(obj.mdashcontaineritemobjectstamp)" class="mdash-canvas-object-badge">';
-    mainHtml += '                      <i :class="getObjectTypeIcon(obj.tipo)"></i> {{ obj.tipo || \'Objeto\' }}';
-    mainHtml += '                    </div>';
-    mainHtml += '                  </div>';
-    mainHtml += '                  <div style="margin-top:5px;">';
-    mainHtml += '                    <button type="button" @click.stop="addContainerItemObject(item.mdashcontaineritemstamp)" class="btn btn-xs btn-link" style="padding:2px 0;" title="Adicionar Objeto">';
-    mainHtml += '                      <i class="glyphicon glyphicon-plus"></i> Add Objeto';
-    mainHtml += '                    </button>';
-    mainHtml += '                  </div>';
     mainHtml += '                </div>';
     mainHtml += '              </div>';
     mainHtml += '            </div>';
@@ -1379,15 +2230,42 @@ function initModernDashboardUI() {
     mainHtml += '    </div>';
     mainHtml += '  </div>';
 
-    // Coluna de propriedades
+    // Coluna de propriedades (3 tabs: Propriedades, Fontes, Acções) — FlutterFlow-inspired
     mainHtml += '  <div class="mdash-properties" :class="{\'is-collapsed\': isPropertiesCollapsed}">';
-    mainHtml += '    <div class="mdash-properties-header"><span><i class="glyphicon glyphicon-wrench"></i> Propriedades</span><button type="button" class="btn btn-default btn-xs mdash-panel-toggle mdash-properties-toggle" @click.stop="toggleProperties" :title="isPropertiesCollapsed ? \'Expandir propriedades\' : \'Colapsar propriedades\'"><i :class="isPropertiesCollapsed ? \'glyphicon glyphicon-chevron-left\' : \'glyphicon glyphicon-chevron-right\'"></i></button></div>';
+
+    // ── Header com tipo do componente seleccionado (estilo FlutterFlow dark header) ──
+    mainHtml += '    <div class="mdash-props-component-header" id="mdash-props-component-header">';
+    mainHtml += '      <div class="mdash-props-component-info">';
+    mainHtml += '        <span class="mdash-props-component-icon"><i class="glyphicon glyphicon-stop"></i></span>';
+    mainHtml += '        <span class="mdash-props-component-name">Nenhum seleccionado</span>';
+    mainHtml += '      </div>';
+    mainHtml += '      <button type="button" class="btn btn-link btn-xs mdash-properties-toggle" @click.stop="toggleProperties" :title="isPropertiesCollapsed ? \'Expandir\' : \'Colapsar\'"><i :class="isPropertiesCollapsed ? \'glyphicon glyphicon-chevron-left\' : \'glyphicon glyphicon-chevron-right\'"></i></button>';
+    mainHtml += '    </div>';
+
     mainHtml += '    <div class="mdash-properties-rail-actions">';
+    mainHtml += '      <div class="mdash-properties-header"><span><i class="glyphicon glyphicon-wrench"></i></span><button type="button" class="btn btn-default btn-xs mdash-panel-toggle mdash-properties-toggle" @click.stop="toggleProperties"><i :class="isPropertiesCollapsed ? \'glyphicon glyphicon-chevron-left\' : \'glyphicon glyphicon-chevron-right\'"></i></button></div>';
     mainHtml += '      <button type="button" class="btn btn-default btn-sm" @click="editSelectedComponent" title="Editar selecionado"><i class="glyphicon glyphicon-cog"></i></button>';
     mainHtml += '      <button type="button" class="btn btn-default btn-sm" @click="addChildForSelected" title="Adicionar ao selecionado"><i class="glyphicon glyphicon-plus"></i></button>';
     mainHtml += '    </div>';
-    mainHtml += '    <div id="mdash-properties-panel">';
-    mainHtml += '      <p class="text-muted" style="margin:0;">Selecione um Container ou Item.</p>';
+
+    // ── Tab bar com ícones + labels (estilo FlutterFlow icon row) ──
+    mainHtml += '    <ul class="mdash-props-tabs" id="mdash-props-tabs">';
+    mainHtml += '      <li class="mdash-props-tab is-active" data-tab="properties" title="Propriedades"><i class="glyphicon glyphicon-wrench"></i><span>Propriedades</span></li>';
+    mainHtml += '      <li class="mdash-props-tab" data-tab="fontes" title="Fontes de Dados"><i class="glyphicon glyphicon-hdd"></i><span>Fontes</span></li>';
+    mainHtml += '      <li class="mdash-props-tab" data-tab="actions" title="Acções / Eventos"><i class="glyphicon glyphicon-flash"></i><span>Acções</span></li>';
+    mainHtml += '    </ul>';
+
+    // ── Conteúdo das tabs ──
+    mainHtml += '    <div class="mdash-props-tab-content">';
+    mainHtml += '      <div class="mdash-props-tab-pane is-active" data-tab-pane="properties" id="mdash-properties-panel">';
+    mainHtml += '        <div class="mdash-props-empty-state"><i class="glyphicon glyphicon-hand-up"></i><p>Selecione um Container ou Item</p></div>';
+    mainHtml += '      </div>';
+    mainHtml += '      <div class="mdash-props-tab-pane" data-tab-pane="fontes" id="mdash-fontes-panel">';
+    mainHtml += '        <div class="mdash-props-empty-state"><i class="glyphicon glyphicon-hdd"></i><p>Selecione um componente para ver as fontes</p></div>';
+    mainHtml += '      </div>';
+    mainHtml += '      <div class="mdash-props-tab-pane" data-tab-pane="actions" id="mdash-actions-panel">';
+    mainHtml += '        <div class="mdash-props-empty-state"><i class="glyphicon glyphicon-flash"></i><p>Selecione um componente para configurar acções</p></div>';
+    mainHtml += '      </div>';
     mainHtml += '    </div>';
     mainHtml += '  </div>';
 
@@ -1421,6 +2299,7 @@ function initModernDashboardUI() {
         isSidebarCollapsed: false,
         isPropertiesCollapsed: false,
         openTemplatePickerFor: "",
+        objectSearchQuery: "",
         $computed: {
             sortedFilters: function() {
                 return window.appState.filters.slice().sort(function (a, b) {
@@ -1441,6 +2320,61 @@ function initModernDashboardUI() {
 
         getObjectTypeIcon: function (tipo) {
             return getObjectTypeIcon(tipo);
+        },
+
+        getObjectCatalog: function () {
+            return getObjectCatalogDefinitions();
+        },
+
+        getObjectCatalogCount: function () {
+            return getObjectCatalogDefinitions().reduce(function (sum, cat) { return sum + cat.items.length; }, 0);
+        },
+
+        getFilteredObjectCatalog: function () {
+            var q = (this.objectSearchQuery || '').toLowerCase().trim();
+            var catalog = getObjectCatalogDefinitions();
+            if (!q) return catalog;
+            return catalog.map(function (cat) {
+                var filtered = cat.items.filter(function (item) {
+                    return item.label.toLowerCase().indexOf(q) !== -1 ||
+                           item.description.toLowerCase().indexOf(q) !== -1 ||
+                           item.value.toLowerCase().indexOf(q) !== -1;
+                });
+                return filtered.length > 0 ? { category: cat.category, items: filtered } : null;
+            }).filter(Boolean);
+        },
+
+        getSlotObject: function (itemStamp, slotId) {
+            return window.appState.containerItemObjects.find(function (obj) {
+                return obj.mdashcontaineritemstamp === itemStamp && obj.slotid === slotId;
+            }) || null;
+        },
+
+        removeObjectFromSlot: function (itemStamp, slotId) {
+            var idx = window.appState.containerItemObjects.findIndex(function (obj) {
+                return obj.mdashcontaineritemstamp === itemStamp && obj.slotid === slotId;
+            });
+            if (idx !== -1) {
+                var obj = window.appState.containerItemObjects[idx];
+                window.appState.containerItemObjects.splice(idx, 1);
+                if (typeof deleteGenericRecord === 'function') {
+                    deleteGenericRecord(obj.table, obj.idfield, obj[obj.idfield]);
+                }
+            }
+        },
+
+        onObjectDragStart: function (event, obj) {
+            event.dataTransfer.setData('application/mdash-object', JSON.stringify(obj));
+            event.dataTransfer.effectAllowed = 'copy';
+        },
+
+        // ── Fontes globais (para sidebar) ──
+        getGlobalFontes: function () {
+            return window.appState.fontes.filter(function (f) { return f.scope === 'global'; });
+        },
+
+        getGlobalFontesCount: function () {
+            return window.appState.fontes.filter(function (f) { return f.scope === 'global'; }).length;
         },
 
         getContainerItemsCount: function (containerStamp) {
@@ -1637,6 +2571,7 @@ function initModernDashboardUI() {
 
         selectContainer: function (stamp) {
             this.openTemplatePickerFor = "";
+            $('.mdash-slot-zone-drop.is-selected').removeClass('is-selected');
             var container = window.appState.containers.find(function (c) { return c.mdashcontainerstamp === stamp; });
             if (!container) return;
             this.selectedComponent = { type: "container", stamp: stamp, data: container };
@@ -1645,6 +2580,7 @@ function initModernDashboardUI() {
 
         selectContainerItem: function (stamp) {
             this.openTemplatePickerFor = "";
+            $('.mdash-slot-zone-drop.is-selected').removeClass('is-selected');
             var item = window.appState.containerItems.find(function (i) { return i.mdashcontaineritemstamp === stamp; });
             if (!item) return;
             this.selectedComponent = { type: "containerItem", stamp: stamp, data: item };
@@ -1697,9 +2633,595 @@ function initModernDashboardUI() {
                 fontes: this.fontes.length
             });
             initDragAndDrop();
+            initPropertiesTabs();
             setTimeout(syncAllContainerItemsLayout, 0);
         }
     }).mount('#m-dash-main-container');
+}
+
+// ============================================================================
+// PROPERTIES PANEL - TAB SYSTEM
+// ============================================================================
+
+/**
+ * Inicializa o sistema de tabs da coluna de propriedades.
+ * Tabs: Propriedades | Fontes | Acções
+ */
+function initPropertiesTabs() {
+    $(document).off('click.propstab').on('click.propstab', '.mdash-props-tab', function () {
+        var $tab = $(this);
+        var tabId = $tab.data('tab');
+
+        // Actualiza tab activa
+        $('.mdash-props-tab').removeClass('is-active');
+        $tab.addClass('is-active');
+
+        // Actualiza pane activo
+        $('.mdash-props-tab-pane').removeClass('is-active');
+        $('.mdash-props-tab-pane[data-tab-pane="' + tabId + '"]').addClass('is-active');
+
+        // Se mudou para fontes, renderiza o painel de fontes para o componente seleccionado
+        if (tabId === 'fontes' && _currentSelectedComponent) {
+            renderFontesPanel(_currentSelectedComponent);
+        }
+    });
+}
+
+/**
+ * Activa programaticamente uma tab das propriedades.
+ * @param {string} tabId - 'properties' | 'fontes' | 'actions'
+ */
+function activatePropertiesTab(tabId) {
+    $('.mdash-props-tab').removeClass('is-active');
+    $('.mdash-props-tab[data-tab="' + tabId + '"]').addClass('is-active');
+    $('.mdash-props-tab-pane').removeClass('is-active');
+    $('.mdash-props-tab-pane[data-tab-pane="' + tabId + '"]').addClass('is-active');
+}
+
+/**
+ * Renderiza o painel de fontes para o componente seleccionado.
+ * Mostra fontes vinculadas ao scope + botão para adicionar nova fonte.
+ */
+function renderFontesPanel(selectedComponent) {
+    var panel = $('#mdash-fontes-panel');
+    if (!panel.length) return;
+
+    if (!selectedComponent || !selectedComponent.data) {
+        panel.html('<p class="text-muted" style="margin:0;">Selecione um componente para gerir fontes.</p>');
+        return;
+    }
+
+    var type = selectedComponent.type;
+    var data = selectedComponent.data;
+    var scopeType = '';
+    var scopeStamp = '';
+    var parentContainerItemStamp = '';
+    var parentContainerStamp = '';
+
+    if (type === 'container') {
+        scopeType = 'container';
+        scopeStamp = data.mdashcontainerstamp;
+    } else if (type === 'containerItem') {
+        scopeType = 'containeritem';
+        scopeStamp = data.mdashcontaineritemstamp;
+        parentContainerStamp = data.mdashcontainerstamp;
+    } else if (type === 'slot') {
+        // Slot herda do containerItem
+        scopeType = 'containeritem';
+        scopeStamp = data.itemStamp || '';
+        var item = window.appState.containerItems.find(function (i) { return i.mdashcontaineritemstamp === scopeStamp; });
+        parentContainerStamp = item ? item.mdashcontainerstamp : '';
+    } else {
+        panel.html('<p class="text-muted" style="margin:0;">Tipo não suportado para fontes.</p>');
+        return;
+    }
+
+    // Fontes disponíveis para este scope (herança em cascata)
+    var availableFontes = MDashFonte.getAvailableFontes(scopeType, scopeStamp, parentContainerItemStamp, parentContainerStamp);
+    // Fontes que pertencem directamente a este scope
+    var ownFontes = availableFontes.filter(function (f) { return f.scope === scopeType && f.scopestamp === scopeStamp; });
+    // Fontes herdadas (globais + parent)
+    var inheritedFontes = availableFontes.filter(function (f) { return !(f.scope === scopeType && f.scopestamp === scopeStamp); });
+
+    var scopeLabel = type === 'container' ? 'Container' : type === 'containerItem' ? 'Container Item' : 'Slot';
+
+    var html = '';
+
+    // Barra compacta: label + botão circular para adicionar fonte
+    html += '<div class="mdash-fonte-add-bar">';
+    html += '  <span class="mdash-fonte-add-label">' + scopeLabel + '</span>';
+    html += '  <button type="button" class="mdash-fonte-add-btn mdash-add-scoped-fonte" data-scope="' + scopeType + '" data-scopestamp="' + scopeStamp + '" title="Nova Fonte">';
+    html += '    <i class="glyphicon glyphicon-plus"></i>';
+    html += '  </button>';
+    html += '</div>';
+
+    // Fontes próprias do scope
+    if (ownFontes.length > 0) {
+        html += '<p class="mdash-fonte-section-label"><i class="glyphicon glyphicon-hdd"></i> Fontes deste ' + scopeLabel + '</p>';
+        html += renderFontesList(ownFontes, true);
+    }
+
+    // Fontes herdadas
+    if (inheritedFontes.length > 0) {
+        html += '<p class="mdash-fonte-section-label" style="margin-top:10px;"><i class="glyphicon glyphicon-link"></i> Fontes herdadas</p>';
+        html += renderFontesList(inheritedFontes, false);
+    }
+
+    if (ownFontes.length === 0 && inheritedFontes.length === 0) {
+        html += '<p class="text-muted text-center" style="margin-top:12px;"><small>Nenhuma fonte disponível.</small></p>';
+    }
+
+    panel.html(html);
+
+    // Bind: adicionar fonte ao scope
+    panel.off('click.addfonte').on('click.addfonte', '.mdash-add-scoped-fonte', function () {
+        var scope = $(this).data('scope');
+        var stamp = $(this).data('scopestamp');
+        addScopedFonte(scope, stamp);
+    });
+
+    // Bind: editar fonte
+    panel.off('click.editfonte').on('click.editfonte', '.mdash-fonte-list-item', function () {
+        var fonteStamp = $(this).data('fontestamp');
+        if (fonteStamp) editFonteInPanel(fonteStamp);
+    });
+
+    // Bind: remover fonte (próprias apenas)
+    panel.off('click.removefonte').on('click.removefonte', '.mdash-fonte-remove', function (e) {
+        e.stopPropagation();
+        var fonteStamp = $(this).data('fontestamp');
+        if (fonteStamp) removeScopedFonte(fonteStamp);
+    });
+
+    // Bind: executar fonte
+    panel.off('click.runfonte').on('click.runfonte', '.mdash-fonte-run', function (e) {
+        e.stopPropagation();
+        var fonteStamp = $(this).data('fontestamp');
+        if (fonteStamp) executeFonteByStamp(fonteStamp);
+    });
+}
+
+/**
+ * Gera HTML de uma lista de fontes (para o painel de fontes).
+ */
+function renderFontesList(fontes, canRemove) {
+    var html = '<div class="mdash-fonte-list">';
+    fontes.forEach(function (f) {
+        // Leitura defensiva — PetiteVue reactive proxies podem devolver undefined em edge-cases
+        var fDescricao = (f.descricao != null && String(f.descricao) !== 'undefined') ? String(f.descricao) : '';
+        var fCodigo = (f.codigo != null && String(f.codigo) !== 'undefined') ? String(f.codigo) : '';
+        var fTipo = (f.tipo != null && String(f.tipo) !== 'undefined') ? String(f.tipo) : 'directquery';
+        var fScope = (f.scope != null) ? String(f.scope) : '';
+        var fStatus = (f.status != null) ? String(f.status) : 'idle';
+        var fStamp = (f.mdashfontestamp != null) ? String(f.mdashfontestamp) : '';
+        var statusClass = 'status-' + fStatus;
+        var tipoIcon = getFonteTypeIcon(fTipo);
+        var scopeLabel = fScope === 'global' ? 'Global' : fScope === 'container' ? 'Container' : fScope === 'containeritem' ? 'Item' : 'Object';
+        var displayName = fDescricao || fCodigo || 'Sem nome';
+
+        html += '<div class="mdash-fonte-list-item" data-fontestamp="' + fStamp + '">';
+        html += '  <div class="mdash-fonte-list-icon"><i class="' + tipoIcon + '"></i></div>';
+        html += '  <div class="mdash-fonte-list-info">';
+        html += '    <span class="mdash-fonte-list-name">' + displayName + '</span>';
+        html += '    <span class="mdash-fonte-list-meta">' + fTipo + ' · ' + scopeLabel + '</span>';
+        html += '  </div>';
+        html += '  <div class="mdash-fonte-list-actions">';
+        html += '    <span class="mdash-fonte-status ' + statusClass + '" title="' + fStatus + '"></span>';
+        html += '    <button type="button" class="btn btn-xs btn-default mdash-fonte-run" data-fontestamp="' + fStamp + '" title="Executar"><i class="glyphicon glyphicon-play"></i></button>';
+        if (canRemove) {
+            html += '    <button type="button" class="btn btn-xs btn-danger mdash-fonte-remove" data-fontestamp="' + fStamp + '" title="Remover"><i class="glyphicon glyphicon-trash"></i></button>';
+        }
+        html += '  </div>';
+        html += '</div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+/**
+ * Ícone por tipo de fonte.
+ */
+function getFonteTypeIcon(tipo) {
+    var icons = {
+        'directquery': 'glyphicon glyphicon-flash',
+        'javascript': 'glyphicon glyphicon-console',
+        'api': 'glyphicon glyphicon-cloud',
+        'stored': 'glyphicon glyphicon-save'
+    };
+    return icons[tipo] || 'glyphicon glyphicon-hdd';
+}
+
+/**
+ * Adiciona uma nova fonte ao scope indicado.
+ */
+function addScopedFonte(scope, scopestamp) {
+    var newFonte = new MDashFonte({
+        scope: scope,
+        scopestamp: scopestamp
+    });
+
+    // Garantir que propriedades essenciais estão definidas (proteção contra edge-cases reactivos)
+    if (!newFonte.descricao || newFonte.descricao === 'undefined') newFonte.descricao = 'Nova Fonte';
+    if (!newFonte.codigo || newFonte.codigo === 'undefined') newFonte.codigo = 'Fonte' + Date.now().toString().slice(-6);
+    if (!newFonte.tipo || newFonte.tipo === 'undefined') newFonte.tipo = 'directquery';
+
+    // Serializar campos JSON antes de enviar para a BD
+    newFonte.stringifyJSONFields();
+
+    window.appState.fontes.push(newFonte);
+
+    if (typeof realTimeComponentSync === 'function') {
+        realTimeComponentSync(newFonte, newFonte.table, newFonte.idfield);
+    }
+
+    // Refrescar painel e abrir editor da nova fonte directamente
+    if (_currentSelectedComponent) {
+        renderFontesPanel(_currentSelectedComponent);
+    }
+    // Auto-abrir editor da nova fonte
+    setTimeout(function () { editFonteInPanel(newFonte.mdashfontestamp); }, 60);
+}
+
+/**
+ * Remove uma fonte pelo stamp.
+ */
+function removeScopedFonte(fonteStamp) {
+    showDeleteConfirmation({
+        title: 'Eliminar Fonte',
+        message: 'Tem a certeza que deseja eliminar esta fonte de dados?',
+        recordToDelete: { table: 'MDashFonte', tableKey: 'mdashfontestamp', stamp: fonteStamp },
+        onConfirm: function () {
+            var idx = window.appState.fontes.findIndex(function (f) { return f.mdashfontestamp === fonteStamp; });
+            if (idx !== -1) window.appState.fontes.splice(idx, 1);
+            if (_currentSelectedComponent) renderFontesPanel(_currentSelectedComponent);
+        }
+    });
+}
+
+/**
+ * Executa uma fonte pelo stamp e actualiza o seu estado.
+ */
+function executeFonteByStamp(fonteStamp) {
+    var fonte = window.appState.fontes.find(function (f) { return f.mdashfontestamp === fonteStamp; });
+    if (!fonte) return;
+
+    fonte.execute({}, function (err, results) {
+        if (!err) {
+            fonte.stringifyJSONFields();
+            if (typeof realTimeComponentSync === 'function') {
+                realTimeComponentSync(fonte, fonte.table, fonte.idfield);
+            }
+        }
+        // Refrescar UI
+        if (_currentSelectedComponent) renderFontesPanel(_currentSelectedComponent);
+        if (typeof alertify !== 'undefined') {
+            if (err) alertify.error('Erro ao executar fonte: ' + fonte.errorMessage);
+            else alertify.success('Fonte "' + (fonte.descricao || fonte.codigo) + '" executada (' + (results || []).length + ' registos)');
+        }
+    });
+}
+
+/**
+ * Abre o editor de fonte inline no painel de fontes.
+ */
+function editFonteInPanel(fonteStamp) {
+    var fonte = window.appState.fontes.find(function (f) {
+        return String(f.mdashfontestamp) === String(fonteStamp);
+    });
+    if (!fonte) return;
+
+    // Leitura defensiva de propriedades (proxy PetiteVue pode devolver undefined)
+    var _codigo = (fonte.codigo != null && String(fonte.codigo) !== 'undefined') ? String(fonte.codigo) : '';
+    var _descricao = (fonte.descricao != null && String(fonte.descricao) !== 'undefined') ? String(fonte.descricao) : '';
+    var _tipo = (fonte.tipo != null && String(fonte.tipo) !== 'undefined') ? String(fonte.tipo) : 'directquery';
+    var _urlfetch = (fonte.urlfetch != null && String(fonte.urlfetch) !== 'undefined') ? String(fonte.urlfetch) : '';
+    var _expressaolistagem = (fonte.expressaolistagem != null && String(fonte.expressaolistagem) !== 'undefined') ? String(fonte.expressaolistagem) : '';
+    var _expressaojslistagem = (fonte.expressaojslistagem != null && String(fonte.expressaojslistagem) !== 'undefined') ? String(fonte.expressaojslistagem) : '';
+    var _apiurl = (fonte.apiurl != null && String(fonte.apiurl) !== 'undefined') ? String(fonte.apiurl) : '';
+    var _apimethod = (fonte.apimethod != null && String(fonte.apimethod) !== 'undefined') ? String(fonte.apimethod) : 'GET';
+    var _apiheadersjson = (fonte.apiheadersjson != null && String(fonte.apiheadersjson) !== 'undefined') ? String(fonte.apiheadersjson) : '{}';
+    var _apibodyjson = (fonte.apibodyjson != null && String(fonte.apibodyjson) !== 'undefined') ? String(fonte.apibodyjson) : '{}';
+    var _schemamode = (fonte.schemamode != null && String(fonte.schemamode) !== 'undefined') ? String(fonte.schemamode) : 'auto';
+    var _refreshmode = (fonte.refreshmode != null && String(fonte.refreshmode) !== 'undefined') ? String(fonte.refreshmode) : 'onload';
+
+    var panel = $('#mdash-fontes-panel');
+    if (!panel.length) return;
+
+    var tipoOptions = [
+        { option: 'Query Directa', value: 'directquery' },
+        { option: 'JavaScript', value: 'javascript' },
+        { option: 'API', value: 'api' },
+        { option: 'Cache', value: 'stored' }
+    ];
+    var schemaModeOptions = [
+        { option: 'Automático', value: 'auto' },
+        { option: 'Manual', value: 'manual' }
+    ];
+    var refreshModeOptions = [
+        { option: 'Ao carregar', value: 'onload' },
+        { option: 'Ao mudar filtro', value: 'onfilterchange' },
+        { option: 'Manual', value: 'manual' },
+        { option: 'Intervalo', value: 'interval' }
+    ];
+
+    var html = '';
+    html += '<div class="mdash-fonte-editor">';
+    html += '  <div class="mdash-fonte-editor-header">';
+    html += '    <button type="button" class="btn btn-xs btn-default mdash-fonte-back" title="Voltar à lista"><i class="glyphicon glyphicon-arrow-left"></i></button>';
+    html += '    <span>' + (_descricao || _codigo || 'Fonte') + '</span>';
+    html += '  </div>';
+
+    // Campos de identidade
+    html += '  <div class="row">';
+    html += '    <div class="col-md-12" style="margin-bottom:0.5em;"><div class="form-group"><label>Código</label><input type="text" class="form-control input-sm" data-fonte-field="codigo" value="' + _codigo + '" /></div></div>';
+    html += '    <div class="col-md-12" style="margin-bottom:0.5em;"><div class="form-group"><label>Descrição</label><input type="text" class="form-control input-sm" data-fonte-field="descricao" value="' + _descricao + '" /></div></div>';
+    html += '    <div class="col-md-12" style="margin-bottom:0.5em;"><div class="form-group"><label>Tipo</label><select class="form-control input-sm" data-fonte-field="tipo">';
+    tipoOptions.forEach(function (o) { html += '<option value="' + o.value + '"' + (_tipo === o.value ? ' selected' : '') + '>' + o.option + '</option>'; });
+    html += '    </select></div></div>';
+
+    // DirectQuery fields
+    html += '    <div class="mdash-fonte-section" data-fonte-section="directquery"' + (_tipo !== 'directquery' ? ' style="display:none"' : '') + '>';
+    html += '      <div class="col-md-12" style="margin-bottom:0.5em;"><div class="form-group"><label>URL Fetch</label><input type="text" class="form-control input-sm" data-fonte-field="urlfetch" value="' + _urlfetch + '" /></div></div>';
+    html += '      <div class="col-md-12" style="margin-bottom:0.5em;"><div class="form-group">';
+    html += '        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">';
+    html += '          <label style="margin:0;">Expressão de Listagem</label>';
+    html += '          <button type="button" class="btn btn-xs btn-default mdash-editor-expand" data-editor-field="expressaolistagem" title="Editar em ecrã completo"><i class="glyphicon glyphicon-fullscreen"></i> Editar</button>';
+    html += '        </div>';
+    html += '        <div class="m-editor" data-fonte-field="expressaolistagem" style="width:100%;height:160px;">' + _expressaolistagem + '</div>';
+    html += '      </div></div>';
+      // Parâmetros detectados na expressão (acima do botão executar)
+    html += '      <div class="col-md-12 mdash-fonte-params-section"' + (fonte.parametros && fonte.parametros.length > 0 ? '' : ' style="display:none"') + ' style="margin-bottom:0.5em;">';
+    html += '        <label style="font-size:11px;color:#888;margin-bottom:4px;"><i class="glyphicon glyphicon-filter"></i> Filtros de teste</label>';
+    html += '        <div class="mdash-fonte-params-list">' + buildFonteParamsListHtml(fonte) + '</div>';
+    html += '      </div>';
+    html += '      <div class="col-md-12" style="margin-bottom:0.5em;">';
+    html += '        <button type="button" class="btn btn-success btn-sm btn-block mdash-fonte-execute" data-fontestamp="' + String(fonte.mdashfontestamp || fonteStamp) + '">';
+    html += '          <i class="glyphicon glyphicon-play"></i> Executar & Obter Schema';
+    html += '        </button>';
+    var _lastexecuted = (fonte.lastexecuted != null && String(fonte.lastexecuted) !== 'undefined') ? String(fonte.lastexecuted) : '';
+    if (_lastexecuted) { html += '        <small class="text-muted" style="display:block;margin-top:3px;">Última execução: ' + _lastexecuted + '</small>'; }
+    html += '      </div>';
+    html += '    </div>';
+
+    // JavaScript fields
+    html += '    <div class="mdash-fonte-section" data-fonte-section="javascript"' + (_tipo !== 'javascript' ? ' style="display:none"' : '') + '>';
+    html += '      <div class="col-md-12" style="margin-bottom:0.5em;"><div class="form-group">';
+    html += '        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">';
+    html += '          <label style="margin:0;">Expressão JavaScript</label>';
+    html += '          <button type="button" class="btn btn-xs btn-default mdash-editor-expand" data-editor-field="expressaojslistagem" title="Editar em ecrã completo"><i class="glyphicon glyphicon-fullscreen"></i> Editar</button>';
+    html += '        </div>';
+    html += '        <div class="m-editor" data-fonte-field="expressaojslistagem" style="width:100%;height:160px;">' + _expressaojslistagem + '</div>';
+    html += '      </div></div>';
+    html += '    </div>';
+
+    // API fields
+    html += '    <div class="mdash-fonte-section" data-fonte-section="api"' + (_tipo !== 'api' ? ' style="display:none"' : '') + '>';
+    html += '      <div class="col-md-12" style="margin-bottom:0.5em;"><div class="form-group"><label>URL da API</label><input type="text" class="form-control input-sm" data-fonte-field="apiurl" value="' + _apiurl + '" /></div></div>';
+    html += '      <div class="col-md-6" style="margin-bottom:0.5em;"><div class="form-group"><label>Método</label><select class="form-control input-sm" data-fonte-field="apimethod"><option value="GET"' + (_apimethod === 'GET' ? ' selected' : '') + '>GET</option><option value="POST"' + (_apimethod === 'POST' ? ' selected' : '') + '>POST</option><option value="PUT"' + (_apimethod === 'PUT' ? ' selected' : '') + '>PUT</option></select></div></div>';
+    html += '      <div class="col-md-12" style="margin-bottom:0.5em;"><div class="form-group"><label>Headers (JSON)</label><div class="m-editor" data-fonte-field="apiheadersjson" style="width:100%;height:80px;">' + _apiheadersjson + '</div></div></div>';
+    html += '      <div class="col-md-12" style="margin-bottom:0.5em;"><div class="form-group"><label>Body (JSON)</label><div class="m-editor" data-fonte-field="apibodyjson" style="width:100%;height:80px;">' + _apibodyjson + '</div></div></div>';
+    html += '    </div>';
+
+    // Schema & Refresh
+    html += '    <div class="col-md-6" style="margin-bottom:0.5em;"><div class="form-group"><label>Schema</label><select class="form-control input-sm" data-fonte-field="schemamode">';
+    schemaModeOptions.forEach(function (o) { html += '<option value="' + o.value + '"' + (_schemamode === o.value ? ' selected' : '') + '>' + o.option + '</option>'; });
+    html += '    </select></div></div>';
+    html += '    <div class="col-md-6" style="margin-bottom:0.5em;"><div class="form-group"><label>Refresh</label><select class="form-control input-sm" data-fonte-field="refreshmode">';
+    refreshModeOptions.forEach(function (o) { html += '<option value="' + o.value + '"' + (_refreshmode === o.value ? ' selected' : '') + '>' + o.option + '</option>'; });
+    html += '    </select></div></div>';
+
+    // Schema display (read-only) — colapsado por defeito
+    if (fonte.schema && fonte.schema.length > 0) {
+        var _schemaCollapseId = 'mdash-schema-collapse-' + String(fonteStamp).replace(/[^a-zA-Z0-9]/g, '_');
+        html += '    <div class="col-md-12" style="margin-bottom:0.5em;">';
+        html += '      <button type="button" class="mdash-schema-toggle collapsed" data-toggle="collapse" data-target="#' + _schemaCollapseId + '">';
+        html += '        <span class="mdash-schema-toggle-left">';
+        html += '          <i class="glyphicon glyphicon-list-alt"></i>';
+        html += '          <span>Schema</span>';
+        html += '          <span class="mdash-schema-badge">' + fonte.schema.length + '</span>';
+        html += '        </span>';
+        html += '        <i class="glyphicon glyphicon-chevron-right mdash-schema-chevron"></i>';
+        html += '      </button>';
+        html += '      <div id="' + _schemaCollapseId + '" class="collapse">';
+        html += '        <div class="mdash-fonte-schema-table">';
+        html += '          <table class="table table-condensed" style="margin:0;">';
+        html += '            <thead><tr><th>Campo</th><th>Tipo</th></tr></thead><tbody>';
+        fonte.schema.forEach(function (s) {
+            html += '            <tr><td>' + s.field + '</td><td><span class="mdash-schema-type-badge">' + s.type + '</span></td></tr>';
+        });
+        html += '            </tbody></table>';
+        html += '        </div>';
+        html += '      </div>';
+        html += '    </div>';
+    }
+
+    html += '  </div>'; // fim row
+    html += '</div>'; // fim fonte-editor
+
+    panel.html(html);
+
+    // Helper: serializar e persistir a fonte na BD
+    function _persistFonte() {
+        fonte.stringifyJSONFields();
+        if (typeof realTimeComponentSync === 'function') {
+            realTimeComponentSync(fonte, fonte.table, fonte.idfield);
+        }
+    }
+
+    // Bind: voltar à lista — guardar antes de sair
+    panel.off('click.fonteback').on('click.fonteback', '.mdash-fonte-back', function () {
+        _persistFonte();
+        renderFontesPanel(_currentSelectedComponent);
+    });
+
+    // Bind: mudar tipo → mostrar/esconder secções e sincronizar
+    panel.off('change.fontetype').on('change.fontetype', '[data-fonte-field="tipo"]', function () {
+        var tipo = $(this).val();
+        fonte.tipo = tipo;
+        panel.find('.mdash-fonte-section').hide();
+        panel.find('.mdash-fonte-section[data-fonte-section="' + tipo + '"]').show();
+        _persistFonte();
+    });
+
+    // Bind: campos de texto/select — actualiza a fonte e sincroniza com a BD
+    var _fonteSyncTimer = null;
+    panel.off('change.fontefields keyup.fontefields').on('change.fontefields keyup.fontefields', '[data-fonte-field]:not(.m-editor)', function () {
+        var field = $(this).data('fonte-field');
+        var val = this.type === 'checkbox' ? this.checked : $(this).val();
+        fonte[field] = val;
+        clearTimeout(_fonteSyncTimer);
+        _fonteSyncTimer = setTimeout(_persistFonte, 600);
+    });
+
+    // Bind: executar — persiste primeiro, depois corre e abre modal com resultado/erro
+    panel.off('click.fonteexec').on('click.fonteexec', '.mdash-fonte-execute', function () {
+        var $btn = $(this);
+        var stamp = $btn.data('fontestamp');
+        var fonteExec = window.appState.fontes.find(function (f) { return String(f.mdashfontestamp) === String(stamp); });
+        if (!fonteExec) return;
+
+        _persistFonte();
+        $btn.prop('disabled', true).html('<i class="glyphicon glyphicon-refresh spinning"></i> A executar...');
+
+        // Construir filtros a partir dos parametros da fonte (usa defaultValue como valor de teste)
+        var execFilters = {};
+        if (Array.isArray(fonteExec.parametros)) {
+            fonteExec.parametros.forEach(function (param) {
+                execFilters[param.token] = param.defaultValue || '';
+            });
+        }
+
+        fonteExec.execute({ filters: execFilters }, function (err, results) {
+            $btn.prop('disabled', false).html('<i class="glyphicon glyphicon-play"></i> Executar & Obter Schema');
+
+            var modalId = 'mdash-fonte-query-result-modal';
+            $('#' + modalId).remove();
+
+            var modalTitle, modalBody;
+
+            if (err) {
+                var errMsg = err.message || String(err);
+                modalTitle = '<span class="text-danger"><i class="glyphicon glyphicon-exclamation-sign"></i> Erro na query</span>';
+                modalBody = '<pre style="background:#fff8f8;border:1px solid #f5c6cb;color:#721c24;padding:14px;border-radius:5px;max-height:460px;overflow-y:auto;font-size:12px;white-space:pre-wrap;word-break:break-all;">'
+                    + $('<div>').text(errMsg).html() + '</pre>';
+            } else {
+                var count = (results || []).length;
+                modalTitle = '<i class="glyphicon glyphicon-th"></i> Resultado  <small class="text-muted">' + count + ' registo(s)</small>';
+                var jsonFormatted;
+                try { jsonFormatted = JSON.stringify(results || [], null, 2); } catch (e) { jsonFormatted = String(results); }
+                modalBody = '<pre id="mdash-fonte-query-result-pre" style="background:#f8f9fa;padding:14px;border-radius:5px;max-height:460px;overflow-y:auto;font-size:12px;">'
+                    + $('<div>').text(jsonFormatted).html() + '</pre>';
+                // Re-renderizar para actualizar schema após execução bem sucedida
+                editFonteInPanel(stamp);
+            }
+
+            var modalHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1" role="dialog">'
+                + '<div class="modal-dialog modal-lg" role="document">'
+                + '<div class="modal-content">'
+                + '<div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4 class="modal-title">' + modalTitle + '</h4></div>'
+                + '<div class="modal-body" style="padding:12px;">' + modalBody + '</div>'
+                + '<div class="modal-footer"><button type="button" class="btn btn-default" data-dismiss="modal">Fechar</button></div>'
+                + '</div></div></div>';
+
+            $('body').append(modalHtml);
+            $('#' + modalId).modal('show');
+            $('#' + modalId).on('hidden.bs.modal', function () { $(this).remove(); });
+        });
+    });
+
+    // Bind: abrir editor em modal full-screen
+    panel.off('click.editorexpand').on('click.editorexpand', '.mdash-editor-expand', function () {
+        var field = $(this).data('editor-field');
+        var $editorDiv = panel.find('.m-editor[data-fonte-field="' + field + '"]');
+        var editorId = $editorDiv.attr('id');
+        var currentValue = (editorId && typeof ace !== 'undefined' && ace.edit) ? ace.edit(editorId).getValue() : $editorDiv.text();
+
+        var modalId = 'mdash-fonte-editor-modal';
+        $('#' + modalId).remove();
+
+        var modalHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1" role="dialog">'
+            + '<div class="modal-dialog" style="width:90%;margin:2% auto;" role="document">'
+            + '<div class="modal-content">'
+            + '<div class="modal-header" style="padding:8px 14px;">'
+            + '  <button type="button" class="close" data-dismiss="modal">&times;</button>'
+            + '  <h4 class="modal-title" style="font-size:14px;"><i class="glyphicon glyphicon-pencil"></i> Editar expressão</h4>'
+            + '</div>'
+            + '<div class="modal-body" style="padding:0;">'
+            + '  <div id="mdash-modal-ace-editor" style="width:100%;height:calc(80vh - 100px);"></div>'
+            + '</div>'
+            + '<div class="modal-footer" style="padding:8px 14px;">'
+            + '  <button type="button" class="btn btn-primary btn-sm" id="mdash-editor-modal-save"><i class="glyphicon glyphicon-floppy-disk"></i> Aplicar</button>'
+            + '  <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancelar</button>'
+            + '</div>'
+            + '</div></div></div>';
+
+        $('body').append(modalHtml);
+
+        var $modal = $('#' + modalId);
+        $modal.modal('show');
+
+        $modal.on('shown.bs.modal', function () {
+            var modalAce = ace.edit('mdash-modal-ace-editor');
+            var mode = (field === 'expressaojslistagem') ? 'ace/mode/javascript' : 'ace/mode/sql';
+            modalAce.session.setMode(mode);
+            modalAce.setTheme(getMDashEditorTheme('dark'));
+            modalAce.setOptions({ fontSize: '13px', showPrintMargin: false, wrap: true });
+            modalAce.setValue(currentValue, -1);
+            modalAce.focus();
+
+            // Aplicar: copiar valor para o editor no painel e persistir
+            $('#mdash-editor-modal-save').off('click').on('click', function () {
+                var newValue = modalAce.getValue();
+                // Actualizar ACE no painel
+                if (editorId && ace.edit) {
+                    ace.edit(editorId).setValue(newValue, -1);
+                }
+                // Actualizar modelo
+                fonte[field] = newValue;
+                _persistFonte();
+                syncFonteParametros(fonte);
+                var $ps = panel.find('.mdash-fonte-params-section');
+                $ps.find('.mdash-fonte-params-list').html(buildFonteParamsListHtml(fonte));
+                $ps.toggle(fonte.parametros && fonte.parametros.length > 0);
+                $modal.modal('hide');
+            });
+        });
+
+        $modal.on('hidden.bs.modal', function () { $(this).remove(); });
+    });
+
+    // Bind: parâmetros — alterar valor de teste
+    panel.off('change.paramvalue keyup.paramvalue').on('change.paramvalue keyup.paramvalue', '.mdash-param-value', function () {
+        var idx = parseInt($(this).data('param-idx'), 10);
+        fonte.parametros[idx].defaultValue = $(this).val();
+    });
+
+    // Inicializa ACE para campos de expressão
+    handleCodeEditor();
+
+    // Attach ACE change handlers directamente por ID (evita referências stale ao DOM)
+    // Usamos um único timer partilhado para debounce entre todos os editores
+    var _aceSyncTimer = null;
+    panel.find('.m-editor').each(function () {
+        var editorId = this.id; // atribuído por handleCodeEditor()
+        var $editorEl = $(this);
+        if (!editorId || typeof ace === 'undefined' || !ace.edit) return;
+        var aceEditor = ace.edit(editorId);
+        if (!aceEditor) return;
+
+        aceEditor.getSession().on('change', function () {
+            var field = $editorEl.data('fonte-field');
+            if (!field) return;
+            fonte[field] = aceEditor.getValue();
+            clearTimeout(_aceSyncTimer);
+            _aceSyncTimer = setTimeout(_persistFonte, 800);
+            syncFonteParametros(fonte);
+            var $paramSection = panel.find('.mdash-fonte-params-section');
+            var $paramList = $paramSection.find('.mdash-fonte-params-list');
+            $paramList.html(buildFonteParamsListHtml(fonte));
+            $paramSection.toggle(fonte.parametros && fonte.parametros.length > 0);
+        });
+    });
 }
 
 // ============================================================================
@@ -2092,7 +3614,20 @@ function initDragAndDrop() {
     makeContainersSortable();
     makeContainerItemsSortable();
     initContainerItemResize();
+    initSlotDropZones();
     setTimeout(syncAllContainerItemsLayout, 0);
+}
+
+/**
+ * Inicializa drop zones — agora apenas limpa handlers antigos delegados.
+ * Os eventos reais são ligados directamente em cada drop zone via bindSlotDropZoneEvents()
+ * (chamado por injectSlotDropOverlays), porque @click.stop no .mdash-canvas-item (PetiteVue)
+ * bloqueia o bubbling necessário para delegação jQuery no canvas.
+ */
+function initSlotDropZones() {
+    var $canvas = $('#mdash-canvas-body');
+    // Limpar handlers delegados legados (se existirem de versões anteriores)
+    $canvas.off('dragover.slotdrop dragleave.slotdrop drop.slotdrop click.slotzone click.slotsettings');
 }
 
 function syncAllContainerItemsLayout() {
@@ -3194,10 +4729,9 @@ function createContainerByDrop() {
         realTimeComponentSync(newContainer, newContainer.table, newContainer.idfield);
     }
     
-    if (GMDashReactiveInstance && GMDashReactiveInstance.selectedComponent) {
-        GMDashReactiveInstance.selectedComponent = { type: "container", stamp: newContainer.mdashcontainerstamp, data: newContainer };
-    }
-    handleComponentProperties({ type: "container", stamp: newContainer.mdashcontainerstamp, data: newContainer });
+    var selComp = { type: "container", stamp: newContainer.mdashcontainerstamp, data: newContainer };
+    _currentSelectedComponent = selComp;
+    handleComponentProperties(selComp);
     setTimeout(initDragAndDrop, 0);
     alertify.success('Container criado');
 }
@@ -3212,10 +4746,9 @@ function createContainerItemByDrop(containerStamp) {
         realTimeComponentSync(newItem, newItem.table, newItem.idfield);
     }
     
-    if (GMDashReactiveInstance && GMDashReactiveInstance.selectedComponent) {
-        GMDashReactiveInstance.selectedComponent = { type: "containerItem", stamp: newItem.mdashcontaineritemstamp, data: newItem };
-    }
-    handleComponentProperties({ type: "containerItem", stamp: newItem.mdashcontaineritemstamp, data: newItem });
+    var selComp = { type: "containerItem", stamp: newItem.mdashcontaineritemstamp, data: newItem };
+    _currentSelectedComponent = selComp;
+    handleComponentProperties(selComp);
     setTimeout(function () {
         renderContainerItemTemplate(newItem);
         initDragAndDrop();
@@ -3293,12 +4826,60 @@ function updateContainerItemsOrder(containerStamp, skipCoordinateCheck) {
 // PROPRIEDADES DINÂMICAS (lado direito)
 // ============================================================================
 
+/**
+ * Actualiza o header do componente no painel de propriedades (estilo FlutterFlow).
+ * Mostra ícone + tipo + nome do componente seleccionado.
+ */
+function updatePropsComponentHeader(selectedComponent) {
+    var header = document.getElementById('mdash-props-component-header');
+    if (!header) return;
+
+    var iconClass = 'glyphicon glyphicon-stop';
+    var typeLabel = 'Nenhum seleccionado';
+    var nameLabel = '';
+
+    if (selectedComponent && selectedComponent.data) {
+        var d = selectedComponent.data;
+        if (selectedComponent.type === 'container') {
+            iconClass = 'glyphicon glyphicon-th-large';
+            typeLabel = 'Container';
+            nameLabel = d.titulo || d.mdashcontainerstamp || '';
+        } else if (selectedComponent.type === 'containerItem') {
+            iconClass = 'glyphicon glyphicon-th';
+            typeLabel = 'Container Item';
+            nameLabel = d.titulo || d.mdashcontaineritemstamp || '';
+        } else if (selectedComponent.type === 'slot') {
+            iconClass = 'glyphicon glyphicon-modal-window';
+            typeLabel = 'Slot';
+            nameLabel = d.slotId || '';
+        }
+    }
+
+    var infoEl = header.querySelector('.mdash-props-component-info');
+    if (infoEl) {
+        var displayName = nameLabel ? typeLabel + ' — ' + nameLabel : typeLabel;
+        infoEl.innerHTML = '<span class="mdash-props-component-icon"><i class="' + iconClass + '"></i></span>' +
+            '<span class="mdash-props-component-name">' + displayName + '</span>';
+    }
+}
+
 function handleComponentProperties(selectedComponent) {
     var panel = $('#mdash-properties-panel');
     if (!panel.length) return;
 
+    // Activa sempre a tab de propriedades quando muda componente
+    activatePropertiesTab('properties');
+
+    // ── Guardar referência acessível fora do PetiteVue ──
+    _currentSelectedComponent = selectedComponent || null;
+
+    // ── Actualizar header do componente (estilo FlutterFlow) ──
+    updatePropsComponentHeader(selectedComponent);
+
     if (!selectedComponent || !selectedComponent.data) {
-        panel.html('<p class=\"text-muted\" style=\"margin:0;\">Selecione um componente.</p>');
+        panel.html('<div class="mdash-props-empty-state"><i class="glyphicon glyphicon-hand-up"></i><p>Selecione um componente</p></div>');
+        $('#mdash-fontes-panel').html('<div class="mdash-props-empty-state"><i class="glyphicon glyphicon-hdd"></i><p>Selecione um componente para gerir fontes</p></div>');
+        $('#mdash-actions-panel').html('<div class="mdash-props-empty-state"><i class="glyphicon glyphicon-flash"></i><p>Selecione um componente para configurar acções</p></div>');
         return;
     }
 
@@ -3308,9 +4889,20 @@ function handleComponentProperties(selectedComponent) {
     } else if (selectedComponent.type === "containerItem") {
         var formConfigItem = getContainerItemUIObjectFormConfigAndSourceValues();
         renderPropertiesForm(panel, selectedComponent.data, formConfigItem);
+    } else if (selectedComponent.type === "slot") {
+        var slotData = selectedComponent.data;
+        if (slotData && slotData.itemStamp && slotData.slotId) {
+            showSlotPropertiesEditor(slotData.itemStamp, slotData.slotId);
+        }
     } else {
         panel.html('<p class=\"text-muted\">Tipo ainda não suportado.</p>');
     }
+
+    // Actualiza fontes panel (sempre pré-renderiza para estar pronto ao mudar de tab)
+    renderFontesPanel(selectedComponent);
+
+    // Actualiza actions panel (placeholder para já)
+    $('#mdash-actions-panel').html('<div class="mdash-props-empty-state" style="padding-top:40px;"><i class="glyphicon glyphicon-flash"></i><p>Acções e eventos<br/><small style="opacity:0.5;">Em desenvolvimento</small></p></div>');
 }
 
 function buildModalEntityTitle(typeLabel, titleValue) {
@@ -3334,51 +4926,91 @@ function resetModalOpenState(modalSelector) {
 function renderPropertiesForm(panel, entity, formConfig) {
     if (!formConfig || !formConfig.objectsUIFormConfig) return;
 
-    var html = '<div class=\"row\">';
+    // Agrupar campos por secção (estilo FlutterFlow collapsible sections)
+    var sections = {};
+    var sectionOrder = [];
     formConfig.objectsUIFormConfig.forEach(function (obj) {
-        var isCheckbox = obj.tipo === "checkbox";
-        var isSelect = obj.contentType === "select";
-        var isDiv = obj.contentType === "div";
-        var value = entity[obj.campo] || "";
-        if (isCheckbox) value = !!entity[obj.campo];
-        var panelColSize = 12;
-
-        html += '<div class=\"col-md-' + panelColSize + '\" style=\"margin-bottom:0.5em;\">';
-        html += '  <div class=\"form-group\">';
-        html += '    <label>' + obj.titulo + '</label>';
-
-        var commonAttrs = ' data-field=\"' + obj.campo + '\" class=\"' + (obj.classes || '') + '\" ';
-        var style = obj.style ? ' style=\"' + obj.style + '\" ' : '';
-
-        if (isCheckbox) {
-            html += '    <div style=\"padding-top: 7px;\">';
-            html += '      <input type=\"checkbox\" ' + commonAttrs + (value ? 'checked' : '') + ' />';
-            html += '    </div>';
-        } else if (isSelect) {
-            html += '    <select ' + commonAttrs + style + '>';
-            html += '      <option value=\"\">-- Selecione --</option>';
-            (obj.selectValues || []).forEach(function (opt) {
-                var optVal = opt[obj.fieldToValue];
-                var optLabel = opt[obj.fieldToOption];
-                var selected = value == optVal ? 'selected' : '';
-                html += '      <option value=\"' + optVal + '\" ' + selected + '>' + optLabel + '</option>';
-            });
-            html += '    </select>';
-        } else if (isDiv) {
-            // Usa DIV para compatibilidade com ACE editor
-            html += '    <div ' + commonAttrs + style + '>' + (value || '') + '</div>';
-        } else {
-            html += '    <input type=\"' + obj.tipo + '\" ' + commonAttrs + style + ' value=\"' + value + '\" />';
+        var sec = obj.seccao || 'Geral';
+        if (!sections[sec]) {
+            sections[sec] = [];
+            sectionOrder.push(sec);
         }
-
-        html += '  </div>';
-        html += '</div>';
+        sections[sec].push(obj);
     });
-    html += '</div>';
+
+    var sectionIcons = {
+        'Identidade': 'glyphicon-tag',
+        'Layout': 'glyphicon-th-large',
+        'Dados': 'glyphicon-hdd',
+        'Geral': 'glyphicon-cog'
+    };
+
+    var html = '';
+    sectionOrder.forEach(function (secName) {
+        var fields = sections[secName];
+        var secIcon = sectionIcons[secName] || 'glyphicon-option-horizontal';
+        var secId = 'mdash-prop-sec-' + secName.toLowerCase().replace(/\s+/g, '-');
+
+        html += '<div class="mdash-prop-section" data-section="' + secId + '">';
+        html += '  <div class="mdash-prop-section-header" data-toggle-section="' + secId + '">';
+        html += '    <span class="mdash-prop-section-title"><i class="glyphicon ' + secIcon + '"></i> ' + secName + '</span>';
+        html += '    <i class="glyphicon glyphicon-chevron-down mdash-prop-section-chevron"></i>';
+        html += '  </div>';
+        html += '  <div class="mdash-prop-section-body" id="' + secId + '">';
+        html += '    <div class="row">';
+
+        fields.forEach(function (obj) {
+            var isCheckbox = obj.tipo === "checkbox";
+            var isSelect = obj.contentType === "select";
+            var isDiv = obj.contentType === "div";
+            var value = entity[obj.campo] || "";
+            if (isCheckbox) value = !!entity[obj.campo];
+
+            html += '<div class="col-md-12" style="margin-bottom:6px;">';
+            html += '  <div class="mdash-prop-field">';
+
+            var commonAttrs = ' data-field="' + obj.campo + '" class="' + (obj.classes || '') + '" ';
+            var style = obj.style ? ' style="' + obj.style + '" ' : '';
+
+            if (isCheckbox) {
+                html += '    <label class="mdash-prop-field-check"><input type="checkbox" ' + commonAttrs + (value ? 'checked' : '') + ' /><span>' + obj.titulo + '</span></label>';
+            } else if (isSelect) {
+                html += '    <label>' + obj.titulo + '</label>';
+                html += '    <select ' + commonAttrs + style + '>';
+                html += '      <option value="">-- Selecione --</option>';
+                (obj.selectValues || []).forEach(function (opt) {
+                    var optVal = opt[obj.fieldToValue];
+                    var optLabel = opt[obj.fieldToOption];
+                    var selected = value == optVal ? 'selected' : '';
+                    html += '      <option value="' + optVal + '" ' + selected + '>' + optLabel + '</option>';
+                });
+                html += '    </select>';
+            } else if (isDiv) {
+                html += '    <label>' + obj.titulo + '</label>';
+                html += '    <div ' + commonAttrs + style + '>' + (value || '') + '</div>';
+            } else {
+                html += '    <label>' + obj.titulo + '</label>';
+                html += '    <input type="' + obj.tipo + '" ' + commonAttrs + style + ' value="' + value + '" />';
+            }
+
+            html += '  </div>';
+            html += '</div>';
+        });
+
+        html += '    </div>'; // row
+        html += '  </div>'; // section-body
+        html += '</div>'; // section
+    });
 
     panel.html(html);
 
-    // Bind events
+    // Bind: toggle secções colapsáveis
+    panel.find('.mdash-prop-section-header').on('click', function () {
+        var $section = $(this).closest('.mdash-prop-section');
+        $section.toggleClass('is-collapsed');
+    });
+
+    // Bind events para campos
     panel.find('[data-field]').on('change keyup', function () {
         var field = $(this).data('field');
         var val;
@@ -3417,9 +5049,51 @@ function getObjectTypeIcon(tipo) {
         'table': 'glyphicon glyphicon-th',
         'card': 'glyphicon glyphicon-credit-card',
         'text': 'glyphicon glyphicon-font',
-        'image': 'glyphicon glyphicon-picture'
+        'image': 'glyphicon glyphicon-picture',
+        'title': 'glyphicon glyphicon-header',
+        'kpi': 'glyphicon glyphicon-dashboard',
+        'list': 'glyphicon glyphicon-list',
+        'separator': 'glyphicon glyphicon-minus',
+        'html': 'glyphicon glyphicon-console',
+        'filter': 'glyphicon glyphicon-filter'
     };
     return icons[tipo] || 'glyphicon glyphicon-stop';
+}
+
+/**
+ * Catálogo de objetos disponíveis para arrastar para slots.
+ * Organizado por categorias, com ícone, cor e descrição.
+ * Este catálogo é extensível — basta adicionar novos items ao array.
+ */
+function getObjectCatalogDefinitions() {
+    return [
+        {
+            category: 'Dados',
+            items: [
+                { value: 'chart', label: 'Gráfico', icon: 'glyphicon glyphicon-stats', color: 'rgba(59,130,246,0.12)', description: 'Gráfico de barras, linhas ou pizza' },
+                { value: 'table', label: 'Tabela', icon: 'glyphicon glyphicon-th', color: 'rgba(16,185,129,0.12)', description: 'Tabela de dados com colunas' },
+                { value: 'kpi', label: 'KPI', icon: 'glyphicon glyphicon-dashboard', color: 'rgba(245,158,11,0.12)', description: 'Indicador numérico com tendência' },
+                { value: 'list', label: 'Lista', icon: 'glyphicon glyphicon-list', color: 'rgba(139,92,246,0.12)', description: 'Lista de registos ou items' }
+            ]
+        },
+        {
+            category: 'Conteúdo',
+            items: [
+                { value: 'title', label: 'Título', icon: 'glyphicon glyphicon-header', color: 'rgba(236,72,153,0.12)', description: 'Título do item ou secção' },
+                { value: 'text', label: 'Texto', icon: 'glyphicon glyphicon-font', color: 'rgba(107,114,128,0.12)', description: 'Bloco de texto livre' },
+                { value: 'image', label: 'Imagem', icon: 'glyphicon glyphicon-picture', color: 'rgba(6,182,212,0.12)', description: 'Imagem ou ícone visual' },
+                { value: 'html', label: 'HTML', icon: 'glyphicon glyphicon-console', color: 'rgba(249,115,22,0.12)', description: 'Conteúdo HTML personalizado' }
+            ]
+        },
+        {
+            category: 'Layout',
+            items: [
+                { value: 'card', label: 'Card', icon: 'glyphicon glyphicon-credit-card', color: 'rgba(59,130,246,0.12)', description: 'Card informativo compacto' },
+                { value: 'separator', label: 'Separador', icon: 'glyphicon glyphicon-minus', color: 'rgba(203,213,225,0.18)', description: 'Linha separadora visual' },
+                { value: 'filter', label: 'Filtro', icon: 'glyphicon glyphicon-filter', color: 'rgba(168,85,247,0.12)', description: 'Filtro inline no dashboard' }
+            ]
+        }
+    ];
 }
 
 // ============================================================================
@@ -3866,9 +5540,15 @@ function openContainerItemObjectEditModal(obj) {
     var tipoOptions = [
         { value: 'chart', label: 'Gráfico' },
         { value: 'table', label: 'Tabela' },
-        { value: 'card', label: 'Card / KPI' },
+        { value: 'kpi', label: 'KPI' },
+        { value: 'list', label: 'Lista' },
+        { value: 'title', label: 'Título' },
         { value: 'text', label: 'Texto' },
-        { value: 'image', label: 'Imagem' }
+        { value: 'image', label: 'Imagem' },
+        { value: 'html', label: 'HTML' },
+        { value: 'card', label: 'Card' },
+        { value: 'separator', label: 'Separador' },
+        { value: 'filter', label: 'Filtro' }
     ];
 
     var tipoSelectHtml = tipoOptions.map(function (t) {
@@ -3934,13 +5614,116 @@ function openContainerItemObjectEditModal(obj) {
 }
 
 // ============================================================================
+// EDITOR DE PROPRIEDADES DO SLOT
+// ============================================================================
+
+/**
+ * Abre modal para editar as propriedades visuais de um slot.
+ * @param {string} itemStamp - stamp do MdashContainerItem
+ * @param {string} slotId    - id do slot dentro do layout
+ */
+function showSlotPropertiesEditor(itemStamp, slotId) {
+    var panel = $('#mdash-properties-panel');
+    if (!panel.length) return;
+
+    var item = window.appState.containerItems.find(function (i) {
+        return i.mdashcontaineritemstamp === itemStamp;
+    });
+    if (!item) { alertify.error('ContainerItem não encontrado'); return; }
+
+    // Garante que o slot existe na slotsconfig do item
+    var slot = item.getSlot(slotId);
+    if (!slot) {
+        slot = new MdashSlot({ id: slotId, label: slotId, type: 'html' });
+        item.slotsconfig.push(slot);
+    }
+
+    // Activar tab de propriedades e expandir painel se necessário
+    activatePropertiesTab('properties');
+    var $propsPanel = $('.mdash-properties');
+    if ($propsPanel.hasClass('is-collapsed')) {
+        $propsPanel.removeClass('is-collapsed');
+    }
+
+    var props = MdashSlot.getEditableProperties();
+    var slotTitle = buildModalEntityTitle('Slot', slot.label || slot.id);
+
+    var html = '<div class="mdash-slot-props-editor" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '">';
+    html += '<h5 style="margin:0 0 12px 0;font-weight:700;display:flex;align-items:center;gap:6px;"><i class="glyphicon glyphicon-cog" style="color:var(--md-primary);"></i> ' + slotTitle + '</h5>';
+
+    props.forEach(function (prop) {
+        var val = slot.config[prop.field] !== undefined ? slot.config[prop.field] : prop.defaultValue;
+        html += '<div class="form-group" style="margin-bottom:8px;">';
+        html += '<label style="font-size:11px;font-weight:600;margin-bottom:3px;display:block;">' + prop.title + '</label>';
+
+        if (prop.type === 'select' && prop.options) {
+            html += '<select class="form-control input-sm mdash-slot-prop" data-field="' + prop.field + '">';
+            prop.options.forEach(function (opt) {
+                var sel = (val === opt) ? ' selected' : '';
+                html += '<option value="' + opt + '"' + sel + '>' + opt + '</option>';
+            });
+            html += '</select>';
+        } else if (prop.type === 'checkbox') {
+            var chk = val ? ' checked' : '';
+            html += '<div style="padding-top:4px;"><input type="checkbox" class="mdash-slot-prop" data-field="' + prop.field + '"' + chk + ' /></div>';
+        } else if (prop.type === 'color') {
+            html += '<div style="display:flex;gap:6px;align-items:center;">';
+            html += '<input type="color" class="mdash-slot-prop" data-field="' + prop.field + '" value="' + (val || '#ffffff') + '" style="width:32px;height:28px;padding:1px;border:1px solid #ccc;border-radius:3px;cursor:pointer;" />';
+            html += '<input type="text" class="form-control input-sm mdash-slot-prop-text" data-field="' + prop.field + '" value="' + (val || '') + '" placeholder="#f5f5f5, rgba(...)" />';
+            html += '</div>';
+        } else {
+            html += '<input type="text" class="form-control input-sm mdash-slot-prop" data-field="' + prop.field + '" value="' + (val || '') + '" />';
+        }
+        html += '</div>';
+    });
+    html += '</div>';
+
+    panel.html(html);
+
+    // Remover handlers anteriores para evitar que alterações afectem slots/items antigos
+    panel.off('change.slotprops');
+
+    // Bind — actualizar config do slot em tempo real
+    panel.on('change.slotprops', '.mdash-slot-prop, .mdash-slot-prop-text', function () {
+        var field = $(this).data('field');
+        var val;
+        if ($(this).is(':checkbox')) {
+            val = $(this).is(':checked');
+        } else {
+            val = $(this).val();
+        }
+
+        // Sincronizar color picker ↔ text input
+        if ($(this).is('input[type="color"]')) {
+            $(this).siblings('.mdash-slot-prop-text[data-field="' + field + '"]').val(val);
+        } else if ($(this).hasClass('mdash-slot-prop-text')) {
+            $(this).siblings('input[type="color"][data-field="' + field + '"]').val(val || '#ffffff');
+        }
+
+        slot.config[field] = val;
+
+        // Persistir
+        item.stringifySlotsConfig();
+        if (typeof realTimeComponentSync === 'function') {
+            realTimeComponentSync(item, item.table, item.idfield);
+        }
+
+        // Aplicar imediatamente ao DOM (scope restrito ao body do card, excluindo thumbnails)
+        var $slotEl = $(".mdash-canvas-item[data-stamp='" + itemStamp + "'] .mdash-canvas-item-body [data-mdash-slot='" + slotId + "']");
+        if ($slotEl.length) {
+            slot.applyToElement($slotEl);
+        }
+    });
+}
+
+// ============================================================================
 // MÓDULO DE FONTES
 // ============================================================================
 
 /**
- * Renderiza a lista de fontes na sidebar
+ * Renderiza a lista de fontes na sidebar (versão sidebar global)
  */
-function renderFontesList() {
+function renderSidebarFontesList() {
     var container = $('#fontes-list');
     container.empty();
 
@@ -3954,7 +5737,7 @@ function renderFontesList() {
 
         var fonteItem = '<div class="mdash-sidebar-item" data-stamp="' + fonte.mdashfontestamp + '">';
         fonteItem += '  <div class="mdash-sidebar-item-content" onclick="editFonte(\'' + fonte.mdashfontestamp + '\')">';
-        fonteItem += '    <i class="glyphicon glyphicon-oil"></i>';
+        fonteItem += '    <i class="glyphicon glyphicon-hdd"></i>';
         fonteItem += '    <span>' + (fonte.descricao || fonte.codigo || 'Sem nome') + '</span>';
         fonteItem += '  </div>';
         fonteItem += '  <div class="mdash-sidebar-item-actions">';
@@ -3973,9 +5756,15 @@ function renderFontesList() {
  */
 function addNewFonte() {
     var newFonte = new MDashFonte({
-        dashboardstamp: GMDashStamp
+        dashboardstamp: GMDashStamp,
+        scope: 'global'
     });
     window.appState.fontes.push(newFonte);
+
+    if (typeof realTimeComponentSync === 'function') {
+        realTimeComponentSync(newFonte, newFonte.table, newFonte.idfield);
+    }
+
     openFonteEditModal(newFonte);
 }
 
@@ -4017,7 +5806,7 @@ function openFonteEditModal(fonte) {
     modalHtml += '<div class="modal-dialog modal-lg"><div class="modal-content">';
     modalHtml += '<div class="modal-header">';
     modalHtml += '<button type="button" class="close" data-dismiss="modal">&times;</button>';
-    modalHtml += '<h4 class="modal-title"><i class="glyphicon glyphicon-oil"></i> ' + fonteModalTitle + '</h4>';
+    modalHtml += '<h4 class="modal-title"><i class="glyphicon glyphicon-hdd"></i> ' + fonteModalTitle + '</h4>';
     modalHtml += '</div>';
     modalHtml += '<div class="modal-body"><div class="row">';
     modalHtml += '<div class="col-md-3"><div class="form-group"><label>Código</label>';
@@ -4446,8 +6235,54 @@ function executeDeleteFilter(filterStamp) {
 /**
  * Carrega os estilos modernos para todo o dashboard
  */
+/**
+ * Devolve as cores do painel (colunas 1 e 3) para o modo indicado.
+ * 'dark'  → fundo escuro, texto claro
+ * 'light' → fundo branco, texto escuro
+ * Hardcoded 'dark' em todos os call sites. No futuro, ler de preferência do utilizador.
+ */
+function getMDashPanelTheme(mode) {
+    if (mode === 'dark') {
+        return {
+            bodyBg:           'linear-gradient(180deg,#1a2335,#1e2a3d)',
+            panelHeadingBg:   'linear-gradient(180deg,#1e2a3d,#212f47)',
+            panelBodyBg:      '#1a2335',
+            sectionBorder:    'rgba(255,255,255,0.07)',
+            sectionHoverBg:   'rgba(255,255,255,0.04)',
+            sectionTitleColor:'#e2e8f0',
+            chevronColor:     'rgba(255,255,255,0.3)',
+            labelColor:       '#94a3b8',
+            textColor:        '#e2e8f0',
+            mutedColor:       'rgba(255,255,255,0.28)',
+            inputBg:          '#253048',
+            inputBorder:      'rgba(255,255,255,0.12)',
+            inputColor:       '#e2e8f0',
+            itemBg:           'rgba(255,255,255,0.05)',
+            itemBorder:       'rgba(255,255,255,0.08)',
+        };
+    }
+    return {
+        bodyBg:           'linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,255,255,0.97))',
+        panelHeadingBg:   'linear-gradient(180deg,#ffffff,#f8fafc)',
+        panelBodyBg:      '#ffffff',
+        sectionBorder:    'rgba(0,0,0,0.06)',
+        sectionHoverBg:   'rgba(0,0,0,0.03)',
+        sectionTitleColor:'#1e293b',
+        chevronColor:     'rgba(0,0,0,0.28)',
+        labelColor:       '#475569',
+        textColor:        '#1e293b',
+        mutedColor:       'rgba(0,0,0,0.38)',
+        inputBg:          '#fff',
+        inputBorder:      'rgba(0,0,0,0.12)',
+        inputColor:       '#1e293b',
+        itemBg:           '#fff',
+        itemBorder:       'var(--md-border)',
+    };
+}
+
 function loadModernDashboardStyles() {
     var styles = "";
+    var t = getMDashPanelTheme('light');
     var primaryColor = getColorByType("primary").background;
     var primaryRgb = hexToRgb(primaryColor);
     //var primaryRgb = hexToRgb(primaryColor);
@@ -4484,7 +6319,7 @@ function loadModernDashboardStyles() {
     styles += ".mdash-sidebar-toggle { position: absolute; top: 50%; right: 8px; border-color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.16); color: #fff; }";
     styles += ".mdash-sidebar-toggle:hover { background: rgba(255,255,255,0.26); color: #fff; border-color: rgba(255,255,255,0.7); }";
     styles += ".mdash-sidebar-header i, .mdash-sidebar-rail-actions .btn i, .mdash-properties-header i, .mdash-properties-rail-actions .btn i { animation: none !important; transition: none !important; transform: none !important; }";
-    styles += ".mdash-sidebar-body { flex: 1; overflow-y: auto; padding: 10px; background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.96)); }";
+    styles += ".mdash-sidebar-body { flex: 1; overflow-y: auto; padding: 10px; background: " + t.bodyBg + "; }";
     styles += ".mdash-sidebar-rail-actions { display: none; padding: 8px 6px; gap: 8px; flex-direction: column; align-items: center; border-top: 1px solid rgba(255,255,255,0.2); }";
     styles += ".mdash-sidebar-rail-actions .btn { width: 36px; min-width: 36px; height: 36px; padding: 0; border-radius: 10px; border-color: rgba(255,255,255,0.42); color: var(--md-primary); background: rgba(255,255,255,0.96); display: inline-flex; align-items: center; justify-content: center; line-height: 1; }";
     styles += ".mdash-sidebar-rail-actions .btn i { color: var(--md-primary); font-size: 14px; line-height: 1; }";
@@ -4502,7 +6337,7 @@ function loadModernDashboardStyles() {
     styles += ".mdash-widget-section { padding: 2px 0 8px; }";
     styles += ".mdash-section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: var(--md-primary); margin: 0 0 10px 2px; }";
     styles += ".mdash-widget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }";
-    styles += ".mdash-widget-tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 76px; padding: 12px 8px; background: #fff; border: 1px solid rgba(var(--md-primary-rgb),0.28); border-radius: 12px; cursor: pointer; transition: all 0.2s ease; font-size: 12px; font-weight: 700; color: var(--md-primary); text-align: center; user-select: none; margin: 0; box-sizing: border-box; box-shadow: 0 4px 14px rgba(2,6,23,0.06); }";
+    styles += ".mdash-widget-tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 76px; padding: 12px 8px; background: " + t.itemBg + "; border: 1px solid rgba(var(--md-primary-rgb),0.28); border-radius: 12px; cursor: pointer; transition: all 0.2s ease; font-size: 12px; font-weight: 700; color: var(--md-primary); text-align: center; user-select: none; margin: 0; box-sizing: border-box; box-shadow: 0 4px 14px rgba(2,6,23,0.06); }";
     styles += ".mdash-widget-grid .mdash-widget-tile.mdash-toolbox-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 76px; padding: 12px 8px; border-radius: 12px; margin: 0; }";
     styles += ".mdash-widget-tile i { font-size: 22px; color: var(--md-primary); }";
     styles += ".mdash-widget-tile:hover { transform: translateY(-2px); border-color: var(--md-primary); box-shadow: 0 8px 20px rgba(var(--md-primary-rgb),0.22); }";
@@ -4511,15 +6346,15 @@ function loadModernDashboardStyles() {
 
     // ===== ACCORDION / LISTS =====
     styles += "#mdash-accordion .panel { margin-bottom: 10px; border-radius: 10px; border: 1px solid var(--md-border); box-shadow: 0 6px 16px rgba(2,6,23,0.06); overflow: hidden; }";
-    styles += "#mdash-accordion .panel-heading { background: linear-gradient(180deg, #ffffff, #f8fafc); border-bottom: 1px solid var(--md-border); cursor: pointer; padding: 12px 14px; transition: all 0.2s; }";
-    styles += "#mdash-accordion .panel-title { font-size: 14px; font-weight: 700; color: var(--md-text); margin: 0; display: flex; align-items: center; justify-content: space-between; }";
+    styles += "#mdash-accordion .panel-heading { background: " + t.panelHeadingBg + "; border-bottom: 1px solid " + t.sectionBorder + "; cursor: pointer; padding: 12px 14px; transition: all 0.2s; }";
+    styles += "#mdash-accordion .panel-title { font-size: 14px; font-weight: 700; color: " + t.textColor + "; margin: 0; display: flex; align-items: center; justify-content: space-between; }";
     styles += "#mdash-accordion .panel-title i { margin-right: 8px; color: var(--md-primary); }";
     styles += "#mdash-accordion .panel-title .badge { background: var(--md-primary); font-size: 11px; }";
-    styles += "#mdash-accordion .panel-body { padding: 10px; }";
+    styles += "#mdash-accordion .panel-body { padding: 10px; background: " + t.panelBodyBg + "; }";
     styles += ".mdash-sidebar-list { margin-top: 10px; }";
-    styles += ".mdash-sidebar-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; margin-bottom: 6px; background: #fff; border: 1px solid var(--md-border); border-radius: 8px; cursor: pointer; transition: all 0.2s; }";
+    styles += ".mdash-sidebar-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; margin-bottom: 6px; background: " + t.itemBg + "; border: 1px solid " + t.itemBorder + "; border-radius: 8px; cursor: pointer; transition: all 0.2s; }";
     styles += ".mdash-sidebar-item:hover { border-color: rgba(var(--md-primary-rgb),0.45); transform: translateX(2px); }";
-    styles += ".mdash-sidebar-item-content { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--md-text); }";
+    styles += ".mdash-sidebar-item-content { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 13px; color: " + t.textColor + "; }";
     styles += ".mdash-sidebar-item-content i { color: var(--md-primary); font-size: 12px; }";
     styles += ".mdash-sidebar-item-content .badge { margin-left: auto; background: var(--md-primary); font-size: 10px; }";
     styles += ".mdash-sidebar-item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }";
@@ -4619,7 +6454,7 @@ function loadModernDashboardStyles() {
     styles += ".mdash-item-header-top { width: 100%; }";
     styles += ".mdash-item-header-bottom { display: flex; align-items: center; gap: 10px; }";
     styles += ".mdash-item-header-actions { display: flex; gap: 3px; flex-shrink: 0; margin-left: auto; }";
-    styles += ".mdash-canvas-item-body { min-height: 60px; contain: content; isolation: isolate; }";
+    styles += ".mdash-canvas-item-body { min-height: 60px; }";
     styles += ".is-selected { outline: 2px solid rgba(var(--md-primary-rgb),0.3); outline-offset: 0; }";
 
     // Empty items
@@ -4644,23 +6479,70 @@ function loadModernDashboardStyles() {
     styles += ".mdash-inline-layout-trigger i { margin-left: auto; color: var(--md-muted); }";
     styles += ".mdash-inline-layout-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }";
     styles += ".mdash-inline-layout-thumb { width: 64px; height: 36px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(var(--md-primary-rgb),0.26); background: #f8fafc; flex-shrink: 0; display: block; contain: strict; isolation: isolate; }";
-    styles += ".mdash-template-thumb-render { width: 240px; transform: scale(0.25); transform-origin: top left; pointer-events: none; all: initial; display: block; font-family: 'Inter',system-ui,sans-serif; }";
+    styles += ".mdash-template-thumb-render { all: initial; display: block; font-family: 'Inter',system-ui,sans-serif; width: 240px; transform: scale(0.25); transform-origin: top left; pointer-events: none; }";
     styles += ".mdash-template-thumb-empty { width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; font-weight:700; color: var(--md-primary); font-size: 12px; }";
     styles += ".mdash-inline-layout-menu { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 60; max-height: 260px; overflow-y: auto; background: #fff; border: 1px solid rgba(var(--md-primary-rgb),0.24); border-radius: 10px; box-shadow: 0 14px 26px rgba(2,6,23,0.16); padding: 6px; }";
     styles += ".mdash-inline-layout-option { width: 100%; display: flex; align-items: center; gap: 10px; border: 1px solid transparent; background: #fff; border-radius: 8px; padding: 7px; color: var(--md-text); text-align: left; margin-bottom: 4px; }";
     styles += ".mdash-inline-layout-option:last-child { margin-bottom: 0; }";
     styles += ".mdash-inline-layout-option:hover { background: rgba(var(--md-primary-rgb),0.08); border-color: rgba(var(--md-primary-rgb),0.24); }";
 
-    // Slot badges
-    styles += ".mdash-slots-display { padding: 5px 12px 6px; border-top: 1px solid rgba(var(--md-primary-rgb),0.10); }";
-    styles += ".mdash-slots-header { font-size: 10px; color: var(--md-muted, #8b949e); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }";
-    styles += ".mdash-slots-header .glyphicon { font-size: 9px; }";
-    styles += ".mdash-slots-list { display: flex; flex-wrap: wrap; gap: 3px; }";
-    styles += ".mdash-slot-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; padding: 2px 6px; background: #f1f5f9; color: var(--md-text, #334155); border-radius: 4px; border: 1px solid rgba(var(--md-primary-rgb),0.15); }";
-    styles += ".mdash-slot-badge .glyphicon { font-size: 9px; opacity: 0.6; }";
-    styles += ".mdash-slot-badge.is-main { border-color: var(--md-primary, #58a6ff); background: rgba(var(--md-primary-rgb),0.08); color: var(--md-primary, #58a6ff); font-weight: 600; }";
+    // ===== SLOT PLACEHOLDERS (canvas item body) =====
+    styles += ".mdash-slot-placeholders { display: flex; flex-direction: column; gap: 6px; }";
+    styles += ".mdash-slot-placeholder { border: 1px dashed rgba(var(--md-primary-rgb),0.28); border-radius: 8px; background: rgba(var(--md-primary-rgb),0.02); transition: all 0.2s; }";
+    styles += ".mdash-slot-placeholder.is-main { border-color: rgba(var(--md-primary-rgb),0.40); background: rgba(var(--md-primary-rgb),0.04); }";
+    styles += ".mdash-slot-ph-header { display: flex; align-items: center; gap: 5px; padding: 5px 8px; border-bottom: 1px solid rgba(var(--md-primary-rgb),0.08); }";
+    styles += ".mdash-slot-ph-header i { font-size: 10px; color: var(--md-primary); opacity: 0.7; }";
+    styles += ".mdash-slot-ph-label { font-size: 10px; font-weight: 700; color: var(--md-text); text-transform: uppercase; letter-spacing: 0.4px; }";
+    styles += ".mdash-slot-ph-type { font-size: 9px; color: var(--md-muted); margin-left: auto; font-style: italic; }";
+    styles += ".mdash-slot-ph-drop { min-height: 40px; padding: 6px 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; border-radius: 0 0 7px 7px; }";
+    styles += ".mdash-slot-ph-drop.drag-over { background: rgba(var(--md-primary-rgb),0.10); border-color: var(--md-primary); }";
+    styles += ".mdash-slot-ph-empty { display: flex; align-items: center; gap: 6px; color: var(--md-muted); font-size: 11px; padding: 4px 0; }";
+    styles += ".mdash-slot-ph-empty i { font-size: 14px; opacity: 0.5; }";
+    styles += ".mdash-slot-ph-object { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #fff; border: 1px solid rgba(var(--md-primary-rgb),0.28); border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; color: var(--md-text); width: 100%; }";
+    styles += ".mdash-slot-ph-object:hover { border-color: var(--md-primary); box-shadow: 0 2px 8px rgba(var(--md-primary-rgb),0.12); }";
+    styles += ".mdash-slot-ph-object i { color: var(--md-primary); font-size: 12px; }";
+    styles += ".mdash-slot-ph-remove { margin-left: auto; border: none; background: none; color: var(--md-muted); cursor: pointer; padding: 2px 4px; font-size: 10px; opacity: 0; transition: opacity 0.2s, color 0.2s; }";
+    styles += ".mdash-slot-ph-object:hover .mdash-slot-ph-remove { opacity: 1; }";
+    styles += ".mdash-slot-ph-remove:hover { color: #d9534f; }";
+    styles += ".mdash-slot-ph-objects-list { display: flex; flex-direction: column; gap: 4px; width: 100%; }";
 
-    // Objects badges + previews
+    // ===== SLOT ZONES (mini drop overlays inside rendered cards) =====
+    styles += ".mdash-slot-zone-drop { min-height: 28px; padding: 4px 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(var(--md-primary-rgb),0.35); border-radius: 5px; background: rgba(var(--md-primary-rgb),0.03); transition: background 0.15s, border-color 0.15s; position: relative; }";
+    styles += ".mdash-slot-zone-drop.drag-over { background: rgba(var(--md-primary-rgb),0.10); border-color: var(--md-primary); border-style: solid; }";
+    styles += ".mdash-slot-zone-hint { display: flex; align-items: center; gap: 4px; color: var(--md-muted); font-size: 10px; }";
+    styles += ".mdash-slot-zone-hint i { font-size: 10px; opacity: 0.5; }";
+    styles += ".mdash-slot-zone-object { display: flex; align-items: center; gap: 5px; padding: 3px 8px; background: rgba(255,255,255,0.9); border: 1px solid rgba(var(--md-primary-rgb),0.28); border-radius: 5px; font-size: 11px; cursor: pointer; transition: all 0.15s; color: var(--md-text); width: 100%; }";
+    styles += ".mdash-slot-zone-object:hover { border-color: var(--md-primary); box-shadow: 0 1px 4px rgba(var(--md-primary-rgb),0.10); }";
+    styles += ".mdash-slot-zone-object i { color: var(--md-primary); font-size: 11px; }";
+    styles += ".mdash-slot-zone-remove { margin-left: auto; border: none; background: none; color: var(--md-muted); cursor: pointer; padding: 1px 3px; font-size: 9px; opacity: 0; transition: opacity 0.15s, color 0.15s; }";
+    styles += ".mdash-slot-zone-object:hover .mdash-slot-zone-remove { opacity: 1; }";
+    styles += ".mdash-slot-zone-remove:hover { color: #d9534f; }";
+    styles += ".mdash-slot-zone-settings { position: absolute; top: 2px; right: 2px; border: none; background: none; color: var(--md-muted); cursor: pointer; padding: 2px 4px; font-size: 10px; opacity: 0; transition: opacity 0.15s, color 0.15s; z-index: 2; }";
+    styles += ".mdash-slot-zone-drop:hover .mdash-slot-zone-settings { opacity: 0.7; }";
+    styles += ".mdash-slot-zone-settings:hover { opacity: 1 !important; color: var(--md-primary); }";
+    styles += ".mdash-slot-zone-drop.is-selected { border-color: var(--md-primary); border-style: solid; box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.18); background: rgba(var(--md-primary-rgb),0.06); }";
+
+    // ===== OBJECTS PANEL (sidebar) =====
+    styles += ".mdash-objects-panel { padding: 8px !important; }";
+    styles += ".mdash-objects-search-wrapper { position: relative; margin-bottom: 10px; }";
+    styles += ".mdash-objects-search-wrapper > i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--md-muted); pointer-events: none; }";
+    styles += ".mdash-objects-search { width: 100%; padding: 7px 10px 7px 30px; border: 1px solid " + t.inputBorder + "; border-radius: 8px; font-size: 12px; color: " + t.inputColor + "; background: " + t.inputBg + "; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }";
+    styles += ".mdash-objects-search:focus { border-color: var(--md-primary); box-shadow: 0 0 0 3px rgba(var(--md-primary-rgb),0.12); }";
+    styles += ".mdash-objects-search::placeholder { color: var(--md-muted); }";
+    styles += ".mdash-obj-category { margin-bottom: 10px; }";
+    styles += ".mdash-obj-category:last-child { margin-bottom: 0; }";
+    styles += ".mdash-obj-category-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: var(--md-muted); margin: 0 0 6px 2px; }";
+    styles += ".mdash-obj-tiles { display: flex; flex-direction: column; gap: 4px; }";
+    styles += ".mdash-obj-tile { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: " + t.itemBg + "; border: 1px solid " + t.itemBorder + "; border-radius: 8px; cursor: grab; transition: all 0.2s; user-select: none; }";
+    styles += ".mdash-obj-tile:hover { border-color: rgba(var(--md-primary-rgb),0.45); transform: translateX(2px); box-shadow: 0 4px 12px rgba(var(--md-primary-rgb),0.10); }";
+    styles += ".mdash-obj-tile:active { cursor: grabbing; transform: scale(0.98); }";
+    styles += ".mdash-obj-tile-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }";
+    styles += ".mdash-obj-tile-icon i { font-size: 14px; color: var(--md-primary); }";
+    styles += ".mdash-obj-tile-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }";
+    styles += ".mdash-obj-tile-name { font-size: 12px; font-weight: 700; color: " + t.textColor + "; line-height: 1.2; }";
+    styles += ".mdash-obj-tile-desc { font-size: 10px; color: var(--md-muted); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }";
+
+    // Objects badges (legacy, kept for compatibility)
     styles += ".mdash-canvas-objects-list { display: flex; flex-wrap: wrap; gap: 8px; }";
     styles += ".mdash-canvas-object-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: #fff; border: 1px solid rgba(var(--md-primary-rgb),0.28); border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.2s; color: var(--md-text); }";
     styles += ".mdash-canvas-object-badge:hover { border-color: var(--md-primary); transform: translateY(-1px); box-shadow: 0 6px 12px rgba(var(--md-primary-rgb),0.14); }";
@@ -4673,26 +6555,178 @@ function loadModernDashboardStyles() {
     styles += ".preview-card.chart { min-height: 120px; display: flex; align-items: center; justify-content: center; background: linear-gradient(120deg, rgba(var(--md-primary-rgb),0.09), rgba(255,255,255,0.9)); color: var(--md-primary); font-weight: 700; border: 1px dashed rgba(var(--md-primary-rgb),0.4); }";
     styles += "@media (max-width: 767px) { .mdash-container-items-row { grid-template-columns: 1fr; } .mdash-canvas-item { grid-column: 1 / -1 !important; } }";
 
-    // ===== PROPERTIES PANEL =====
-    styles += ".mdash-properties { width: 300px; min-width: 300px; background: linear-gradient(180deg, #ffffff, #f8fafc); border: 1px solid var(--md-border); border-radius: 14px; padding: 12px; overflow-y: auto; box-shadow: 0 12px 24px rgba(2,6,23,0.08); transition: width 0.22s ease, min-width 0.22s ease, padding 0.22s ease; }";
-    styles += ".mdash-properties-header { position: relative; font-weight: 800; color: var(--md-text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 18px; padding-right: 28px; }";
-    styles += ".mdash-properties-header i { color: var(--md-primary); }";
-    styles += ".mdash-properties-toggle { position: absolute; top: 50%; right: 0; }";
+    // ===== PROPERTIES PANEL (matches sidebar gradient) =====
+    styles += ".mdash-properties { width: 320px; min-width: 320px; background: linear-gradient(180deg, rgba(var(--md-primary-rgb),0.96), rgba(var(--md-primary-rgb),0.84)); border: 1px solid rgba(255,255,255,0.16); border-radius: 14px; padding: 0; overflow-y: auto; box-shadow: 0 16px 32px rgba(2,6,23,0.18); backdrop-filter: blur(8px); transition: width 0.22s ease, min-width 0.22s ease, padding 0.22s ease; display: flex; flex-direction: column; }";
+
+    // ── Component header (transparent over gradient, like sidebar header) ──
+    styles += ".mdash-props-component-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: transparent; border-bottom: 1px solid rgba(255,255,255,0.18); border-radius: 14px 14px 0 0; flex-shrink: 0; }";
+    styles += ".mdash-props-component-info { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }";
+    styles += ".mdash-props-component-icon { width: 28px; height: 28px; border-radius: 7px; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }";
+    styles += ".mdash-props-component-icon i { font-size: 12px; color: #fff; }";
+    styles += ".mdash-props-component-name { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.95; }";
+    styles += ".mdash-props-component-header .mdash-properties-toggle { background: none; border: none; color: rgba(255,255,255,0.55); font-size: 12px; padding: 4px; cursor: pointer; transition: color 0.2s; }";
+    styles += ".mdash-props-component-header .mdash-properties-toggle:hover { color: #fff; }";
+
+    // ── Legacy header (hidden when not collapsed) ──
+    styles += ".mdash-properties-header { display: none; }";
     styles += ".mdash-properties-rail-actions { display: none; flex-direction: column; gap: 6px; align-items: center; }";
     styles += ".mdash-properties-rail-actions .btn { width: 36px; height: 34px; padding: 0; border-radius: 8px; }";
+
+    // ── Collapsed state ──
     styles += ".mdash-properties.is-collapsed { width: 56px; min-width: 56px; padding: 10px 8px; overflow: hidden; }";
-    styles += ".mdash-properties.is-collapsed #mdash-properties-panel { display: none; }";
-    styles += ".mdash-properties.is-collapsed .mdash-properties-rail-actions { display: flex; }";
-    styles += ".mdash-properties.is-collapsed .mdash-properties-header { justify-content: center; align-items: center; font-size: 0; margin-bottom: 4px; padding: 0 20px 0 0; min-height: 24px; width: 100%; }";
+    styles += ".mdash-properties.is-collapsed .mdash-props-tabs, .mdash-properties.is-collapsed .mdash-props-tab-content { display: none; }";
+    styles += ".mdash-properties.is-collapsed .mdash-props-component-header { display: none; }";
+    styles += ".mdash-properties.is-collapsed .mdash-properties-header { display: flex; justify-content: center; align-items: center; font-size: 0; margin-bottom: 4px; padding: 0 20px 0 0; min-height: 24px; width: 100%; }";
     styles += ".mdash-properties.is-collapsed .mdash-properties-header > span { font-size: 0; width: 100%; display: flex; align-items: center; justify-content: center; }";
-    styles += ".mdash-properties.is-collapsed .mdash-properties-header > span i { font-size: 18px; }";
-    styles += ".mdash-properties.is-collapsed .mdash-properties-toggle { top: 50%; right: -1px; width: 18px; height: 18px; border-radius: 5px; }";
-    styles += "#mdash-properties-panel .form-group { margin-bottom: 12px; }";
-    styles += "#mdash-properties-panel label { font-size: 12px; font-weight: 700; color: var(--md-muted); letter-spacing: .2px; }";
-    styles += "#mdash-properties-panel input:not([type='checkbox']), #mdash-properties-panel select { font-size: 13px; border-radius: 8px; border: 1px solid rgba(var(--md-primary-rgb),0.45); box-shadow: none; min-height: 34px; }";
-    styles += "#mdash-properties-panel input:focus, #mdash-properties-panel select:focus { border-color: var(--md-primary); box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.16); outline: none; }";
-    styles += "#mdash-properties-panel input[type='checkbox'] { width: 14px; height: 14px; min-height: 14px; accent-color: var(--md-primary); cursor: pointer; vertical-align: middle; margin: 0; }";
-    styles += "@media (max-width: 1440px) { .mdash-sidebar { width: 228px; min-width: 228px; } .mdash-properties { width: 262px; min-width: 262px; } .mdash-modern-layout { gap: 6px; padding: 6px; } }";
+    styles += ".mdash-properties.is-collapsed .mdash-properties-header > span i { font-size: 18px; color: #fff; }";
+    styles += ".mdash-properties.is-collapsed .mdash-properties-toggle { top: 50%; right: -1px; width: 18px; height: 18px; border-radius: 5px; color: rgba(255,255,255,0.7); }";
+    styles += ".mdash-properties.is-collapsed .mdash-properties-rail-actions { display: flex; }";
+    styles += ".mdash-properties.is-collapsed .mdash-properties-rail-actions .btn { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.28); color: #fff; }";
+    styles += ".mdash-properties.is-collapsed .mdash-properties-rail-actions .btn:hover { background: rgba(255,255,255,0.26); }";
+
+    // ── Properties form fields (light theme) ──
+    styles += "#mdash-properties-panel .form-group { margin-bottom: 8px; }";
+    styles += "#mdash-properties-panel label { font-size: 11px; font-weight: 600; color: " + t.labelColor + "; letter-spacing: .3px; margin-bottom: 3px; display: block; }";
+    styles += "#mdash-properties-panel input:not([type='checkbox']), #mdash-properties-panel select { font-size: 12px; border-radius: 7px; border: 1px solid " + t.inputBorder + "; background: " + t.inputBg + "; color: " + t.inputColor + "; box-shadow: none; min-height: 32px; transition: border-color 0.2s, box-shadow 0.2s; }";
+    styles += "#mdash-properties-panel input:focus, #mdash-properties-panel select:focus { border-color: var(--md-primary); box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.15); outline: none; background: " + t.inputBg + "; }";
+    styles += "#mdash-properties-panel input[type='checkbox'] { width: 16px; height: 16px; min-height: 16px; accent-color: var(--md-primary); cursor: pointer; vertical-align: middle; margin: 0; }";
+
+    // ===== COLLAPSIBLE SECTIONS (FlutterFlow style — light) =====
+    styles += ".mdash-prop-section { border-bottom: 1px solid " + t.sectionBorder + "; }";
+    styles += ".mdash-prop-section:last-child { border-bottom: none; }";
+    styles += ".mdash-prop-section-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; user-select: none; transition: background 0.15s; }";
+    styles += ".mdash-prop-section-header:hover { background: " + t.sectionHoverBg + "; }";
+    styles += ".mdash-prop-section-title { font-size: 12px; font-weight: 700; color: " + t.sectionTitleColor + "; display: flex; align-items: center; gap: 6px; letter-spacing: 0.2px; }";
+    styles += ".mdash-prop-section-title i { font-size: 11px; color: var(--md-primary); opacity: 0.8; }";
+    styles += ".mdash-prop-section-chevron { font-size: 10px; color: " + t.chevronColor + "; transition: transform 0.25s ease; }";
+    styles += ".mdash-prop-section.is-collapsed .mdash-prop-section-chevron { transform: rotate(-90deg); }";
+    styles += ".mdash-prop-section-body { padding: 4px 14px 12px; transition: max-height 0.3s ease, opacity 0.2s ease; overflow: hidden; }";
+    styles += ".mdash-prop-section.is-collapsed .mdash-prop-section-body { max-height: 0 !important; padding: 0 14px; opacity: 0; }";
+
+    // ── Field styling inside sections (light) ──
+    styles += ".mdash-prop-field { margin-bottom: 2px; }";
+    styles += ".mdash-prop-field label { font-size: 11px; font-weight: 600; color: " + t.labelColor + "; margin-bottom: 3px; display: block; }";
+    styles += ".mdash-prop-field input:not([type='checkbox']), .mdash-prop-field select { width: 100%; font-size: 12px; border-radius: 7px; border: 1px solid " + t.inputBorder + "; background: " + t.inputBg + "; color: " + t.inputColor + "; box-shadow: none; min-height: 32px; padding: 4px 10px; transition: border-color 0.2s, box-shadow 0.2s; }";
+    styles += ".mdash-prop-field input:focus, .mdash-prop-field select:focus { border-color: var(--md-primary); box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.15); outline: none; background: " + t.inputBg + "; }";
+    styles += ".mdash-prop-field-check { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 0; }";
+    styles += ".mdash-prop-field-check input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--md-primary); cursor: pointer; flex-shrink: 0; }";
+    styles += ".mdash-prop-field-check span { font-size: 12px; color: " + t.textColor + "; font-weight: 500; }";
+    styles += ".mdash-prop-field .m-editor { border: 1px solid rgba(0,0,0,0.12); border-radius: 7px; overflow: hidden; }";
+
+    // ── Empty state ──
+    styles += ".mdash-props-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 16px; gap: 8px; }";
+    styles += ".mdash-props-empty-state i { font-size: 28px; color: " + t.mutedColor + "; }";
+    styles += ".mdash-props-empty-state p { font-size: 12px; color: " + t.mutedColor + "; text-align: center; margin: 0; }";
+
+    // ===== PROPERTIES TABS (over gradient, like sidebar header area) =====
+    styles += ".mdash-props-tabs { display: flex; list-style: none; margin: 0; padding: 0; background: rgba(0,0,0,0.08); border-bottom: 1px solid rgba(255,255,255,0.12); flex-shrink: 0; }";
+    styles += ".mdash-props-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 10px 4px 8px; cursor: pointer; color: rgba(255,255,255,0.5); border-bottom: 2px solid transparent; transition: all 0.2s; }";
+    styles += ".mdash-props-tab:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.06); }";
+    styles += ".mdash-props-tab.is-active { color: #fff; border-bottom-color: #fff; }";
+    styles += ".mdash-props-tab i { font-size: 14px; }";
+    styles += ".mdash-props-tab span { font-size: 9px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }";
+    styles += ".mdash-props-tab-content { flex: 1; overflow-y: auto; background: " + t.bodyBg + "; border-radius: 0 0 14px 14px; }";
+    styles += ".mdash-props-tab-pane { display: none; }";
+    styles += ".mdash-props-tab-pane.is-active { display: block; }";
+    styles += ".mdash-properties.is-collapsed .mdash-props-tabs { display: none; }";
+    styles += ".mdash-properties.is-collapsed .mdash-props-tab-content { display: none; }";
+
+    // ── Scoped Bootstrap overrides: .form-control / label / btn-default inside the dark panel bodies
+    styles += ".mdash-sidebar-body .form-control, .mdash-sidebar-body input:not([type='checkbox']), .mdash-sidebar-body select { background: " + t.inputBg + " !important; color: " + t.inputColor + " !important; border-color: " + t.inputBorder + " !important; }";
+    styles += ".mdash-sidebar-body label { color: " + t.labelColor + " !important; }";
+    styles += ".mdash-props-tab-content .form-control, .mdash-props-tab-content input:not([type='checkbox']), .mdash-props-tab-content select { background: " + t.inputBg + " !important; color: " + t.inputColor + " !important; border-color: " + t.inputBorder + " !important; }";
+    styles += ".mdash-props-tab-content label { color: " + t.labelColor + " !important; }";
+    styles += ".mdash-props-tab-content .btn-default { background: " + t.itemBg + " !important; border-color: " + t.inputBorder + " !important; color: " + t.textColor + " !important; }";
+    styles += ".mdash-props-tab-content .btn-default:hover { background: rgba(255,255,255,0.12) !important; }";
+
+    // ===== FONTES PANEL =====
+    styles += "#mdash-fontes-panel { padding: 8px 0; }";
+
+    // ── Add bar (compact header with scope label + circular add button) ──
+    styles += ".mdash-fonte-add-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 14px 8px; }";
+    styles += ".mdash-fonte-add-label { font-size: 11px; font-weight: 700; color: " + t.labelColor + "; letter-spacing: 0.2px; }";
+    styles += ".mdash-fonte-add-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(var(--md-primary-rgb),0.3); background: rgba(var(--md-primary-rgb),0.08); color: var(--md-primary); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.18s; padding: 0; font-size: 11px; line-height: 1; }";
+    styles += ".mdash-fonte-add-btn:hover { background: rgba(var(--md-primary-rgb),0.18); border-color: var(--md-primary); transform: scale(1.08); }";
+
+    styles += ".mdash-fonte-section-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: " + t.mutedColor + "; margin: 8px 14px 6px; }";
+    styles += ".mdash-fonte-section-label i { margin-right: 4px; font-size: 10px; }";
+    styles += ".mdash-fonte-list { display: flex; flex-direction: column; gap: 3px; padding: 0 8px; }";
+    styles += ".mdash-fonte-list-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: " + t.itemBg + "; border: 1px solid " + t.itemBorder + "; border-radius: 8px; cursor: pointer; transition: all 0.18s; }";
+    styles += ".mdash-fonte-list-item:hover { border-color: rgba(var(--md-primary-rgb),0.35); background: rgba(var(--md-primary-rgb),0.06); }";
+    styles += ".mdash-fonte-list-icon { width: 28px; height: 28px; border-radius: 7px; background: rgba(var(--md-primary-rgb),0.10); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }";
+    styles += ".mdash-fonte-list-icon i { font-size: 12px; color: var(--md-primary); }";
+    styles += ".mdash-fonte-list-info { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }";
+    styles += ".mdash-fonte-list-name { font-size: 12px; font-weight: 700; color: " + t.textColor + "; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }";
+    styles += ".mdash-fonte-list-meta { font-size: 10px; color: " + t.mutedColor + "; line-height: 1.2; }";
+    styles += ".mdash-fonte-list-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }";
+    styles += ".mdash-fonte-list-actions .btn { width: 22px; height: 22px; padding: 0; font-size: 10px; border-radius: 5px; display: flex; align-items: center; justify-content: center; background: " + t.itemBg + "; border-color: " + t.itemBorder + "; color: " + t.mutedColor + "; }";
+    styles += ".mdash-fonte-list-actions .btn:hover { background: rgba(var(--md-primary-rgb),0.12); color: var(--md-primary); border-color: rgba(var(--md-primary-rgb),0.3); }";
+    styles += ".mdash-fonte-list-actions .btn-danger { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.18); color: rgba(239,68,68,0.7); }";
+    styles += ".mdash-fonte-list-actions .btn-danger:hover { background: rgba(239,68,68,0.15); color: #ef4444; }";
+    styles += ".mdash-fonte-status { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }";
+    styles += ".mdash-fonte-status.status-idle { background: #94a3b8; }";
+    styles += ".mdash-fonte-status.status-loading { background: #f59e0b; }";
+    styles += ".mdash-fonte-status.status-loaded { background: #22c55e; }";
+    styles += ".mdash-fonte-status.status-error { background: #ef4444; }";
+
+    // ── Fontes panel buttons ──
+    styles += "#mdash-fontes-panel .btn-primary { background: var(--md-primary); border-color: var(--md-primary); color: #fff; border-radius: 7px; font-size: 12px; font-weight: 600; }";
+    styles += "#mdash-fontes-panel .btn-primary:hover { filter: brightness(1.15); }";
+    styles += "#mdash-fontes-panel > div { padding: 0 10px; }";
+
+    // Fonte editor (inline no painel — light theme)
+    styles += ".mdash-fonte-editor { padding: 0 14px; }";
+    styles += ".mdash-fonte-editor-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.08); }";
+    styles += ".mdash-fonte-editor-header span { font-size: 13px; font-weight: 700; color: #1e293b; }";
+    styles += ".mdash-fonte-editor-header .btn { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: rgba(0,0,0,0.55); }";
+    styles += ".mdash-fonte-editor .form-group { margin-bottom: 6px; }";
+    styles += ".mdash-fonte-editor label { font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 2px; }";
+    styles += ".mdash-fonte-editor .form-control { background: #fff; border-color: rgba(0,0,0,0.12); color: #1e293b; border-radius: 7px; }";
+    styles += ".mdash-fonte-editor .form-control:focus { border-color: var(--md-primary); box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.15); background: #fff; }";
+    styles += ".mdash-fonte-section[style*='display:none'] { display: none; }";
+    styles += ".mdash-fonte-schema-table { overflow-y: auto; border: 1px solid rgba(0,0,0,0.08); border-radius: 0 0 7px 7px; }";
+    styles += ".mdash-fonte-schema-table .table { margin: 0; background: transparent; color: #1e293b; }";
+    styles += ".mdash-fonte-schema-table .table th { background: rgba(0,0,0,0.03); color: #475569; border-color: rgba(0,0,0,0.06); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }";
+    styles += ".mdash-fonte-schema-table .table td { border-color: rgba(0,0,0,0.05); font-size: 11px; }";
+    styles += ".mdash-schema-type-badge { font-size: 9px; font-weight: 700; background: rgba(var(--md-primary-rgb),0.10); color: var(--md-primary); padding: 2px 7px; border-radius: 4px; font-family: 'SF Mono', Consolas, monospace; }";
+    styles += ".mdash-schema-toggle { width: 100%; text-align: left; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.025); border: 1px solid rgba(0,0,0,0.07); border-radius: 7px; padding: 7px 10px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }";
+    styles += ".mdash-schema-toggle:not(.collapsed) { border-radius: 7px 7px 0 0; border-bottom-color: transparent; background: rgba(var(--md-primary-rgb),0.05); border-color: rgba(var(--md-primary-rgb),0.18); }";
+    styles += ".mdash-schema-toggle:hover { background: rgba(var(--md-primary-rgb),0.06); border-color: rgba(var(--md-primary-rgb),0.22); }";
+    styles += ".mdash-schema-toggle-left { display: flex; align-items: center; gap: 6px; }";
+    styles += ".mdash-schema-toggle-left .glyphicon { font-size: 11px; color: var(--md-primary); }";
+    styles += ".mdash-schema-toggle-left > span:not(.mdash-schema-badge) { font-size: 11px; font-weight: 700; color: #475569; letter-spacing: 0.2px; }";
+    styles += ".mdash-schema-badge { font-size: 9px; font-weight: 700; background: rgba(var(--md-primary-rgb),0.12); color: var(--md-primary); padding: 2px 7px; border-radius: 10px; }";
+    styles += ".mdash-schema-chevron { font-size: 10px; color: #94a3b8; transition: transform 0.2s ease; }";
+    styles += ".mdash-schema-toggle:not(.collapsed) .mdash-schema-chevron { transform: rotate(90deg); color: var(--md-primary); }";
+    styles += ".collapse + .mdash-fonte-schema-table, .collapsing + .mdash-fonte-schema-table { border-top: none; }";
+    // Schema container: remove top border radius when expanded (connected visual)
+    styles += ".mdash-schema-toggle:not(.collapsed) + .collapse .mdash-fonte-schema-table, .mdash-schema-toggle:not(.collapsed) + .collapsing .mdash-fonte-schema-table { border-radius: 0 0 7px 7px; border-top: none; }";
+    styles += ".mdash-fonte-editor .btn-success { background: var(--md-primary); border-color: var(--md-primary); border-radius: 7px; font-weight: 600; }";
+    styles += ".mdash-fonte-editor .btn-success:hover { filter: brightness(1.15); }";
+    // Expand editor button
+    styles += ".mdash-editor-expand { padding: 1px 7px; font-size: 11px; }";
+    // Spinner animation for execute button
+    styles += "@keyframes mdash-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }";
+    styles += ".spinning { display: inline-block; animation: mdash-spin 0.8s linear infinite; }";
+
+    // ── Parâmetros / Tokens (light theme) ──
+    styles += ".mdash-fonte-params-section { margin-top: 8px; }";
+    styles += ".mdash-fonte-params-section > label { font-size: 11px; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 4px; }";
+    styles += ".mdash-fonte-params-section > label .glyphicon { font-size: 10px; color: var(--md-primary); }";
+    styles += ".mdash-fonte-params-list { margin-top: 4px; }";
+    styles += ".mdash-fonte-param-row { background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.07); border-radius: 7px; padding: 8px 10px; margin-bottom: 6px; }";
+    styles += ".mdash-param-token-name { margin-bottom: 4px; }";
+    styles += ".mdash-param-token-name code { background: var(--md-primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }";
+    styles += ".mdash-param-fields .row { margin-left: -4px; margin-right: -4px; }";
+    styles += ".mdash-param-fields .row > [class*='col-'] { padding-left: 4px; padding-right: 4px; }";
+    styles += ".mdash-param-fields select, .mdash-param-fields input { font-size: 11px; background: #fff; border-color: rgba(0,0,0,0.12); color: #1e293b; border-radius: 6px; }";
+
+    // ── Actions panel (light theme) ──
+    styles += "#mdash-actions-panel { padding: 14px; }";
+    styles += "#mdash-actions-panel .text-muted { color: rgba(0,0,0,0.38) !important; }";
+    styles += "#mdash-actions-panel i { color: rgba(0,0,0,0.12); }";
+
+    styles += "@media (max-width: 1440px) { .mdash-sidebar { width: 228px; min-width: 228px; } .mdash-properties { width: 280px; min-width: 280px; } .mdash-modern-layout { gap: 6px; padding: 6px; } }";
 
     // ===== MODALS =====
     styles += ".modal-header { background: linear-gradient(120deg, var(--md-primary), #0f172a); color: white; }";
@@ -4724,6 +6758,16 @@ function loadModernDashboardStyles() {
 }
 
 /**
+ * Devolve o tema ACE a usar nos editores de expressão.
+ * 'dark'  → ace/theme/monokai
+ * 'light' → ace/theme/chrome
+ * Hardcoded para 'dark'. No futuro, ler de uma preferência do utilizador.
+ */
+function getMDashEditorTheme(mode) {
+    return mode === 'light' ? 'ace/theme/chrome' : 'ace/theme/monokai';
+}
+
+/**
  * Inicializa editores ACE para campos com classe .m-editor
  */
 function handleCodeEditor() {
@@ -4731,6 +6775,7 @@ function handleCodeEditor() {
         var key = [
             (el && el.id) || "",
             (el && el.getAttribute && el.getAttribute("data-field")) || "",
+            (el && el.getAttribute && el.getAttribute("data-fonte-field")) || "",
             (el && el.getAttribute && el.getAttribute("name")) || "",
             (el && el.className) || ""
         ].join(" ").toLowerCase();
@@ -4768,13 +6813,16 @@ function handleCodeEditor() {
         if (!el.id) el.id = 'm-editor' + idx;
 
         var aceEditor = ace.edit(el.id);
-        aceEditor.setTheme("ace/theme/monokai");
+        aceEditor.setTheme(getMDashEditorTheme('dark'));
         aceEditor.session.setMode(getAceModeForEditor(el));
-        aceEditor.setOptions({
-            fontSize: "13px",
-            enableBasicAutocompletion: true,
-            enableLiveAutocompletion: true
-        });
+
+        // Carrega ext-language_tools antes de activar autocompletion
+        var aceOpts = { fontSize: "13px" };
+        if (ace.require && ace.require("ace/ext/language_tools")) {
+            aceOpts.enableBasicAutocompletion = true;
+            aceOpts.enableLiveAutocompletion = true;
+        }
+        aceEditor.setOptions(aceOpts);
 
         editors.push(aceEditor);
     });

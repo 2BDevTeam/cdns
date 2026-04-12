@@ -425,21 +425,22 @@ function debounceLayoutPreview() {
 
 /**
  * Faz scope de CSS ao container de preview para não afectar o resto da página.
- * Prefixa cada selector com .mdash-lb-preview-card-wrapper
- * Selectores como body/html são convertidos para o próprio container.
+ * Utiliza scopeLayoutCSS() (engine central em REFACTOR.js) com scope fixo para o preview.
+ * Fallback inline caso scopeLayoutCSS ainda não esteja carregado.
  */
 function scopeCssToPreview(css) {
+    // Usa a engine central de scoping — scope fixo para o preview do Layout Builder
+    if (typeof scopeLayoutCSS === 'function') {
+        return scopeLayoutCSS(css, 'lb-preview');
+    }
+    // Fallback mínimo (não deveria acontecer mas garante robustez)
     var scope = '.mdash-lb-preview-card-wrapper';
-    // Remove comments
     css = css.replace(/\/\*[\s\S]*?\*\//g, '');
-
     return css.replace(/([^{}]+)\{/g, function (match, selectors) {
         var scoped = selectors.split(',').map(function (sel) {
             sel = sel.trim();
             if (!sel) return sel;
-            // @media, @keyframes, @font-face etc. — don't prefix
             if (sel.charAt(0) === '@') return sel;
-            // body/html → scope itself
             if (/^(body|html)$/i.test(sel)) return scope;
             if (/^(body|html)\s+/i.test(sel)) return sel.replace(/^(body|html)\s+/i, scope + ' ');
             return scope + ' ' + sel;
@@ -470,26 +471,21 @@ function updateLayoutPreview() {
 
     // Remove estilos anteriores do preview
     $('#mdash-lb-preview-injected-css').remove();
-    $('[data-lb-preview-cdn]').remove();
 
-    // Inject CDN links from layout
+    // Carrega CDNs via loader central (deduplicated — reutiliza os já carregados)
     var layout = getSelectedLayout(); 
     if (layout) {
-        (layout.cssCdnsList || []).forEach(function (url) {
-            $('head').append('<link rel="stylesheet" data-lb-preview-cdn href="' + encodeURI(url) + '" />');
-        });
-        (layout.jsCdnsList || []).forEach(function (url) {
-            $('head').append('<script data-lb-preview-cdn src="' + encodeURI(url) + '"><\/script>');
-        });
+        ensureMdashCDNsLoaded(layout.cssCdnsList, layout.jsCdnsList);
     }
 
-    // Inject scoped CSS (prefixed to preview container to avoid global side-effects)
+    // Inject scoped CSS via scopeLayoutCSS — isolado por data-mdash-scope="lb-preview"
     if (cssVal) {
         var scopedCss = scopeCssToPreview(cssVal);
         $('head').append('<style id="mdash-lb-preview-injected-css">' + scopedCss + '</style>');
     }
 
-    $preview.html(htmlVal);
+    // Wrapper com scope attribute para que o CSS scoped fique contido
+    $preview.html('<div data-mdash-scope="lb-preview">' + htmlVal + '</div>');
 
     // JS is NOT auto-executed in preview for safety - only on explicit "Run JS" action
 }
@@ -1124,7 +1120,7 @@ function closeLayoutBuilder() {
     // Cleanup
     destroyLayoutBuilderAceEditors();
     $('#mdash-lb-preview-injected-css').remove();
-    $('[data-lb-preview-cdn]').remove();
+    // CDNs ficam carregados (deduplicated via ensureMdashCDNsLoaded — são reutilizados no dashboard)
     $('#mdash-layout-builder-overlay').remove();
     $(document).off('keydown.layoutBuilder');
 

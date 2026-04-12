@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard de Monitoramento do Tanque</title>
+    <style>
+        /* --- ESTILOS GLOBAIS E DESIGN MODERNO --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --primary-light: #4895ef;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --danger: #e63946;
+            --dark: #1d3557;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --gray-light: #e9ecef;
+            --shadow: 0 10px 20px rgba(0,0,0,0.1);
+            --shadow-light: 0 5px 15px rgba(0,0,0,0.05);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            min-height: 100vh;
+            padding: 30px;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        /* --- LAYOUT DO DASHBOARD --- */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 2fr;
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* --- ESTILO DOS CARDS BASE --- */
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: var(--shadow-light);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+
+        .titulo-card {
+            color: var(--dark);
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            font-weight: 700;
+            position: relative;
+            padding-bottom: 12px;
+        }
+
+        .titulo-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 3px;
+        }
+        
+        .tanque-status {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--primary);
+            margin-top: 20px;
+            text-align: center;
+            background: rgba(67, 97, 238, 0.1);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+        }
+
+        /* --- MÉTRICAS CHAVE (GRID) --- */
+        .metricas-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .metrica-card {
+            text-align: center;
+            padding: 25px 15px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-light);
+            position: relative;
+            transition: var(--transition);
+            background: white;
+            overflow: hidden;
+        }
+
+        .metrica-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Estilos específicos para cada CARD de Métrica */
+        #card-volume {
+            border-top: 4px solid var(--primary);
+        }
+
+        #card-porcentagem {
+            border-top: 4px solid var(--warning);
+        }
+
+        #card-tempo {
+            border-top: 4px solid var(--success);
+        }
+
+        .metrica-icon {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 40px;
+            height: 40px;
+            opacity: 0.8;
+            background: rgba(67, 97, 238, 0.1);
+            border-radius: 50%;
+            padding: 8px;
+        }
+
+        .metrica-valor {
+            font-size: 2.2em;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 5px;
+            margin-top: 20px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .metrica-label {
+            font-size: 0.9em;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* --- STATUS E ALERTAS --- */
+        .alerta-status {
+            padding: 18px;
+            text-align: center;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            margin-bottom: 15px;
+            box-shadow: var(--shadow-light);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .alerta-status::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+        }
+
+        .status-mqtt {
+            padding: 15px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9em;
+            font-weight: 500;
+            margin-top: 15px;
+            box-shadow: var(--shadow-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-mqtt::before {
+            content: '';
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-mqtt.connected { 
+            background: rgba(76, 175, 80, 0.1); 
+            color: #4CAF50; 
+        }
+        .status-mqtt.connected::before { background: #4CAF50; }
+
+        .status-mqtt.waiting { 
+            background: rgba(255, 193, 7, 0.1); 
+            color: #FFC107; 
+        }
+        .status-mqtt.waiting::before { background: #FFC107; }
+
+        .status-mqtt.disconnected { 
+            background: rgba(244, 67, 54, 0.1); 
+            color: #F44336; 
+        }
+        .status-mqtt.disconnected::before { background: #F44336; }
+
+        /* --- ANIMAÇÃO SVG --- */
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .metrica-valor.updated {
+            animation: pulse 0.3s ease-out;
+        }
+        
+        .card {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .card:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+        
+        .card:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        /* --- HEADER --- */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .dashboard-title {
+            font-size: 2em;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .dashboard-subtitle {
+            color: var(--gray);
+            font-size: 1em;
+            margin-top: 5px;
+        }
+
+        .time-indicator {
+            background: white;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-light);
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        /* --- RESPONSIVIDADE --- */
+        @media (max-width: 1200px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .metricas-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .metricas-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+        }
+
+        /* --- PLACEHOLDER DO GRÁFICO --- */
+        .chart-placeholder {
+            text-align: center;
+            color: var(--gray);
+            padding: 40px;
+            background: rgba(0,0,0,0.02);
+            border-radius: var(--radius-sm);
+            border: 2px dashed var(--gray-light);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dashboard-title">Dashboard do Tanque</h1>
+            <p class="dashboard-subtitle">Monitoramento em tempo real - Volume máximo: 500L</p>
+        </div>
+        <div class="time-indicator" id="timeIndicator">
+            Atualizado: <span id="currentTime">--:--:--</span>
+        </div>
+    </div>
+
+    <div class="dashboard-layout">
+        
+        <div class="painel-tanque card">
+            <div class="titulo-card">Tanque Principal</div>
+
+            <div class="svg-container" style="display: flex; justify-content: center;">
+                <svg width="350" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <filter id="shadow3d" x="-50%" y="-50%" width="200%" height="200%">
+                            <feDropShadow dx="3" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+                        </filter>
+                        <linearGradient id="tanqueGradient3d" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#c0c0c0;" />
+                            <stop offset="50%" style="stop-color:#a0a0a0;" />
+                            <stop offset="100%" style="stop-color:#c0c0c0;" />
+                        </linearGradient>
+                        <radialGradient id="aguaReflexo" cx="50%" cy="50%" r="50%" fx="60%" fy="40%">
+                            <stop offset="0%" style="stop-color:rgb(150, 200, 255);stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:rgb(51, 153, 255);stop-opacity:1" />
+                        </radialGradient>
+                        <linearGradient id="baseGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#808080;" />
+                            <stop offset="100%" style="stop-color:#505050;" />
+                        </linearGradient>
+                    </defs>
+
+                    <rect x="50" y="270" width="300" height="20" fill="url(#baseGradient)" stroke="#333" stroke-width="2" rx="5" ry="5"/>
+                    <path d="M50 275 A150 5 0 0 1 350 275" fill="none" stroke="#505050" stroke-width="2"/>
+                    <rect x="50" y="30" width="300" height="240" fill="url(#tanqueGradient3d)" stroke="#333333" stroke-width="2" rx="8" ry="8" style="filter:url(#shadow3d);"/>
+                    <g id="corrugacao" stroke="#888" stroke-width="0.7" opacity="0.7"></g>
+                    <ellipse cx="200" cy="30" rx="150" ry="15" fill="#e0e0e0" stroke="#333333" stroke-width="2" />
+                    <path d="M50 30 Q200 10 350 30" fill="none" stroke="#666" stroke-width="2"/> 
+                    <rect x="30" y="40" width="10" height="200" fill="#777" stroke="#444" stroke-width="1"/>
+                    <rect x="80" y="30" width="5" height="240" fill="#666" stroke="#444" stroke-width="1"/>
+                    <rect x="250" y="30" width="5" height="240" fill="#666" stroke="#444" stroke-width="1"/>
+                    <rect x="350" y="100" width="20" height="15" fill="#777" stroke="#444" stroke-width="1"/>
+                    
+                    <rect id="agua" x="50" y="270" width="300" height="0" fill="url(#aguaReflexo)" style="transition: height 0.8s ease-out, y 0.8s ease-out;" rx="8" ry="8"/>
+                    <ellipse id="superficieAgua" cx="200" cy="270" rx="150" ry="15" fill="url(#aguaReflexo)" stroke="#333333" stroke-width="1.5" opacity="0"/>
+                </svg>
+            </div>
+            
+            <div class="tanque-status" id="tanqueStatus">Nível: -- % | Volume: -- L</div>
+        </div>
+
+        <div class="painel-dados">
+            <div style="margin-bottom: 2.4em;" class="card">
+                <div class="titulo-card">Indicadores do Tanque</div>
+                
+                <div class="metricas-grid">
+                    
+                    <div class="metrica-card" id="card-volume">
+                        <svg class="metrica-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                        </svg>
+                        <div class="metrica-valor" id="volumeAtualValue">-- L</div>
+                        <div class="metrica-label">Volume Atual</div>
+                    </div>
+
+                    <div class="metrica-card" id="card-porcentagem">
+                        <svg class="metrica-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15.5v-3.5H9V12h2v-2H9V7h2V5h2v2h2v3h-2v2h2v3.5h-2v-3.5h-2v3.5z"/>
+                        </svg>
+                        <div class="metrica-valor" id="porcentagemValue">-- %</div>
+                        <div class="metrica-label">Nível de Preenchimento</div>
+                    </div>
+
+                    <div class="metrica-card" id="card-tempo">
+                        <svg class="metrica-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.44-.43-.88-.87-1.42-1.42l-1.42 1.42C16.89 6.27 15.4 6 14 6h-4c-1.4 0-2.89.27-4.19.79l-1.42-1.42c-.44.43-.88.87-1.42 1.42l1.42 1.42C5.11 7.73 3 10.37 3 13c0 3.86 3.14 7 7 7h4c3.86 0 7-3.14 7-7 0-2.63-2.11-5.27-4.97-6.61zM10 18H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V8h2v2zm4 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V8h2v2z"/>
+                        </svg>
+                        <div class="metrica-valor" id="tempoRestanteValue">--</div>
+                        <div class="metrica-label">Tempo de Consumo Restante</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 25px;">
+                <h3 class="titulo-card">Alertas e Status</h3>
+                <div class="alerta-status" id="alertaStatus">Sistema funcionando normalmente.</div>
+                <div class="status-mqtt waiting" id="status">Conectando ao servidor...</div>
+            </div>
+            
+            <div class="card">
+                <h3 class="titulo-card">Evolução do Nível (Últimas 24h)</h3>
+                <div class="chart-placeholder">
+                    <p>Gráfico de evolução do nível de água</p>
+                    <p style="font-size: 0.8em; margin-top: 10px;">(Implementação futura)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================================
+        // CONSTANTES PARA CÁLCULO - TANQUE 500L
+        // ==========================================================
+        const ALTURA_TOTAL_TANQUE_CM = 105.0;    // Altura do tanque em cm (1050mm = 105cm)
+        const DIAMETRO_TANQUE_CM = 91.0;         // Diâmetro do tanque em cm (910mm = 91cm)
+        const CAPACIDADE_TOTAL_LITROS = 500;     // Capacidade total em Litros (500L)
+        
+        // Cálculo da área da base do tanque (círculo)
+        const RAIO_TANQUE_CM = DIAMETRO_TANQUE_CM / 2;
+        const AREA_BASE_CM2 = Math.PI * Math.pow(RAIO_TANQUE_CM, 2);
+        
+        // Conversão: 1 litro = 1000 cm³
+        const VOLUME_POR_CM = AREA_BASE_CM2 / 1000; // Litros por centímetro de altura
+
+        // Consumo médio para cálculo do tempo restante
+        const VAZAO_CONSUMO_L_MIN = 2.0;         // Vazão de consumo: 2 litros por minuto
+        const CONSUMO_MEDIO_L_HORA = VAZAO_CONSUMO_L_MIN * 60; // 120 litros por hora
+
+        // Alertas ajustados conforme solicitado
+        const ALERTA_HORAS_CRITICAS = 0.5;       // Limite de alerta crítico (30 minutos)
+        const ALERTA_HORAS_BAIXAS = 2;           // Limite de alerta baixo (2 horas)
+
+        // --- Variáveis de controle do SVG ---
+        const TANQUE_SVG_Y_TOPO = 30; 
+        const TANQUE_SVG_Y_BASE = 270; 
+        const ALTURA_CORPO_TANQUE_SVG = TANQUE_SVG_Y_BASE - TANQUE_SVG_Y_TOPO;
+
+        // ==========================================================
+        // ELEMENTOS DO DOM
+        // ==========================================================
+        const tempoRestanteValueEl = document.getElementById("tempoRestanteValue");
+        const volumeAtualValueEl = document.getElementById("volumeAtualValue");
+        const porcentagemValueEl = document.getElementById("porcentagemValue");
+        const statusEl = document.getElementById("status");
+        const alertaStatusEl = document.getElementById("alertaStatus");
+        const tanqueStatusEl = document.getElementById("tanqueStatus");
+        const currentTimeEl = document.getElementById("currentTime");
+        
+        // Elementos SVG
+        const aguaElement = document.getElementById('agua');
+        const superficieAguaElement = document.getElementById('superficieAgua'); 
+        const corrugationGroup = document.getElementById('corrugacao');
+
+        let ultimoDistancia = null;
+
+        // ==========================================================
+        // FUNÇÕES SVG
+        // ==========================================================
+
+        function gerarCorrugacao() {
+            for (let i = 0; i <= ALTURA_CORPO_TANQUE_SVG; i += 5) { 
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', '50');
+                line.setAttribute('y1', TANQUE_SVG_Y_TOPO + i);
+                line.setAttribute('x2', '350');
+                line.setAttribute('y2', TANQUE_SVG_Y_TOPO + i);
+                corrugationGroup.appendChild(line);
+            }
+        }
+
+        function atualizarTanqueSVG(percentual) {
+            const nivel = Math.max(0, Math.min(100, percentual)); 
+            
+            const novaAlturaAgua = ALTURA_CORPO_TANQUE_SVG * (nivel / 100); 
+            const novaPosicaoYAgua = TANQUE_SVG_Y_BASE - novaAlturaAgua; 
+
+            aguaElement.setAttribute('height', novaAlturaAgua);
+            aguaElement.setAttribute('y', novaPosicaoYAgua);
+            
+            superficieAguaElement.setAttribute('cy', novaPosicaoYAgua);
+            superficieAguaElement.setAttribute('opacity', nivel > 2 ? 0.9 : 0); 
+        }
+
+        // ==========================================================
+        // FUNÇÕES DE CÁLCULO E BUSCA (SIMPLIFICADAS)
+        // ==========================================================
+
+        function calcularMetricas(distanciaCm) {
+            // O sensor mede a distância da superfície da água até o topo
+            // Distância 0cm = tanque cheio | Distância 105cm = tanque vazio
+            let alturaAguaCm = ALTURA_TOTAL_TANQUE_CM - distanciaCm;
+            
+            // Limitar entre 0 e altura máxima
+            alturaAguaCm = Math.max(0, Math.min(ALTURA_TOTAL_TANQUE_CM, alturaAguaCm));
+
+            // Cálculo do volume em litros
+            const volumeLitros = alturaAguaCm * VOLUME_POR_CM;
+            
+            // Cálculo da porcentagem de preenchimento
+            const porcentagem = (alturaAguaCm / ALTURA_TOTAL_TANQUE_CM) * 100;
+            
+            // Cálculo do tempo restante em horas
+            let tempoRestanteHoras = 0;
+            if (CONSUMO_MEDIO_L_HORA > 0) {
+                tempoRestanteHoras = volumeLitros / CONSUMO_MEDIO_L_HORA;
+            }
+            
+            // Formatação do Tempo Restante
+            let tempoFormatado;
+            if (tempoRestanteHoras >= 1) {
+                // Exibe em horas (arredondado para 1 casa decimal)
+                tempoFormatado = `${tempoRestanteHoras.toFixed(1)} h`;
+            } else if (tempoRestanteHoras > 0) {
+                // Se for menos de 1 hora, exibe em minutos
+                const minutos = Math.max(1, Math.round(tempoRestanteHoras * 60)); 
+                tempoFormatado = `${minutos} min`;
+            } else {
+                tempoFormatado = "Vazio";
+            }
+
+            return {
+                altura: alturaAguaCm,
+                volume: volumeLitros,
+                porcentagem: porcentagem,
+                tempoRestante: tempoFormatado, 
+                tempoRestanteHoras: tempoRestanteHoras
+            };
+        }
+
+        // Função para atualizar o tempo atual
+        function atualizarTempo() {
+            const now = new Date();
+            currentTimeEl.textContent = now.toLocaleTimeString("pt-BR");
+        }
+
+        // Função principal para buscar dados e atualizar o dashboard
+        async function buscarEAtualizar() {
+            try {
+                const response = await fetch("/api/Distancia");
+                const data = await response.json();
+
+                if (data.Distancia !== null && data.Distancia !== undefined) {
+                    const distanciaCm = parseFloat(data.Distancia);
+                    const metricas = calcularMetricas(distanciaCm);
+
+                    // Animar se o valor mudou
+                    if (distanciaCm.toFixed(1) !== ultimoDistancia) {
+                        volumeAtualValueEl.classList.add("updated");
+                        porcentagemValueEl.classList.add("updated");
+                        tempoRestanteValueEl.classList.add("updated");
+                        setTimeout(() => {
+                            volumeAtualValueEl.classList.remove("updated");
+                            porcentagemValueEl.classList.remove("updated");
+                            tempoRestanteValueEl.classList.remove("updated");
+                        }, 300);
+                    }
+                    ultimoDistancia = distanciaCm.toFixed(1);
+
+                    // 1. Atualiza Métricas na Tela
+                    volumeAtualValueEl.textContent = `${metricas.volume.toFixed(1)} L`;
+                    porcentagemValueEl.textContent = `${metricas.porcentagem.toFixed(1)} %`;
+                    tempoRestanteValueEl.textContent = metricas.tempoRestante;
+
+                    // 2. Atualiza o SVG
+                    atualizarTanqueSVG(metricas.porcentagem);
+
+                    // 3. Atualiza Status e Alertas
+                    statusEl.textContent = `✓ Conectado ao MQTT. Última leitura: ${new Date().toLocaleTimeString("pt-BR")}`;
+                    statusEl.className = "status-mqtt connected";
+                    tanqueStatusEl.textContent = `Nível: ${metricas.porcentagem.toFixed(1)} % | Volume: ${metricas.volume.toFixed(1)} L`;
+
+                    // Lógica de alertas baseada no tempo restante
+                    if (metricas.tempoRestanteHoras <= 0.01) {
+                         alertaStatusEl.textContent = "❌ EMERGÊNCIA: Abastecimento Imediato! Tanque Vazio.";
+                         alertaStatusEl.style.cssText = 'background: rgba(230, 57, 70, 0.1); color: var(--danger); border-left: 6px solid var(--danger);';
+                    } else if (metricas.tempoRestanteHoras < ALERTA_HORAS_CRITICAS) {
+                         alertaStatusEl.textContent = `⚠️ ATENÇÃO CRÍTICA: Menos de 30 minutos restantes!`;
+                         alertaStatusEl.style.cssText = 'background: rgba(247, 37, 133, 0.1); color: var(--warning); border-left: 6px solid var(--warning);';
+                    } else if (metricas.tempoRestanteHoras < ALERTA_HORAS_BAIXAS) {
+                        alertaStatusEl.textContent = `Alerta: Menos de 2 horas restantes. Planejar reabastecimento.`;
+                        alertaStatusEl.style.cssText = 'background: rgba(255, 193, 7, 0.1); color: #FFC107; border-left: 6px solid #FFC107;';
+                    } else {
+                        alertaStatusEl.textContent = "Sistema funcionando normalmente.";
+                        alertaStatusEl.style.cssText = 'background: rgba(76, 201, 240, 0.1); color: var(--success); border-left: 6px solid var(--success);';
+                    }
+
+                } else {
+                    // Caso a API retorne null/undefined
+                    volumeAtualValueEl.textContent = "-- L";
+                    porcentagemValueEl.textContent = "-- %";
+                    tempoRestanteValueEl.textContent = "--";
+                    statusEl.textContent = "⏳ Aguardando dados do Arduino...";
+                    statusEl.className = "status-mqtt waiting";
+                    alertaStatusEl.textContent = "Aguardando dados iniciais.";
+                    alertaStatusEl.style.cssText = 'background: rgba(108, 117, 125, 0.1); color: var(--gray); border-left: 6px solid var(--gray);';
+                }
+                
+                // Atualiza o tempo
+                atualizarTempo();
+            } catch (error) {
+                console.error("Erro ao buscar dados:", error);
+                statusEl.textContent = "✗ Erro de conexão com a API";
+                statusEl.className = "status-mqtt disconnected";
+                alertaStatusEl.textContent = "Falha grave na comunicação com o servidor.";
+                alertaStatusEl.style.cssText = 'background: rgba(230, 57, 70, 0.1); color: var(--danger); border-left: 6px solid var(--danger);';
+            }
+        }
+
+        // ==========================================================
+        // INICIALIZAÇÃO
+        // ==========================================================
+        gerarCorrugacao();
+        setInterval(buscarEAtualizar, 1000);
+        setInterval(atualizarTempo, 1000);
+        buscarEAtualizar();
+        atualizarTempo();
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Exportar JSON</title>
+</head>
+<body>
+
+<script>
+  // Exemplo de array
+  var dados = [
+    { nome: "Denilson", idade: 27 },
+    { nome: "Ana", idade: 24 },
+    { nome: "Carlos", idade: 30 }
+  ];
+
+  // Converte o array em JSON formatado
+  var jsonString = JSON.stringify(dados, null, 2);
+
+  // Cria um blob com o conteúdo JSON
+  var blob = new Blob([jsonString], { type: "application/json" });
+
+  // Cria um link temporário para download
+  var url = URL.createObjectURL(blob);
+  var link = document.createElement("a");
+  link.href = url;
+  link.download = "dados.json";
+
+  // Adiciona o link e clica automaticamente
+  document.body.appendChild(link);
+  link.click();
+
+  // Remove o link temporário
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+</script>
+
+</body>
+</html>

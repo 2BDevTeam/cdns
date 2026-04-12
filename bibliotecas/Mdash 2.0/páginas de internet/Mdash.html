@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<script src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<!-- Flatpickr Portuguese localization -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+
+<style>
+  .select2-selection__rendered {
+    overflow-x: scroll !important;
+  }
+
+  .select2-selection__choice {
+    position: relative !important;
+    padding-right: 25px !important;
+    /* Espaço garantido para o botão */
+  }
+
+  .select2-selection__choice__remove {
+    position: absolute !important;
+    right: 4px !important;
+    top: 4px !important;
+    /* Alinhamento mais preciso no topo */
+    transform: none !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+  }
+
+  /* CONTAINER RESPONSIVO */
+  .gr-container {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Limites máximos do container como no Bootstrap */
+  @media (min-width: 576px) {
+    .gr-container {
+      max-width: 540px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .gr-container {
+      max-width: 720px;
+    }
+  }
+
+  @media (min-width: 992px) {
+    .gr-container {
+      max-width: 960px;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .gr-container {
+      max-width: 1140px;
+    }
+  }
+
+  @media (min-width: 1400px) {
+    .gr-container {
+      max-width: 1320px;
+    }
+  }
+
+  /* ROW */
+  .gr-row {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1rem;
+    grid-auto-rows: 1fr;
+    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+
+  }
+
+  /* COLUNAS base */
+  [class*="gr-col-"] {
+    grid-column: span 12;
+  }
+
+  /* Breakpoints (xs até xl) — igual antes */
+  .gr-col-xs-1 {
+    grid-column: span 1;
+  }
+
+  .gr-col-xs-2 {
+    grid-column: span 2;
+  }
+
+  .gr-col-xs-3 {
+    grid-column: span 3;
+  }
+
+  .gr-col-xs-4 {
+    grid-column: span 4;
+  }
+
+  .gr-col-xs-5 {
+    grid-column: span 5;
+  }
+
+  .gr-col-xs-6 {
+    grid-column: span 6;
+  }
+
+  .gr-col-xs-7 {
+    grid-column: span 7;
+  }
+
+  .gr-col-xs-8 {
+    grid-column: span 8;
+  }
+
+  .gr-col-xs-9 {
+    grid-column: span 9;
+  }
+
+  .gr-col-xs-10 {
+    grid-column: span 10;
+  }
+
+  .gr-col-xs-11 {
+    grid-column: span 11;
+  }
+
+  .gr-col-xs-12 {
+    grid-column: span 12;
+  }
+
+  @media (min-width: 576px) {
+    .gr-col-sm-1 {
+      grid-column: span 1;
+    }
+
+    .gr-col-sm-2 {
+      grid-column: span 2;
+    }
+
+    .gr-col-sm-3 {
+      grid-column: span 3;
+    }
+
+    .gr-col-sm-4 {
+      grid-column: span 4;
+    }
+
+    .gr-col-sm-5 {
+      grid-column: span 5;
+    }
+
+    .gr-col-sm-6 {
+      grid-column: span 6;
+    }
+
+    .gr-col-sm-7 {
+      grid-column: span 7;
+    }
+
+    .gr-col-sm-8 {
+      grid-column: span 8;
+    }
+
+    .gr-col-sm-9 {
+      grid-column: span 9;
+    }
+
+    .gr-col-sm-10 {
+      grid-column: span 10;
+    }
+
+    .gr-col-sm-11 {
+      grid-column: span 11;
+    }
+
+    .gr-col-sm-12 {
+      grid-column: span 12;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .gr-col-md-1 {
+      grid-column: span 1;
+    }
+
+    .gr-col-md-2 {
+      grid-column: span 2;
+    }
+
+    .gr-col-md-3 {
+      grid-column: span 3;
+    }
+
+    .gr-col-md-4 {
+      grid-column: span 4;
+    }
+
+    .gr-col-md-5 {
+      grid-column: span 5;
+    }
+
+    .gr-col-md-6 {
+      grid-column: span 6;
+    }
+
+    .gr-col-md-7 {
+      grid-column: span 7;
+    }
+
+    .gr-col-md-8 {
+      grid-column: span 8;
+    }
+
+    .gr-col-md-9 {
+      grid-column: span 9;
+    }
+
+    .gr-col-md-10 {
+      grid-column: span 10;
+    }
+
+    .gr-col-md-11 {
+      grid-column: span 11;
+    }
+
+    .gr-col-md-12 {
+      grid-column: span 12;
+    }
+  }
+
+  @media (min-width: 992px) {
+    .gr-col-lg-1 {
+      grid-column: span 1;
+    }
+
+    .gr-col-lg-2 {
+      grid-column: span 2;
+    }
+
+    .gr-col-lg-3 {
+      grid-column: span 3;
+    }
+
+    .gr-col-lg-4 {
+      grid-column: span 4;
+    }
+
+    .gr-col-lg-5 {
+      grid-column: span 5;
+    }
+
+    .gr-col-lg-6 {
+      grid-column: span 6;
+    }
+
+    .gr-col-lg-7 {
+      grid-column: span 7;
+    }
+
+    .gr-col-lg-8 {
+      grid-column: span 8;
+    }
+
+    .gr-col-lg-9 {
+      grid-column: span 9;
+    }
+
+    .gr-col-lg-10 {
+      grid-column: span 10;
+    }
+
+    .gr-col-lg-11 {
+      grid-column: span 11;
+    }
+
+    .gr-col-lg-12 {
+      grid-column: span 12;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .gr-col-xl-1 {
+      grid-column: span 1;
+    }
+
+    .gr-col-xl-2 {
+      grid-column: span 2;
+    }
+
+    .gr-col-xl-3 {
+      grid-column: span 3;
+    }
+
+    .gr-col-xl-4 {
+      grid-column: span 4;
+    }
+
+    .gr-col-xl-5 {
+      grid-column: span 5;
+    }
+
+    .gr-col-xl-6 {
+      grid-column: span 6;
+    }
+
+    .gr-col-xl-7 {
+      grid-column: span 7;
+    }
+
+    .gr-col-xl-8 {
+      grid-column: span 8;
+    }
+
+    .gr-col-xl-9 {
+      grid-column: span 9;
+    }
+
+    .gr-col-xl-10 {
+      grid-column: span 10;
+    }
+
+    .gr-col-xl-11 {
+      grid-column: span 11;
+    }
+
+    .gr-col-xl-12 {
+      grid-column: span 12;
+    }
+  }
+
+  
+  /* mdash-skeleton base */
+  .mdash-skeleton {
+    background: #eee;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Shimmer animation */
+  .mdash-skeleton::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -150px;
+    height: 100%;
+    width: 150px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      left: -150px;
+    }
+
+    100% {
+      left: 100%;
+    }
+  }
+
+  /* mdash-skeleton shapes */
+  .mdash-skeleton-image {
+    width: 100%;
+    height: 150px;
+    margin-bottom: 20px;
+  }
+
+  .mdash-skeleton-title {
+    width: 70%;
+    height: 20px;
+    margin: 0 auto 15px auto;
+  }
+
+  .mdash-skeleton-text {
+    width: 90%;
+    height: 15px;
+    margin: 8px auto;
+  }
+
+  .snapshot:hover,
+  .celula:hover {
+    cursor: pointer;
+  }
+
+  .celula:hover {
+    text-decoration: underline;
+  }
+
+  form[action*="./ewpview.aspx?codigo=mdash"] #fieldsAndOptionsZone,
+  form[action*="./ewpview.aspx?codigo=catalogo-"] #fieldsAndOptionsZone {
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  form[action*="./ewpview.aspx?codigo=mdash"] #optionsFields,
+  form[action*="./ewpview.aspx?codigo=mdash"] .headerZone,
+  form[action*="./ewpview.aspx?codigo=catalogo-"] #optionsFields,
+  form[action*="./ewpview.aspx?codigo=catalogo-"] .headerZone {
+    display: none;
+  }
+
+  .m-dash-header {
+    column-gap: 0.4em;
+    display: flex;
+    margin-bottom: 30px;
+    background: #FFF;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    align-items: center;
+  }
+
+  .m-dash-horizonta-filter-container {
+    margin-bottom: 30px;
+    background: #FFF;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+  }
+
+  .m-dash-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .m-dash-header h1 {
+    margin: 0;
+    font-weight: bold;
+    color: #626e78 !important;
+  }
+
+  .m-dash-filter {
+    background: #FFF;
+    -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    border-radius: 12px;
+    padding: 30px;
+  }
+
+  .m-dash-filter-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .m-dash-btn-filter {
+    display: flex;
+    justify-content: space-between;
+    gap: 5px;
+  }
+
+  .m-dash-data-headers {
+    background: #FFF;
+    -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    border-radius: 12px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 0.9em;
+  }
+
+  .m-dash-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex-grow: 1;
+  }
+
+  .m-dash-filter-item {
+    margin-bottom: 0.4em;
+  }
+
+  .stats-card-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .stats-card {
+    background-color: #efefef;
+    padding: 15px;
+    border-radius: 5px;
+  }
+
+  .stats-card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .stats-card-chart {
+    height: 300px;
+  }
+
+  .stats-card-value-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stats-card-value {
+    color: #999999;
+  }
+
+  .stats-card-label {
+    font-size: 0.9em;
+    font-weight: bold;
+  }
+
+  .m-dash-item {
+    background: #FFF;
+    -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    border-radius: 12px;
+    padding: 30px;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .m-dash-item.snapshot {
+    padding: 20px;
+  }
+
+  .m-dash-item h1 {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 15px;
+  }
+
+  .m-dash-charts {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: space-between;
+  }
+
+  .m-dash-table {
+    font-size: 0.9em;
+    overflow-x: auto;
+    max-height: 400px;
+  }
+
+  .m-dash-table table {
+    width: 100%;
+  }
+
+  .m-dash-item-text {
+    color: #626e78;
+  }
+
+  .m-dash-filter-item {
+    color: #626e78;
+  }
+
+  .m-dash-render-area {
+    height: 100% !important;
+  }
+
+  @media screen and (min-width: 768px) {
+    .stats-card-container {
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .stats-card-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media screen and (min-width: 1024px) {
+    .m-dash-body {
+      flex-direction: row;
+    }
+
+    .m-dash-data-headers {
+      flex-direction: row;
+    }
+
+    .m-dash-filter {
+      min-width: 275px;
+      max-width: 275px;
+    }
+
+    .m-dash-charts {
+      flex-direction: row;
+    }
+
+    .stats-card-container {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 30px;
+    }
+  }
+
+  .tabulator-row.tabulator-tree-level-1 {
+    background-color: #f8f9fa !important;
+  }
+
+  .tabulator-row.tabulator-tree-level-2 {
+    background-color: #e9ecef !important;
+  }
+
+  .tabulator-row.tabulator-tree-level-3 {
+    background-color: #dee2e6 !important;
+  }
+
+  .tabulator-row.tabulator-tree-level-4 {
+    background-color: #ced4da !important;
+  }
+
+  .tabulator-row.tabulator-tree-level-5 {
+    background-color: #adb5bd !important;
+  }
+
+  .tabulator {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: none;
+  }
+
+  .tabulator .tabulator-header {
+    background-color: #0765b7;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .tabulator .tabulator-header .tabulator-col {
+    background-color: #0765b7;
+    color: white;
+    border-right: none;
+    padding: 12px 15px;
+    font-weight: 500;
+  }
+
+  .tabulator .tabulator-header .tabulator-col:first-child {
+    border-top-left-radius: 10px;
+  }
+
+  .tabulator .tabulator-header .tabulator-col:last-child {
+    border-top-right-radius: 10px;
+  }
+
+  .tabulator-row {
+    border-bottom: 1px solid #e0e6ed;
+    transition: background-color 0.2s ease;
+  }
+
+  .tabulator-row.tabulator-row-even {
+    background-color: #fcfdfe;
+  }
+
+  .tabulator-row:hover {
+    background-color: #f5f9ff !important;
+  }
+
+  .tabulator-cell {
+    padding: 12px 15px;
+    border-right: none;
+  }
+</style>
+
+<script src="https://unpkg.com/vue-multiselect"></script>
+<link rel="stylesheet" href="https://unpkg.com/vue-multiselect/dist/vue-multiselect.min.css">
+
+<body>
+  <div id="mdash" class="mdash">
+    <div class="m-dash-header">
+      <h1>{{ mdash.dashboardconfig.descricao }}</h1>
+      <button style="font-size: 12px;" v-if="mdash.dashboardconfig.temfiltro==false" @click="refreshDashboard()"
+        type='button' id='btn-refrescar-filtro' class='btn btn-primary btn-sm glyphicon glyphicon-refresh filtro'>
+      </button>
+    </div>
+
+    <div v-if="mdash.dashboardconfig.filtrohorizont && mdash.dashboardconfig.temfiltro==true"
+      class="m-dash-horizonta-filter-container">
+      {{initDomObjects()}}
+      <div class="gr-row">
+        <div class=" gr-col-md-12 gr-col-lg-12 gr-col-sm-12">
+          <div class="m-dash-filter-btn-group">
+            <div style="display: flex;column-gap: 0.4em;align-items: center;" class="">
+              <p class="m-dash-item-text">Refrescar</p>
+              <button @click="refreshDashboard()" type='button' id='btn-refrescar-filtro'
+                class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp"
+          :class="[`gr-col-md-${filter.tamanho}`, `gr-col-sm-${filter.tamanho}`, `gr-col-lg-${filter.tamanho}`]">
+          <div class="m-dash-dynamic-filters">
+            <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
+
+              <div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'">
+                <button style="margin-left: 0.4em;border-radius: 4px;" type="button" class="btn btn-xs btn-primary"
+                  @click="selectAllOptions(filter)">Todas
+                  opções</button> <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
+                  class="btn btn-xs btn-default" @click="deselectAllOptions(filter)">Desmarcar</button>
+              </div>
+            </label>
+
+            <!-- text -->
+            <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- digit -->
+            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <input data-language="pt" @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'date'"
+              type="text" class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- list -->
+            <div v-else-if="filter.tipo === 'list'">
+              <select @change="updateFilter(filter,$event)" class="form-control select-mdash-filter input-mdash-filter"
+                :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]">
+                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
+                  {{ opt[filter.campooption] }}
+                </option>
+              </select>
+            </div>
+
+            <div v-else-if="filter.tipo === 'multiselect'">
+
+              <select @vue:mounted="initMultiselect($el,filter)" multiple="multiple"
+                @change="updateFilter(filter,$event)"
+                class=" multisel form-control select-mdash-filter input-mdash-filter" :id="filter.codigo">
+                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
+                  {{ opt[filter.campooption] }}
+                </option>
+              </select>
+
+
+            </div>
+
+            <!-- logic -->
+            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
+              class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- fallback -->
+            <input data-else="elseinput" @change="updateFilter(filter,$event)" v-else type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-dash-body">
+      <div v-if="mdash.dashboardconfig.temfiltro && mdash.dashboardconfig.filtrohorizont==false" class="m-dash-filter">
+        <div class="m-dash-filter-btn-group">
+          <div class="m-dash-btn-filter">
+            <p class="m-dash-item-text">Refrescar</p>
+            <button @click="refreshDashboard()" type='button' id='btn-refrescar-filtro'
+              class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
+            </button>
+          </div>
+        </div>
+
+        <div class="m-dash-dynamic-filters">
+          <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp" class="m-dash-filter-item">
+            <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
+
+              <div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'">
+                <button style="margin-left: 0.4em;border-radius: 4px;" type="button" class="btn btn-xs btn-primary"
+                  @click="selectAllOptions(filter)">Todas
+                  opções</button> <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
+                  class="btn btn-xs btn-default" @click="deselectAllOptions(filter)">Desmarcar todas</button>
+              </div>
+            </label>
+
+
+            <!-- text -->
+            <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- digit -->
+            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <input data-language="pt" @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'date'"
+              type="text" class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- list -->
+            <div v-else-if="filter.tipo === 'list'">
+              <select @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
+                class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
+                v-model="mdash.filterValues[filter.codigo]">
+                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
+                  {{ opt[filter.campooption] }}
+                </option>
+              </select>
+            </div>
+
+
+            <div v-else-if="filter.tipo === 'multiselect'">
+
+              <select @vue:mounted="initMultiselect($el,filter)" multiple="multiple"
+                @change="updateFilter(filter,$event)"
+                class=" multisel form-control select-mdash-filter input-mdash-filter" :id="filter.codigo">
+                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
+                  {{ opt[filter.campooption] }}
+                </option>
+              </select>
+
+
+            </div>
+
+
+
+            <!-- logic -->
+            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
+              class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
+
+            <!-- fallback -->
+            <input @change="updateFilter(filter,$event)" v-else type="text"
+              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+              v-model="mdash.filterValues[filter.codigo]" />
+          </div>
+        </div>
+
+        <div class="m-dash-dynamic-filters">
+        </div>
+      </div>
+
+      <div class="m-dash-main">
+        <div v-for="container in mdash.containers" :key="container.mdashcontainerstamp"
+          :class="[`gr-col-md-${container.tamanho}`, `gr-col-sm-${container.tamanho}`, `gr-col-lg-${container.tamanho}`]">
+          <div class='mon-collapse'>
+            <div class='mon-grupo-header'>
+              {{initUI()}}
+              <div v-if="container.titulo.length>0"
+                style="font-size: 18px;color:#626e78 ;column-gap: 0.4em;display: flex;align-items: center;box-shadow:  0 4px 8px rgba(0, 0, 0, .08);background-color:white;font-size:1em;border-radius: 6px; font-weight: bold; margin: 0 0 20px 0; padding: 8px;">
+                <div>
+                  <i style="font-size: 18px;" class='glyphicon glyphicon-chevron-down mainformcptitulo'></i>
+                </div>
+                <div >
+                  <p style="font-size: 18px;margin-top:0.4em" class='mainformcptitulo'>
+                    {{ container.titulo }}
+                  </p>
+                </div>
+
+
+              </div>
+
+            </div>
+            <div class='mon-grupo-body'>
+              <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)" :key="'row-' + rowIndex"
+                class="gr-row m-dash-container-item-row " style="margin-top: 1em!important;margin-bottom:3em">
+
+                <div style="height: 100%!important;" v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
+                  :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area',
+                                        `gr-col-md-${item.tamanho}`,
+                                        `gr-col-sm-${item.tamanho}`,
+                                        `gr-col-lg-${item.tamanho}`]">
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div v-if="container.titulo.length > 0" style="margin-bottom: 0.8em;" class="gr-col-md-12 pull-left">
+            <!--  <h1 class="m-dash-item-text">{{ container.titulo }}</h1>
+            <hr>
+            -->
+          </div>
+
+          <!-- Aqui usamos os grupos de rows -->
+
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script src="https://unpkg.com/petite-vue"></script>
+<script src="https://cdn.jsdelivr.net/npm/alasql"></script>
+<script>
+  function buildAlert(alertClass, alertText) {
+    var alerta = ""
+    alerta += "<div  class='alert custom-alert " + alertClass + "'>"
+    alerta += "  <strong>Atenção!</strong> " + alertText
+    alerta += "</div>"
+
+    return alerta
+  }
+
+  function groupItemsByRows(containerItems, maxRowSize = 12) {
+    var rows = [];
+    var currentRow = [];
+    var currentRowSize = 0;
+
+    containerItems.forEach(function (item) {
+      var itemSize = parseInt(item.tamanho) || 12;
+
+      // Se adicionar este item ultrapassar o tamanho máximo da row
+      if (currentRowSize + itemSize > maxRowSize) {
+        // Finaliza a row atual (se não estiver vazia)
+        if (currentRow.length > 0) {
+          rows.push({
+            items: currentRow,
+            totalSize: currentRowSize
+          });
+        }
+
+        // Inicia uma nova row
+        currentRow = [item];
+        currentRowSize = itemSize;
+      } else {
+        // Adiciona o item à row atual
+        currentRow.push(item);
+        currentRowSize += itemSize;
+      }
+    });
+
+    // Adiciona a última row se não estiver vazia
+    if (currentRow.length > 0) {
+      rows.push({
+        items: currentRow,
+        totalSize: currentRowSize
+      });
+    }
+
+    return rows;
+  }
+
+  function generateStandardCard(cardData) {
+    return `<div class="m-dash-item">
+                    <h4 class="m-dash-item-text">${cardData.titulo || "Sem título"}</h4>
+                    ${cardData.bodyContent}
+                </div>`;
+  }
+
+  function generateDashCardHTML(cardData) {
+    var cardHTML = '<div id="' + (cardData.id || '') + '" class="dashcard">';
+    // Header
+    cardHTML += '<div class="dashcard-header dashcard-header-' + (cardData.type || "primary") + '">';
+    cardHTML += '<span class="dashcard-title">' + (cardData.title || "") + '</span>';
+    cardHTML += '</div>';
+    // Body
+    cardHTML += '<div class="dashcard-body">';
+    cardHTML += (cardData.bodyContent || "");
+    cardHTML += '</div>';
+    cardHTML += '</div>';
+    return cardHTML.trim();
+  }
+
+  function MdashRendConfig(data) {
+    this.codigo = data.codigo || "";
+    this.descricao = data.descricao || "";
+    this.categoria = data.categoria || "";
+    this.dashboardstamp = data.dashboardstamp || "";
+    this.temfiltro = data.temfiltro || false;
+    this.filtrohorizont = data.filtrohorizont || false;
+  }
+
+  function Mdash(data) {
+    var globalThis = this;
+
+    this.GMDashStamp = data.GMDashStamp || ""
+    this.GMDashRendContainers = [];
+    this.GMDashRendContainerItems = [];
+    this.GMDashRendFilters = [];
+    this.dashboardconfig = new MdashRendConfig(data.dashboardconfig) || new MdashRendConfig({});
+
+    this.filters = Array.isArray(data.filters) ? data.filters.map(function (filter) {
+      return new MdashRendFilter(filter);
+    }) : [];
+    this.filterValues = data.filterValues || {};
+
+    this.containers = Array.isArray(data.containers) ? data.containers.map(function (container) {
+      return new MdashRendContainer(container);
+    }) : [];
+
+    this.containerItems = Array.isArray(data.containerItems) ? data.containerItems.map(function (item) {
+      return new MdashContainerItem(item);
+    }) : [];
+
+    this.containerItemObjects = Array.isArray(data.containerItemObjects) ? data.containerItemObjects.map(function (itemObject) {
+      return new MdashContainerItemObject(itemObject);
+    }) : [];
+
+    this.reactiveInstance = null;
+
+    function MdashRendFilter(data) {
+      this.mdashfilterstamp = data.mdashfilterstamp || generateUUID();
+      this.dashboardstamp = data.dashboardstamp || GMDashStamp;
+      this.codigo = data.codigo || "";
+      this.descricao = data.descricao || "";
+      this.tipo = data.tipo || "text";
+      this.tamanho = data.tamanho || 4;
+      this.campooption = data.campooption || "";
+      this.campovalor = data.campovalor || "";
+      this.expressaojslistagem = data.expressaojslistagem || "";
+      this.eventochange = data.eventochange || false;
+      this.expressaochange = data.expressaochange || "";
+      //this.expressaolistagem = data.expressaolistagem || "";
+      this.valordefeito = data.valordefeito || "";
+      this.ordem = data.ordem || 0;
+    }
+
+    function MdashRendContainer(data) {
+      this.mdashcontainerstamp = data.mdashcontainerstamp || generateUUID();
+      this.codigo = data.codigo || "";
+      this.titulo = data.titulo || "";
+      this.tipo = data.tipo || "";
+      this.tamanho = data.tamanho || 12;
+      this.ordem = data.ordem || 0;
+      this.dashboardstamp = data.dashboardstamp || GMDashStamp;
+    }
+
+    function MdashContainerItem(data) {
+      var cardContainerItemData = {
+        id: "",
+        title: "Conteúdo não disponível",
+        type: "primary",
+        headerCustomData: "data-container-item='true'",
+        bodyContent: ""
+      }
+
+      this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || generateUUID();
+      this.mdashcontainerstamp = data.mdashcontainerstamp || "";
+      this.codigo = data.codigo || "";
+      this.titulo = data.titulo || "";
+      this.tipo = data.tipo || "";
+      this.tamanho = data.tamanho || 4;
+      this.dadosTemplate = data.dadosTemplate || {};
+      this.skeletonId = data.skeletonId || ""
+      this.ordem = data.ordem || 0;
+      this.filters = data.filters || []
+      this.templatelayout = data.templatelayout || "";
+      this.urlfetch = data.urlfetch || "";
+      this.layoutcontaineritemdefault = data.layoutcontaineritemdefault || true;
+      this.expressaolayoutcontaineritem = data.expressaolayoutcontaineritem || "";
+      this.dashboardstamp = data.dashboardstamp || "";
+      this.fontelocal = data.fontelocal || false;
+      this.renderedContent = data.renderedContent || generateStandardCard({ titulo: "Sem conteúdo disponível", bodyContent: "" }) || "";
+      this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
+      this.records = [];
+    }
+
+    MdashContainerItem.prototype.refreshContent = async function () {
+      var containerItem = this;
+      var errorMessage = "ao trazer resultados no [refreshContent] " + containerItem.titulo
+      try {
+        if (!containerItem.urlfetch) {
+          containerItem.cleanAndRender(buildAlert("alert-danger", "URL para listagem  não definida"));
+          return;
+        }
+
+        containerItem.handleLayout();
+
+        var requestData = {
+          codigo: globalThis.dashboardconfig.codigo,
+          mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
+          mdashcontaineritemobjectstamp: "",
+          tipoquery: "item",
+          filters: globalThis.filterValues || {},
+        }
+
+        var response = await $.ajax({
+          type: "POST",
+          url: containerItem.urlfetch,
+          data: {
+            '__EVENTARGUMENT': JSON.stringify([requestData]),
+          }
+        });
+
+        if (response.cod != "0000") {
+          console.log("Erro " + errorMessage, response)
+          containerItem.cleanAndRender(buildAlert("alert-danger", "Erro ao trazer resultados: "));
+          return false
+        }
+
+        var contentRecords = response.data || [];
+
+        containerItem.records = contentRecords;
+
+
+
+        var containerItemObjects = globalThis.containerItemObjects.filter(function (itemObject) {
+          return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp
+            && itemObject.categoria == "editor"
+        });
+
+        var containerItemObjectsDetails = globalThis.containerItemObjects.filter(function (itemObject) {
+          return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp
+            && itemObject.categoria == "detail"
+        });
+
+        var containerItemObjectsCustom = globalThis.containerItemObjects.filter(function (itemObject) {
+          return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp
+            && itemObject.categoria == "custom"
+        });
+
+        containerItemObjects.forEach(function (itemObject) {
+          var containerItemSelector = "#" + containerItem.mdashcontaineritemstamp + " " + containerItem.dadosTemplate.containerSelectorToRender;
+          var containerItemObject = "<div id=cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp + " class='cont-item-object-rendered'  ></div>";
+          $(containerItemSelector).append(containerItemObject);
+
+          itemObject.renderObjectByContainerItem("#cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp, containerItem);
+        });
+
+        containerItemObjectsCustom.forEach(function (itemObject) {
+          var containerItemSelector = "#" + containerItem.mdashcontaineritemstamp + " " + containerItem.dadosTemplate.containerSelectorToRender;
+          var containerItemObject = "<div id=cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp + " class='cont-item-object-rendered'  ></div>";
+          $(containerItemSelector).append(containerItemObject);
+
+          itemObject.renderObjectByContainerItem("#cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp, containerItem);
+        });
+
+        if (containerItem.expressaoapresentacaodados) {
+          eval(containerItem.expressaoapresentacaodados);
+        }
+
+        if (containerItemObjectsDetails.length > 0) {
+          var botaoDetalhe = {
+            style: "margin-top:1em",
+            buttonId: "botao-detalhe-" + containerItem.mdashcontaineritemstamp,
+            classes: "btn btn-sm btn-primary btn-detalhe",
+            customData: " type='button' data-tooltip='true' data-original-title='Ver detalhes' ",
+            label: "Detalhes",
+            onClick: "",
+          };
+
+          var buttonHtml = generateButton(botaoDetalhe);
+          var containerBtnDetalhes = "<div style='display:flex;justify-content:end;column-gap:0.4em;position:absolute;bottom:0;right:0;left:0;padding:0.5em;'>";
+          containerBtnDetalhes += buttonHtml
+          containerBtnDetalhes += "</div>"
+
+          $("#" + this.mdashcontaineritemstamp + " " + this.dadosTemplate.containerSelectorToRender).css(
+            {
+              "position": "relative",
+              "padding-bottom": "3em",
+            }
+          )
+          $("#" + this.mdashcontaineritemstamp + " " + this.dadosTemplate.containerSelectorToRender).append(containerBtnDetalhes);
+
+          var modalHtmlBody = "<div id='detalhe-container-body-" + this.mdashcontaineritemstamp + "' ></div>"
+          var modalData = {
+            title: "Detalhes-" + containerItem.titulo,
+            id: "detalhe-modal-" + this.mdashcontaineritemstamp,
+            customData: "",
+            otherclassess: "",
+            body: modalHtmlBody,
+            footerContent: ""
+          };
+
+          var modalHTML = generateModalHTML(modalData);
+          $("#mainPage").append(modalHTML);
+          $("#detalhe-modal-" + this.mdashcontaineritemstamp + " .modal-dialog").css("width", "90%");
+
+          $(document).off("click", "#" + botaoDetalhe.buttonId).on("click", "#" + botaoDetalhe.buttonId, function (e) {
+            e.preventDefault();
+            $("#detalhe-modal-" + containerItem.mdashcontaineritemstamp).modal("show");
+
+            containerItemObjectsDetails.forEach(function (itemObject) {
+              var containerItemObject = "<div id=cont-item-obj-detalhe-" + itemObject.mdashcontaineritemobjectstamp + " class='cont-item-object-rendered'  ></div>";
+              $("#detalhe-container-body-" + containerItem.mdashcontaineritemstamp).append(containerItemObject);
+
+              itemObject.renderObjectByContainerItem("#cont-item-obj-detalhe-" + itemObject.mdashcontaineritemobjectstamp, containerItem);
+            });
+          })
+        }
+
+        containerItem.hideSkeleton();
+
+      } catch (error) {
+        console.log("Erro interno " + errorMessage, error)
+        containerItem.cleanAndRender(buildAlert("alert-danger", "Erro interno ao processar resultados: "));
+
+        //alertify.error("Erro interno " + errorMessage, 10000)
+      }
+    };
+
+    MdashContainerItem.prototype.handleLayout = function (content) {
+      var containerItem = this;
+
+      containerItem.skeletonId = "skeleton-" + containerItem.mdashcontaineritemstamp;
+
+      // Gerar skeleton HTML
+      var skeletonHTML = generateSkeleton({
+        id: containerItem.skeletonId
+      });
+      if (containerItem.layoutcontaineritemdefault) {
+
+        var listaTemplates = getTemplateLayoutOptions();
+        var selectedTemplate = listaTemplates.find(function (template) {
+          return template.codigo === containerItem.templatelayout;
+        });
+
+        if (selectedTemplate) {
+
+          containerItem.dadosTemplate = selectedTemplate
+          $("#" + this.mdashcontaineritemstamp).empty();
+
+          $("#" + this.mdashcontaineritemstamp).append(selectedTemplate.generateCard({
+            title: containerItem.titulo,
+            id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp,
+            tipo: selectedTemplate.UIData.tipo || "primary",
+            bodyContent: skeletonHTML,
+          }));
+
+          return;
+        }
+
+        containerItem.cleanAndRender(generateDashCardHTML({ id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp, title: containerItem.titulo, bodyContent: "" }));
+
+        return;
+      }
+
+      if (containerItem.expressaolayoutcontaineritem) {
+        eval(containerItem.expressaolayoutcontaineritem);
+      }
+    }
+
+    MdashContainerItem.prototype.render = function (content) {
+      $("#" + this.mdashcontaineritemstamp).append(content);
+    }
+
+    MdashContainerItem.prototype.hideSkeleton = function () {
+      $("#" + this.skeletonId).hide();
+    }
+
+    MdashContainerItem.prototype.cleanAndRender = function (content) {
+      $("#" + this.mdashcontaineritemstamp).empty();
+      $("#" + this.mdashcontaineritemstamp).append(content);
+    }
+
+    MdashContainerItem.prototype.renderOnLayout = function (content) {
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp).append(content);
+    }
+
+    MdashContainerItem.prototype.cleanAndRenderOnLayout = function (content) {
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp).empty();
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp).append(content);
+    }
+
+    MdashContainerItem.prototype.renderBodyLayout = function (content) {
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").append(content);
+    }
+
+    MdashContainerItem.prototype.cleanAndRenderBodyLayout = function (content) {
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").empty();
+      $("#m-dash-layout-" + this.mdashcontaineritemstamp + " .dashcard-body").append(content);
+    }
+
+    function MdashContainerItemObject(data) {
+      // Calcula ordem máxima se não for fornecida
+      this.mdashcontaineritemobjectstamp = data.mdashcontaineritemobjectstamp;
+      this.mdashcontaineritemstamp = data.mdashcontaineritemstamp || "";
+      this.dashboardstamp = data.dashboardstamp || "";
+      this.tipo = data.tipo || "";
+      this.tamanho = data.tamanho || 0;
+      this.ordem = data.ordem || 0;
+      this.categoria = data.categoria || "editor"; // editor, datasource, filter
+      this.temdetalhes = data.temdetalhes || false;
+      this.detalhesqueryconfigjson = data.detalhesqueryconfigjson || "";
+      this.tipoobjectodetalhes = data.tipoobjectodetalhes || "";
+      this.titulodetalhes = data.titulodetalhes || "";
+      this.titulobtndetalhes = data.titulobtndetalhes || "";
+      this.expressaoobjecto = data.expressaoobjecto || "";
+      this.tipoquery = data.tipoquery || "item"; // local, remote
+      this.objectsUIFormConfig = data.objectsUIFormConfig || [];
+      this.localsource = data.localsource || "";
+
+      var config = {}
+      if (data.configjson) {
+        try {
+          config = JSON.parse(data.configjson);
+        } catch (error) {
+          console.error("Erro ao analisar configjson:", error);
+        }
+      }
+
+      this.config = config || {}
+      this.configjson = data.configjson || ""
+      this.idfield = data.idfield || "mdashcontaineritemobjectstamp";
+
+      this.objectoConfig = data.objectoConfig || {};
+
+      if (this.tipo) {
+
+        var tiposObjecto = getTiposObjectoConfig();
+        var self = this;
+
+        var tipoObjecto = tiposObjecto.find(function (tipo) {
+          return tipo.tipo === self.tipo;
+        });
+
+        if (tipoObjecto) {
+          this.objectoConfig = tipoObjecto || {};
+        }
+      }
+
+      var queryConfig = data.queryConfig || {
+        selectFields: [],
+        filters: [],
+        groupBy: [],
+        orderBy: { field: "", direction: "ASC" },
+        limit: null,
+        generatedSQL: "",
+        lastResult: []
+      };
+
+      if (data.queryconfigjson) {
+        try {
+          queryConfig = JSON.parse(data.queryconfigjson);
+        } catch (error) {
+        }
+      }
+
+      this.queryConfig = queryConfig || {
+        selectFields: [],
+        filters: [],
+        groupBy: [],
+        orderBy: { field: "", direction: "ASC" },
+        limit: null,
+        generatedSQL: "",
+        lastResult: []
+      };
+
+      var queryConfigVoid = {
+        selectFields: [],
+        filters: [],
+        groupBy: [],
+        orderBy: { field: "", direction: "ASC" },
+        limit: null,
+        generatedSQL: "",
+        lastResult: []
+      };
+      this.queryconfigjson = queryConfig ? JSON.stringify(queryConfig) : JSON.stringify(queryConfigVoid);
+    }
+
+    MdashContainerItemObject.prototype.renderObjectByContainerItem = async function (containerSelector, containerItem) {
+      var self = this;
+
+      //  console.log("SELLLF", self); 
+      if (Object.keys(self.objectoConfig).length == 0 || containerItem.records.length == 0) {
+        $(containerSelector).append("<p style='font-size:18px!important;font-weight:bold;margin-top:7em' class='m-dash-item-text'>Sem registos</p>")
+        return;
+      }
+
+
+      var mainRecords = [];
+
+
+
+
+      switch (self.tipoquery) {
+        case "item":
+
+          mainRecords = containerItem.records || [];
+          break;
+        case "object":
+
+
+          var requestData = {
+            codigo: globalThis.dashboardconfig.codigo,
+            mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
+            mdashcontaineritemobjectstamp: self.mdashcontaineritemobjectstamp,
+            tipoquery: self.tipoquery,
+            filters: globalThis.filterValues || {},
+          }
+
+          var response = await $.ajax({
+            type: "POST",
+            url: containerItem.urlfetch,
+            data: {
+              '__EVENTARGUMENT': JSON.stringify([requestData]),
+            }
+          });
+
+
+          console.log("RESPONSE OBJECT", response)
+          if (response.cod != "0000") {
+            console.log("Erro ao trazer resultados para o objecto: ", response)
+            $(containerSelector).append(buildAlert("alert-danger", "Erro ao trazer resultados para o objecto: "));
+            return false
+          }
+          mainRecords = response.data || [];
+          break;
+
+
+        default:
+          throw new Error("Tipo de query não suportado: " + self.tipoquery);
+      }
+
+
+      var alasqlData = replaceLocalDbKeywords(mainRecords);
+
+      var localQueryResult = alasql(self.queryConfig.generatedSQL, [alasqlData]);
+      var contentRecords = localQueryResult;
+
+
+
+      switch (self.categoria) {
+
+        case "editor":
+          self.objectoConfig.renderObject({
+            containerSelector: containerSelector,
+            itemObject: self,
+            queryConfig: self.queryConfig,
+            config: self.config,
+            containerItem: containerItem,
+            data: localQueryResult || [],
+          });
+
+          break;
+
+        case "detail":
+          var tipoObjecto = self.tipoobjectodetalhes;
+          var tipoObjecto = getTiposObjectoConfig().find(function (tipo) {
+            return tipo.tipo === tipoObjecto;
+          });
+
+          if (tipoObjecto) {
+            tipoObjecto.renderObject({
+              containerSelector: containerSelector,
+              itemObject: self,
+              queryConfig: self.queryConfig,
+              config: self.config,
+              containerItem: containerItem,
+              data: localQueryResult || [],
+            });
+          }
+
+          break;
+        case "custom":
+          console.log("EXECUTING EXPRESSAOOBJECTO", self.expressaoobjecto)
+          if (self.expressaoobjecto) {
+            try {
+              eval(self.expressaoobjecto);
+            } catch (error) {
+              console.error("Erro ao executar expressão do objeto:", error);
+              // alertify.error("Erro ao executar expressão do objeto. Verifique o console para mais detalhes.", 4000);
+            }
+          }
+          break;
+
+        default:
+          break;
+      }
+    }
+  }
+
+  var GMainDashInstance = new Mdash({
+    dashboardconfig: {
+      dashboardstamp: "",
+      codigo: "",
+      descricao: "",
+    },
+    categoria: ""
+  });
+
+  function handleDefaultValue(dataType, valor) {
+    switch (dataType.trim()) {
+      case "digit":
+        var inputValTxt = (String(valor) ? String(valor).replaceAll(" ", "").replaceAll(",", "") : "0")
+
+        return inputValTxt;
+        return isNaN(inputValTxt) || inputValTxt == null || inputValTxt == undefined || inputValTxt == "" ? 0 : inputValTxt;
+
+      case "text":
+        return valor ? valor : "";
+
+      default:
+        return valor;
+    }
+  }
+
+  function runExpression(code) {
+    return new Function(code)();
+  }
+
+  function getValorDefeito(filter) {
+    var valorDefeito = null;
+    if (filter.valordefeito) {
+      valorDefeito = runExpression(filter.valordefeito)
+    }
+
+    var cachedFilters = window.localStorage.getItem("mdashcachedFilters");
+    cachedFilters = cachedFilters ? JSON.parse(cachedFilters) : {};
+
+    if (cachedFilters[filter.codigo]) {
+      valorDefeito = cachedFilters[filter.codigo];
+    }
+
+    return handleDefaultValue(filter.tipo, valorDefeito);
+  }
+
+  function initFlatpickr(element, options) {
+    const defaultOptions = {
+      dateFormat: 'Y-m-d',
+      onChange: function (selectedDates, dateStr, instance) {
+        // Encontrar o escopo Petite-Vue mais próximo
+        console.log(dateStr)
+      }
+    };
+
+    // Mesclar opções padrão com opções personalizadas
+    const mergedOptions = { ...defaultOptions, ...options };
+
+    // Inicializar Flatpickr
+    return flatpickr(element, mergedOptions);
+  }
+
+  var GConfigDash = null;
+  $(document).ready(function () {
+
+
+    var state = PetiteVue.reactive({
+      mdash: GMainDashInstance,
+      initFlatpickr,
+      initDomObjects() {
+        var self = this;
+      },
+
+      initUI() {
+
+        setTimeout(() => {
+          
+          $(".mon-grupo-header").on("click", function () {
+            var grupoId = $(this).attr("data-grupo-id");
+            $(this).find("i").toggleClass("glyphicon-chevron-down");
+            $(this).find("i").toggleClass("glyphicon-chevron-right");
+            $(this).next(".mon-grupo-body").toggleClass("hidden");
+          });
+        }, 100);
+
+
+      },
+      initMultiselect(el, filtro) {
+
+        var self = this
+
+        $(el).select2({
+          width: '100%',
+          placeholder: 'Selecione uma opção',
+          allowClear: false
+        });
+
+        this.handleSetUIValueForMultiSelect(el, this.mdash.filterValues[filtro.codigo]);
+
+
+        $(el).on('change', (event) => {
+          const codigo = $(el).attr('id');
+          const valor = $(el).val();
+
+          //console.log("Texto selecionado no multiselect:", valor);
+          var texto = self.handleMultiSelectValue(valor);
+
+          self.executeUpdateFilter(filtro, texto);
+        });
+
+
+      },
+      handleSetUIValueForMultiSelect(el, valor) {
+        if (!valor) return;
+
+        if (Array.isArray(valor)) {
+
+          $(el).val(valor).trigger('change.select2');
+          return;
+        }
+        /* const arrayValores = valor
+           .split(',')
+           .map(v => v.trim().replace(/^'|'$/g, ''))
+           .filter(v => v !== '');*/
+        const arrayValores = (valor || '')
+          .split(',')
+          .map(v => v.trim().replace(/^'+|'+$/g, '')) // remove qualquer número de aspas no início/fim
+          .filter(v => v !== '');
+
+        $(el).val(arrayValores).trigger('change.select2');
+
+
+      },
+      handleMultiSelectValue(valor) {
+
+        if (!valor || !Array.isArray(valor) || valor.length === 0) return "";
+
+        // Remove aspas existentes e adiciona uma só por valor
+        return valor
+          .map(v => `${v.replace(/^'+|'+$/g, '')}`)
+          .join(',');
+
+
+      },
+      getOptions(filter) {
+        try {
+          var res = []
+          $.ajax({
+            type: "POST",
+            async: false,
+            url: "../programs/gensel.aspx?cscript=getoptionslistmdash",
+            data: {
+              '__EVENTARGUMENT': JSON.stringify([{ mdashfilterstamp: filter.mdashfilterstamp }]),
+            },
+            success: function (response) {
+              var errorMessage = "ao trazer resultados "
+              try {
+                console.log(response)
+                if (response.cod != "0000") {
+                  console.log("Erro " + errorMessage, response)
+                  return false
+                }
+                res = response.data || []
+              } catch (error) {
+                console.log("Erro interno " + errorMessage, response)
+                //alertify.error("Erro interno " + errorMessage, 10000)
+              }
+
+              // javascript:__doPostBack('','')
+            }
+          });
+
+          var filtroResult = res
+          return filtroResult
+        } catch (e) {
+          console.warn('Erro em expressaolistagem', e);
+          return [];
+        }
+      },
+      getRowGroups(containerStamp) {
+        this.initDomObjects();
+        // Filtra os items do container específico
+        var containerItems = this.mdash.containerItems.filter(function (item) {
+          return item.mdashcontainerstamp === containerStamp;
+        });
+
+        // Ordena por ordem se necessário
+        containerItems.sort(function (a, b) {
+          return (a.ordem || 0) - (b.ordem || 0);
+        });
+
+        // Agrupa em rows
+        return groupItemsByRows(containerItems);
+      },
+      refreshDashboard() {
+        console.log("Refreshing Dashboard.....");
+        this.mdash.containerItems.forEach(function (containerItem) {
+          containerItem.refreshContent();
+        });
+      },
+
+      updateFilterAndTriggerChange: function (codigo, valor) {
+        document.getElementById(codigo).value = valor;
+
+        var elementFilter = document.getElementById(codigo);
+
+        window.mdashAppState.mdash.filterValues[codigo] = valor
+        const event = new Event("change", { bubbles: true });
+        elementFilter.dispatchEvent(event);
+      },
+      executeUpdateFilter(filtro, valor) {
+
+        var containerItemsThatContainFilter = []
+        this.mdash.filterValues[filtro.codigo] = valor;
+        var filtroValue = valor;
+        if (filtro.eventochange && filtro.expressaochange) {
+          try {
+            eval(filtro.expressaochange);
+          } catch (error) {
+            console.error("Erro ao executar expressão de mudança do filtro:", error);
+          }
+        }
+
+        window.localStorage.setItem("mdashcachedFilters", JSON.stringify(this.mdash.filterValues));
+
+        this.mdash.containerItems.map(function (item) {
+          var filterFound = item.filters.find(function (f) {
+            return f == filtro.codigo;
+          })
+
+          if (filterFound) {
+            containerItemsThatContainFilter.push(item);
+          }
+        })
+
+        containerItemsThatContainFilter.forEach(function (itemWithFilter) {
+          itemWithFilter.refreshContent();
+        })
+      },
+      updateFilter(filtro, event) {
+
+        this.executeUpdateFilter(filtro, event.target.value);
+
+      },
+      selectAllOptions(filtro) {
+
+        var allValues = $("#" + filtro.codigo).find('option:not([value="todos"])').map(function () {
+          return this.value;
+        }).get();
+
+        this.executeUpdateFilter(filtro, this.handleMultiSelectValue(allValues));
+        $("#" + filtro.codigo).val(allValues).trigger('change.select2');
+      },
+      deselectAllOptions(filtro) {
+
+        var allValues = []
+
+        this.executeUpdateFilter(filtro, this.handleMultiSelectValue(allValues));
+        $("#" + filtro.codigo).val(allValues).trigger('change.select2');
+      },
+    });
+
+    window.mdashAppState = state;
+
+    PetiteVue.createApp(state).mount("#mdash");
+
+    handleMdashConfigData().then(function (data) {
+      if (GConfigDash) {
+        window.mdashAppState.mdash.containerItems.forEach(function (item) {
+          try {
+            item.refreshContent();
+          } catch (error) {
+          }
+        })
+      }
+    })
+  });
+
+  async function handleMdashConfigData() {
+    try {
+      params = new URLSearchParams(document.location.search);
+      codigomdash = params.get("codigomdash");
+
+      if (!codigomdash) {
+        $(".m-dash-main").empty();
+        var alertResult = buildAlert("alert-danger", "O código do Dashboard não foi encontrado.");
+
+        $(".m-dash-main").append(alertResult);
+        return false;
+      }
+
+      var errorMessage = "ao trazer resultados da configuração do m dashboard ao rendereizar o m dashboard";
+      var response = await $.ajax({
+        type: "POST",
+        url: "../programs/gensel.aspx?cscript=getconfiguracaoclientmdash",
+        data: {
+          '__EVENTARGUMENT': JSON.stringify([{ codigo: codigomdash }]),
+        }
+      });
+
+      if (response.cod != "0000") {
+        console.log("Erro " + errorMessage, response);
+        return false;
+      }
+
+      var configData = response.data
+      var dashboardconfig = response.data.dashboard[0] || {};
+
+      configData.dashboardconfig = dashboardconfig;
+
+      var configData = new Mdash(configData);
+      var filters = configData.filters || [];
+      var filterValues = {};
+
+      setTimeout(function () {
+        $('[data-language]').datepicker({
+          dateFormat: "yyyy-mm-dd",
+          defaultDate: new Date(),
+          onSelect: function (dateText, date, inst) {
+            var codigo = $(inst.el).attr('id');
+            $(codigo).trigger("change");
+            const event = new Event('change', { bubbles: true });
+            inst.el.dispatchEvent(event);
+
+
+          }
+        });
+      }, 1000);
+
+      filters.forEach(function (filter) {
+        filterValues[filter.codigo] = getValorDefeito(filter);
+      });
+
+      configData.filterValues = filterValues;
+
+      document.title = dashboardconfig.descricao
+
+      window.localStorage.setItem("mdashcachedFilters", JSON.stringify(configData.filterValues));
+
+      window.mdashAppState.mdash = configData;
+
+      setTimeout(function () {
+        // $("[data-language]").datepicker()
+      }, 1000)
+
+      GConfigDash = configData;
+
+      // console.log("configData", configData)
+
+    } catch (error) {
+      console.log("Erro interno " + errorMessage, error);
+    }
+  }
+</script>
+
+</html>

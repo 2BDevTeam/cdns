@@ -1,161 +1,166 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teste Boxicons</title>
-
-    <!-- Boxicons CDN -->
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-
+    <title>SQLADAPTER test</title>
+    <meta charset="utf-8" />
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #0f172a;
-            color: #fff;
-            margin: 0;
-            padding: 20px;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .section {
-            margin-bottom: 40px;
-        }
-
-        .icons-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 20px;
-        }
-
-        .icon-card {
-            background: #1e293b;
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            transition: 0.3s;
-        }
-
-        .icon-card:hover {
-            background: #334155;
-            transform: translateY(-5px);
-        }
-
-        .icon-card i {
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-
-        .sizes i {
-            margin: 10px;
-        }
-
-        .colors i {
-            margin: 10px;
-            font-size: 30px;
-        }
-
-        .buttons {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            background: #2563eb;
-            padding: 10px 15px;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .btn:hover {
-            background: #1d4ed8;
-        }
-
-        .animated i {
-            font-size: 30px;
-            margin: 15px;
-        }
+        body { font-family: monospace; padding: 1em; background: #1e1e1e; color: #d4d4d4; }
+        h2   { color: #9cdcfe; margin-top: 1.5em; }
+        .case { margin-bottom: 1.2em; border-left: 3px solid #555; padding-left: .8em; }
+        .label { color: #888; font-size: .85em; }
+        .in  { color: #ce9178; }
+        .out { color: #b5cea8; }
+        .err { color: #f44747; }
     </style>
 </head>
+
 <body>
+    <h1>SQLADAPTER.js &mdash; tests</h1>
+    <p>Open the browser console for raw output. Results also rendered below.</p>
+    <div id="results"></div>
 
-    <h1>🚀 Teste Completo Boxicons</h1>
+    <script src="SQLADAPTER.js"></script>
+    <script>
+        // ── render helper ─────────────────────────────────────────────────────
+        function renderSection(title, cases, adapterKey) {
+            var container = document.getElementById('results');
+            var h = document.createElement('h2');
+            h.textContent = title;
+            container.appendChild(h);
 
-    <!-- GRID DE ÍCONES -->
-    <div class="section">
-        <h2>📦 Ícones básicos</h2>
-        <div class="icons-grid">
-            <div class="icon-card"><i class='bx bx-home'></i><div>home</div></div>
-            <div class="icon-card"><i class='bx bx-user'></i><div>user</div></div>
-            <div class="icon-card"><i class='bx bx-cog'></i><div>settings</div></div>
-            <div class="icon-card"><i class='bx bx-bell'></i><div>notification</div></div>
-            <div class="icon-card"><i class='bx bx-envelope'></i><div>email</div></div>
-            <div class="icon-card"><i class='bx bx-search'></i><div>search</div></div>
-            <div class="icon-card"><i class='bx bx-cart'></i><div>cart</div></div>
-            <div class="icon-card"><i class='bx bx-heart'></i><div>like</div></div>
-            <div class="icon-card"><i class='bx bx-star'></i><div>star</div></div>
-            <div class="icon-card"><i class='bx bx-cloud'></i><div>cloud</div></div>
-        </div>
-    </div>
+            var adapter = SqlAdapter.SqlAdapterFactory.create(adapterKey);
+            var i, sql, out, div, lbl, inEl, outEl;
 
-    <!-- TAMANHOS -->
-    <div class="section sizes">
-        <h2>📏 Tamanhos</h2>
-        <i class='bx bx-home' style="font-size:16px"></i>
-        <i class='bx bx-home' style="font-size:24px"></i>
-        <i class='bx bx-home' style="font-size:32px"></i>
-        <i class='bx bx-home' style="font-size:48px"></i>
-        <i class='bx bx-home' style="font-size:64px"></i>
-    </div>
+            for (i = 0; i < cases.length; i++) {
+                sql = cases[i];
+                try {
+                    out = adapter.adapt(sql);
+                } catch (e) {
+                    out = 'ERROR: ' + e.message;
+                }
 
-    <!-- CORES -->
-    <div class="section colors">
-        <h2>🎨 Cores</h2>
-        <i class='bx bx-heart' style="color:red"></i>
-        <i class='bx bx-heart' style="color:orange"></i>
-        <i class='bx bx-heart' style="color:yellow"></i>
-        <i class='bx bx-heart' style="color:green"></i>
-        <i class='bx bx-heart' style="color:cyan"></i>
-        <i class='bx bx-heart' style="color:blue"></i>
-        <i class='bx bx-heart' style="color:purple"></i>
-    </div>
+                console.log('[' + adapterKey + '] IN :', sql);
+                console.log('[' + adapterKey + '] OUT:', out);
+                console.log('---');
 
-    <!-- BOTÕES -->
-    <div class="section">
-        <h2>🔘 Botões com ícones</h2>
-        <div class="buttons">
-            <div class="btn"><i class='bx bx-user'></i> Perfil</div>
-            <div class="btn"><i class='bx bx-log-in'></i> Login</div>
-            <div class="btn"><i class='bx bx-cart'></i> Comprar</div>
-            <div class="btn"><i class='bx bx-download'></i> Download</div>
-        </div>
-    </div>
+                div   = document.createElement('div');
+                div.className = 'case';
+                lbl   = document.createElement('div');
+                lbl.className = 'label';
+                lbl.textContent = 'Case ' + (i + 1);
+                inEl  = document.createElement('div');
+                inEl.className = 'in';
+                inEl.textContent = 'IN : ' + sql;
+                outEl = document.createElement('div');
+                outEl.className = out.indexOf('ERROR') === 0 ? 'err' : 'out';
+                outEl.textContent = 'OUT: ' + out;
+                div.appendChild(lbl);
+                div.appendChild(inEl);
+                div.appendChild(outEl);
+                container.appendChild(div);
+            }
+        }
 
-    <!-- ANIMAÇÕES -->
-    <div class="section animated">
-        <h2>⚡ Animações</h2>
-        <i class='bx bx-loader bx-spin'></i>
-        <i class='bx bx-loader-circle bx-spin'></i>
-        <i class='bx bx-bell bx-tada'></i>
-        <i class='bx bx-heart bx-burst'></i>
-        <i class='bx bx-rotate-right bx-spin'></i>
-    </div>
+        // ── Tests ─────────────────────────────────────────────────────────────
+        window.onload = function () {
 
-    <!-- TIPOS (SOLID vs REGULAR) -->
-    <div class="section">
-        <h2>🔄 Estilos (Regular vs Solid)</h2>
-        <i class='bx bx-heart' style="font-size:40px"></i>
-        <i class='bx bxs-heart' style="font-size:40px; color:red;"></i>
-    </div>
+            var tsqlCases = [
+                // ── basic ──────────────────────────────────────────────────────
+                'SELECT TOP 2 [id] FROM [test] AS [result]',
+                'SELECT TOP 10 [name], ISNULL([age], 0) AS [age] FROM [users] WHERE [active] = 1',
+                'SELECT LEN([name]), GETDATE() FROM [employees]',
+                'SELECT CHARINDEX(\'x\', [code]) FROM [items]',
+                'SELECT DATEPART(year, [created_at]), DATEPART(month, [created_at]) FROM [orders]',
+                'SELECT DATEADD(day, 7, [order_date]), DATEADD(month, -1, GETDATE()) FROM [orders]',
+                'SELECT CONVERT(NVARCHAR(50), [id]), CONVERT(INT, [amount]) FROM [sales]',
+                'SELECT YEAR([birth_date]), MONTH([birth_date]), DAY([birth_date]) FROM [people]',
+                'SELECT NEWID() AS [guid] FROM [records]',
+                'SELECT TOP 5 [a].[name], [b].[total] FROM [customers] AS [a] WITH (NOLOCK) INNER JOIN [orders] AS [b] ON [a].[id] = [b].[cust_id]',
+                // ── OFFSET / FETCH ─────────────────────────────────────────────
+                'SELECT [id], [name] FROM [products]' +
+                ' ORDER BY [price] DESC' +
+                ' OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY',
+                'SELECT [id], [name] FROM [products]' +
+                ' ORDER BY [price] DESC' +
+                ' OFFSET 0 ROWS FETCH FIRST 5 ROWS ONLY',
+                // ── STRING_AGG ─────────────────────────────────────────────────
+                'SELECT [dept_id], STRING_AGG([name], \', \') AS [names] FROM [employees] GROUP BY [dept_id]',
+                'SELECT [dept_id], STRING_AGG([name], \';\') WITHIN GROUP (ORDER BY [name]) FROM [employees] GROUP BY [dept_id]',
+                // ── STUFF + FOR XML PATH ───────────────────────────────────────
+                'SELECT [dept_id],' +
+                ' STUFF((SELECT \', \' + [name] FROM [employees] AS [e2] WHERE [e2].[dept_id] = [e].[dept_id] FOR XML PATH(\'\')), 1, 2, \'\') AS [names]' +
+                ' FROM [employees] AS [e] GROUP BY [dept_id]',
+                // ── FOR JSON PATH ──────────────────────────────────────────────
+                // -> SELECT json_group_array(json_object('id',"id",'name',"name",'email',"email")) AS result FROM "customers" WHERE "active" = 1
+                'SELECT [id], [name], [email] FROM [customers] WHERE [active] = 1 FOR JSON PATH',
+                // -> SELECT json_object('customers', json_group_array(json_object('id',"id",'name',"name"))) AS result FROM "customers"
+                'SELECT [id], [name] FROM [customers] FOR JSON AUTO, ROOT(\'customers\')',
+                // WITHOUT_ARRAY_WRAPPER -> json_object (no outer array)
+                'SELECT TOP 3 [id], [val] AS [value] FROM [t] FOR JSON PATH, WITHOUT_ARRAY_WRAPPER',
+                // ── CASE WHEN (with functions inside) ─────────────────────────
+                'SELECT [id],' +
+                ' CASE WHEN LEN([name]) > 50 THEN SUBSTRING([name], 1, 50) + \'...\'' +
+                '      WHEN ISNULL([name], \'\') = \'\' THEN \'(unknown)\''+
+                '      ELSE [name] END AS [display_name],' +
+                ' CASE WHEN DATEPART(hour, GETDATE()) < 12 THEN \'AM\' ELSE \'PM\' END AS [period]' +
+                ' FROM [users]',
+                // ── subquery + CTE + OFFSET ────────────────────────────────────
+                'WITH [ranked] AS (' +
+                '  SELECT [emp_id], [salary], [dept_id],' +
+                '    ROW_NUMBER() OVER (PARTITION BY [dept_id] ORDER BY [salary] DESC) AS [rn]' +
+                '  FROM [employees] WITH (NOLOCK)' +
+                ')' +
+                ' SELECT [emp_id], [salary] FROM [ranked]' +
+                ' WHERE [rn] = 1' +
+                ' ORDER BY [salary] DESC' +
+                ' OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY'
+            ];
 
+            var sqliteCases = [
+                // ── basic ──────────────────────────────────────────────────────
+                'SELECT "name" FROM "users" LIMIT 10',
+                'SELECT IFNULL("age", 0) FROM "users"',
+                'SELECT datetime(\'now\') FROM "log"',
+                'SELECT LENGTH("name"), SUBSTR("code", 1, 3) FROM "items"',
+                'SELECT INSTR("haystack_col", \'needle\') FROM "data"',
+                'SELECT "first" || \' \' || "last" AS "full_name" FROM "contacts"',
+                'SELECT lower(hex(randomblob(16))) AS "guid" FROM "records"',
+                // ── LIMIT / OFFSET -> OFFSET/FETCH ────────────────────────────
+                'SELECT "id", "name" FROM "products"' +
+                ' ORDER BY "price" DESC' +
+                ' LIMIT 10',
+                'SELECT "id", "name" FROM "products"' +
+                ' ORDER BY "price" DESC' +
+                ' LIMIT 10 OFFSET 20',
+                // ── GROUP_CONCAT -> STRING_AGG ─────────────────────────────────
+                'SELECT "dept_id", STRING_AGG("name", \', \') AS "names" FROM "employees" GROUP BY "dept_id"',
+                'SELECT "dept_id", GROUP_CONCAT("name", \'; \') AS "names" FROM "employees" GROUP BY "dept_id"',
+                // ── CASE WHEN (with functions inside) ─────────────────────────
+                'SELECT "id",' +
+                ' CASE WHEN LENGTH("name") > 50 THEN SUBSTR("name", 1, 50) || \'...\'' +
+                '      WHEN IFNULL("name", \'\') = \'\' THEN \'(unknown)\''+
+                '      ELSE "name" END AS "display_name"' +
+                ' FROM "users"',
+                // ── date functions ─────────────────────────────────────────────
+                'SELECT strftime(\'%Y\', "created_at"), strftime(\'%m\', "created_at") FROM "orders"',
+                'SELECT date("order_date", \'+7 days\'), datetime("ts", \'+1 hours\') FROM "orders"',
+                // ── subquery + CTE + LIMIT/OFFSET ─────────────────────────────
+                'WITH "ranked" AS (' +
+                '  SELECT "emp_id", "salary",' +
+                '    ROW_NUMBER() OVER (PARTITION BY "dept_id" ORDER BY "salary" DESC) AS "rn"' +
+                '  FROM "employees"' +
+                ')' +
+                ' SELECT "emp_id", "salary" FROM "ranked"' +
+                ' WHERE "rn" = 1' +
+                ' ORDER BY "salary" DESC' +
+                ' LIMIT 5 OFFSET 0'
+            ];
+
+            renderSection('TSql (SQL Server) -> SQLite', tsqlCases, 'tsql>sqlite');
+            renderSection('SQLite -> TSql (SQL Server)', sqliteCases, 'sqlite>tsql');
+        };
+    </script>
 </body>
+
 </html>

@@ -124,55 +124,19 @@ CREATE TABLE MdashFilter(
     ordem INT DEFAULT 0
 );
 
--- ============================================================================
--- MDashFonte v2 - Fontes de dados generalizadas com scope hierárquico
--- scope: 'global' | 'container' | 'containeritem' | 'object'
--- tipo:  'directquery' | 'javascript' | 'api' | 'stored'
--- ============================================================================
 CREATE TABLE MDashFonte(
+    
+    mdashfontestamp VARCHAR(25) PRIMARY KEY,
+    dashboardstamp VARCHAR(25) DEFAULT '',
+    codigo VARCHAR(250) DEFAULT '',
+    descricao VARCHAR(250) DEFAULT '',
+    tipo VARCHAR(100) DEFAULT '',
+    expressaolistagem TEXT  DEFAULT '',
+    expressaojslistagem TEXT DEFAULT '',
+    schemajson TEXT DEFAULT '',
+    lastResultscached TEXT DEFAULT '',
+    ordem INT DEFAULT 0
 
-    -- Identidade
-    mdashfontestamp       VARCHAR(25) PRIMARY KEY,
-    dashboardstamp        VARCHAR(25) DEFAULT '',
-    codigo                VARCHAR(250) DEFAULT '',
-    descricao             VARCHAR(250) DEFAULT '',
-    ordem                 INT DEFAULT 0,
-    inactivo              BIT DEFAULT 0,
-
-    -- Scope: a quem pertence esta fonte
-    scope                 VARCHAR(20) DEFAULT 'global',      -- 'global' | 'container' | 'containeritem' | 'object'
-    scopestamp            VARCHAR(25) DEFAULT '',             -- stamp do owner (vazio = global)
-
-    -- Tipo de fonte
-    tipo                  VARCHAR(20) DEFAULT 'directquery', -- 'directquery' | 'javascript' | 'api' | 'stored'
-
-    -- DirectQuery
-    expressaolistagem     TEXT DEFAULT '',                    -- SQL/CScript expression
-    urlfetch              TEXT DEFAULT '',                    -- endpoint (default PHC gensel)
-
-    -- JavaScript
-    expressaojslistagem   TEXT DEFAULT '',                    -- função JS que retorna dados
-
-    -- API (preparado para futuro)
-    apiurl                TEXT DEFAULT '',
-    apimethod             VARCHAR(10) DEFAULT 'GET',         -- GET | POST | PUT
-    apiheadersjson        TEXT DEFAULT '{}',
-    apibodyjson           TEXT DEFAULT '{}',
-
-    -- Schema
-    schemamode            VARCHAR(10) DEFAULT 'auto',        -- 'auto' | 'manual'
-    schemajson            TEXT DEFAULT '[]',                  -- [{field, type, label}]
-
-    -- Parâmetros dinâmicos
-    parametrosjson        TEXT DEFAULT '[]',                  -- [{token, source, sourcestamp, defaultValue}]
-
-    -- Refresh
-    refreshmode           VARCHAR(20) DEFAULT 'onload',      -- 'onload' | 'onfilterchange' | 'manual' | 'interval'
-    refreshintervalsec    INT DEFAULT 0,
-
-    -- Cache/Resultados
-    lastResultscached     TEXT DEFAULT '[]',
-    lastexecuted          DATETIME NULL
 );
 
 
@@ -198,9 +162,7 @@ CREATE TABLE MdashContainerItemObject(
     objectexpressaodblistagem TEXT DEFAULT '',
     tipoobjectodetalhes VARCHAR(100) DEFAULT '',
     titulodetalhes VARCHAR(250) DEFAULT '',
-    titulobtndetalhes VARCHAR(250) DEFAULT '',
-    fontestamp VARCHAR(25) DEFAULT '',               -- vínculo directo à fonte de dados
-    slotid VARCHAR(100) DEFAULT ''                   -- slot onde o objecto está colocado
+    titulobtndetalhes VARCHAR(250) DEFAULT ''
 );
 
 CREATE TABLE MdashContainerItemObjectDetail(

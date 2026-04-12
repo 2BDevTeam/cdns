@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Query Builder Avançado - Sistema Completo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+        }
+
+        .card {
+            margin-bottom: 1rem;
+        }
+
+        .border-left-primary {
+            border-left: 4px solid #007bff;
+        }
+
+        .border-left-success {
+            border-left: 4px solid #28a745;
+        }
+
+        .sql-keyword {
+            color: #d73a49;
+            font-weight: bold;
+        }
+
+        .sql-function {
+            color: #6f42c1;
+        }
+
+        .sql-string {
+            color: #032f62;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="container py-4">
+        <h2 class="mb-4">Query Builder Avançado - Sistema Completo</h2>
+
+        <!-- Configuração do Schema -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Configuração do Schema</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Adicionar Tabela</label>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" v-model="newTableName" placeholder="Nome da tabela">
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" v-model="newTableFields"
+                                placeholder="Campos (separados por vírgula)">
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary w-100" @click="addTable">Adicionar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="Object.keys(schema).length > 0">
+                    <h6>Tabelas Disponíveis:</h6>
+                    <div class="row">
+                        <div v-for="(fields, table) in schema" :key="table" class="col-md-3 mb-2">
+                            <div class="card border-left-primary">
+                                <div class="card-body py-2">
+                                    <h6 class="card-title mb-1">{{ table }}</h6>
+                                    <p class="card-text small text-muted mb-0">{{ fields.join(', ') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Containers de Query -->
+        <div v-for="(container, index) in containers" :key="container.id" class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Query Container {{ index + 1 }}</h5>
+                <button class="btn btn-sm btn-outline-danger" @click="removeContainer(container.id)">Remover</button>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Nome do Container</label>
+                    <input type="text" class="form-control" v-model="container.name"
+                        placeholder="Nome para referência futura">
+                </div>
+
+                <!-- Tipo de Query -->
+                <div class="mb-3">
+                    <label class="form-label">Tipo de Query</label>
+                    <select class="form-select" v-model="container.queryType">
+                        <option value="SELECT">SELECT</option>
+                        <option value="UNION">UNION</option>
+                        <option value="SUBQUERY">SUBQUERY</option>
+                        <option value="PIVOT">PIVOT</option>
+                    </select>
+                </div>
+
+                <!-- Fonte Principal -->
+                <div class="mb-3">
+                    <label class="form-label">Fonte Principal</label>
+                    <select class="form-select" v-model="container.mainSource"
+                        @change="updateContainerTables(container)">
+                        <option v-for="src in getAllSources(container.id)" :value="src.key">{{ src.label }}</option>
+                    </select>
+                </div>
+
+                <!-- Campos SELECT -->
+                <h6 class="mt-4">Campos SELECT</h6>
+                <div v-for="(field, fIndex) in container.fields" :key="fIndex" class="mb-3 border rounded p-2">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" v-model="field.isFreeText"
+                            :id="`select-free-${container.id}-${fIndex}`" />
+                        <label class="form-check-label" :for="`select-free-${container.id}-${fIndex}`">
+                            Usar Texto Livre
+                        </label>
+                    </div>
+
+                    <template v-if="field.isFreeText">
+                        <textarea class="form-control" v-model="field.freeText"
+                            placeholder="Digite expressão SQL livre para SELECT"></textarea>
+                    </template>
+                    <template v-else>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-2">
+                                <select class="form-select" v-model="field.source"
+                                    @change="updateFieldNames(container, fIndex)">
+                                    <option v-for="src in container.tables" :value="src.key">{{ src.label }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" v-model="field.name">
+                                    <option v-for="f in getFieldsBySource(field.source)" :value="f">{{ f }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" v-model="field.function">
+                                    <option value="">Nenhuma</option>
+                                    <option v-for="func in functions" :value="func.name">{{ func.name }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" v-model="field.castType">
+                                    <option value="">Sem CAST</option>
+                                    <option value="VARCHAR">VARCHAR</option>
+                                    <option value="NUMERIC">NUMERIC</option>
+                                    <option value="INT">INT</option>
+                                    <option value="DATE">DATE</option>
+                                    <option value="DATETIME">DATETIME</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <input class="form-control" v-model="field.castParams" placeholder="Parâmetros CAST"
+                                    v-if="field.castType">
+                            </div>
+                            <div class="col-md-2">
+                                <input class="form-control" v-model="field.alias" placeholder="Alias" />
+                            </div>
+                            <div class="col-md-1">
+                                <button class="btn btn-danger w-100" @click="removeField(container, fIndex)">×</button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <button class="btn btn-outline-primary btn-sm mb-3" @click="addField(container)">+ Campo</button>
+
+                <!-- Joins -->
+                <h6 class="mt-4">Joins</h6>
+                <div v-for="(join, jIndex) in container.joins" :key="jIndex" class="row g-2 align-items-end mb-2">
+                    <div class="col-md-2">
+                        <select class="form-select" v-model="join.type">
+                            <option value="INNER JOIN">INNER JOIN</option>
+                            <option value="LEFT JOIN">LEFT JOIN</option>
+                            <option value="RIGHT JOIN">RIGHT JOIN</option>
+                            <option value="FULL JOIN">FULL JOIN</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" v-model="join.leftSource"
+                            @change="updateJoinFields(container, jIndex)">
+                            <option v-for="src in container.tables" :value="src.key">{{ src.label }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" v-model="join.leftField">
+                            <option v-for="f in getFieldsBySource(join.leftSource)" :value="f">{{ f }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1 text-center">=</div>
+                    <div class="col-md-2">
+                        <select class="form-select" v-model="join.rightSource"
+                            @change="updateJoinFields(container, jIndex)">
+                            <option v-for="src in getAllSources(container.id)" :value="src.key">{{ src.label }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" v-model="join.rightField">
+                            <option v-for="f in getFieldsBySource(join.rightSource)" :value="f">{{ f }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn btn-danger w-100" @click="removeJoin(container, jIndex)">×</button>
+                    </div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm mb-3" @click="addJoin(container)">+ Join</button>
+
+                <!-- WHERE -->
+                <h6 class="mt-4">Where</h6>
+                <div v-for="(where, wIndex) in container.where" :key="wIndex" class="mb-3 border rounded p-2">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" v-model="where.isFreeText"
+                            :id="`where-free-${container.id}-${wIndex}`" />
+                        <label class="form-check-label" :for="`where-free-${container.id}-${wIndex}`">
+                            Usar Texto Livre
+                        </label>
+                    </div>
+
+                    <template v-if="where.isFreeText">
+                        <textarea class="form-control" v-model="where.freeText"
+                            placeholder="Digite expressão SQL livre para WHERE"></textarea>
+                    </template>
+                    <template v-else>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-3">
+                                <select class="form-select" v-model="where.source"
+                                    @change="updateWhereFields(container, wIndex)">
+                                    <option v-for="src in container.tables" :value="src.key">{{ src.label }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" v-model="where.field">
+                                    <option v-for="f in getFieldsBySource(where.source)" :value="f">{{ f }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" v-model="where.operator">
+                                    <option value="=">=</option>
+                                    <option value="!=">!=</option>
+                                    <option value=">">&gt;</option>
+                                    <option value="<">&lt;</option>
+                                    <option value=">=">&gt;=</option>
+                                    <option value="<=">&lt;=</option>
+                                    <option value="LIKE">LIKE</option>
+                                    <option value="IN">IN</option>
+                                    <option value="NOT IN">NOT IN</option>
+                                    <option value="IS NULL">IS NULL</option>
+                                    <option value="IS NOT NULL">IS NOT NULL</option>
+                                    <option value="BETWEEN">BETWEEN</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <input class="form-control" v-model="where.value" placeholder="Valor"
+                                    v-if="!['IS NULL', 'IS NOT NULL'].includes(where.operator)" />
+                                <span v-else class="form-control-plaintext">{{ where.operator }}</span>
+                            </div>
+                            <div class="col-md-1">
+                                <button class="btn btn-danger w-100" @click="removeWhere(container, wIndex)">×</button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <button class="btn btn-outline-primary btn-sm mb-3" @click="addWhere(container)">+ Condição</button>
+
+                <!-- Group By -->
+                <h6 class="mt-4">Group By</h6>
+                <div v-for="(group, gIndex) in container.groupBy" :key="gIndex" class="row g-2 align-items-end mb-2">
+                    <div class="col-md-4">
+                        <select class="form-select" v-model="group.source">
+                            <option v-for="src in container.tables" :value="src.key">{{ src.label }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" v-model="group.field">
+                            <option v-for="f in getFieldsBySource(group.source)" :value="f">{{ f }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-danger w-100" @click="removeGroupBy(container, gIndex)">×</button>
+                    </div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm mb-3" @click="addGroupBy(container)">+ Group By</button>
+
+                <!-- Order By -->
+                <h6 class="mt-4">Order By</h6>
+                <div v-for="(order, oIndex) in container.orderBy" :key="oIndex" class="row g-2 align-items-end mb-2">
+                    <div class="col-md-3">
+                        <select class="form-select" v-model="order.source">
+                            <option v-for="src in container.tables" :value="src.key">{{ src.label }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" v-model="order.field">
+                            <option v-for="f in getFieldsBySource(order.source)" :value="f">{{ f }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" v-model="order.direction">
+                            <option value="ASC">ASC</option>
+                            <option value="DESC">DESC</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-danger w-100" @click="removeOrderBy(container, oIndex)">×</button>
+                    </div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" @click="addOrderBy(container)">+ Order By</button>
+
+                <!-- Configurações Avançadas -->
+                <h6 class="mt-4">Configurações Avançadas</h6>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <input type="number" class="form-control" v-model="container.limit"
+                            placeholder="LIMIT (opcional)">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" class="form-control" v-model="container.offset"
+                            placeholder="OFFSET (opcional)">
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" v-model="container.distinct">
+                            <option value="">Sem DISTINCT</option>
+                            <option value="DISTINCT">DISTINCT</option>
+                            <option value="DISTINCTROW">DISTINCTROW</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controles Principais -->
+        <div class="d-flex gap-3 mb-4">
+            <button class="btn btn-secondary" @click="addContainer">+ Adicionar Query Container</button>
+            <button class="btn btn-success" @click="generateFinalQuery">Gerar Query Final</button>
+            <button class="btn btn-info" @click="loadExample">Carregar Exemplo Complexo</button>
+        </div>
+
+        <!-- Query Gerada -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Query Gerada</h5>
+                <div>
+                    <button class="btn btn-outline-dark btn-sm me-2" @click="copyQuery">Copiar</button>
+                    <button class="btn btn-outline-info btn-sm" @click="toggleSyntaxHighlighting">
+                        {{ syntaxHighlighting ? 'Desativar' : 'Ativar' }} Destaque
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <pre v-if="syntaxHighlighting" v-html="highlightedQuery"></pre>
+                <pre v-else>{{ finalQuery }}</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, reactive, watch } = Vue;
+
+        createApp({
+            setup() {
+                // Schema inicial
+                const schema = ref({
+                    bi: ["u_onshelf", "u_oos", "u_notstock", "bostamp", "ref", "usr1"],
+                    bo: ["bostamp", "u_pno", "u_finished", "dataobra", "ndos", "nome"],
+                    ag: ["no", "nome", "area", "u_province", "u_reggroup", "u_market", "u_nbhood", "u_category"],
+                    st: ["ref", "inactivo", "design", "u_clnome"],
+                    qur: ["pergunta", "u_loopposi", "u_columns", "qucstamp", "qupstamp", "oristamp", "data", "username", "u_latitude", "u_longtute", "cresp"],
+                    qup: ["qupstamp", "u_type"],
+                    quc: ["qucstamp"]
+                });
+
+                // Funções disponíveis
+                const functions = ref([
+                    { name: "SUM", description: "Soma dos valores" },
+                    { name: "AVG", description: "Média dos valores" },
+                    { name: "COUNT", description: "Contagem de registros" },
+                    { name: "MIN", description: "Valor mínimo" },
+                    { name: "MAX", description: "Valor máximo" },
+                    { name: "ROUND", description: "Arredondamento" },
+                    { name: "CONVERT", description: "Conversão de tipo" },
+                    { name: "ISNULL", description: "Substitui NULL por valor" },
+                    { name: "LTRIM", description: "Remove espaços à esquerda" },
+                    { name: "RTRIM", description: "Remove espaços à direita" },
+                    { name: "STRING_AGG", description: "Concatena strings" },
+                    { name: "CASE", description: "Expressão condicional" }
+                ]);
+
+                // Containers de query
+                const containers = ref([]);
+
+                // Estado da aplicação
+                const newTableName = ref("");
+                const newTableFields = ref("");
+                const finalQuery = ref("");
+                const highlightedQuery = ref("");
+                const syntaxHighlighting = ref(true);
+
+                // Inicializar com um container
+                const initializeContainers = () => {
+                    containers.value = [createContainer(1)];
+                };
+
+                // Criar um novo container
+                const createContainer = (id) => {
+                    return {
+                        id,
+                        name: "",
+                        queryType: "SELECT",
+                        mainSource: "table:bi",
+                        tables: [{ key: "table:bi", label: "bi", type: "table" }],
+                        fields: [],
+                        joins: [],
+                        where: [],
+                        groupBy: [],
+                        orderBy: [],
+                        limit: null,
+                        offset: null,
+                        distinct: ""
+                    };
+                };
+
+                // Adicionar tabela ao schema
+                const addTable = () => {
+                    if (newTableName.value && newTableFields.value) {
+                        const fields = newTableFields.value.split(',').map(f => f.trim()).filter(f => f);
+                        schema.value[newTableName.value] = fields;
+                        newTableName.value = "";
+                        newTableFields.value = "";
+                    }
+                };
+
+                // Adicionar container
+                const addContainer = () => {
+                    const newId = containers.value.length > 0
+                        ? Math.max(...containers.value.map(c => c.id)) + 1
+                        : 1;
+                    containers.value.push(createContainer(newId));
+                };
+
+                // Remover container
+                const removeContainer = (id) => {
+                    const index = containers.value.findIndex(c => c.id === id);
+                    if (index !== -1) {
+                        containers.value.splice(index, 1);
+                    }
+                };
+
+                // Obter todas as fontes disponíveis
+                const getAllSources = (currentContainerId) => {
+                    const sources = [];
+
+                    // Adicionar tabelas
+                    for (const tbl in schema.value) {
+                        sources.push({ key: `table:${tbl}`, label: tbl, type: "table" });
+                    }
+
+                    // Adicionar containers existentes (exceto o atual)
+                    containers.value.forEach(c => {
+                        if (c.id !== currentContainerId && c.name.trim() !== "") {
+                            sources.push({
+                                key: `container:${c.name.trim()}`,
+                                label: `Container: ${c.name.trim()}`,
+                                type: "container"
+                            });
+                        }
+                    });
+
+                    return sources;
+                };
+
+                // Atualizar tabelas disponíveis no container
+                const updateContainerTables = (container) => {
+                    const tablesSet = new Map();
+
+                    const addSource = (key) => {
+                        if (!tablesSet.has(key)) {
+                            const type = key.startsWith("table:") ? "table" : "container";
+                            const label = type === "table" ? key.slice(6) : key.slice(10);
+                            tablesSet.set(key, { key, label, type });
+                        }
+                    };
+
+                    // Adicionar fonte principal
+                    addSource(container.mainSource);
+
+                    // Adicionar fontes dos joins
+                    container.joins.forEach(join => {
+                        if (join.leftSource) addSource(join.leftSource);
+                        if (join.rightSource) addSource(join.rightSource);
+                    });
+
+                    container.tables = Array.from(tablesSet.values());
+                };
+
+                // Obter campos por fonte
+                const getFieldsBySource = (sourceKey) => {
+                    if (!sourceKey) return [];
+
+                    if (sourceKey.startsWith("table:")) {
+                        const tbl = sourceKey.slice(6);
+                        return schema.value[tbl] || [];
+                    } else if (sourceKey.startsWith("container:")) {
+                        const containerName = sourceKey.slice(10);
+                        const container = containers.value.find(c => c.name.trim() === containerName);
+
+                        if (!container) return [];
+
+                        // Se o container tem campos definidos, retornar esses campos
+                        if (container.fields.length > 0) {
+                            return container.fields
+                                .map(f => f.alias || (f.isFreeText ? f.freeText.split(' ').pop() : f.name))
+                                .filter(f => f);
+                        }
+
+                        // Caso contrário, retornar campos das tabelas do container
+                        let allFields = [];
+                        container.tables.forEach(t => {
+                            if (t.type === "table") {
+                                allFields = allFields.concat(schema.value[t.label] || []);
+                            }
+                        });
+
+                        return [...new Set(allFields)];
+                    }
+
+                    return [];
+                };
+
+                // Adicionar campo
+                const addField = (c) => {
+                    if (c.tables.length === 0) return;
+
+                    c.fields.push({
+                        source: c.tables[0].key,
+                        name: "",
+                        alias: "",
+                        function: "",
+                        castType: "",
+                        castParams: "",
+                        isFreeText: false,
+                        freeText: ""
+                    });
+                };
+
+                // Remover campo
+                const removeField = (c, i) => {
+                    c.fields.splice(i, 1);
+                };
+
+                // Atualizar nomes de campos
+                const updateFieldNames = (container, fIndex) => {
+                    const field = container.fields[fIndex];
+                    if (!field.name && container.tables.length > 0) {
+                        const fields = getFieldsBySource(field.source);
+                        if (fields.length > 0) {
+                            field.name = fields[0];
+                        }
+                    }
+                };
+
+                // Adicionar join
+                const addJoin = (c) => {
+                    const leftSource = c.mainSource;
+                    const rightSource = getAllSources(c.id).find(s => s.key !== leftSource)?.key || leftSource;
+
+                    c.joins.push({
+                        type: "INNER JOIN",
+                        leftSource,
+                        leftField: "",
+                        rightSource,
+                        rightField: ""
+                    });
+
+                    updateContainerTables(c);
+                };
+
+                // Remover join
+                const removeJoin = (c, i) => {
+                    c.joins.splice(i, 1);
+                    updateContainerTables(c);
+                };
+
+                // Atualizar campos do join
+                const updateJoinFields = (container, jIndex) => {
+                    const join = container.joins[jIndex];
+
+                    if (!join.leftField && join.leftSource) {
+                        const lf = getFieldsBySource(join.leftSource);
+                        if (lf.length > 0) join.leftField = lf[0];
+                    }
+
+                    if (!join.rightField && join.rightSource) {
+                        const rf = getFieldsBySource(join.rightSource);
+                        if (rf.length > 0) join.rightField = rf[0];
+                    }
+
+                    updateContainerTables(container);
+                };
+
+                // Adicionar condição WHERE
+                const addWhere = (c) => {
+                    if (c.tables.length === 0) return;
+
+                    c.where.push({
+                        source: c.tables[0].key,
+                        field: "",
+                        operator: "=",
+                        value: "",
+                        isFreeText: false,
+                        freeText: ""
+                    });
+                };
+
+                // Remover condição WHERE
+                const removeWhere = (c, i) => {
+                    c.where.splice(i, 1);
+                };
+
+                // Atualizar campos WHERE
+                const updateWhereFields = (container, wIndex) => {
+                    const where = container.where[wIndex];
+
+                    if (!where.field && where.source) {
+                        const fields = getFieldsBySource(where.source);
+                        if (fields.length > 0) where.field = fields[0];
+                    }
+                };
+
+                // Adicionar GROUP BY
+                const addGroupBy = (c) => {
+                    if (c.tables.length === 0) return;
+
+                    c.groupBy.push({
+                        source: c.tables[0].key,
+                        field: ""
+                    });
+                };
+
+                // Remover GROUP BY
+                const removeGroupBy = (c, i) => {
+                    c.groupBy.splice(i, 1);
+                };
+
+                // Adicionar ORDER BY
+                const addOrderBy = (c) => {
+                    if (c.tables.length === 0) return;
+
+                    c.orderBy.push({
+                        source: c.tables[0].key,
+                        field: "",
+                        direction: "ASC"
+                    });
+                };
+
+                // Remover ORDER BY
+                const removeOrderBy = (c, i) => {
+                    c.orderBy.splice(i, 1);
+                };
+
+                // Gerar query final
+                const generateFinalQuery = () => {
+                    if (containers.value.length === 0) {
+                        finalQuery.value = "-- Nenhum container válido para gerar query --";
+                        return;
+                    }
+
+                    try {
+                        const withClauses = [];
+                        let mainQuery = "";
+
+                        // Processar cada container
+                        for (const c of containers.value) {
+                            if (!c.name.trim()) continue;
+
+                            const containerQuery = buildContainerQuery(c);
+
+                            if (c.queryType === "SELECT") {
+                                withClauses.push(`${c.name.trim()} AS (${containerQuery})`);
+                            } else {
+                                mainQuery = containerQuery;
+                            }
+                        }
+
+                        // Construir query final
+                        if (withClauses.length > 0) {
+                            finalQuery.value = `WITH ${withClauses.join(",\n")}\n${mainQuery || `SELECT * FROM ${containers.value[containers.value.length - 1].name.trim()}`};`;
+                        } else {
+                            finalQuery.value = mainQuery ? `${mainQuery};` : "-- Nenhuma query válida gerada --";
+                        }
+
+                        // Aplicar destaque de sintaxe
+                        applySyntaxHighlighting();
+                    } catch (error) {
+                        finalQuery.value = `-- Erro ao gerar query: ${error.message} --`;
+                    }
+                };
+
+                // Construir query de um container
+                const buildContainerQuery = (container) => {
+                    let query = "";
+
+                    // SELECT
+                    const selectFields = [];
+
+                    if (container.fields.length > 0) {
+                        for (const f of container.fields) {
+                            if (f.isFreeText && f.freeText.trim() !== "") {
+                                selectFields.push(f.freeText.trim());
+                            } else if (f.name) {
+                                let fieldExpression = "";
+
+                                // Adicionar função se especificada
+                                if (f.function) {
+                                    fieldExpression = `${f.function}(${getSourceName(f.source)}.${f.name})`;
+                                } else {
+                                    fieldExpression = `${getSourceName(f.source)}.${f.name}`;
+                                }
+
+                                // Aplicar CAST se especificado
+                                if (f.castType) {
+                                    const params = f.castParams ? `(${f.castParams})` : "";
+                                    fieldExpression = `CAST(${fieldExpression} AS ${f.castType}${params})`;
+                                }
+
+                                // Adicionar alias
+                                if (f.alias.trim()) {
+                                    fieldExpression += ` AS ${f.alias}`;
+                                }
+
+                                selectFields.push(fieldExpression);
+                            }
+                        }
+                    } else {
+                        // Se não há campos definidos, selecionar todos da fonte principal
+                        const mainSourceName = getSourceName(container.mainSource);
+                        selectFields.push(`${mainSourceName}.*`);
+                    }
+
+                    // FROM
+                    let fromClause = getSourceName(container.mainSource);
+
+                    // JOINs
+                    const joinClauses = container.joins.map(j => {
+                        const leftSource = getSourceName(j.leftSource);
+                        const rightSource = getSourceName(j.rightSource);
+
+                        return ` ${j.type} ${rightSource} ON ${leftSource}.${j.leftField} = ${rightSource}.${j.rightField}`;
+                    }).join("");
+
+                    // WHERE
+                    let whereClause = "";
+                    if (container.where.length > 0) {
+                        const conditions = [];
+
+                        for (const w of container.where) {
+                            if (w.isFreeText && w.freeText.trim() !== "") {
+                                conditions.push(`(${w.freeText.trim()})`);
+                            } else if (w.field) {
+                                const sourceName = getSourceName(w.source);
+                                let condition = `${sourceName}.${w.field} ${w.operator}`;
+
+                                if (!['IS NULL', 'IS NOT NULL'].includes(w.operator)) {
+                                    if (w.operator === 'BETWEEN') {
+                                        const values = w.value.split(' AND ');
+                                        if (values.length === 2) {
+                                            condition += ` ${formatValue(values[0])} AND ${formatValue(values[1])}`;
+                                        } else {
+                                            condition += ` ${formatValue(w.value)}`;
+                                        }
+                                    } else if (w.operator === 'IN' || w.operator === 'NOT IN') {
+                                        const values = w.value.split(',').map(v => formatValue(v.trim()));
+                                        condition += ` (${values.join(', ')})`;
+                                    } else if (w.operator === 'LIKE') {
+                                        let val = w.value;
+                                        if (!val.includes("%")) val = `%${val}%`;
+                                        condition += ` ${formatValue(val)}`;
+                                    } else {
+                                        condition += ` ${formatValue(w.value)}`;
+                                    }
+                                }
+
+                                conditions.push(condition);
+                            }
+                        }
+
+                        if (conditions.length > 0) {
+                            whereClause = ` WHERE ${conditions.join(" AND ")}`;
+                        }
+                    }
+
+                    // GROUP BY
+                    let groupByClause = "";
+                    if (container.groupBy.length > 0) {
+                        const groups = container.groupBy
+                            .filter(g => g.field)
+                            .map(g => `${getSourceName(g.source)}.${g.field}`);
+
+                        if (groups.length > 0) {
+                            groupByClause = ` GROUP BY ${groups.join(", ")}`;
+                        }
+                    }
+
+                    // ORDER BY
+                    let orderByClause = "";
+                    if (container.orderBy.length > 0) {
+                        const orders = container.orderBy
+                            .filter(o => o.field)
+                            .map(o => `${getSourceName(o.source)}.${o.field} ${o.direction}`);
+
+                        if (orders.length > 0) {
+                            orderByClause = ` ORDER BY ${orders.join(", ")}`;
+                        }
+                    }
+
+                    // LIMIT e OFFSET
+                    let limitClause = "";
+                    if (container.limit) {
+                        limitClause = ` LIMIT ${container.limit}`;
+                        if (container.offset) {
+                            limitClause += ` OFFSET ${container.offset}`;
+                        }
+                    }
+
+                    // Montar query completa
+                    const distinctClause = container.distinct ? ` ${container.distinct}` : "";
+                    query = `SELECT${distinctClause} ${selectFields.join(", ")} FROM ${fromClause}${joinClauses}${whereClause}${groupByClause}${orderByClause}${limitClause}`;
+
+                    return query;
+                };
+
+                // Obter nome da fonte (sem prefixo)
+                const getSourceName = (sourceKey) => {
+                    if (sourceKey.startsWith("table:")) {
+                        return sourceKey.slice(6);
+                    } else if (sourceKey.startsWith("container:")) {
+                        return sourceKey.slice(10);
+                    }
+                    return sourceKey;
+                };
+
+                // Formatar valor para SQL
+                const formatValue = (value) => {
+                    if (value === null || value === undefined || value === "") {
+                        return "NULL";
+                    }
+
+                    // Verificar se é número
+                    if (!isNaN(value) && value.trim() !== "") {
+                        return value;
+                    }
+
+                    // Verificar se é expressão SQL (contém palavras-chave)
+                    const sqlKeywords = ['SELECT', 'FROM', 'WHERE', 'JOIN', 'GROUP BY', 'ORDER BY', 'CASE', 'WHEN', 'THEN', 'END'];
+                    if (sqlKeywords.some(keyword => value.toUpperCase().includes(keyword))) {
+                        return value;
+                    }
+
+                    // É string - escapar aspas simples
+                    return `'${value.replace(/'/g, "''")}'`;
+                };
+
+                // Aplicar destaque de sintaxe SQL
+                const applySyntaxHighlighting = () => {
+                    if (!finalQuery.value) return;
+
+                    let highlighted = finalQuery.value;
+
+                    // Palavras-chave SQL
+                    const keywords = [
+                        'SELECT', 'FROM', 'WHERE', 'JOIN', 'INNER', 'LEFT', 'RIGHT', 'FULL', 'OUTER',
+                        'ON', 'AND', 'OR', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET',
+                        'AS', 'WITH', 'UNION', 'ALL', 'DISTINCT', 'DISTINCTROW', 'CASE', 'WHEN',
+                        'THEN', 'ELSE', 'END', 'IS', 'NULL', 'NOT', 'BETWEEN', 'IN', 'LIKE'
+                    ];
+
+                    // Funções SQL
+                    const sqlFunctions = [
+                        'SUM', 'AVG', 'COUNT', 'MIN', 'MAX', 'ROUND', 'CONVERT', 'ISNULL',
+                        'LTRIM', 'RTRIM', 'STRING_AGG', 'CAST'
+                    ];
+
+                    // Aplicar destaque a palavras-chave
+                    keywords.forEach(keyword => {
+                        const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+                        highlighted = highlighted.replace(regex, `<span class="sql-keyword">${keyword}</span>`);
+                    });
+
+                    // Aplicar destaque a funções
+                    sqlFunctions.forEach(func => {
+                        const regex = new RegExp(`\\b${func}\\b`, 'gi');
+                        highlighted = highlighted.replace(regex, `<span class="sql-function">${func}</span>`);
+                    });
+
+                    // Aplicar destaque a strings
+                    highlighted = highlighted.replace(/'([^']*)'/g, `<span class="sql-string">'$1'</span>`);
+
+                    highlightedQuery.value = highlighted;
+                };
+
+                // Alternar destaque de sintaxe
+                const toggleSyntaxHighlighting = () => {
+                    syntaxHighlighting.value = !syntaxHighlighting.value;
+                };
+
+                // Copiar query para área de transferência
+                const copyQuery = async () => {
+                    try {
+                        await navigator.clipboard.writeText(finalQuery.value);
+                        alert("Query copiada para a área de transferência!");
+                    } catch (err) {
+                        console.error('Falha ao copiar: ', err);
+                    }
+                };
+
+                // Carregar exemplo complexo
+                const loadExample = () => {
+                    // Limpar containers existentes
+                    containers.value = [];
+
+                    // Adicionar primeiro container (subquery)
+                    const container1 = createContainer(1);
+                    container1.name = "tmp";
+                    container1.mainSource = "table:bi";
+
+                    // Configurar campos
+                    container1.fields = [
+                        {
+                            source: "table:ag",
+                            name: "u_market",
+                            alias: "Market",
+                            function: "",
+                            castType: "",
+                            castParams: "",
+                            isFreeText: false,
+                            freeText: ""
+                        },
+                        {
+                            source: "table:ag",
+                            name: "u_nbhood",
+                            alias: "NeighborHood",
+                            function: "",
+                            castType: "",
+                            castParams: "",
+                            isFreeText: false,
+                            freeText: ""
+                        },
+                        {
+                            isFreeText: true,
+                            freeText: "Round(( CONVERT(DECIMAL(12, 2), ( Sum(CASE WHEN bi.u_onshelf = 1 THEN 1 ELSE 0 END) * 100 )) / CONVERT(DECIMAL(12, 2), Count(CASE WHEN bi.u_onshelf = 1 THEN 1 ELSE 0 END)) ), 2) AS [On Shelfs %]"
+                        },
+                        {
+                            isFreeText: true,
+                            freeText: "Round(( CONVERT(DECIMAL(12, 2), ( Sum(CASE WHEN bi.u_oos = 1 THEN 1 ELSE 0 END) * 100 )) / CONVERT(DECIMAL(12, 2), Count(CASE WHEN bi.u_oos = 1 THEN 1 ELSE 0 END)) ), 2) AS [Out of stocks %]"
+                        },
+                        {
+                            isFreeText: true,
+                            freeText: "Round(( CONVERT(DECIMAL(12, 2), ( Sum(CASE WHEN bi.u_notstock = 1 THEN 1 ELSE 0 END) * 100 )) / CONVERT(DECIMAL(12, 2), Count(CASE WHEN bi.u_notstock = 1 THEN 1 ELSE 0 END)) ), 2) AS [Not Stocked %]"
+                        },
+                        {
+                            source: "table:ag",
+                            name: "nome",
+                            alias: "[Store Name]",
+                            function: "",
+                            castType: "",
+                            castParams: "",
+                            isFreeText: false,
+                            freeText: ""
+                        },
+                        {
+                            source: "table:ag",
+                            name: "area",
+                            alias: "Channel",
+                            function: "",
+                            castType: "",
+                            castParams: "",
+                            isFreeText: false,
+                            freeText: ""
+                        },
+                        {
+                            source: "table:ag",
+                            name: "u_category",
+                            alias: "Category",
+                            function: "",
+                            castType: "",
+                            castParams: "",
+                            isFreeText: false,
+                            freeText: ""
+                        },
+                        {
+                            source: "table:ag",
+                            name: "u_province",
+                            alias: "Province",
+                            function: "",
+                            castType: "",
+                            castParams: "",
+                            isFreeText: false,
+                            freeText: ""
+                        },
+                        {
+                            source: "table:ag",
+                            name: "u_reggroup",
+                            alias: "Region",
+                            function: "",
+                            castType: "",
+                            castParams: "",
+                            isFreeText: false,
+                            freeText: ""
+                        },
+                        {
+                            source: "table:bo",
+                            name: "dataobra",
+                            alias: "Date",
+                            function: "",
+                            castType: "",
+                            castParams: "",
+                            isFreeText: false,
+                            freeText: ""
+                        }
+                    ];
+
+                    // Configurar joins
+                    container1.joins = [
+                        {
+                            type: "INNER JOIN",
+                            leftSource: "table:bi",
+                            leftField: "bostamp",
+                            rightSource: "table:bo",
+                            rightField: "bostamp"
+                        },
+                        {
+                            type: "INNER JOIN",
+                            leftSource: "table:bo",
+                            leftField: "u_pno",
+                            rightSource: "table:ag",
+                            rightField: "no"
+                        },
+                        {
+                            type: "INNER JOIN",
+                            leftSource: "table:bi",
+                            leftField: "ref",
+                            rightSource: "table:st",
+                            rightField: "ref"
+                        }
+                    ];
+
+                    // Configurar WHERE
+                    container1.where = [
+                        { isFreeText: true, freeText: "bo.ndos = 29" },
+                        { isFreeText: true, freeText: "bo.u_finished = 1" },
+                        { isFreeText: true, freeText: "st.inactivo <> 1" },
+                        { isFreeText: true, freeText: "bo.nome = '#1#'" },
+                        { isFreeText: true, freeText: "st.u_clnome = '#1#'" },
+                        { isFreeText: true, freeText: "bo.dataobra BETWEEN '#2#' AND '#3#'" }
+                    ];
+
+                    // Configurar GROUP BY
+                    container1.groupBy = [
+                        { source: "table:bo", field: "dataobra" },
+                        { source: "table:bi", field: "bistamp" },
+                        { source: "table:ag", field: "u_market" },
+                        { source: "table:ag", field: "u_nbhood" },
+                        { source: "table:ag", field: "nome" },
+                        { source: "table:ag", field: "area" },
+                        { source: "table:ag", field: "u_province" },
+                        { source: "table:ag", field: "u_reggroup" },
+                        { source: "table:ag", field: "u_category" }
+                    ];
+
+                    containers.value.push(container1);
+
+                    // Adicionar segundo container (query principal)
+                    const container2 = createContainer(2);
+                    container2.name = "main_query";
+                    container2.mainSource = "container:tmp";
+
+                    // Configurar campos
+                    container2.fields = [
+                        { source: "container:tmp", name: "Region", alias: "", function: "", castType: "", castParams: "", isFreeText: false, freeText: "" },
+                        { source: "container:tmp", name: "Province", alias: "", function: "", castType: "", castParams: "", isFreeText: false, freeText: "" },
+                        { source: "container:tmp", name: "Channel", alias: "", function: "", castType: "", castParams: "", isFreeText: false, freeText: "" },
+                        { source: "container:tmp", name: "Category", alias: "", function: "", castType: "", castParams: "", isFreeText: false, freeText: "" },
+                        {
+                            isFreeText: true,
+                            freeText: "(select top 1 isnull(u_semid, '') from bi where ndos=1 and u_semid2 != 0 and u_semid != '' and bi.nome = '#1#' and ltrim(rtrim(u_pnome))= ltrim(rtrim([Store Name])) ) 'S.E.M. ID'"
+                        },
+                        { source: "container:tmp", name: "[Store Name]", alias: "", function: "", castType: "", castParams: "", isFreeText: false, freeText: "" },
+                        { source: "container:tmp", name: "Market", alias: "", function: "", castType: "", castParams: "", isFreeText: false, freeText: "" },
+                        { source: "container:tmp", name: "NeighborHood", alias: "", function: "", castType: "", castParams: "", isFreeText: false, freeText: "" },
+                        {
+                            isFreeText: true,
+                            freeText: "cast(cast([on shelfs %] as numeric(10,2)) as varchar) + '%' AS [On Shelf %]"
+                        },
+                        {
+                            isFreeText: true,
+                            freeText: "cast(cast([out of stocks %] as numeric(10,2)) as varchar) + '%' AS [Out Of Stock %]"
+                        },
+                        {
+                            isFreeText: true,
+                            freeText: "cast(cast([Not Stocked %] as numeric(10,2)) as varchar) + '%' as [Not Stocked %]"
+                        },
+                        { source: "container:tmp", name: "Date", alias: "", function: "", castType: "", castParams: "", isFreeText: false, freeText: "" }
+                    ];
+
+                    // Configurar ORDER BY
+                    container2.orderBy = [
+                        {
+                            isFreeText: true,
+                            freeText: "(CASE WHEN region = 'Sul' THEN 1 WHEN region = 'Centro' THEN 2 WHEN region = 'Norte' THEN 3 ELSE 4 END) ASC"
+                        },
+                        { source: "container:tmp", name: "[on shelfs %]", direction: "DESC" },
+                        { source: "container:tmp", name: "[out of stocks %]", direction: "DESC" },
+                        { source: "container:tmp", name: "[not stocked %]", direction: "DESC" }
+                    ];
+
+                    containers.value.push(container2);
+
+                    // Atualizar tabelas
+                    containers.value.forEach(c => updateContainerTables(c));
+
+                    alert("Exemplo complexo carregado! Gere a query para ver o resultado.");
+                };
+
+                // Inicializar
+                initializeContainers();
+
+                return {
+                    schema,
+                    functions,
+                    containers,
+                    newTableName,
+                    newTableFields,
+                    finalQuery,
+                    highlightedQuery,
+                    syntaxHighlighting,
+                    addTable,
+                    addContainer,
+                    removeContainer,
+                    getAllSources,
+                    updateContainerTables,
+                    getFieldsBySource,
+                    addField,
+                    removeField,
+                    updateFieldNames,
+                    addJoin,
+                    removeJoin,
+                    updateJoinFields,
+                    addWhere,
+                    removeWhere,
+                    updateWhereFields,
+                    addGroupBy,
+                    removeGroupBy,
+                    addOrderBy,
+                    removeOrderBy,
+                    generateFinalQuery,
+                    toggleSyntaxHighlighting,
+                    copyQuery,
+                    loadExample
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

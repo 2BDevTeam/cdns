@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>AlaSQL Example</title>
+
+  <!-- CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alasql/4.6.6/alasql.min.js"></script>
+</head>
+<body>
+
+<h2>Resultado:</h2>
+<pre id="output"></pre>
+
+<script>
+  // 📦 Array de dados (4 registos)
+  const pessoas = [
+    { id: 1, nome: "Denilson", pais: "Moçambique" },
+    { id: 2, nome: "Maria", pais: "Portugal" },
+    { id: 3, nome: "João", pais: "Brasil" },
+    { id: 4, nome: "Ana", pais: "Angola" }
+  ];
+
+  // 🔥 Query SQL sobre o array
+  const resultado = alasql(
+    "SELECT id, nome, pais FROM ? WHERE id >= 2",
+    [pessoas]
+  );
+
+  // mostrar no ecrã
+  document.getElementById("output").textContent =
+    JSON.stringify(resultado, null, 2);
+
+  console.log(resultado);
+</script>
+
+</body>
+</html>

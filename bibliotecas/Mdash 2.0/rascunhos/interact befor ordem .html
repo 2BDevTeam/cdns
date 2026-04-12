@@ -1,0 +1,52 @@
+<!-- PetiteVue -->
+<script src="https://unpkg.com/petite-vue" defer init></script>
+
+<!-- Air Datepicker -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker@3.4.0/air-datepicker.css">
+<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.4.0/air-datepicker.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.4.0/js/i18n/datepicker.pt.js"></script>
+
+<div v-scope="App">
+  <label>Escolha uma data:</label><br>
+  
+  <input type="text"
+         class="form-control input-sm input-mdash-filter"
+         id="dataFiltro"
+         v-model="filterValue"
+         @change="updateFilter($event)"
+         data-language="pt" />
+
+  <p>📅 Data selecionada: {{ filterValue }}</p>
+</div>
+
+<script>
+function App() {
+  return {
+    filterValue: '',
+
+    mounted() {
+      // Inicializa o Air Datepicker
+      const picker = new AirDatepicker('#dataFiltro', {
+        locale: AirDatepicker.locales.pt,
+        dateFormat: 'yyyy-MM-dd',
+        onSelect: ({ formattedDate }) => {
+          // Atualiza o modelo
+          this.filterValue = formattedDate;
+
+          // Dispara manualmente o evento change (compatível com @change)
+          const event = new Event('change', { bubbles: true });
+          document.getElementById('dataFiltro').dispatchEvent(event);
+        }
+      });
+    },
+
+    updateFilter(e) {
+      console.log("Data mudou para:", this.filterValue);
+      // Aqui você pode chamar sua função original, tipo:
+      // updateFilter(filter, e)
+    }
+  }
+}
+
+PetiteVue.createApp(App).mount();
+</script>
