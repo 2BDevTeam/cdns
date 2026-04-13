@@ -1,0 +1,20 @@
+[
+    {
+        "sourceTable": "u_histmand",
+        "sourceKey": "u_histmandstamp",
+        "registo": {
+            "u_osociasstamp": "154341bf8f3d166560e2da",
+            "cargoant": "Director+Geral",
+            "cargoact": "Director+Geral",
+            "empant": "MOZAL",
+            "noempant": "86",
+            "empact": "Rádio+Moçambique,+E.P.+-+600000039",
+            "noempact": "80",
+            "dataalt": "2026-04-13",
+            "datainimandant": "1900-01-01",
+            "datafimmandant": "2026-04-17",
+            "dataini": "2026-04-18",
+            "u_histmandstamp": "a06fb59a-93ea-44a7-9828-f"
+        }
+    }
+]

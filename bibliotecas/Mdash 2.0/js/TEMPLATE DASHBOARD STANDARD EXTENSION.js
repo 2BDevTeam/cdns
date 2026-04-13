@@ -2333,10 +2333,36 @@ function renderChartPropertiesInline(obj, panel) {
         _mciTransformInited = true;
         var _tFnt  = _mciGetFontes().find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
         var _tName = _tFnt && typeof mdashFonteTableName === 'function' ? mdashFonteTableName(_tFnt) : '';
+
+        // Garantir que os dados da fonte estão na DB in-memory e derivar schema
+        var _tSchema = [];
+        if (_tFnt) {
+            // 1. Tentar extrair schema de schemajson (gravado no backend)
+            if (_tFnt.schemajson) {
+                try {
+                    var _sc = JSON.parse(_tFnt.schemajson);
+                    if (Array.isArray(_sc) && _sc.length) {
+                        _tSchema = _sc.map(function (c) { return { field: c.name || c.field, type: c.type || 'TEXT' }; });
+                    }
+                } catch (e) {}
+            }
+            // 2. Carregar dados na DB in-memory (permite getTableSchema funcionar
+            //    e alimenta o botão Testar)
+            if (typeof mdashExtractRowsFromCache === 'function' && typeof mdashLoadFonteIntoDb === 'function') {
+                var _tRows = mdashExtractRowsFromCache(_tFnt.lastResultscached);
+                if (_tRows.length > 0) mdashLoadFonteIntoDb(_tFnt, _tRows);
+            }
+            // 3. Se ainda sem schema, tentar via PRAGMA agora que a tabela está na DB
+            if (!_tSchema.length && _tName) {
+                _tSchema = MTB.getTableSchema(_tName);
+            }
+        }
+
         var _tConf = cfg.transformConfig
             || (_tName ? MTB.autoConfig(_tName, 'Gráfico') : { mode: 'sql', sourceTable: '', sqlFree: '' });
         MTB.render(panel.find('.mcbi-transform-host')[0], {
             config: _tConf,
+            schema: _tSchema.length ? _tSchema : undefined,
             onSave: function (newT) {
                 cfg.transformConfig = newT;
                 obj.config = obj.config || {};

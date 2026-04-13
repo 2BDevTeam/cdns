@@ -1445,6 +1445,7 @@ function getPureJSValueByTag(tagName) {
 }
 
 function FormTableInputData(data) {
+    //console.log("FORM TABLE",data.value)
     this.contentType = data.contentType || "";
     this.type = data.type || "";
     this.value = data.value || "";

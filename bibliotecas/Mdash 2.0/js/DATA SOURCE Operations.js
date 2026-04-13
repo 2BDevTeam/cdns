@@ -401,23 +401,35 @@ function mdashExtractRowsFromCache(raw) {
 // Sobrepõe/adiciona métodos sql.js ao protótipo MDashFonte.
 // MDashFonte.prototype.execute já está definido em MDash config lib REFACTOR.js
 // e delega automaticamente neste registry quando disponível.
+// NOTA: este script pode carregar antes de MDash config lib REFACTOR.js (ordem
+// alfabética no PHC), por isso usamos um guard e defer via setTimeout(0).
 
-MDashFonte.prototype.setTupDataOnLocalDb = function () {
-    if (!Array.isArray(this.lastResults) || this.lastResults.length === 0) return;
-    mdashLoadFonteIntoDb(this, this.lastResults);
-};
+function _mdashExtendFontePrototype() {
+    if (typeof MDashFonte === 'undefined') return;
 
-MDashFonte.prototype.query = function (sql) {
-    return mdashQuery(sql);
-};
+    MDashFonte.prototype.setTupDataOnLocalDb = function () {
+        if (!Array.isArray(this.lastResults) || this.lastResults.length === 0) return;
+        mdashLoadFonteIntoDb(this, this.lastResults);
+    };
 
-MDashFonte.prototype.getRows = function () {
-    return mdashGetFonteRows(this);
-};
+    MDashFonte.prototype.query = function (sql) {
+        return mdashQuery(sql);
+    };
 
-MDashFonte.prototype.getTableName = function () {
-    return mdashFonteTableName(this);
-};
+    MDashFonte.prototype.getRows = function () {
+        return mdashGetFonteRows(this);
+    };
+
+    MDashFonte.prototype.getTableName = function () {
+        return mdashFonteTableName(this);
+    };
+}
+
+// Tentar imediatamente; se MDashFonte ainda não existe, repetir após os scripts restantes carregarem
+_mdashExtendFontePrototype();
+if (typeof MDashFonte === 'undefined') {
+    setTimeout(_mdashExtendFontePrototype, 0);
+}
 
 
 // ============================================================================
@@ -704,96 +716,97 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         if (!$c.length) return;
 
         var cfg = options.config || _defaultConfig('');
-        var schema = getTableSchema(cfg.sourceTable);
+        // options.schema pode ser passado pelo caller quando a tabela ainda não
+        // está carregada na DB in-memory (ex: abertura inicial do builder)
+        var schema = (options.schema && options.schema.length)
+            ? options.schema
+            : getTableSchema(cfg.sourceTable);
         var allFields = schema.map(function (s) { return s.field; });
 
+        function _sec(icon, title, cls, addBtn, listCls, rows) {
+            var h = '<div class="mtb-sec">';
+            h += '<div class="mtb-sec-hd">';
+            h += '<span class="mtb-sec-icon"><i class="glyphicon ' + icon + '"></i></span>';
+            h += '<span class="mtb-sec-title">' + title + '</span>';
+            if (addBtn) h += '<button type="button" class="' + addBtn.cls + ' mtb-add-btn"><i class="glyphicon glyphicon-plus"></i> ' + addBtn.label + '</button>';
+            h += '</div>';
+            h += '<div class="' + (listCls || 'mtb-list') + '">' + rows + '</div>';
+            h += '</div>';
+            return h;
+        }
+
         // ── HTML principal ────────────────────────────────────────────────────
-        var html = '';
-        html += '<div class="mtb-root">';
+        var html = '<div class="mtb-root">';
 
-        // Cabeçalho com toggle e preview
-        html += '<div class="mtb-header">';
-        html += '  <div class="mtb-mode-toggle">';
-        html += '    <button type="button" class="mtb-mode-btn' + (cfg.mode !== 'sql' ? ' active' : '') + '" data-mode="visual"><i class="glyphicon glyphicon-th-list"></i> Visual</button>';
-        html += '    <button type="button" class="mtb-mode-btn' + (cfg.mode === 'sql' ? ' active' : '') + '" data-mode="sql"><i class="glyphicon glyphicon-console"></i> SQL Livre</button>';
-        html += '  </div>';
-        html += '  <button type="button" class="mtb-preview-btn btn btn-xs btn-default"><i class="glyphicon glyphicon-eye-open"></i> Pré-visualizar</button>';
+        // Fonte + mode toggle
+        html += '<div class="mtb-topbar">';
+        html += '<div class="mtb-table-badge"><i class="glyphicon glyphicon-hdd"></i> ' + _escapeHtml(cfg.sourceTable || '—') + '</div>';
+        html += '<div class="mtb-mode-toggle">';
+        html += '<button type="button" class="mtb-mode-btn' + (cfg.mode !== 'sql' ? ' active' : '') + '" data-mode="visual"><i class="glyphicon glyphicon-th-list"></i> Visual</button>';
+        html += '<button type="button" class="mtb-mode-btn' + (cfg.mode === 'sql' ? ' active' : '') + '" data-mode="sql"><i class="glyphicon glyphicon-console"></i> SQL</button>';
         html += '</div>';
-
-        // Fonte seleccionada (info)
-        html += '<div class="mtb-source-info"><i class="glyphicon glyphicon-hdd"></i> Tabela: <strong>' + (cfg.sourceTable || '—') + '</strong></div>';
+        html += '</div>';
 
         // ── Painel Visual ─────────────────────────────────────────────────────
         html += '<div class="mtb-panel-visual' + (cfg.mode === 'sql' ? ' mtb-hidden' : '') + '">';
 
-        // Secção: Colunas
-        html += '<div class="mtb-section">';
-        html += '  <div class="mtb-section-title"><i class="glyphicon glyphicon-list-alt"></i> Colunas & Agregações <button type="button" class="mtb-add-col btn btn-xs btn-default pull-right"><i class="glyphicon glyphicon-plus"></i> Adicionar</button></div>';
-        html += '  <div class="mtb-cols-list">';
-        (cfg.columns || []).forEach(function (col, i) {
-            html += _renderColumnRow(col, i, allFields);
-        });
-        html += '  </div>';
+        // Colunas
+        var colRows = (cfg.columns || []).map(function (col, i) { return _renderColumnRow(col, i, allFields); }).join('');
+        html += _sec('glyphicon-list-alt', 'Colunas &amp; Agregações', 'mtb-cols-sec',
+            { cls: 'mtb-add-col', label: 'Coluna' }, 'mtb-cols-list', colRows);
+
+        // Medidas
+        var mRows = (cfg.measures || []).map(function (m, i) { return _renderMeasureRow(m, i); }).join('');
+        html += _sec('glyphicon-flash', 'Medidas Calculadas', 'mtb-measures-sec',
+            { cls: 'mtb-add-measure', label: 'Medida' }, 'mtb-measures-list', mRows);
+
+        // Filtros
+        var fRows = (cfg.filters || []).map(function (f, i) { return _renderFilterRow(f, i, allFields); }).join('');
+        html += _sec('glyphicon-filter', 'Filtros', 'mtb-filters-sec',
+            { cls: 'mtb-add-filter', label: 'Filtro' }, 'mtb-filters-list', fRows);
+
+        // Ordenação + Limite (lado a lado)
+        html += '<div class="mtb-row2col">';
+        html += '<div class="mtb-col-half">';
+        html +=   _sec('glyphicon-sort', 'Ordenação', '', { cls: 'mtb-add-order', label: '' }, 'mtb-order-list',
+                    (cfg.orderBy || []).map(function (o, i) { return _renderOrderRow(o, i, allFields); }).join(''));
+        html += '</div>';
+        html += '<div class="mtb-col-half">';
+        html += '<div class="mtb-sec"><div class="mtb-sec-hd"><span class="mtb-sec-icon"><i class="glyphicon glyphicon-record"></i></span><span class="mtb-sec-title">Limite</span></div>';
+        html += '<div class="mtb-list"><input type="number" class="mtb-limit mtb-input" placeholder="sem limite" value="' + (cfg.limit || '') + '" min="1"></div></div>';
+        html += '</div>';
         html += '</div>';
 
-        // Secção: Medidas calculadas
-        html += '<div class="mtb-section">';
-        html += '  <div class="mtb-section-title"><i class="glyphicon glyphicon-flash"></i> Medidas Calculadas <span class="mtb-section-hint">ex: SUM(total) - SUM(custo)</span> <button type="button" class="mtb-add-measure btn btn-xs btn-default pull-right"><i class="glyphicon glyphicon-plus"></i> Nova Medida</button></div>';
-        html += '  <div class="mtb-measures-list">';
-        (cfg.measures || []).forEach(function (m, i) {
-            html += _renderMeasureRow(m, i);
-        });
-        html += '  </div>';
-        html += '</div>';
-
-        // Secção: Filtros
-        html += '<div class="mtb-section">';
-        html += '  <div class="mtb-section-title"><i class="glyphicon glyphicon-filter"></i> Filtros <button type="button" class="mtb-add-filter btn btn-xs btn-default pull-right"><i class="glyphicon glyphicon-plus"></i> Adicionar</button></div>';
-        html += '  <div class="mtb-filters-list">';
-        (cfg.filters || []).forEach(function (f, i) {
-            html += _renderFilterRow(f, i, allFields);
-        });
-        html += '  </div>';
-        html += '</div>';
-
-        // Secção: Ordenação + Limite
-        html += '<div class="mtb-section mtb-section-row">';
-        html += '  <div class="mtb-half">';
-        html += '    <div class="mtb-section-title"><i class="glyphicon glyphicon-sort"></i> Ordenação <button type="button" class="mtb-add-order btn btn-xs btn-default pull-right"><i class="glyphicon glyphicon-plus"></i></button></div>';
-        html += '    <div class="mtb-order-list">';
-        (cfg.orderBy || []).forEach(function (o, i) {
-            html += _renderOrderRow(o, i, allFields);
-        });
-        html += '    </div>';
-        html += '  </div>';
-        html += '  <div class="mtb-half">';
-        html += '    <div class="mtb-section-title"><i class="glyphicon glyphicon-record"></i> Limite de linhas</div>';
-        html += '    <input type="number" class="mtb-limit form-control input-sm" placeholder="sem limite" value="' + (cfg.limit || '') + '" min="1">';
-        html += '  </div>';
-        html += '</div>';
-
-        // SQL gerado (read-only preview)
-        html += '<div class="mtb-section">';
-        html += '  <div class="mtb-section-title mtb-sql-preview-title"><i class="glyphicon glyphicon-info-sign"></i> SQL gerado <span class="mtb-sql-preview-hint">(só leitura)</span></div>';
-        html += '  <pre class="mtb-sql-preview">' + _escapeHtml(buildSQL(cfg)) + '</pre>';
+        // SQL gerado (preview)
+        html += '<div class="mtb-sec">';
+        html += '<div class="mtb-sec-hd"><span class="mtb-sec-icon"><i class="glyphicon glyphicon-console"></i></span><span class="mtb-sec-title">SQL gerado</span><span class="mtb-sec-hint">só leitura</span></div>';
+        html += '<pre class="mtb-sql-preview">' + _escapeHtml(buildSQL(cfg)) + '</pre>';
         html += '</div>';
 
         html += '</div>'; // .mtb-panel-visual
 
         // ── Painel SQL Livre ──────────────────────────────────────────────────
         html += '<div class="mtb-panel-sql' + (cfg.mode !== 'sql' ? ' mtb-hidden' : '') + '">';
-        html += '  <div class="mtb-section-title"><i class="glyphicon glyphicon-console"></i> SQL (sintaxe SQL Server — traduzido automaticamente para SQLite)</div>';
-        html += '  <textarea class="mtb-sql-free form-control" rows="8" spellcheck="false" placeholder="SELECT cliente, SUM(total) AS Total\nFROM DOSSIER\nGROUP BY cliente\nORDER BY Total DESC">' + _escapeHtml(cfg.sqlFree || '') + '</textarea>';
-        html += '  <div class="mtb-sql-fields-hint"><strong>Campos disponíveis:</strong> ' + allFields.map(function (f) { return '<code>' + _escapeHtml(f) + '</code>'; }).join(' ') + '</div>';
+        html += '<div class="mtb-sec">';
+        html += '<div class="mtb-sec-hd"><span class="mtb-sec-icon"><i class="glyphicon glyphicon-console"></i></span><span class="mtb-sec-title">SQL Livre</span><span class="mtb-sec-hint">SQL Server → SQLite auto-traduzido</span></div>';
+        html += '<textarea class="mtb-sql-free mtb-input" rows="7" spellcheck="false" placeholder="SELECT cliente, SUM(total) AS Total&#10;FROM DOSSIER&#10;GROUP BY cliente&#10;ORDER BY Total DESC">' + _escapeHtml(cfg.sqlFree || '') + '</textarea>';
+        if (allFields.length) {
+            html += '<div class="mtb-fields-chips">';
+            allFields.forEach(function (f) { html += '<span class="mtb-chip">' + _escapeHtml(f) + '</span>'; });
+            html += '</div>';
+        }
+        html += '</div>';
         html += '</div>';
 
-        // Resultados pré-visualização
+        // Preview de resultados
         html += '<div class="mtb-preview-area mtb-hidden"></div>';
 
-        // Botão guardar
+        // Footer
         html += '<div class="mtb-footer">';
-        html += '  <button type="button" class="mtb-save btn btn-primary btn-sm"><i class="glyphicon glyphicon-ok"></i> Aplicar</button>';
-        html += '  <button type="button" class="mtb-cancel btn btn-default btn-sm">Cancelar</button>';
+        html += '<button type="button" class="mtb-preview-btn mtb-btn-ghost"><i class="glyphicon glyphicon-eye-open"></i> Testar</button>';
+        html += '<div style="flex:1"></div>';
+        html += '<button type="button" class="mtb-cancel mtb-btn-ghost">Cancelar</button>';
+        html += '<button type="button" class="mtb-save mtb-btn-primary"><i class="glyphicon glyphicon-ok"></i> Aplicar</button>';
         html += '</div>';
 
         html += '</div>'; // .mtb-root
@@ -804,27 +817,40 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         _bindEvents($c, cfg, schema, allFields, options);
     }
 
+    function _fieldOpts(allFields, selected) {
+        var opts = '';
+        if (!selected) opts += '<option value=""></option>';
+        allFields.forEach(function (f) {
+            opts += '<option value="' + _escapeHtml(f) + '"' + (f === selected ? ' selected' : '') + '>' + _escapeHtml(f) + '</option>';
+        });
+        // Preserva valor existente que não está no schema actual
+        if (selected && allFields.indexOf(selected) === -1) {
+            opts = '<option value="' + _escapeHtml(selected) + '" selected>' + _escapeHtml(selected) + '</option>' + opts;
+        }
+        return opts;
+    }
+
     function _renderColumnRow(col, i, allFields) {
         var aggOpts = AGGREGATES.map(function (a) {
             return '<option value="' + a.value + '"' + (col.aggregate === a.value ? ' selected' : '') + '>' + a.label + '</option>';
         }).join('');
         var vis = col.visible !== false;
         var h = '<div class="mtb-row mtb-col-row" data-idx="' + i + '">';
-        h += '  <input type="checkbox" class="mtb-col-visible" title="Visível"' + (vis ? ' checked' : '') + '>';
-        h += '  <input type="text" class="mtb-col-field form-control input-sm" value="' + _escapeHtml(col.field || '') + '" placeholder="campo" list="mtb-fields-list">';
-        h += '  <select class="mtb-col-agg form-control input-sm">' + aggOpts + '</select>';
-        h += '  <input type="text" class="mtb-col-alias form-control input-sm" value="' + _escapeHtml(col.alias || '') + '" placeholder="alias (opcional)">';
-        h += '  <button type="button" class="mtb-remove-row btn btn-xs btn-danger" title="Remover"><i class="glyphicon glyphicon-remove"></i></button>';
+        h += '<label class="mtb-vis-toggle" title="Incluir na query"><input type="checkbox" class="mtb-col-visible"' + (vis ? ' checked' : '') + '><span class="mtb-vis-dot"></span></label>';
+        h += '<select class="mtb-col-field mtb-select mtb-select-field">' + _fieldOpts(allFields, col.field || '') + '</select>';
+        h += '<select class="mtb-col-agg mtb-select mtb-select-agg">' + aggOpts + '</select>';
+        h += '<input type="text" class="mtb-col-alias mtb-input mtb-input-alias" value="' + _escapeHtml(col.alias || '') + '" placeholder="alias">';
+        h += '<button type="button" class="mtb-remove-row mtb-del" title="Remover"><i class="glyphicon glyphicon-remove"></i></button>';
         h += '</div>';
         return h;
     }
 
     function _renderMeasureRow(m, i) {
         var h = '<div class="mtb-row mtb-measure-row" data-idx="' + i + '">';
-        h += '  <input type="text" class="mtb-measure-name form-control input-sm" value="' + _escapeHtml(m.name || '') + '" placeholder="Nome (ex: Margem)">';
-        h += '  <input type="text" class="mtb-measure-expr form-control input-sm mtb-expr-wide" value="' + _escapeHtml(m.expression || '') + '" placeholder="Expressão (ex: SUM(total) - SUM(custo))">';
-        h += '  <input type="text" class="mtb-measure-alias form-control input-sm" value="' + _escapeHtml(m.alias || '') + '" placeholder="Alias">';
-        h += '  <button type="button" class="mtb-remove-row btn btn-xs btn-danger"><i class="glyphicon glyphicon-remove"></i></button>';
+        h += '<input type="text" class="mtb-measure-name mtb-input mtb-input-name" value="' + _escapeHtml(m.name || '') + '" placeholder="Nome">';
+        h += '<input type="text" class="mtb-measure-expr mtb-input mtb-input-expr" value="' + _escapeHtml(m.expression || '') + '" placeholder="ex: SUM(total) - SUM(custo)">';
+        h += '<input type="text" class="mtb-measure-alias mtb-input mtb-input-alias" value="' + _escapeHtml(m.alias || '') + '" placeholder="alias">';
+        h += '<button type="button" class="mtb-remove-row mtb-del"><i class="glyphicon glyphicon-remove"></i></button>';
         h += '</div>';
         return h;
     }
@@ -839,26 +865,26 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         var noVal = f.operator === 'IS NULL' || f.operator === 'IS NOT NULL';
         var h = '<div class="mtb-row mtb-filter-row" data-idx="' + i + '">';
         if (i > 0) {
-            h += '  <select class="mtb-filter-connector form-control input-sm mtb-connector">' + connOpts + '</select>';
+            h += '<select class="mtb-filter-connector mtb-select mtb-select-conn">' + connOpts + '</select>';
         } else {
-            h += '  <span class="mtb-filter-where">WHERE</span>';
+            h += '<span class="mtb-where-badge">WHERE</span>';
         }
-        h += '  <input type="text" class="mtb-filter-field form-control input-sm" value="' + _escapeHtml(f.field || '') + '" placeholder="campo" list="mtb-fields-list">';
-        h += '  <select class="mtb-filter-op form-control input-sm">' + opOpts + '</select>';
-        h += '  <input type="text" class="mtb-filter-val form-control input-sm' + (noVal ? ' mtb-hidden' : '') + '" value="' + _escapeHtml(f.value || '') + '" placeholder="valor">';
-        h += '  <button type="button" class="mtb-remove-row btn btn-xs btn-danger"><i class="glyphicon glyphicon-remove"></i></button>';
+        h += '<select class="mtb-filter-field mtb-select mtb-select-field">' + _fieldOpts(allFields, f.field || '') + '</select>';
+        h += '<select class="mtb-filter-op mtb-select mtb-select-op">' + opOpts + '</select>';
+        h += '<input type="text" class="mtb-filter-val mtb-input mtb-input-val' + (noVal ? ' mtb-hidden' : '') + '" value="' + _escapeHtml(f.value || '') + '" placeholder="valor">';
+        h += '<button type="button" class="mtb-remove-row mtb-del"><i class="glyphicon glyphicon-remove"></i></button>';
         h += '</div>';
         return h;
     }
 
     function _renderOrderRow(o, i, allFields) {
         var dirOpts = ['ASC', 'DESC'].map(function (d) {
-            return '<option value="' + d + '"' + (o.direction === d ? ' selected' : '') + '>' + d + '</option>';
+            return '<option value="' + d + '"' + (o.direction === d ? ' selected' : '') + '>' + (d === 'ASC' ? '↑ Asc' : '↓ Desc') + '</option>';
         }).join('');
         var h = '<div class="mtb-row mtb-order-row" data-idx="' + i + '">';
-        h += '  <input type="text" class="mtb-order-field form-control input-sm" value="' + _escapeHtml(o.field || '') + '" placeholder="campo" list="mtb-fields-list">';
-        h += '  <select class="mtb-order-dir form-control input-sm">' + dirOpts + '</select>';
-        h += '  <button type="button" class="mtb-remove-row btn btn-xs btn-danger"><i class="glyphicon glyphicon-remove"></i></button>';
+        h += '<select class="mtb-order-field mtb-select mtb-select-field">' + _fieldOpts(allFields, o.field || '') + '</select>';
+        h += '<select class="mtb-order-dir mtb-select mtb-select-dir">' + dirOpts + '</select>';
+        h += '<button type="button" class="mtb-remove-row mtb-del"><i class="glyphicon glyphicon-remove"></i></button>';
         h += '</div>';
         return h;
     }
@@ -921,9 +947,6 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
     // ── Bind de eventos ───────────────────────────────────────────────────────
 
     function _bindEvents($c, cfg, schema, allFields, options) {
-        // Datalist para autocomplete de campos
-        $c.append('<datalist id="mtb-fields-list">' + allFields.map(function (f) { return '<option value="' + _escapeHtml(f) + '">'; }).join('') + '</datalist>');
-
         // Toggle de modo
         $c.on('click', '.mtb-mode-btn', function () {
             var mode = $(this).data('mode');
@@ -938,9 +961,12 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
             }
         });
 
-        // Adicionar coluna
+        // Adicionar coluna — auto-selecciona o primeiro campo do schema ainda não usado
         $c.on('click', '.mtb-add-col', function () {
-            var newCol = { field: '', aggregate: 'none', alias: '', visible: true };
+            var usedFields = [];
+            $c.find('.mtb-col-row .mtb-col-field').each(function () { usedFields.push($(this).val()); });
+            var firstField = allFields.filter(function (f) { return usedFields.indexOf(f) === -1; })[0] || allFields[0] || '';
+            var newCol = { field: firstField, aggregate: 'none', alias: '', visible: true };
             $c.find('.mtb-cols-list').append(_renderColumnRow(newCol, $c.find('.mtb-col-row').length, allFields));
         });
 
@@ -951,13 +977,13 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
 
         // Adicionar filtro
         $c.on('click', '.mtb-add-filter', function () {
-            var newF = { field: '', operator: '=', value: '', connector: 'AND' };
+            var newF = { field: allFields[0] || '', operator: '=', value: '', connector: 'AND' };
             $c.find('.mtb-filters-list').append(_renderFilterRow(newF, $c.find('.mtb-filter-row').length, allFields));
         });
 
         // Adicionar ordenação
         $c.on('click', '.mtb-add-order', function () {
-            $c.find('.mtb-order-list').append(_renderOrderRow({ field: '', direction: 'ASC' }, $c.find('.mtb-order-row').length, allFields));
+            $c.find('.mtb-order-list').append(_renderOrderRow({ field: allFields[0] || '', direction: 'ASC' }, $c.find('.mtb-order-row').length, allFields));
         });
 
         // Remover linha
@@ -1036,41 +1062,95 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
     // ── CSS inline do builder ─────────────────────────────────────────────────
 
     function _buildCSS() {
-        if ($('#mtb-styles').length) return '';
-        var s = '<style id="mtb-styles">';
-        s += '.mtb-root { font-size:12px; color:#333; }';
-        s += '.mtb-hidden { display:none !important; }';
-        s += '.mtb-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }';
-        s += '.mtb-mode-toggle { display:flex; gap:0; border-radius:4px; overflow:hidden; border:1px solid #ccc; }';
-        s += '.mtb-mode-btn { border:none; background:#f5f5f5; padding:4px 10px; cursor:pointer; font-size:11px; transition:background 0.15s; }';
-        s += '.mtb-mode-btn.active { background:#337ab7; color:#fff; }';
-        s += '.mtb-source-info { font-size:11px; color:#888; margin-bottom:8px; }';
-        s += '.mtb-section { margin-bottom:12px; }';
-        s += '.mtb-section-row { display:flex; gap:12px; }';
-        s += '.mtb-half { flex:1; min-width:0; }';
-        s += '.mtb-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#555; margin-bottom:5px; display:flex; align-items:center; gap:5px; }';
-        s += '.mtb-section-hint { font-weight:400; text-transform:none; letter-spacing:0; color:#aaa; font-size:10px; }';
-        s += '.mtb-row { display:flex; align-items:center; gap:4px; margin-bottom:3px; }';
-        s += '.mtb-col-field, .mtb-filter-field, .mtb-order-field, .mtb-measure-name { width:120px; flex-shrink:0; }';
-        s += '.mtb-col-agg, .mtb-filter-op { width:110px; flex-shrink:0; }';
-        s += '.mtb-col-alias, .mtb-filter-val, .mtb-measure-alias { flex:1; min-width:60px; }';
-        s += '.mtb-expr-wide { flex:2; min-width:120px; }';
-        s += '.mtb-connector { width:60px; flex-shrink:0; }';
-        s += '.mtb-filter-where { width:52px; font-size:11px; font-weight:700; color:#337ab7; flex-shrink:0; text-align:center; }';
-        s += '.mtb-order-dir { width:70px; flex-shrink:0; }';
-        s += '.mtb-sql-preview { background:#f8f8f8; border:1px solid #e0e0e0; border-radius:3px; padding:6px 8px; font-size:11px; white-space:pre-wrap; max-height:100px; overflow:auto; color:#555; margin:0; }';
-        s += '.mtb-sql-preview-hint { font-weight:400; text-transform:none; letter-spacing:0; color:#aaa; font-size:10px; margin-left:4px; }';
-        s += '.mtb-sql-free { font-family:monospace; font-size:12px; resize:vertical; }';
-        s += '.mtb-sql-fields-hint { font-size:10px; color:#aaa; margin-top:4px; }';
-        s += '.mtb-sql-fields-hint code { background:#f0f0f0; padding:0 3px; border-radius:2px; font-size:10px; }';
-        s += '.mtb-preview-area { margin-top:8px; border-top:1px solid #eee; padding-top:8px; }';
-        s += '.mtb-preview-table-wrap { max-height:200px; overflow:auto; }';
-        s += '.mtb-preview-table { width:100%; font-size:11px; }';
-        s += '.mtb-preview-info { font-size:10px; color:#888; margin-bottom:4px; }';
-        s += '.mtb-preview-error { color:#d9534f; font-size:11px; padding:6px; background:#fdf2f2; border-radius:3px; }';
-        s += '.mtb-preview-empty { color:#aaa; font-size:11px; font-style:italic; }';
-        s += '.mtb-footer { display:flex; gap:6px; justify-content:flex-end; margin-top:10px; padding-top:8px; border-top:1px solid #eee; }';
-        s += '.mtb-limit { width:100%; }';
+        if ($('#mtb-styles-v2').length) return '';
+        $('#mtb-styles').remove();
+        var p = 'var(--md-primary,#5b8dee)';
+        var pr = 'var(--md-primary-rgb,91,141,238)';
+        var s = '<style id="mtb-styles-v2">';
+        // Root
+        s += '.mtb-root{font-size:12px;color:#1e293b;background:transparent;}';
+        s += '.mtb-hidden{display:none !important;}';
+        // Topbar
+        s += '.mtb-topbar{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 7px;border-bottom:1px solid rgba(0,0,0,.07);gap:8px;}';
+        s += '.mtb-table-badge{font-size:10.5px;font-weight:700;color:#475569;display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}';
+        s += '.mtb-table-badge i{color:' + p + ';opacity:.8;flex-shrink:0;}';
+        // Mode toggle
+        s += '.mtb-mode-toggle{display:flex;border:1.5px solid rgba(0,0,0,.12);border-radius:7px;overflow:hidden;flex-shrink:0;}';
+        s += '.mtb-mode-btn{border:none;background:transparent;padding:4px 11px;cursor:pointer;font-size:10.5px;font-weight:600;color:#64748b;transition:all .15s;display:flex;align-items:center;gap:4px;line-height:1.4;}';
+        s += '.mtb-mode-btn i{font-size:10px;}';
+        s += '.mtb-mode-btn.active{background:' + p + ';color:#fff;}';
+        s += '.mtb-mode-btn:not(.active):hover{background:rgba(' + pr + ',.07);color:' + p + ';}';
+        // Section blocks
+        s += '.mtb-sec{border-bottom:1px solid rgba(0,0,0,.06);}';
+        s += '.mtb-sec:last-child{border-bottom:none;}';
+        s += '.mtb-sec-hd{display:flex;align-items:center;gap:6px;padding:7px 12px 5px;min-height:30px;}';
+        s += '.mtb-sec-icon{color:' + p + ';opacity:.75;font-size:10px;flex-shrink:0;}';
+        s += '.mtb-sec-title{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.65px;color:#475569;flex:1;}';
+        s += '.mtb-sec-hint{font-size:9px;color:#94a3b8;font-style:italic;font-weight:400;text-transform:none;letter-spacing:0;}';
+        s += '.mtb-add-btn{margin-left:auto;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:5px;border:1.5px dashed rgba(0,0,0,.18);background:transparent;color:#64748b;cursor:pointer;display:flex;align-items:center;gap:3px;transition:all .15s;white-space:nowrap;flex-shrink:0;}';
+        s += '.mtb-add-btn:hover{border-color:' + p + ';color:' + p + ';background:rgba(' + pr + ',.04);}';
+        s += '.mtb-add-btn i{font-size:9px;}';
+        s += '.mtb-list{padding:0 10px 8px;}';
+        // Row layout
+        s += '.mtb-row{display:flex;align-items:center;gap:5px;margin-bottom:5px;}';
+        s += '.mtb-row:last-child{margin-bottom:0;}';
+        // Inputs
+        s += '.mtb-input{height:26px;border:1px solid rgba(0,0,0,.13);border-radius:6px;background:#fff;color:#1e293b;font-size:11px;padding:2px 7px;outline:none;transition:border-color .15s,box-shadow .15s;}';
+        s += '.mtb-input:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.14);}';
+        s += '.mtb-input-field{flex:1;min-width:60px;}';
+        s += '.mtb-select-field{flex:1;min-width:80px;}';
+        s += '.mtb-input-alias{width:80px;flex-shrink:0;}';
+        s += '.mtb-input-name{width:90px;flex-shrink:0;}';
+        s += '.mtb-input-expr{flex:1;min-width:80px;font-family:monospace;font-size:10.5px;}';
+        s += '.mtb-input-val{flex:1;min-width:50px;}';
+        s += '.mtb-select{height:26px;border:1px solid rgba(0,0,0,.13);border-radius:6px;background:#fff;color:#1e293b;font-size:10.5px;padding:1px 4px;outline:none;cursor:pointer;transition:border-color .15s;}';
+        s += '.mtb-select:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.14);}';
+        s += '.mtb-select-agg{width:80px;flex-shrink:0;}';
+        s += '.mtb-select-op{width:120px;flex-shrink:0;}';
+        s += '.mtb-select-conn{width:62px;flex-shrink:0;}';
+        s += '.mtb-select-dir{width:72px;flex-shrink:0;}';
+        // Visibility toggle dot
+        s += '.mtb-vis-toggle{cursor:pointer;margin:0;flex-shrink:0;display:flex;align-items:center;}';
+        s += '.mtb-vis-toggle input{position:absolute;opacity:0;width:0;height:0;}';
+        s += '.mtb-vis-dot{width:10px;height:10px;border-radius:50%;background:#d1d5db;border:2px solid transparent;transition:all .15s;box-shadow:0 0 0 1.5px rgba(0,0,0,.12);}';
+        s += '.mtb-vis-toggle input:checked+.mtb-vis-dot{background:' + p + ';box-shadow:0 0 0 1.5px rgba(' + pr + ',.4);}';
+        // WHERE badge
+        s += '.mtb-where-badge{font-size:9px;font-weight:800;color:#fff;background:' + p + ';border-radius:4px;padding:2px 5px;flex-shrink:0;letter-spacing:.3px;}';
+        // Delete button
+        s += '.mtb-del{width:22px;height:22px;border:none;background:transparent;color:#94a3b8;border-radius:5px;cursor:pointer;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}';
+        s += '.mtb-del:hover{background:rgba(239,68,68,.1);color:#ef4444;}';
+        s += '.mtb-del i{font-size:9px;}';
+        // SQL preview
+        s += '.mtb-sql-preview{margin:0 10px 10px;background:#0f172a;border-radius:7px;padding:9px 11px;font-size:10.5px;font-family:monospace;white-space:pre-wrap;max-height:90px;overflow:auto;color:#94a3b8;border:none;line-height:1.55;}';
+        // SQL free textarea
+        s += '.mtb-sql-free{font-family:monospace;font-size:11px;resize:vertical;width:100%;border:1px solid rgba(0,0,0,.13);border-radius:6px;background:#0f172a;color:#e2e8f0;padding:9px 11px;line-height:1.55;outline:none;}';
+        s += '.mtb-sql-free:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.14);}';
+        // Field chips
+        s += '.mtb-fields-chips{display:flex;flex-wrap:wrap;gap:4px;padding:6px 10px 8px;}';
+        s += '.mtb-chip{font-size:9.5px;font-family:monospace;background:#f1f5f9;border:1px solid rgba(0,0,0,.1);color:#475569;border-radius:4px;padding:1px 6px;cursor:default;user-select:all;}';
+        // 2-col layout (order + limit)
+        s += '.mtb-row2col{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(0,0,0,.06);}';
+        s += '.mtb-col-half{min-width:0;}';
+        s += '.mtb-col-half:first-child{border-right:1px solid rgba(0,0,0,.06);}';
+        s += '.mtb-col-half .mtb-sec{border-bottom:none;}';
+        s += '.mtb-input.mtb-limit{width:100%;}';
+        // Preview area
+        s += '.mtb-preview-area{padding:8px 10px;border-top:1px solid rgba(0,0,0,.06);}';
+        s += '.mtb-preview-table-wrap{max-height:180px;overflow:auto;border-radius:6px;border:1px solid rgba(0,0,0,.09);}';
+        s += '.mtb-preview-table{width:100%;font-size:10.5px;border-collapse:collapse;}';
+        s += '.mtb-preview-table th{background:#f8fafc;font-weight:700;font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;color:#475569;padding:4px 7px;border-bottom:1px solid rgba(0,0,0,.1);text-align:left;}';
+        s += '.mtb-preview-table td{padding:3px 7px;color:#334155;border-bottom:1px solid rgba(0,0,0,.05);font-size:10.5px;}';
+        s += '.mtb-preview-table tr:last-child td{border-bottom:none;}';
+        s += '.mtb-preview-info{font-size:10px;color:#64748b;margin-bottom:5px;font-weight:600;}';
+        s += '.mtb-preview-error{color:#b91c1c;font-size:11px;padding:7px 10px;background:#fef2f2;border-radius:6px;border:1px solid rgba(185,28,28,.15);}';
+        s += '.mtb-preview-empty{color:#94a3b8;font-size:11px;font-style:italic;padding:6px 0;}';
+        // Footer
+        s += '.mtb-footer{display:flex;align-items:center;gap:6px;padding:9px 12px;border-top:1px solid rgba(0,0,0,.07);}';
+        s += '.mtb-btn-primary{font-size:11px;font-weight:700;padding:5px 14px;border-radius:7px;border:none;background:' + p + ';color:#fff;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity .15s;}';
+        s += '.mtb-btn-primary:hover{opacity:.88;}';
+        s += '.mtb-btn-primary i{font-size:10px;}';
+        s += '.mtb-btn-ghost{font-size:11px;font-weight:600;padding:5px 12px;border-radius:7px;border:1.5px solid rgba(0,0,0,.14);background:#fff;color:#475569;cursor:pointer;transition:all .15s;}';
+        s += '.mtb-btn-ghost:hover{border-color:' + p + ';color:' + p + ';}';
         s += '</style>';
         return s;
     }
