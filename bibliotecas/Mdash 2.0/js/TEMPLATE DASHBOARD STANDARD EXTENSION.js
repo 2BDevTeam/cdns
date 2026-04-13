@@ -2153,9 +2153,6 @@ function renderChartPropertiesInline(obj, panel) {
         + '<button type="button" class="mcbi-btn-transform">'
         + (_hasTrans ? '<i class="glyphicon glyphicon-pencil"></i> Editar' : '<i class="glyphicon glyphicon-plus"></i> Configurar')
         + '</button>'
-        + '</div>'
-        + '<div class="mcbi-transform-wrap" style="display:none;">'
-        + '<div class="mcbi-transform-host"></div>'
         + '</div>';
 
     // Tipo gráfico
@@ -2315,58 +2312,118 @@ function renderChartPropertiesInline(obj, panel) {
         }, 300);
     }
 
-    // ── Transform Builder (lazy init) ───────────────────────────────────────
+    // ── Transform Builder — abre num modal dedicado ────────────────────────
     var _mciTransformInited = false;
+
+    function _mciOpenTransformModal() {
+        var _tFnt = _mciGetFontes().find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
+        var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
+        var modalId = 'mcbi-transform-modal';
+        $('#' + modalId).remove();
+        _mciTransformInited = false;
+
+        var mHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1" role="dialog">'
+            + '<div class="modal-dialog" style="width:860px;max-width:96vw;margin:32px auto;">'
+            + '<div class="modal-content" style="border-radius:14px;overflow:hidden;border:none;box-shadow:0 24px 80px rgba(0,0,0,.24);">'
+            + '<div style="display:flex;align-items:center;gap:10px;padding:14px 20px;background:#fff;border-bottom:1px solid rgba(0,0,0,.08);">'
+            + '<i class="glyphicon glyphicon-filter" style="color:var(--md-primary,#5b8dee);font-size:15px;opacity:.9;"></i>'
+            + '<span style="font-size:14px;font-weight:700;color:#1e293b;">Transformação de Dados</span>'
+            + (_tFntName ? '<span style="font-size:11px;color:#64748b;border-left:1px solid rgba(0,0,0,.1);padding-left:10px;margin-left:4px;">' + _mciEsc(_tFntName) + '</span>' : '')
+            + '<button type="button" class="close" data-dismiss="modal" aria-label="Fechar" style="margin-left:auto;font-size:20px;line-height:1;padding:2px 6px;opacity:.5;">&times;</button>'
+            + '</div>'
+            + '<div style="background:#f8fafc;overflow-y:auto;max-height:80vh;">'
+            + '<div id="mcbi-transform-modal-host" style="max-width:780px;margin:0 auto;padding:16px;"></div>'
+            + '</div>'
+            + '</div>'
+            + '</div>'
+            + '</div>';
+
+        $('body').append(mHtml);
+        var $modal = $('#' + modalId);
+        $modal.modal('show');
+        $modal.on('shown.bs.modal', function () { _mciInitTransform(); });
+        $modal.on('hidden.bs.modal', function () { $(this).remove(); _mciTransformInited = false; });
+    }
+
     function _mciInitTransform() {
         if (_mciTransformInited) return;
         var MTB = window.MdashTransformBuilder
             || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
         if (!MTB) {
-            panel.find('.mcbi-transform-host').html(
-                '<div class="mcbi-info" style="color:#b91c1c;">'
-                + '<i class="glyphicon glyphicon-warning-sign"></i> '
-                + 'DATA SOURCE Operations.js não está carregado. Registe o script no PHC para utilizar transformações.'
-                + '</div>'
-            );
-            return; // não bloquear — permite nova tentativa após carregamento
+            if (typeof alertify !== 'undefined') {
+                alertify.error('DATA SOURCE Operations.js não está carregado. Activa o script no PHC para utilizar transformações.', 6000);
+            }
+            return;
         }
         _mciTransformInited = true;
         var _tFnt  = _mciGetFontes().find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
-        var _tName = _tFnt && typeof mdashFonteTableName === 'function' ? mdashFonteTableName(_tFnt) : '';
+        var _tName = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : '';
 
-        // Garantir que os dados da fonte estão na DB in-memory e derivar schema
+        // ── Derivar schema ─────────────────────────────────────────────────
+        // Tentativas por ordem de prioridade; parar na primeira que funcionar.
         var _tSchema = [];
-        if (_tFnt) {
-            // 1. Tentar extrair schema de schemajson (gravado no backend)
-            if (_tFnt.schemajson) {
-                try {
-                    var _sc = JSON.parse(_tFnt.schemajson);
-                    if (Array.isArray(_sc) && _sc.length) {
-                        _tSchema = _sc.map(function (c) { return { field: c.name || c.field, type: c.type || 'TEXT' }; });
-                    }
-                } catch (e) {}
-            }
-            // 2. Carregar dados na DB in-memory (permite getTableSchema funcionar
-            //    e alimenta o botão Testar)
-            if (typeof mdashExtractRowsFromCache === 'function' && typeof mdashLoadFonteIntoDb === 'function') {
-                var _tRows = mdashExtractRowsFromCache(_tFnt.lastResultscached);
-                if (_tRows.length > 0) mdashLoadFonteIntoDb(_tFnt, _tRows);
-            }
-            // 3. Se ainda sem schema, tentar via PRAGMA agora que a tabela está na DB
-            if (!_tSchema.length && _tName) {
-                _tSchema = MTB.getTableSchema(_tName);
-            }
+
+        // 1. schemajson — campo { name, type } gravado pelo mdashSaveFonteCache
+        if (_tFnt && _tFnt.schemajson) {
+            try {
+                var _sc = JSON.parse(_tFnt.schemajson);
+                if (Array.isArray(_sc) && _sc.length)
+                    _tSchema = _sc.map(function (c) { return { field: c.name || c.field || String(c), type: c.type || 'TEXT' }; });
+            } catch (e) {}
         }
 
-        var _tConf = cfg.transformConfig
-            || (_tName ? MTB.autoConfig(_tName, 'Gráfico') : { mode: 'sql', sourceTable: '', sqlFree: '' });
-        MTB.render(panel.find('.mcbi-transform-host')[0], {
+        // 2. lastResultscached.columns — apenas os nomes das colunas, sem carregar dados
+        if (!_tSchema.length && _tFnt && _tFnt.lastResultscached) {
+            try {
+                var _lrc = JSON.parse(_tFnt.lastResultscached);
+                var _fcols = null;
+                if (Array.isArray(_lrc.columns) && _lrc.columns.length) {
+                    _fcols = _lrc.columns; // formato { columns:[...], rows:[...] }
+                } else if (Array.isArray(_lrc) && _lrc.length && _lrc[0] && typeof _lrc[0] === 'object') {
+                    _fcols = Object.keys(_lrc[0]); // formato array de objectos
+                }
+                if (_fcols && _fcols.length)
+                    _tSchema = _fcols.map(function (f) { return { field: f, type: 'TEXT' }; });
+            } catch (e) {}
+        }
+
+        // 3. Carregar cache na DB in-memory (para PRAGMA e botão Testar)
+        if (_tFnt && typeof mdashExtractRowsFromCache === 'function' && typeof mdashLoadFonteIntoDb === 'function') {
+            var _tRows = mdashExtractRowsFromCache(_tFnt.lastResultscached);
+            if (_tRows.length > 0) mdashLoadFonteIntoDb(_tFnt, _tRows);
+        }
+
+        // 4. PRAGMA — funciona se a tabela ficou na DB no passo 3
+        if (!_tSchema.length && _tName) {
+            _tSchema = MTB.getTableSchema(_tName);
+        }
+
+        // ── Construir config inicial ───────────────────────────────────────
+        var _tConf;
+        if (cfg.transformConfig) {
+            _tConf = cfg.transformConfig;
+        } else if (_tName) {
+            // autoConfig tenta PRAGMA; se devolver colunas vazias e temos _tSchema,
+            // preencher manualmente (evita UI vazia quando DB ainda não tinha a tabela)
+            _tConf = MTB.autoConfig(_tName, 'Gráfico');
+            if (!_tConf.columns.length && _tSchema.length) {
+                _tConf.sourceTable = _tName;
+                _tConf.columns = _tSchema.map(function (s) {
+                    return { field: s.field, alias: '', aggregate: 'none', visible: true };
+                });
+            }
+        } else {
+            _tConf = { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null };
+        }
+
+        MTB.render($('#mcbi-transform-modal-host')[0], {
             config: _tConf,
             schema: _tSchema.length ? _tSchema : undefined,
             onSave: function (newT) {
                 cfg.transformConfig = newT;
                 obj.config = obj.config || {};
                 obj.config.transformConfig = newT;
+                $('#mcbi-transform-modal').modal('hide');
                 var $ts = panel.find('.mcbi-transform-status');
                 $ts.addClass('is-active');
                 $ts.find('.mcbi-ts-badge').html(
@@ -2376,6 +2433,9 @@ function renderChartPropertiesInline(obj, panel) {
                 $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-pencil"></i> Editar');
                 _mciRefreshFieldSelects(panel, _mciGetFields(obj));
                 fire();
+            },
+            onCancel: function () {
+                $('#mcbi-transform-modal').modal('hide');
             }
         });
     }
@@ -2390,10 +2450,7 @@ function renderChartPropertiesInline(obj, panel) {
     });
 
     panel.on('click.mcbi', '.mcbi-btn-transform', function () {
-        var $wrap = panel.find('.mcbi-transform-wrap');
-        var nowOpen = !$wrap.is(':visible');
-        if (nowOpen) _mciInitTransform();
-        $wrap.toggle(nowOpen);
+        _mciOpenTransformModal();
     });
 
     panel.on('click.mcbi', '.mcbi-ct-btn', function () {
@@ -2641,9 +2698,7 @@ function _mciCSS() {
     s += '.mcbi-btn-transform{font-size:10px;font-weight:600;padding:3px 9px;border-radius:6px;border:1px solid rgba(0,0,0,.15);background:#fff;color:#475569;cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0;line-height:1.6;}';
     s += '.mcbi-btn-transform:hover{border-color:var(--md-primary,#5b8dee);color:var(--md-primary,#5b8dee);}';
     s += '.mcbi-btn-transform i{margin-right:3px;}';
-    // Transform builder wrapper
-    s += '.mcbi-transform-wrap{margin-top:6px;}';
-    s += '.mcbi-transform-host{border:1px solid rgba(0,0,0,.09);border-radius:9px;overflow:hidden;background:#fff;}';
+    // Transform builder — status row only (builder abre em modal dedicado)
     s += '</style>';
     $('head').append(s);
     return '';

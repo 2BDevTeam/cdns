@@ -167,8 +167,7 @@ function mdashBuildCachePayload(rows, columns) {
         columns:   columns  || (rows.length ? Object.keys(rows[0]) : []),
         rows:      preview,
         totalRows: rows.length,
-        truncated: rows.length > MDASH_PREVIEW_LIMIT,
-        cachedAt:  new Date().toISOString()
+        truncated: rows.length > MDASH_PREVIEW_LIMIT
     };
 }
 
@@ -1090,23 +1089,23 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         s += '.mtb-add-btn{margin-left:auto;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:5px;border:1.5px dashed rgba(0,0,0,.18);background:transparent;color:#64748b;cursor:pointer;display:flex;align-items:center;gap:3px;transition:all .15s;white-space:nowrap;flex-shrink:0;}';
         s += '.mtb-add-btn:hover{border-color:' + p + ';color:' + p + ';background:rgba(' + pr + ',.04);}';
         s += '.mtb-add-btn i{font-size:9px;}';
-        s += '.mtb-list{padding:0 10px 8px;}';
+        s += '.mtb-list{padding:0 12px 10px;}';
         // Row layout
-        s += '.mtb-row{display:flex;align-items:center;gap:5px;margin-bottom:5px;}';
+        s += '.mtb-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}';
         s += '.mtb-row:last-child{margin-bottom:0;}';
         // Inputs
-        s += '.mtb-input{height:26px;border:1px solid rgba(0,0,0,.13);border-radius:6px;background:#fff;color:#1e293b;font-size:11px;padding:2px 7px;outline:none;transition:border-color .15s,box-shadow .15s;}';
+        s += '.mtb-input{height:28px;border:1px solid rgba(0,0,0,.13);border-radius:6px;background:#fff;color:#1e293b;font-size:11px;padding:2px 8px;outline:none;transition:border-color .15s,box-shadow .15s;}';
         s += '.mtb-input:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.14);}';
         s += '.mtb-input-field{flex:1;min-width:60px;}';
         s += '.mtb-select-field{flex:1;min-width:80px;}';
-        s += '.mtb-input-alias{width:80px;flex-shrink:0;}';
-        s += '.mtb-input-name{width:90px;flex-shrink:0;}';
+        s += '.mtb-input-alias{width:76px;flex-shrink:0;}';
+        s += '.mtb-input-name{width:86px;flex-shrink:0;}';
         s += '.mtb-input-expr{flex:1;min-width:80px;font-family:monospace;font-size:10.5px;}';
         s += '.mtb-input-val{flex:1;min-width:50px;}';
-        s += '.mtb-select{height:26px;border:1px solid rgba(0,0,0,.13);border-radius:6px;background:#fff;color:#1e293b;font-size:10.5px;padding:1px 4px;outline:none;cursor:pointer;transition:border-color .15s;}';
+        s += '.mtb-select{height:28px;border:1px solid rgba(0,0,0,.13);border-radius:6px;background:#fff;color:#1e293b;font-size:10.5px;padding:1px 5px;outline:none;cursor:pointer;transition:border-color .15s;}';
         s += '.mtb-select:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.14);}';
-        s += '.mtb-select-agg{width:80px;flex-shrink:0;}';
-        s += '.mtb-select-op{width:120px;flex-shrink:0;}';
+        s += '.mtb-select-agg{width:82px;flex-shrink:0;}';
+        s += '.mtb-select-op{width:116px;flex-shrink:0;}';
         s += '.mtb-select-conn{width:62px;flex-shrink:0;}';
         s += '.mtb-select-dir{width:72px;flex-shrink:0;}';
         // Visibility toggle dot
@@ -1117,9 +1116,9 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         // WHERE badge
         s += '.mtb-where-badge{font-size:9px;font-weight:800;color:#fff;background:' + p + ';border-radius:4px;padding:2px 5px;flex-shrink:0;letter-spacing:.3px;}';
         // Delete button
-        s += '.mtb-del{width:22px;height:22px;border:none;background:transparent;color:#94a3b8;border-radius:5px;cursor:pointer;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}';
-        s += '.mtb-del:hover{background:rgba(239,68,68,.1);color:#ef4444;}';
-        s += '.mtb-del i{font-size:9px;}';
+        s += '.mtb-del{width:26px;height:26px;border:1px solid rgba(239,68,68,.22);background:rgba(239,68,68,.07);color:#ef4444;border-radius:6px;cursor:pointer;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}';
+        s += '.mtb-del:hover{background:rgba(239,68,68,.18);border-color:rgba(220,38,38,.45);color:#dc2626;}';
+        s += '.mtb-del i{font-size:11px;}';
         // SQL preview
         s += '.mtb-sql-preview{margin:0 10px 10px;background:#0f172a;border-radius:7px;padding:9px 11px;font-size:10.5px;font-family:monospace;white-space:pre-wrap;max-height:90px;overflow:auto;color:#94a3b8;border:none;line-height:1.55;}';
         // SQL free textarea

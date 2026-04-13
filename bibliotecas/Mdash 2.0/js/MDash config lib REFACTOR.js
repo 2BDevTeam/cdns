@@ -668,6 +668,49 @@ MDashFonte.prototype.stringifyJSONFields = function () {
 }
 
 /**
+ * Devolve apenas os campos que existem na tabela MDashFonte no SQL Server.
+ * Usar sempre que se chama realTimeComponentSync para evitar que propriedades
+ * de runtime (lastResults, schema, apiheaders, apibody, parametros, status,
+ * errorMessage) cheguem ao backend e causem erros de conversão de tipos.
+ */
+MDashFonte.prototype.toDbRecord = function () {
+    return {
+        mdashfontestamp:       this.mdashfontestamp,
+        dashboardstamp:        this.dashboardstamp,
+        codigo:                this.codigo,
+        descricao:             this.descricao,
+        ordem:                 this.ordem,
+        inactivo:              this.inactivo ? 1 : 0,
+        scope:                 this.scope,
+        scopestamp:            this.scopestamp,
+        tipo:                  this.tipo,
+        expressaolistagem:     this.expressaolistagem,
+        urlfetch:              this.urlfetch,
+        expressaojslistagem:   this.expressaojslistagem,
+        apiurl:                this.apiurl,
+        apimethod:             this.apimethod,
+        apiheadersjson:        this.apiheadersjson,
+        apibodyjson:           this.apibodyjson,
+        schemamode:            this.schemamode,
+        schemajson:            this.schemajson,
+        parametrosjson:        this.parametrosjson,
+        refreshmode:           this.refreshmode,
+        refreshintervalsec:    this.refreshintervalsec,
+        lastResultscached:     this.lastResultscached,
+        lastexecuted:          (function (d) {
+            if (!d) return null;
+            var s = String(d);
+            // /Date(ms)/ format (ASP.NET JSON)
+            var m = s.match(/\/Date\((-?\d+)/);
+            if (m) return new Date(parseInt(m[1], 10)).toISOString().slice(0, 19).replace('T', ' ');
+            // ISO 8601 or "YYYY-MM-DD HH:mm:ss" — normalise to SQL Server format
+            if (s.length >= 19) return s.slice(0, 19).replace('T', ' ');
+            return null;
+        })(this.lastexecuted)
+    };
+}
+
+/**
  * Extrai automaticamente o schema a partir dos últimos resultados.
  * Retorna array de { field, type, label }.
  */
@@ -709,7 +752,7 @@ MDashFonte.prototype.execute = function (context, callback) {
                     return;
                 }
                 self.lastResults  = Array.isArray(rows) ? rows : [];
-                self.lastexecuted = new Date().toISOString();
+                self.lastexecuted = new Date().toISOString().slice(0, 19).replace('T', ' ');
                 self.status       = 'loaded';
                 if (self.schemamode === 'auto' && self.lastResults.length > 0) {
                     self.schema = self.extractSchemaFromResults();
@@ -738,7 +781,7 @@ MDashFonte.prototype.execute = function (context, callback) {
         success: function (response) {
             if (response && response.cod === '0000') {
                 self.lastResults  = response.data || [];
-                self.lastexecuted = new Date().toISOString();
+                self.lastexecuted = new Date().toISOString().slice(0, 19).replace('T', ' ');
                 self.status       = 'loaded';
                 if (typeof callback === 'function') callback(null, self.lastResults);
             } else {
@@ -1277,12 +1320,17 @@ function actualizarConfiguracaoMDashboard() {
         if (typeof f.stringifyJSONFields === 'function') f.stringifyJSONFields();
     });
 
+    // Usar toDbRecord() para garantir que só vão campos da tabela (sem runtime props nem datas ISO)
+    var fontesDbRecords = fontesParaGravar.map(function (f) {
+        return (typeof f.toDbRecord === 'function') ? f.toDbRecord() : f;
+    });
+
     var configData = [
         { sourceTable: "MdashContainer", sourceKey: "mdashcontainerstamp", records: GMDashContainers },
         { sourceTable: "MdashContainerItem", sourceKey: "mdashcontaineritemstamp", records: GMDashContainerItems },
         { sourceTable: "MdashFilter", sourceKey: "mdashfilterstamp", records: GMDashFilters },
         { sourceTable: "MdashContainerItemObject", sourceKey: "mdashcontaineritemobjectstamp", records: GMDashContainerItemObjects },
-        { sourceTable: "MDashFonte", sourceKey: "mdashfontestamp", records: fontesParaGravar }
+        { sourceTable: "MDashFonte", sourceKey: "mdashfontestamp", records: fontesDbRecords }
     ];
 
     $.ajax({
@@ -3058,7 +3106,7 @@ function addScopedFonte(scope, scopestamp) {
     window.appState.fontes.push(newFonte);
 
     if (typeof realTimeComponentSync === 'function') {
-        realTimeComponentSync(newFonte, newFonte.table, newFonte.idfield);
+        realTimeComponentSync(newFonte.toDbRecord(), newFonte.table, newFonte.idfield);
     }
 
     // Refrescar painel e abrir editor da nova fonte directamente
@@ -3096,7 +3144,7 @@ function executeFonteByStamp(fonteStamp) {
         if (!err) {
             fonte.stringifyJSONFields();
             if (typeof realTimeComponentSync === 'function') {
-                realTimeComponentSync(fonte, fonte.table, fonte.idfield);
+                realTimeComponentSync(fonte.toDbRecord(), fonte.table, fonte.idfield);
             }
         }
         // Refrescar UI
@@ -3251,7 +3299,7 @@ function editFonteInPanel(fonteStamp) {
     function _persistFonte() {
         fonte.stringifyJSONFields();
         if (typeof realTimeComponentSync === 'function') {
-            realTimeComponentSync(fonte, fonte.table, fonte.idfield);
+            realTimeComponentSync(fonte.toDbRecord(), fonte.table, fonte.idfield);
         }
     }
 
