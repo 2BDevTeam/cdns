@@ -463,6 +463,14 @@ function MdashContainerItemObject(data) {
 function getMdashObjectTypeEntry(tipo) {
     if (!tipo) return null;
     var tipoStr = '' + tipo;
+
+    // Normalização de nomes legados (valores guardados em BD com nomes Portugueses)
+    var _legacy = { 'gráfico': 'chart', 'grafico': 'chart', 'pie': 'pie', 'pizza': 'pie',
+                    'tabela': 'table', 'texto': 'text', 'customcode': 'customCode',
+                    'detail': 'detail', 'detalhe': 'detail' };
+    var normalized = _legacy[tipoStr.toLowerCase()];
+    if (normalized) tipoStr = normalized;
+
     if (typeof getTiposObjectoConfig !== 'function') {
         console.error('[MDash DEBUG] getMdashObjectTypeEntry: getTiposObjectoConfig NÃO EXISTE — a extensão não está carregada. tipo="' + tipoStr + '"');
         return null;
@@ -537,6 +545,20 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
                 config: self.config,
                 containerItem: containerItem,
                 data: containerItem.records || [],
+                isSample: false
+            });
+        } else if (typeof entry.getSampleData === 'function') {
+            // Sem dados reais ainda — renderizar com dados de amostra
+            console.log('  → A CHAMAR entry.renderObject() com SAMPLE DATA');
+            console.groupEnd();
+            entry.renderObject({
+                containerSelector: containerSelector,
+                itemObject: self,
+                queryConfig: self.queryConfig,
+                config: self.config,
+                containerItem: containerItem,
+                data: entry.getSampleData(),
+                isSample: true
             });
         } else {
             console.log('  → placeholder (aguarda dados)');
@@ -1819,11 +1841,11 @@ function injectSlotDropOverlays(itemStamp, template) {
                 dropHtml += '<div class="mdash-slot-zone-obj-block">';
                 dropHtml += '<div class="mdash-slot-zone-toolbar">';
                 // Lado esquerdo: opções do SLOT
-                dropHtml += '<button type="button" class="mdash-slot-zone-settings mdash-slot-zone-toolbar-left" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i></button>';
-                dropHtml += '  <i class="' + getObjectTypeIcon(obj.tipo) + '"></i>';
-                dropHtml += '  <span>' + (obj.tipo || 'Objecto') + '</span>';
-                // Lado direito: opções do OBJECTO
-                dropHtml += '<button type="button" class="mdash-slot-zone-remove mdash-slot-zone-toolbar-right" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Remover objecto"><i class="glyphicon glyphicon-remove"></i></button>';
+                dropHtml += '<button type="button" class="mdash-slot-zone-settings mdash-slot-zone-toolbar-left" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i> Slot</button>';
+                // Centro: propriedades do OBJECTO (mostra o tipo em vez de "Propriedades")
+                dropHtml += '<button type="button" class="mdash-slot-zone-obj-props" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Propriedades do objecto"><i class="' + getObjectTypeIcon(obj.tipo) + '"></i> ' + (obj.tipo || 'Objecto') + '</button>';
+                // Lado direito: remover OBJECTO
+                dropHtml += '<button type="button" class="mdash-slot-zone-remove mdash-slot-zone-toolbar-right" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Remover objecto"><i class="glyphicon glyphicon-remove"></i> Remover</button>';
                 dropHtml += '</div>';
                 dropHtml += '<div class="mdash-slot-zone-render" id="' + renderDivId + '" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '">';
                 if (objProcessaFonte !== false) {
@@ -1834,9 +1856,11 @@ function injectSlotDropOverlays(itemStamp, template) {
             });
             dropHtml += '</div>';
         } else {
-            // ── Slot vazio: hint de drag + gear ──
+            // ── Slot vazio: mesma toolbar overlay + hint de drag ──
             dropHtml = '<div class="mdash-slot-zone-drop" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '">';
-            dropHtml += '<button type="button" class="mdash-slot-zone-settings" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i></button>';
+            dropHtml += '<div class="mdash-slot-zone-toolbar">';
+            dropHtml += '<button type="button" class="mdash-slot-zone-settings mdash-slot-zone-toolbar-left" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i> Slot</button>';
+            dropHtml += '</div>';
             dropHtml += '<span class="mdash-slot-zone-hint"><i class="glyphicon glyphicon-plus-sign"></i> ' + (slotDef.label || slotId) + '</span>';
             dropHtml += '</div>';
         }
@@ -1913,6 +1937,43 @@ function bindSlotDropZoneEvents($drop, itemStamp, slotId) {
         $(this).addClass('is-selected');
         _currentSelectedComponent = { type: 'object', stamp: stamp, data: obj };
         handleComponentProperties(_currentSelectedComponent);
+    });
+
+    // Click no botão ✏ Propriedades → mesma acção que clicar na render area
+    $drop.on('click', '.mdash-slot-zone-obj-props', function (e) {
+        e.stopPropagation();
+        var stamp = $(this).data('object-stamp');
+        if (!stamp) return;
+        var obj = window.appState.containerItemObjects.find(function (o) {
+            return o.mdashcontaineritemobjectstamp === stamp;
+        });
+        if (!obj) return;
+        var $block = $(this).closest('.mdash-slot-zone-obj-block');
+        $('.mdash-slot-zone-render.is-selected').removeClass('is-selected');
+        $block.find('.mdash-slot-zone-render').addClass('is-selected');
+        _currentSelectedComponent = { type: 'object', stamp: stamp, data: obj };
+        handleComponentProperties(_currentSelectedComponent);
+    });
+
+    // Hover ⚙ slot → realça a borda do slot inteiro (azul)
+    $drop.on('mouseenter', '.mdash-slot-zone-settings', function () {
+        $drop.addClass('slot-action-hover');
+    }).on('mouseleave', '.mdash-slot-zone-settings', function () {
+        $drop.removeClass('slot-action-hover');
+    });
+
+    // Hover ✏ propriedades do objecto → contorno no render
+    $drop.on('mouseenter', '.mdash-slot-zone-obj-props', function () {
+        $(this).closest('.mdash-slot-zone-obj-block').addClass('object-props-hover');
+    }).on('mouseleave', '.mdash-slot-zone-obj-props', function () {
+        $(this).closest('.mdash-slot-zone-obj-block').removeClass('object-props-hover');
+    });
+
+    // Hover × remove → realça o bloco do objecto (vermelho)
+    $drop.on('mouseenter', '.mdash-slot-zone-remove', function () {
+        $(this).closest('.mdash-slot-zone-obj-block').addClass('object-remove-hover');
+    }).on('mouseleave', '.mdash-slot-zone-remove', function () {
+        $(this).closest('.mdash-slot-zone-obj-block').removeClass('object-remove-hover');
     });
 
     // Click no gear (toolbar ou slot vazio) → propriedades do slot
@@ -5793,6 +5854,18 @@ function showObjectPropertiesEditor(obj) {
     var $propsPanel = $('.mdash-properties');
     if ($propsPanel.hasClass('is-collapsed')) $propsPanel.removeClass('is-collapsed');
 
+    // ── Delegate to type-specific inline editor if one is registered ──────
+    var tipoEntry = getMdashObjectTypeEntry(obj.tipo);
+    if (tipoEntry && typeof tipoEntry.renderPropertiesInline === 'function') {
+        // Hide the Fontes/Acções tabs — handled inline
+        $('.mdash-props-tab[data-tab="fontes"], .mdash-props-tab[data-tab="actions"]').hide();
+        panel.off('.objprops');
+        tipoEntry.renderPropertiesInline(obj, panel);
+        return;
+    }
+
+    // ── Generic properties editor ─────────────────────────────────────────
+
     // Ocultar tabs Fontes e Acções para objectos estáticos
     if (obj.processaFonte === false) {
         $('.mdash-props-tab[data-tab="fontes"], .mdash-props-tab[data-tab="actions"]').hide();
@@ -5800,7 +5873,17 @@ function showObjectPropertiesEditor(obj) {
         $('.mdash-props-tab[data-tab="fontes"], .mdash-props-tab[data-tab="actions"]').show();
     }
 
-    var fonteOptions = (window.appState ? window.appState.fontes : GMDashFontes).map(function (f) {
+    // Fontes — lê de ambas as fontes com fallback robusto
+    var allFontes = [];
+    if (window.appState && Array.isArray(window.appState.fontes) && window.appState.fontes.length) {
+        allFontes = window.appState.fontes;
+    } else if (Array.isArray(GMDashFontes) && GMDashFontes.length) {
+        allFontes = GMDashFontes;
+    }
+    if (!allFontes.length) {
+        console.warn('[MDash] showObjectPropertiesEditor: nenhuma fonte disponível. GMDashFontes.length =', GMDashFontes ? GMDashFontes.length : 'N/A');
+    }
+    var fonteOptions = allFontes.map(function (f) {
         return '<option value="' + f.mdashfontestamp + '"' + (obj.fontestamp === f.mdashfontestamp ? ' selected' : '') + '>'
             + (f.descricao || f.codigo || f.mdashfontestamp) + '</option>';
     }).join('');
@@ -5835,10 +5918,10 @@ function showObjectPropertiesEditor(obj) {
     html += '  </div>';
     html += '  <div class="mdash-prop-section-body" id="obj-sec-data">';
     html += '    <div class="row">';
-    var processaBadgeColor = obj.processaFonte !== false ? 'rgba(16,185,129,0.12)' : 'rgba(107,114,128,0.12)';
-    var processaBadgeText = obj.processaFonte !== false ? 'Sim' : 'Não';
+    var processaBadgeColor  = obj.processaFonte !== false ? 'rgba(16,185,129,0.12)' : 'rgba(107,114,128,0.12)';
+    var processaBadgeText   = obj.processaFonte !== false ? 'Sim' : 'Não';
     var processaBadgeBorder = obj.processaFonte !== false ? 'rgba(16,185,129,0.4)' : 'rgba(107,114,128,0.3)';
-    var processaBadgeFg = obj.processaFonte !== false ? '#0d7a55' : '#555';
+    var processaBadgeFg     = obj.processaFonte !== false ? '#0d7a55' : '#555';
     html += '      <div class="col-md-12" style="margin-bottom:6px;"><div class="mdash-prop-field">';
     html += '        <label>Processa Fonte</label>';
     html += '        <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">';
@@ -5850,15 +5933,20 @@ function showObjectPropertiesEditor(obj) {
         html += '      <div class="col-md-12 mdash-obj-fonte-row" style="margin-bottom:6px;"><div class="mdash-prop-field">';
         html += '        <label>Fonte de Dados</label>';
         html += '        <select class="form-control input-sm mdash-obj-prop" data-field="fontestamp"><option value="">-- Sem fonte --</option>' + fonteOptions + '</select>';
+        if (!allFontes.length) html += '        <small style="color:#e67e22;font-size:10px;">Nenhuma fonte carregada neste dashboard</small>';
         html += '      </div></div>';
     }
     html += '    </div>';
     html += '  </div>';
     html += '</div>';
 
-    // ── Botão abrir editor completo ──
+    // ── Botão abrir editor ──
+    var hasCustomModal = tipoEntry && typeof tipoEntry.openConfigModal === 'function';
+    var btnLabel = hasCustomModal
+        ? '<i class="glyphicon glyphicon-pencil"></i> Editor avançado'
+        : '<i class="glyphicon glyphicon-pencil"></i> Abrir editor completo';
     html += '<div style="padding:10px 0 4px;">';
-    html += '  <button type="button" class="btn btn-sm btn-default btn-block mdash-obj-open-editor"><i class="glyphicon glyphicon-pencil"></i> Abrir editor completo</button>';
+    html += '  <button type="button" class="btn btn-sm btn-default btn-block mdash-obj-open-editor">' + btnLabel + '</button>';
     html += '</div>';
 
     html += '</div>';
@@ -5881,7 +5969,12 @@ function showObjectPropertiesEditor(obj) {
 
     panel.off('click.objprops');
     panel.on('click.objprops', '.mdash-obj-open-editor', function () {
-        openContainerItemObjectEditModal(obj);
+        var entry = getMdashObjectTypeEntry(obj.tipo);
+        if (entry && typeof entry.openConfigModal === 'function') {
+            entry.openConfigModal(obj);
+        } else {
+            openContainerItemObjectEditModal(obj);
+        }
     });
 }
 
@@ -6818,29 +6911,33 @@ function loadModernDashboardStyles() {
     // Hint for empty slots
     styles += ".mdash-slot-zone-hint { display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--md-muted); font-size: 10px; }";
     styles += ".mdash-slot-zone-hint i { font-size: 10px; opacity: 0.5; }";
-    // Toolbar: absolute overlay — never pushes content down
-    styles += ".mdash-slot-zone-toolbar { position: absolute; top: 0; left: 0; right: 0; z-index: 5; display: flex; align-items: center; gap: 4px; padding: 2px 4px; background: rgba(0,0,0,0.55); border-radius: 4px 4px 0 0; font-size: 11px; color: #fff; opacity: 0; pointer-events: none; transition: opacity 0.15s; }";
-    styles += ".mdash-slot-zone-drop.has-object:hover .mdash-slot-zone-toolbar { opacity: 1; pointer-events: auto; }";
-    styles += ".mdash-slot-zone-toolbar i { color: #fff; font-size: 11px; }";
-    styles += ".mdash-slot-zone-toolbar span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }";
-    // Left (slot) and right (object) anchors inside toolbar
-    styles += ".mdash-slot-zone-toolbar-left { margin-right: 2px; }";
-    styles += ".mdash-slot-zone-toolbar-right { margin-left: auto; }";
-    // Each object block inside an occupied slot
-    styles += ".mdash-slot-zone-obj-block { position: relative; overflow: hidden; }";
+    // Toolbar: absolute overlay — anchored left, grows to fit content (never clipped)
+    styles += ".mdash-slot-zone-toolbar { position: absolute; top: 0; left: 0; width: max-content; min-width: 100%; z-index: 10; display: flex; align-items: center; gap: 3px; padding: 2px 4px; background: rgba(0,0,0,0.60); border-radius: 4px 4px 0 0; font-size: 11px; color: #fff; opacity: 0; pointer-events: none; transition: opacity 0.15s; box-sizing: border-box; }";
+    styles += ".mdash-slot-zone-drop:hover .mdash-slot-zone-toolbar { opacity: 1; pointer-events: auto; }";
+    styles += ".mdash-slot-zone-toolbar i { color: #fff !important; font-size: 11px; }";
+    // Slot button (left): blue pill
+    styles += ".mdash-slot-zone-toolbar-left { display:inline-flex; align-items:center; gap:3px; background:rgba(var(--md-primary-rgb),0.85); color:#fff !important; border:none; border-radius:3px; padding:2px 8px; font-size:10px; font-weight:600; cursor:pointer; transition:background 0.15s, box-shadow 0.15s; line-height:1.4; flex-shrink:0; }";
+    styles += ".mdash-slot-zone-toolbar-left:hover { background:var(--md-primary); box-shadow:0 0 0 2px rgba(var(--md-primary-rgb),0.45); }";
+    // Object properties button (centre): grey pill
+    styles += ".mdash-slot-zone-obj-props { display:inline-flex; align-items:center; gap:3px; background:rgba(255,255,255,0.18); color:#fff !important; border:none; border-radius:3px; padding:2px 8px; font-size:10px; font-weight:600; cursor:pointer; transition:background 0.15s, box-shadow 0.15s; line-height:1.4; flex-shrink:0; }";
+    styles += ".mdash-slot-zone-obj-props:hover { background:rgba(255,255,255,0.32); box-shadow:0 0 0 2px rgba(255,255,255,0.35); }";
+    // Remove button (right): red pill
+    styles += ".mdash-slot-zone-toolbar-right { display:inline-flex; align-items:center; gap:3px; background:rgba(217,83,79,0.85); color:#fff !important; border:none; border-radius:3px; padding:2px 8px; font-size:10px; font-weight:600; cursor:pointer; transition:background 0.15s, box-shadow 0.15s; line-height:1.4; margin-left:auto; flex-shrink:0; }";
+    styles += ".mdash-slot-zone-toolbar-right:hover { background:#d9534f; box-shadow:0 0 0 2px rgba(217,83,79,0.45); }";
+    // Cross-element hover highlights
+    styles += ".mdash-slot-zone-drop.slot-action-hover { border-color:var(--md-primary) !important; border-style:solid !important; box-shadow:0 0 0 3px rgba(var(--md-primary-rgb),0.22) !important; }";
+    styles += ".mdash-slot-zone-obj-block.object-remove-hover { background:rgba(217,83,79,0.07); }";
+    styles += ".mdash-slot-zone-obj-block.object-remove-hover .mdash-slot-zone-render { opacity:0.45; }";
+    styles += ".mdash-slot-zone-obj-block.object-props-hover .mdash-slot-zone-render { outline:2px solid rgba(var(--md-primary-rgb),0.55); outline-offset:-1px; }";
+    // Each object block inside an occupied slot — sem overflow:hidden para não cortar a toolbar
+    styles += ".mdash-slot-zone-obj-block { position: relative; transition: background 0.15s; }";
+    // A toolbar usa box-sizing border-box; o span encolhe, os botões não
+    styles += ".mdash-slot-zone-toolbar { box-sizing: border-box; }";
     // Render area — content rendered directly here, no min-height so slot fits content
-    styles += ".mdash-slot-zone-render { width: 100%; cursor: pointer; }";
+    styles += ".mdash-slot-zone-render { width: 100%; cursor: pointer; overflow: hidden; }";
     styles += ".mdash-slot-zone-render.is-selected { outline: 2px solid var(--md-primary); outline-offset: -1px; }";
     styles += ".mdash-slot-zone-render-placeholder { padding: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--md-muted); font-size: 11px; font-style: italic; }";
     styles += ".mdash-slot-zone-render-placeholder i { color: var(--md-muted); font-size: 12px; }";
-    // Gear button
-    styles += ".mdash-slot-zone-settings { border: none; background: none; color: var(--md-muted); cursor: pointer; padding: 2px 4px; font-size: 10px; transition: color 0.15s; line-height: 1; }";
-    styles += ".mdash-slot-zone-settings:hover { color: var(--md-primary); }";
-    styles += ".mdash-slot-zone-drop:not(.has-object) .mdash-slot-zone-settings { position: absolute; top: 2px; right: 2px; opacity: 0; transition: opacity 0.15s, color 0.15s; z-index: 2; }";
-    styles += ".mdash-slot-zone-drop:not(.has-object):hover .mdash-slot-zone-settings { opacity: 0.7; }";
-    // Remove button (in toolbar)
-    styles += ".mdash-slot-zone-remove { border: none; background: none; color: var(--md-muted); cursor: pointer; padding: 1px 3px; font-size: 10px; transition: color 0.15s; line-height: 1; margin-left: 2px; }";
-    styles += ".mdash-slot-zone-remove:hover { color: #d9534f; }";
 
     // ===== OBJECTS PANEL (sidebar) =====
     styles += ".mdash-objects-panel { padding: 8px !important; }";
