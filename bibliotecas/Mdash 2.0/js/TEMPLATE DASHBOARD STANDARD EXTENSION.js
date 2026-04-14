@@ -497,7 +497,6 @@ function crateDynamicSchemaCustomCode(data) {
 //   - buildEchartsOption(config, rows) → opção ECharts pronta
 //   - render(selector, options) → painel de 3 tabs (Dados | Gráfico | Estilo)
 //   - readConfig($container) → lê estado actual do painel
-//   - openChartBuilderModal(obj) → modal completo com preview em tempo real
 // ============================================================================
 var MdashChartBuilder = (function () {
 
@@ -898,6 +897,7 @@ var MdashChartBuilder = (function () {
         var cfg = options.config || _defaultConfig();
         var initTransCfg = options.transformConfig || cfg.transformConfig || null;
         var initFields = options.fields ? options.fields.slice() : [];
+        console.log('[MCB] render() initFields:', initFields, '| initTransCfg.transformationSchema:', initTransCfg && initTransCfg.transformationSchema);
         _injectCSS();
         $c.data('mcbTransformConfig', initTransCfg);
 
@@ -975,9 +975,15 @@ var MdashChartBuilder = (function () {
                 var tCfg  = $c.data('mcbTransformConfig');
                 var mode  = self.cfg.dataSourceMode;
                 var mtb   = typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null;
+                console.log('[MCB] changeDataSource()', {
+                    mode: mode,
+                    'tCfg.transformationSchema': tCfg && tCfg.transformationSchema,
+                    'MdashTransformBuilder disponível': !!mtb
+                });
 
                 var RESOLVERS = {
                     transform: function () {
+                        console.log('[MCB] Resolving transform fields with schema:', tCfg && tCfg.transformationSchema);
                         return mtb && tCfg ? mtb.getOutputSchema(tCfg) : [];
                     },
                     raw: function () {
@@ -995,11 +1001,14 @@ var MdashChartBuilder = (function () {
                 };
 
                 var resolver = RESOLVERS[mode] || RESOLVERS.transform;
-                self.updateFields(resolver());
+                var resolved = resolver();
+                console.log('[MCB] changeDataSource() resolved fields:', resolved);
+                self.updateFields(resolved);
             },
             // Actualiza listas de campos e limpa selecções inválidas
             updateFields: function (nf) {
                 nf = nf || [];
+                console.log('[MCB] updateFields() nf:', nf);
                 this.fields = nf.slice();
                 if (nf.indexOf(this.cfg.xField) === -1) this.cfg.xField = '';
                 this.cfg.series.forEach(function (s) { if (nf.indexOf(s.field) === -1) s.field = ''; });
@@ -1300,7 +1309,7 @@ var MdashChartBuilder = (function () {
 
 // ── Legacy stub mantido para compatibilidade com referências existentes ───────
 function createDynamicSchemaGrafico(data) {
-    // Substituído por MdashChartBuilder.render() + openChartBuilderModal()
+    // Substituído por renderChartPropertiesInline()
     return null;
     var availableFields = Object.keys(data[0]);
 
@@ -1628,6 +1637,11 @@ function renderObjectGrafico(dados) {
     }
 
     // Sem config → aplicar config de amostra e dados de amostra para render imediato
+    // Resolver dados por série (quando alguma série tem fonte/transformação própria)
+    if (!isSample && rows.length > 0 && cfg.series) {
+        var _mergedRows = _mciResolveSeriesRows(cfg, rows);
+        if (_mergedRows && _mergedRows.length) rows = _mergedRows;
+    }
     if (!cfg.chartType) {
         cfg = JSON.parse(JSON.stringify(_MCHART_SAMPLE_CONFIG));
         isSample = true;
@@ -1815,203 +1829,6 @@ function updateChartOnContainer(chart, config, data, chartId) {
 }
 
 // ============================================================================
-// openChartBuilderModal — Modal completo de configuração de gráfico
-// Chamado pelo botão "Propriedades" no slot zone e por showObjectPropertiesEditor.
-// Renderiza MdashChartBuilder (3 tabs) à esquerda + preview em tempo real à direita.
-// ============================================================================
-function openChartBuilderModal(obj) {
-    if (typeof resetModalOpenState === 'function') resetModalOpenState('#mcb-modal');
-
-    var cfg = (obj && obj.config) ? JSON.parse(JSON.stringify(obj.config)) : MdashChartBuilder.defaultConfig();
-    // transformConfig tem coluna própria — ler de obj.transformConfig com fallback ao legado dentro de cfg
-    cfg.transformConfig = (obj && obj.transformConfig) || cfg.transformConfig || null;
-    // Descobrir campos disponíveis via schema da tabela in-memory
-    var fields = [];
-    var tCfg = cfg.transformConfig;
-
-    if (tCfg && typeof MdashTransformBuilder !== 'undefined') {
-        // Prioridade: transformationSchema guardado no Aplicar > getOutputSchema (inferência)
-        fields = (tCfg.transformationSchema && tCfg.transformationSchema.length)
-            ? tCfg.transformationSchema.slice()
-            : MdashTransformBuilder.getOutputSchema(tCfg);
-    }
-    // Fallback: tentar via fonte ligada ao objecto
-    if (fields.length === 0 && obj && obj.fontestamp && typeof GMDashFontes !== 'undefined') {
-        var fonte = (GMDashFontes || []).filter(function (f) { return f.mdashfontestamp === obj.fontestamp; })[0];
-        if (fonte && typeof mdashFonteTableName === 'function') {
-            var tname = mdashFonteTableName(fonte);
-            if (typeof MdashTransformBuilder !== 'undefined') {
-                fields = MdashTransformBuilder.getTableSchema(tname).map(function (s) { return s.field; });
-                if (fields.length > 0 && !tCfg) {
-                    cfg.transformConfig = MdashTransformBuilder.autoConfig(tname, 'Gráfico');
-                }
-            }
-        }
-    }
-
-    var title = _mcbEsc(obj ? (obj.titulo || obj.expressaoobjecto || '') : '');
-
-    var m = '';
-    m += '<div class="modal fade" id="mcb-modal" tabindex="-1" role="dialog">';
-    m += '<div class="modal-dialog" style="width:96%;max-width:1180px;margin:18px auto;">';
-    m += '<div class="modal-content" style="border-radius:12px;overflow:hidden;border:none;box-shadow:0 24px 80px rgba(0,0,0,0.28);">';
-    // Header
-    m += '<div class="modal-header" style="background:linear-gradient(135deg,#1E293B 0%,#0F172A 100%);border:none;padding:14px 22px;">';
-    m += '<button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:.65;font-size:22px;margin-top:-2px;">&times;</button>';
-    m += '<h4 class="modal-title" style="color:#fff;font-weight:700;font-size:15px;letter-spacing:.2px;">';
-    m += '<i class="glyphicon glyphicon-stats" style="margin-right:9px;opacity:.75;"></i>';
-    m += 'Configuração do Gráfico' + (title ? ' — ' + title : '') + '</h4>';
-    m += '</div>';
-    // Body: config panel (left) + live preview (right)
-    m += '<div class="modal-body" style="padding:0;display:flex;min-height:540px;max-height:82vh;">';
-    // Config panel
-    m += '<div id="mcb-config-panel" style="width:400px;flex-shrink:0;padding:18px 16px 12px;border-right:1px solid #f0f4f8;overflow-y:auto;max-height:82vh;"></div>';
-    // Live preview
-    m += '<div style="flex:1;padding:18px;background:#f8fafc;display:flex;flex-direction:column;overflow:hidden;">';
-    m += '<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.65px;color:#94A3B8;margin-bottom:10px;display:flex;align-items:center;gap:6px;">';
-    m += '<i class="glyphicon glyphicon-eye-open"></i> Pré-visualização em tempo real</div>';
-    m += '<div id="mcb-preview-chart" style="flex:1;min-height:260px;background:#fff;border-radius:10px;box-shadow:0 2px 16px rgba(0,0,0,0.07);overflow:hidden;"></div>';
-    m += '<div id="mcb-preview-info" style="margin-top:7px;font-size:11px;color:#94A3B8;text-align:right;"></div>';
-    m += '</div>';
-    m += '</div>'; // modal-body
-    // Footer
-    m += '<div class="modal-footer" style="border-top:1px solid #f0f4f8;padding:12px 20px;display:flex;justify-content:flex-end;gap:8px;background:#fff;">';
-    m += '<button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancelar</button>';
-    m += '<button type="button" class="btn btn-primary btn-sm" id="mcb-apply" style="background:#2563EB;border-color:#1D4ED8;padding:6px 18px;font-weight:600;">';
-    m += '<i class="glyphicon glyphicon-ok"></i> Aplicar</button>';
-    m += '</div>';
-    m += '</div></div></div>';
-
-    $('body').append(m);
-
-    // Render config panel
-    MdashChartBuilder.render('#mcb-config-panel', {
-        config: cfg,
-        fields: fields,
-        onTransformChange: function (newT) {
-            cfg.transformConfig = newT;
-            // fields já foram actualizados reactivamente por render()'s onSave → updateFields()
-            _mcbRefreshPreview(obj, cfg);
-        },
-        onChange: function (newCfg) {
-            newCfg.transformConfig = cfg.transformConfig;
-            _mcbRefreshPreview(obj, newCfg);
-        }
-    });
-
-    // Initial preview (with short delay to allow echarts init)
-    setTimeout(function () { _mcbRefreshPreview(obj, cfg); }, 350);
-
-    // Apply button
-    $('#mcb-modal').off('click.mcb').on('click.mcb', '#mcb-apply', function () {
-        var finalCfg = MdashChartBuilder.readConfig($('#mcb-config-panel'));
-        var tCfg = cfg.transformConfig || null;
-        delete finalCfg.transformConfig; // não embutir em configjson — tem coluna própria
-        if (obj) {
-            obj.config = finalCfg;
-            obj.configjson = JSON.stringify(finalCfg);
-            obj.transformConfig = tCfg;
-            obj.transformconfigjson = JSON.stringify(tCfg);
-            if (typeof realTimeComponentSync === 'function') {
-                realTimeComponentSync(obj, obj.table, obj.idfield);
-            }
-            // Re-renderizar no canvas
-            var renderDivId = 'mdash-slot-render-' + obj.mdashcontaineritemobjectstamp;
-            var $rd = $('#' + renderDivId);
-            if ($rd.length) {
-                var items = window.appState ? window.appState.containerItems : [];
-                for (var ii = 0; ii < items.length; ii++) {
-                    if (items[ii].mdashcontaineritemstamp === obj.mdashcontaineritemstamp) {
-                        obj.renderObjectByContainerItem('#' + renderDivId, items[ii]);
-                        break;
-                    }
-                }
-            }
-        }
-        $('#mcb-modal').modal('hide');
-    });
-
-    $('#mcb-modal').on('hidden.bs.modal', function () {
-        // Destruir instância ECharts do preview
-        var $prev = $('#mcb-preview-chart');
-        if ($prev.length && typeof echarts !== 'undefined' && echarts.getInstanceByDom) {
-            var inst = echarts.getInstanceByDom($prev[0]);
-            if (inst) inst.dispose();
-        }
-        $(this).remove();
-        $('.modal-backdrop').remove();
-    });
-
-    $('#mcb-modal').modal('show');
-}
-
-// Converte resultado bruto do sql.js ({columns, rows}) para array de objectos
-function _mcbRawToObjects(result) {
-    if (!result || result.error || !result.columns || !result.rows) return [];
-    return result.rows.map(function (r) {
-        return result.columns.reduce(function (o, c, i) { o[c] = r[i]; return o; }, {});
-    });
-}
-
-// Estratégias de resolução de dados indexadas por modo
-var _MCB_DATA_RESOLVERS = {
-    transform: function (cfg) {
-        return typeof MdashTransformBuilder !== 'undefined' && cfg.transformConfig
-            ? _mcbRawToObjects(MdashTransformBuilder.executeRaw(cfg.transformConfig))
-            : null;
-    },
-    raw: function (cfg) {
-        var tbl = cfg.transformConfig && cfg.transformConfig.sourceTable;
-        return (typeof MdashTransformBuilder !== 'undefined' && tbl)
-            ? _mcbRawToObjects(MdashTransformBuilder.executeRaw(MdashTransformBuilder.autoConfig(tbl, 'raw')))
-            : null;
-    },
-    fonte: function (cfg) {
-        var stamp = cfg.dataSource && cfg.dataSource.fonteStamp;
-        var fonte = stamp && (window.GMDashFontes || []).filter(function (f) { return f.mdashfontestamp === stamp; })[0];
-        return fonte ? (fonte.lastResults || []) : null;
-    }
-};
-
-function _mcbResolvePreviewRows(cfg, obj) {
-    var mode = (cfg.dataSource && cfg.dataSource.mode) || 'transform';
-    var resolver = _MCB_DATA_RESOLVERS[mode];
-    var rows = resolver ? resolver(cfg) : null;
-
-    // Fallback ao container item quando o resolver não produziu linhas
-    if (rows === null && obj) {
-        var items = (window.appState && window.appState.containerItems) || [];
-        var ci = items.filter(function (x) { return x.mdashcontaineritemstamp === obj.mdashcontaineritemstamp; })[0];
-        rows = ci ? (ci.records || []) : [];
-    }
-
-    return rows || [];
-}
-
-function _mcbRefreshPreview(obj, cfg) {
-    var $prev = $('#mcb-preview-chart');
-    if (!$prev.length || typeof echarts === 'undefined') return;
-
-    var rows = _mcbResolvePreviewRows(cfg, obj);
-    var height = Math.max(cfg.height || 320, 260);
-
-    $prev.css({ height: height + 'px', 'min-height': '260px' });
-
-    var dom = $prev[0];
-    var chart = (echarts.getInstanceByDom && echarts.getInstanceByDom(dom)) || echarts.init(dom, null, { renderer: 'canvas' });
-
-    chart.setOption(MdashChartBuilder.buildEchartsOption(cfg, rows), true);
-    chart.resize();
-    window.dispatchEvent(new Event('resize'));
-
-    $('#mcb-preview-info').text(rows.length + ' linha(s)' + (!rows.length ? ' — configure a fonte na aba Dados' : ''));
-}
-
-function _mcbEsc(s) {
-    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-// ============================================================================
 // MDASH_SAMPLE_DATA — Dados de amostra genéricos (20 registos de facturação)
 // Usados por todos os tipos de objecto para renderização imediata no canvas.
 // ============================================================================
@@ -2082,26 +1899,122 @@ function _mciGetFontes() {
     return [];
 }
 
+// Devolve [{field, type}] para uma fonte, por prioridade: schemajson → lastResultscached → PRAGMA.
+function _mciGetFonteSchema(fonte) {
+    if (!fonte) return [];
+    if (fonte.schemajson) {
+        try {
+            var sc = JSON.parse(fonte.schemajson);
+            if (Array.isArray(sc) && sc.length)
+                return sc.map(function (c) { return { field: typeof c === 'string' ? c : (c.field || c.name || String(c)), type: c.type || 'TEXT' }; }).filter(function (c) { return c.field; });
+        } catch (e) {}
+    }
+    if (fonte.lastResultscached) {
+        try {
+            var lrc = JSON.parse(fonte.lastResultscached);
+            var cols = (lrc && Array.isArray(lrc.columns) && lrc.columns.length) ? lrc.columns
+                : (Array.isArray(lrc) && lrc.length && typeof lrc[0] === 'object' ? Object.keys(lrc[0]) : null);
+            if (cols) return cols.map(function (c) { return { field: c, type: 'TEXT' }; });
+        } catch (e) {}
+    }
+    if (typeof MdashTransformBuilder !== 'undefined' && typeof mdashFonteTableName === 'function') {
+        var tbl = mdashFonteTableName(fonte);
+        if (tbl) return MdashTransformBuilder.getTableSchema(tbl);
+    }
+    return [];
+}
+
+// Actualiza um <select> jQuery com uma lista de campos, preservando a selecção actual.
+function _mciSetSelectFields($sel, fields, placeholder) {
+    var cur = $sel.val();
+    $sel.html('<option value="">' + (placeholder || 'campo…') + '</option>'
+        + fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (cur === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join(''));
+}
+
+// ── Auto-aplica uma transformação passthrough quando se selecciona uma fonte ──
+// Cria um transformConfig com todas as colunas da fonte sem filtros/aggregações.
+// Pode ser chamado em qualquer ponto do código (change handler, init, series, etc.).
+// panel é opcional — se fornecido, actualiza o UI do .mcbi-transform-status.
+function _mciAutoApplyFonteTransform(fonteStamp, obj, panel) {
+    if (!fonteStamp) return;
+    var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
+    if (!MTB) return;
+    var fonte = _mciGetFontes().find(function (f) { return f.mdashfontestamp === fonteStamp; });
+    if (!fonte) return;
+
+    // 1. Carregar cache na DB in-memory
+    if (typeof mdashExtractRowsFromCache === 'function' && typeof mdashLoadFonteIntoDb === 'function') {
+        var _rows = mdashExtractRowsFromCache(fonte.lastResultscached);
+        if (_rows.length) mdashLoadFonteIntoDb(fonte, _rows);
+    }
+
+    var tblName = (typeof mdashFonteTableName === 'function') ? mdashFonteTableName(fonte) : '';
+
+    // 2. Derivar schema via helper centralizado
+    var schema = _mciGetFonteSchema(fonte);
+
+    // 3. Construir config passthrough (todas as colunas, sem filtros)
+    var autoConf = tblName ? MTB.autoConfig(tblName, 'Gráfico') : { mode: 'builder', sourceTable: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null };
+    if (!autoConf.columns.length && schema.length) {
+        autoConf.sourceTable = tblName;
+        autoConf.columns = schema.map(function (s) { return { field: s.field, alias: '', aggregate: 'none', visible: true }; });
+    }
+    // Guardar transformationSchema para resolução imediata de campos (evita re-execução)
+    if (!autoConf.transformationSchema || !autoConf.transformationSchema.length) {
+        autoConf.transformationSchema = (schema.length ? schema : autoConf.columns).map(function (s) { return s.field || s; }).filter(Boolean);
+    }
+
+    // 4. Persistir
+    obj.transformConfig = autoConf;
+    obj.transformconfigjson = JSON.stringify(autoConf);
+    obj.config = obj.config || {};
+    obj.config.transformConfig = autoConf;
+
+    // 5. Actualizar UI se panel disponível
+    if (panel) {
+        var $ts = panel.find('.mcbi-transform-status');
+        $ts.addClass('is-active');
+        $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + (tblName || 'fonte') + '</strong>');
+        $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-pencil"></i> Editar');
+    }
+}
+
 function _mciGetFields(obj) {
     var cfg = obj.config || {};
-    // 1. TransformConfig schema (sql.js PRAGMA)
-    if (cfg.transformConfig && cfg.transformConfig.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
-        var schema = MdashTransformBuilder.getTableSchema(cfg.transformConfig.sourceTable);
-        if (schema && schema.length) return schema.map(function (s) { return s.field; });
+    // 1. TransformConfig — coluna própria tem prioridade sobre legado dentro de cfg
+    var tCfg = obj.transformConfig || cfg.transformConfig || null;
+    if (tCfg && typeof MdashTransformBuilder !== 'undefined') {
+        var outSchema = (tCfg.transformationSchema && tCfg.transformationSchema.length)
+            ? tCfg.transformationSchema.slice()
+            : MdashTransformBuilder.getOutputSchema(tCfg);
+        if (outSchema && outSchema.length) return outSchema;
     }
-    // 2. Fonte schemajson / lastResultscached
+    // 2. Fonte schemajson / lastResultscached / PRAGMA
     if (obj.fontestamp) {
         var fonte = _mciGetFontes().find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
         if (fonte) {
             if (fonte.schemajson) {
-                try { var sc = JSON.parse(fonte.schemajson); if (Array.isArray(sc) && sc.length) return sc.map(function (c) { return c.name || c; }); } catch (e) { }
+                try {
+                    var sc = JSON.parse(fonte.schemajson);
+                    if (Array.isArray(sc) && sc.length) {
+                        var scCols = sc.map(function (c) { return typeof c === 'string' ? c : (c.name || c.field || String(c)); }).filter(Boolean);
+                        if (scCols.length) return scCols;
+                    }
+                } catch (e) {}
             }
             if (fonte.lastResultscached) {
                 try {
                     var cached = JSON.parse(fonte.lastResultscached);
-                    if (cached.columns && cached.columns.length) return cached.columns;
-                    if (Array.isArray(cached) && cached.length) return Object.keys(cached[0]);
-                } catch (e) { }
+                    if (cached && cached.columns && cached.columns.length) return cached.columns;
+                    if (Array.isArray(cached) && cached.length && typeof cached[0] === 'object') return Object.keys(cached[0]);
+                } catch (e) {}
+            }
+            if (typeof MdashTransformBuilder !== 'undefined' && typeof mdashFonteTableName === 'function') {
+                var tblName = mdashFonteTableName(fonte);
+                if (tblName) {
+                    var tblSchema = MdashTransformBuilder.getTableSchema(tblName);
+                    if (tblSchema && tblSchema.length) return tblSchema.map(function (s) { return s.field; });
+                }
             }
         }
     }
@@ -2175,7 +2088,14 @@ function _mciReadConfig($root, obj) {
                 lineWidth: $r.find('.mcbi-s-lw').val() !== '' ? parseFloat($r.find('.mcbi-s-lw').val()) : undefined,
                 symbol: $r.find('.mcbi-s-sym').val() || 'circle',
                 lineSymbolSize: $r.find('.mcbi-s-lsz').val() !== '' ? parseInt($r.find('.mcbi-s-lsz').val()) : undefined,
-                scatterSymbol: $r.find('.mcbi-s-sctsym').val() || 'circle'
+                scatterSymbol: $r.find('.mcbi-s-sctsym').val() || 'circle',
+                dataSource: (function () {
+                    var _m = $r.find('.mcbi-s-ds-btn.is-on').data('ds') || 'main';
+                    var _ds = { mode: _m };
+                    if (_m === 'fonte') _ds.fonteStamp = $r.find('.mcbi-s-ds-fonte').val() || '';
+                    if (_m === 'transform' || _m === 'fonte') _ds.transformConfig = $r.data('seriesTransformConfig') || null;
+                    return _ds;
+                })()
             });
         });
     }
@@ -2218,7 +2138,26 @@ function _mciChkVal(cls, label, checked) {
         + '</label>';
 }
 
-function _mciSerieRow(s, i, fields) {
+function _mciSerieRow(s, i, fields, fontes) {
+    fontes = fontes || [];
+    var dsMode = (s.dataSource && s.dataSource.mode) || 'main';
+    var dsFonteStamp = (s.dataSource && s.dataSource.fonteStamp) || '';
+    var hasDsTrans = !!(s.dataSource && s.dataSource.transformConfig);
+    var _dsModes = [['main', 'Principal'], ['transform', 'Trans. própria'], ['fonte', 'Outra fonte']];
+    var dsSection = '<div class="mcbi-sr-ds">'
+        + '<label>Fonte da série</label>'
+        + '<div class="mcbi-s-ds-btns">'
+        + _dsModes.map(function (dm) { return '<button type="button" class="mcbi-s-ds-btn' + (dsMode === dm[0] ? ' is-on' : '') + '" data-ds="' + dm[0] + '">' + dm[1] + '</button>'; }).join('')
+        + '</div>'
+        + '<select class="mcbi-s-ds-fonte form-control input-sm" style="margin-top:5px;' + (dsMode === 'fonte' ? '' : 'display:none') + '">'
+        + '<option value="">-- seleccione fonte --</option>'
+        + fontes.map(function (f) { return '<option value="' + _mciEsc(f.mdashfontestamp) + '"' + (dsFonteStamp === f.mdashfontestamp ? ' selected' : '') + '>' + _mciEsc(f.descricao || f.codigo || f.mdashfontestamp) + '</option>'; }).join('')
+        + '</select>'
+        + '<div class="mcbi-s-ds-trans" style="margin-top:5px;' + (dsMode === 'transform' || dsMode === 'fonte' ? '' : 'display:none') + '">'
+        + '<button type="button" class="btn btn-xs btn-default mcbi-s-ds-edit-trans"><i class="glyphicon glyphicon-' + (hasDsTrans ? 'pencil' : 'plus') + '"></i> ' + (hasDsTrans ? 'Editar transf.' : 'Config. transf.') + '</button>'
+        + '<span class="mcbi-s-ds-trans-lbl" style="font-size:10px;color:#64748b;margin-left:6px;vertical-align:middle;">' + (hasDsTrans ? _mciEsc(s.dataSource.transformConfig.sourceTable || 'SQL') : '') + '</span>'
+        + '</div>'
+        + '</div>';
     var fOpts = '<option value="">campo…</option>'
         + fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (s.field === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join('');
     var stOpts = [['default', 'Auto'], ['bar', 'Barras'], ['line', 'Linha'], ['area', 'Área'], ['scatter', 'Disp.']].map(function (o) {
@@ -2233,7 +2172,7 @@ function _mciSerieRow(s, i, fields) {
         return '<option value="phc:' + pt + '"' + (phcToken === 'phc:' + pt ? ' selected' : '') + '>PHC ' + pt.charAt(0).toUpperCase() + pt.slice(1) + '</option>';
     }).join('');
     var sType0 = s.serType || 'default';
-    return '<div class="mcbi-sr' + (isOpen ? ' is-open' : '') + '" data-idx="' + i + '" data-stype="' + sType0 + '" style="border-left-color:' + badgeCol + '">'
+    return '<div class="mcbi-sr' + (isOpen ? ' is-open' : '') + '" data-idx="' + i + '" data-stype="' + sType0 + '" data-sds="' + dsMode + '" style="border-left-color:' + badgeCol + '">'
         + '<div class="mcbi-sr-hd">'
         + '<span class="mcbi-sr-badge" style="background:' + badgeCol + '"></span>'
         + '<span class="mcbi-sr-idx">S' + (i + 1) + '</span>'
@@ -2244,6 +2183,7 @@ function _mciSerieRow(s, i, fields) {
         + '</div>'
         + '</div>'
         + '<div class="mcbi-sr-body">'
+        + dsSection
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Campo</label><select class="mcbi-sf form-control input-sm">' + fOpts + '</select></div>'
         + '<div class="mcbi-field"><label>Nome</label><input type="text" class="mcbi-sn form-control input-sm" value="' + _mciEsc(s.name || '') + '" placeholder="Nome da série"></div>'
@@ -2295,10 +2235,78 @@ function _mciSerieRow(s, i, fields) {
 }
 
 function _mciRefreshFieldSelects($root, fields) {
-    var base = fields.map(function (f) { return '<option value="' + _mciEsc(f) + '">' + _mciEsc(f) + '</option>'; }).join('');
-    $root.find('.mcbi-xf').each(function () { var cur = $(this).val(); $(this).html('<option value="">-- campo --</option>' + base); if (cur && fields.indexOf(cur) !== -1) $(this).val(cur); });
-    $root.find('.mcbi-sf').each(function () { var cur = $(this).val(); $(this).html('<option value="">campo…</option>' + base); if (cur && fields.indexOf(cur) !== -1) $(this).val(cur); });
-    $root.find('.mcbi-pie-lf,.mcbi-pie-vf').each(function () { var cur = $(this).val(); $(this).html('<option value="">-- campo --</option>' + base); if (cur && fields.indexOf(cur) !== -1) $(this).val(cur); });
+    $root.find('.mcbi-xf').each(function () { _mciSetSelectFields($(this), fields, '-- campo --'); });
+    $root.find('.mcbi-sr[data-sds="main"] .mcbi-sf, .mcbi-sr:not([data-sds]) .mcbi-sf').each(function () { _mciSetSelectFields($(this), fields, 'campo…'); });
+    $root.find('.mcbi-pie-lf,.mcbi-pie-vf').each(function () { _mciSetSelectFields($(this), fields, '-- campo --'); });
+}
+
+// Resolve rows para um gráfico com séries de fontes distintas.
+// Recebe o cfg do gráfico e os rows já resolvidos da fonte principal (mainRows).
+// Faz merge por xField de todos os dados adicionais das séries com datasource próprio.
+// Devolve null se todas as séries usam a fonte principal (sem merge necessário).
+function _mciResolveSeriesRows(cfg, mainRows) {
+    var series = cfg && cfg.series;
+    if (!series || !series.length) return null;
+    var hasMixed = series.some(function (s) { return s.dataSource && s.dataSource.mode && s.dataSource.mode !== 'main'; });
+    if (!hasMixed) return null;
+
+    var xField = cfg.xField || '';
+    var mergedMap = {};
+    var orderedKeys = [];
+
+    function _rawToRows(res) {
+        if (!res || res.error || !res.columns || !res.rows) return [];
+        return res.rows.map(function (r) { var o = {}; res.columns.forEach(function (c, i) { o[c] = r[i]; }); return o; });
+    }
+    function _addToMerge(rows, pickFields) {
+        rows.forEach(function (r) {
+            var xVal = r[xField];
+            if (xVal === undefined || xVal === null) return;
+            var key = String(xVal);
+            if (!mergedMap[key]) { mergedMap[key] = {}; mergedMap[key][xField] = xVal; orderedKeys.push(key); }
+            (pickFields || Object.keys(r)).forEach(function (c) { if (r[c] !== undefined) mergedMap[key][c] = r[c]; });
+        });
+    }
+
+    // Seed with main rows covering all 'main' mode series fields + xField
+    var mainFields = series.filter(function (s) { return !s.dataSource || s.dataSource.mode === 'main'; }).map(function (s) { return s.field; }).filter(Boolean);
+    if (xField && mainFields.indexOf(xField) === -1) mainFields.push(xField);
+    if (mainRows && mainRows.length) _addToMerge(mainRows, mainFields.length ? mainFields : null);
+
+    // Per-series custom sources
+    series.forEach(function (s) {
+        if (!s.dataSource || s.dataSource.mode === 'main' || !s.field) return;
+        var serRows = [];
+        if (s.dataSource.mode === 'fonte') {
+            var stamp = s.dataSource.fonteStamp;
+            var fonte = stamp && (_mciGetFontes() || []).find(function (f) { return f.mdashfontestamp === stamp; });
+            if (fonte && typeof MdashTransformBuilder !== 'undefined') {
+                // Priority 1: user-configured transformation of this fonte
+                if (s.dataSource.transformConfig) {
+                    serRows = _rawToRows(MdashTransformBuilder.executeRaw(s.dataSource.transformConfig));
+                }
+                // Priority 2: lastResultscached
+                if (!serRows.length && fonte.lastResultscached) {
+                    try {
+                        var lrc = JSON.parse(fonte.lastResultscached);
+                        if (lrc && lrc.columns && lrc.rows) serRows = _rawToRows(lrc);
+                        else if (Array.isArray(lrc) && lrc.length) serRows = lrc;
+                    } catch (e) {}
+                }
+                // Priority 3: raw table scan
+                if (!serRows.length && typeof mdashFonteTableName === 'function') {
+                    var tbl = mdashFonteTableName(fonte);
+                    if (tbl) serRows = _rawToRows(MdashTransformBuilder.executeRaw(MdashTransformBuilder.autoConfig(tbl, 'raw')));
+                }
+            }
+        } else if (s.dataSource.mode === 'transform' && s.dataSource.transformConfig) {
+            if (typeof MdashTransformBuilder !== 'undefined')
+                serRows = _rawToRows(MdashTransformBuilder.executeRaw(s.dataSource.transformConfig));
+        }
+        if (serRows.length) _addToMerge(serRows, [xField, s.field].filter(Boolean));
+    });
+
+    return orderedKeys.map(function (k) { return mergedMap[k]; });
 }
 
 // ── Main inline render function (called by showObjectPropertiesEditor) ────────
@@ -2316,7 +2324,7 @@ function renderChartPropertiesInline(obj, panel) {
     // Dados
     var _hasTrans = !!(cfg.transformConfig && cfg.transformConfig.sourceTable);
     var sDados = '<div class="mcbi-field"><label>Fonte de dados</label>'
-        + '<select class="mcbi-fonte form-control input-sm"><option value="">⬡ Dados de amostra</option>'
+        + '<select class="mcbi-fonte form-control input-sm"><option value="">-- seleccione uma fonte --</option>'
         + fontes.map(function (f) {
             return '<option value="' + _mciEsc(f.mdashfontestamp) + '"'
                 + (obj.fontestamp === f.mdashfontestamp ? ' selected' : '') + '>'
@@ -2359,7 +2367,7 @@ function renderChartPropertiesInline(obj, panel) {
         + '<select class="mcbi-xf form-control input-sm">' + _mciFieldOpts(cfg.xField) + '</select></div>'
         + '<div class="mcbi-field"><label>Séries</label>'
         + '<div class="mcbi-series">'
-        + (cfg.series || []).map(function (s, i) { return _mciSerieRow(s, i, fields); }).join('')
+        + (cfg.series || []).map(function (s, i) { return _mciSerieRow(s, i, fields, fontes); }).join('')
         + '</div>'
         + '<button type="button" class="mcbi-add-s"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg> Adicionar série</button>'
         + '</div>'
@@ -2468,6 +2476,14 @@ function renderChartPropertiesInline(obj, panel) {
 
     panel.html(h + _mciCSS());
 
+    // Init per-series DS transform configs from existing saved config
+    panel.find('.mcbi-sr').each(function (i) {
+        var s = (cfg.series || [])[i];
+        if (s && s.dataSource && s.dataSource.mode === 'transform' && s.dataSource.transformConfig) {
+            $(this).data('seriesTransformConfig', s.dataSource.transformConfig);
+        }
+    });
+
     // Restore section open states (no-op on first render; preserves state on re-renders)
     panel.find('[data-sec]').each(function () {
         var id = $(this).data('sec');
@@ -2537,86 +2553,145 @@ function renderChartPropertiesInline(obj, panel) {
         _mciTransformInited = true;
         var _tFnt = _mciGetFontes().find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
         var _tName = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : '';
+        var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
 
-        // ── Derivar schema ─────────────────────────────────────────────────
-        // Tentativas por ordem de prioridade; parar na primeira que funcionar.
-        var _tSchema = [];
-
-        // 1. schemajson — campo { name, type } gravado pelo mdashSaveFonteCache
-        if (_tFnt && _tFnt.schemajson) {
-            try {
-                var _sc = JSON.parse(_tFnt.schemajson);
-                if (Array.isArray(_sc) && _sc.length)
-                    _tSchema = _sc.map(function (c) { return { field: c.name || c.field || String(c), type: c.type || 'TEXT' }; });
-            } catch (e) { }
-        }
-
-        // 2. lastResultscached.columns — apenas os nomes das colunas, sem carregar dados
-        if (!_tSchema.length && _tFnt && _tFnt.lastResultscached) {
-            try {
-                var _lrc = JSON.parse(_tFnt.lastResultscached);
-                var _fcols = null;
-                if (Array.isArray(_lrc.columns) && _lrc.columns.length) {
-                    _fcols = _lrc.columns; // formato { columns:[...], rows:[...] }
-                } else if (Array.isArray(_lrc) && _lrc.length && _lrc[0] && typeof _lrc[0] === 'object') {
-                    _fcols = Object.keys(_lrc[0]); // formato array de objectos
-                }
-                if (_fcols && _fcols.length)
-                    _tSchema = _fcols.map(function (f) { return { field: f, type: 'TEXT' }; });
-            } catch (e) { }
-        }
-
-        // 3. Carregar cache na DB in-memory (para PRAGMA e botão Testar)
+        // Carregar cache na DB in-memory (para PRAGMA e botão Testar)
         if (_tFnt && typeof mdashExtractRowsFromCache === 'function' && typeof mdashLoadFonteIntoDb === 'function') {
             var _tRows = mdashExtractRowsFromCache(_tFnt.lastResultscached);
             if (_tRows.length > 0) mdashLoadFonteIntoDb(_tFnt, _tRows);
         }
 
-        // 4. PRAGMA — funciona se a tabela ficou na DB no passo 3
-        if (!_tSchema.length && _tName) {
-            _tSchema = MTB.getTableSchema(_tName);
+        var _tSchema = _mciGetFonteSchema(_tFnt);
+        var _tCfgRaw = obj.transformConfig || cfg.transformConfig || null;
+        var _tConf = _tCfgRaw || (_tName ? MTB.autoConfig(_tName, 'Gráfico') : { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
+        if (!_tConf.columns.length && _tSchema.length) {
+            _tConf.sourceTable = _tName;
+            _tConf.columns = _tSchema.map(function (s) { return { field: s.field, alias: '', aggregate: 'none', visible: true }; });
         }
 
-        // ── Construir config inicial ───────────────────────────────────────
-        var _tConf;
-        if (cfg.transformConfig) {
-            _tConf = cfg.transformConfig;
-        } else if (_tName) {
-            // autoConfig tenta PRAGMA; se devolver colunas vazias e temos _tSchema,
-            // preencher manualmente (evita UI vazia quando DB ainda não tinha a tabela)
-            _tConf = MTB.autoConfig(_tName, 'Gráfico');
-            if (!_tConf.columns.length && _tSchema.length) {
-                _tConf.sourceTable = _tName;
-                _tConf.columns = _tSchema.map(function (s) {
-                    return { field: s.field, alias: '', aggregate: 'none', visible: true };
-                });
-            }
-        } else {
-            _tConf = { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null };
-        }
-
-        MTB.render($('#mcbi-transform-modal-host')[0], {
+        _mciOpenTransformModalFor({
+            title: 'Transformação de Dados',
+            fonteName: _tFntName,
+            modalId: 'mcbi-transform-modal',
+            hostId: 'mcbi-transform-modal-host',
             config: _tConf,
-            schema: _tSchema.length ? _tSchema : undefined,
+            schema: _tSchema,
             onSave: function (newT) {
+                obj.transformConfig = newT;
+                obj.transformconfigjson = JSON.stringify(newT);
                 cfg.transformConfig = newT;
                 obj.config = obj.config || {};
                 obj.config.transformConfig = newT;
-                $('#mcbi-transform-modal').modal('hide');
+                if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
                 var $ts = panel.find('.mcbi-transform-status');
                 $ts.addClass('is-active');
-                $ts.find('.mcbi-ts-badge').html(
-                    '<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>'
-                    + _mciEsc(newT.sourceTable || 'SQL') + '</strong>'
-                );
+                $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc(newT.sourceTable || 'SQL') + '</strong>');
                 $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-pencil"></i> Editar');
                 _mciRefreshFieldSelects(panel, _mciGetFields(obj));
                 fire();
-            },
-            onCancel: function () {
-                $('#mcbi-transform-modal').modal('hide');
             }
         });
+    }
+
+    // ── Transformação por série ──────────────────────────────────────────────
+    function _mciOpenSeriesTransformModal($sr) {
+        var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
+        if (!MTB) { if (typeof alertify !== 'undefined') alertify.error('MdashTransformBuilder não disponível.', 4000); return; }
+        var existingTCfg = $sr.data('seriesTransformConfig') || null;
+        var _sFonteStamp = $sr.find('.mcbi-s-ds-fonte').val() || obj.fontestamp;
+        var _sFnt = _mciGetFontes().find(function (f) { return f.mdashfontestamp === _sFonteStamp; });
+        var _sName = (_sFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_sFnt) : '';
+        var _sFntName = (_sFnt && (_sFnt.descricao || _sFnt.codigo)) || '';
+        var _tSchema = _mciGetFonteSchema(_sFnt);
+        var _tConf = existingTCfg || (_sName ? MTB.autoConfig(_sName, 'Série') : { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
+
+        _mciOpenTransformModalFor({
+            title: 'Transformação da Série',
+            fonteName: _sFntName,
+            modalId: 'mcbi-sr-transform-modal',
+            hostId: 'mcbi-sr-transform-modal-host',
+            config: _tConf,
+            schema: _tSchema,
+            onSave: function (newT) {
+                $sr.data('seriesTransformConfig', newT);
+                $sr.find('.mcbi-s-ds-trans-lbl').text(newT.sourceTable || 'SQL');
+                $sr.find('.mcbi-s-ds-edit-trans').html('<i class="glyphicon glyphicon-pencil"></i> Editar transf.');
+                var outFields = (newT.transformationSchema && newT.transformationSchema.length)
+                    ? newT.transformationSchema
+                    : (MTB.getOutputSchema ? MTB.getOutputSchema(newT) : []);
+                if (outFields && outFields.length) {
+                    _mciSetSelectFields($sr.find('.mcbi-sf'), outFields, 'campo…');
+                }
+                _mciRefreshXField(panel, obj);
+                fire();
+            }
+        });
+    }
+
+    // ── Modal de transformação genérico (reutilizável) ───────────────────────
+    // opts: { title, fonteName, modalId, hostId, config, schema, onSave }
+    function _mciOpenTransformModalFor(opts) {
+        var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
+        if (!MTB) { if (typeof alertify !== 'undefined') alertify.error('MdashTransformBuilder não disponível.', 4000); return; }
+        var modalId = opts.modalId || 'mcbi-generic-transform-modal';
+        var hostId = opts.hostId || (modalId + '-host');
+        $('#' + modalId).remove();
+        var mHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1" role="dialog">'
+            + '<div class="modal-dialog" style="width:860px;max-width:96vw;margin:32px auto;">'
+            + '<div class="modal-content" style="border-radius:14px;overflow:hidden;border:none;box-shadow:0 24px 80px rgba(0,0,0,.24);">'
+            + '<div style="display:flex;align-items:center;gap:10px;padding:14px 20px;background:#fff;border-bottom:1px solid rgba(0,0,0,.08);">'
+            + '<i class="glyphicon glyphicon-filter" style="color:var(--md-primary,#5b8dee);font-size:15px;opacity:.9;"></i>'
+            + '<span style="font-size:14px;font-weight:700;color:#1e293b;">' + _mciEsc(opts.title || 'Transformação') + '</span>'
+            + (opts.fonteName ? '<span style="font-size:11px;color:#64748b;border-left:1px solid rgba(0,0,0,.1);padding-left:10px;margin-left:4px;">' + _mciEsc(opts.fonteName) + '</span>' : '')
+            + '<button type="button" class="close" data-dismiss="modal" aria-label="Fechar" style="margin-left:auto;font-size:20px;line-height:1;padding:2px 6px;opacity:.5;">&times;</button>'
+            + '</div>'
+            + '<div style="background:#f8fafc;overflow-y:auto;max-height:80vh;">'
+            + '<div id="' + hostId + '" style="max-width:780px;margin:0 auto;padding:16px;"></div>'
+            + '</div></div></div></div>';
+        $('body').append(mHtml);
+        var $modal = $('#' + modalId);
+        MTB.render($('#' + hostId)[0], {
+            config: opts.config,
+            schema: (opts.schema && opts.schema.length) ? opts.schema : undefined,
+            onSave: function (newT) { $modal.modal('hide'); if (opts.onSave) opts.onSave(newT); },
+            onCancel: function () { $modal.modal('hide'); }
+        });
+        $modal.on('hidden.bs.modal', function () { $(this).remove(); });
+        $modal.modal('show');
+    }
+
+    // ── xField helpers ───────────────────────────────────────────────────────
+    function _mciGetAllFields(panel, obj) {
+        var mainFields = _mciGetFields(obj);
+        var seen = {};
+        mainFields.forEach(function (f) { seen[f] = true; });
+        var extra = [];
+        panel.find('.mcbi-sr').each(function () {
+            var $sr = $(this);
+            var mode = $sr.attr('data-sds') || 'main';
+            if (mode === 'main') return;
+            var tCfg = $sr.data('seriesTransformConfig');
+            if (tCfg && typeof MdashTransformBuilder !== 'undefined') {
+                var outF = (tCfg.transformationSchema && tCfg.transformationSchema.length) ? tCfg.transformationSchema
+                    : (MdashTransformBuilder.getOutputSchema ? MdashTransformBuilder.getOutputSchema(tCfg) : []);
+                (outF || []).forEach(function (f) { if (!seen[f]) { seen[f] = true; extra.push(f); } });
+            } else if (mode === 'fonte' && typeof MdashTransformBuilder !== 'undefined' && typeof mdashFonteTableName === 'function') {
+                var stamp = $sr.find('.mcbi-s-ds-fonte').val();
+                var fo = stamp && _mciGetFontes().find(function (f) { return f.mdashfontestamp === stamp; });
+                if (fo) {
+                    var tblF = MdashTransformBuilder.getTableSchema(mdashFonteTableName(fo)).map(function (s) { return s.field; });
+                    tblF.forEach(function (f) { if (!seen[f]) { seen[f] = true; extra.push(f); } });
+                }
+            }
+        });
+        return mainFields.concat(extra);
+    }
+
+    function _mciRefreshXField(panel, obj) {
+        var curXF = panel.find('.mcbi-xf').val();
+        var allFields = _mciGetAllFields(panel, obj);
+        panel.find('.mcbi-xf').html('<option value="">-- campo X --</option>'
+            + allFields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (curXF === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join(''));
     }
 
     panel.off('.mcbi');
@@ -2650,12 +2725,60 @@ function renderChartPropertiesInline(obj, panel) {
 
     panel.on('click.mcbi', '.mcbi-add-s', function () {
         var $series = panel.find('.mcbi-series');
-        $series.append(_mciSerieRow({ field: '', name: '', color: '' }, $series.find('.mcbi-sr').length, _mciGetFields(obj)));
+        $series.append(_mciSerieRow({ field: '', name: '', color: '' }, $series.find('.mcbi-sr').length, _mciGetFields(obj), _mciGetFontes()));
         $series.find('.mcbi-sr').last().addClass('is-open');
         fire();
     });
 
     panel.on('click.mcbi', '.mcbi-del-s', function (e) { e.stopPropagation(); $(this).closest('.mcbi-sr').remove(); fire(); });
+
+    // ── Fonte por série ────────────────────────────────────────────────────
+    panel.on('click.mcbi', '.mcbi-s-ds-btn', function (e) {
+        e.stopPropagation();
+        var $sr = $(this).closest('.mcbi-sr');
+        $sr.find('.mcbi-s-ds-btn').removeClass('is-on');
+        $(this).addClass('is-on');
+        var mode = $(this).data('ds');
+        $sr.attr('data-sds', mode);
+        $sr.find('.mcbi-s-ds-fonte').toggle(mode === 'fonte');
+        $sr.find('.mcbi-s-ds-trans').toggle(mode === 'transform' || mode === 'fonte');
+        // Refresh field select for this series based on newly selected mode
+        if (mode === 'transform' || mode === 'fonte') {
+            var tCfg = $sr.data('seriesTransformConfig');
+            if (tCfg && typeof MdashTransformBuilder !== 'undefined') {
+                var outF = (tCfg.transformationSchema && tCfg.transformationSchema.length) ? tCfg.transformationSchema : MdashTransformBuilder.getOutputSchema(tCfg);
+                if (outF && outF.length) _mciSetSelectFields($sr.find('.mcbi-sf'), outF, 'campo…');
+            } else if (mode === 'fonte') {
+                var fStamp = $sr.find('.mcbi-s-ds-fonte').val();
+                var _fo = fStamp && _mciGetFontes().find(function (f) { return f.mdashfontestamp === fStamp; });
+                var _fl = _fo ? _mciGetFonteSchema(_fo).map(function (s) { return s.field; }) : [];
+                if (_fl.length) _mciSetSelectFields($sr.find('.mcbi-sf'), _fl, 'campo…');
+            }
+        } else {
+            _mciSetSelectFields($sr.find('.mcbi-sf'), _mciGetFields(obj), 'campo…');
+        }
+        _mciRefreshXField(panel, obj);
+        fire();
+    });
+    panel.on('change.mcbi', '.mcbi-s-ds-fonte', function () {
+        var $sr = $(this).closest('.mcbi-sr');
+        var stamp = $(this).val();
+        // Reset series transform config when fonte changes (it was tied to old fonte)
+        $sr.data('seriesTransformConfig', null);
+        $sr.find('.mcbi-s-ds-trans-lbl').text('');
+        $sr.find('.mcbi-s-ds-edit-trans').html('<i class="glyphicon glyphicon-plus"></i> Config. transf.');
+        if (stamp) {
+            var _fo = _mciGetFontes().find(function (f) { return f.mdashfontestamp === stamp; });
+            var _fl = _fo ? _mciGetFonteSchema(_fo).map(function (s) { return s.field; }) : [];
+            if (_fl.length) _mciSetSelectFields($sr.find('.mcbi-sf'), _fl, 'campo…');
+        }
+        _mciRefreshXField(panel, obj);
+        fire();
+    });
+    panel.on('click.mcbi', '.mcbi-s-ds-edit-trans', function (e) {
+        e.stopPropagation();
+        _mciOpenSeriesTransformModal($(this).closest('.mcbi-sr'));
+    });
 
     panel.on('click.mcbi', '.mcbi-sr-hd', function () {
         $(this).closest('.mcbi-sr').toggleClass('is-open');
@@ -2699,13 +2822,24 @@ function renderChartPropertiesInline(obj, panel) {
 
     panel.on('change.mcbi', '.mcbi-fonte', function () {
         obj.fontestamp = $(this).val();
-        if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
+        _mciTransformInited = false;
+        if (obj.fontestamp) {
+            panel.find('.mcbi-sample-label').hide();
+            // Auto-aplica transformação passthrough para a nova fonte
+            _mciAutoApplyFonteTransform(obj.fontestamp, obj, panel);
+        } else {
+            panel.find('.mcbi-sample-label').show();
+            obj.transformConfig = null;
+            obj.transformconfigjson = null;
+            if (obj.config) obj.config.transformConfig = null;
+            var $ts = panel.find('.mcbi-transform-status');
+            $ts.removeClass('is-active');
+            $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-filter"></i> Sem transformação de dados');
+            $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-plus"></i> Configurar');
+        }
         _mciRefreshFieldSelects(panel, _mciGetFields(obj));
-        // Update sample label visibility
-        if (obj.fontestamp) { panel.find('.mcbi-sample-label').hide(); }
-        else { panel.find('.mcbi-sample-label').show(); }
-        // Reset transform builder so it re-initialises with new fonte on next open
-        if (!cfg.transformConfig) _mciTransformInited = false;
+        _mciRefreshXField(panel, obj);
+        if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
         fire();
     });
 
@@ -2717,15 +2851,15 @@ function renderChartPropertiesInline(obj, panel) {
     panel.on('change.mcbi', '.mcbi-chk input[type=checkbox]', function () {
         $(this).closest('.mcbi-chk').toggleClass('is-on', this.checked);
     });
-    panel.on('change.mcbi input.mcbi', 'select:not(.mcbi-fonte), input:not([type=range]):not([type=color])', function () { fire(); });
+    panel.on('change.mcbi input.mcbi', 'select:not(.mcbi-fonte):not(.mcbi-s-ds-fonte), input:not([type=range]):not([type=color])', function () { fire(); });
     panel.on('change.mcbi', 'input[type=color]', function () { fire(); });
 }
 
 // ── CSS for inline chart editor ───────────────────────────────────────────────
 function _mciCSS() {
-    if ($('#mcbi-styles-v14').length) return '';
-    $('#mcbi-styles-v13,#mcbi-styles-v12,#mcbi-styles-v11,#mcbi-styles-v10,#mcbi-styles-v9').remove();
-    var s = '<style id="mcbi-styles-v14">';
+    if ($('#mcbi-styles-v15').length) return '';
+    $('#mcbi-styles-v14,#mcbi-styles-v13,#mcbi-styles-v12,#mcbi-styles-v11,#mcbi-styles-v10,#mcbi-styles-v9').remove();
+    var s = '<style id="mcbi-styles-v15">';
     // Root
     s += '.mcbi-root{padding:0 0 16px;font-size:12px;background:transparent;color:#1e293b;}';
     // Sample badge
@@ -2877,6 +3011,13 @@ function _mciCSS() {
     s += '.mcbi-btn-transform{font-size:10px;font-weight:600;padding:3px 9px;border-radius:6px;border:1px solid rgba(0,0,0,.15);background:#fff;color:#475569;cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0;line-height:1.6;}';
     s += '.mcbi-btn-transform:hover{border-color:var(--md-primary,#5b8dee);color:var(--md-primary,#5b8dee);}';
     s += '.mcbi-btn-transform i{margin-right:3px;}';
+    // Per-series data source section
+    s += '.mcbi-sr-ds{margin-bottom:9px;padding-bottom:9px;border-bottom:1px dashed rgba(0,0,0,.08);}';
+    s += '.mcbi-sr-ds>label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;display:block;margin-bottom:5px;}';
+    s += '.mcbi-s-ds-btns{display:flex;gap:4px;}';
+    s += '.mcbi-s-ds-btn{flex:1;padding:4px 3px;border:1.5px solid #e2e8f0;border-radius:6px;background:#f8fafc;font-size:10px;font-weight:700;color:#64748b;cursor:pointer;transition:all .15s;text-align:center;}';
+    s += '.mcbi-s-ds-btn:hover{border-color:#2563eb;color:#2563eb;}';
+    s += '.mcbi-s-ds-btn.is-on{border-color:#2563eb;background:#dbeafe;color:#1d4ed8;}';
     // Transform builder — status row only (builder abre em modal dedicado)
     s += '</style>';
     $('head').append(s);
@@ -2897,7 +3038,6 @@ function getTiposObjectoConfig() {
         label: "Gráfico",
         icon: "fa fa-bar-chart",
         categoria: "editor",
-        openConfigModal: openChartBuilderModal,
         renderPropertiesInline: renderChartPropertiesInline,
         createDynamicSchema: createDynamicSchemaGrafico,
         renderObject: renderObjectGrafico,
