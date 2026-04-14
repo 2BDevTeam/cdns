@@ -388,7 +388,7 @@ function generateBrdCardAdvancedMetric(cardData) {
     html += '  </div>';
     html += '  <div class="brd-card-advanced-content">';
     html += '    <div class="brd-card-advanced-label">' + (dashCard.title || 'Metric') + '</div>';
-   // html += '    <div class="brd-card-advanced-value">' + (dashCard.extraData.value || '0') + '</div>';
+    // html += '    <div class="brd-card-advanced-value">' + (dashCard.extraData.value || '0') + '</div>';
     if (dashCard.extraData.subtitle) {
         html += '    <div class="brd-card-advanced-subtitle">' + dashCard.extraData.subtitle + '</div>';
     }
@@ -555,26 +555,26 @@ var MdashChartBuilder = (function () {
 
     // ── Paletas dedicadas para gráficos de pizza / donut ─────────────────────
     var PIE_PALETTES = [
-        { key: 'theme',     name: 'Do tema',         colors: null },
-        { key: 'phclegacy', name: 'PHC / Mdash 1.0', colors: ['#d43f3a','#00897B','#91c7ae','#f79523'] },
-        { key: 'pastel',    name: 'Pastel',          colors: ['#FFB3BA','#FFDFBA','#FFFFBA','#BAFFC9','#BAE1FF','#D4C5F9','#FFC2D1','#B5EAD7'] },
-        { key: 'bold',      name: 'Forte',           colors: ['#E63946','#457B9D','#2A9D8F','#E9C46A','#F4A261','#264653','#A8DADC','#606C38'] },
-        { key: 'warm',      name: 'Quente',          colors: ['#D62828','#F77F00','#FCBF49','#EAE2B7','#E76F51','#E9C46A','#F4A261','#CC5803'] },
-        { key: 'cool',      name: 'Frio',            colors: ['#03045E','#0077B6','#00B4D8','#90E0EF','#48CAE4','#023E8A','#ADE8F4','#0096C7'] },
-        { key: 'custom',    name: 'Personalizada',   colors: null, custom: true }
+        { key: 'theme', name: 'Do tema', colors: null },
+        { key: 'phclegacy', name: 'PHC / Mdash 1.0', colors: ['#d43f3a', '#00897B', '#91c7ae', '#f79523'] },
+        { key: 'pastel', name: 'Pastel', colors: ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF', '#D4C5F9', '#FFC2D1', '#B5EAD7'] },
+        { key: 'bold', name: 'Forte', colors: ['#E63946', '#457B9D', '#2A9D8F', '#E9C46A', '#F4A261', '#264653', '#A8DADC', '#606C38'] },
+        { key: 'warm', name: 'Quente', colors: ['#D62828', '#F77F00', '#FCBF49', '#EAE2B7', '#E76F51', '#E9C46A', '#F4A261', '#CC5803'] },
+        { key: 'cool', name: 'Frio', colors: ['#03045E', '#0077B6', '#00B4D8', '#90E0EF', '#48CAE4', '#023E8A', '#ADE8F4', '#0096C7'] },
+        { key: 'custom', name: 'Personalizada', colors: null, custom: true }
     ];
 
     // ── 9 Tipos com ícones SVG inline ─────────────────────────────────────────
     var CHART_TYPES = [
-        { type: 'bar',    label: 'Barras',    svg: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="8" width="5" height="15" rx="1.5"/><rect x="9.5" y="4" width="5" height="19" rx="1.5"/><rect x="18" y="12" width="5" height="11" rx="1.5"/></svg>' },
-        { type: 'bar_h',  label: 'Horiz.',    svg: '<svg viewBox="0 0 24 24" fill="currentColor"><rect y="1" x="0" height="5" width="15" rx="1.5"/><rect y="9.5" x="0" height="5" width="22" rx="1.5"/><rect y="18" x="0" height="5" width="11" rx="1.5"/></svg>' },
-        { type: 'line',   label: 'Linha',     svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,19 6,11 12,15 18,6 23,9"/><circle cx="1" cy="19" r="2.2" fill="currentColor" stroke="none"/><circle cx="6" cy="11" r="2.2" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="2.2" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="2.2" fill="currentColor" stroke="none"/><circle cx="23" cy="9" r="2.2" fill="currentColor" stroke="none"/></svg>' },
-        { type: 'area',   label: 'Área',      svg: '<svg viewBox="0 0 24 24"><path d="M1 22L1 15L6 9L12 13L18 5L23 8L23 22Z" fill="currentColor" opacity=".3"/><polyline points="1,15 6,9 12,13 18,5 23,8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
-        { type: 'donut',  label: 'Donut',     svg: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="5"/><path d="M12 3A9 9 0 0 1 21 12" stroke="currentColor" stroke-width="5" opacity=".4" stroke-linecap="round"/></svg>' },
-        { type: 'pie',    label: 'Pizza',     svg: '<svg viewBox="0 0 24 24"><path d="M12 12L12 2A10 10 0 0 1 22 12Z" fill="currentColor"/><path d="M12 12L22 12A10 10 0 0 1 6 21Z" fill="currentColor" opacity=".55"/><path d="M12 12L6 21A10 10 0 0 1 2 6Z" fill="currentColor" opacity=".3"/><path d="M12 12L2 6A10 10 0 0 1 12 2Z" fill="currentColor" opacity=".15"/></svg>' },
-        { type: 'scatter',label: 'Dispersão', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="17" r="2.2"/><circle cx="9" cy="10" r="2.2"/><circle cx="14" cy="14" r="2.2"/><circle cx="19" cy="5" r="2.2"/><circle cx="21" cy="19" r="2.2"/><circle cx="7" cy="21" r="2.2"/></svg>' },
-        { type: 'mixed',  label: 'Misto',     svg: '<svg viewBox="0 0 24 24"><rect x="1" y="11" width="5" height="12" rx="1.5" fill="currentColor" opacity=".85"/><rect x="9.5" y="7" width="5" height="16" rx="1.5" fill="currentColor" opacity=".85"/><rect x="18" y="13" width="5" height="10" rx="1.5" fill="currentColor" opacity=".85"/><polyline points="3.5,7 12,4 20.5,9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3.5" cy="7" r="2.2" fill="currentColor"/><circle cx="12" cy="4" r="2.2" fill="currentColor"/><circle cx="20.5" cy="9" r="2.2" fill="currentColor"/></svg>' },
-        { type: 'funnel', label: 'Funil',     svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 3L22 3L16 10L16 21L8 21L8 10Z" rx="1"/></svg>' }
+        { type: 'bar', label: 'Barras', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="8" width="5" height="15" rx="1.5"/><rect x="9.5" y="4" width="5" height="19" rx="1.5"/><rect x="18" y="12" width="5" height="11" rx="1.5"/></svg>' },
+        { type: 'bar_h', label: 'Horiz.', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><rect y="1" x="0" height="5" width="15" rx="1.5"/><rect y="9.5" x="0" height="5" width="22" rx="1.5"/><rect y="18" x="0" height="5" width="11" rx="1.5"/></svg>' },
+        { type: 'line', label: 'Linha', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,19 6,11 12,15 18,6 23,9"/><circle cx="1" cy="19" r="2.2" fill="currentColor" stroke="none"/><circle cx="6" cy="11" r="2.2" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="2.2" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="2.2" fill="currentColor" stroke="none"/><circle cx="23" cy="9" r="2.2" fill="currentColor" stroke="none"/></svg>' },
+        { type: 'area', label: 'Área', svg: '<svg viewBox="0 0 24 24"><path d="M1 22L1 15L6 9L12 13L18 5L23 8L23 22Z" fill="currentColor" opacity=".3"/><polyline points="1,15 6,9 12,13 18,5 23,8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+        { type: 'donut', label: 'Donut', svg: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="5"/><path d="M12 3A9 9 0 0 1 21 12" stroke="currentColor" stroke-width="5" opacity=".4" stroke-linecap="round"/></svg>' },
+        { type: 'pie', label: 'Pizza', svg: '<svg viewBox="0 0 24 24"><path d="M12 12L12 2A10 10 0 0 1 22 12Z" fill="currentColor"/><path d="M12 12L22 12A10 10 0 0 1 6 21Z" fill="currentColor" opacity=".55"/><path d="M12 12L6 21A10 10 0 0 1 2 6Z" fill="currentColor" opacity=".3"/><path d="M12 12L2 6A10 10 0 0 1 12 2Z" fill="currentColor" opacity=".15"/></svg>' },
+        { type: 'scatter', label: 'Dispersão', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="17" r="2.2"/><circle cx="9" cy="10" r="2.2"/><circle cx="14" cy="14" r="2.2"/><circle cx="19" cy="5" r="2.2"/><circle cx="21" cy="19" r="2.2"/><circle cx="7" cy="21" r="2.2"/></svg>' },
+        { type: 'mixed', label: 'Misto', svg: '<svg viewBox="0 0 24 24"><rect x="1" y="11" width="5" height="12" rx="1.5" fill="currentColor" opacity=".85"/><rect x="9.5" y="7" width="5" height="16" rx="1.5" fill="currentColor" opacity=".85"/><rect x="18" y="13" width="5" height="10" rx="1.5" fill="currentColor" opacity=".85"/><polyline points="3.5,7 12,4 20.5,9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3.5" cy="7" r="2.2" fill="currentColor"/><circle cx="12" cy="4" r="2.2" fill="currentColor"/><circle cx="20.5" cy="9" r="2.2" fill="currentColor"/></svg>' },
+        { type: 'funnel', label: 'Funil', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 3L22 3L16 10L16 21L8 21L8 10Z" rx="1"/></svg>' }
     ];
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -637,9 +637,9 @@ var MdashChartBuilder = (function () {
             animationDurationUpdate: 300
         };
         if (ct === 'donut' || ct === 'pie') return _buildPieOption(base, cfg, rows, t, ct);
-        if (ct === 'funnel')  return _buildFunnelOption(base, cfg, rows, t);
+        if (ct === 'funnel') return _buildFunnelOption(base, cfg, rows, t);
         if (ct === 'scatter') return _buildScatterOption(base, cfg, rows, t);
-        if (ct === 'bar_h')   return _buildBarHOption(base, cfg, rows, t);
+        if (ct === 'bar_h') return _buildBarHOption(base, cfg, rows, t);
         return _buildCartesianOption(base, cfg, rows, t, ct);
     }
 
@@ -656,18 +656,18 @@ var MdashChartBuilder = (function () {
 
     function _gridBase(legendPos) {
         return {
-            top:    legendPos === 'none' ? 16 : (legendPos === 'bottom' ? 16 : 52),
-            left:   '2%', right: '3%',
+            top: legendPos === 'none' ? 16 : (legendPos === 'bottom' ? 16 : 52),
+            left: '2%', right: '3%',
             bottom: legendPos === 'bottom' ? 54 : 14,
             containLabel: true
         };
     }
 
     function _buildCartesianOption(base, cfg, rows, t, ct) {
-        var xField  = cfg.xField || '';
+        var xField = cfg.xField || '';
         var serDefs = (cfg.series || []).filter(function (s) { return s.field; });
-        var xData   = rows.map(function (r) { return r[xField]; });
-        var lPos    = (cfg.legend && cfg.legend.show !== false) ? (cfg.legend.position || 'top') : 'none';
+        var xData = rows.map(function (r) { return r[xField]; });
+        var lPos = (cfg.legend && cfg.legend.show !== false) ? (cfg.legend.position || 'top') : 'none';
 
         var series = serDefs.map(function (s, i) {
             var sType = (s.serType && s.serType !== 'default') ? s.serType : (ct === 'mixed' ? (i === 0 ? 'bar' : 'line') : ct);
@@ -700,17 +700,19 @@ var MdashChartBuilder = (function () {
                 var lw = s.lineWidth !== undefined ? s.lineWidth : 2.5;
                 var lsym = s.symbol || 'circle';
                 var lsz = s.lineSymbolSize !== undefined ? s.lineSymbolSize : 7;
-                obj.smooth     = useSmooth;
+                obj.smooth = useSmooth;
                 obj.symbolSize = lsz;
-                obj.symbol     = lsym;
-                obj.lineStyle  = { width: lw, color: baseCol };
-                obj.itemStyle  = { color: baseCol, borderColor: '#fff', borderWidth: lsym === 'none' ? 0 : 2 };
+                obj.symbol = lsym;
+                obj.lineStyle = { width: lw, color: baseCol };
+                obj.itemStyle = { color: baseCol, borderColor: '#fff', borderWidth: lsym === 'none' ? 0 : 2 };
                 var isArea = ct === 'area' || s.type === 'area' || s.serType === 'area';
                 if (isArea) {
                     var aOpacity = s.areaOpacity !== undefined ? s.areaOpacity : 0.32;
                     obj.areaStyle = {
-                        color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                            colorStops: [{ offset: 0, color: _alpha(baseCol, aOpacity) }, { offset: 1, color: _alpha(baseCol, 0.01) }] }
+                        color: {
+                            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                            colorStops: [{ offset: 0, color: _alpha(baseCol, aOpacity) }, { offset: 1, color: _alpha(baseCol, 0.01) }]
+                        }
                     };
                 }
             }
@@ -770,13 +772,13 @@ var MdashChartBuilder = (function () {
     }
 
     function _buildBarHOption(base, cfg, rows, t) {
-        var xField  = cfg.xField || '';
+        var xField = cfg.xField || '';
         var serDefs = (cfg.series || []).filter(function (s) { return s.field; });
-        var yData   = rows.map(function (r) { return r[xField]; }).reverse();
-        var series  = serDefs.map(function (s, i) {
+        var yData = rows.map(function (r) { return r[xField]; }).reverse();
+        var series = serDefs.map(function (s, i) {
             var baseCol = _resolvePHCColor(s.color) || t.colors[i % t.colors.length];
             var useGrad = s.gradient !== undefined ? s.gradient !== false : cfg.gradient !== false;
-            var br      = s.borderRadius !== undefined ? s.borderRadius : (cfg.borderRadius !== undefined ? cfg.borderRadius : 6);
+            var br = s.borderRadius !== undefined ? s.borderRadius : (cfg.borderRadius !== undefined ? cfg.borderRadius : 6);
             var obj = {
                 name: s.name || s.field, type: 'bar',
                 data: rows.map(function (r) { return r[s.field]; }).reverse(),
@@ -842,9 +844,9 @@ var MdashChartBuilder = (function () {
     }
 
     function _buildScatterOption(base, cfg, rows, t) {
-        var xField  = cfg.xField || '';
+        var xField = cfg.xField || '';
         var serDefs = (cfg.series || []).filter(function (s) { return s.field; });
-        var series  = serDefs.map(function (s, i) {
+        var series = serDefs.map(function (s, i) {
             var baseCol = _resolvePHCColor(s.color) || t.colors[i % t.colors.length];
             return {
                 name: s.name || s.field, type: 'scatter', symbolSize: s.symbolSize || 10,
@@ -868,8 +870,8 @@ var MdashChartBuilder = (function () {
     function _buildFunnelOption(base, cfg, rows, t) {
         var xField = cfg.xField || '';
         var vField = cfg.series && cfg.series.length > 0 ? cfg.series[0].field : '';
-        var data   = rows.map(function (r) { return { name: r[xField] || '?', value: parseFloat(r[vField]) || 0 }; })
-                        .sort(function (a, b) { return b.value - a.value; });
+        var data = rows.map(function (r) { return { name: r[xField] || '?', value: parseFloat(r[vField]) || 0 }; })
+            .sort(function (a, b) { return b.value - a.value; });
         return Object.assign({}, base, {
             tooltip: Object.assign(_tooltipBase(t, 'item'), {
                 formatter: function (p) { return '<strong>' + p.name + '</strong>: ' + (+p.value).toLocaleString('pt-PT', { maximumFractionDigits: 2 }) + ' (' + p.percent + '%)'; }
@@ -891,11 +893,11 @@ var MdashChartBuilder = (function () {
     //   • onTransformChange → state.updateFields(newFields) → selects de campo actualizam sozinhos
     //   • v-model nos inputs → readConfig() lê de state, não do DOM
     function render(containerSel, options) {
-        var $c           = $(containerSel);
+        var $c = $(containerSel);
         if (!$c.length) return;
-        var cfg          = options.config || _defaultConfig();
+        var cfg = options.config || _defaultConfig();
         var initTransCfg = options.transformConfig || cfg.transformConfig || null;
-        var initFields   = options.fields ? options.fields.slice() : [];
+        var initFields = options.fields ? options.fields.slice() : [];
         _injectCSS();
         $c.data('mcbTransformConfig', initTransCfg);
 
@@ -903,23 +905,31 @@ var MdashChartBuilder = (function () {
         var _fireTimer = null;
         var state = {
             activeTab: 'dados',
-            fields:    initFields,
+            fields: initFields,
+            // Lista de fontes disponíveis (para o selector "Outra fonte")
+            fontesList: (function () {
+                var _ff = window.GMDashFontes || (window.appState && window.appState.fontes) || [];
+                return _ff.map(function (f) { return { stamp: f.mdashfontestamp, nome: f.nome || f.mdashfontestamp }; });
+            })(),
             cfg: {
-                chartType:    cfg.chartType    || 'bar',
-                theme:        cfg.theme        || 'modern',
-                height:       cfg.height       || 320,
-                xField:       cfg.xField       || '',
-                stacked:      !!cfg.stacked,
-                smooth:       cfg.smooth       !== false,
-                gradient:     cfg.gradient     !== false,
-                dataLabels:   !!cfg.dataLabels,
-                animation:    cfg.animation    !== false,
+                chartType: cfg.chartType || 'bar',
+                theme: cfg.theme || 'modern',
+                height: cfg.height || 320,
+                xField: cfg.xField || '',
+                stacked: !!cfg.stacked,
+                smooth: cfg.smooth !== false,
+                gradient: cfg.gradient !== false,
+                dataLabels: !!cfg.dataLabels,
+                animation: cfg.animation !== false,
                 borderRadius: cfg.borderRadius || 6,
-                xAxisRotate:  (cfg.xAxis  && cfg.xAxis.rotate)    || 0,
-                legendShow:   cfg.legend ? cfg.legend.show !== false : true,
-                legendPos:    (cfg.legend && cfg.legend.position) || 'top',
-                titleShow:    !!(cfg.title && cfg.title.show),
-                titleText:    (cfg.title  && cfg.title.text)      || '',
+                xAxisRotate: (cfg.xAxis && cfg.xAxis.rotate) || 0,
+                legendShow: cfg.legend ? cfg.legend.show !== false : true,
+                legendPos: (cfg.legend && cfg.legend.position) || 'top',
+                titleShow: !!(cfg.title && cfg.title.show),
+                titleText: (cfg.title && cfg.title.text) || '',
+                // Fonte de dados do gráfico: 'transform' | 'raw' | 'fonte'
+                dataSourceMode: (cfg.dataSource && cfg.dataSource.mode) || 'transform',
+                dataSourceFonte: (cfg.dataSource && cfg.dataSource.fonteStamp) || '',
                 series: (cfg.series || []).map(function (s) {
                     return { field: s.field || '', name: s.name || '', type: s.type || 'default', color: s.color || '#2563EB' };
                 })
@@ -934,31 +944,60 @@ var MdashChartBuilder = (function () {
             _readCfg: function () {
                 var c = this.cfg;
                 return {
-                    chartType:    c.chartType,
-                    theme:        c.theme,
-                    height:       c.height,
-                    xField:       c.xField,
-                    stacked:      c.stacked,
-                    smooth:       c.smooth,
-                    gradient:     c.gradient,
-                    dataLabels:   c.dataLabels,
-                    animation:    c.animation,
+                    chartType: c.chartType,
+                    theme: c.theme,
+                    height: c.height,
+                    xField: c.xField,
+                    stacked: c.stacked,
+                    smooth: c.smooth,
+                    gradient: c.gradient,
+                    dataLabels: c.dataLabels,
+                    animation: c.animation,
                     borderRadius: c.borderRadius,
-                    xAxis:   { rotate: c.xAxisRotate, name: '' },
-                    legend:  { show: c.legendShow, position: c.legendPos },
-                    title:   { show: c.titleShow,  text: c.titleText },
-                    yAxis:   { show: true, name: '' },
+                    dataSource: { mode: c.dataSourceMode, fonteStamp: c.dataSourceFonte },
+                    xAxis: { rotate: c.xAxisRotate, name: '' },
+                    legend: { show: c.legendShow, position: c.legendPos },
+                    title: { show: c.titleShow, text: c.titleText },
+                    yAxis: { show: true, name: '' },
                     tooltip: { show: true },
-                    series:  this.cfg.series
+                    series: this.cfg.series
                         .filter(function (s) { return !!s.field; })
                         .map(function (s) { return { field: s.field, name: s.name, type: s.type, color: s.color }; })
                 };
             },
-            addSerie:     function ()  { this.cfg.series.push({ field: '', name: '', type: 'default', color: '#2563EB' }); this.fire(); },
-            removeSerie:  function (i) { this.cfg.series.splice(i, 1); this.fire(); },
+            addSerie: function () { this.cfg.series.push({ field: '', name: '', type: 'default', color: '#2563EB' }); this.fire(); },
+            removeSerie: function (i) { this.cfg.series.splice(i, 1); this.fire(); },
             setChartType: function (t) { this.cfg.chartType = t; this.fire(); },
-            setTheme:     function (k) { this.cfg.theme     = k; this.fire(); },
-            // Chamado pelo onSave do TransformBuilder — actualiza listas de campos reactivamente
+            setTheme: function (k) { this.cfg.theme = k; this.fire(); },
+            // Resolve campos disponíveis com base no modo da fonte de dados
+            changeDataSource: function () {
+                var self = this;
+                var tCfg  = $c.data('mcbTransformConfig');
+                var mode  = self.cfg.dataSourceMode;
+                var mtb   = typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null;
+
+                var RESOLVERS = {
+                    transform: function () {
+                        return mtb && tCfg ? mtb.getOutputSchema(tCfg) : [];
+                    },
+                    raw: function () {
+                        return (mtb && tCfg && tCfg.sourceTable)
+                            ? mtb.getTableSchema(tCfg.sourceTable).map(function (s) { return s.field; })
+                            : [];
+                    },
+                    fonte: function () {
+                        var stamp = self.cfg.dataSourceFonte;
+                        var fo    = stamp && (window.GMDashFontes || []).filter(function (f) { return f.mdashfontestamp === stamp; })[0];
+                        return (mtb && fo && typeof mdashFonteTableName === 'function')
+                            ? mtb.getTableSchema(mdashFonteTableName(fo)).map(function (s) { return s.field; })
+                            : [];
+                    }
+                };
+
+                var resolver = RESOLVERS[mode] || RESOLVERS.transform;
+                self.updateFields(resolver());
+            },
+            // Actualiza listas de campos e limpa selecções inválidas
             updateFields: function (nf) {
                 nf = nf || [];
                 this.fields = nf.slice();
@@ -967,16 +1006,25 @@ var MdashChartBuilder = (function () {
                 this.fire();
             }
         };
+        // IMPORTANTE: usar PetiteVue.reactive() para que mudanças externas
+        // (ex: pvState.updateFields() chamado do onSave) disparem actualizações DOM
+        if (typeof PetiteVue !== 'undefined' && typeof PetiteVue.reactive === 'function') {
+            state = PetiteVue.reactive(state);
+        }
         $c.data('mcbPvState', state);
 
         // ── Template HTML com directivas v-* ─────────────────────────────────
         var uid = 'mcbpv' + (Date.now() + Math.floor(Math.random() * 9999));
-        var h = '<div id="' + uid + '" class="mcb-root">';
+        // O root element escuta o evento 'mcb-refresh' disparado externamente (onSave do TransformBuilder)
+        // Isto garante que changeDataSource() corre SEMPRE no contexto reactivo do PetiteVue
+        // (this = reactive proxy), mesmo que pvState externo não seja o mesmo proxy.
+        var h = '<div id="' + uid + '" class="mcb-root" @mcb-refresh.self="changeDataSource()">';
 
         // Tabs
         h += '<div class="mcb-tabs">';
         h += '<button class="mcb-tab" :class="{active:activeTab===\'dados\'}" @click="activeTab=\'dados\'"><i class="glyphicon glyphicon-hdd"></i> Dados</button>';
-        h += '<button class="mcb-tab" :class="{active:activeTab===\'grafico\'}" @click="activeTab=\'grafico\'"><i class="glyphicon glyphicon-stats"></i> Gráfico</button>';
+        // Ao entrar no tab Gráfico, re-calcula os campos a partir do transform actual
+        h += '<button class="mcb-tab" :class="{active:activeTab===\'grafico\'}" @click="activeTab=\'grafico\';changeDataSource()"><i class="glyphicon glyphicon-stats"></i> Gráfico</button>';
         h += '<button class="mcb-tab" :class="{active:activeTab===\'estilo\'}" @click="activeTab=\'estilo\'"><i class="glyphicon glyphicon-tint"></i> Estilo</button>';
         h += '</div>';
 
@@ -985,50 +1033,65 @@ var MdashChartBuilder = (function () {
 
         // ─── Panel Gráfico ────────────────────────────────────────────────────
         h += '<div class="mcb-panel" :class="{active:activeTab===\'grafico\'}">'
-           + '<div class="mcb-fg"><label>Tipo de Gráfico</label><div class="mcb-ct-grid">';
+            // Selector de fonte de dados (transform / bruto / outra fonte)
+            + '<div class="mcb-fg"><label>Fonte de Dados</label>'
+            + '<div class="mcb-ds-btns">'
+            + '<button type="button" class="mcb-ds-btn" :class="{\'mcb-ds-on\':(cfg.dataSourceMode===\'transform\')}"'
+            + ' @click="cfg.dataSourceMode=\'transform\';changeDataSource()" title="Usa o output do transform configurado na aba Dados">Transformado</button>'
+            + '<button type="button" class="mcb-ds-btn" :class="{\'mcb-ds-on\':(cfg.dataSourceMode===\'raw\')}"'
+            + ' @click="cfg.dataSourceMode=\'raw\';changeDataSource()" title="Usa a fonte original sem transformações">Bruto</button>'
+            + '<button v-if="fontesList.length" type="button" class="mcb-ds-btn" :class="{\'mcb-ds-on\':(cfg.dataSourceMode===\'fonte\')}"'
+            + ' @click="cfg.dataSourceMode=\'fonte\';changeDataSource()" title="Usa outra fonte configurada no dashboard">Outra fonte</button>'
+            + '</div>'
+            + '<select v-if="cfg.dataSourceMode===\'fonte\'" v-model="cfg.dataSourceFonte" @change="changeDataSource()" class="form-control input-sm" style="margin-top:5px;">'
+            + '<option value="">-- seleccione fonte --</option>'
+            + '<option v-for="f in fontesList" :value="f.stamp" :key="f.stamp">{{ f.nome }}</option>'
+            + '</select>'
+            + '</div>'
+            + '<div class="mcb-fg"><label>Tipo de Gráfico</label><div class="mcb-ct-grid">';
         CHART_TYPES.forEach(function (ct) {
             h += '<button type="button" class="mcb-ct-btn"'
-               + ' :class="{\'mcb-ct-on\':(cfg.chartType===\'' + ct.type + '\')}"'
-               + ' @click="setChartType(\'' + ct.type + '\')" title="' + ct.label + '">'
-               + ct.svg + '<span>' + ct.label + '</span></button>';
+                + ' :class="{\'mcb-ct-on\':(cfg.chartType===\'' + ct.type + '\')}"'
+                + ' @click="setChartType(\'' + ct.type + '\')" title="' + ct.label + '">'
+                + ct.svg + '<span>' + ct.label + '</span></button>';
         });
         h += '</div></div>';
         // X field — v-for reactivo
         h += '<div class="mcb-fg"><label>Campo Eixo X / Categoria</label>'
-           + '<select class="mcb-xfield form-control input-sm" v-model="cfg.xField" @change="fire()">'
-           + '<option value="">-- seleccione --</option>'
-           + '<option v-for="f in fields" :value="f" :key="f">{{ f }}</option>'
-           + '</select></div>';
+            + '<select class="mcb-xfield form-control input-sm" v-model="cfg.xField" @change="fire()">'
+            + '<option value="">-- seleccione --</option>'
+            + '<option v-for="f in fields" :value="f" :key="f">{{ f }}</option>'
+            + '</select></div>';
         // Séries — v-for reactivo
         h += '<div class="mcb-fg"><label>Séries (Valores Y)'
-           + ' <button type="button" class="btn btn-xs btn-default pull-right" @click="addSerie()"><i class="glyphicon glyphicon-plus"></i></button>'
-           + '</label>'
-           + '<div class="mcb-series-list">'
-           + '<div v-for="(s,i) in cfg.series" :key="i" class="mcb-serie">'
-           + '<span class="mcb-drag">⠿</span>'
-           + '<select class="mcb-sf form-control input-sm" v-model="s.field" @change="fire()">'
-           + '<option value="">campo…</option>'
-           + '<option v-for="f in fields" :value="f" :key="f">{{ f }}</option>'
-           + '</select>'
-           + '<input type="text" class="mcb-sn form-control input-sm" v-model="s.name" @input="fire()" placeholder="Nome">'
-           + '<select v-if="cfg.chartType===\'mixed\'" class="mcb-st form-control input-sm" v-model="s.type" @change="fire()" style="width:74px;">'
-           + '<option value="default">Auto</option><option value="bar">Bar</option><option value="line">Line</option><option value="area">Area</option>'
-           + '</select>'
-           + '<input type="color" class="mcb-sc" v-model="s.color" @change="fire()" title="Cor">'
-           + '<button type="button" class="btn btn-xs btn-danger" @click="removeSerie(i)" title="Remover"><i class="glyphicon glyphicon-remove"></i></button>'
-           + '</div></div></div>';
+            + ' <button type="button" class="btn btn-xs btn-default pull-right" @click="addSerie()"><i class="glyphicon glyphicon-plus"></i></button>'
+            + '</label>'
+            + '<div class="mcb-series-list">'
+            + '<div v-for="(s,i) in cfg.series" :key="i" class="mcb-serie">'
+            + '<span class="mcb-drag">⠿</span>'
+            + '<select class="mcb-sf form-control input-sm" v-model="s.field" @change="fire()">'
+            + '<option value="">campo…</option>'
+            + '<option v-for="f in fields" :value="f" :key="f">{{ f }}</option>'
+            + '</select>'
+            + '<input type="text" class="mcb-sn form-control input-sm" v-model="s.name" @input="fire()" placeholder="Nome">'
+            + '<select v-if="cfg.chartType===\'mixed\'" class="mcb-st form-control input-sm" v-model="s.type" @change="fire()" style="width:74px;">'
+            + '<option value="default">Auto</option><option value="bar">Bar</option><option value="line">Line</option><option value="area">Area</option>'
+            + '</select>'
+            + '<input type="color" class="mcb-sc" v-model="s.color" @change="fire()" title="Cor">'
+            + '<button type="button" class="btn btn-xs btn-danger" @click="removeSerie(i)" title="Remover"><i class="glyphicon glyphicon-remove"></i></button>'
+            + '</div></div></div>';
         // Opções
         h += '<div class="mcb-fg mcb-opts-grid">'
-           + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.stacked"    @change="fire()"> Barras empilhadas</label>'
-           + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.smooth"     @change="fire()"> Linhas suaves</label>'
-           + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.gradient"   @change="fire()"> Gradiente</label>'
-           + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.dataLabels" @change="fire()"> Etiquetas de dados</label>'
-           + '</div>';
+            + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.stacked"    @change="fire()"> Barras empilhadas</label>'
+            + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.smooth"     @change="fire()"> Linhas suaves</label>'
+            + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.gradient"   @change="fire()"> Gradiente</label>'
+            + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.dataLabels" @change="fire()"> Etiquetas de dados</label>'
+            + '</div>';
         h += '<div class="mcb-fg mcb-row2">'
-           + '<div><label>Raio bordas (barras)</label><input type="number" class="mcb-br form-control input-sm" v-model.number="cfg.borderRadius" @input="fire()" min="0" max="24"></div>'
-           + '<div><label>Rotação eixo X</label><input type="number" class="mcb-xrot form-control input-sm" v-model.number="cfg.xAxisRotate" @input="fire()" min="-90" max="90"></div>'
-           + '</div>'
-           + '</div>'; // panel-grafico
+            + '<div><label>Raio bordas (barras)</label><input type="number" class="mcb-br form-control input-sm" v-model.number="cfg.borderRadius" @input="fire()" min="0" max="24"></div>'
+            + '<div><label>Rotação eixo X</label><input type="number" class="mcb-xrot form-control input-sm" v-model.number="cfg.xAxisRotate" @input="fire()" min="-90" max="90"></div>'
+            + '</div>'
+            + '</div>'; // panel-grafico
 
         // ─── Panel Estilo ─────────────────────────────────────────────────────
         h += '<div class="mcb-panel" :class="{active:activeTab===\'estilo\'}">';
@@ -1036,31 +1099,31 @@ var MdashChartBuilder = (function () {
         Object.keys(THEMES).forEach(function (k) {
             var th = THEMES[k];
             h += '<button type="button" class="mcb-th-btn"'
-               + ' :class="{\'mcb-th-on\':(cfg.theme===\'' + k + '\')}"'
-               + ' @click="setTheme(\'' + k + '\')" title="' + th.name + '">'
-               + th.swatch.map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('')
-               + '<em>' + th.name + '</em></button>';
+                + ' :class="{\'mcb-th-on\':(cfg.theme===\'' + k + '\')}"'
+                + ' @click="setTheme(\'' + k + '\')" title="' + th.name + '">'
+                + th.swatch.map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('')
+                + '<em>' + th.name + '</em></button>';
         });
         h += '</div></div>';
         h += '<div class="mcb-fg"><label>Altura: <strong>{{ cfg.height }}px</strong></label>'
-           + '<input type="range" class="mcb-height" min="150" max="800" step="10" v-model.number="cfg.height" @input="fire()"></div>';
+            + '<input type="range" class="mcb-height" min="150" max="800" step="10" v-model.number="cfg.height" @input="fire()"></div>';
         h += '<div class="mcb-fg mcb-row2">'
-           + '<div><label class="mcb-chk"><input type="checkbox" v-model="cfg.legendShow" @change="fire()"> Mostrar legenda</label></div>'
-           + '<div><label>Posição legenda</label>'
-           + '<select class="mcb-legend-pos form-control input-sm" v-model="cfg.legendPos" @change="fire()">'
-           + '<option value="top">Cima</option><option value="bottom">Baixo</option>'
-           + '</select></div></div>';
+            + '<div><label class="mcb-chk"><input type="checkbox" v-model="cfg.legendShow" @change="fire()"> Mostrar legenda</label></div>'
+            + '<div><label>Posição legenda</label>'
+            + '<select class="mcb-legend-pos form-control input-sm" v-model="cfg.legendPos" @change="fire()">'
+            + '<option value="top">Cima</option><option value="bottom">Baixo</option>'
+            + '</select></div></div>';
         h += '<div class="mcb-fg">'
-           + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.titleShow" @change="fire()"> Mostrar título no gráfico</label>'
-           + '<input type="text" class="mcb-title-text form-control input-sm" v-model="cfg.titleText" @input="fire()" placeholder="Título" style="margin-top:5px;">'
-           + '</div>';
+            + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.titleShow" @change="fire()"> Mostrar título no gráfico</label>'
+            + '<input type="text" class="mcb-title-text form-control input-sm" v-model="cfg.titleText" @input="fire()" placeholder="Título" style="margin-top:5px;">'
+            + '</div>';
         h += '<div class="mcb-fg"><label class="mcb-chk"><input type="checkbox" v-model="cfg.animation" @change="fire()"> Animações</label></div>';
         h += '</div>'; // panel-estilo
 
         h += '</div>'; // mcb-root
         $c.html(h);
 
-        // Mount PetiteVue
+        // Mount PetiteVue (state já é reactive proxy neste ponto)
         if (typeof PetiteVue !== 'undefined') {
             PetiteVue.createApp(state).mount('#' + uid);
         }
@@ -1072,20 +1135,16 @@ var MdashChartBuilder = (function () {
             MdashTransformBuilder.render(host[0] ? host[0] : '.mcb-transform-host', {
                 config: tCfg,
                 onSave: function (newT) {
-                    // 1. Persistir no container
+                    // 1. Persistir transform no container
                     $c.data('mcbTransformConfig', newT);
-                    // 2. Derivar lista de campos do novo schema
-                    var newFields = [];
-                    if (newT && newT.sourceTable) {
-                        newFields = MdashTransformBuilder.getTableSchema(newT.sourceTable).map(function (s) { return s.field; });
-                    }
-                    // 3. Actualizar state PetiteVue → todos os selects de campo reactualizam
-                    var pvState = $c.data('mcbPvState');
-                    if (pvState) pvState.updateFields(newFields);
-                    // 4. Notificar o modal (preview, etc.)
+                    // 2. Disparar evento DOM no root PetiteVue — changeDataSource() corre
+                    //    no contexto reactivo interno (this = proxy correcto → DOM actualiza)
+                    var rootEl = document.getElementById(uid);
+                    if (rootEl) rootEl.dispatchEvent(new CustomEvent('mcb-refresh'));
+                    // 3. Notificar o modal (actualizar preview)
                     if (typeof options.onTransformChange === 'function') options.onTransformChange(newT);
                 },
-                onCancel: function () {}
+                onCancel: function () { }
             });
         } else {
             host.html('<div style="color:#94A3B8;font-size:11px;padding:8px;font-style:italic;">MdashTransformBuilder não disponível.</div>');
@@ -1218,18 +1277,23 @@ var MdashChartBuilder = (function () {
         s += '.mchart-empty-state small{font-size:11px;opacity:0.6;}';
         // Sample badge
         s += '.mchart-sample-badge{font-size:10px;color:#64748B;background:rgba(241,245,249,0.92);border:1px solid #CBD5E1;border-radius:0 0 6px 6px;padding:3px 10px;text-align:center;letter-spacing:0.3px;}';
+        // Data source mode buttons
+        s += '.mcb-ds-btns{display:flex;gap:5px;margin-bottom:0;}';
+        s += '.mcb-ds-btn{flex:1;padding:5px 4px;border:1.5px solid #e2e8f0;border-radius:7px;background:#f8fafc;font-size:10.5px;font-weight:700;color:#64748B;cursor:pointer;transition:all .15s;text-align:center;}';
+        s += '.mcb-ds-btn:hover{border-color:#2563EB;color:#2563EB;background:#eff6ff;}';
+        s += '.mcb-ds-btn.mcb-ds-on{border-color:#2563EB;background:#dbeafe;color:#1D4ED8;box-shadow:0 0 0 3px rgba(37,99,235,.12);}';
         s += '</style>';
         $('head').append(s);
     }
 
     return {
-        THEMES:             THEMES,
-        PIE_PALETTES:       PIE_PALETTES,
-        CHART_TYPES:        CHART_TYPES,
+        THEMES: THEMES,
+        PIE_PALETTES: PIE_PALETTES,
+        CHART_TYPES: CHART_TYPES,
         buildEchartsOption: buildEchartsOption,
-        render:             render,
-        readConfig:         readConfig,
-        defaultConfig:      _defaultConfig
+        render: render,
+        readConfig: readConfig,
+        defaultConfig: _defaultConfig
     };
 
 })();
@@ -1536,9 +1600,9 @@ function createDynamicSchemaGrafico(data) {
 
 
 function renderObjectGrafico(dados) {
-    var stamp   = dados.itemObject.mdashcontaineritemobjectstamp;
+    var stamp = dados.itemObject.mdashcontaineritemobjectstamp;
     var chartId = 'mchart_' + stamp;
-    var cfg     = dados.config ? JSON.parse(JSON.stringify(dados.config)) : {};
+    var cfg = dados.config ? JSON.parse(JSON.stringify(dados.config)) : {};
     var isSample = !!dados.isSample;
 
     // dados.data já vem resolvido por mdashResolveObjectData (renderObjectByContainerItem).
@@ -1601,11 +1665,13 @@ function renderObjectGrafico(dados) {
             var t = MdashChartBuilder.THEMES[cfg.theme || 'modern'] || MdashChartBuilder.THEMES.modern;
             chart.setOption({
                 backgroundColor: t.bg,
-                graphic: [{ type: 'text', left: 'center', top: 'middle', style: {
-                    text: 'Configure o Eixo X nas propriedades',
-                    fill: t.subtext, fontSize: 13, fontWeight: 600,
-                    fontFamily: "'Inter','Segoe UI',sans-serif"
-                }}]
+                graphic: [{
+                    type: 'text', left: 'center', top: 'middle', style: {
+                        text: 'Configure o Eixo X nas propriedades',
+                        fill: t.subtext, fontSize: 13, fontWeight: 600,
+                        fontFamily: "'Inter','Segoe UI',sans-serif"
+                    }
+                }]
             });
         }
 
@@ -1756,15 +1822,18 @@ function updateChartOnContainer(chart, config, data, chartId) {
 function openChartBuilderModal(obj) {
     if (typeof resetModalOpenState === 'function') resetModalOpenState('#mcb-modal');
 
-    var cfg    = (obj && obj.config) ? JSON.parse(JSON.stringify(obj.config)) : MdashChartBuilder.defaultConfig();
+    var cfg = (obj && obj.config) ? JSON.parse(JSON.stringify(obj.config)) : MdashChartBuilder.defaultConfig();
     // transformConfig tem coluna própria — ler de obj.transformConfig com fallback ao legado dentro de cfg
     cfg.transformConfig = (obj && obj.transformConfig) || cfg.transformConfig || null;
     // Descobrir campos disponíveis via schema da tabela in-memory
     var fields = [];
-    var tCfg   = cfg.transformConfig;
+    var tCfg = cfg.transformConfig;
 
-    if (tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
-        fields = MdashTransformBuilder.getTableSchema(tCfg.sourceTable).map(function (s) { return s.field; });
+    if (tCfg && typeof MdashTransformBuilder !== 'undefined') {
+        // Prioridade: transformationSchema guardado no Aplicar > getOutputSchema (inferência)
+        fields = (tCfg.transformationSchema && tCfg.transformationSchema.length)
+            ? tCfg.transformationSchema.slice()
+            : MdashTransformBuilder.getOutputSchema(tCfg);
     }
     // Fallback: tentar via fonte ligada ao objecto
     if (fields.length === 0 && obj && obj.fontestamp && typeof GMDashFontes !== 'undefined') {
@@ -1839,7 +1908,7 @@ function openChartBuilderModal(obj) {
         var tCfg = cfg.transformConfig || null;
         delete finalCfg.transformConfig; // não embutir em configjson — tem coluna própria
         if (obj) {
-            obj.config    = finalCfg;
+            obj.config = finalCfg;
             obj.configjson = JSON.stringify(finalCfg);
             obj.transformConfig = tCfg;
             obj.transformconfigjson = JSON.stringify(tCfg);
@@ -1876,46 +1945,66 @@ function openChartBuilderModal(obj) {
     $('#mcb-modal').modal('show');
 }
 
+// Converte resultado bruto do sql.js ({columns, rows}) para array de objectos
+function _mcbRawToObjects(result) {
+    if (!result || result.error || !result.columns || !result.rows) return [];
+    return result.rows.map(function (r) {
+        return result.columns.reduce(function (o, c, i) { o[c] = r[i]; return o; }, {});
+    });
+}
+
+// Estratégias de resolução de dados indexadas por modo
+var _MCB_DATA_RESOLVERS = {
+    transform: function (cfg) {
+        return typeof MdashTransformBuilder !== 'undefined' && cfg.transformConfig
+            ? _mcbRawToObjects(MdashTransformBuilder.executeRaw(cfg.transformConfig))
+            : null;
+    },
+    raw: function (cfg) {
+        var tbl = cfg.transformConfig && cfg.transformConfig.sourceTable;
+        return (typeof MdashTransformBuilder !== 'undefined' && tbl)
+            ? _mcbRawToObjects(MdashTransformBuilder.executeRaw(MdashTransformBuilder.autoConfig(tbl, 'raw')))
+            : null;
+    },
+    fonte: function (cfg) {
+        var stamp = cfg.dataSource && cfg.dataSource.fonteStamp;
+        var fonte = stamp && (window.GMDashFontes || []).filter(function (f) { return f.mdashfontestamp === stamp; })[0];
+        return fonte ? (fonte.lastResults || []) : null;
+    }
+};
+
+function _mcbResolvePreviewRows(cfg, obj) {
+    var mode = (cfg.dataSource && cfg.dataSource.mode) || 'transform';
+    var resolver = _MCB_DATA_RESOLVERS[mode];
+    var rows = resolver ? resolver(cfg) : null;
+
+    // Fallback ao container item quando o resolver não produziu linhas
+    if (rows === null && obj) {
+        var items = (window.appState && window.appState.containerItems) || [];
+        var ci = items.filter(function (x) { return x.mdashcontaineritemstamp === obj.mdashcontaineritemstamp; })[0];
+        rows = ci ? (ci.records || []) : [];
+    }
+
+    return rows || [];
+}
+
 function _mcbRefreshPreview(obj, cfg) {
     var $prev = $('#mcb-preview-chart');
     if (!$prev.length || typeof echarts === 'undefined') return;
 
-    // Collect rows for preview
-    var rows = [];
-    if (cfg.transformConfig && cfg.transformConfig.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
-        var raw = MdashTransformBuilder.executeRaw(cfg.transformConfig);
-        if (!raw.error && raw.rows && raw.columns) {
-            rows = raw.rows.map(function (r) {
-                var o = {};
-                raw.columns.forEach(function (c, i) { o[c] = r[i]; });
-                return o;
-            });
-        }
-    } else if (obj) {
-        var items = window.appState ? window.appState.containerItems : [];
-        for (var i = 0; i < items.length; i++) {
-            if (items[i].mdashcontaineritemstamp === obj.mdashcontaineritemstamp) {
-                rows = items[i].records || [];
-                break;
-            }
-        }
-    }
-
+    var rows = _mcbResolvePreviewRows(cfg, obj);
     var height = Math.max(cfg.height || 320, 260);
+
     $prev.css({ height: height + 'px', 'min-height': '260px' });
 
-    var dom  = $prev[0];
-    var inst = echarts.getInstanceByDom ? echarts.getInstanceByDom(dom) : null;
-    var chart = inst || echarts.init(dom, null, { renderer: 'canvas' });
+    var dom = $prev[0];
+    var chart = (echarts.getInstanceByDom && echarts.getInstanceByDom(dom)) || echarts.init(dom, null, { renderer: 'canvas' });
 
-    var option = MdashChartBuilder.buildEchartsOption(cfg, rows);
-    chart.setOption(option, true);
-
-    window.dispatchEvent(new Event('resize')); // trigger resize just in case
+    chart.setOption(MdashChartBuilder.buildEchartsOption(cfg, rows), true);
     chart.resize();
+    window.dispatchEvent(new Event('resize'));
 
-    var info = rows.length + ' linha(s)' + (rows.length === 0 ? ' — configure a fonte na aba Dados' : '');
-    $('#mcb-preview-info').text(info);
+    $('#mcb-preview-info').text(rows.length + ' linha(s)' + (!rows.length ? ' — configure a fonte na aba Dados' : ''));
 }
 
 function _mcbEsc(s) {
@@ -1927,26 +2016,26 @@ function _mcbEsc(s) {
 // Usados por todos os tipos de objecto para renderização imediata no canvas.
 // ============================================================================
 var MDASH_SAMPLE_DATA = [
-    { mes: 'Jan', cliente: 'Alpha Lda',    vendedor: 'João Silva',   total: 12500, custo: 8200,  margem: 4300, qtd: 45, pais: 'PT', categoria: 'Serviços'  },
-    { mes: 'Fev', cliente: 'Beta SA',      vendedor: 'Ana Costa',    total: 18700, custo: 11500, margem: 7200, qtd: 62, pais: 'ES', categoria: 'Hardware'  },
-    { mes: 'Mar', cliente: 'Gamma Corp',   vendedor: 'João Silva',   total: 9800,  custo: 6100,  margem: 3700, qtd: 38, pais: 'PT', categoria: 'Software'  },
-    { mes: 'Abr', cliente: 'Delta Lda',    vendedor: 'Maria Santos', total: 22300, custo: 14200, margem: 8100, qtd: 75, pais: 'PT', categoria: 'Serviços'  },
-    { mes: 'Mai', cliente: 'Epsilon SA',   vendedor: 'Ana Costa',    total: 15600, custo: 9800,  margem: 5800, qtd: 54, pais: 'FR', categoria: 'Hardware'  },
-    { mes: 'Jun', cliente: 'Zeta Corp',    vendedor: 'Rui Ferreira', total: 31200, custo: 19500, margem: 11700, qtd: 91, pais: 'DE', categoria: 'Software' },
-    { mes: 'Jul', cliente: 'Eta Lda',      vendedor: 'João Silva',   total: 19800, custo: 12400, margem: 7400, qtd: 67, pais: 'PT', categoria: 'Serviços'  },
-    { mes: 'Ago', cliente: 'Theta SA',     vendedor: 'Maria Santos', total: 8400,  custo: 5200,  margem: 3200, qtd: 29, pais: 'ES', categoria: 'Hardware'  },
-    { mes: 'Set', cliente: 'Iota Corp',    vendedor: 'Rui Ferreira', total: 27600, custo: 17200, margem: 10400, qtd: 83, pais: 'PT', categoria: 'Software' },
-    { mes: 'Out', cliente: 'Kappa Lda',    vendedor: 'Ana Costa',    total: 21100, custo: 13300, margem: 7800, qtd: 71, pais: 'PT', categoria: 'Serviços'  },
-    { mes: 'Nov', cliente: 'Lambda SA',    vendedor: 'João Silva',   total: 34500, custo: 21800, margem: 12700, qtd: 98, pais: 'FR', categoria: 'Hardware' },
-    { mes: 'Dez', cliente: 'Mu Corp',      vendedor: 'Maria Santos', total: 28900, custo: 18100, margem: 10800, qtd: 87, pais: 'DE', categoria: 'Software' },
-    { mes: 'Jan', cliente: 'Nu Lda',       vendedor: 'Rui Ferreira', total: 14200, custo: 8900,  margem: 5300, qtd: 48, pais: 'PT', categoria: 'Serviços'  },
-    { mes: 'Fev', cliente: 'Xi SA',        vendedor: 'Ana Costa',    total: 19300, custo: 12100, margem: 7200, qtd: 63, pais: 'ES', categoria: 'Hardware'  },
-    { mes: 'Mar', cliente: 'Omicron Corp', vendedor: 'João Silva',   total: 11200, custo: 7000,  margem: 4200, qtd: 41, pais: 'PT', categoria: 'Software'  },
-    { mes: 'Abr', cliente: 'Pi Lda',       vendedor: 'Maria Santos', total: 25800, custo: 16200, margem: 9600, qtd: 79, pais: 'PT', categoria: 'Serviços'  },
-    { mes: 'Mai', cliente: 'Rho SA',       vendedor: 'Rui Ferreira', total: 17400, custo: 10900, margem: 6500, qtd: 58, pais: 'FR', categoria: 'Hardware'  },
-    { mes: 'Jun', cliente: 'Sigma Corp',   vendedor: 'Ana Costa',    total: 29700, custo: 18600, margem: 11100, qtd: 89, pais: 'DE', categoria: 'Software' },
-    { mes: 'Jul', cliente: 'Tau Lda',      vendedor: 'João Silva',   total: 16800, custo: 10500, margem: 6300, qtd: 55, pais: 'PT', categoria: 'Serviços'  },
-    { mes: 'Ago', cliente: 'Upsilon SA',   vendedor: 'Maria Santos', total: 22600, custo: 14200, margem: 8400, qtd: 74, pais: 'ES', categoria: 'Hardware'  }
+    { mes: 'Jan', cliente: 'Alpha Lda', vendedor: 'João Silva', total: 12500, custo: 8200, margem: 4300, qtd: 45, pais: 'PT', categoria: 'Serviços' },
+    { mes: 'Fev', cliente: 'Beta SA', vendedor: 'Ana Costa', total: 18700, custo: 11500, margem: 7200, qtd: 62, pais: 'ES', categoria: 'Hardware' },
+    { mes: 'Mar', cliente: 'Gamma Corp', vendedor: 'João Silva', total: 9800, custo: 6100, margem: 3700, qtd: 38, pais: 'PT', categoria: 'Software' },
+    { mes: 'Abr', cliente: 'Delta Lda', vendedor: 'Maria Santos', total: 22300, custo: 14200, margem: 8100, qtd: 75, pais: 'PT', categoria: 'Serviços' },
+    { mes: 'Mai', cliente: 'Epsilon SA', vendedor: 'Ana Costa', total: 15600, custo: 9800, margem: 5800, qtd: 54, pais: 'FR', categoria: 'Hardware' },
+    { mes: 'Jun', cliente: 'Zeta Corp', vendedor: 'Rui Ferreira', total: 31200, custo: 19500, margem: 11700, qtd: 91, pais: 'DE', categoria: 'Software' },
+    { mes: 'Jul', cliente: 'Eta Lda', vendedor: 'João Silva', total: 19800, custo: 12400, margem: 7400, qtd: 67, pais: 'PT', categoria: 'Serviços' },
+    { mes: 'Ago', cliente: 'Theta SA', vendedor: 'Maria Santos', total: 8400, custo: 5200, margem: 3200, qtd: 29, pais: 'ES', categoria: 'Hardware' },
+    { mes: 'Set', cliente: 'Iota Corp', vendedor: 'Rui Ferreira', total: 27600, custo: 17200, margem: 10400, qtd: 83, pais: 'PT', categoria: 'Software' },
+    { mes: 'Out', cliente: 'Kappa Lda', vendedor: 'Ana Costa', total: 21100, custo: 13300, margem: 7800, qtd: 71, pais: 'PT', categoria: 'Serviços' },
+    { mes: 'Nov', cliente: 'Lambda SA', vendedor: 'João Silva', total: 34500, custo: 21800, margem: 12700, qtd: 98, pais: 'FR', categoria: 'Hardware' },
+    { mes: 'Dez', cliente: 'Mu Corp', vendedor: 'Maria Santos', total: 28900, custo: 18100, margem: 10800, qtd: 87, pais: 'DE', categoria: 'Software' },
+    { mes: 'Jan', cliente: 'Nu Lda', vendedor: 'Rui Ferreira', total: 14200, custo: 8900, margem: 5300, qtd: 48, pais: 'PT', categoria: 'Serviços' },
+    { mes: 'Fev', cliente: 'Xi SA', vendedor: 'Ana Costa', total: 19300, custo: 12100, margem: 7200, qtd: 63, pais: 'ES', categoria: 'Hardware' },
+    { mes: 'Mar', cliente: 'Omicron Corp', vendedor: 'João Silva', total: 11200, custo: 7000, margem: 4200, qtd: 41, pais: 'PT', categoria: 'Software' },
+    { mes: 'Abr', cliente: 'Pi Lda', vendedor: 'Maria Santos', total: 25800, custo: 16200, margem: 9600, qtd: 79, pais: 'PT', categoria: 'Serviços' },
+    { mes: 'Mai', cliente: 'Rho SA', vendedor: 'Rui Ferreira', total: 17400, custo: 10900, margem: 6500, qtd: 58, pais: 'FR', categoria: 'Hardware' },
+    { mes: 'Jun', cliente: 'Sigma Corp', vendedor: 'Ana Costa', total: 29700, custo: 18600, margem: 11100, qtd: 89, pais: 'DE', categoria: 'Software' },
+    { mes: 'Jul', cliente: 'Tau Lda', vendedor: 'João Silva', total: 16800, custo: 10500, margem: 6300, qtd: 55, pais: 'PT', categoria: 'Serviços' },
+    { mes: 'Ago', cliente: 'Upsilon SA', vendedor: 'Maria Santos', total: 22600, custo: 14200, margem: 8400, qtd: 74, pais: 'ES', categoria: 'Hardware' }
 ];
 
 /**
@@ -1963,8 +2052,8 @@ var _MCHART_SAMPLE_CONFIG = {
     theme: 'modern', chartType: 'bar', height: 300,
     xField: 'mes',
     series: [
-        { field: 'total',  name: 'Total Faturado', type: 'default', color: '' },
-        { field: 'custo',  name: 'Custo',          type: 'default', color: '' }
+        { field: 'total', name: 'Total Faturado', type: 'default', color: '' },
+        { field: 'custo', name: 'Custo', type: 'default', color: '' }
     ],
     stacked: false, smooth: true, gradient: true, borderRadius: 6,
     dataLabels: false, animation: true, toolbox: true,
@@ -1984,7 +2073,7 @@ var _MCHART_SAMPLE_CONFIG = {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function _mciEsc(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function _mciGetFontes() {
@@ -2005,14 +2094,14 @@ function _mciGetFields(obj) {
         var fonte = _mciGetFontes().find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
         if (fonte) {
             if (fonte.schemajson) {
-                try { var sc = JSON.parse(fonte.schemajson); if (Array.isArray(sc) && sc.length) return sc.map(function (c) { return c.name || c; }); } catch (e) {}
+                try { var sc = JSON.parse(fonte.schemajson); if (Array.isArray(sc) && sc.length) return sc.map(function (c) { return c.name || c; }); } catch (e) { }
             }
             if (fonte.lastResultscached) {
                 try {
                     var cached = JSON.parse(fonte.lastResultscached);
                     if (cached.columns && cached.columns.length) return cached.columns;
                     if (Array.isArray(cached) && cached.length) return Object.keys(cached[0]);
-                } catch (e) {}
+                } catch (e) { }
             }
         }
     }
@@ -2050,30 +2139,31 @@ function _mciPreviewUpdate(stamp, cfg, rows) {
     var dom = document.getElementById('mcbi-mini-' + stamp);
     if (!dom) return;
     var chart = echarts.getInstanceByDom(dom) || echarts.init(dom, null, { renderer: 'canvas' });
-    try { chart.setOption(MdashChartBuilder.buildEchartsOption(cfg, rows), true); chart.resize(); } catch (e) {}
+    try { chart.setOption(MdashChartBuilder.buildEchartsOption(cfg, rows), true); chart.resize(); } catch (e) { }
 }
 
 function _mciReadConfig($root, obj) {
     var cfg = obj.config ? JSON.parse(JSON.stringify(obj.config)) : {};
-    cfg.chartType    = $root.find('.mcbi-ct-btn.is-on').data('type') || cfg.chartType || 'bar';
-    cfg.theme        = $root.find('.mcbi-th-btn.is-on').data('theme') || cfg.theme || 'modern';
-    cfg.height       = parseInt($root.find('.mcbi-height').val()) || cfg.height || 320;
+    cfg.chartType = $root.find('.mcbi-ct-btn.is-on').data('type') || cfg.chartType || 'bar';
+    cfg.theme = $root.find('.mcbi-th-btn.is-on').data('theme') || cfg.theme || 'modern';
+    cfg.height = parseInt($root.find('.mcbi-height').val()) || cfg.height || 320;
     var _isPieCt = (cfg.chartType === 'pie' || cfg.chartType === 'donut' || cfg.chartType === 'funnel');
     if (_isPieCt) {
-        cfg.xField     = $root.find('.mcbi-pie-lf').val() || '';
-        cfg.series     = [{ field: $root.find('.mcbi-pie-vf').val() || '', name: '', type: 'default', serType: 'default', stack: '', color: '' }];
+        cfg.xField = $root.find('.mcbi-pie-lf').val() || '';
+        cfg.series = [{ field: $root.find('.mcbi-pie-vf').val() || '', name: '', type: 'default', serType: 'default', stack: '', color: '' }];
         cfg.piePalette = $root.find('.mcbi-pp-btn.is-on').data('pp') || 'theme';
         if (cfg.piePalette === 'custom') {
             cfg.piePaletteCustom = [];
             $root.find('.mcbi-custom-c').each(function () { cfg.piePaletteCustom.push($(this).val()); });
         }
     } else {
-        cfg.xField  = $root.find('.mcbi-xf').val() || '';
-        cfg.series  = [];
+        cfg.xField = $root.find('.mcbi-xf').val() || '';
+        cfg.series = [];
         $root.find('.mcbi-sr').each(function () {
             var $r = $(this), fld = $r.find('.mcbi-sf').val();
             if (!fld) return;
-            cfg.series.push({ field: fld, name: $r.find('.mcbi-sn').val().trim(), serType: $r.find('.mcbi-st').val() || 'default', stack: $r.find('.mcbi-sstack').val().trim(), color: $r.find('.mcbi-sc-phc').val() || $r.find('.mcbi-sc').val() || '', type: 'default',
+            cfg.series.push({
+                field: fld, name: $r.find('.mcbi-sn').val().trim(), serType: $r.find('.mcbi-st').val() || 'default', stack: $r.find('.mcbi-sstack').val().trim(), color: $r.find('.mcbi-sc-phc').val() || $r.find('.mcbi-sc').val() || '', type: 'default',
                 gradient: $r.find('.mcbi-s-gradient').is(':checked'),
                 smooth: $r.find('.mcbi-s-smooth').is(':checked'),
                 dataLabels: $r.find('.mcbi-s-labels').is(':checked'),
@@ -2089,18 +2179,18 @@ function _mciReadConfig($root, obj) {
             });
         });
     }
-    cfg.stacked      = $root.find('.mcbi-stacked').is(':checked');
-    cfg.toolbox      = $root.find('.mcbi-toolbox').is(':checked') ? true : false;
-    cfg.smooth       = $root.find('.mcbi-smooth').is(':checked');
-    cfg.gradient     = $root.find('.mcbi-gradient').is(':checked');
-    cfg.dataLabels   = $root.find('.mcbi-labels').is(':checked');
-    cfg.animation    = $root.find('.mcbi-anim').is(':checked');
+    cfg.stacked = $root.find('.mcbi-stacked').is(':checked');
+    cfg.toolbox = $root.find('.mcbi-toolbox').is(':checked') ? true : false;
+    cfg.smooth = $root.find('.mcbi-smooth').is(':checked');
+    cfg.gradient = $root.find('.mcbi-gradient').is(':checked');
+    cfg.dataLabels = $root.find('.mcbi-labels').is(':checked');
+    cfg.animation = $root.find('.mcbi-anim').is(':checked');
     cfg.borderRadius = parseInt($root.find('.mcbi-br').val()) || 6;
-    cfg.xAxis        = { rotate: parseInt($root.find('.mcbi-xrot').val()) || 0, name: $root.find('.mcbi-xname').val() || '', interval: $root.find('.mcbi-xinterval').val() || 'auto' };
-    cfg.yAxis        = { show: $root.find('.mcbi-yshow').is(':checked'), name: $root.find('.mcbi-yname').val() || '' };
-    cfg.legend       = { show: $root.find('.mcbi-legend').is(':checked'), position: $root.find('.mcbi-legend-pos').val() || 'top' };
-    cfg.title        = { show: $root.find('.mcbi-title-show').is(':checked'), text: $root.find('.mcbi-title-text').val() || '' };
-    cfg.tooltip      = { show: true };
+    cfg.xAxis = { rotate: parseInt($root.find('.mcbi-xrot').val()) || 0, name: $root.find('.mcbi-xname').val() || '', interval: $root.find('.mcbi-xinterval').val() || 'auto' };
+    cfg.yAxis = { show: $root.find('.mcbi-yshow').is(':checked'), name: $root.find('.mcbi-yname').val() || '' };
+    cfg.legend = { show: $root.find('.mcbi-legend').is(':checked'), position: $root.find('.mcbi-legend-pos').val() || 'top' };
+    cfg.title = { show: $root.find('.mcbi-title-show').is(':checked'), text: $root.find('.mcbi-title-text').val() || '' };
+    cfg.tooltip = { show: true };
     cfg.transformConfig = cfg.transformConfig || null;
     return cfg;
 }
@@ -2131,75 +2221,75 @@ function _mciChkVal(cls, label, checked) {
 function _mciSerieRow(s, i, fields) {
     var fOpts = '<option value="">campo…</option>'
         + fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (s.field === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join('');
-    var stOpts = [['default','Auto'],['bar','Barras'],['line','Linha'],['area','Área'],['scatter','Disp.']].map(function (o) {
+    var stOpts = [['default', 'Auto'], ['bar', 'Barras'], ['line', 'Linha'], ['area', 'Área'], ['scatter', 'Disp.']].map(function (o) {
         return '<option value="' + o[0] + '"' + ((s.serType || 'default') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
     }).join('');
     var phcToken = (s.color && typeof s.color === 'string' && s.color.indexOf('phc:') === 0) ? s.color : (!s.color ? 'phc:primary' : '');
-    var hexColor  = (!phcToken && s.color) ? s.color : '#2563EB';
-    var badgeCol  = phcToken ? ((typeof getCachedColor === 'function' && getCachedColor(phcToken.replace('phc:', '')) && getCachedColor(phcToken.replace('phc:', '')).background) || '#2563EB') : hexColor;
-    var title  = _mciEsc(s.name || s.field || ('Série ' + (i + 1)));
+    var hexColor = (!phcToken && s.color) ? s.color : '#2563EB';
+    var badgeCol = phcToken ? ((typeof getCachedColor === 'function' && getCachedColor(phcToken.replace('phc:', '')) && getCachedColor(phcToken.replace('phc:', '')).background) || '#2563EB') : hexColor;
+    var title = _mciEsc(s.name || s.field || ('Série ' + (i + 1)));
     var isOpen = i === 0;
-    var phcOpts = ['primary','warning','success','danger','info'].map(function (pt) {
+    var phcOpts = ['primary', 'warning', 'success', 'danger', 'info'].map(function (pt) {
         return '<option value="phc:' + pt + '"' + (phcToken === 'phc:' + pt ? ' selected' : '') + '>PHC ' + pt.charAt(0).toUpperCase() + pt.slice(1) + '</option>';
     }).join('');
     var sType0 = s.serType || 'default';
     return '<div class="mcbi-sr' + (isOpen ? ' is-open' : '') + '" data-idx="' + i + '" data-stype="' + sType0 + '" style="border-left-color:' + badgeCol + '">'
         + '<div class="mcbi-sr-hd">'
-        +   '<span class="mcbi-sr-badge" style="background:' + badgeCol + '"></span>'
-        +   '<span class="mcbi-sr-idx">S' + (i + 1) + '</span>'
-        +   '<span class="mcbi-sr-title">' + title + '</span>'
-        +   '<div class="mcbi-sr-acts">'
-        +     '<button type="button" class="mcbi-sr-tog" title="Expandir/Colapsar"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,5 8,11 13,5"/></svg></button>'
-        +     '<button type="button" class="mcbi-del-s" title="Remover série"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>'
-        +   '</div>'
+        + '<span class="mcbi-sr-badge" style="background:' + badgeCol + '"></span>'
+        + '<span class="mcbi-sr-idx">S' + (i + 1) + '</span>'
+        + '<span class="mcbi-sr-title">' + title + '</span>'
+        + '<div class="mcbi-sr-acts">'
+        + '<button type="button" class="mcbi-sr-tog" title="Expandir/Colapsar"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,5 8,11 13,5"/></svg></button>'
+        + '<button type="button" class="mcbi-del-s" title="Remover série"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>'
+        + '</div>'
         + '</div>'
         + '<div class="mcbi-sr-body">'
-        +   '<div class="mcbi-row2">'
-        +     '<div class="mcbi-field"><label>Campo</label><select class="mcbi-sf form-control input-sm">' + fOpts + '</select></div>'
-        +     '<div class="mcbi-field"><label>Nome</label><input type="text" class="mcbi-sn form-control input-sm" value="' + _mciEsc(s.name || '') + '" placeholder="Nome da série"></div>'
-        +   '</div>'
-        +   '<div class="mcbi-sr-adv mcbi-row2">'
-        +     '<div class="mcbi-field"><label>Tipo</label><select class="mcbi-st form-control input-sm">' + stOpts + '</select></div>'
-        +     '<div class="mcbi-field"><label>Grupo stack</label><input type="text" class="mcbi-sstack form-control input-sm" value="' + _mciEsc(s.stack || '') + '" placeholder="ex: total"></div>'
-        +   '</div>'
-        +   '<div class="mcbi-field mcbi-sr-color-row">'
-        +     '<label>Cor</label>'
-        +     '<select class="mcbi-sc-phc form-control input-sm"><option value="">— Personalizada —</option>' + phcOpts + '</select>'
-        +     '<input type="color" class="mcbi-sc"' + (phcToken ? ' style="display:none"' : '') + ' value="' + hexColor + '">'
-        +   '</div>'
-        +   '<div class="mcbi-srs">'
-        +     '<div class="mcbi-srs-hd"><svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M2 4h12v1.5H2zM4 7.5h8V9H4zM6 11h4v1.5H6z"/></svg> Estilo da série</div>'
-        +     '<div class="mcbi-srs-general">'
-        +       '<div class="mcbi-row2" style="align-items:center">'
-        +         '<div class="mcbi-field" style="margin-bottom:0">' + _mciChkVal('mcbi-s-labels', 'Etiquetas', s.dataLabels === true) + '</div>'
-        +         '<div class="mcbi-field mcbi-s-labelcol-wrap" style="margin-bottom:0"><label>Cor etiqueta</label><input type="color" class="mcbi-s-labelcol" value="' + (s.labelColor || '#ffffff') + '"></div>'
-        +       '</div>'
-        +     '</div>'
-        +     '<div class="mcbi-srs-bar">'
-        +       '<div class="mcbi-row2" style="align-items:center">'
-        +         '<div class="mcbi-field" style="margin-bottom:0">' + _mciChkVal('mcbi-s-gradient', 'Gradiente', s.gradient !== false) + '</div>'
-        +         '<div class="mcbi-field" style="margin-bottom:0"><label>Raio bordas</label><input type="number" class="mcbi-s-br form-control input-sm" value="' + (s.borderRadius !== undefined ? s.borderRadius : '') + '" min="0" max="24" placeholder="Global"></div>'
-        +       '</div>'
-        +       '<div class="mcbi-field" style="margin-bottom:0"><label>Larg. barra %</label><input type="number" class="mcbi-s-bw form-control input-sm" value="' + (s.barWidth !== undefined ? s.barWidth : '') + '" min="10" max="100" placeholder="Auto"></div>'
-        +     '</div>'
-        +     '<div class="mcbi-srs-line">'
-        +       '<div class="mcbi-row2" style="align-items:center">'
-        +         '<div class="mcbi-field" style="margin-bottom:0">' + _mciChkVal('mcbi-s-smooth', 'Lin. suave', s.smooth !== false) + '</div>'
-        +         '<div class="mcbi-field" style="margin-bottom:0"><label>Espessura</label><input type="number" class="mcbi-s-lw form-control input-sm" value="' + (s.lineWidth !== undefined ? s.lineWidth : '') + '" min="1" max="10" placeholder="2.5" step="0.5"></div>'
-        +       '</div>'
-        +       '<div class="mcbi-row2">'
-        +         '<div class="mcbi-field" style="margin-bottom:0"><label>Forma ponto</label><select class="mcbi-s-sym form-control input-sm"><option value="circle"' + (!s.symbol || s.symbol === 'circle' ? ' selected' : '') + '>Círculo</option><option value="rect"' + (s.symbol === 'rect' ? ' selected' : '') + '>Rect.</option><option value="roundRect"' + (s.symbol === 'roundRect' ? ' selected' : '') + '>Rect. arred.</option><option value="triangle"' + (s.symbol === 'triangle' ? ' selected' : '') + '>Triângulo</option><option value="diamond"' + (s.symbol === 'diamond' ? ' selected' : '') + '>Diamante</option><option value="none"' + (s.symbol === 'none' ? ' selected' : '') + '>Nenhum</option></select></div>'
-        +         '<div class="mcbi-field" style="margin-bottom:0"><label>Tam. ponto</label><input type="number" class="mcbi-s-lsz form-control input-sm" value="' + (s.lineSymbolSize !== undefined ? s.lineSymbolSize : '') + '" min="0" max="20" placeholder="7"></div>'
-        +       '</div>'
-        +       '<div class="mcbi-field mcbi-srs-area-only" style="margin-bottom:0"><label>Opac. área %</label><input type="number" class="mcbi-s-aopacity form-control input-sm" value="' + Math.round((s.areaOpacity !== undefined ? s.areaOpacity : 0.32) * 100) + '" min="0" max="100"></div>'
-        +     '</div>'
-        +     '<div class="mcbi-srs-scatter">'
-        +       '<div class="mcbi-row2">'
-        +         '<div class="mcbi-field" style="margin-bottom:0"><label>Tam. símbolo</label><input type="number" class="mcbi-s-ssz form-control input-sm" value="' + (s.symbolSize || 10) + '" min="2" max="40"></div>'
-        +         '<div class="mcbi-field" style="margin-bottom:0"><label>Forma</label><select class="mcbi-s-sctsym form-control input-sm"><option value="circle"' + (!s.scatterSymbol || s.scatterSymbol === 'circle' ? ' selected' : '') + '>Círculo</option><option value="rect"' + (s.scatterSymbol === 'rect' ? ' selected' : '') + '>Rect.</option><option value="triangle"' + (s.scatterSymbol === 'triangle' ? ' selected' : '') + '>Triângulo</option><option value="diamond"' + (s.scatterSymbol === 'diamond' ? ' selected' : '') + '>Diamante</option></select></div>'
-        +       '</div>'
-        +     '</div>'
-        +   '</div>'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Campo</label><select class="mcbi-sf form-control input-sm">' + fOpts + '</select></div>'
+        + '<div class="mcbi-field"><label>Nome</label><input type="text" class="mcbi-sn form-control input-sm" value="' + _mciEsc(s.name || '') + '" placeholder="Nome da série"></div>'
+        + '</div>'
+        + '<div class="mcbi-sr-adv mcbi-row2">'
+        + '<div class="mcbi-field"><label>Tipo</label><select class="mcbi-st form-control input-sm">' + stOpts + '</select></div>'
+        + '<div class="mcbi-field"><label>Grupo stack</label><input type="text" class="mcbi-sstack form-control input-sm" value="' + _mciEsc(s.stack || '') + '" placeholder="ex: total"></div>'
+        + '</div>'
+        + '<div class="mcbi-field mcbi-sr-color-row">'
+        + '<label>Cor</label>'
+        + '<select class="mcbi-sc-phc form-control input-sm"><option value="">— Personalizada —</option>' + phcOpts + '</select>'
+        + '<input type="color" class="mcbi-sc"' + (phcToken ? ' style="display:none"' : '') + ' value="' + hexColor + '">'
+        + '</div>'
+        + '<div class="mcbi-srs">'
+        + '<div class="mcbi-srs-hd"><svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M2 4h12v1.5H2zM4 7.5h8V9H4zM6 11h4v1.5H6z"/></svg> Estilo da série</div>'
+        + '<div class="mcbi-srs-general">'
+        + '<div class="mcbi-row2" style="align-items:center">'
+        + '<div class="mcbi-field" style="margin-bottom:0">' + _mciChkVal('mcbi-s-labels', 'Etiquetas', s.dataLabels === true) + '</div>'
+        + '<div class="mcbi-field mcbi-s-labelcol-wrap" style="margin-bottom:0"><label>Cor etiqueta</label><input type="color" class="mcbi-s-labelcol" value="' + (s.labelColor || '#ffffff') + '"></div>'
+        + '</div>'
+        + '</div>'
+        + '<div class="mcbi-srs-bar">'
+        + '<div class="mcbi-row2" style="align-items:center">'
+        + '<div class="mcbi-field" style="margin-bottom:0">' + _mciChkVal('mcbi-s-gradient', 'Gradiente', s.gradient !== false) + '</div>'
+        + '<div class="mcbi-field" style="margin-bottom:0"><label>Raio bordas</label><input type="number" class="mcbi-s-br form-control input-sm" value="' + (s.borderRadius !== undefined ? s.borderRadius : '') + '" min="0" max="24" placeholder="Global"></div>'
+        + '</div>'
+        + '<div class="mcbi-field" style="margin-bottom:0"><label>Larg. barra %</label><input type="number" class="mcbi-s-bw form-control input-sm" value="' + (s.barWidth !== undefined ? s.barWidth : '') + '" min="10" max="100" placeholder="Auto"></div>'
+        + '</div>'
+        + '<div class="mcbi-srs-line">'
+        + '<div class="mcbi-row2" style="align-items:center">'
+        + '<div class="mcbi-field" style="margin-bottom:0">' + _mciChkVal('mcbi-s-smooth', 'Lin. suave', s.smooth !== false) + '</div>'
+        + '<div class="mcbi-field" style="margin-bottom:0"><label>Espessura</label><input type="number" class="mcbi-s-lw form-control input-sm" value="' + (s.lineWidth !== undefined ? s.lineWidth : '') + '" min="1" max="10" placeholder="2.5" step="0.5"></div>'
+        + '</div>'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field" style="margin-bottom:0"><label>Forma ponto</label><select class="mcbi-s-sym form-control input-sm"><option value="circle"' + (!s.symbol || s.symbol === 'circle' ? ' selected' : '') + '>Círculo</option><option value="rect"' + (s.symbol === 'rect' ? ' selected' : '') + '>Rect.</option><option value="roundRect"' + (s.symbol === 'roundRect' ? ' selected' : '') + '>Rect. arred.</option><option value="triangle"' + (s.symbol === 'triangle' ? ' selected' : '') + '>Triângulo</option><option value="diamond"' + (s.symbol === 'diamond' ? ' selected' : '') + '>Diamante</option><option value="none"' + (s.symbol === 'none' ? ' selected' : '') + '>Nenhum</option></select></div>'
+        + '<div class="mcbi-field" style="margin-bottom:0"><label>Tam. ponto</label><input type="number" class="mcbi-s-lsz form-control input-sm" value="' + (s.lineSymbolSize !== undefined ? s.lineSymbolSize : '') + '" min="0" max="20" placeholder="7"></div>'
+        + '</div>'
+        + '<div class="mcbi-field mcbi-srs-area-only" style="margin-bottom:0"><label>Opac. área %</label><input type="number" class="mcbi-s-aopacity form-control input-sm" value="' + Math.round((s.areaOpacity !== undefined ? s.areaOpacity : 0.32) * 100) + '" min="0" max="100"></div>'
+        + '</div>'
+        + '<div class="mcbi-srs-scatter">'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field" style="margin-bottom:0"><label>Tam. símbolo</label><input type="number" class="mcbi-s-ssz form-control input-sm" value="' + (s.symbolSize || 10) + '" min="2" max="40"></div>'
+        + '<div class="mcbi-field" style="margin-bottom:0"><label>Forma</label><select class="mcbi-s-sctsym form-control input-sm"><option value="circle"' + (!s.scatterSymbol || s.scatterSymbol === 'circle' ? ' selected' : '') + '>Círculo</option><option value="rect"' + (s.scatterSymbol === 'rect' ? ' selected' : '') + '>Rect.</option><option value="triangle"' + (s.scatterSymbol === 'triangle' ? ' selected' : '') + '>Triângulo</option><option value="diamond"' + (s.scatterSymbol === 'diamond' ? ' selected' : '') + '>Diamante</option></select></div>'
+        + '</div>'
+        + '</div>'
+        + '</div>'
         + '</div>'
         + '</div>';
 }
@@ -2214,9 +2304,9 @@ function _mciRefreshFieldSelects($root, fields) {
 // ── Main inline render function (called by showObjectPropertiesEditor) ────────
 
 function renderChartPropertiesInline(obj, panel) {
-    var stamp  = obj.mdashcontaineritemobjectstamp;
-    var cfg    = obj.config ? JSON.parse(JSON.stringify(obj.config))
-                            : JSON.parse(JSON.stringify(_MCHART_SAMPLE_CONFIG));
+    var stamp = obj.mdashcontaineritemobjectstamp;
+    var cfg = obj.config ? JSON.parse(JSON.stringify(obj.config))
+        : JSON.parse(JSON.stringify(_MCHART_SAMPLE_CONFIG));
     var fontes = _mciGetFontes();
     var fields = _mciGetFields(obj);
     var isSample = !obj.fontestamp;
@@ -2283,7 +2373,7 @@ function renderChartPropertiesInline(obj, panel) {
         + '<div class="mcbi-field"><label>Paleta de cores</label><div class="mcbi-pie-palettes">'
         + (typeof MdashChartBuilder !== 'undefined' ? MdashChartBuilder.PIE_PALETTES : []).map(function (pp) {
             var paletteColors = pp.custom
-                ? ((cfg.piePaletteCustom && cfg.piePaletteCustom.length) ? cfg.piePaletteCustom : ['#e2e8f0','#cbd5e1','#94a3b8','#64748b','#475569','#334155'])
+                ? ((cfg.piePaletteCustom && cfg.piePaletteCustom.length) ? cfg.piePaletteCustom : ['#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#475569', '#334155'])
                 : (pp.colors || (typeof MdashChartBuilder !== 'undefined' ? MdashChartBuilder.THEMES[cfg.theme || 'phclegacy'].colors : []));
             var swatches = paletteColors.slice(0, 6)
                 .map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('');
@@ -2295,7 +2385,7 @@ function renderChartPropertiesInline(obj, panel) {
         + '<div class="mcbi-custom-palette"' + (cfg.piePalette === 'custom' ? '' : ' style="display:none"') + '>'
         + '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#475569;display:block;margin:6px 0 4px;">Cores personalizadas</label>'
         + '<div class="mcbi-custom-colors">'
-        + [0,1,2,3,4,5].map(function (ci) { var cv = (cfg.piePaletteCustom && cfg.piePaletteCustom[ci]) || '#2563EB'; return '<input type="color" class="mcbi-custom-c" data-ci="' + ci + '" value="' + cv + '">'; }).join('')
+        + [0, 1, 2, 3, 4, 5].map(function (ci) { var cv = (cfg.piePaletteCustom && cfg.piePaletteCustom[ci]) || '#2563EB'; return '<input type="color" class="mcbi-custom-c" data-ci="' + ci + '" value="' + cv + '">'; }).join('')
         + '</div></div>'
         + '</div>'
         + '</div>';
@@ -2327,9 +2417,9 @@ function renderChartPropertiesInline(obj, panel) {
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field">' + _mciChk('mcbi-legend', 'Mostrar legenda', cfg.legend && cfg.legend.show !== false) + '</div>'
         + '<div class="mcbi-field"><label>Posição</label><select class="mcbi-legend-pos form-control input-sm">'
-        + '<option value="top"'    + ((cfg.legend && cfg.legend.position) === 'top'    ? ' selected' : '') + '>Cima</option>'
+        + '<option value="top"' + ((cfg.legend && cfg.legend.position) === 'top' ? ' selected' : '') + '>Cima</option>'
         + '<option value="bottom"' + ((cfg.legend && cfg.legend.position) === 'bottom' ? ' selected' : '') + '>Baixo</option>'
-        + '<option value="none"'   + ((cfg.legend && cfg.legend.position) === 'none'   ? ' selected' : '') + '>Nenhuma</option>'
+        + '<option value="none"' + ((cfg.legend && cfg.legend.position) === 'none' ? ' selected' : '') + '>Nenhuma</option>'
         + '</select></div></div>'
         // ── Título ──────────────────────────────────────────
         + '<div class="mcbi-srs-divider" style="margin-top:8px">Título</div>'
@@ -2340,7 +2430,7 @@ function renderChartPropertiesInline(obj, panel) {
         + '<div class="mcbi-srs-divider" style="margin-top:8px">Dados &amp; Apresentação</div>'
         + '<div class="mcbi-checks">'
         + _mciChk('mcbi-labels', 'Etiquetas de dados (global)', cfg.dataLabels)
-        + _mciChk('mcbi-anim',   'Animações',       cfg.animation !== false)
+        + _mciChk('mcbi-anim', 'Animações', cfg.animation !== false)
         + '</div>';
 
     // Eixos
@@ -2349,7 +2439,7 @@ function renderChartPropertiesInline(obj, panel) {
         + '<input type="number" class="mcbi-xrot form-control input-sm" value="' + ((cfg.xAxis && cfg.xAxis.rotate) || 0) + '" min="-90" max="90"></div>'
         + '<div class="mcbi-field"><label>Intervalo labels</label>'
         + '<select class="mcbi-xinterval form-control input-sm">'
-        + [['auto','Auto'],['0','Todas'],['1','Alt 1'],['2','Alt 2']].map(function (o) { return '<option value="' + o[0] + '"' + ((cfg.xAxis && cfg.xAxis.interval) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('')
+        + [['auto', 'Auto'], ['0', 'Todas'], ['1', 'Alt 1'], ['2', 'Alt 2']].map(function (o) { return '<option value="' + o[0] + '"' + ((cfg.xAxis && cfg.xAxis.interval) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('')
         + '</select></div></div>'
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Nome eixo X</label>'
@@ -2364,12 +2454,12 @@ function renderChartPropertiesInline(obj, panel) {
     // ── Assemble HTML ───────────────────────────────────────────────────────
     var h = '<div class="mcbi-root" data-stamp="' + stamp + '" data-ct="' + (cfg.chartType || 'bar') + '">'
         + (isSample ? '<div class="mcbi-sample-label"><i class="glyphicon glyphicon-info-sign"></i> Dados de amostra — configure a fonte</div>' : '')
-        + _mciSection('dados',   'Dados',              'glyphicon-hdd',             true,  sDados)
-        + _mciSection('tipo',    'Tipo de Gráfico',    'glyphicon-stats',           true,  sTipo)
-        + _mciSection('geral',   'Configurações Gerais', 'glyphicon-cog',              false, sGeral)
-        + _mciSection('eixos',   'Eixos',              'glyphicon-resize-horizontal', false, sEixos)
-        + _mciSection('campos',  'Campos',             'glyphicon-list-alt',         true,  sCampos)
-        + _mciSection('estilo',  'Estilo',             'glyphicon-tint',             false, sEstilo)
+        + _mciSection('dados', 'Dados', 'glyphicon-hdd', true, sDados)
+        + _mciSection('tipo', 'Tipo de Gráfico', 'glyphicon-stats', true, sTipo)
+        + _mciSection('geral', 'Configurações Gerais', 'glyphicon-cog', false, sGeral)
+        + _mciSection('eixos', 'Eixos', 'glyphicon-resize-horizontal', false, sEixos)
+        + _mciSection('campos', 'Campos', 'glyphicon-list-alt', true, sCampos)
+        + _mciSection('estilo', 'Estilo', 'glyphicon-tint', false, sEstilo)
         + '</div>';
 
     // Save which sections are currently open (for re-render stability)
@@ -2394,7 +2484,7 @@ function renderChartPropertiesInline(obj, panel) {
         clearTimeout(_mciTimer);
         _mciTimer = setTimeout(function () {
             var newCfg = _mciReadConfig(panel, obj);
-            obj.config     = newCfg;
+            obj.config = newCfg;
             obj.configjson = JSON.stringify(newCfg);
             if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
             _mciRerender(obj);
@@ -2445,7 +2535,7 @@ function renderChartPropertiesInline(obj, panel) {
             return;
         }
         _mciTransformInited = true;
-        var _tFnt  = _mciGetFontes().find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
+        var _tFnt = _mciGetFontes().find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
         var _tName = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : '';
 
         // ── Derivar schema ─────────────────────────────────────────────────
@@ -2458,7 +2548,7 @@ function renderChartPropertiesInline(obj, panel) {
                 var _sc = JSON.parse(_tFnt.schemajson);
                 if (Array.isArray(_sc) && _sc.length)
                     _tSchema = _sc.map(function (c) { return { field: c.name || c.field || String(c), type: c.type || 'TEXT' }; });
-            } catch (e) {}
+            } catch (e) { }
         }
 
         // 2. lastResultscached.columns — apenas os nomes das colunas, sem carregar dados
@@ -2473,7 +2563,7 @@ function renderChartPropertiesInline(obj, panel) {
                 }
                 if (_fcols && _fcols.length)
                     _tSchema = _fcols.map(function (f) { return { field: f, type: 'TEXT' }; });
-            } catch (e) {}
+            } catch (e) { }
         }
 
         // 3. Carregar cache na DB in-memory (para PRAGMA e botão Testar)
@@ -2588,10 +2678,10 @@ function renderChartPropertiesInline(obj, panel) {
     });
 
     panel.on('input.mcbi change.mcbi', '.mcbi-sn,.mcbi-sf', function () {
-        var $sr  = $(this).closest('.mcbi-sr');
-        var nm   = $sr.find('.mcbi-sn').val().trim();
-        var fl   = $sr.find('.mcbi-sf').val();
-        var idx  = $sr.closest('.mcbi-series').find('.mcbi-sr').index($sr) + 1;
+        var $sr = $(this).closest('.mcbi-sr');
+        var nm = $sr.find('.mcbi-sn').val().trim();
+        var fl = $sr.find('.mcbi-sf').val();
+        var idx = $sr.closest('.mcbi-series').find('.mcbi-sr').index($sr) + 1;
         $sr.find('.mcbi-sr-title').text(nm || fl || ('Série ' + idx));
     });
 
@@ -2613,7 +2703,7 @@ function renderChartPropertiesInline(obj, panel) {
         _mciRefreshFieldSelects(panel, _mciGetFields(obj));
         // Update sample label visibility
         if (obj.fontestamp) { panel.find('.mcbi-sample-label').hide(); }
-        else                { panel.find('.mcbi-sample-label').show(); }
+        else { panel.find('.mcbi-sample-label').show(); }
         // Reset transform builder so it re-initialises with new fonte on next open
         if (!cfg.transformConfig) _mciTransformInited = false;
         fire();
@@ -3450,7 +3540,7 @@ function getColorByType(type) {
 function hexToRgb(hex) {
     // Remove # se existir
     hex = hex.replace(/^#/, '');
-    
+
     // Se for rgb() já, extrai os valores
     if (hex.indexOf('rgb') !== -1) {
         var match = hex.match(/\d+/g);
@@ -3458,7 +3548,7 @@ function hexToRgb(hex) {
             return match[0] + ',' + match[1] + ',' + match[2];
         }
     }
-    
+
     // Converte hex para rgb
     var r, g, b;
     if (hex.length === 3) {
@@ -3472,7 +3562,7 @@ function hexToRgb(hex) {
     } else {
         return '0,0,0';
     }
-    
+
     return r + ',' + g + ',' + b;
 }
 
@@ -3920,7 +4010,7 @@ function updateTable(containerSelector, itemObject, config, data) {
     var tabelaId = 'tabulator-table-' + itemObject.mdashcontaineritemobjectstamp;
     var exportButtonsId = 'export-buttons-' + itemObject.mdashcontaineritemobjectstamp;
     var tabulatorInstance; // Guardar referência da instância
-    
+
     try {
         // Destruir tabela existente se houver
         var existingTable = document.getElementById(tabelaId);
@@ -4008,11 +4098,11 @@ function updateTable(containerSelector, itemObject, config, data) {
         // ... resto da função igual (container, eventos, etc.)
         // Criar container da tabela com botões de exportação
         var tableContainer = $(containerSelector);
-        
+
         // Criar botões de exportação se habilitados
         if (config.exportOptions && (config.exportOptions.enableExcel || config.exportOptions.enablePDF)) {
             var exportButtonsHTML = '<div id="' + exportButtonsId + '" style="margin-bottom: 10px; display: flex; gap: 10px; justify-content: flex-end;">';
-            
+
             if (config.exportOptions.enableExcel !== false) {
                 var excelColor = config.exportOptions.buttonStyle && config.exportOptions.buttonStyle.excelColor || 'success';
                 exportButtonsHTML += '<button type="button" id="export-excel-' + itemObject.mdashcontaineritemobjectstamp + '" ';
@@ -4021,7 +4111,7 @@ function updateTable(containerSelector, itemObject, config, data) {
                 exportButtonsHTML += '<i class="fa fa-file-excel-o" style="margin-right: 5px;"></i> Exportar Excel';
                 exportButtonsHTML += '</button>';
             }
-            
+
             if (config.exportOptions.enablePDF !== false) {
                 var pdfColor = config.exportOptions.buttonStyle && config.exportOptions.buttonStyle.pdfColor || 'danger';
                 exportButtonsHTML += '<button type="button" id="export-pdf-' + itemObject.mdashcontaineritemobjectstamp + '" ';
@@ -4030,11 +4120,11 @@ function updateTable(containerSelector, itemObject, config, data) {
                 exportButtonsHTML += '<i class="fa fa-file-pdf-o" style="margin-right: 5px;"></i> Exportar PDF';
                 exportButtonsHTML += '</button>';
             }
-            
+
             exportButtonsHTML += '</div>';
             tableContainer.append(exportButtonsHTML);
         }
-        
+
         tableContainer.append('<div id="' + tabelaId + '"></div>');
         tabulatorConfig.langs = {
             "pt-br": {
@@ -4079,18 +4169,18 @@ function updateTable(containerSelector, itemObject, config, data) {
             tabulatorConfig.locale = "pt-br";
         // Inicializar Tabulator
         tabulatorInstance = new Tabulator('#' + tabelaId, tabulatorConfig);
-        
+
         // Adicionar eventos aos botões de exportação
         if (config.exportOptions) {
             if (config.exportOptions.enableExcel !== false) {
-                $('#export-excel-' + itemObject.mdashcontaineritemobjectstamp).on('click', function() {
+                $('#export-excel-' + itemObject.mdashcontaineritemobjectstamp).on('click', function () {
                     var fileName = config.exportOptions.excelFileName || 'dados.xlsx';
-                    tabulatorInstance.download("xlsx", fileName, {sheetName: "Dados"});
+                    tabulatorInstance.download("xlsx", fileName, { sheetName: "Dados" });
                 });
             }
-            
+
             if (config.exportOptions.enablePDF !== false) {
-                $('#export-pdf-' + itemObject.mdashcontaineritemobjectstamp).on('click', function() {
+                $('#export-pdf-' + itemObject.mdashcontaineritemobjectstamp).on('click', function () {
                     var fileName = config.exportOptions.pdfFileName || 'dados.pdf';
                     tabulatorInstance.download("pdf", fileName, {
                         orientation: "landscape",
@@ -4274,32 +4364,32 @@ function getDefaultLayoutDefinitions() {
 
     return [
         // ───── Snapshots ─────
-        { descricao: "Snapshot Layout v1",          codigo: "snapshot_layout_v1",          tipo: "snapshot", UIData: { tipo: "primary" },  htmltemplate: _tplDashCardInfo,     csstemplate: "", slotsdefinition: _slotsDashCardInfo,     containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Snapshot Layout v1 Warning",  codigo: "snapshot_layout_v1_warning",  tipo: "snapshot", UIData: { tipo: "warning" },  htmltemplate: _tplDashCardInfo,     csstemplate: "", slotsdefinition: _slotsDashCardInfo,     containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Snapshot layout v2",          codigo: "snapshot_layout_v2",          tipo: "snapshot", UIData: { tipo: "primary" },  htmltemplate: _tplDashCardSnapshot, csstemplate: "", slotsdefinition: _slotsDashCardSnapshot, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Snap card Warning",           codigo: "snapshot_card_warning",       tipo: "snapshot", UIData: { tipo: "warning" },  htmltemplate: _tplMDashCardSnapV2,  csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2,  containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Snap Card",                   codigo: "snap_card",                   tipo: "snapshot", UIData: { tipo: "primary" },  htmltemplate: _tplMDashCardSnapV2,  csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2,  containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Snap Card Success",           codigo: "snap_card_success",           tipo: "snapshot", UIData: { tipo: "success" },  htmltemplate: _tplMDashCardSnapV2,  csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2,  containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Snap card Danger",            codigo: "snapshot_card_danger",        tipo: "snapshot", UIData: { tipo: "danger" },   htmltemplate: _tplMDashCardSnapV2,  csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2,  containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snapshot Layout v1", codigo: "snapshot_layout_v1", tipo: "snapshot", UIData: { tipo: "primary" }, htmltemplate: _tplDashCardInfo, csstemplate: "", slotsdefinition: _slotsDashCardInfo, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snapshot Layout v1 Warning", codigo: "snapshot_layout_v1_warning", tipo: "snapshot", UIData: { tipo: "warning" }, htmltemplate: _tplDashCardInfo, csstemplate: "", slotsdefinition: _slotsDashCardInfo, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snapshot layout v2", codigo: "snapshot_layout_v2", tipo: "snapshot", UIData: { tipo: "primary" }, htmltemplate: _tplDashCardSnapshot, csstemplate: "", slotsdefinition: _slotsDashCardSnapshot, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snap card Warning", codigo: "snapshot_card_warning", tipo: "snapshot", UIData: { tipo: "warning" }, htmltemplate: _tplMDashCardSnapV2, csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snap Card", codigo: "snap_card", tipo: "snapshot", UIData: { tipo: "primary" }, htmltemplate: _tplMDashCardSnapV2, csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snap Card Success", codigo: "snap_card_success", tipo: "snapshot", UIData: { tipo: "success" }, htmltemplate: _tplMDashCardSnapV2, csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Snap card Danger", codigo: "snapshot_card_danger", tipo: "snapshot", UIData: { tipo: "danger" }, htmltemplate: _tplMDashCardSnapV2, csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2, containerSelectorToRender: '[data-mdash-slot="body"]' },
         // ───── Cards ─────
-        { descricao: "Card standard",               codigo: "card_standard",               tipo: "card", UIData: { tipo: "primary" },  htmltemplate: _tplDashCardStandard, csstemplate: "", slotsdefinition: _slotsDashCardStandard, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Card header destacado",       codigo: "card_header_highlighted",     tipo: "card", UIData: { tipo: "primary" },  htmltemplate: _tplDashCardHTML,     csstemplate: "", slotsdefinition: _slotsDashCardHTML,     containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Plain Card",                  codigo: "plain_card",                  tipo: "card", UIData: { tipo: "primary" },  htmltemplate: _tplPlainCard,        csstemplate: "", slotsdefinition: _slotsPlainCard,        containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Card standard", codigo: "card_standard", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplDashCardStandard, csstemplate: "", slotsdefinition: _slotsDashCardStandard, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Card header destacado", codigo: "card_header_highlighted", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplDashCardHTML, csstemplate: "", slotsdefinition: _slotsDashCardHTML, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Plain Card", codigo: "plain_card", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplPlainCard, csstemplate: "", slotsdefinition: _slotsPlainCard, containerSelectorToRender: '[data-mdash-slot="body"]' },
         // ───── BRD Metric ─────
         { descricao: "Top Border Card Advanced - Metric Primary", codigo: "brd_card_advanced_metric_primary", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Metric Success", codigo: "brd_card_advanced_metric_success", tipo: "card", UIData: { tipo: "success" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Metric Warning", codigo: "brd_card_advanced_metric_warning", tipo: "card", UIData: { tipo: "warning" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Metric Danger",  codigo: "brd_card_advanced_metric_danger",  tipo: "card", UIData: { tipo: "danger" },  htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Metric Danger", codigo: "brd_card_advanced_metric_danger", tipo: "card", UIData: { tipo: "danger" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
         // ───── BRD Status ─────
         { descricao: "Top Border Card Advanced - Status Primary", codigo: "brd_card_advanced_status_primary", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Status Success", codigo: "brd_card_advanced_status_success", tipo: "card", UIData: { tipo: "success" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Status Warning", codigo: "brd_card_advanced_status_warning", tipo: "card", UIData: { tipo: "warning" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Status Danger",  codigo: "brd_card_advanced_status_danger",  tipo: "card", UIData: { tipo: "danger" },  htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Status Danger", codigo: "brd_card_advanced_status_danger", tipo: "card", UIData: { tipo: "danger" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
         // ───── BRD Alert ─────
-        { descricao: "Top Border Card Advanced - Alert Primary",  codigo: "brd_card_advanced_alert_primary",  tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Alert Success",  codigo: "brd_card_advanced_alert_success",  tipo: "card", UIData: { tipo: "success" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Alert Warning",  codigo: "brd_card_advanced_alert_warning",  tipo: "card", UIData: { tipo: "warning" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Alert Danger",   codigo: "brd_card_advanced_alert_danger",   tipo: "card", UIData: { tipo: "danger" },  htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' }
+        { descricao: "Top Border Card Advanced - Alert Primary", codigo: "brd_card_advanced_alert_primary", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Alert Success", codigo: "brd_card_advanced_alert_success", tipo: "card", UIData: { tipo: "success" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Alert Warning", codigo: "brd_card_advanced_alert_warning", tipo: "card", UIData: { tipo: "warning" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
+        { descricao: "Top Border Card Advanced - Alert Danger", codigo: "brd_card_advanced_alert_danger", tipo: "card", UIData: { tipo: "danger" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' }
     ];
 }
 
@@ -4906,8 +4996,8 @@ function addDashboardStyles(styles) {
     dashboardCSS += "color:#64748b;";
     dashboardCSS += "margin-bottom:8px;";
     dashboardCSS += "font-weight:500;";
-    dashboardCSS+="font-family:Nunito, sans-serif;";
-   // dashboardCSS += "text-transform:uppercase;";
+    dashboardCSS += "font-family:Nunito, sans-serif;";
+    // dashboardCSS += "text-transform:uppercase;";
     dashboardCSS += "letter-spacing:0.5px;";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-value{";
@@ -5086,7 +5176,7 @@ function addDashboardStyles(styles) {
     // ============================================================================
     // MDASH 2.0 - MODERN SIDEBAR STYLES (UX/UI Senior Design)
     // ============================================================================
-    
+
     // Layout Principal - Glass Morphism Effect
     dashboardCSS += ".mdash-modern-layout{";
     dashboardCSS += "display:flex;";
@@ -5095,7 +5185,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "position:relative;";
     dashboardCSS += "overflow:hidden;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-modern-layout::before{";
     dashboardCSS += "content:'';";
     dashboardCSS += "position:absolute;";
@@ -5107,13 +5197,13 @@ function addDashboardStyles(styles) {
     dashboardCSS += "right:-100px;";
     dashboardCSS += "animation:float 6s ease-in-out infinite;";
     dashboardCSS += "}";
-    
-    
+
+
     dashboardCSS += "@keyframes float{";
     dashboardCSS += "0%, 100%{transform:translateY(0px);}";
     dashboardCSS += "50%{transform:translateY(-20px);}";
     dashboardCSS += "}";
-    
+
     // Sidebar - Modern Glass Effect
     dashboardCSS += ".mdash-sidebar{";
     dashboardCSS += "width:380px;";
@@ -5126,7 +5216,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "box-shadow:4px 0 24px rgba(0,0,0,0.08);";
     dashboardCSS += "z-index:10;";
     dashboardCSS += "}";
-    
+
     // Sidebar Header - Gradient with Animation
     dashboardCSS += ".mdash-sidebar-header{";
     dashboardCSS += "padding:24px 20px;";
@@ -5135,7 +5225,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "position:relative;";
     dashboardCSS += "overflow:hidden;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-header::before{";
     dashboardCSS += "content:'';";
     dashboardCSS += "position:absolute;";
@@ -5146,12 +5236,12 @@ function addDashboardStyles(styles) {
     dashboardCSS += "left:-50%;";
     dashboardCSS += "animation:shimmer 3s ease-in-out infinite;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "@keyframes shimmer{";
     dashboardCSS += "0%, 100%{transform:translate(0,0);}";
     dashboardCSS += "50%{transform:translate(10px,10px);}";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-header h4{";
     dashboardCSS += "margin:0;";
     dashboardCSS += "font-size:20px;";
@@ -5160,18 +5250,18 @@ function addDashboardStyles(styles) {
     dashboardCSS += "position:relative;";
     dashboardCSS += "z-index:1;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-header h4 i{";
     dashboardCSS += "margin-right:10px;";
     dashboardCSS += "font-size:22px;";
     dashboardCSS += "animation:pulse 2s ease-in-out infinite;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "@keyframes pulse{";
     dashboardCSS += "0%, 100%{transform:scale(1);}";
     dashboardCSS += "50%{transform:scale(1.1);}";
     dashboardCSS += "}";
-    
+
     // Sidebar Body - Custom Scrollbar
     dashboardCSS += ".mdash-sidebar-body{";
     dashboardCSS += "flex:1;";
@@ -5179,24 +5269,24 @@ function addDashboardStyles(styles) {
     dashboardCSS += "padding:20px 16px;";
     dashboardCSS += "background:rgba(248,250,252,0.8);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-body::-webkit-scrollbar{";
     dashboardCSS += "width:6px;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-body::-webkit-scrollbar-track{";
     dashboardCSS += "background:rgba(0,0,0,0.02);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-body::-webkit-scrollbar-thumb{";
     dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "border-radius:10px;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-body::-webkit-scrollbar-thumb:hover{";
     dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "}";
-    
+
     // Accordion - Modern Cards Style
     dashboardCSS += "#mdash-accordion .panel{";
     dashboardCSS += "margin-bottom:16px;";
@@ -5207,12 +5297,12 @@ function addDashboardStyles(styles) {
     dashboardCSS += "overflow:hidden;";
     dashboardCSS += "transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "#mdash-accordion .panel:hover{";
     dashboardCSS += "box-shadow:0 8px 24px rgba(102,126,234,0.15);";
     dashboardCSS += "transform:translateY(-2px);";
     dashboardCSS += "}";
-    
+
     // Panel Heading - Gradient Hover Effect
     dashboardCSS += "#mdash-accordion .panel-heading{";
     dashboardCSS += "background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);";
@@ -5223,7 +5313,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "position:relative;";
     dashboardCSS += "overflow:hidden;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "#mdash-accordion .panel-heading::before{";
     dashboardCSS += "content:'';";
     dashboardCSS += "position:absolute;";
@@ -5235,16 +5325,16 @@ function addDashboardStyles(styles) {
     dashboardCSS += "transform:scaleY(0);";
     dashboardCSS += "transition:transform 0.3s ease;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "#mdash-accordion .panel-heading:hover::before{";
     dashboardCSS += "transform:scaleY(1);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "#mdash-accordion .panel-heading:hover{";
     dashboardCSS += "background:linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);";
     dashboardCSS += "padding-left:24px;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "#mdash-accordion .panel-title{";
     dashboardCSS += "font-size:15px;";
     dashboardCSS += "font-weight:600;";
@@ -5254,18 +5344,18 @@ function addDashboardStyles(styles) {
     dashboardCSS += "align-items:center;";
     dashboardCSS += "justify-content:space-between;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "#mdash-accordion .panel-title i{";
     dashboardCSS += "margin-right:12px;";
     dashboardCSS += "font-size:18px;";
     dashboardCSS += "color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "transition:transform 0.3s ease;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "#mdash-accordion .panel-heading:hover .panel-title i{";
     dashboardCSS += "transform:scale(1.2) rotate(5deg);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "#mdash-accordion .panel-title .badge{";
     dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "font-size:11px;";
@@ -5274,17 +5364,17 @@ function addDashboardStyles(styles) {
     dashboardCSS += "border-radius:12px;";
     dashboardCSS += "box-shadow:0 2px 8px rgba(102,126,234,0.3);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "#mdash-accordion .panel-body{";
     dashboardCSS += "padding:16px 20px 20px;";
     dashboardCSS += "background:#fafbfc;";
     dashboardCSS += "}";
-    
+
     // Sidebar Items - Modern Card Design
     dashboardCSS += ".mdash-sidebar-list{";
     dashboardCSS += "margin-top:12px;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item{";
     dashboardCSS += "display:flex;";
     dashboardCSS += "align-items:center;";
@@ -5299,7 +5389,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "position:relative;";
     dashboardCSS += "overflow:hidden;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item::before{";
     dashboardCSS += "content:'';";
     dashboardCSS += "position:absolute;";
@@ -5310,18 +5400,18 @@ function addDashboardStyles(styles) {
     dashboardCSS += "background:linear-gradient(90deg, transparent, rgba(102,126,234,0.1), transparent);";
     dashboardCSS += "transition:left 0.5s ease;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item:hover::before{";
     dashboardCSS += "left:100%;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item:hover{";
     dashboardCSS += "background:linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);";
     dashboardCSS += "border-color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "transform:translateX(4px) scale(1.02);";
     dashboardCSS += "box-shadow:0 4px 16px rgba(102,126,234,0.15);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item-content{";
     dashboardCSS += "flex:1;";
     dashboardCSS += "display:flex;";
@@ -5333,7 +5423,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "position:relative;";
     dashboardCSS += "z-index:1;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item-content i{";
     dashboardCSS += "color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "font-size:16px;";
@@ -5341,11 +5431,11 @@ function addDashboardStyles(styles) {
     dashboardCSS += "text-align:center;";
     dashboardCSS += "transition:transform 0.3s ease;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item:hover .mdash-sidebar-item-content i{";
     dashboardCSS += "transform:rotate(10deg) scale(1.2);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item-content .badge{";
     dashboardCSS += "margin-left:auto;";
     dashboardCSS += "background:" + getCachedColor("info").background + ";";
@@ -5355,7 +5445,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "font-weight:600;";
     dashboardCSS += "box-shadow:0 2px 6px rgba(59,130,246,0.3);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item-actions{";
     dashboardCSS += "display:flex;";
     dashboardCSS += "gap:6px;";
@@ -5365,12 +5455,12 @@ function addDashboardStyles(styles) {
     dashboardCSS += "position:relative;";
     dashboardCSS += "z-index:2;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item:hover .mdash-sidebar-item-actions{";
     dashboardCSS += "opacity:1;";
     dashboardCSS += "transform:translateX(0);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item-actions .btn{";
     dashboardCSS += "padding:6px 10px;";
     dashboardCSS += "border-radius:8px;";
@@ -5378,29 +5468,29 @@ function addDashboardStyles(styles) {
     dashboardCSS += "border:none;";
     dashboardCSS += "font-size:12px;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item-actions .btn-primary{";
     dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item-actions .btn-primary:hover{";
     dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "transform:scale(1.1);";
     dashboardCSS += "box-shadow:0 4px 12px rgba(102,126,234,0.4);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item-actions .btn-danger{";
     dashboardCSS += "background:" + getCachedColor("danger").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-sidebar-item-actions .btn-danger:hover{";
     dashboardCSS += "background:" + getCachedColor("danger").background + ";";
     dashboardCSS += "transform:scale(1.1);";
     dashboardCSS += "box-shadow:0 4px 12px rgba(239,68,68,0.4);";
     dashboardCSS += "}";
-    
+
     // Canvas Area - Modern Design
     dashboardCSS += ".mdash-canvas{";
     dashboardCSS += "flex:1;";
@@ -5410,7 +5500,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "background:rgba(248,250,252,0.95);";
     dashboardCSS += "backdrop-filter:blur(10px);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-header{";
     dashboardCSS += "padding:24px 32px;";
     dashboardCSS += "background:white;";
@@ -5420,7 +5510,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += "align-items:center;";
     dashboardCSS += "box-shadow:0 2px 8px rgba(0,0,0,0.04);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-header h3{";
     dashboardCSS += "margin:0;";
     dashboardCSS += "font-size:22px;";
@@ -5430,30 +5520,30 @@ function addDashboardStyles(styles) {
     dashboardCSS += "align-items:center;";
     dashboardCSS += "gap:12px;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-header h3 i{";
     dashboardCSS += "color:" + getCachedColor("primary").background + ";";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-body{";
     dashboardCSS += "flex:1;";
     dashboardCSS += "overflow-y:auto;";
     dashboardCSS += "padding:24px;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-body::-webkit-scrollbar{";
     dashboardCSS += "width:8px;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-body::-webkit-scrollbar-track{";
     dashboardCSS += "background:rgba(0,0,0,0.02);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-body::-webkit-scrollbar-thumb{";
     dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "border-radius:10px;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-empty{";
     dashboardCSS += "display:flex;";
     dashboardCSS += "flex-direction:column;";
@@ -5463,13 +5553,13 @@ function addDashboardStyles(styles) {
     dashboardCSS += "color:#94a3b8;";
     dashboardCSS += "text-align:center;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-empty i{";
     dashboardCSS += "font-size:64px;";
     dashboardCSS += "margin-bottom:16px;";
     dashboardCSS += "opacity:0.3;";
     dashboardCSS += "}";
-    
+
     // Canvas Container - Card Style
     dashboardCSS += ".mdash-canvas-container{";
     dashboardCSS += "margin-bottom:24px;";
@@ -5479,12 +5569,12 @@ function addDashboardStyles(styles) {
     dashboardCSS += "overflow:hidden;";
     dashboardCSS += "transition:all 0.3s ease;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-container:hover{";
     dashboardCSS += "box-shadow:0 8px 24px rgba(102,126,234,0.12);";
     dashboardCSS += "transform:translateY(-2px);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-container-header{";
     dashboardCSS += "padding:20px 24px;";
     dashboardCSS += "background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);";
@@ -5493,18 +5583,18 @@ function addDashboardStyles(styles) {
     dashboardCSS += "justify-content:space-between;";
     dashboardCSS += "align-items:center;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-container-header h4{";
     dashboardCSS += "margin:0;";
     dashboardCSS += "font-size:18px;";
     dashboardCSS += "font-weight:600;";
     dashboardCSS += "color:#1e293b;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-canvas-container-body{";
     dashboardCSS += "padding:24px;";
     dashboardCSS += "}";
-    
+
     // Buttons Modern Style
     dashboardCSS += ".mdash-canvas-actions .btn,";
     dashboardCSS += ".mdash-editor-wrapper .panel-body .btn-block{";
@@ -5518,46 +5608,46 @@ function addDashboardStyles(styles) {
     dashboardCSS += "position:relative;";
     dashboardCSS += "overflow:hidden;";
     dashboardCSS += "}";
-    
+
     // Botões do editor MDash 2.0 - SCOPED para não afetar botões fora do editor
     dashboardCSS += ".mdash-editor-wrapper .btn-primary{";
     dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-editor-wrapper .btn-primary:hover{";
     dashboardCSS += "background:" + getCachedColor("primary").background + ";";
     dashboardCSS += "transform:translateY(-2px);";
     dashboardCSS += "box-shadow:0 6px 20px rgba(102,126,234,0.4);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-editor-wrapper .btn-success{";
     dashboardCSS += "background:" + getCachedColor("success").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-editor-wrapper .btn-success:hover{";
     dashboardCSS += "background:" + getCachedColor("success").background + ";";
     dashboardCSS += "transform:translateY(-2px);";
     dashboardCSS += "box-shadow:0 6px 20px rgba(16,185,129,0.4);";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-editor-wrapper .btn-info{";
     dashboardCSS += "background:" + getCachedColor("info").background + ";";
     dashboardCSS += "color:white;";
     dashboardCSS += "}";
-    
+
     dashboardCSS += ".mdash-editor-wrapper .btn-info:hover{";
     dashboardCSS += "background:" + getCachedColor("info").background + ";";
     dashboardCSS += "transform:translateY(-2px);";
     dashboardCSS += "box-shadow:0 6px 20px rgba(59,130,246,0.4);";
     dashboardCSS += "}";
-    
+
     // Responsive Design
     dashboardCSS += "@media (max-width:1024px){";
     dashboardCSS += ".mdash-sidebar{width:320px;}";
     dashboardCSS += "}";
-    
+
     dashboardCSS += "@media (max-width:768px){";
     dashboardCSS += ".mdash-modern-layout{flex-direction:column;}";
     dashboardCSS += ".mdash-sidebar{width:100%;max-height:40vh;}";
@@ -5572,16 +5662,16 @@ function addDashboardStyles(styles) {
  */
 function loadSortableStyles() {
     var sortableCSS = "";
-    
+
     // Ghost element (elemento sendo arrastado)
     sortableCSS += ".sortable-ghost{opacity:0.4;background:#f0f4ff;}";
-    
+
     // Chosen element (elemento selecionado)
     sortableCSS += ".sortable-chosen{cursor:grabbing !important;}";
-    
+
     // Drag element  
     sortableCSS += ".sortable-drag{opacity:0.8;box-shadow:0 4px 8px rgba(0,0,0,0.2);}";
-    
+
     // Drag handle para containers
     sortableCSS += ".m-dash-container-drag-handle{";
     sortableCSS += "position:absolute;top:5px;left:5px;";
@@ -5589,18 +5679,18 @@ function loadSortableStyles() {
     sortableCSS += "opacity:0;transition:opacity 0.2s;";
     sortableCSS += "z-index:10;padding:5px;";
     sortableCSS += "}";
-    
+
     sortableCSS += ".home-collapse:hover .m-dash-container-drag-handle{opacity:1;}";
-    
+
     // Drag handle para items
     sortableCSS += ".m-dash-item-drag-handle{";
     sortableCSS += "position:absolute;top:5px;right:35px;";
     sortableCSS += "cursor:move;color:#cbd5e0;font-size:14px;";
     sortableCSS += "opacity:0;transition:opacity 0.2s;";
     sortableCSS += "}";
-    
+
     sortableCSS += ".m-dash-container-item:hover .m-dash-item-drag-handle{opacity:1;}";
-    
+
     $('<style>').text(sortableCSS).appendTo('head');
     console.log('Sortable styles loaded');
 }
@@ -5616,7 +5706,7 @@ function loadModernDashboardStyles() {
     var builderCSS = "";
 
     builderCSS += ".mdash-builder-layout{display:flex;height:calc(100vh - 120px);gap:0;background:#f5f5f5;}";
-    
+
     // Toolbox (left)
     builderCSS += ".mdash-toolbox{width:280px;background:white;border-right:1px solid #ddd;overflow-y:auto;display:flex;flex-direction:column;}";
     builderCSS += ".mdash-toolbox-header{padding:15px;border-bottom:1px solid #e0e0e0;background:" + primaryColor + ";color:white;font-weight:bold;font-size:14px;}";
@@ -5633,7 +5723,7 @@ function loadModernDashboardStyles() {
     builderCSS += ".mdash-toolbox-list-item:hover{background:white;border-color:" + primaryColor + ";}";
     builderCSS += ".mdash-toolbox-list-item i{margin-right:6px;color:" + primaryColor + ";}";
     builderCSS += ".mdash-toolbox-list-item .btn{padding:2px 6px;margin-left:5px;}";
-    
+
     // Canvas (center)
     builderCSS += ".mdash-canvas{flex:1;background:#f5f5f5;overflow-y:auto;display:flex;flex-direction:column;}";
     builderCSS += ".mdash-canvas-header{padding:15px 20px;background:white;border-bottom:2px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between;}";
@@ -5642,7 +5732,7 @@ function loadModernDashboardStyles() {
     builderCSS += ".mdash-canvas-body{flex:1;padding:20px;}";
     builderCSS += ".mdash-canvas-empty{text-align:center;padding:60px 20px;color:#999;}";
     builderCSS += ".mdash-canvas-empty i{font-size:48px;margin-bottom:15px;display:block;}";
-    
+
     // Containers
     builderCSS += ".mdash-container-element{background:white;border:2px solid #ddd;border-radius:6px;margin-bottom:15px;transition:all 0.3s;}";
     builderCSS += ".mdash-container-element.mdash-selected{border-color:" + primaryColor + ";box-shadow:0 0 0 3px rgba(102,126,234,0.2);}";
@@ -5655,7 +5745,7 @@ function loadModernDashboardStyles() {
     builderCSS += ".mdash-container-items-dropzone.mdash-dropzone-active{background:rgba(102,126,234,0.05);outline:2px dashed " + primaryColor + ";outline-offset:-2px;}";
     builderCSS += ".mdash-container-empty-items{width:100%;text-align:center;padding:30px;color:#999;font-size:13px;}";
     builderCSS += ".mdash-container-empty-items i{font-size:24px;margin-bottom:8px;display:block;}";
-    
+
     // Items
     builderCSS += ".mdash-item-element{background:white;border:1px solid #ddd;border-radius:4px;transition:all 0.3s;min-height:60px;}";
     builderCSS += ".mdash-item-element.mdash-selected{border-color:" + successColor + ";box-shadow:0 0 0 2px rgba(16,185,129,0.2);}";
@@ -5677,7 +5767,7 @@ function loadModernDashboardStyles() {
     builderCSS += ".mdash-item-header span{flex:1;font-weight:600;font-size:12px;color:#333;}";
     builderCSS += ".mdash-item-actions{display:flex;gap:3px;}";
     builderCSS += ".mdash-item-body{font-size:11px;color:#777;}";
-    
+
     // Properties (right)
     builderCSS += ".mdash-properties{width:350px;background:white;border-left:1px solid #ddd;overflow-y:auto;display:flex;flex-direction:column;}";
     builderCSS += ".mdash-properties-header{padding:15px;border-bottom:1px solid #e0e0e0;background:" + primaryColor + ";color:white;font-weight:bold;font-size:14px;}";
@@ -5685,18 +5775,18 @@ function loadModernDashboardStyles() {
     builderCSS += "#mdash-properties-panel .form-group{margin-bottom:15px;}";
     builderCSS += "#mdash-properties-panel .form-group label{font-weight:600;font-size:12px;color:#555;margin-bottom:5px;}";
     builderCSS += "#mdash-properties-panel .form-control{font-size:13px;}";
-    
+
     // Sortable effects
     builderCSS += ".mdash-sortable-ghost{opacity:0.4;background:rgba(102,126,234,0.1);}";
     builderCSS += ".mdash-sortable-chosen{cursor:grabbing !important;}";
     builderCSS += ".mdash-sortable-drag{opacity:0.8;box-shadow:0 4px 8px rgba(0,0,0,0.2);}";
-    
+
     // Buttons
     builderCSS += ".btn-mdash-primary{background:" + primaryColor + ";color:white;border:none;}";
     builderCSS += ".btn-mdash-primary:hover{background:" + primaryColor + ";opacity:0.9;color:white;}";
     builderCSS += ".btn-mdash-success{background:" + successColor + ";color:white;border:none;}";
     builderCSS += ".btn-mdash-success:hover{background:" + successColor + ";opacity:0.9;color:white;}";
-    
+
     // Responsive
     builderCSS += "@media (max-width:1200px){";
     builderCSS += ".mdash-toolbox{width:240px;}";

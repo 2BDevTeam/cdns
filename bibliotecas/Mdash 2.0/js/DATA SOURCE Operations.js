@@ -38,8 +38,8 @@ function mdashFonteTableName(fonte) {
 
 function mdashInferSqlType(value) {
     if (value === null || value === undefined) return 'TEXT';
-    if (typeof value === 'boolean')            return 'INTEGER';
-    if (typeof value === 'number')             return Number.isInteger(value) ? 'INTEGER' : 'REAL';
+    if (typeof value === 'boolean') return 'INTEGER';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'INTEGER' : 'REAL';
     return 'TEXT';
 }
 
@@ -47,7 +47,7 @@ function mdashInferSqlType(value) {
 function mdashSqlResultToObjects(result) {
     if (!result || !result.length) return [];
     var columns = result[0].columns;
-    var values  = result[0].values;
+    var values = result[0].values;
     return values.map(function (row) {
         var obj = {};
         for (var i = 0; i < columns.length; i++) {
@@ -63,10 +63,10 @@ function mdashSqlResultToNormalized(result) {
         return { columns: [], rows: [], rowCount: 0, error: null };
     }
     return {
-        columns:  result[0].columns,
-        rows:     result[0].values,
+        columns: result[0].columns,
+        rows: result[0].values,
         rowCount: result[0].values.length,
-        error:    null
+        error: null
     };
 }
 
@@ -83,11 +83,11 @@ function mdashLoadFonteIntoDb(fonte, rows) {
     var db = getMdashDb();
     if (!db) return;
     var tableName = mdashFonteTableName(fonte);
-    var firstRow  = rows[0];
-    var columns   = Object.keys(firstRow);
+    var firstRow = rows[0];
+    var columns = Object.keys(firstRow);
 
     // Remove tabela anterior desta fonte
-    try { db.run('DROP TABLE IF EXISTS "' + tableName + '"'); } catch (e) {}
+    try { db.run('DROP TABLE IF EXISTS "' + tableName + '"'); } catch (e) { }
 
     // CREATE TABLE com tipos inferidos da primeira linha
     var colDefs = columns.map(function (col) {
@@ -115,7 +115,7 @@ function mdashDropFonte(fonte) {
     if (!db) return;
     try {
         db.run('DROP TABLE IF EXISTS "' + mdashFonteTableName(fonte) + '"');
-    } catch (e) {}
+    } catch (e) { }
 }
 
 /**
@@ -140,7 +140,14 @@ function mdashQueryRaw(sql) {
     var db = getMdashDb();
     if (!db) return { columns: [], rows: [], rowCount: 0, error: 'sql.js não disponível' };
     try {
-        return mdashSqlResultToNormalized(db.exec(sql));
+        var result = db.exec(sql);
+        if (result && result.length) return mdashSqlResultToNormalized(result);
+        // sql.js devolve [] quando a query é válida mas não há linhas —
+        // usar db.prepare para obter os nomes de colunas mesmo sem dados
+        var stmt = db.prepare(sql);
+        var cols = (stmt && typeof stmt.getColumnNames === 'function') ? stmt.getColumnNames() : [];
+        try { stmt.free(); } catch (_) { }
+        return { columns: cols, rows: [], rowCount: 0, error: null };
     } catch (e) {
         return { columns: [], rows: [], rowCount: 0, error: e.message };
     }
@@ -164,8 +171,8 @@ var MDASH_PREVIEW_LIMIT = 40;
 function mdashBuildCachePayload(rows, columns) {
     var preview = rows.slice(0, MDASH_PREVIEW_LIMIT);
     return {
-        columns:   columns  || (rows.length ? Object.keys(rows[0]) : []),
-        rows:      preview,
+        columns: columns || (rows.length ? Object.keys(rows[0]) : []),
+        rows: preview,
         totalRows: rows.length,
         truncated: rows.length > MDASH_PREVIEW_LIMIT
     };
@@ -180,9 +187,9 @@ function mdashSaveFonteCache(fonte, rows, urlSave) {
 
     var columns = Object.keys(rows[0]);
     var payload = {
-        mdashfontestamp:   fonte.mdashfontestamp,
+        mdashfontestamp: fonte.mdashfontestamp,
         lastResultscached: JSON.stringify(mdashBuildCachePayload(rows, columns)),
-        schemajson:        JSON.stringify(columns.map(function (col) {
+        schemajson: JSON.stringify(columns.map(function (col) {
             return { name: col, type: mdashInferSqlType(rows[0][col]) };
         }))
     };
@@ -229,17 +236,17 @@ MdashExecutorRegistry.register({
         var dashConfig = (typeof GMDashConfig !== 'undefined' && GMDashConfig.length > 0) ? GMDashConfig[0] : {};
 
         var requestData = {
-            codigo:                        dashConfig.codigo || '',
-            mdashfontestamp:               fonte.mdashfontestamp,
-            mdashcontaineritemstamp:       '',
+            codigo: dashConfig.codigo || '',
+            mdashfontestamp: fonte.mdashfontestamp,
+            mdashcontaineritemstamp: '',
             mdashcontaineritemobjectstamp: '',
-            tipoquery:                     'fonte',
-            filters:                       (context || {}).filters || {}
+            tipoquery: 'fonte',
+            filters: (context || {}).filters || {}
         };
 
         $.ajax({
-            type:  'POST',
-            url:   url,
+            type: 'POST',
+            url: url,
             async: true,
             data: { '__EVENTARGUMENT': JSON.stringify([requestData]) },
             success: function (response) {
@@ -268,7 +275,7 @@ MdashExecutorRegistry.register({
             var resolvedParams = {};
             if (Array.isArray(fonte.parametros) && typeof resolveExpressionTokens === 'function') {
                 fonte.parametros.forEach(function (p) {
-                    var dummy    = '{' + p.token + '}';
+                    var dummy = '{' + p.token + '}';
                     var resolved = resolveExpressionTokens(dummy, fonte.parametros, (context || {}).parameters);
                     resolvedParams[p.token] = resolved;
                 });
@@ -281,7 +288,7 @@ MdashExecutorRegistry.register({
                 expression = resolveExpressionTokens(expression, fonte.parametros, (context || {}).parameters);
             }
 
-            var fn     = new Function('context', 'callback', 'mdashQuery', 'mdashQueryRaw', expression);
+            var fn = new Function('context', 'callback', 'mdashQuery', 'mdashQueryRaw', expression);
             var result = fn(ctx, callback, mdashQuery, mdashQueryRaw);
 
             // suporte retorno síncrono
@@ -306,19 +313,19 @@ MdashExecutorRegistry.register({
             return;
         }
 
-        var resolvedUrl  = fonte.apiurl;
+        var resolvedUrl = fonte.apiurl;
         var resolvedBody = fonte.apibody || {};
 
         if (typeof resolveExpressionTokens === 'function') {
-            resolvedUrl  = resolveExpressionTokens(fonte.apiurl, fonte.parametros, (context || {}).parameters);
+            resolvedUrl = resolveExpressionTokens(fonte.apiurl, fonte.parametros, (context || {}).parameters);
             resolvedBody = JSON.parse(resolveExpressionTokens(JSON.stringify(resolvedBody), fonte.parametros, (context || {}).parameters));
         }
 
         $.ajax({
-            type:        fonte.apimethod || 'GET',
-            url:         resolvedUrl,
-            headers:     fonte.apiheaders || {},
-            data:        fonte.apimethod === 'GET' ? undefined : JSON.stringify(resolvedBody),
+            type: fonte.apimethod || 'GET',
+            url: resolvedUrl,
+            headers: fonte.apiheaders || {},
+            data: fonte.apimethod === 'GET' ? undefined : JSON.stringify(resolvedBody),
             contentType: fonte.apimethod === 'GET' ? undefined : 'application/json',
             success: function (response) {
                 var data = Array.isArray(response) ? response : (response && response.data ? response.data : [response]);
@@ -474,32 +481,32 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
 
     // ── Agregações disponíveis ────────────────────────────────────────────────
     var AGGREGATES = [
-        { value: 'none',         label: '—',          sqlFn: null },
-        { value: 'SUM',          label: 'Soma',        sqlFn: 'SUM' },
-        { value: 'AVG',          label: 'Média',       sqlFn: 'AVG' },
-        { value: 'COUNT',        label: 'Contagem',    sqlFn: 'COUNT' },
-        { value: 'COUNT_DIST',   label: 'Cont. Dist.', sqlFn: 'COUNT(DISTINCT {field})' },
-        { value: 'MIN',          label: 'Mínimo',      sqlFn: 'MIN' },
-        { value: 'MAX',          label: 'Máximo',      sqlFn: 'MAX' },
-        { value: 'FIRST',        label: 'Primeiro',    sqlFn: null  }, // via subquery
-        { value: 'LAST',         label: 'Último',      sqlFn: null  }  // via subquery
+        { value: 'none', label: '—', sqlFn: null },
+        { value: 'SUM', label: 'Soma', sqlFn: 'SUM' },
+        { value: 'AVG', label: 'Média', sqlFn: 'AVG' },
+        { value: 'COUNT', label: 'Contagem', sqlFn: 'COUNT' },
+        { value: 'COUNT_DIST', label: 'Cont. Dist.', sqlFn: 'COUNT(DISTINCT {field})' },
+        { value: 'MIN', label: 'Mínimo', sqlFn: 'MIN' },
+        { value: 'MAX', label: 'Máximo', sqlFn: 'MAX' },
+        { value: 'FIRST', label: 'Primeiro', sqlFn: null }, // via subquery
+        { value: 'LAST', label: 'Último', sqlFn: null }  // via subquery
     ];
 
     // ── Operadores de filtro ──────────────────────────────────────────────────
     var FILTER_OPERATORS = [
-        { value: '=',        label: '= igual' },
-        { value: '!=',       label: '≠ diferente' },
-        { value: '>',        label: '> maior' },
-        { value: '>=',       label: '≥ maior ou igual' },
-        { value: '<',        label: '< menor' },
-        { value: '<=',       label: '≤ menor ou igual' },
-        { value: 'LIKE',     label: 'contém (LIKE)' },
+        { value: '=', label: '= igual' },
+        { value: '!=', label: '≠ diferente' },
+        { value: '>', label: '> maior' },
+        { value: '>=', label: '≥ maior ou igual' },
+        { value: '<', label: '< menor' },
+        { value: '<=', label: '≤ menor ou igual' },
+        { value: 'LIKE', label: 'contém (LIKE)' },
         { value: 'NOT LIKE', label: 'não contém' },
-        { value: 'IN',       label: 'IN (lista)' },
-        { value: 'NOT IN',   label: 'NOT IN (lista)' },
-        { value: 'IS NULL',  label: 'é nulo' },
+        { value: 'IN', label: 'IN (lista)' },
+        { value: 'NOT IN', label: 'NOT IN (lista)' },
+        { value: 'IS NULL', label: 'é nulo' },
         { value: 'IS NOT NULL', label: 'não é nulo' },
-        { value: 'BETWEEN',  label: 'entre (BETWEEN)' }
+        { value: 'BETWEEN', label: 'entre (BETWEEN)' }
     ];
 
     // ── Estado por objecto (cache em memória) ─────────────────────────────────
@@ -507,17 +514,59 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
 
     // ── Helpers internos ──────────────────────────────────────────────────────
 
+    // Deriva os nomes das colunas de output do transform.
+    // Prioridade: 1) transformationSchema guardado no Aplicar
+    //             2) execução real (mode=sql ou tabela com dados)
+    //             3) inferência estática do config (aliases, agregações)
+    function getOutputSchema(config) {
+        if (!config) return [];
+
+        // 1. Schema já calculado e guardado no último Aplicar — fonte de verdade
+        if (config.transformationSchema && config.transformationSchema.length) {
+            return config.transformationSchema.slice();
+        }
+
+        if (config.mode === 'sql') {
+            if (!config.sqlFree) return [];
+            var _r = executeRaw(config);
+            return _r.columns || [];
+        }
+
+        var cols = (config.columns || []).filter(function (c) { return c.visible !== false; });
+        var measures = config.measures || [];
+
+        // SELECT * — devolve schema da tabela fonte
+        if (cols.length === 0 && measures.length === 0) {
+            return getTableSchema(config.sourceTable).map(function (s) { return s.field; });
+        }
+
+        var AGG_ALIAS = { COUNT_DIST: 'cnt_dist_', FIRST: 'first_', LAST: 'last_' };
+
+        var fields = cols.map(function (c) {
+            if (c.alias) return c.alias;
+            if (!c.aggregate || c.aggregate === 'none') return c.field;
+            var prefix = AGG_ALIAS[c.aggregate];
+            return prefix ? (prefix + c.field) : (c.aggregate.toLowerCase() + '_' + c.field);
+        });
+
+        (measures || []).forEach(function (m) {
+            if (m.name || m.alias) fields.push(m.alias || m.name);
+        });
+
+        return fields;
+    }
+
     function _defaultConfig(sourceTable) {
         return {
-            mode:        'visual',
+            mode: 'visual',
             sourceTable: sourceTable || '',
-            columns:     [],
-            measures:    [],
-            filters:     [],
-            groupBy:     [],
-            orderBy:     [],
-            limit:       null,
-            sqlFree:     ''
+            columns: [],
+            measures: [],
+            filters: [],
+            groupBy: [],
+            orderBy: [],
+            limit: null,
+            sqlFree: ''
         };
     }
 
@@ -703,11 +752,11 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
             // Para objectos de stat/card, sugerir SUM em campos numéricos automaticamente
             var autoAgg = (objectType === 'stat' || objectType === 'Texto') && numerico ? 'SUM' : 'none';
             return {
-                field:     col.field,
-                alias:     '',
+                field: col.field,
+                alias: '',
                 aggregate: autoAgg,
-                visible:   true,
-                type:      col.type
+                visible: true,
+                type: col.type
             };
         });
 
@@ -775,8 +824,8 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         // Ordenação + Limite (lado a lado)
         html += '<div class="mtb-row2col">';
         html += '<div class="mtb-col-half">';
-        html +=   _sec('glyphicon-sort', 'Ordenação', '', { cls: 'mtb-add-order', label: '' }, 'mtb-order-list',
-                    (cfg.orderBy || []).map(function (o, i) { return _renderOrderRow(o, i, allFields); }).join(''));
+        html += _sec('glyphicon-sort', 'Ordenação', '', { cls: 'mtb-add-order', label: '' }, 'mtb-order-list',
+            (cfg.orderBy || []).map(function (o, i) { return _renderOrderRow(o, i, allFields); }).join(''));
         html += '</div>';
         html += '<div class="mtb-col-half">';
         html += '<div class="mtb-sec"><div class="mtb-sec-hd"><span class="mtb-sec-icon"><i class="glyphicon glyphicon-record"></i></span><span class="mtb-sec-title">Limite</span></div>';
@@ -910,10 +959,10 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         $c.find('.mtb-col-row').each(function () {
             var $r = $(this);
             cfg.columns.push({
-                field:     $r.find('.mtb-col-field').val().trim(),
+                field: $r.find('.mtb-col-field').val().trim(),
                 aggregate: $r.find('.mtb-col-agg').val(),
-                alias:     $r.find('.mtb-col-alias').val().trim(),
-                visible:   $r.find('.mtb-col-visible').is(':checked')
+                alias: $r.find('.mtb-col-alias').val().trim(),
+                visible: $r.find('.mtb-col-visible').is(':checked')
             });
         });
 
@@ -931,12 +980,12 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         $c.find('.mtb-filter-row').each(function () {
             var $r = $(this);
             var field = $r.find('.mtb-filter-field').val().trim();
-            var op    = $r.find('.mtb-filter-op').val();
+            var op = $r.find('.mtb-filter-op').val();
             if (!field) return;
             cfg.filters.push({
-                field:     field,
-                operator:  op,
-                value:     $r.find('.mtb-filter-val').val().trim(),
+                field: field,
+                operator: op,
+                value: $r.find('.mtb-filter-val').val().trim(),
                 connector: $r.find('.mtb-filter-connector').val() || 'AND'
             });
         });
@@ -1019,9 +1068,19 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
             _renderPreview($c, result);
         });
 
-        // Guardar
+        // Guardar — executa a query para derivar o schema de output e anexa ao config
         $c.on('click', '.mtb-save', function () {
             var newCfg = _readConfig($c, cfg);
+
+            // Simular execução para obter colunas reais do output transformado
+            // (funciona mesmo sem linhas graças ao fix db.prepare no mdashQueryRaw)
+            var _raw = executeRaw(newCfg);
+            //console.log('[MDash Builder] Configuração salva. Resultado da query de preview:', _raw);
+            newCfg.transformationSchema = (!_raw.error && _raw.columns && _raw.columns.length)
+                ? _raw.columns.slice()
+                : getOutputSchema(newCfg); // fallback estático se DB ainda não tiver dados
+
+            //console.log('[MDash Builder] Schema de output derivado:', newCfg.transformationSchema);
             if (typeof options.onSave === 'function') options.onSave(newCfg);
         });
 
@@ -1099,7 +1158,7 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
     }
 
     var _svgTable = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="14" height="10" rx="2"/><line x1="1" y1="7" x2="15" y2="7"/><line x1="5" y1="7" x2="5" y2="13"/></svg>';
-    var _svgWarn  = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="9"/><circle cx="8" cy="11.5" r=".6" fill="currentColor" stroke="none"/></svg>';
+    var _svgWarn = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="9"/><circle cx="8" cy="11.5" r=".6" fill="currentColor" stroke="none"/></svg>';
     var _svgEmpty = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/></svg>';
 
     function _previewHd(iconHtml, title, extras) {
@@ -1138,8 +1197,8 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         }
 
         var displayRows = rows.slice(0, 200);
-        var truncated   = rows.length >= 200;
-        var countBadge  = '<span class="mtb-preview-count">' + cols.length + ' col &middot; ' + rows.length + ' lin' + (truncated ? '+' : '') + '</span>';
+        var truncated = rows.length >= 200;
+        var countBadge = '<span class="mtb-preview-count">' + cols.length + ' col &middot; ' + rows.length + ' lin' + (truncated ? '+' : '') + '</span>';
 
         var html = _previewHd(_svgTable, 'Resultado', countBadge)
             + '<div class="mtb-preview-body">'
@@ -1172,7 +1231,7 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         $('#mtb-styles-v5,#mtb-styles-v4,#mtb-styles-v3,#mtb-styles-v2,#mtb-styles').remove();
 
         // Cor primária real — igual ao loadModernDashboardStyles()
-        var p  = (typeof getColorByType === 'function') ? getColorByType('primary').background : '#5b8dee';
+        var p = (typeof getColorByType === 'function') ? getColorByType('primary').background : '#5b8dee';
         var pr = (typeof hexToRgb === 'function') ? hexToRgb(p) : '91,141,238';
 
         var s = '<style id="mtb-styles-v5">';
@@ -1308,13 +1367,14 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
 
     // ── API pública ───────────────────────────────────────────────────────────
     return {
-        render:          render,
-        buildSQL:        buildSQL,
-        execute:         execute,
-        executeRaw:      executeRaw,
-        autoConfig:      autoConfig,
-        getTableSchema:  getTableSchema,
-        AGGREGATES:      AGGREGATES,
+        render: render,
+        buildSQL: buildSQL,
+        execute: execute,
+        executeRaw: executeRaw,
+        autoConfig: autoConfig,
+        getTableSchema: getTableSchema,
+        getOutputSchema: getOutputSchema,
+        AGGREGATES: AGGREGATES,
         FILTER_OPERATORS: FILTER_OPERATORS
     };
 
