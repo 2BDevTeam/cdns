@@ -640,23 +640,31 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
 
     // ── Execução ───────────────────────────────────────────────────────────────
 
+    /**
+     * Traduz SQL Server → SQLite usando window.SqlAdapter (SQLADAPTER.js).
+     * Devolve a query traduzida, ou a original se o adapter não estiver carregado.
+     */
+    function _sqlAdapt(sql) {
+        try {
+            if (typeof SqlAdapter !== 'undefined' && typeof SqlAdapter.SqlServerToSQLiteAdapter === 'function') {
+                return new SqlAdapter.SqlServerToSQLiteAdapter().adapt(sql);
+            }
+        } catch (e) {
+            console.warn('[MDash] SqlAdapter error:', e.message, '| SQL original mantido.');
+        }
+        return sql;
+    }
+
     function execute(config) {
         var sql = buildSQL(config);
         if (!sql) return [];
-        // Passa pelo SQLADAPTER se disponível (SQL Server → SQLite)
-        if (typeof MdashSqlAdapter !== 'undefined' && typeof MdashSqlAdapter.translate === 'function') {
-            sql = MdashSqlAdapter.translate(sql);
-        }
-        return mdashQuery(sql);
+        return mdashQuery(_sqlAdapt(sql));
     }
 
     function executeRaw(config) {
         var sql = buildSQL(config);
         if (!sql) return { columns: [], rows: [], rowCount: 0, error: null };
-        if (typeof MdashSqlAdapter !== 'undefined' && typeof MdashSqlAdapter.translate === 'function') {
-            sql = MdashSqlAdapter.translate(sql);
-        }
-        return mdashQueryRaw(sql);
+        return mdashQueryRaw(_sqlAdapt(sql));
     }
 
     // ── Introspecção da tabela in-memory (schema automático) ──────────────────
@@ -778,8 +786,8 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
 
         // SQL gerado (preview)
         html += '<div class="mtb-sec">';
-        html += '<div class="mtb-sec-hd"><span class="mtb-sec-icon"><i class="glyphicon glyphicon-console"></i></span><span class="mtb-sec-title">SQL gerado</span><span class="mtb-sec-hint">só leitura</span></div>';
-        html += '<pre class="mtb-sql-preview">' + _escapeHtml(buildSQL(cfg)) + '</pre>';
+        html += '<div class="mtb-sec-hd"><span class="mtb-sec-icon"><i class="glyphicon glyphicon-console"></i></span><span class="mtb-sec-title">SQL gerado</span><span class="mtb-sec-hint">só leitura · actualizado em tempo real</span></div>';
+        html += '<div class="mtb-sql-preview-ace"></div>';
         html += '</div>';
 
         html += '</div>'; // .mtb-panel-visual
@@ -788,7 +796,8 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         html += '<div class="mtb-panel-sql' + (cfg.mode !== 'sql' ? ' mtb-hidden' : '') + '">';
         html += '<div class="mtb-sec">';
         html += '<div class="mtb-sec-hd"><span class="mtb-sec-icon"><i class="glyphicon glyphicon-console"></i></span><span class="mtb-sec-title">SQL Livre</span><span class="mtb-sec-hint">SQL Server → SQLite auto-traduzido</span></div>';
-        html += '<textarea class="mtb-sql-free mtb-input" rows="7" spellcheck="false" placeholder="SELECT cliente, SUM(total) AS Total&#10;FROM DOSSIER&#10;GROUP BY cliente&#10;ORDER BY Total DESC">' + _escapeHtml(cfg.sqlFree || '') + '</textarea>';
+        html += '<div class="mtb-sql-free-ace"></div>';
+        html += '<textarea class="mtb-sql-free" style="display:none" spellcheck="false">' + _escapeHtml(cfg.sqlFree || '') + '</textarea>';
         if (allFields.length) {
             html += '<div class="mtb-fields-chips">';
             allFields.forEach(function (f) { html += '<span class="mtb-chip">' + _escapeHtml(f) + '</span>'; });
@@ -802,7 +811,7 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
 
         // Footer
         html += '<div class="mtb-footer">';
-        html += '<button type="button" class="mtb-preview-btn mtb-btn-ghost"><i class="glyphicon glyphicon-eye-open"></i> Testar</button>';
+        html += '<button type="button" class="mtb-preview-btn mtb-btn-preview"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.5"/></svg> Pré-visualizar</button>';
         html += '<div style="flex:1"></div>';
         html += '<button type="button" class="mtb-cancel mtb-btn-ghost">Cancelar</button>';
         html += '<button type="button" class="mtb-save mtb-btn-primary"><i class="glyphicon glyphicon-ok"></i> Aplicar</button>';
@@ -919,7 +928,7 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         });
 
         cfg.filters = [];
-        $c.find('.mtb-filter-row').each(function ($, i) {
+        $c.find('.mtb-filter-row').each(function () {
             var $r = $(this);
             var field = $r.find('.mtb-filter-field').val().trim();
             var op    = $r.find('.mtb-filter-op').val();
@@ -1020,37 +1029,135 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         $c.on('click', '.mtb-cancel', function () {
             if (typeof options.onCancel === 'function') options.onCancel();
         });
+
+        // Fechar preview
+        $c.on('click', '.mtb-preview-close', function () {
+            $c.find('.mtb-preview-area').addClass('mtb-hidden');
+        });
+
+        // ── Ace Editors ────────────────────────────────────────────────────────
+        if (typeof ace !== 'undefined') {
+            // SQL gerado — read-only preview
+            var $previewDiv = $c.find('.mtb-sql-preview-ace');
+            if ($previewDiv.length) {
+                var _acePreview = ace.edit($previewDiv[0]);
+                _acePreview.setTheme('ace/theme/monokai');
+                _acePreview.session.setMode('ace/mode/sql');
+                _acePreview.setValue(buildSQL(cfg), -1);
+                _acePreview.setReadOnly(true);
+                _acePreview.setOptions({
+                    fontSize: '10.5px',
+                    showPrintMargin: false,
+                    showLineNumbers: false,
+                    showGutter: false,
+                    highlightActiveLine: false,
+                    wrap: true,
+                    maxLines: 8
+                });
+                _acePreview.renderer.setScrollMargin(8, 8, 0, 0);
+                $previewDiv.data('aceEditor', _acePreview);
+            }
+
+            // SQL Livre — editable
+            var $freeDiv = $c.find('.mtb-sql-free-ace');
+            if ($freeDiv.length) {
+                var _aceFree = ace.edit($freeDiv[0]);
+                _aceFree.setTheme('ace/theme/monokai');
+                _aceFree.session.setMode('ace/mode/sql');
+                _aceFree.setValue(cfg.sqlFree || '', -1);
+                _aceFree.setOptions({
+                    fontSize: '11px',
+                    showPrintMargin: false,
+                    wrap: true,
+                    minLines: 7,
+                    maxLines: 20
+                });
+                _aceFree.renderer.setScrollMargin(8, 8, 0, 0);
+                // Sync to hidden textarea + update preview in real-time
+                _aceFree.session.on('change', function () {
+                    $c.find('.mtb-sql-free').val(_aceFree.getValue());
+                    _updateSqlPreview($c, cfg);
+                });
+                // Click on field chips inserts the field name at cursor
+                $c.on('click.mtb-ace', '.mtb-chip', function () {
+                    _aceFree.insert($(this).text());
+                    _aceFree.focus();
+                });
+            }
+        }
     }
 
     function _updateSqlPreview($c, cfg) {
         var current = _readConfig($c, cfg);
         var sql = buildSQL(current);
-        $c.find('.mtb-sql-preview').text(sql);
+        var editor = $c.find('.mtb-sql-preview-ace').data('aceEditor');
+        if (editor) {
+            editor.setValue(sql, -1);
+        } else {
+            $c.find('.mtb-sql-preview').text(sql);
+        }
+    }
+
+    var _svgTable = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="14" height="10" rx="2"/><line x1="1" y1="7" x2="15" y2="7"/><line x1="5" y1="7" x2="5" y2="13"/></svg>';
+    var _svgWarn  = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="9"/><circle cx="8" cy="11.5" r=".6" fill="currentColor" stroke="none"/></svg>';
+    var _svgEmpty = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/></svg>';
+
+    function _previewHd(iconHtml, title, extras) {
+        return '<div class="mtb-preview-hd">'
+            + '<span class="mtb-preview-hd-icon">' + iconHtml + '</span>'
+            + '<span class="mtb-preview-title">' + title + '</span>'
+            + (extras || '')
+            + '<button type="button" class="mtb-preview-close" title="Fechar">&times;</button>'
+            + '</div>';
     }
 
     function _renderPreview($c, result) {
         var $area = $c.find('.mtb-preview-area').removeClass('mtb-hidden');
+
         if (result.error) {
-            $area.html('<div class="mtb-preview-error"><i class="glyphicon glyphicon-warning-sign"></i> ' + _escapeHtml(result.error) + '</div>');
-            return;
-        }
-        var cols = result.columns || [];
-        var rows = result.rows || [];
-        if (cols.length === 0) {
-            $area.html('<div class="mtb-preview-empty">Sem resultados.</div>');
+            $area.html(
+                _previewHd('<span class="mtb-phd-error">' + _svgWarn + '</span>', 'Erro na query', '')
+                + '<div class="mtb-preview-body">'
+                + '<div class="mtb-preview-error">' + _svgWarn + '<span>' + _escapeHtml(result.error) + '</span></div>'
+                + '</div>'
+            );
             return;
         }
 
-        var html = '<div class="mtb-preview-info">' + rows.length + ' linha(s)' + (rows.length === 200 ? ' (limitado a 200)' : '') + '</div>';
-        html += '<div class="mtb-preview-table-wrap"><table class="mtb-preview-table table table-condensed table-bordered"><thead><tr>';
+        var cols = result.columns || [];
+        var rows = result.rows || [];
+
+        if (cols.length === 0) {
+            $area.html(
+                _previewHd(_svgTable, 'Resultado', '')
+                + '<div class="mtb-preview-body">'
+                + '<div class="mtb-preview-empty">' + _svgEmpty + '<span>Sem resultados para apresentar.</span></div>'
+                + '</div>'
+            );
+            return;
+        }
+
+        var displayRows = rows.slice(0, 200);
+        var truncated   = rows.length >= 200;
+        var countBadge  = '<span class="mtb-preview-count">' + cols.length + ' col &middot; ' + rows.length + ' lin' + (truncated ? '+' : '') + '</span>';
+
+        var html = _previewHd(_svgTable, 'Resultado', countBadge)
+            + '<div class="mtb-preview-body">'
+            + '<div class="mtb-preview-table-wrap"><table class="mtb-preview-table"><thead><tr>';
         cols.forEach(function (c) { html += '<th>' + _escapeHtml(c) + '</th>'; });
         html += '</tr></thead><tbody>';
-        rows.slice(0, 200).forEach(function (row) {
-            html += '<tr>';
+        displayRows.forEach(function (row, ri) {
+            html += '<tr class="' + (ri % 2 ? 'mtb-tr-odd' : 'mtb-tr-even') + '">';
             row.forEach(function (v) { html += '<td>' + _escapeHtml(v === null ? '' : String(v)) + '</td>'; });
             html += '</tr>';
         });
         html += '</tbody></table></div>';
+        if (truncated) {
+            html += '<div class="mtb-preview-trunc">'
+                + '<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="9"/><circle cx="8" cy="11.5" r=".6" fill="currentColor" stroke="none"/></svg>'
+                + ' Limitado a 200 linhas &mdash; use LIMIT na query para reduzir.</div>';
+        }
+        html += '</div>';
         $area.html(html);
     }
 
@@ -1061,95 +1168,140 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
     // ── CSS inline do builder ─────────────────────────────────────────────────
 
     function _buildCSS() {
-        if ($('#mtb-styles-v2').length) return '';
-        $('#mtb-styles').remove();
-        var p = 'var(--md-primary,#5b8dee)';
-        var pr = 'var(--md-primary-rgb,91,141,238)';
-        var s = '<style id="mtb-styles-v2">';
-        // Root
-        s += '.mtb-root{font-size:12px;color:#1e293b;background:transparent;}';
+        // Sempre re-injeta para reflectir a cor primária dinâmica do tema actual
+        $('#mtb-styles-v5,#mtb-styles-v4,#mtb-styles-v3,#mtb-styles-v2,#mtb-styles').remove();
+
+        // Cor primária real — igual ao loadModernDashboardStyles()
+        var p  = (typeof getColorByType === 'function') ? getColorByType('primary').background : '#5b8dee';
+        var pr = (typeof hexToRgb === 'function') ? hexToRgb(p) : '91,141,238';
+
+        var s = '<style id="mtb-styles-v5">';
+
+        // ── Root — sem box própria (a modal já é o container) ────────────────
+        // Apenas aplica o gradiente primário como fundo; o modal faz o resto
+        s += '.mtb-root{font-size:12px;color:#1e293b;background:linear-gradient(180deg,rgba(' + pr + ',0.96),rgba(' + pr + ',0.84));display:flex;flex-direction:column;}';
         s += '.mtb-hidden{display:none !important;}';
-        // Topbar
-        s += '.mtb-topbar{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 7px;border-bottom:1px solid rgba(0,0,0,.07);gap:8px;}';
-        s += '.mtb-table-badge{font-size:10.5px;font-weight:700;color:#475569;display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}';
-        s += '.mtb-table-badge i{color:' + p + ';opacity:.8;flex-shrink:0;}';
-        // Mode toggle
-        s += '.mtb-mode-toggle{display:flex;border:1.5px solid rgba(0,0,0,.12);border-radius:7px;overflow:hidden;flex-shrink:0;}';
-        s += '.mtb-mode-btn{border:none;background:transparent;padding:4px 11px;cursor:pointer;font-size:10.5px;font-weight:600;color:#64748b;transition:all .15s;display:flex;align-items:center;gap:4px;line-height:1.4;}';
-        s += '.mtb-mode-btn i{font-size:10px;}';
-        s += '.mtb-mode-btn.active{background:' + p + ';color:#fff;}';
-        s += '.mtb-mode-btn:not(.active):hover{background:rgba(' + pr + ',.07);color:' + p + ';}';
-        // Section blocks
-        s += '.mtb-sec{border-bottom:1px solid rgba(0,0,0,.06);}';
+
+        // ── Topbar — transparente sobre o gradiente (= .mdash-props-component-header)
+        s += '.mtb-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:transparent;border-bottom:1px solid rgba(255,255,255,0.18);gap:10px;flex-shrink:0;}';
+        s += '.mtb-table-badge{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff;opacity:0.95;}';
+        s += '.mtb-table-badge i{color:#fff;opacity:0.75;flex-shrink:0;}';
+
+        // ── Mode toggle — flat tabs sobre gradiente (= .mdash-props-tabs) ────
+        s += '.mtb-mode-toggle{display:flex;background:rgba(0,0,0,0.08);border-bottom:1px solid rgba(255,255,255,0.12);flex-shrink:0;}';
+        s += '.mtb-mode-btn{flex:1;border:none;border-bottom:2px solid transparent;background:transparent;padding:9px 4px 7px;cursor:pointer;font-size:9px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.3px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;line-height:1.4;}';
+        s += '.mtb-mode-btn i{font-size:13px;}';
+        s += '.mtb-mode-btn.active{color:#fff;border-bottom-color:#fff;}';
+        s += '.mtb-mode-btn:not(.active):hover{color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.06);}';
+
+        // ── Painéis de conteúdo — fundo branco/suave (= .mdash-props-tab-content)
+        s += '.mtb-panel-visual,.mtb-panel-sql{background:linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,255,255,0.97));flex:1;overflow-y:auto;}';
+
+        // ── Section blocks — igual a .mdash-prop-section ──────────────────────
+        s += '.mtb-sec{border-bottom:1px solid rgba(0,0,0,0.06);}';
         s += '.mtb-sec:last-child{border-bottom:none;}';
-        s += '.mtb-sec-hd{display:flex;align-items:center;gap:6px;padding:7px 12px 5px;min-height:30px;}';
-        s += '.mtb-sec-icon{color:' + p + ';opacity:.75;font-size:10px;flex-shrink:0;}';
-        s += '.mtb-sec-title{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.65px;color:#475569;flex:1;}';
-        s += '.mtb-sec-hint{font-size:9px;color:#94a3b8;font-style:italic;font-weight:400;text-transform:none;letter-spacing:0;}';
-        s += '.mtb-add-btn{margin-left:auto;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:5px;border:1.5px dashed rgba(0,0,0,.18);background:transparent;color:#64748b;cursor:pointer;display:flex;align-items:center;gap:3px;transition:all .15s;white-space:nowrap;flex-shrink:0;}';
-        s += '.mtb-add-btn:hover{border-color:' + p + ';color:' + p + ';background:rgba(' + pr + ',.04);}';
+        s += '.mtb-sec-hd{display:flex;align-items:center;gap:7px;padding:10px 14px 8px;min-height:34px;}';
+        s += '.mtb-sec-icon{color:' + p + ';opacity:.8;font-size:11px;flex-shrink:0;display:flex;align-items:center;}';
+        s += '.mtb-sec-title{font-size:12px;font-weight:700;color:#1e293b;flex:1;letter-spacing:.2px;}';
+        s += '.mtb-sec-hint{font-size:9px;color:#94a3b8;font-style:italic;font-weight:400;letter-spacing:0;}';
+        s += '.mtb-add-btn{margin-left:auto;font-size:9.5px;font-weight:700;padding:3px 9px;border-radius:6px;border:1.5px dashed rgba(' + pr + ',0.45);background:rgba(' + pr + ',0.05);color:' + p + ';cursor:pointer;display:flex;align-items:center;gap:3px;transition:all .15s;white-space:nowrap;flex-shrink:0;}';
+        s += '.mtb-add-btn:hover{border-color:' + p + ';background:rgba(' + pr + ',.12);}';
         s += '.mtb-add-btn i{font-size:9px;}';
-        s += '.mtb-list{padding:0 12px 10px;}';
-        // Row layout
-        s += '.mtb-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}';
+        s += '.mtb-list{padding:4px 12px 12px;}';
+
+        // ── Row layout — card igual a .mdash-fonte-list-item ─────────────────
+        s += '.mtb-row{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#fff;border:1px solid rgba(15,23,42,0.08);border-radius:8px;margin-bottom:6px;transition:border-color .15s,box-shadow .15s;}';
         s += '.mtb-row:last-child{margin-bottom:0;}';
-        // Inputs
-        s += '.mtb-input{height:28px;border:1px solid rgba(0,0,0,.13);border-radius:6px;background:#fff;color:#1e293b;font-size:11px;padding:2px 8px;outline:none;transition:border-color .15s,box-shadow .15s;}';
-        s += '.mtb-input:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.14);}';
+        s += '.mtb-row:hover{border-color:rgba(' + pr + ',.35);box-shadow:0 2px 8px rgba(' + pr + ',.08);}';
+
+        // ── Inputs — igual a .mdash-prop-field inputs ────────────────────────
+        s += '.mtb-input{height:30px;border:1px solid rgba(0,0,0,0.12);border-radius:7px;background:#fff;color:#1e293b;font-size:11.5px;padding:2px 9px;outline:none;transition:border-color .15s,box-shadow .15s;}';
+        s += '.mtb-input:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.15);background:#fff;}';
         s += '.mtb-input-field{flex:1;min-width:60px;}';
-        s += '.mtb-select-field{flex:1;min-width:80px;}';
         s += '.mtb-input-alias{width:76px;flex-shrink:0;}';
         s += '.mtb-input-name{width:86px;flex-shrink:0;}';
         s += '.mtb-input-expr{flex:1;min-width:80px;font-family:monospace;font-size:10.5px;}';
         s += '.mtb-input-val{flex:1;min-width:50px;}';
-        s += '.mtb-select{height:28px;border:1px solid rgba(0,0,0,.13);border-radius:6px;background:#fff;color:#1e293b;font-size:10.5px;padding:1px 5px;outline:none;cursor:pointer;transition:border-color .15s;}';
-        s += '.mtb-select:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.14);}';
-        s += '.mtb-select-agg{width:82px;flex-shrink:0;}';
+        s += '.mtb-select{height:30px;border:1px solid rgba(0,0,0,0.12);border-radius:7px;background:#fff;color:#1e293b;font-size:11px;padding:1px 6px;outline:none;cursor:pointer;transition:border-color .15s,box-shadow .15s;}';
+        s += '.mtb-select:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.15);}';
+        s += '.mtb-select-field{flex:1;min-width:80px;}';
+        s += '.mtb-select-agg{width:84px;flex-shrink:0;}';
         s += '.mtb-select-op{width:116px;flex-shrink:0;}';
         s += '.mtb-select-conn{width:62px;flex-shrink:0;}';
         s += '.mtb-select-dir{width:72px;flex-shrink:0;}';
-        // Visibility toggle dot
+
+        // ── Visibility dot ────────────────────────────────────────────────────
         s += '.mtb-vis-toggle{cursor:pointer;margin:0;flex-shrink:0;display:flex;align-items:center;}';
         s += '.mtb-vis-toggle input{position:absolute;opacity:0;width:0;height:0;}';
         s += '.mtb-vis-dot{width:10px;height:10px;border-radius:50%;background:#d1d5db;border:2px solid transparent;transition:all .15s;box-shadow:0 0 0 1.5px rgba(0,0,0,.12);}';
         s += '.mtb-vis-toggle input:checked+.mtb-vis-dot{background:' + p + ';box-shadow:0 0 0 1.5px rgba(' + pr + ',.4);}';
-        // WHERE badge
-        s += '.mtb-where-badge{font-size:9px;font-weight:800;color:#fff;background:' + p + ';border-radius:4px;padding:2px 5px;flex-shrink:0;letter-spacing:.3px;}';
-        // Delete button
-        s += '.mtb-del{width:26px;height:26px;border:1px solid rgba(239,68,68,.22);background:rgba(239,68,68,.07);color:#ef4444;border-radius:6px;cursor:pointer;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}';
-        s += '.mtb-del:hover{background:rgba(239,68,68,.18);border-color:rgba(220,38,38,.45);color:#dc2626;}';
+
+        // ── WHERE badge ───────────────────────────────────────────────────────
+        s += '.mtb-where-badge{font-size:9px;font-weight:800;color:#fff;background:' + p + ';border-radius:4px;padding:2px 6px;flex-shrink:0;letter-spacing:.3px;}';
+
+        // ── Delete button ─────────────────────────────────────────────────────
+        s += '.mtb-del{width:26px;height:26px;border:1px solid rgba(239,68,68,.22);background:rgba(239,68,68,.06);color:#ef4444;border-radius:7px;cursor:pointer;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}';
+        s += '.mtb-del:hover{background:rgba(239,68,68,.16);border-color:rgba(220,38,38,.4);color:#dc2626;}';
         s += '.mtb-del i{font-size:11px;}';
-        // SQL preview
-        s += '.mtb-sql-preview{margin:0 10px 10px;background:#0f172a;border-radius:7px;padding:9px 11px;font-size:10.5px;font-family:monospace;white-space:pre-wrap;max-height:90px;overflow:auto;color:#94a3b8;border:none;line-height:1.55;}';
-        // SQL free textarea
-        s += '.mtb-sql-free{font-family:monospace;font-size:11px;resize:vertical;width:100%;border:1px solid rgba(0,0,0,.13);border-radius:6px;background:#0f172a;color:#e2e8f0;padding:9px 11px;line-height:1.55;outline:none;}';
-        s += '.mtb-sql-free:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.14);}';
-        // Field chips
-        s += '.mtb-fields-chips{display:flex;flex-wrap:wrap;gap:4px;padding:6px 10px 8px;}';
-        s += '.mtb-chip{font-size:9.5px;font-family:monospace;background:#f1f5f9;border:1px solid rgba(0,0,0,.1);color:#475569;border-radius:4px;padding:1px 6px;cursor:default;user-select:all;}';
-        // 2-col layout (order + limit)
+
+        // ── SQL preview Ace ───────────────────────────────────────────────────
+        s += '.mtb-sql-preview-ace{margin:0 10px 10px;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.15);}';
+        s += '.mtb-sql-preview-ace .ace_editor{background:#0f172a;border-radius:8px;}';
+
+        // ── SQL free Ace ──────────────────────────────────────────────────────
+        s += '.mtb-sql-free-ace{border-radius:7px;overflow:hidden;border:1px solid rgba(0,0,0,.12);margin:0 10px 4px;box-shadow:0 4px 12px rgba(0,0,0,.12);}';
+        s += '.mtb-sql-free-ace .ace_editor{background:#0f172a;border-radius:7px;}';
+        s += '.mtb-sql-free-ace.is-focused{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.15);}';
+
+        // ── Field chips ───────────────────────────────────────────────────────
+        s += '.mtb-fields-chips{display:flex;flex-wrap:wrap;gap:4px;padding:6px 10px 10px;}';
+        s += '.mtb-chip{font-size:9.5px;font-family:monospace;background:rgba(' + pr + ',.07);border:1px solid rgba(' + pr + ',.2);color:' + p + ';border-radius:5px;padding:2px 7px;cursor:pointer;user-select:all;transition:all .12s;}';
+        s += '.mtb-chip:hover{background:rgba(' + pr + ',.15);border-color:' + p + ';}';
+
+        // ── 2-col layout ──────────────────────────────────────────────────────
         s += '.mtb-row2col{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(0,0,0,.06);}';
         s += '.mtb-col-half{min-width:0;}';
         s += '.mtb-col-half:first-child{border-right:1px solid rgba(0,0,0,.06);}';
         s += '.mtb-col-half .mtb-sec{border-bottom:none;}';
         s += '.mtb-input.mtb-limit{width:100%;}';
-        // Preview area
-        s += '.mtb-preview-area{padding:8px 10px;border-top:1px solid rgba(0,0,0,.06);}';
-        s += '.mtb-preview-table-wrap{max-height:180px;overflow:auto;border-radius:6px;border:1px solid rgba(0,0,0,.09);}';
-        s += '.mtb-preview-table{width:100%;font-size:10.5px;border-collapse:collapse;}';
-        s += '.mtb-preview-table th{background:#f8fafc;font-weight:700;font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;color:#475569;padding:4px 7px;border-bottom:1px solid rgba(0,0,0,.1);text-align:left;}';
-        s += '.mtb-preview-table td{padding:3px 7px;color:#334155;border-bottom:1px solid rgba(0,0,0,.05);font-size:10.5px;}';
+
+        // ── Botão pré-visualizar ──────────────────────────────────────────────
+        s += '.mtb-btn-preview{font-size:11px;font-weight:600;padding:5px 12px;border-radius:7px;border:1.5px solid ' + p + ';background:rgba(' + pr + ',.08);color:' + p + ';cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;}';
+        s += '.mtb-btn-preview:hover{background:rgba(' + pr + ',.16);}';
+        s += '.mtb-btn-preview svg{flex-shrink:0;}';
+
+        // ── Preview área ──────────────────────────────────────────────────────
+        s += '.mtb-preview-area{background:#fff;border-top:1px solid rgba(0,0,0,.06);}';
+        s += '.mtb-preview-hd{display:flex;align-items:center;gap:7px;padding:7px 12px 6px;background:#f8fafc;border-bottom:1px solid rgba(0,0,0,.07);}';
+        s += '.mtb-preview-hd-icon{color:' + p + ';opacity:.8;display:flex;align-items:center;flex-shrink:0;}';
+        s += '.mtb-phd-error{color:#ef4444 !important;opacity:1 !important;}';
+        s += '.mtb-preview-title{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.65px;color:#475569;flex:1;}';
+        s += '.mtb-preview-count{font-size:9px;font-weight:700;color:#fff;background:' + p + ';border-radius:20px;padding:2px 8px;letter-spacing:.2px;white-space:nowrap;}';
+        s += '.mtb-preview-close{width:22px;height:22px;border:none;background:transparent;color:#94a3b8;cursor:pointer;font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;border-radius:5px;transition:all .12s;flex-shrink:0;margin-left:2px;}';
+        s += '.mtb-preview-close:hover{background:rgba(0,0,0,.07);color:#475569;}';
+        s += '.mtb-preview-body{overflow:hidden;}';
+        s += '.mtb-preview-table-wrap{max-height:210px;overflow:auto;}';
+        s += '.mtb-preview-table{width:100%;font-size:10.5px;border-collapse:collapse;table-layout:auto;}';
+        s += '.mtb-preview-table thead th{position:sticky;top:0;z-index:1;background:#f1f5f9;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;padding:5px 10px;border-bottom:1.5px solid rgba(0,0,0,.1);text-align:left;white-space:nowrap;}';
+        s += '.mtb-preview-table td{padding:4px 10px;color:#334155;border-bottom:1px solid rgba(0,0,0,.05);font-size:10.5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}';
+        s += '.mtb-tr-even td{background:#fff;}';
+        s += '.mtb-tr-odd td{background:#f8fafc;}';
+        s += '.mtb-preview-table tr:hover td{background:rgba(' + pr + ',.06) !important;}';
         s += '.mtb-preview-table tr:last-child td{border-bottom:none;}';
-        s += '.mtb-preview-info{font-size:10px;color:#64748b;margin-bottom:5px;font-weight:600;}';
-        s += '.mtb-preview-error{color:#b91c1c;font-size:11px;padding:7px 10px;background:#fef2f2;border-radius:6px;border:1px solid rgba(185,28,28,.15);}';
-        s += '.mtb-preview-empty{color:#94a3b8;font-size:11px;font-style:italic;padding:6px 0;}';
-        // Footer
-        s += '.mtb-footer{display:flex;align-items:center;gap:6px;padding:9px 12px;border-top:1px solid rgba(0,0,0,.07);}';
-        s += '.mtb-btn-primary{font-size:11px;font-weight:700;padding:5px 14px;border-radius:7px;border:none;background:' + p + ';color:#fff;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity .15s;}';
+        s += '.mtb-preview-trunc{display:flex;align-items:center;gap:5px;font-size:9.5px;color:#94a3b8;font-style:italic;padding:5px 12px 7px;border-top:1px solid rgba(0,0,0,.05);background:#f8fafc;}';
+        s += '.mtb-preview-error{display:flex;align-items:flex-start;gap:8px;color:#991b1b;font-size:11px;padding:10px 14px;background:#fef2f2;border-left:3px solid #ef4444;margin:8px 10px 10px;border-radius:0 6px 6px 0;line-height:1.5;}';
+        s += '.mtb-preview-error svg{flex-shrink:0;margin-top:1px;color:#ef4444;}';
+        s += '.mtb-preview-empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:#94a3b8;font-size:11px;font-style:italic;padding:22px 12px;text-align:center;}';
+        s += '.mtb-preview-empty svg{opacity:.3;}';
+
+        // ── Footer — sobre fundo branco (dentro do light body) ────────────────
+        s += '.mtb-footer{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid rgba(0,0,0,.08);background:linear-gradient(180deg,#ffffff,#f8fafc);flex-shrink:0;}';
+        s += '.mtb-btn-primary{font-size:11px;font-weight:700;padding:6px 16px;border-radius:7px;border:none;background:' + p + ';color:#fff;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity .15s;box-shadow:0 4px 10px rgba(' + pr + ',.28);}';
         s += '.mtb-btn-primary:hover{opacity:.88;}';
         s += '.mtb-btn-primary i{font-size:10px;}';
-        s += '.mtb-btn-ghost{font-size:11px;font-weight:600;padding:5px 12px;border-radius:7px;border:1.5px solid rgba(0,0,0,.14);background:#fff;color:#475569;cursor:pointer;transition:all .15s;}';
+        s += '.mtb-btn-ghost{font-size:11px;font-weight:600;padding:6px 12px;border-radius:7px;border:1.5px solid rgba(0,0,0,.14);background:#fff;color:#475569;cursor:pointer;transition:all .15s;}';
         s += '.mtb-btn-ghost:hover{border-color:' + p + ';color:' + p + ';}';
+
         s += '</style>';
         return s;
     }

@@ -887,104 +887,202 @@ var MdashChartBuilder = (function () {
     }
 
     // ── Config panel UI ───────────────────────────────────────────────────────
+    // Utiliza PetiteVue para reactividde total:
+    //   • onTransformChange → state.updateFields(newFields) → selects de campo actualizam sozinhos
+    //   • v-model nos inputs → readConfig() lê de state, não do DOM
     function render(containerSel, options) {
-        var $c   = $(containerSel);
+        var $c           = $(containerSel);
         if (!$c.length) return;
-        var cfg    = options.config || _defaultConfig();
-        var fields = options.fields || [];
+        var cfg          = options.config || _defaultConfig();
+        var initTransCfg = options.transformConfig || cfg.transformConfig || null;
+        var initFields   = options.fields ? options.fields.slice() : [];
         _injectCSS();
-        $c.data('mcbTransformConfig', cfg.transformConfig || null);
+        $c.data('mcbTransformConfig', initTransCfg);
 
-        var h = '<div class="mcb-root">';
+        // ── Estado reactivo ───────────────────────────────────────────────────
+        var _fireTimer = null;
+        var state = {
+            activeTab: 'dados',
+            fields:    initFields,
+            cfg: {
+                chartType:    cfg.chartType    || 'bar',
+                theme:        cfg.theme        || 'modern',
+                height:       cfg.height       || 320,
+                xField:       cfg.xField       || '',
+                stacked:      !!cfg.stacked,
+                smooth:       cfg.smooth       !== false,
+                gradient:     cfg.gradient     !== false,
+                dataLabels:   !!cfg.dataLabels,
+                animation:    cfg.animation    !== false,
+                borderRadius: cfg.borderRadius || 6,
+                xAxisRotate:  (cfg.xAxis  && cfg.xAxis.rotate)    || 0,
+                legendShow:   cfg.legend ? cfg.legend.show !== false : true,
+                legendPos:    (cfg.legend && cfg.legend.position) || 'top',
+                titleShow:    !!(cfg.title && cfg.title.show),
+                titleText:    (cfg.title  && cfg.title.text)      || '',
+                series: (cfg.series || []).map(function (s) {
+                    return { field: s.field || '', name: s.name || '', type: s.type || 'default', color: s.color || '#2563EB' };
+                })
+            },
+            fire: function () {
+                var self = this;
+                clearTimeout(_fireTimer);
+                _fireTimer = setTimeout(function () {
+                    if (typeof options.onChange === 'function') options.onChange(self._readCfg());
+                }, 200);
+            },
+            _readCfg: function () {
+                var c = this.cfg;
+                return {
+                    chartType:    c.chartType,
+                    theme:        c.theme,
+                    height:       c.height,
+                    xField:       c.xField,
+                    stacked:      c.stacked,
+                    smooth:       c.smooth,
+                    gradient:     c.gradient,
+                    dataLabels:   c.dataLabels,
+                    animation:    c.animation,
+                    borderRadius: c.borderRadius,
+                    xAxis:   { rotate: c.xAxisRotate, name: '' },
+                    legend:  { show: c.legendShow, position: c.legendPos },
+                    title:   { show: c.titleShow,  text: c.titleText },
+                    yAxis:   { show: true, name: '' },
+                    tooltip: { show: true },
+                    series:  this.cfg.series
+                        .filter(function (s) { return !!s.field; })
+                        .map(function (s) { return { field: s.field, name: s.name, type: s.type, color: s.color }; })
+                };
+            },
+            addSerie:     function ()  { this.cfg.series.push({ field: '', name: '', type: 'default', color: '#2563EB' }); this.fire(); },
+            removeSerie:  function (i) { this.cfg.series.splice(i, 1); this.fire(); },
+            setChartType: function (t) { this.cfg.chartType = t; this.fire(); },
+            setTheme:     function (k) { this.cfg.theme     = k; this.fire(); },
+            // Chamado pelo onSave do TransformBuilder — actualiza listas de campos reactivamente
+            updateFields: function (nf) {
+                nf = nf || [];
+                this.fields = nf.slice();
+                if (nf.indexOf(this.cfg.xField) === -1) this.cfg.xField = '';
+                this.cfg.series.forEach(function (s) { if (nf.indexOf(s.field) === -1) s.field = ''; });
+                this.fire();
+            }
+        };
+        $c.data('mcbPvState', state);
+
+        // ── Template HTML com directivas v-* ─────────────────────────────────
+        var uid = 'mcbpv' + (Date.now() + Math.floor(Math.random() * 9999));
+        var h = '<div id="' + uid + '" class="mcb-root">';
+
         // Tabs
         h += '<div class="mcb-tabs">';
-        h += '<button class="mcb-tab active" data-tab="dados"><i class="glyphicon glyphicon-hdd"></i> Dados</button>';
-        h += '<button class="mcb-tab" data-tab="grafico"><i class="glyphicon glyphicon-stats"></i> Gráfico</button>';
-        h += '<button class="mcb-tab" data-tab="estilo"><i class="glyphicon glyphicon-tint"></i> Estilo</button>';
+        h += '<button class="mcb-tab" :class="{active:activeTab===\'dados\'}" @click="activeTab=\'dados\'"><i class="glyphicon glyphicon-hdd"></i> Dados</button>';
+        h += '<button class="mcb-tab" :class="{active:activeTab===\'grafico\'}" @click="activeTab=\'grafico\'"><i class="glyphicon glyphicon-stats"></i> Gráfico</button>';
+        h += '<button class="mcb-tab" :class="{active:activeTab===\'estilo\'}" @click="activeTab=\'estilo\'"><i class="glyphicon glyphicon-tint"></i> Estilo</button>';
         h += '</div>';
 
-        // ─── Tab DADOS ────────────────────────────────────────────────────────
-        h += '<div class="mcb-panel mcb-panel-dados active">';
-        h += '<div class="mcb-transform-host"></div>';
-        h += '</div>';
+        // ─── Panel Dados ──────────────────────────────────────────────────────
+        h += '<div class="mcb-panel" :class="{active:activeTab===\'dados\'}"><div class="mcb-transform-host"></div></div>';
 
-        // ─── Tab GRÁFICO ──────────────────────────────────────────────────────
-        h += '<div class="mcb-panel mcb-panel-grafico">';
-        // Chart type grid
-        h += '<div class="mcb-fg"><label>Tipo de Gráfico</label><div class="mcb-ct-grid">';
+        // ─── Panel Gráfico ────────────────────────────────────────────────────
+        h += '<div class="mcb-panel" :class="{active:activeTab===\'grafico\'}">'
+           + '<div class="mcb-fg"><label>Tipo de Gráfico</label><div class="mcb-ct-grid">';
         CHART_TYPES.forEach(function (ct) {
-            var a = cfg.chartType === ct.type ? ' mcb-ct-on' : '';
-            h += '<button type="button" class="mcb-ct-btn' + a + '" data-type="' + ct.type + '" title="' + ct.label + '">' + ct.svg + '<span>' + ct.label + '</span></button>';
+            h += '<button type="button" class="mcb-ct-btn"'
+               + ' :class="{\'mcb-ct-on\':(cfg.chartType===\'' + ct.type + '\')}"'
+               + ' @click="setChartType(\'' + ct.type + '\')" title="' + ct.label + '">'
+               + ct.svg + '<span>' + ct.label + '</span></button>';
         });
         h += '</div></div>';
-        // X field
-        h += '<div class="mcb-fg"><label>Campo Eixo X / Categoria</label>';
-        h += '<select class="mcb-xfield form-control input-sm"><option value="">-- seleccione --</option>';
-        fields.forEach(function (f) { h += '<option value="' + _esc(f) + '"' + (cfg.xField === f ? ' selected' : '') + '>' + _esc(f) + '</option>'; });
-        h += '</select></div>';
-        // Series
-        h += '<div class="mcb-fg"><label>Séries (Valores Y) <button type="button" class="mcb-add-serie btn btn-xs btn-default pull-right"><i class="glyphicon glyphicon-plus"></i></button></label>';
-        h += '<div class="mcb-series-list">';
-        (cfg.series || []).forEach(function (s, i) { h += _serieRow(s, i, fields, cfg.chartType); });
-        h += '</div></div>';
-        // Options grid
-        h += '<div class="mcb-fg mcb-opts-grid">';
-        h += _chk('mcb-stacked', 'Barras empilhadas', cfg.stacked);
-        h += _chk('mcb-smooth',  'Linhas suaves',      cfg.smooth !== false);
-        h += _chk('mcb-gradient','Gradiente',           cfg.gradient !== false);
-        h += _chk('mcb-labels',  'Etiquetas de dados', cfg.dataLabels);
-        h += '</div>';
-        // Border radius + rotate
-        h += '<div class="mcb-fg mcb-row2">';
-        h += '<div><label>Raio bordas (barras)</label><input type="number" class="mcb-br form-control input-sm" value="' + (cfg.borderRadius || 6) + '" min="0" max="24"></div>';
-        h += '<div><label>Rotação eixo X</label><input type="number" class="mcb-xrot form-control input-sm" value="' + ((cfg.xAxis && cfg.xAxis.rotate) || 0) + '" min="-90" max="90"></div>';
-        h += '</div>';
-        h += '</div>'; // mcb-panel-grafico
+        // X field — v-for reactivo
+        h += '<div class="mcb-fg"><label>Campo Eixo X / Categoria</label>'
+           + '<select class="mcb-xfield form-control input-sm" v-model="cfg.xField" @change="fire()">'
+           + '<option value="">-- seleccione --</option>'
+           + '<option v-for="f in fields" :value="f" :key="f">{{ f }}</option>'
+           + '</select></div>';
+        // Séries — v-for reactivo
+        h += '<div class="mcb-fg"><label>Séries (Valores Y)'
+           + ' <button type="button" class="btn btn-xs btn-default pull-right" @click="addSerie()"><i class="glyphicon glyphicon-plus"></i></button>'
+           + '</label>'
+           + '<div class="mcb-series-list">'
+           + '<div v-for="(s,i) in cfg.series" :key="i" class="mcb-serie">'
+           + '<span class="mcb-drag">⠿</span>'
+           + '<select class="mcb-sf form-control input-sm" v-model="s.field" @change="fire()">'
+           + '<option value="">campo…</option>'
+           + '<option v-for="f in fields" :value="f" :key="f">{{ f }}</option>'
+           + '</select>'
+           + '<input type="text" class="mcb-sn form-control input-sm" v-model="s.name" @input="fire()" placeholder="Nome">'
+           + '<select v-if="cfg.chartType===\'mixed\'" class="mcb-st form-control input-sm" v-model="s.type" @change="fire()" style="width:74px;">'
+           + '<option value="default">Auto</option><option value="bar">Bar</option><option value="line">Line</option><option value="area">Area</option>'
+           + '</select>'
+           + '<input type="color" class="mcb-sc" v-model="s.color" @change="fire()" title="Cor">'
+           + '<button type="button" class="btn btn-xs btn-danger" @click="removeSerie(i)" title="Remover"><i class="glyphicon glyphicon-remove"></i></button>'
+           + '</div></div></div>';
+        // Opções
+        h += '<div class="mcb-fg mcb-opts-grid">'
+           + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.stacked"    @change="fire()"> Barras empilhadas</label>'
+           + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.smooth"     @change="fire()"> Linhas suaves</label>'
+           + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.gradient"   @change="fire()"> Gradiente</label>'
+           + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.dataLabels" @change="fire()"> Etiquetas de dados</label>'
+           + '</div>';
+        h += '<div class="mcb-fg mcb-row2">'
+           + '<div><label>Raio bordas (barras)</label><input type="number" class="mcb-br form-control input-sm" v-model.number="cfg.borderRadius" @input="fire()" min="0" max="24"></div>'
+           + '<div><label>Rotação eixo X</label><input type="number" class="mcb-xrot form-control input-sm" v-model.number="cfg.xAxisRotate" @input="fire()" min="-90" max="90"></div>'
+           + '</div>'
+           + '</div>'; // panel-grafico
 
-        // ─── Tab ESTILO ───────────────────────────────────────────────────────
-        h += '<div class="mcb-panel mcb-panel-estilo">';
-        // Theme picker
+        // ─── Panel Estilo ─────────────────────────────────────────────────────
+        h += '<div class="mcb-panel" :class="{active:activeTab===\'estilo\'}">';
         h += '<div class="mcb-fg"><label>Tema</label><div class="mcb-themes">';
         Object.keys(THEMES).forEach(function (k) {
             var th = THEMES[k];
-            var a  = cfg.theme === k ? ' mcb-th-on' : '';
-            h += '<button type="button" class="mcb-th-btn' + a + '" data-theme="' + k + '" title="' + th.name + '">';
-            h += th.swatch.map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('');
-            h += '<em>' + th.name + '</em></button>';
+            h += '<button type="button" class="mcb-th-btn"'
+               + ' :class="{\'mcb-th-on\':(cfg.theme===\'' + k + '\')}"'
+               + ' @click="setTheme(\'' + k + '\')" title="' + th.name + '">'
+               + th.swatch.map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('')
+               + '<em>' + th.name + '</em></button>';
         });
         h += '</div></div>';
-        // Height
-        h += '<div class="mcb-fg"><label>Altura: <strong class="mcb-height-lbl">' + (cfg.height || 320) + 'px</strong></label>';
-        h += '<input type="range" class="mcb-height" min="150" max="800" step="10" value="' + (cfg.height || 320) + '"></div>';
-        // Legend
-        h += '<div class="mcb-fg mcb-row2">';
-        h += '<div>' + _chk('mcb-legend', 'Mostrar legenda', cfg.legend && cfg.legend.show !== false) + '</div>';
-        h += '<div><label>Posição legenda</label><select class="mcb-legend-pos form-control input-sm">';
-        ['top', 'bottom'].forEach(function (p) {
-            h += '<option value="' + p + '"' + ((cfg.legend && cfg.legend.position) === p ? ' selected' : '') + '>' + (p === 'top' ? 'Cima' : 'Baixo') + '</option>';
-        });
-        h += '</select></div></div>';
-        // Title
-        h += '<div class="mcb-fg">';
-        h += _chk('mcb-title-show', 'Mostrar título no gráfico', cfg.title && cfg.title.show);
-        h += '<input type="text" class="mcb-title-text form-control input-sm" value="' + _esc(cfg.title && cfg.title.text || '') + '" placeholder="Título" style="margin-top:5px;">';
-        h += '</div>';
-        // Animation
-        h += '<div class="mcb-fg">' + _chk('mcb-anim', 'Animações', cfg.animation !== false) + '</div>';
-        h += '</div>'; // mcb-panel-estilo
+        h += '<div class="mcb-fg"><label>Altura: <strong>{{ cfg.height }}px</strong></label>'
+           + '<input type="range" class="mcb-height" min="150" max="800" step="10" v-model.number="cfg.height" @input="fire()"></div>';
+        h += '<div class="mcb-fg mcb-row2">'
+           + '<div><label class="mcb-chk"><input type="checkbox" v-model="cfg.legendShow" @change="fire()"> Mostrar legenda</label></div>'
+           + '<div><label>Posição legenda</label>'
+           + '<select class="mcb-legend-pos form-control input-sm" v-model="cfg.legendPos" @change="fire()">'
+           + '<option value="top">Cima</option><option value="bottom">Baixo</option>'
+           + '</select></div></div>';
+        h += '<div class="mcb-fg">'
+           + '<label class="mcb-chk"><input type="checkbox" v-model="cfg.titleShow" @change="fire()"> Mostrar título no gráfico</label>'
+           + '<input type="text" class="mcb-title-text form-control input-sm" v-model="cfg.titleText" @input="fire()" placeholder="Título" style="margin-top:5px;">'
+           + '</div>';
+        h += '<div class="mcb-fg"><label class="mcb-chk"><input type="checkbox" v-model="cfg.animation" @change="fire()"> Animações</label></div>';
+        h += '</div>'; // panel-estilo
 
         h += '</div>'; // mcb-root
         $c.html(h);
 
-        // Embed MdashTransformBuilder in dados tab
+        // Mount PetiteVue
+        if (typeof PetiteVue !== 'undefined') {
+            PetiteVue.createApp(state).mount('#' + uid);
+        }
+
+        // Embed MdashTransformBuilder na tab Dados
         var host = $c.find('.mcb-transform-host');
         if (typeof MdashTransformBuilder !== 'undefined') {
-            var tCfg = cfg.transformConfig || MdashTransformBuilder.autoConfig(
-                (cfg.transformConfig && cfg.transformConfig.sourceTable) || '', 'Gráfico');
+            var tCfg = initTransCfg || MdashTransformBuilder.autoConfig('', 'Gráfico');
             MdashTransformBuilder.render(host[0] ? host[0] : '.mcb-transform-host', {
                 config: tCfg,
                 onSave: function (newT) {
+                    // 1. Persistir no container
                     $c.data('mcbTransformConfig', newT);
+                    // 2. Derivar lista de campos do novo schema
+                    var newFields = [];
+                    if (newT && newT.sourceTable) {
+                        newFields = MdashTransformBuilder.getTableSchema(newT.sourceTable).map(function (s) { return s.field; });
+                    }
+                    // 3. Actualizar state PetiteVue → todos os selects de campo reactualizam
+                    var pvState = $c.data('mcbPvState');
+                    if (pvState) pvState.updateFields(newFields);
+                    // 4. Notificar o modal (preview, etc.)
                     if (typeof options.onTransformChange === 'function') options.onTransformChange(newT);
                 },
                 onCancel: function () {}
@@ -992,8 +1090,7 @@ var MdashChartBuilder = (function () {
         } else {
             host.html('<div style="color:#94A3B8;font-size:11px;padding:8px;font-style:italic;">MdashTransformBuilder não disponível.</div>');
         }
-
-        _bindUI($c, cfg, fields, options);
+        // _bindUI já não é chamado — PetiteVue gere toda a reactividade
     }
 
     function _serieRow(s, i, fields, ct) {
@@ -1021,31 +1118,15 @@ var MdashChartBuilder = (function () {
     }
 
     function readConfig($c) {
-        var cfg = {};
-        cfg.chartType    = $c.find('.mcb-ct-btn.mcb-ct-on').data('type') || 'bar';
-        cfg.theme        = $c.find('.mcb-th-btn.mcb-th-on').data('theme') || 'modern';
-        cfg.height       = parseInt($c.find('.mcb-height').val()) || 320;
-        cfg.xField       = $c.find('.mcb-xfield').val() || '';
-        cfg.stacked      = $c.find('.mcb-stacked').is(':checked');
-        cfg.smooth       = $c.find('.mcb-smooth').is(':checked');
-        cfg.gradient     = $c.find('.mcb-gradient').is(':checked');
-        cfg.dataLabels   = $c.find('.mcb-labels').is(':checked');
-        cfg.animation    = $c.find('.mcb-anim').is(':checked');
-        cfg.borderRadius = parseInt($c.find('.mcb-br').val()) || 6;
-        cfg.xAxis        = { rotate: parseInt($c.find('.mcb-xrot').val()) || 0, name: '' };
-        cfg.legend       = { show: $c.find('.mcb-legend').is(':checked'), position: $c.find('.mcb-legend-pos').val() || 'top' };
-        cfg.title        = { show: $c.find('.mcb-title-show').is(':checked'), text: $c.find('.mcb-title-text').val() || '' };
-        cfg.yAxis        = { show: true, name: '' };
-        cfg.tooltip      = { show: true };
-        cfg.series       = [];
-        $c.find('.mcb-serie').each(function () {
-            var $r = $(this);
-            var fld = $r.find('.mcb-sf').val();
-            if (!fld) return;
-            cfg.series.push({ field: fld, name: $r.find('.mcb-sn').val().trim(), type: $r.find('.mcb-st').val() || 'default', color: $r.find('.mcb-sc').val() || '' });
-        });
-        cfg.transformConfig = $c.data('mcbTransformConfig') || null;
-        return cfg;
+        // PetiteVue: ler do state reactivo em vez do DOM
+        var pvState = $c.data('mcbPvState');
+        if (pvState && typeof pvState._readCfg === 'function') {
+            var result = pvState._readCfg();
+            result.transformConfig = $c.data('mcbTransformConfig') || null;
+            return result;
+        }
+        // Fallback (nunca devia chegar aqui com PetiteVue disponível)
+        return _defaultConfig();
     }
 
     function _bindUI($c, cfg, fields, options) {
@@ -1460,17 +1541,25 @@ function renderObjectGrafico(dados) {
     var cfg     = dados.config ? JSON.parse(JSON.stringify(dados.config)) : {};
     var isSample = !!dados.isSample;
 
-    // Resolve rows: transformConfig tem prioridade sobre dados da fonte
+    // dados.data já vem resolvido por mdashResolveObjectData (renderObjectByContainerItem).
+    // Mantém-se fallback local para chamadas directas a esta função (ex: Mdash.html).
     var rows = dados.data || [];
-    if (cfg.transformConfig && cfg.transformConfig.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
-        var raw = MdashTransformBuilder.executeRaw(cfg.transformConfig);
-        if (!raw.error && raw.rows && raw.columns) {
-            rows = raw.rows.map(function (r) {
-                var o = {};
-                raw.columns.forEach(function (c, i) { o[c] = r[i]; });
-                return o;
-            });
-            isSample = false;
+    // transformConfig está agora no campo próprio (dados.transformConfig), com
+    // fallback para cfg.transformConfig (legado embutido em configjson).
+    var tCfg = dados.transformConfig || cfg.transformConfig || null;
+    if (rows.length === 0 && tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
+        try {
+            var raw = MdashTransformBuilder.executeRaw(tCfg);
+            if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
+                rows = raw.rows.map(function (r) {
+                    var o = {};
+                    raw.columns.forEach(function (c, i) { o[c] = r[i]; });
+                    return o;
+                });
+                isSample = false;
+            }
+        } catch (e) {
+            console.warn('[MDash] renderObjectGrafico fallback transform error:', e.message);
         }
     }
 
@@ -1668,6 +1757,8 @@ function openChartBuilderModal(obj) {
     if (typeof resetModalOpenState === 'function') resetModalOpenState('#mcb-modal');
 
     var cfg    = (obj && obj.config) ? JSON.parse(JSON.stringify(obj.config)) : MdashChartBuilder.defaultConfig();
+    // transformConfig tem coluna própria — ler de obj.transformConfig com fallback ao legado dentro de cfg
+    cfg.transformConfig = (obj && obj.transformConfig) || cfg.transformConfig || null;
     // Descobrir campos disponíveis via schema da tabela in-memory
     var fields = [];
     var tCfg   = cfg.transformConfig;
@@ -1730,12 +1821,7 @@ function openChartBuilderModal(obj) {
         fields: fields,
         onTransformChange: function (newT) {
             cfg.transformConfig = newT;
-            // Actualizar campos disponíveis se tabela mudou
-            if (newT && newT.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
-                var newFields = MdashTransformBuilder.getTableSchema(newT.sourceTable).map(function (s) { return s.field; });
-                fields.splice(0, fields.length);
-                newFields.forEach(function (f) { fields.push(f); });
-            }
+            // fields já foram actualizados reactivamente por render()'s onSave → updateFields()
             _mcbRefreshPreview(obj, cfg);
         },
         onChange: function (newCfg) {
@@ -1750,10 +1836,13 @@ function openChartBuilderModal(obj) {
     // Apply button
     $('#mcb-modal').off('click.mcb').on('click.mcb', '#mcb-apply', function () {
         var finalCfg = MdashChartBuilder.readConfig($('#mcb-config-panel'));
-        finalCfg.transformConfig = cfg.transformConfig;
+        var tCfg = cfg.transformConfig || null;
+        delete finalCfg.transformConfig; // não embutir em configjson — tem coluna própria
         if (obj) {
             obj.config    = finalCfg;
             obj.configjson = JSON.stringify(finalCfg);
+            obj.transformConfig = tCfg;
+            obj.transformconfigjson = JSON.stringify(tCfg);
             if (typeof realTimeComponentSync === 'function') {
                 realTimeComponentSync(obj, obj.table, obj.idfield);
             }

@@ -411,6 +411,8 @@ function MdashContainerItemObject(data) {
     this.slotid = data.slotid || "";
     this.objectexpressaodblistagem = data.objectexpressaodblistagem || "";
     this.fontestamp = data.fontestamp || "";          // vínculo directo à fonte de dados
+    this.fontesstampsjson = data.fontesstampsjson || '';   // fontes adicionais (array JSON de stamps)
+    this.fontesstamps = forceJSONParse(data.fontesstampsjson, []);
     this.processaFonte = data.processaFonte !== undefined ? data.processaFonte : true;  // false = objecto estático (não precisa de dados)
     this.localsource = "GMDashContainerItemObjects";
 
@@ -425,6 +427,17 @@ function MdashContainerItemObject(data) {
 
     this.config = config || {};
     this.configjson = data.configjson || "";
+    // transformConfig — coluna própria na BD, com migração automática do configjson legado
+    this.transformconfigjson = data.transformconfigjson || '';
+    this.transformConfig = data.transformconfigjson
+        ? forceJSONParse(data.transformconfigjson, null)
+        : ((this.config && this.config.transformConfig) || null);
+    if (this.transformConfig && !data.transformconfigjson && this.config && this.config.transformConfig) {
+        // migrar: retirar transformConfig do configjson e colocar na coluna própria
+        delete this.config.transformConfig;
+        this.configjson = JSON.stringify(this.config);
+        this.transformconfigjson = JSON.stringify(this.transformConfig);
+    }
     this.idfield = "mdashcontaineritemobjectstamp";
     this.table = "MdashContainerItemObject";
     this.objectoConfig = data.objectoConfig || {};
@@ -452,6 +465,16 @@ function MdashContainerItemObject(data) {
     this.queryConfig = queryConfig;
     this.queryconfigjson = JSON.stringify(queryConfig);
 }
+
+/**
+ * Serializa os campos JSON de MdashContainerItemObject antes de gravar na BD.
+ * Deve ser chamado antes de qualquer realTimeComponentSync neste objecto.
+ */
+MdashContainerItemObject.prototype.stringifyJSONFields = function () {
+    this.transformconfigjson = JSON.stringify(this.transformConfig || null);
+    this.fontesstampsjson    = JSON.stringify(this.fontesstamps || []);
+    this.configjson          = JSON.stringify(this.config || {});
+};
 
 /**
  * getMdashObjectTypeEntry(tipo)
@@ -533,8 +556,10 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
 
     if (entry && typeof entry.renderObject === 'function') {
         var processaFonte = (entry.processaFonte !== undefined) ? entry.processaFonte : self.processaFonte;
-        var podeRenderizar = processaFonte === false || (containerItem.records && containerItem.records.length > 0);
-        console.log('  processaFonte =', processaFonte, '| podeRenderizar =', podeRenderizar);
+        // Resolver dados através da função central (transform → fonte → containerItem.records)
+        var resolved = mdashResolveObjectData(self, containerItem.records);
+        var podeRenderizar = processaFonte === false || resolved.data.length > 0;
+        console.log('  processaFonte =', processaFonte, '| podeRenderizar =', podeRenderizar, '| data.length =', resolved.data.length);
         if (podeRenderizar) {
             console.log('  → A CHAMAR entry.renderObject()');
             console.groupEnd();
@@ -543,9 +568,10 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
                 itemObject: self,
                 queryConfig: self.queryConfig,
                 config: self.config,
+                transformConfig: self.transformConfig,
                 containerItem: containerItem,
-                data: containerItem.records || [],
-                isSample: false
+                data: resolved.data,
+                isSample: resolved.isSample
             });
         } else if (typeof entry.getSampleData === 'function') {
             // Sem dados reais ainda — renderizar com dados de amostra
@@ -556,6 +582,7 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
                 itemObject: self,
                 queryConfig: self.queryConfig,
                 config: self.config,
+                transformConfig: self.transformConfig,
                 containerItem: containerItem,
                 data: entry.getSampleData(),
                 isSample: true
@@ -582,6 +609,60 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
             console.error("Erro ao executar expressão do objeto:", error);
         }
     }
+}
+
+// ============================================================================
+// mdashResolveObjectData
+// Função central de resolução de dados para qualquer MdashContainerItemObject.
+// Hierarquia:
+//   1. obj.transformConfig + sourceTable  → MdashTransformBuilder.executeRaw()
+//      (garante tabelas adicionais de fontesstamps em SQLite antes de correr)
+//   2. obj.fontestamp                     → fonte.lastResults (dados em memória)
+//   3. fallbackData                       → containerItem.records (legado)
+// Retorna: { data: Array, isSample: Boolean }
+// ============================================================================
+function mdashResolveObjectData(obj, fallbackData) {
+    var allFontes = (window.appState && window.appState.fontes) || GMDashFontes || [];
+
+    // ── 1. Garantir que fontes adicionais (fontesstamps) estão no SQLite ──
+    if (obj && Array.isArray(obj.fontesstamps) && obj.fontesstamps.length > 0) {
+        obj.fontesstamps.forEach(function (stamp) {
+            var f = allFontes.filter(function (x) { return x.mdashfontestamp === stamp; })[0];
+            if (f && f.lastResults && f.lastResults.length > 0 && typeof mdashLoadFonteIntoDb === 'function') {
+                mdashLoadFonteIntoDb(f, f.lastResults);
+            }
+        });
+    }
+
+    // ── 2. transformConfig → query sobre SQLite in-memory ──
+    if (obj && obj.transformConfig && obj.transformConfig.sourceTable &&
+            typeof MdashTransformBuilder !== 'undefined') {
+        try {
+            var raw = MdashTransformBuilder.executeRaw(obj.transformConfig);
+            if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
+                var rows = raw.rows.map(function (r) {
+                    var o = {};
+                    raw.columns.forEach(function (c, i) { o[c] = r[i]; });
+                    return o;
+                });
+                return { data: rows, isSample: false };
+            }
+        } catch (e) {
+            console.warn('[MDash] mdashResolveObjectData: erro no transform —', e.message);
+        }
+    }
+
+    // ── 3. Fonte primária → lastResults em memória ──
+    if (obj && obj.fontestamp) {
+        var fonte = allFontes.filter(function (f) { return f.mdashfontestamp === obj.fontestamp; })[0];
+        if (fonte && fonte.lastResults && fonte.lastResults.length > 0) {
+            return { data: fonte.lastResults, isSample: false };
+        }
+    }
+
+    // ── 4. Fallback legado (containerItem.records) ──
+    var fd = fallbackData || [];
+    return { data: fd, isSample: false };
 }
 
 // ============================================================================
@@ -5983,6 +6064,14 @@ function showObjectPropertiesEditor(obj) {
         html += '        <select class="form-control input-sm mdash-obj-prop" data-field="fontestamp"><option value="">-- Sem fonte --</option>' + fonteOptions + '</select>';
         if (!allFontes.length) html += '        <small style="color:#e67e22;font-size:10px;">Nenhuma fonte carregada neste dashboard</small>';
         html += '      </div></div>';
+        var fonteMultiOptions = allFontes.map(function (f) {
+            var isSel = Array.isArray(obj.fontesstamps) && obj.fontesstamps.indexOf(f.mdashfontestamp) !== -1;
+            return '<option value="' + f.mdashfontestamp + '"' + (isSel ? ' selected' : '') + '>' + (f.descricao || f.codigo || f.mdashfontestamp) + '</option>';
+        }).join('');
+        html += '      <div class="col-md-12 mdash-obj-fonte-row" style="margin-bottom:6px;"><div class="mdash-prop-field">';
+        html += '        <label>Fontes adicionais <span style="font-size:10px;color:var(--md-muted,#94a3b8);">Ctrl+click para múltiplas</span></label>';
+        html += '        <select multiple class="form-control input-sm mdash-obj-prop-multi" data-field="fontesstamps" style="height:72px;">' + fonteMultiOptions + '</select>';
+        html += '      </div></div>';
     }
     html += '    </div>';
     html += '  </div>';
@@ -6006,10 +6095,18 @@ function showObjectPropertiesEditor(obj) {
     });
 
     panel.off('change.objprops');
-    panel.on('change.objprops', '.mdash-obj-prop', function () {
+    panel.on('change.objprops', '.mdash-obj-prop, .mdash-obj-prop-multi', function () {
         var field = $(this).data('field');
-        var val = $(this).is(':checkbox') ? $(this).is(':checked') : $(this).val();
+        var val;
+        if ($(this).is('select[multiple]')) {
+            val = $(this).val() || [];
+        } else if ($(this).is(':checkbox')) {
+            val = $(this).is(':checked');
+        } else {
+            val = $(this).val();
+        }
         obj[field] = val;
+        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
         if (typeof realTimeComponentSync === 'function') {
             realTimeComponentSync(obj, obj.table, obj.idfield);
         }
