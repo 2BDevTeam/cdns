@@ -44,6 +44,519 @@ var GManualDragState = {
 };
 
 // ============================================================================
+// CLIPBOARD & MULTI-SELECTION STATE
+// ============================================================================
+var GMDashClipboard = {
+    type: '',          // 'container' | 'containerItem' | 'object'
+    items: [],         // Array de snapshots (deep clones) dos itens copiados
+    sourceStamps: []   // Stamps originais (para visual "copied" feedback)
+};
+var GMDashMultiSelection = {
+    type: '',          // enforce same type for all selected items
+    stamps: [],        // ordered array of selected stamps
+    anchorStamp: ''    // for Shift+Click range selection
+};
+
+// ============================================================================
+// CLIPBOARD ENGINE — Copy / Paste uniforme para Container, Item e Object
+// ============================================================================
+
+/**
+ * Deep-clone um objecto simples (JSON-safe). Remove referências circulares.
+ */
+function _clipDeepClone(obj) {
+    try { return JSON.parse(JSON.stringify(obj)); } catch (e) { return {}; }
+}
+
+/**
+ * Extrai um snapshot persistível de qualquer entidade MDash.
+ * Copia apenas as propriedades que existem na BD (exclui runtime: records, dadosTemplate…).
+ */
+function _clipSnapshot(entity) {
+    var snap = _clipDeepClone(entity);
+    // remover props runtime que não devem ser copiadas
+    delete snap.records;
+    delete snap.dadosTemplate;
+    delete snap.localsource;
+    delete snap.objectoConfig;
+    return snap;
+}
+
+/**
+ * Copia a selecção actual (single ou multi) para o clipboard.
+ * Se há multi-selecção, copia todos; senão copia o selectedComponent.
+ */
+function mdashCopySelection() {
+    var sel = GMDashMultiSelection;
+    var type, stamps, snapshots;
+
+    if (sel.stamps.length > 0) {
+        type = sel.type;
+        stamps = sel.stamps.slice();
+    } else if (_currentSelectedComponent && _currentSelectedComponent.type && _currentSelectedComponent.stamp) {
+        var t = _currentSelectedComponent.type;
+        if (t !== 'container' && t !== 'containerItem' && t !== 'object') return;
+        type = t;
+        stamps = [_currentSelectedComponent.stamp];
+    } else {
+        return;
+    }
+
+    snapshots = [];
+    var lookup;
+    if (type === 'container') {
+        lookup = window.appState.containers;
+        stamps.forEach(function (st) {
+            var c = lookup.find(function (x) { return x.mdashcontainerstamp === st; });
+            if (!c) return;
+            var snap = _clipSnapshot(c);
+            // Incluir items filhos + objectos filhos como sub-árvore
+            snap._children = [];
+            window.appState.containerItems
+                .filter(function (i) { return i.mdashcontainerstamp === st; })
+                .forEach(function (item) {
+                    var itemSnap = _clipSnapshot(item);
+                    itemSnap._objects = window.appState.containerItemObjects
+                        .filter(function (o) { return o.mdashcontaineritemstamp === item.mdashcontaineritemstamp; })
+                        .map(function (o) {
+                            var os = _clipSnapshot(o);
+                            if (typeof o.stringifyJSONFields === 'function') {
+                                o.stringifyJSONFields();
+                                os.configjson = o.configjson;
+                                os.transformconfigjson = o.transformconfigjson;
+                                os.fontesstampsjson = o.fontesstampsjson;
+                                os.queryconfigjson = o.queryconfigjson || JSON.stringify(o.queryConfig || {});
+                            }
+                            return os;
+                        });
+                    snap._children.push(itemSnap);
+                });
+            snapshots.push(snap);
+        });
+    } else if (type === 'containerItem') {
+        lookup = window.appState.containerItems;
+        stamps.forEach(function (st) {
+            var item = lookup.find(function (x) { return x.mdashcontaineritemstamp === st; });
+            if (!item) return;
+            var snap = _clipSnapshot(item);
+            snap._objects = window.appState.containerItemObjects
+                .filter(function (o) { return o.mdashcontaineritemstamp === st; })
+                .map(function (o) {
+                    var os = _clipSnapshot(o);
+                    if (typeof o.stringifyJSONFields === 'function') {
+                        o.stringifyJSONFields();
+                        os.configjson = o.configjson;
+                        os.transformconfigjson = o.transformconfigjson;
+                        os.fontesstampsjson = o.fontesstampsjson;
+                        os.queryconfigjson = o.queryconfigjson || JSON.stringify(o.queryConfig || {});
+                    }
+                    return os;
+                });
+            snapshots.push(snap);
+        });
+    } else if (type === 'object') {
+        lookup = window.appState.containerItemObjects;
+        stamps.forEach(function (st) {
+            var o = lookup.find(function (x) { return x.mdashcontaineritemobjectstamp === st; });
+            if (!o) return;
+            if (typeof o.stringifyJSONFields === 'function') o.stringifyJSONFields();
+            var snap = _clipSnapshot(o);
+            snap.configjson = o.configjson;
+            snap.transformconfigjson = o.transformconfigjson;
+            snap.fontesstampsjson = o.fontesstampsjson;
+            snap.queryconfigjson = o.queryconfigjson || JSON.stringify(o.queryConfig || {});
+            snapshots.push(snap);
+        });
+    }
+
+    if (!snapshots.length) return;
+
+    GMDashClipboard.type = type;
+    GMDashClipboard.items = snapshots;
+    GMDashClipboard.sourceStamps = stamps.slice();
+
+    // Actualizar estado reactivo para os botões de paste
+    window.appState.clipboardType = type;
+
+    // Visual feedback — marcar como "copied"
+    _clipUpdateCopiedVisuals();
+
+    var labels = { container: 'container(s)', containerItem: 'item(ns)', object: 'objecto(s)' };
+    if (typeof alertify !== 'undefined') {
+        alertify.success(snapshots.length + ' ' + (labels[type] || 'elemento(s)') + ' copiado(s) — Ctrl+V para colar');
+    }
+}
+
+/**
+ * Cola o conteúdo do clipboard no contexto adequado.
+ *  - Containers: colados ao dashboard (nova cópia)
+ *  - ContainerItems: colados no container seleccionado (ou no container do item seleccionado)
+ *  - Objects: colados no item seleccionado (ou no item do objecto seleccionado)
+ */
+function mdashPasteClipboard() {
+    var clip = GMDashClipboard;
+    if (!clip.type || !clip.items.length) {
+        if (typeof alertify !== 'undefined') alertify.warning('Nada para colar. Use Ctrl+C primeiro.');
+        return;
+    }
+
+    var pastedCount = 0;
+
+    if (clip.type === 'container') {
+        clip.items.forEach(function (snap) {
+            pastedCount += _clipPasteContainer(snap);
+        });
+    } else if (clip.type === 'containerItem') {
+        // Determinar container destino
+        var targetContainerStamp = _clipResolveTargetContainer();
+        if (!targetContainerStamp) {
+            if (typeof alertify !== 'undefined') alertify.warning('Seleccione um container para colar o(s) item(ns).');
+            return;
+        }
+        clip.items.forEach(function (snap) {
+            pastedCount += _clipPasteContainerItem(snap, targetContainerStamp);
+        });
+    } else if (clip.type === 'object') {
+        var targetItemStamp = _clipResolveTargetItem();
+        if (!targetItemStamp) {
+            if (typeof alertify !== 'undefined') alertify.warning('Seleccione um item para colar o(s) objecto(s).');
+            return;
+        }
+        clip.items.forEach(function (snap) {
+            pastedCount += _clipPasteObject(snap, targetItemStamp);
+        });
+    }
+
+    if (pastedCount > 0) {
+        setTimeout(function () {
+            renderAllContainerItemTemplates();
+            if (typeof initDragAndDrop === 'function') initDragAndDrop();
+        }, 50);
+        var labels = { container: 'container(s)', containerItem: 'item(ns)', object: 'objecto(s)' };
+        if (typeof alertify !== 'undefined') alertify.success(pastedCount + ' ' + (labels[clip.type] || 'elemento(s)') + ' colado(s)');
+    }
+}
+
+// ── Paste helpers ──────────────────────────────────────────────────────────
+
+function _clipPasteContainer(snap) {
+    var newStamp = generateUUID();
+    var data = _clipDeepClone(snap);
+    data.mdashcontainerstamp = newStamp;
+    data.dashboardstamp = GMDashStamp;
+    data.titulo = (data.titulo || 'Container') + ' (cópia)';
+    data.ordem = (window.appState.containers.length + 1);
+    delete data._children;
+
+    var newContainer = new MdashContainer(data);
+    window.appState.containers.push(newContainer);
+    if (typeof realTimeComponentSync === 'function') realTimeComponentSync(newContainer, newContainer.table, newContainer.idfield);
+
+    // Colar items filhos
+    if (snap._children && snap._children.length) {
+        snap._children.forEach(function (childSnap) {
+            _clipPasteContainerItem(childSnap, newStamp);
+        });
+    }
+    return 1;
+}
+
+function _clipPasteContainerItem(snap, targetContainerStamp) {
+    var newStamp = generateUUID();
+    var data = _clipDeepClone(snap);
+    data.mdashcontaineritemstamp = newStamp;
+    data.mdashcontainerstamp = targetContainerStamp;
+    data.dashboardstamp = GMDashStamp;
+    data.ordem = window.appState.containerItems.filter(function (i) { return i.mdashcontainerstamp === targetContainerStamp; }).length + 1;
+    delete data._objects;
+
+    var newItem = new MdashContainerItem(data);
+    window.appState.containerItems.push(newItem);
+    if (typeof realTimeComponentSync === 'function') realTimeComponentSync(newItem, newItem.table, newItem.idfield);
+
+    // Colar objectos filhos
+    if (snap._objects && snap._objects.length) {
+        snap._objects.forEach(function (objSnap) {
+            _clipPasteObject(objSnap, newStamp);
+        });
+    }
+
+    setTimeout(function () { renderContainerItemTemplate(newItem); }, 0);
+    return 1;
+}
+
+function _clipPasteObject(snap, targetItemStamp) {
+    var newStamp = generateUUID();
+    var data = _clipDeepClone(snap);
+    data.mdashcontaineritemobjectstamp = newStamp;
+    data.mdashcontaineritemstamp = targetItemStamp;
+    data.dashboardstamp = GMDashStamp;
+
+    var newObj = new MdashContainerItemObject(data);
+    window.appState.containerItemObjects.push(newObj);
+    if (typeof newObj.stringifyJSONFields === 'function') newObj.stringifyJSONFields();
+    if (typeof realTimeComponentSync === 'function') realTimeComponentSync(newObj, newObj.table, newObj.idfield);
+    return 1;
+}
+
+// ── Resolve target helpers ─────────────────────────────────────────────────
+
+function _clipResolveTargetContainer() {
+    var sel = _currentSelectedComponent;
+    if (!sel) return '';
+    if (sel.type === 'container' && sel.stamp) return sel.stamp;
+    if (sel.type === 'containerItem' && sel.data && sel.data.mdashcontainerstamp) return sel.data.mdashcontainerstamp;
+    if (sel.type === 'slot' && sel.data && sel.data.item) return sel.data.item.mdashcontainerstamp;
+    if (sel.type === 'object' && sel.data && sel.data.mdashcontaineritemstamp) {
+        var item = window.appState.containerItems.find(function (i) { return i.mdashcontaineritemstamp === sel.data.mdashcontaineritemstamp; });
+        return item ? item.mdashcontainerstamp : '';
+    }
+    // Ultimo recurso: se só há um container
+    if (window.appState.containers.length === 1) return window.appState.containers[0].mdashcontainerstamp;
+    return '';
+}
+
+function _clipResolveTargetItem() {
+    var sel = _currentSelectedComponent;
+    if (!sel) return '';
+    if (sel.type === 'containerItem' && sel.stamp) return sel.stamp;
+    if (sel.type === 'slot' && sel.data && sel.data.itemStamp) return sel.data.itemStamp;
+    if (sel.type === 'object' && sel.data && sel.data.mdashcontaineritemstamp) return sel.data.mdashcontaineritemstamp;
+    return '';
+}
+
+// ── Visual feedback ────────────────────────────────────────────────────────
+
+function _clipUpdateCopiedVisuals() {
+    $('.mdash-clipboard-copied').removeClass('mdash-clipboard-copied');
+    var clip = GMDashClipboard;
+    if (!clip.sourceStamps.length) return;
+    clip.sourceStamps.forEach(function (st) {
+        $("[data-stamp='" + st + "']").addClass('mdash-clipboard-copied');
+    });
+}
+
+// ============================================================================
+// MULTI-SELECTION ENGINE — Ctrl+Click, Shift+Click (estilo Windows Explorer)
+// ============================================================================
+
+/**
+ * Gere a selecção múltipla. Chamado pelos click handlers de container, item e object.
+ *
+ * @param {string} type      - 'container' | 'containerItem' | 'object'
+ * @param {string} stamp     - stamp do elemento clicado
+ * @param {object} event     - evento DOM (para ler ctrlKey/metaKey/shiftKey)
+ * @param {Array}  orderedList - lista ordenada de stamps do mesmo tipo visíveis (para Shift range)
+ * @returns {boolean} true se o click foi tratado como multi-select, false se deve prosseguir com single-select
+ */
+function mdashHandleMultiSelect(type, stamp, event, orderedList) {
+    var ms = GMDashMultiSelection;
+
+    // Tecla Ctrl/Cmd — toggle individual
+    if (event.ctrlKey || event.metaKey) {
+        if (ms.type && ms.type !== type) {
+            // Tipo diferente → limpar e começar nova selecção
+            ms.stamps = [];
+        }
+        ms.type = type;
+        var idx = ms.stamps.indexOf(stamp);
+        if (idx > -1) {
+            ms.stamps.splice(idx, 1);
+            if (!ms.stamps.length) { ms.type = ''; ms.anchorStamp = ''; }
+        } else {
+            ms.stamps.push(stamp);
+            ms.anchorStamp = stamp;
+        }
+        _multiSelUpdateVisuals(type);
+        return true;
+    }
+
+    // Tecla Shift — range selection
+    if (event.shiftKey && ms.anchorStamp && ms.type === type && orderedList && orderedList.length) {
+        var anchorIdx = orderedList.indexOf(ms.anchorStamp);
+        var currentIdx = orderedList.indexOf(stamp);
+        if (anchorIdx === -1 || currentIdx === -1) return false;
+        var start = Math.min(anchorIdx, currentIdx);
+        var end = Math.max(anchorIdx, currentIdx);
+        ms.stamps = orderedList.slice(start, end + 1);
+        _multiSelUpdateVisuals(type);
+        return true;
+    }
+
+    // Click normal sem modificadores → limpar multi-selecção
+    if (ms.stamps.length > 0) {
+        mdashClearMultiSelection();
+    }
+    // Definir anchor para futura Shift-selection
+    ms.type = type;
+    ms.anchorStamp = stamp;
+    return false;
+}
+
+/**
+ * Limpa toda a multi-selecção.
+ */
+function mdashClearMultiSelection() {
+    GMDashMultiSelection.type = '';
+    GMDashMultiSelection.stamps = [];
+    GMDashMultiSelection.anchorStamp = '';
+    _multiSelUpdateVisuals('');
+}
+
+/**
+ * Actualiza classes CSS de multi-selecção no DOM.
+ */
+function _multiSelUpdateVisuals(type) {
+    // Limpar todas as marcações anteriores
+    $('.mdash-multi-selected').removeClass('mdash-multi-selected');
+    var ms = GMDashMultiSelection;
+    if (!ms.stamps.length) return;
+
+    ms.stamps.forEach(function (st) {
+        if (type === 'container') {
+            $(".mdash-canvas-container[data-stamp='" + st + "']").addClass('mdash-multi-selected');
+            // Sidebar
+            $(".mdash-sidebar-item[data-stamp='" + st + "']").addClass('mdash-multi-selected');
+        } else if (type === 'containerItem') {
+            $(".mdash-canvas-item[data-stamp='" + st + "']").addClass('mdash-multi-selected');
+        } else if (type === 'object') {
+            $(".mdash-slot-zone-render[data-object-stamp='" + st + "']").addClass('mdash-multi-selected');
+        }
+    });
+}
+
+// ============================================================================
+// KEYBOARD SHORTCUTS — Ctrl+C, Ctrl+V, Delete, Escape
+// ============================================================================
+
+function _mdashInitKeyboardShortcuts() {
+    $(document).off('keydown.mdashclip').on('keydown.mdashclip', function (e) {
+        // Ignorar se o foco está num input/textarea/select/editor
+        var tag = (e.target.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        if ($(e.target).closest('.m-editor, .ace_editor, [contenteditable]').length) return;
+
+        // Ctrl+C — Copiar
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+            if (!_currentSelectedComponent && !GMDashMultiSelection.stamps.length) return;
+            e.preventDefault();
+            mdashCopySelection();
+            return;
+        }
+
+        // Ctrl+V — Colar
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+            if (!GMDashClipboard.items.length) return;
+            e.preventDefault();
+            mdashPasteClipboard();
+            return;
+        }
+
+        // Ctrl+A — Seleccionar todos do mesmo tipo no contexto
+        if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+            if (!_currentSelectedComponent) return;
+            var t = _currentSelectedComponent.type;
+            if (t !== 'container' && t !== 'containerItem' && t !== 'object') return;
+            e.preventDefault();
+            _mdashSelectAll(t);
+            return;
+        }
+
+        // Delete — Eliminar selecção
+        if (e.key === 'Delete') {
+            if (GMDashMultiSelection.stamps.length > 0) {
+                e.preventDefault();
+                _mdashDeleteMultiSelection();
+                return;
+            }
+            if (_currentSelectedComponent && _currentSelectedComponent.stamp) {
+                var ct = _currentSelectedComponent.type;
+                if (ct === 'container') { e.preventDefault(); deleteContainer(_currentSelectedComponent.stamp); }
+                if (ct === 'containerItem') { e.preventDefault(); deleteContainerItem(_currentSelectedComponent.stamp); }
+            }
+            return;
+        }
+
+        // Escape — Limpar selecção
+        if (e.key === 'Escape') {
+            mdashClearMultiSelection();
+            return;
+        }
+    });
+}
+
+function _mdashSelectAll(type) {
+    var stamps = [];
+    if (type === 'container') {
+        stamps = window.appState.containers.map(function (c) { return c.mdashcontainerstamp; });
+    } else if (type === 'containerItem') {
+        // Seleccionar todos os items do container actual
+        var cs = _clipResolveTargetContainer();
+        if (cs) {
+            stamps = window.appState.containerItems
+                .filter(function (i) { return i.mdashcontainerstamp === cs; })
+                .map(function (i) { return i.mdashcontaineritemstamp; });
+        }
+    } else if (type === 'object') {
+        var is = _clipResolveTargetItem();
+        if (is) {
+            stamps = window.appState.containerItemObjects
+                .filter(function (o) { return o.mdashcontaineritemstamp === is; })
+                .map(function (o) { return o.mdashcontaineritemobjectstamp; });
+        }
+    }
+    if (stamps.length) {
+        GMDashMultiSelection.type = type;
+        GMDashMultiSelection.stamps = stamps;
+        _multiSelUpdateVisuals(type);
+        var labels = { container: 'containers', containerItem: 'items', object: 'objectos' };
+        if (typeof alertify !== 'undefined') alertify.success(stamps.length + ' ' + (labels[type] || '') + ' seleccionados');
+    }
+}
+
+function _mdashDeleteMultiSelection() {
+    var ms = GMDashMultiSelection;
+    if (!ms.stamps.length) return;
+
+    var count = ms.stamps.length;
+    var labels = { container: 'container(s)', containerItem: 'item(ns)', object: 'objecto(s)' };
+    var label = labels[ms.type] || 'elemento(s)';
+
+    showDeleteConfirmation({
+        title: 'Eliminar selecção',
+        message: 'Tem a certeza que deseja eliminar ' + count + ' ' + label + '?',
+        recordToDelete: { table: '', stamp: '', tableKey: '' },
+        onConfirm: function () {
+            var type = ms.type;
+            var stamps = ms.stamps.slice();
+            mdashClearMultiSelection();
+
+            stamps.forEach(function (st) {
+                if (type === 'container') executeDeleteContainer(st);
+                else if (type === 'containerItem') {
+                    GMdashDeleteRecords.push({ table: 'MdashContainerItem', stamp: st, tableKey: 'mdashcontaineritemstamp' });
+                    var itemsArr = (window.appState && window.appState.containerItems) || GMDashContainerItems;
+                    var objsArr = (window.appState && window.appState.containerItemObjects) || GMDashContainerItemObjects;
+                    executeDeleteContainerItem(st, itemsArr, objsArr);
+                } else if (type === 'object') {
+                    var objIdx = window.appState.containerItemObjects.findIndex(function (o) { return o.mdashcontaineritemobjectstamp === st; });
+                    if (objIdx > -1) {
+                        var obj = window.appState.containerItemObjects[objIdx];
+                        GMdashDeleteRecords.push({ table: 'MdashContainerItemObject', stamp: st, tableKey: 'mdashcontaineritemobjectstamp' });
+                        window.appState.containerItemObjects.splice(objIdx, 1);
+                    }
+                }
+            });
+
+            if (type === 'containerItem' || type === 'object') {
+                setTimeout(function () { renderAllContainerItemTemplates(); }, 50);
+            }
+            if (typeof alertify !== 'undefined') alertify.success(count + ' ' + label + ' eliminado(s)');
+        }
+    });
+}
+
+// ============================================================================
 // CORE ENTITY CONSTRUCTORS (100% Mantidos da versão original)
 // ============================================================================
 
@@ -1973,6 +2486,8 @@ function injectSlotDropOverlays(itemStamp, template) {
                 dropHtml += '<button type="button" class="mdash-slot-zone-settings mdash-slot-zone-toolbar-left" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i> Slot</button>';
                 // Centro: propriedades do OBJECTO (mostra o tipo em vez de "Propriedades")
                 dropHtml += '<button type="button" class="mdash-slot-zone-obj-props" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Propriedades do objecto"><i class="' + getObjectTypeIcon(obj.tipo) + '"></i> ' + (obj.tipo || 'Objecto') + '</button>';
+                // Copiar objecto
+                dropHtml += '<button type="button" class="mdash-slot-zone-obj-copy mdash-clip-btn" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Copiar objecto"><i class="glyphicon glyphicon-copy"></i></button>';
                 // Lado direito: remover OBJECTO
                 dropHtml += '<button type="button" class="mdash-slot-zone-remove mdash-slot-zone-toolbar-right" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Remover objecto"><i class="glyphicon glyphicon-remove"></i> Remover</button>';
                 dropHtml += '</div>';
@@ -2053,7 +2568,7 @@ function bindSlotDropZoneEvents($drop, itemStamp, slotId) {
         }
     });
 
-    // Click na área de renderização → propriedades do objecto
+    // Click na área de renderização → propriedades do objecto (com multi-select)
     $drop.on('click', '.mdash-slot-zone-render', function (e) {
         e.stopPropagation();
         var stamp = $(this).data('object-stamp');
@@ -2062,6 +2577,13 @@ function bindSlotDropZoneEvents($drop, itemStamp, slotId) {
             return o.mdashcontaineritemobjectstamp === stamp;
         });
         if (!obj) return;
+
+        // Multi-select: Ctrl+Click ou Shift+Click
+        var orderedStamps = window.appState.containerItemObjects
+            .filter(function (o) { return o.mdashcontaineritemstamp === itemStamp; })
+            .map(function (o) { return o.mdashcontaineritemobjectstamp; });
+        if (mdashHandleMultiSelect('object', stamp, e, orderedStamps)) return;
+
         $('.mdash-slot-zone-render.is-selected').removeClass('is-selected');
         $(this).addClass('is-selected');
         _currentSelectedComponent = { type: 'object', stamp: stamp, data: obj };
@@ -2096,6 +2618,17 @@ function bindSlotDropZoneEvents($drop, itemStamp, slotId) {
         $(this).closest('.mdash-slot-zone-obj-block').addClass('object-props-hover');
     }).on('mouseleave', '.mdash-slot-zone-obj-props', function () {
         $(this).closest('.mdash-slot-zone-obj-block').removeClass('object-props-hover');
+    });
+
+    // Click 📋 copiar objecto
+    $drop.on('click', '.mdash-slot-zone-obj-copy', function (e) {
+        e.stopPropagation();
+        var stamp = $(this).data('object-stamp');
+        if (!stamp) return;
+        _currentSelectedComponent = { type: 'object', stamp: stamp, data: null };
+        GMDashMultiSelection.stamps = [];
+        GMDashMultiSelection.type = '';
+        mdashCopySelection();
     });
 
     // Hover × remove → realça o bloco do objecto (vermelho)
@@ -2437,12 +2970,14 @@ function initModernDashboardUI() {
     mainHtml += '              <div class="mdash-sidebar-list">';
     mainHtml += '                <p v-if="containers.length === 0" class="text-muted text-center" style="margin-top: 10px;"><small>Nenhum container</small></p>';
     mainHtml += '                <div v-for="(container, index) in $computed.sortedContainers()" :key="container.mdashcontainerstamp" class="mdash-sidebar-item mdash-sidebar-container" :data-stamp="container.mdashcontainerstamp">';
-    mainHtml += '                  <div class="mdash-sidebar-item-content" @click="selectContainer(container.mdashcontainerstamp)">';
+    mainHtml += '                  <div class="mdash-sidebar-item-content" @click="selectContainer(container.mdashcontainerstamp, $event)">';
     mainHtml += '                    <i class="glyphicon glyphicon-th-large"></i>';
     mainHtml += '                    <span>{{ container.titulo || container.codigo || \'Sem nome\' }}</span>';
     mainHtml += '                    <span v-if="getContainerItemsCount(container.mdashcontainerstamp) > 0" class="badge badge-info">{{ getContainerItemsCount(container.mdashcontainerstamp) }}</span>';
     mainHtml += '                  </div>';
     mainHtml += '                  <div class="mdash-sidebar-item-actions">';
+    mainHtml += '                    <button type="button" @click.stop="clipCopy(\'container\', container.mdashcontainerstamp)" class="btn btn-xs btn-default mdash-clip-btn" title="Copiar container"><i class="glyphicon glyphicon-copy"></i></button>';
+    mainHtml += '                    <button type="button" v-if="$computed.clipboardType() === \'containerItem\'" @click.stop="clipPasteIntoContainer(container.mdashcontainerstamp)" class="btn btn-xs btn-default mdash-clip-btn mdash-clip-paste" title="Colar item(ns) aqui"><i class="glyphicon glyphicon-paste"></i></button>';
     mainHtml += '                    <button type="button" @click.stop="deleteContainer(container.mdashcontainerstamp)" class="btn btn-xs mdash-btn-delete">';
     mainHtml += '                      <i class="glyphicon glyphicon-trash"></i>';
     mainHtml += '                    </button>';
@@ -2504,12 +3039,14 @@ function initModernDashboardUI() {
     mainHtml += '        <i class="glyphicon glyphicon-info-sign"></i>';
     mainHtml += '        <p>Arraste um Container para começar a construir seu dashboard.</p>';
     mainHtml += '      </div>';
-    mainHtml += '      <div v-for="(container, index) in $computed.sortedContainers()" :key="container.mdashcontainerstamp" class="mdash-canvas-container" :data-stamp="container.mdashcontainerstamp" @click.stop="selectContainer(container.mdashcontainerstamp)" :class="{\'is-selected\': selectedComponent.stamp === container.mdashcontainerstamp}">';
+    mainHtml += '      <div v-for="(container, index) in $computed.sortedContainers()" :key="container.mdashcontainerstamp" class="mdash-canvas-container" :data-stamp="container.mdashcontainerstamp" @click.stop="selectContainer(container.mdashcontainerstamp, $event)" :class="{\'is-selected\': selectedComponent.stamp === container.mdashcontainerstamp}">';
     mainHtml += '        <div class="mdash-container-label">Container {{ index + 1 }}</div>';
     mainHtml += '        <div class="mdash-canvas-container-header">';
     mainHtml += '          <div class="mdash-container-drag-handle" title="Arraste para mover o container"><i class="glyphicon glyphicon-move"></i></div>';
     mainHtml += '          <input type="text" class="mdash-inline-title" :value="container.titulo" @change.stop="updateContainerTitle(container, $event)" @click.stop placeholder="Container sem título" />';
     mainHtml += '          <div class="mdash-canvas-container-actions">';
+    mainHtml += '            <button type="button" @click.stop="clipCopy(\'container\', container.mdashcontainerstamp)" class="btn btn-xs btn-default mdash-clip-btn" title="Copiar container"><i class="glyphicon glyphicon-copy"></i></button>';
+    mainHtml += '            <button type="button" v-if="$computed.clipboardType() === \'containerItem\'" @click.stop="clipPasteIntoContainer(container.mdashcontainerstamp)" class="btn btn-xs btn-default mdash-clip-btn mdash-clip-paste" title="Colar item(ns) aqui"><i class="glyphicon glyphicon-paste"></i></button>';
     mainHtml += '            <button type="button" @click.stop="editContainer(container.mdashcontainerstamp)" class="btn btn-xs btn-default" title="Configurar"><i class="glyphicon glyphicon-cog"></i></button>';
     mainHtml += '            <button type="button" @click.stop="deleteContainer(container.mdashcontainerstamp)" class="btn btn-xs btn-primary" title="Eliminar"><i class="glyphicon glyphicon-trash"></i></button>';
     mainHtml += '          </div>';
@@ -2519,7 +3056,7 @@ function initModernDashboardUI() {
     mainHtml += '            <div v-if="getContainerItems(container.mdashcontainerstamp).length === 0" class="mdash-canvas-empty-items">';
     mainHtml += '              <small class="text-muted">Arraste um Container Item para este container</small>';
     mainHtml += '            </div>';
-    mainHtml += '            <div v-for="item in getContainerItems(container.mdashcontainerstamp)" :key="item.mdashcontaineritemstamp" class="mdash-canvas-item" :class="{\'is-selected\': selectedComponent.stamp === item.mdashcontaineritemstamp}" :data-stamp="item.mdashcontaineritemstamp" @click.stop="selectContainerItem(item.mdashcontaineritemstamp)" :style=\"getItemFlex(item)\">';
+    mainHtml += '            <div v-for="item in getContainerItems(container.mdashcontainerstamp)" :key="item.mdashcontaineritemstamp" class="mdash-canvas-item" :class="{\'is-selected\': selectedComponent.stamp === item.mdashcontaineritemstamp}" :data-stamp="item.mdashcontaineritemstamp" @click.stop="selectContainerItem(item.mdashcontaineritemstamp, $event)" :style=\"getItemFlex(item)\">';
     mainHtml += '              <div class="mdash-canvas-item-card">';
     mainHtml += '                <div class="mdash-item-resize-handle mdash-item-resize-handle-left" title="Redimensionar (2-12 colunas; ALT para 1)"></div>';
     mainHtml += '                <div class="mdash-item-resize-handle mdash-item-resize-handle-right" title="Redimensionar (2-12 colunas; ALT para 1)"></div>';
@@ -2545,6 +3082,8 @@ function initModernDashboardUI() {
     mainHtml += '                      </div>';
     mainHtml += '                    </div>';
     mainHtml += '                    <div class="mdash-item-header-actions">';
+    mainHtml += '                    <button type="button" @click.stop="clipCopy(\'containerItem\', item.mdashcontaineritemstamp)" class="btn btn-xs btn-default mdash-clip-btn" title="Copiar item"><i class="glyphicon glyphicon-copy"></i></button>';
+    mainHtml += '                    <button type="button" v-if="$computed.clipboardType() === \'object\'" @click.stop="clipPasteIntoItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-default mdash-clip-btn mdash-clip-paste" title="Colar objecto(s) aqui"><i class="glyphicon glyphicon-paste"></i></button>';
     mainHtml += '                    <button type="button" @click.stop="editContainerItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-default" title="Configurar"><i class="glyphicon glyphicon-cog"></i></button>';
     mainHtml += '                    <button type="button" @click.stop="deleteContainerItem(item.mdashcontaineritemstamp)" class="btn btn-xs btn-primary" title="Eliminar"><i class="glyphicon glyphicon-trash"></i></button>';
     mainHtml += '                  </div>';
@@ -2620,7 +3159,8 @@ function initModernDashboardUI() {
         containers: GMDashContainers,
         containerItems: GMDashContainerItems,
         containerItemObjects: GMDashContainerItemObjects,
-        fontes: GMDashFontes
+        fontes: GMDashFontes,
+        clipboardType: ''
     });
 
     // Inicializa PetiteVue com reatividade (sem getters)
@@ -2647,6 +3187,10 @@ function initModernDashboardUI() {
                 return window.appState.containers.slice().sort(function (a, b) {
                     return (a.ordem || 0) - (b.ordem || 0);
                 });
+            },
+
+            clipboardType: function () {
+                return window.appState.clipboardType || '';
             }
         },
 
@@ -2867,6 +3411,47 @@ function initModernDashboardUI() {
             deleteFonte(stamp);
         },
 
+        // ── Copy / Paste via botões UI ──────────────────────────────
+        clipCopy: function (type, stamp) {
+            // Configura single-selection temporária e copia
+            _currentSelectedComponent = { type: type, stamp: stamp, data: null };
+            GMDashMultiSelection.stamps = [];
+            GMDashMultiSelection.type = '';
+            mdashCopySelection();
+        },
+
+        clipPasteIntoContainer: function (containerStamp) {
+            // Paste de containerItems no container indicado
+            if (!GMDashClipboard.items.length || GMDashClipboard.type !== 'containerItem') return;
+            var pastedCount = 0;
+            GMDashClipboard.items.forEach(function (snap) {
+                pastedCount += _clipPasteContainerItem(snap, containerStamp);
+            });
+            if (pastedCount > 0) {
+                setTimeout(function () {
+                    renderAllContainerItemTemplates();
+                    if (typeof initDragAndDrop === 'function') initDragAndDrop();
+                }, 50);
+                if (typeof alertify !== 'undefined') alertify.success(pastedCount + ' item(ns) colado(s)');
+            }
+        },
+
+        clipPasteIntoItem: function (itemStamp) {
+            // Paste de objectos no item indicado
+            if (!GMDashClipboard.items.length || GMDashClipboard.type !== 'object') return;
+            var pastedCount = 0;
+            GMDashClipboard.items.forEach(function (snap) {
+                pastedCount += _clipPasteObject(snap, itemStamp);
+            });
+            if (pastedCount > 0) {
+                setTimeout(function () {
+                    renderAllContainerItemTemplates();
+                    if (typeof initDragAndDrop === 'function') initDragAndDrop();
+                }, 50);
+                if (typeof alertify !== 'undefined') alertify.success(pastedCount + ' objecto(s) colado(s)');
+            }
+        },
+
         quickAddItemFromRail: function () {
             var selected = this.selectedComponent || {};
             if (selected.type === "container" && selected.stamp) {
@@ -2905,7 +3490,13 @@ function initModernDashboardUI() {
             this.quickAddItemFromRail();
         },
 
-        selectContainer: function (stamp) {
+        selectContainer: function (stamp, evt) {
+            evt = evt || {};
+            // Multi-select: Ctrl+Click ou Shift+Click
+            var orderedStamps = window.appState.containers
+                .slice().sort(function (a, b) { return (a.ordem || 0) - (b.ordem || 0); })
+                .map(function (c) { return c.mdashcontainerstamp; });
+            if (mdashHandleMultiSelect('container', stamp, evt, orderedStamps)) return;
             this.openTemplatePickerFor = "";
             $('.mdash-slot-zone-drop.is-selected').removeClass('is-selected');
             var container = window.appState.containers.find(function (c) { return c.mdashcontainerstamp === stamp; });
@@ -2914,11 +3505,20 @@ function initModernDashboardUI() {
             handleComponentProperties(this.selectedComponent);
         },
 
-        selectContainerItem: function (stamp) {
-            this.openTemplatePickerFor = "";
-            $('.mdash-slot-zone-drop.is-selected').removeClass('is-selected');
+        selectContainerItem: function (stamp, evt) {
+            evt = evt || {};
+            // Multi-select: Ctrl+Click ou Shift+Click
+            // Ordered list: items do mesmo container
             var item = window.appState.containerItems.find(function (i) { return i.mdashcontaineritemstamp === stamp; });
             if (!item) return;
+            var parentStamp = item.mdashcontainerstamp;
+            var orderedStamps = window.appState.containerItems
+                .filter(function (i) { return i.mdashcontainerstamp === parentStamp; })
+                .sort(function (a, b) { return (a.ordem || 0) - (b.ordem || 0); })
+                .map(function (i) { return i.mdashcontaineritemstamp; });
+            if (mdashHandleMultiSelect('containerItem', stamp, evt, orderedStamps)) return;
+            this.openTemplatePickerFor = "";
+            $('.mdash-slot-zone-drop.is-selected').removeClass('is-selected');
             this.selectedComponent = { type: "containerItem", stamp: stamp, data: item };
             handleComponentProperties(this.selectedComponent);
         },
@@ -2970,6 +3570,7 @@ function initModernDashboardUI() {
             });
             initDragAndDrop();
             initPropertiesTabs();
+            _mdashInitKeyboardShortcuts();
             setTimeout(syncAllContainerItemsLayout, 0);
         }
     }).mount('#m-dash-main-container');
@@ -7280,6 +7881,25 @@ function loadModernDashboardStyles() {
     styles += "#mdash-delete-confirm-modal .btn-default:hover { background: #f9fafb; border-color: #9ca3af; }";
     styles += "#mdash-delete-confirm-modal .mdash-btn-delete { background: linear-gradient(135deg, #dc3545, #c82333); border: none; color: white; box-shadow: 0 2px 8px rgba(220,53,69,0.3); }";
     styles += "#mdash-delete-confirm-modal .mdash-btn-delete:hover { background: linear-gradient(135deg, #c82333, #bd2130); box-shadow: 0 4px 12px rgba(220,53,69,0.4); transform: translateY(-1px); }";
+
+    // ===== MULTI-SELECTION & CLIPBOARD VISUALS =====
+    styles += ".mdash-multi-selected { outline: 2px dashed var(--md-primary) !important; outline-offset: 2px; position: relative; }";
+    styles += ".mdash-multi-selected::after { content: '✓'; position: absolute; top: 4px; right: 8px; background: var(--md-primary); color: #fff; font-size: 10px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 20; box-shadow: 0 2px 6px rgba(0,0,0,0.2); pointer-events: none; }";
+    styles += ".mdash-clipboard-copied { outline: 2px dashed #22c55e !important; outline-offset: 1px; }";
+    styles += "@keyframes mdash-copied-pulse { 0% { outline-color: #22c55e; } 50% { outline-color: #86efac; } 100% { outline-color: #22c55e; } }";
+    styles += ".mdash-clipboard-copied { animation: mdash-copied-pulse 1.5s ease-in-out 2; }";
+    // Sidebar multi-select
+    styles += ".mdash-sidebar-item.mdash-multi-selected { background: rgba(var(--md-primary-rgb),0.12) !important; }";
+    styles += ".mdash-sidebar-item.mdash-multi-selected::after { top: 50%; right: 6px; transform: translateY(-50%); }";
+
+    // ===== COPY / PASTE BUTTONS =====
+    styles += ".mdash-clip-btn { padding: 2px 5px !important; font-size: 11px !important; opacity: 0.55; transition: opacity 0.15s, background 0.15s; }";
+    styles += ".mdash-clip-btn:hover { opacity: 1; }";
+    styles += ".mdash-clip-paste { opacity: 0.85; color: #22c55e !important; border-color: #22c55e !important; }";
+    styles += ".mdash-clip-paste:hover { opacity: 1; background: rgba(34,197,94,0.1) !important; }";
+    // Object toolbar copy button
+    styles += ".mdash-slot-zone-obj-copy { display:inline-flex; align-items:center; gap:3px; background:rgba(255,255,255,0.18); color:#fff !important; border:none; border-radius:3px; padding:2px 6px; font-size:10px; cursor:pointer; transition:background 0.15s, box-shadow 0.15s; line-height:1.4; flex-shrink:0; opacity:0.7; }";
+    styles += ".mdash-slot-zone-obj-copy:hover { background:rgba(255,255,255,0.38); opacity:1; box-shadow:0 0 0 2px rgba(255,255,255,0.25); }";
 
     $('<style id="mdash-modern-styles" data-mdash-style-version="' + styleVersion + '">').text(styles).appendTo('head');
 
