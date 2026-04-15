@@ -2070,11 +2070,12 @@ function _mciReadConfig($root, obj) {
     var _isPieCt = (cfg.chartType === 'pie' || cfg.chartType === 'donut' || cfg.chartType === 'funnel');
     if (_isPieCt) {
         cfg.xField = $root.find('.mcbi-pie-lf').val() || '';
-        var _pf = $root.find('.mcbi-pie-vf').val() || '';
+        var _pieVf = $root.find('.mcbi-pie-vf').val() || '';
         if (!cfg.series || !cfg.series.length) {
-            cfg.series = [{ field: _pf, name: '', type: 'default', serType: 'default', stack: '', color: '' }];
+            cfg.series = [{ field: _pieVf, name: '', type: 'default', serType: 'default', stack: '', color: '' }];
         } else {
-            cfg.series[0] = Object.assign({}, cfg.series[0], { field: _pf });
+            cfg.series[0].field = _pieVf;
+            for (var _si = 1; _si < cfg.series.length; _si++) cfg.series[_si].field = '';
         }
         cfg.piePalette = $root.find('.mcbi-pp-btn.is-on').data('pp') || 'theme';
         if (cfg.piePalette === 'custom') {
@@ -2085,7 +2086,7 @@ function _mciReadConfig($root, obj) {
         cfg.xField = $root.find('.mcbi-xf').val() || '';
         cfg.series = [];
         $root.find('.mcbi-sr').each(function () {
-            var $r = $(this), fld = $r.find('.mcbi-sf').val();
+            var $r = $(this), fld = $r.find('.mcbi-sf').val() || '';
             cfg.series.push({
                 field: fld, name: $r.find('.mcbi-sn').val().trim(), serType: $r.find('.mcbi-st').val() || 'default', stack: $r.find('.mcbi-sstack').val().trim(), color: $r.find('.mcbi-sc-phc').val() || $r.find('.mcbi-sc').val() || '', type: 'default',
                 gradient: $r.find('.mcbi-s-gradient').is(':checked'),
@@ -2507,15 +2508,22 @@ function renderChartPropertiesInline(obj, panel) {
 
     // ── Events ─────────────────────────────────────────────────────────────
     var _mciTimer = null;
+    // Expor timer no painel para que possa ser cancelado quando o painel é destruído
+    panel.data('_mciTimer', null);
     function fire() {
         clearTimeout(_mciTimer);
         _mciTimer = setTimeout(function () {
+            // Guard: se o DOM do editor já não existe (ex: user mudou para slot), não ler config vazia
+            if (!panel.find('.mcbi-ct-btn').length) { _mciTimer = null; panel.removeData('_mciTimer'); return; }
             var newCfg = _mciReadConfig(panel, obj);
             obj.config = newCfg;
             obj.configjson = JSON.stringify(newCfg);
             if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
             _mciRerender(obj);
+            _mciTimer = null;
+            panel.removeData('_mciTimer');
         }, 300);
+        panel.data('_mciTimer', _mciTimer);
     }
 
     // ── Transform Builder — abre num modal dedicado ────────────────────────

@@ -1143,7 +1143,7 @@ function showDeleteConfirmation(options) {
     modalHtml += '      </div>';
     modalHtml += '      <div class="modal-footer">';
     modalHtml += '        <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>';
-    modalHtml += '        <button type="button" class="btn btn-danger" id="mdash-delete-confirm-btn">Eliminar</button>';
+    modalHtml += '        <button type="button" class="btn mdash-btn-delete" id="mdash-delete-confirm-btn">Eliminar</button>';
     modalHtml += '      </div>';
     modalHtml += '    </div>';
     modalHtml += '  </div>';
@@ -2414,7 +2414,7 @@ function initModernDashboardUI() {
     mainHtml += '                    <span>{{ filter.descricao || filter.codigo || \'Sem nome\' }}</span>';
     mainHtml += '                  </div>';
     mainHtml += '                  <div class="mdash-sidebar-item-actions">';
-    mainHtml += '                    <button type="button" @click.stop="deleteFilter(filter.mdashfilterstamp)" class="btn btn-xs btn-danger">';
+    mainHtml += '                    <button type="button" @click.stop="deleteFilter(filter.mdashfilterstamp)" class="btn btn-xs mdash-btn-delete">';
     mainHtml += '                      <i class="glyphicon glyphicon-trash"></i>';
     mainHtml += '                    </button>';
     mainHtml += '                  </div>';
@@ -2443,7 +2443,7 @@ function initModernDashboardUI() {
     mainHtml += '                    <span v-if="getContainerItemsCount(container.mdashcontainerstamp) > 0" class="badge badge-info">{{ getContainerItemsCount(container.mdashcontainerstamp) }}</span>';
     mainHtml += '                  </div>';
     mainHtml += '                  <div class="mdash-sidebar-item-actions">';
-    mainHtml += '                    <button type="button" @click.stop="deleteContainer(container.mdashcontainerstamp)" class="btn btn-xs btn-danger">';
+    mainHtml += '                    <button type="button" @click.stop="deleteContainer(container.mdashcontainerstamp)" class="btn btn-xs mdash-btn-delete">';
     mainHtml += '                      <i class="glyphicon glyphicon-trash"></i>';
     mainHtml += '                    </button>';
     mainHtml += '                  </div>';
@@ -2475,7 +2475,7 @@ function initModernDashboardUI() {
     mainHtml += '                    <span class="mdash-fonte-status" :class="\'status-\' + (fonte.status || \'idle\')"></span>';
     mainHtml += '                  </div>';
     mainHtml += '                  <div class="mdash-sidebar-item-actions">';
-    mainHtml += '                    <button type="button" @click.stop="deleteFonte(fonte.mdashfontestamp)" class="btn btn-xs btn-danger">';
+    mainHtml += '                    <button type="button" @click.stop="deleteFonte(fonte.mdashfontestamp)" class="btn btn-xs mdash-btn-delete">';
     mainHtml += '                      <i class="glyphicon glyphicon-trash"></i>';
     mainHtml += '                    </button>';
     mainHtml += '                  </div>';
@@ -3068,6 +3068,15 @@ var _SCOPE_RESOLVERS = {
             parentContainerStamp:     ci ? ci.mdashcontainerstamp : '',
             label: 'Objecto'
         };
+    },
+    global: function () {
+        return {
+            scopeType:  'global',
+            scopeStamp: '',
+            parentContainerItemStamp: '',
+            parentContainerStamp:     '',
+            label: 'Global'
+        };
     }
 };
 
@@ -3164,7 +3173,7 @@ function renderFontesList(fontes, canRemove) {
         html += '    <span class="mdash-fonte-status ' + statusClass + '" title="' + fStatus + '"></span>';
         html += '    <button type="button" class="btn btn-xs btn-default mdash-fonte-run" data-fontestamp="' + fStamp + '" title="Executar"><i class="glyphicon glyphicon-play"></i></button>';
         if (canRemove) {
-            html += '    <button type="button" class="btn btn-xs btn-danger mdash-fonte-remove" data-fontestamp="' + fStamp + '" title="Remover"><i class="glyphicon glyphicon-trash"></i></button>';
+            html += '    <button type="button" class="btn btn-xs mdash-btn-delete mdash-fonte-remove" data-fontestamp="' + fStamp + '" title="Remover"><i class="glyphicon glyphicon-trash"></i></button>';
         }
         html += '  </div>';
         html += '</div>';
@@ -5246,10 +5255,10 @@ function updatePropsComponentHeader(selectedComponent) {
             iconClass = getObjectTypeIcon(d.tipo || '') || 'glyphicon glyphicon-stop';
             typeLabel = 'Objecto';
             nameLabel = d.tipo || d.mdashcontaineritemobjectstamp || '';
-        } else if (selectedComponent.type === 'object') {
-            iconClass = 'glyphicon glyphicon-stop';
-            typeLabel = 'Objecto';
-            nameLabel = d.tipo || d.mdashcontaineritemobjectstamp || '';
+        } else if (selectedComponent.type === 'global') {
+            iconClass = 'glyphicon glyphicon-hdd';
+            typeLabel = 'Fontes Globais';
+            nameLabel = '';
         }
     }
 
@@ -5264,6 +5273,14 @@ function updatePropsComponentHeader(selectedComponent) {
 function handleComponentProperties(selectedComponent) {
     var panel = $('#mdash-properties-panel');
     if (!panel.length) return;
+
+    // Cancelar qualquer timer pendente do editor de gráficos
+    var _pendingTimer = panel.data('_mciTimer');
+    if (_pendingTimer) { clearTimeout(_pendingTimer); panel.removeData('_mciTimer'); }
+
+    // Limpar TODOS os handlers delegados do contexto anterior (chart / object / slot)
+    // para evitar que change events no novo editor disparem callbacks stale
+    panel.off('.mcbi .objprops .slotprops');
 
     // Restaurar tabs (podem estar ocultas se o último contexto era um slot)
     $('.mdash-props-tab[data-tab="fontes"], .mdash-props-tab[data-tab="actions"]').show();
@@ -6048,6 +6065,13 @@ function _renderObjectPropertiesPanel(obj, panel) {
     panel = panel || $('#mdash-properties-panel');
     if (!panel.length || !obj) return;
 
+    // Cancelar qualquer timer pendente do editor de gráficos anterior
+    var _pendingTimer = panel.data('_mciTimer');
+    if (_pendingTimer) { clearTimeout(_pendingTimer); panel.removeData('_mciTimer'); }
+
+    // Limpar handlers delegados do contexto anterior (slot / objecto genérico)
+    panel.off('.slotprops');
+
     // ── Delegate to type-specific inline editor if one is registered ──────
     var tipoEntry = getMdashObjectTypeEntry(obj.tipo);
     if (tipoEntry && typeof tipoEntry.renderPropertiesInline === 'function') {
@@ -6203,6 +6227,15 @@ function showSlotPropertiesEditor(itemStamp, slotId) {
     var panel = $('#mdash-properties-panel');
     if (!panel.length) return;
 
+    // Cancelar qualquer timer pendente do editor de gráficos para evitar que
+    // um fire() tardio leia DOM vazio e limpe a config do objecto anterior
+    var _pendingTimer = panel.data('_mciTimer');
+    if (_pendingTimer) { clearTimeout(_pendingTimer); panel.removeData('_mciTimer'); }
+
+    // Remover handlers delegados do editor de gráficos e de propriedades genéricas
+    // para que change events nos inputs do slot editor não disparem fire() stale
+    panel.off('.mcbi .objprops');
+
     var item = window.appState.containerItems.find(function (i) {
         return i.mdashcontaineritemstamp === itemStamp;
     });
@@ -6326,182 +6359,46 @@ function showSlotPropertiesEditor(itemStamp, slotId) {
 }
 
 // ============================================================================
-// MÓDULO DE FONTES
+// MÓDULO DE FONTES (unificado — todas as funções globais redirigem para o
+// sistema inline: addScopedFonte / editFonteInPanel / removeScopedFonte)
 // ============================================================================
 
 /**
- * Renderiza a lista de fontes na sidebar (versão sidebar global)
+ * Selecciona o scope "global" no painel de propriedades, activando a tab Fontes.
+ * Reutilizado por addNewFonte, editFonte e deleteFonte para garantir
+ * que o painel da direita mostra o contexto correcto.
  */
-function renderSidebarFontesList() {
-    var container = $('#fontes-list');
-    container.empty();
-
-    if (!GMDashFontes || GMDashFontes.length === 0) {
-        container.html('<p class="text-muted text-center" style="margin-top: 10px;"><small>Nenhuma fonte</small></p>');
-        return;
-    }
-
-    GMDashFontes.forEach(function (fonte) {
-        if (!fonte.mdashfontestamp) return;
-
-        var fonteItem = '<div class="mdash-sidebar-item" data-stamp="' + fonte.mdashfontestamp + '">';
-        fonteItem += '  <div class="mdash-sidebar-item-content" onclick="editFonte(\'' + fonte.mdashfontestamp + '\')">';
-        fonteItem += '    <i class="glyphicon glyphicon-hdd"></i>';
-        fonteItem += '    <span>' + (fonte.descricao || fonte.codigo || 'Sem nome') + '</span>';
-        fonteItem += '  </div>';
-        fonteItem += '  <div class="mdash-sidebar-item-actions">';
-        fonteItem += '    <button type="button" onclick="deleteFonte(\'' + fonte.mdashfontestamp + '\'); event.stopPropagation();" class="btn btn-xs btn-danger">';
-        fonteItem += '      <i class="glyphicon glyphicon-trash"></i>';
-        fonteItem += '    </button>';
-        fonteItem += '  </div>';
-        fonteItem += '</div>';
-
-        container.append(fonteItem);
-    });
+function _selectGlobalFontesScope() {
+    _currentSelectedComponent = { type: 'global', data: {} };
+    updatePropsComponentHeader(_currentSelectedComponent);
+    var $propsPanel = $('.mdash-properties');
+    if ($propsPanel.hasClass('is-collapsed')) $propsPanel.removeClass('is-collapsed');
+    activatePropertiesTab('fontes');
+    renderFontesPanel(_currentSelectedComponent);
 }
 
 /**
  * Adiciona uma nova fonte
  */
 function addNewFonte() {
-    var newFonte = new MDashFonte({
-        dashboardstamp: GMDashStamp,
-        scope: 'global'
-    });
-    window.appState.fontes.push(newFonte);
-
-    if (typeof realTimeComponentSync === 'function') {
-        realTimeComponentSync(newFonte, newFonte.table, newFonte.idfield);
-    }
-
-    openFonteEditModal(newFonte);
+    _selectGlobalFontesScope();
+    addScopedFonte('global', '');
 }
 
 /**
  * Edita uma fonte
  */
 function editFonte(fonteStamp) {
-    var fonte = GMDashFontes.find(function (f) {
-        return f.mdashfontestamp === fonteStamp;
-    });
-    if (!fonte) {
-        alertify.error('Fonte não encontrada');
-        return;
-    }
-    openFonteEditModal(fonte);
+    _selectGlobalFontesScope();
+    editFonteInPanel(fonteStamp);
 }
 
 /**
- * Abre modal de edição/criação de fonte de dados
- */
-function openFonteEditModal(fonte) {
-    resetModalOpenState('#mdash-fonte-edit-modal');
-
-    var fonteModalTitle = buildModalEntityTitle("Fonte", fonte.descricao || fonte.codigo || "");
-
-    var tipoFonteOptions = [
-        { value: 'cscript', label: 'CScript PHC CS Web' },
-        { value: 'ajax', label: 'AJAX genérico' },
-        { value: 'static', label: 'Dados estáticos' }
-    ];
-
-    var tipoFonteHtml = tipoFonteOptions.map(function (t) {
-        return '<option value="' + t.value + '">' + t.label + '</option>';
-    }).join('');
-
-    var queryVal = fonte.query || '';
-
-    var modalHtml = '<div class="modal fade" id="mdash-fonte-edit-modal" tabindex="-1">';
-    modalHtml += '<div class="modal-dialog modal-lg"><div class="modal-content">';
-    modalHtml += '<div class="modal-header">';
-    modalHtml += '<button type="button" class="close" data-dismiss="modal">&times;</button>';
-    modalHtml += '<h4 class="modal-title"><i class="glyphicon glyphicon-hdd"></i> ' + fonteModalTitle + '</h4>';
-    modalHtml += '</div>';
-    modalHtml += '<div class="modal-body"><div class="row">';
-    modalHtml += '<div class="col-md-3"><div class="form-group"><label>Código</label>';
-    modalHtml += '<input type="text" class="form-control" v-model="fonteData.codigo" @change="handleChange" /></div></div>';
-    modalHtml += '<div class="col-md-9"><div class="form-group"><label>Descrição</label>';
-    modalHtml += '<input type="text" class="form-control" v-model="fonteData.descricao" @change="handleChange" /></div></div>';
-    modalHtml += '<div class="col-md-4"><div class="form-group"><label>Tipo de Fonte</label>';
-    modalHtml += '<select class="form-control" v-model="fonteData.tipofonte" @change="handleChange"><option value="">-- Selecione --</option>' + tipoFonteHtml + '</select>';
-    modalHtml += '</div></div>';
-    modalHtml += '<div class="col-md-8"><div class="form-group"><label>Parâmetros</label>';
-    modalHtml += '<input type="text" class="form-control" v-model="fonteData.parametros" @change="handleChange" placeholder=\'{}\' /></div></div>';
-    modalHtml += '<div class="col-md-12"><div class="form-group"><label>Query / Endpoint CScript</label>';
-    modalHtml += '<div id="mdash-fonte-query-editor" class="m-editor" style="width:100%;height:180px;">' + queryVal + '</div>';
-    modalHtml += '</div></div>';
-    modalHtml += '</div></div>';
-    modalHtml += '<div class="modal-footer">';
-    modalHtml += '<button type="button" class="btn btn-default" data-dismiss="modal">Fechar</button>';
-    modalHtml += '</div></div></div></div>';
-
-    $('body').append(modalHtml);
-
-    PetiteVue.createApp({
-        fonteData: fonte,
-        handleChange: function () {
-            realTimeComponentSync(this.fonteData, this.fonteData.table, this.fonteData.idfield);
-        }
-    }).mount('#mdash-fonte-edit-modal');
-
-    $('#mdash-fonte-edit-modal').modal('show');
-
-    $('#mdash-fonte-edit-modal').on('shown.bs.modal', function () {
-        handleCodeEditor();
-        var editorEl = document.getElementById('mdash-fonte-query-editor');
-        if (editorEl && typeof ace !== 'undefined') {
-            var aceEd = ace.edit('mdash-fonte-query-editor');
-            aceEd.on('change', function () {
-                fonte.query = aceEd.getValue();
-                realTimeComponentSync(fonte, fonte.table, fonte.idfield);
-            });
-        }
-    });
-}
-
-/**
- * Elimina uma fonte
+ * Elimina uma fonte global (redirige para o sistema unificado).
  */
 function deleteFonte(fonteStamp) {
-    var fonte = GMDashFontes.find(function (f) {
-        return f.mdashfontestamp === fonteStamp;
-    });
-
-    if (!fonte) {
-        alertify.error('Fonte não encontrada');
-        return;
-    }
-
-    var fonteDesc = fonte.descricao || 'Fonte sem descrição';
-    
-    showDeleteConfirmation({
-        title: 'Confirmar eliminação',
-        message: 'Tem a certeza que deseja eliminar a fonte "' + fonteDesc + '"?',
-        recordToDelete: {
-            table: "MDashFonte",
-            stamp: fonteStamp,
-            tableKey: "mdashfontestamp"
-        },
-        onConfirm: function() {
-            executeDeleteFonte(fonteStamp);
-        }
-    });
-}
-
-function executeDeleteFonte(fonteStamp) {
-    var fonte = GMDashFontes.find(function (f) {
-        return f.mdashfontestamp === fonteStamp;
-    });
-
-    if (!fonte) return;
-
-    // Remove do estado reativo
-    var index = window.appState.fontes.indexOf(fonte);
-    if (index > -1) {
-        window.appState.fontes.splice(index, 1);
-    }
-
-    alertify.success('Fonte eliminada com sucesso!');
+    _selectGlobalFontesScope();
+    removeScopedFonte(fonteStamp);
 }
 
 /**
@@ -6590,7 +6487,7 @@ function openFiltersManagerModal() {
             listHtml += '    <button type="button" class="btn btn-xs btn-default" onclick="$(\'#mdash-filters-manager-modal\').modal(\'hide\'); editFilter(\'' + filter.mdashfilterstamp + '\');" title="Editar">';
             listHtml += '      <i class="glyphicon glyphicon-cog"></i>';
             listHtml += '    </button>';
-            listHtml += '    <button type="button" class="btn btn-xs btn-primary" onclick="deleteFilter(\'' + filter.mdashfilterstamp + '\'); openFiltersManagerModal();" title="Eliminar">';
+            listHtml += '    <button type="button" class="btn btn-xs mdash-btn-delete" onclick="deleteFilter(\'' + filter.mdashfilterstamp + '\'); openFiltersManagerModal();" title="Eliminar">';
             listHtml += '      <i class="glyphicon glyphicon-trash"></i>';
             listHtml += '    </button>';
             listHtml += '  </div>';
@@ -6966,8 +6863,14 @@ function loadModernDashboardStyles() {
     styles += ".mdash-sidebar-item-content { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 13px; color: " + t.textColor + "; }";
     styles += ".mdash-sidebar-item-content i { color: var(--md-primary); font-size: 12px; }";
     styles += ".mdash-sidebar-item-content .badge { margin-left: auto; background: var(--md-primary); font-size: 10px; }";
-    styles += ".mdash-sidebar-item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }";
-    styles += ".mdash-sidebar-item:hover .mdash-sidebar-item-actions { opacity: 1; }";
+
+    // ── Botão de eliminar unificado (substitui btn-danger para evitar interferência do PHC) ──
+    styles += ".mdash-btn-delete { background: #d43f3a !important; border: 1px solid #d43f3a !important; color: #fff !important; border-radius: 5px; transition: background 0.15s, border-color 0.15s; opacity: 1 !important; visibility: visible !important; display: inline-flex !important; align-items: center; justify-content: center; }";
+    styles += ".mdash-btn-delete:hover, .mdash-btn-delete:focus { background: #b52f2b !important; border-color: #b52f2b !important; color: #fff !important; opacity: 1 !important; }";
+    styles += ".mdash-btn-delete:active { background: #962522 !important; border-color: #962522 !important; color: #fff !important; }";
+    styles += ".mdash-btn-delete i { color: #fff !important; }";
+    styles += ".mdash-sidebar-item-actions { display: flex !important; gap: 4px; opacity: 1 !important; visibility: visible !important; }";
+
     styles += ".mdash-filter-manager-list { max-height: 420px; overflow-y: auto; }";
     styles += ".mdash-filter-manager-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--md-border); border-radius: 10px; background: #fff; margin-bottom: 8px; }";
     styles += ".mdash-filter-manager-row:last-child { margin-bottom: 0; }";
@@ -6975,6 +6878,7 @@ function loadModernDashboardStyles() {
     styles += ".mdash-filter-manager-title { font-weight: 700; color: var(--md-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }";
     styles += ".mdash-filter-manager-meta { font-size: 11px; color: var(--md-muted); margin-top: 2px; }";
     styles += ".mdash-filter-manager-actions { display: flex; gap: 4px; flex-shrink: 0; }";
+
 
     // ===== CANVAS =====
     styles += ".mdash-canvas { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-radius: 14px; border: 1px solid var(--md-border); background: var(--md-surface); box-shadow: 0 12px 28px rgba(2,6,23,0.08); }";
@@ -7290,8 +7194,7 @@ function loadModernDashboardStyles() {
     styles += ".mdash-fonte-list-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }";
     styles += ".mdash-fonte-list-actions .btn { width: 22px; height: 22px; padding: 0; font-size: 10px; border-radius: 5px; display: flex; align-items: center; justify-content: center; background: " + t.itemBg + "; border-color: " + t.itemBorder + "; color: " + t.mutedColor + "; }";
     styles += ".mdash-fonte-list-actions .btn:hover { background: rgba(var(--md-primary-rgb),0.12); color: var(--md-primary); border-color: rgba(var(--md-primary-rgb),0.3); }";
-    styles += ".mdash-fonte-list-actions .btn-danger { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.18); color: rgba(239,68,68,0.7); }";
-    styles += ".mdash-fonte-list-actions .btn-danger:hover { background: rgba(239,68,68,0.15); color: #ef4444; }";
+
     styles += ".mdash-fonte-status { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }";
     styles += ".mdash-fonte-status.status-idle { background: #94a3b8; }";
     styles += ".mdash-fonte-status.status-loading { background: #f59e0b; }";
@@ -7375,8 +7278,8 @@ function loadModernDashboardStyles() {
     styles += "#mdash-delete-confirm-modal .btn { border-radius: 6px; font-weight: 600; font-size: 13px; padding: 8px 18px; transition: all 0.2s; }";
     styles += "#mdash-delete-confirm-modal .btn-default { background: white; border: 1px solid #d1d5db; color: #374151; }";
     styles += "#mdash-delete-confirm-modal .btn-default:hover { background: #f9fafb; border-color: #9ca3af; }";
-    styles += "#mdash-delete-confirm-modal .btn-danger { background: linear-gradient(135deg, #dc3545, #c82333); border: none; color: white; box-shadow: 0 2px 8px rgba(220,53,69,0.3); }";
-    styles += "#mdash-delete-confirm-modal .btn-danger:hover { background: linear-gradient(135deg, #c82333, #bd2130); box-shadow: 0 4px 12px rgba(220,53,69,0.4); transform: translateY(-1px); }";
+    styles += "#mdash-delete-confirm-modal .mdash-btn-delete { background: linear-gradient(135deg, #dc3545, #c82333); border: none; color: white; box-shadow: 0 2px 8px rgba(220,53,69,0.3); }";
+    styles += "#mdash-delete-confirm-modal .mdash-btn-delete:hover { background: linear-gradient(135deg, #c82333, #bd2130); box-shadow: 0 4px 12px rgba(220,53,69,0.4); transform: translateY(-1px); }";
 
     $('<style id="mdash-modern-styles" data-mdash-style-version="' + styleVersion + '">').text(styles).appendTo('head');
 
