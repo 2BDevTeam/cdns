@@ -2429,8 +2429,8 @@ function renderUnifiedLayout(layout, cardData) {
 /**
  * injectSlotDropOverlays(itemStamp, template)
  * Após o card ser renderizado com renderUnifiedLayout (cores/icons visíveis),
- * injeta mini drop-zones apenas nos slots de tipo "content" (body, header, footer).
- * Slots de tipo "text" e "icon" mantêm o conteúdo default do card.
+ * injeta mini drop-zones nos slots de tipo "content", "text" e "html".
+ * Slots de tipo "icon" mantêm o conteúdo default do card.
  */
 function injectSlotDropOverlays(itemStamp, template) {
     var $body = $(".mdash-canvas-item[data-stamp='" + itemStamp + "'] .mdash-canvas-item-body");
@@ -2441,10 +2441,10 @@ function injectSlotDropOverlays(itemStamp, template) {
     var contentSlotIds = {};
     var isCustom = template.isCustomLayout;
 
-    // Nos layouts default, só "content" são slots de drop
+    // Nos layouts default, "content" e "text" são slots de drop (title, body, header, footer)
     // Nos layouts custom (Layout Builder), todos os slots (type "html") recebem drop zone
     slots.forEach(function (s) {
-        if (s.type === 'content' || s.type === 'html') {
+        if (s.type === 'content' || s.type === 'html' || s.type === 'text') {
             contentSlotIds[s.id] = s;
         } else if (isCustom) {
             contentSlotIds[s.id] = s;
@@ -6103,7 +6103,8 @@ function getObjectCatalogDefinitions() {
                 { value: 'TituloItem', label: 'Título do Item', icon: 'glyphicon glyphicon-header', color: 'rgba(236,72,153,0.12)', description: 'Mostra o título do Card (sem fonte de dados)' },
                 { value: 'text', label: 'Texto', icon: 'glyphicon glyphicon-font', color: 'rgba(107,114,128,0.12)', description: 'Bloco de texto livre' },
                 { value: 'image', label: 'Imagem', icon: 'glyphicon glyphicon-picture', color: 'rgba(6,182,212,0.12)', description: 'Imagem ou ícone visual' },
-                { value: 'html', label: 'HTML', icon: 'glyphicon glyphicon-console', color: 'rgba(249,115,22,0.12)', description: 'Conteúdo HTML personalizado' }
+                { value: 'html', label: 'HTML', icon: 'glyphicon glyphicon-console', color: 'rgba(249,115,22,0.12)', description: 'Conteúdo HTML personalizado' },
+                { value: 'customCode', label: 'Código', icon: 'fa fa-code', color: 'rgba(99,102,241,0.12)', description: 'Código JavaScript personalizado' }
             ]
         },
         {
