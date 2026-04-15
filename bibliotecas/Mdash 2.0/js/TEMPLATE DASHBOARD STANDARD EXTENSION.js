@@ -1893,7 +1893,14 @@ function _mciEsc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function _mciGetFontes() {
+// Devolve as fontes visiveis para um objecto (heranca: object → containeritem → container → global).
+// Sem obj devolve todas as fontes (compatibilidade retroactiva).
+function _mciGetFontes(obj) {
+    if (obj && obj.mdashcontaineritemobjectstamp && typeof MDashFonte !== 'undefined' && typeof MDashFonte.getAvailableFontes === 'function') {
+        var _allCIs = (window.appState && window.appState.containerItems) || [];
+        var _pCI = _allCIs.find(function (i) { return i.mdashcontaineritemstamp === obj.mdashcontaineritemstamp; });
+        return MDashFonte.getAvailableFontes('object', obj.mdashcontaineritemobjectstamp, obj.mdashcontaineritemstamp || '', _pCI ? _pCI.mdashcontainerstamp : '');
+    }
     if (window.appState && Array.isArray(window.appState.fontes) && window.appState.fontes.length) return window.appState.fontes;
     if (Array.isArray(GMDashFontes) && GMDashFontes.length) return GMDashFontes;
     return [];
@@ -1939,7 +1946,7 @@ function _mciAutoApplyFonteTransform(fonteStamp, obj, panel) {
     if (!fonteStamp) return;
     var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
     if (!MTB) return;
-    var fonte = _mciGetFontes().find(function (f) { return f.mdashfontestamp === fonteStamp; });
+    var fonte = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === fonteStamp; });
     if (!fonte) return;
 
     // 1. Carregar cache na DB in-memory
@@ -1991,7 +1998,7 @@ function _mciGetFields(obj) {
     }
     // 2. Fonte schemajson / lastResultscached / PRAGMA
     if (obj.fontestamp) {
-        var fonte = _mciGetFontes().find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
+        var fonte = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
         if (fonte) {
             if (fonte.schemajson) {
                 try {
@@ -2063,7 +2070,12 @@ function _mciReadConfig($root, obj) {
     var _isPieCt = (cfg.chartType === 'pie' || cfg.chartType === 'donut' || cfg.chartType === 'funnel');
     if (_isPieCt) {
         cfg.xField = $root.find('.mcbi-pie-lf').val() || '';
-        cfg.series = [{ field: $root.find('.mcbi-pie-vf').val() || '', name: '', type: 'default', serType: 'default', stack: '', color: '' }];
+        var _pf = $root.find('.mcbi-pie-vf').val() || '';
+        if (!cfg.series || !cfg.series.length) {
+            cfg.series = [{ field: _pf, name: '', type: 'default', serType: 'default', stack: '', color: '' }];
+        } else {
+            cfg.series[0] = Object.assign({}, cfg.series[0], { field: _pf });
+        }
         cfg.piePalette = $root.find('.mcbi-pp-btn.is-on').data('pp') || 'theme';
         if (cfg.piePalette === 'custom') {
             cfg.piePaletteCustom = [];
@@ -2074,7 +2086,6 @@ function _mciReadConfig($root, obj) {
         cfg.series = [];
         $root.find('.mcbi-sr').each(function () {
             var $r = $(this), fld = $r.find('.mcbi-sf').val();
-            if (!fld) return;
             cfg.series.push({
                 field: fld, name: $r.find('.mcbi-sn').val().trim(), serType: $r.find('.mcbi-st').val() || 'default', stack: $r.find('.mcbi-sstack').val().trim(), color: $r.find('.mcbi-sc-phc').val() || $r.find('.mcbi-sc').val() || '', type: 'default',
                 gradient: $r.find('.mcbi-s-gradient').is(':checked'),
@@ -2315,7 +2326,7 @@ function renderChartPropertiesInline(obj, panel) {
     var stamp = obj.mdashcontaineritemobjectstamp;
     var cfg = obj.config ? JSON.parse(JSON.stringify(obj.config))
         : JSON.parse(JSON.stringify(_MCHART_SAMPLE_CONFIG));
-    var fontes = _mciGetFontes();
+    var fontes = _mciGetFontes(obj);
     var fields = _mciGetFields(obj);
     var isSample = !obj.fontestamp;
 
@@ -2511,7 +2522,7 @@ function renderChartPropertiesInline(obj, panel) {
     var _mciTransformInited = false;
 
     function _mciOpenTransformModal() {
-        var _tFnt = _mciGetFontes().find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
+        var _tFnt = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
         var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
         var modalId = 'mcbi-transform-modal';
         $('#' + modalId).remove();
@@ -2551,7 +2562,7 @@ function renderChartPropertiesInline(obj, panel) {
             return;
         }
         _mciTransformInited = true;
-        var _tFnt = _mciGetFontes().find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
+        var _tFnt = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
         var _tName = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : '';
         var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
 
@@ -2599,7 +2610,7 @@ function renderChartPropertiesInline(obj, panel) {
         if (!MTB) { if (typeof alertify !== 'undefined') alertify.error('MdashTransformBuilder não disponível.', 4000); return; }
         var existingTCfg = $sr.data('seriesTransformConfig') || null;
         var _sFonteStamp = $sr.find('.mcbi-s-ds-fonte').val() || obj.fontestamp;
-        var _sFnt = _mciGetFontes().find(function (f) { return f.mdashfontestamp === _sFonteStamp; });
+        var _sFnt = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === _sFonteStamp; });
         var _sName = (_sFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_sFnt) : '';
         var _sFntName = (_sFnt && (_sFnt.descricao || _sFnt.codigo)) || '';
         var _tSchema = _mciGetFonteSchema(_sFnt);
@@ -2677,7 +2688,7 @@ function renderChartPropertiesInline(obj, panel) {
                 (outF || []).forEach(function (f) { if (!seen[f]) { seen[f] = true; extra.push(f); } });
             } else if (mode === 'fonte' && typeof MdashTransformBuilder !== 'undefined' && typeof mdashFonteTableName === 'function') {
                 var stamp = $sr.find('.mcbi-s-ds-fonte').val();
-                var fo = stamp && _mciGetFontes().find(function (f) { return f.mdashfontestamp === stamp; });
+                var fo = stamp && _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === stamp; });
                 if (fo) {
                     var tblF = MdashTransformBuilder.getTableSchema(mdashFonteTableName(fo)).map(function (s) { return s.field; });
                     tblF.forEach(function (f) { if (!seen[f]) { seen[f] = true; extra.push(f); } });
@@ -2725,7 +2736,7 @@ function renderChartPropertiesInline(obj, panel) {
 
     panel.on('click.mcbi', '.mcbi-add-s', function () {
         var $series = panel.find('.mcbi-series');
-        $series.append(_mciSerieRow({ field: '', name: '', color: '' }, $series.find('.mcbi-sr').length, _mciGetFields(obj), _mciGetFontes()));
+        $series.append(_mciSerieRow({ field: '', name: '', color: '' }, $series.find('.mcbi-sr').length, _mciGetFields(obj), _mciGetFontes(obj)));
         $series.find('.mcbi-sr').last().addClass('is-open');
         fire();
     });
@@ -2750,7 +2761,7 @@ function renderChartPropertiesInline(obj, panel) {
                 if (outF && outF.length) _mciSetSelectFields($sr.find('.mcbi-sf'), outF, 'campo…');
             } else if (mode === 'fonte') {
                 var fStamp = $sr.find('.mcbi-s-ds-fonte').val();
-                var _fo = fStamp && _mciGetFontes().find(function (f) { return f.mdashfontestamp === fStamp; });
+                var _fo = fStamp && _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === fStamp; });
                 var _fl = _fo ? _mciGetFonteSchema(_fo).map(function (s) { return s.field; }) : [];
                 if (_fl.length) _mciSetSelectFields($sr.find('.mcbi-sf'), _fl, 'campo…');
             }
@@ -2768,7 +2779,7 @@ function renderChartPropertiesInline(obj, panel) {
         $sr.find('.mcbi-s-ds-trans-lbl').text('');
         $sr.find('.mcbi-s-ds-edit-trans').html('<i class="glyphicon glyphicon-plus"></i> Config. transf.');
         if (stamp) {
-            var _fo = _mciGetFontes().find(function (f) { return f.mdashfontestamp === stamp; });
+            var _fo = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === stamp; });
             var _fl = _fo ? _mciGetFonteSchema(_fo).map(function (s) { return s.field; }) : [];
             if (_fl.length) _mciSetSelectFields($sr.find('.mcbi-sf'), _fl, 'campo…');
         }

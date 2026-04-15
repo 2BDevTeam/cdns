@@ -2996,9 +2996,16 @@ function initPropertiesTabs() {
         $('.mdash-props-tab-pane').removeClass('is-active');
         $('.mdash-props-tab-pane[data-tab-pane="' + tabId + '"]').addClass('is-active');
 
-        // Se mudou para fontes, renderiza o painel de fontes para o componente seleccionado
-        if (tabId === 'fontes' && _currentSelectedComponent) {
-            renderFontesPanel(_currentSelectedComponent);
+        // Re-render do painel activo sempre que o utilizador muda de tab,
+        // garantindo que qualquer alteração feita noutro painel (ex: criar fonte)
+        // é reflectida imediatamente sem precisar de actualizações cirúrgicas externas.
+        if (_currentSelectedComponent) {
+            if (tabId === 'fontes') {
+                renderFontesPanel(_currentSelectedComponent);
+            } else if (tabId === 'properties' && _currentSelectedComponent.type === 'object') {
+                // Re-render apenas do painel de propriedades inline (não tocar nas tabs nem no fontes panel)
+                _renderObjectPropertiesPanel(_currentSelectedComponent.data);
+            }
         }
     });
 }
@@ -3014,9 +3021,59 @@ function activatePropertiesTab(tabId) {
     $('.mdash-props-tab-pane[data-tab-pane="' + tabId + '"]').addClass('is-active');
 }
 
+// ── Resolução de scope ────────────────────────────────────────────────────────
+// Cada entrada define como derivar { scopeType, scopeStamp, parentContainerItemStamp,
+// parentContainerStamp, label } a partir de (type, data).
+// Para adicionar um novo tipo de componente basta acrescentar uma entrada aqui.
+
+var _SCOPE_RESOLVERS = {
+    container: function (data) {
+        return {
+            scopeType:  'container',
+            scopeStamp: data.mdashcontainerstamp,
+            parentContainerItemStamp: '',
+            parentContainerStamp:     '',
+            label: 'Container'
+        };
+    },
+    containerItem: function (data) {
+        return {
+            scopeType:  'containeritem',
+            scopeStamp: data.mdashcontaineritemstamp,
+            parentContainerItemStamp: '',
+            parentContainerStamp:     data.mdashcontainerstamp,
+            label: 'Container Item'
+        };
+    },
+    slot: function (data) {
+        var ciStamp = data.itemStamp || '';
+        var ci = ((window.appState && window.appState.containerItems) || [])
+                    .find(function (i) { return i.mdashcontaineritemstamp === ciStamp; });
+        return {
+            scopeType:  'containeritem',
+            scopeStamp: ciStamp,
+            parentContainerItemStamp: '',
+            parentContainerStamp:     ci ? ci.mdashcontainerstamp : '',
+            label: 'Slot'
+        };
+    },
+    object: function (data) {
+        var ciStamp = data.mdashcontaineritemstamp || '';
+        var ci = ((window.appState && window.appState.containerItems) || [])
+                    .find(function (i) { return i.mdashcontaineritemstamp === ciStamp; });
+        return {
+            scopeType:  'object',
+            scopeStamp: data.mdashcontaineritemobjectstamp,
+            parentContainerItemStamp: ciStamp,
+            parentContainerStamp:     ci ? ci.mdashcontainerstamp : '',
+            label: 'Objecto'
+        };
+    }
+};
+
 /**
  * Renderiza o painel de fontes para o componente seleccionado.
- * Mostra fontes vinculadas ao scope + botão para adicionar nova fonte.
+ * Mostra fontes próprias do scope + fontes herdadas (em cascata) + botão para adicionar.
  */
 function renderFontesPanel(selectedComponent) {
     var panel = $('#mdash-fontes-panel');
@@ -3027,93 +3084,55 @@ function renderFontesPanel(selectedComponent) {
         return;
     }
 
-    var type = selectedComponent.type;
-    var data = selectedComponent.data;
-    var scopeType = '';
-    var scopeStamp = '';
-    var parentContainerItemStamp = '';
-    var parentContainerStamp = '';
-
-    if (type === 'container') {
-        scopeType = 'container';
-        scopeStamp = data.mdashcontainerstamp;
-    } else if (type === 'containerItem') {
-        scopeType = 'containeritem';
-        scopeStamp = data.mdashcontaineritemstamp;
-        parentContainerStamp = data.mdashcontainerstamp;
-    } else if (type === 'slot') {
-        // Slot herda do containerItem
-        scopeType = 'containeritem';
-        scopeStamp = data.itemStamp || '';
-        var item = window.appState.containerItems.find(function (i) { return i.mdashcontaineritemstamp === scopeStamp; });
-        parentContainerStamp = item ? item.mdashcontainerstamp : '';
-    } else {
+    var resolver = _SCOPE_RESOLVERS[selectedComponent.type];
+    if (!resolver) {
         panel.html('<p class="text-muted" style="margin:0;">Tipo não suportado para fontes.</p>');
         return;
     }
 
-    // Fontes disponíveis para este scope (herança em cascata)
-    var availableFontes = MDashFonte.getAvailableFontes(scopeType, scopeStamp, parentContainerItemStamp, parentContainerStamp);
-    // Fontes que pertencem directamente a este scope
-    var ownFontes = availableFontes.filter(function (f) { return f.scope === scopeType && f.scopestamp === scopeStamp; });
-    // Fontes herdadas (globais + parent)
-    var inheritedFontes = availableFontes.filter(function (f) { return !(f.scope === scopeType && f.scopestamp === scopeStamp); });
+    var scope = resolver(selectedComponent.data);
 
-    var scopeLabel = type === 'container' ? 'Container' : type === 'containerItem' ? 'Container Item' : 'Slot';
+    var allFontes     = MDashFonte.getAvailableFontes(scope.scopeType, scope.scopeStamp, scope.parentContainerItemStamp, scope.parentContainerStamp);
+    var isOwn         = function (f) { return f.scope === scope.scopeType && f.scopestamp === scope.scopeStamp; };
+    var ownFontes      = allFontes.filter(isOwn);
+    var inheritedFontes = allFontes.filter(function (f) { return !isOwn(f); });
 
-    var html = '';
+    var sections = [
+        { fontes: ownFontes,       canRemove: true,  icon: 'glyphicon-hdd',  label: 'Fontes deste ' + scope.label, marginTop: false },
+        { fontes: inheritedFontes, canRemove: false, icon: 'glyphicon-link', label: 'Fontes herdadas',             marginTop: true  }
+    ];
 
-    // Barra compacta: label + botão circular para adicionar fonte
-    html += '<div class="mdash-fonte-add-bar">';
-    html += '  <span class="mdash-fonte-add-label">' + scopeLabel + '</span>';
-    html += '  <button type="button" class="mdash-fonte-add-btn mdash-add-scoped-fonte" data-scope="' + scopeType + '" data-scopestamp="' + scopeStamp + '" title="Nova Fonte">';
-    html += '    <i class="glyphicon glyphicon-plus"></i>';
-    html += '  </button>';
-    html += '</div>';
-
-    // Fontes próprias do scope
-    if (ownFontes.length > 0) {
-        html += '<p class="mdash-fonte-section-label"><i class="glyphicon glyphicon-hdd"></i> Fontes deste ' + scopeLabel + '</p>';
-        html += renderFontesList(ownFontes, true);
-    }
-
-    // Fontes herdadas
-    if (inheritedFontes.length > 0) {
-        html += '<p class="mdash-fonte-section-label" style="margin-top:10px;"><i class="glyphicon glyphicon-link"></i> Fontes herdadas</p>';
-        html += renderFontesList(inheritedFontes, false);
-    }
-
-    if (ownFontes.length === 0 && inheritedFontes.length === 0) {
-        html += '<p class="text-muted text-center" style="margin-top:12px;"><small>Nenhuma fonte disponível.</small></p>';
-    }
+    var html = '<div class="mdash-fonte-add-bar">'
+        + '  <span class="mdash-fonte-add-label">' + scope.label + '</span>'
+        + '  <button type="button" class="mdash-fonte-add-btn mdash-add-scoped-fonte"'
+        + '    data-scope="' + scope.scopeType + '" data-scopestamp="' + scope.scopeStamp + '" title="Nova Fonte">'
+        + '    <i class="glyphicon glyphicon-plus"></i>'
+        + '  </button>'
+        + '</div>'
+        + sections.map(function (s) {
+            if (!s.fontes.length) return '';
+            return '<p class="mdash-fonte-section-label"' + (s.marginTop ? ' style="margin-top:10px;"' : '') + '>'
+                + '<i class="glyphicon ' + s.icon + '"></i> ' + s.label + '</p>'
+                + renderFontesList(s.fontes, s.canRemove);
+        }).join('')
+        + (!ownFontes.length && !inheritedFontes.length
+            ? '<p class="text-muted text-center" style="margin-top:12px;"><small>Nenhuma fonte disponível.</small></p>'
+            : '');
 
     panel.html(html);
 
-    // Bind: adicionar fonte ao scope
-    panel.off('click.addfonte').on('click.addfonte', '.mdash-add-scoped-fonte', function () {
-        var scope = $(this).data('scope');
-        var stamp = $(this).data('scopestamp');
-        addScopedFonte(scope, stamp);
-    });
+    var bindings = [
+        { ns: 'addfonte',   sel: '.mdash-add-scoped-fonte', stop: false, fn: function () { addScopedFonte($(this).data('scope'), $(this).data('scopestamp')); } },
+        { ns: 'editfonte',  sel: '.mdash-fonte-list-item',  stop: false, fn: function () { var s = $(this).data('fontestamp'); if (s) editFonteInPanel(s); } },
+        { ns: 'removefonte',sel: '.mdash-fonte-remove',      stop: true,  fn: function () { var s = $(this).data('fontestamp'); if (s) removeScopedFonte(s); } },
+        { ns: 'runfonte',   sel: '.mdash-fonte-run',         stop: true,  fn: function () { var s = $(this).data('fontestamp'); if (s) executeFonteByStamp(s); } }
+    ];
 
-    // Bind: editar fonte
-    panel.off('click.editfonte').on('click.editfonte', '.mdash-fonte-list-item', function () {
-        var fonteStamp = $(this).data('fontestamp');
-        if (fonteStamp) editFonteInPanel(fonteStamp);
-    });
-
-    // Bind: remover fonte (próprias apenas)
-    panel.off('click.removefonte').on('click.removefonte', '.mdash-fonte-remove', function (e) {
-        e.stopPropagation();
-        var fonteStamp = $(this).data('fontestamp');
-        if (fonteStamp) removeScopedFonte(fonteStamp);
-    });
-
-    // Bind: executar fonte
-    panel.off('click.runfonte').on('click.runfonte', '.mdash-fonte-run', function (e) {
-        e.stopPropagation();
-        var fonteStamp = $(this).data('fontestamp');
-        if (fonteStamp) executeFonteByStamp(fonteStamp);
+    bindings.forEach(function (b) {
+        panel.off('click.' + b.ns).on('click.' + b.ns, b.sel, function (e) {
+            if (b.stop) e.stopPropagation();
+            b.fn.call(this);
+        });
     });
 }
 
@@ -3168,6 +3187,40 @@ function getFonteTypeIcon(tipo) {
 }
 
 /**
+ * Reconstrói o selector de fontes (.mcbi-fonte) no painel de propriedades inline,
+ * sempre que a lista de fontes disponíveis para o objecto seleccionado muda
+ * (fonte adicionada, removida ou executada).
+ * Preserva a selecção actual.
+ */
+function _refreshInlineObjFonteSelect() {
+    var $sel = $('#mdash-properties-panel .mcbi-fonte');
+    if (!$sel.length) return;
+    if (!_currentSelectedComponent || _currentSelectedComponent.type !== 'object') return;
+
+    var obj = _currentSelectedComponent.data;
+    if (!obj) return;
+
+    var allCIs = (window.appState && window.appState.containerItems) || [];
+    var pCI    = allCIs.find(function (i) { return i.mdashcontaineritemstamp === obj.mdashcontaineritemstamp; });
+    var fontes = MDashFonte.getAvailableFontes(
+        'object',
+        obj.mdashcontaineritemobjectstamp,
+        obj.mdashcontaineritemstamp || '',
+        pCI ? pCI.mdashcontainerstamp : ''
+    );
+
+    var cur = $sel.val();
+    $sel.html(
+        '<option value="">-- seleccione uma fonte --</option>'
+        + fontes.map(function (f) {
+            var stamp = String(f.mdashfontestamp || '');
+            var label = String(f.descricao || f.codigo || stamp);
+            return '<option value="' + stamp + '"' + (cur === stamp ? ' selected' : '') + '>' + label + '</option>';
+        }).join('')
+    );
+}
+
+/**
  * Adiciona uma nova fonte ao scope indicado.
  */
 function addScopedFonte(scope, scopestamp) {
@@ -3190,10 +3243,11 @@ function addScopedFonte(scope, scopestamp) {
         realTimeComponentSync(newFonte.toDbRecord(), newFonte.table, newFonte.idfield);
     }
 
-    // Refrescar painel e abrir editor da nova fonte directamente
+    // Refrescar painel de fontes + selector inline (reactivo imediato)
     if (_currentSelectedComponent) {
         renderFontesPanel(_currentSelectedComponent);
     }
+
     // Auto-abrir editor da nova fonte
     setTimeout(function () { editFonteInPanel(newFonte.mdashfontestamp); }, 60);
 }
@@ -5243,7 +5297,6 @@ function handleComponentProperties(selectedComponent) {
         }
     } else if (selectedComponent.type === "object") {
         showObjectPropertiesEditor(selectedComponent.data);
-        return; // showObjectPropertiesEditor chama activatePropertiesTab internamente
     } else {
         panel.html('<p class=\"text-muted\">Tipo ainda não suportado.</p>');
     }
@@ -5983,11 +6036,25 @@ function showObjectPropertiesEditor(obj) {
     var $propsPanel = $('.mdash-properties');
     if ($propsPanel.hasClass('is-collapsed')) $propsPanel.removeClass('is-collapsed');
 
+    _renderObjectPropertiesPanel(obj, panel);
+}
+
+/**
+ * Renderiza o conteúdo do painel de propriedades para um objecto.
+ * Separado de showObjectPropertiesEditor para poder ser invocado sem mudar a tab activa
+ * (ex: re-render silencioso ao voltar à tab Propriedades).
+ */
+function _renderObjectPropertiesPanel(obj, panel) {
+    panel = panel || $('#mdash-properties-panel');
+    if (!panel.length || !obj) return;
+
     // ── Delegate to type-specific inline editor if one is registered ──────
     var tipoEntry = getMdashObjectTypeEntry(obj.tipo);
     if (tipoEntry && typeof tipoEntry.renderPropertiesInline === 'function') {
-        // Hide the Fontes/Acções tabs — handled inline
-        $('.mdash-props-tab[data-tab="fontes"], .mdash-props-tab[data-tab="actions"]').hide();
+        // A tab Fontes mantém-se visível — gerida pelo painel de fontes (col 3, tab própria).
+        // Apenas as Acções ficam ocultas (não há suporte ainda).
+        $('.mdash-props-tab[data-tab="actions"]').hide();
+        $('.mdash-props-tab[data-tab="fontes"]').show();
         panel.off('.objprops');
         tipoEntry.renderPropertiesInline(obj, panel);
         return;
@@ -6002,13 +6069,13 @@ function showObjectPropertiesEditor(obj) {
         $('.mdash-props-tab[data-tab="fontes"], .mdash-props-tab[data-tab="actions"]').show();
     }
 
-    // Fontes — lê de ambas as fontes com fallback robusto
-    var allFontes = [];
-    if (window.appState && Array.isArray(window.appState.fontes) && window.appState.fontes.length) {
-        allFontes = window.appState.fontes;
-    } else if (Array.isArray(GMDashFontes) && GMDashFontes.length) {
-        allFontes = GMDashFontes;
-    }
+    // Fontes — filtradas por scope (herança: object → containeritem → container → global)
+    var _objParentCI = (window.appState && window.appState.containerItems || []).find(function (i) { return i.mdashcontaineritemstamp === obj.mdashcontaineritemstamp; });
+    var _objParentCIStamp = obj.mdashcontaineritemstamp || '';
+    var _objParentCStamp = _objParentCI ? _objParentCI.mdashcontainerstamp : '';
+    var allFontes = (typeof MDashFonte !== 'undefined' && typeof MDashFonte.getAvailableFontes === 'function')
+        ? MDashFonte.getAvailableFontes('object', obj.mdashcontaineritemobjectstamp, _objParentCIStamp, _objParentCStamp)
+        : ((window.appState && window.appState.fontes) || GMDashFontes || []);
     if (!allFontes.length) {
         console.warn('[MDash] showObjectPropertiesEditor: nenhuma fonte disponível. GMDashFontes.length =', GMDashFontes ? GMDashFontes.length : 'N/A');
     }
