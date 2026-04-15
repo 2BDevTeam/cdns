@@ -589,7 +589,7 @@ function renderCustomCodePropertiesInline(obj, panel) {
     panel.data('_mciTimer', _timer);
 
     // ── Transform badge ──
-    var _hasTrans = !!(cfg.transformConfig && cfg.transformConfig.sourceTable);
+    var _hasTrans = !!((obj.transformConfig && obj.transformConfig.sourceTable) || (cfg.transformConfig && cfg.transformConfig.sourceTable));
 
     // ── Section: Dados (fonte + transform) ──
     var sDados = '<div class="mcbi-field"><label>Fonte de dados</label>'
@@ -600,12 +600,15 @@ function renderCustomCodePropertiesInline(obj, panel) {
                 + '>' + _mciEsc(f.descricao || f.codigo || f.mdashfontestamp) + '</option>';
         }).join('')
         + '</select></div>'
-        + '<div class="mcbi-field" style="margin-top:6px;">'
-        + '<button type="button" class="btn btn-xs btn-default mcbi-btn-transform" style="width:100%;">'
-        + '<i class="glyphicon glyphicon-filter"></i> '
-        + (_hasTrans ? 'Editar Transformação' : 'Configurar Transformação')
+        + '<div class="mcbi-transform-status' + (_hasTrans ? ' is-active' : '') + '">'
+        + '<span class="mcbi-ts-badge">'
+        + (_hasTrans
+            ? '<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc((obj.transformConfig && obj.transformConfig.sourceTable) || (cfg.transformConfig && cfg.transformConfig.sourceTable) || 'SQL') + '</strong>'
+            : '<i class="glyphicon glyphicon-filter"></i> Sem transformação de dados')
+        + '</span>'
+        + '<button type="button" class="mcbi-btn-transform">'
+        + (_hasTrans ? '<i class="glyphicon glyphicon-pencil"></i> Editar' : '<i class="glyphicon glyphicon-plus"></i> Configurar')
         + '</button>'
-        + (_hasTrans ? '<span class="mcc-trans-badge" style="display:block;font-size:10px;color:#64748b;margin-top:3px;"><i class="glyphicon glyphicon-ok" style="color:#22c55e;"></i> ' + _mciEsc(cfg.transformConfig.sourceTable || 'SQL') + '</span>' : '')
         + '</div>';
 
     // ── Section: Código JavaScript ──
@@ -724,7 +727,7 @@ function renderCustomCodePropertiesInline(obj, panel) {
 
     // Transform button
     panel.on('click.mcbi', '.mcbi-btn-transform', function () {
-        var currentTC = obj.config && obj.config.transformConfig ? obj.config.transformConfig : null;
+        var currentTC = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
         var fonteStamp = obj.fontestamp;
         var fonte = fonteStamp && _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === fonteStamp; });
         var schema = [];
@@ -740,14 +743,16 @@ function renderCustomCodePropertiesInline(obj, panel) {
             config: currentTC,
             schema: schema,
             onSave: function (newT) {
-                if (!obj.config) obj.config = {};
-                obj.config.transformConfig = newT;
                 obj.transformConfig = newT;
+                obj.transformconfigjson = JSON.stringify(newT);
+                cfg.transformConfig = newT;
+                obj.config = obj.config || {};
+                obj.config.transformConfig = newT;
                 // Update badge
-                panel.find('.mcc-trans-badge').remove();
-                panel.find('.mcbi-btn-transform')
-                    .html('<i class="glyphicon glyphicon-filter"></i> Editar Transformação')
-                    .after('<span class="mcc-trans-badge" style="display:block;font-size:10px;color:#64748b;margin-top:3px;"><i class="glyphicon glyphicon-ok" style="color:#22c55e;"></i> ' + _mciEsc(newT.sourceTable || 'SQL') + '</span>');
+                var $ts = panel.find('.mcbi-transform-status');
+                $ts.addClass('is-active');
+                $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc(newT.sourceTable || 'SQL') + '</strong>');
+                $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-pencil"></i> Editar');
                 // Refresh fields
                 var newFields = _mciGetFields(obj);
                 panel.find('.mcc-fields-list').html(
