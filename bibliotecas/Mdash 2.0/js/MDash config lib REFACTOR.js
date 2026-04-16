@@ -1056,23 +1056,16 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
     var self = this;
 
     var tipoStr = '' + (self.tipo || '');
-    console.group('[MDash DEBUG] renderObjectByContainerItem tipo="' + tipoStr + '" selector="' + containerSelector + '"');
-    console.log('  containerItem.titulo =', containerItem ? containerItem.titulo : '(sem containerItem)');
-    console.log('  containerItem.records.length =', (containerItem && containerItem.records) ? containerItem.records.length : 'N/A');
-
+   
     var entry = getMdashObjectTypeEntry(tipoStr);
-    console.log('  entry encontrado =', !!entry);
-    if (entry) {
-        console.log('  entry.processaFonte =', entry.processaFonte);
-        console.log('  typeof entry.renderObject =', typeof entry.renderObject);
-    }
+ 
 
     if (entry && typeof entry.renderObject === 'function') {
         var processaFonte = (entry.processaFonte !== undefined) ? entry.processaFonte : self.processaFonte;
         // Resolver dados através da função central (transform → fonte → containerItem.records)
         var resolved = mdashResolveObjectData(self, containerItem.records);
         var podeRenderizar = processaFonte === false || resolved.data.length > 0;
-        console.log('  processaFonte =', processaFonte, '| podeRenderizar =', podeRenderizar, '| data.length =', resolved.data.length);
+       // console.log('  processaFonte =', processaFonte, '| podeRenderizar =', podeRenderizar, '| data.length =', resolved.data.length);
         if (podeRenderizar) {
             console.log('  → A CHAMAR entry.renderObject()');
             console.groupEnd();
@@ -1088,8 +1081,7 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
             });
         } else if (typeof entry.getSampleData === 'function') {
             // Sem dados reais ainda — renderizar com dados de amostra
-            console.log('  → A CHAMAR entry.renderObject() com SAMPLE DATA');
-            console.groupEnd();
+           
             entry.renderObject({
                 containerSelector: containerSelector,
                 itemObject: self,
@@ -1101,8 +1093,7 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
                 isSample: true
             });
         } else {
-            console.log('  → placeholder (aguarda dados)');
-            console.groupEnd();
+         
             $(containerSelector).html(
                 '<div class="mdash-slot-zone-render-placeholder"><i class="' + (getObjectTypeIcon(tipoStr) || 'glyphicon glyphicon-stop') + '"></i> ' + (tipoStr || 'Objecto') + '</div>'
             );

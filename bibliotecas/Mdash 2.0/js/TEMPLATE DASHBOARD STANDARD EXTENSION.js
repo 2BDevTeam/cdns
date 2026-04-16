@@ -870,6 +870,869 @@ function crateDynamicSchemaCustomCode(data) {
     };
 }
 // ============================================================================
+// TABLE OBJECT TYPE — Tabela de dados moderna (Tabulator.js)
+// Segue os padrões de chart, text e customCode.
+// ============================================================================
+
+var _TABLE_SAMPLE_CONFIG = {
+    layout: 'fitColumns',
+    height: 'auto',
+    maxHeight: '500px',
+    pagination: { enabled: false, size: 15 },
+    headerFilter: false,
+    resizableColumns: true,
+    movableColumns: false,
+    selectable: false,
+    stripedRows: true,
+    hoverHighlight: true,
+    responsiveLayout: 'collapse',
+    theme: 'phcPrimary',
+    columns: [],
+    autoColumns: true,
+    dataTree: { enabled: false, parentField: 'id', childField: 'parentId', startExpanded: true },
+    exportOptions: { enableExcel: true, enablePDF: false },
+    styling: {
+        headerBg: '',
+        headerText: '#ffffff',
+        borderRadius: 10,
+        fontSize: 13,
+        rowHeight: 'normal',
+        accentColor: ''
+    },
+    footer: { showRowCount: true, showColumnsInfo: false }
+};
+
+// ── Temas visuais da tabela ──────────────────────────────────────────────────
+var _TABLE_THEMES = {
+    phcPrimary: { name: 'PHC Primary', phcType: 'primary', headerBg: '', headerText: '#ffffff', accent: '', rowEven: '#f8fafc', rowHover: 'rgba(0,0,0,.03)', border: 'rgba(0,0,0,.06)' },
+    phcSuccess: { name: 'PHC Success', phcType: 'success', headerBg: '', headerText: '#ffffff', accent: '', rowEven: '#f8fafc', rowHover: 'rgba(0,0,0,.03)', border: 'rgba(0,0,0,.06)' },
+    phcInfo:    { name: 'PHC Info',    phcType: 'info',    headerBg: '', headerText: '#ffffff', accent: '', rowEven: '#f8fafc', rowHover: 'rgba(0,0,0,.03)', border: 'rgba(0,0,0,.06)' },
+    phcWarning: { name: 'PHC Warning', phcType: 'warning', headerBg: '', headerText: '#ffffff', accent: '', rowEven: '#f8fafc', rowHover: 'rgba(0,0,0,.03)', border: 'rgba(0,0,0,.06)' },
+    phcDanger:  { name: 'PHC Danger',  phcType: 'danger',  headerBg: '', headerText: '#ffffff', accent: '', rowEven: '#f8fafc', rowHover: 'rgba(0,0,0,.03)', border: 'rgba(0,0,0,.06)' },
+    modern:     { name: 'Moderno',     headerBg: '#1e293b', headerText: '#f8fafc', accent: '#2563eb', rowEven: '#f8fafc', rowHover: 'rgba(37,99,235,.06)', border: 'rgba(0,0,0,.06)' },
+    light:      { name: 'Claro',       headerBg: '#f1f5f9', headerText: '#1e293b', accent: '#0ea5e9', rowEven: '#ffffff', rowHover: 'rgba(14,165,233,.05)', border: 'rgba(0,0,0,.06)' },
+    corporate:  { name: 'Corporativo', headerBg: '#1a3a6c', headerText: '#f5e6c8', accent: '#c8a84b', rowEven: '#fdfcfa', rowHover: 'rgba(200,168,75,.06)', border: 'rgba(26,58,108,.10)' },
+    vibrant:    { name: 'Vibrante',    headerBg: '#7c3aed', headerText: '#faf5ff', accent: '#a78bfa', rowEven: '#faf5ff', rowHover: 'rgba(167,139,250,.06)', border: 'rgba(124,58,237,.08)' },
+    earth:      { name: 'Terra',       headerBg: '#78350f', headerText: '#fef3c7', accent: '#b45309', rowEven: '#fffbeb', rowHover: 'rgba(180,83,9,.05)', border: 'rgba(120,53,15,.08)' },
+    dark:       { name: 'Escuro',      headerBg: '#0f172a', headerText: '#e2e8f0', accent: '#60a5fa', rowEven: '#1e293b', rowHover: 'rgba(96,165,250,.08)', border: 'rgba(226,232,240,.08)' },
+    minimal:    { name: 'Minimalista', headerBg: 'transparent', headerText: '#475569', accent: '#64748b', rowEven: 'transparent', rowHover: 'rgba(0,0,0,.02)', border: 'rgba(0,0,0,.06)' }
+};
+
+// Resolve tema PHC em runtime (getCachedColor só funciona após DOM ready)
+function _tblResolveTheme(themeDef) {
+    if (!themeDef || !themeDef.phcType) return themeDef;
+    var colorObj = (typeof getCachedColor === 'function') ? getCachedColor(themeDef.phcType) : null;
+    var color = (colorObj && colorObj.background) ? colorObj.background : '#2563eb';
+    return {
+        name: themeDef.name, phcType: themeDef.phcType,
+        headerBg: color, headerText: themeDef.headerText, accent: color,
+        rowEven: themeDef.rowEven, rowHover: themeDef.rowHover, border: themeDef.border
+    };
+}
+
+// ── Formatadores disponíveis ─────────────────────────────────────────────────
+var _TABLE_FORMATTERS = [
+    { value: 'plaintext', label: 'Texto' },
+    { value: 'number', label: 'Número' },
+    { value: 'money', label: 'Moeda (€)' },
+    { value: 'percentage', label: 'Percentagem' },
+    { value: 'datetime', label: 'Data/Hora' },
+    { value: 'tickCross', label: 'Sim/Não' },
+    { value: 'star', label: 'Estrelas' },
+    { value: 'progress', label: 'Barra de Progresso' },
+    { value: 'color', label: 'Cor' },
+    { value: 'link', label: 'Link' },
+    { value: 'html', label: 'HTML' }
+];
+
+// ── Opções de alinhamento ────────────────────────────────────────────────────
+var _TABLE_ALIGNS = [
+    { value: 'left', label: 'Esquerda', icon: 'glyphicon-align-left' },
+    { value: 'center', label: 'Centro', icon: 'glyphicon-align-center' },
+    { value: 'right', label: 'Direita', icon: 'glyphicon-align-right' }
+];
+
+// ── Opções de ordenação ──────────────────────────────────────────────────────
+var _TABLE_SORTERS = [
+    { value: 'string', label: 'Texto' },
+    { value: 'number', label: 'Número' },
+    { value: 'alphanum', label: 'Alfanumérico' },
+    { value: 'boolean', label: 'Booleano' },
+    { value: 'date', label: 'Data' },
+    { value: 'datetime', label: 'Data/Hora' }
+];
+
+// ── Injectar CSS da Tabela (idempotente) ─────────────────────────────────────
+var _tblCssInjected = false;
+function _tblCSS() {
+    if (_tblCssInjected) return;
+    _tblCssInjected = true;
+    var s = '<style id="mdash-table-inline-css">';
+    s += '.mtbl-wrap{position:relative;border-radius:var(--mtbl-radius,10px);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);background:#fff;border:1px solid rgba(0,0,0,.06);}';
+    s += '.mtbl-wrap .tabulator{border:none;background:transparent;font-size:var(--mtbl-fs,13px);font-family:"Inter","Nunito","Segoe UI",Arial,sans-serif;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header{background:var(--mtbl-hdr-bg,#1e293b);border-bottom:none;border-radius:var(--mtbl-radius,10px) var(--mtbl-radius,10px) 0 0;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col{background:transparent;color:var(--mtbl-hdr-text,#f8fafc);border-right:1px solid rgba(255,255,255,.08);padding:10px 14px;font-weight:600;font-size:calc(var(--mtbl-fs,13px) - 0.5px);letter-spacing:.2px;text-transform:uppercase;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col:last-child{border-right:none;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-sorter{color:var(--mtbl-hdr-text,#f8fafc);}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-header-filter input{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:var(--mtbl-hdr-text,#f8fafc);border-radius:5px;padding:3px 8px;font-size:11px;margin-top:4px;transition:border-color .2s;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-header-filter input::placeholder{color:rgba(255,255,255,.4);}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-header-filter input:focus{border-color:var(--mtbl-accent,#2563eb);outline:none;background:rgba(255,255,255,.18);}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row{border-bottom:1px solid var(--mtbl-border,rgba(0,0,0,.06));transition:background .15s ease;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row:last-child{border-bottom:none;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-row-even{background:var(--mtbl-row-even,#f8fafc);}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row:hover{background:var(--mtbl-row-hover,rgba(37,99,235,.06)) !important;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell{padding:10px 14px;border-right:none;color:#334155;vertical-align:middle;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-selected{background:rgba(37,99,235,.08) !important;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-selected .tabulator-cell{color:var(--mtbl-accent,#2563eb);}';
+    s += '.mtbl-wrap .tabulator .tabulator-data-tree-control{width:18px !important;height:18px !important;border-radius:4px;transition:background .15s;}';
+    s += '.mtbl-wrap .tabulator .tabulator-data-tree-control:hover{background:rgba(0,0,0,.06);}';
+    s += '.mtbl-wrap .tabulator .tabulator-row.tabulator-tree-level-1{background:rgba(0,0,0,.015) !important;}';
+    s += '.mtbl-wrap .tabulator .tabulator-row.tabulator-tree-level-2{background:rgba(0,0,0,.03) !important;}';
+    s += '.mtbl-wrap .tabulator .tabulator-footer{background:#f8fafc;border-top:1px solid var(--mtbl-border,rgba(0,0,0,.06));padding:8px 14px;font-size:12px;color:#64748b;}';
+    s += '.mtbl-wrap .tabulator .tabulator-footer .tabulator-page{padding:4px 10px;border-radius:5px;border:1px solid rgba(0,0,0,.1);margin:0 2px;font-size:11px;font-weight:500;background:#fff;color:#475569;transition:all .15s;}';
+    s += '.mtbl-wrap .tabulator .tabulator-footer .tabulator-page.active{background:var(--mtbl-accent,#2563eb);color:#fff;border-color:var(--mtbl-accent,#2563eb);}';
+    s += '.mtbl-wrap .tabulator .tabulator-footer .tabulator-page:hover:not(.active){background:#e2e8f0;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder::-webkit-scrollbar{width:6px;height:6px;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder::-webkit-scrollbar-track{background:transparent;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:3px;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.2);}';
+    s += '.mtbl-toolbar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#f8fafc;border-bottom:1px solid rgba(0,0,0,.06);}';
+    s += '.mtbl-toolbar-right{display:flex;gap:6px;align-items:center;}';
+    s += '.mtbl-export-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;border:1px solid rgba(0,0,0,.1);background:#fff;font-size:11px;font-weight:600;color:#475569;cursor:pointer;transition:all .15s;}';
+    s += '.mtbl-export-btn:hover{border-color:var(--mtbl-accent,#2563eb);color:var(--mtbl-accent,#2563eb);background:#f0f4ff;}';
+    s += '.mtbl-export-btn i{font-size:12px;}';
+    s += '.mtbl-row-count{font-size:11px;color:#94a3b8;}';
+    s += '.mtbl-row-count strong{color:#475569;font-weight:600;}';
+    s += '.mtbl-money{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}';
+    s += '.tabulator .tabulator-cell .tabulator-data-tree-branch{display:none;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col:hover{background:var(--mtbl-hdr-bg) !important;cursor:default;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-sortable:hover{background:var(--mtbl-hdr-bg) !important;}';
+    s += '</style>';
+    $('head').append(s);
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function renderObjectTable(dados) {
+    var stamp = dados.itemObject.mdashcontaineritemobjectstamp;
+    var cfg = dados.config
+        ? JSON.parse(JSON.stringify(dados.config))
+        : JSON.parse(JSON.stringify(_TABLE_SAMPLE_CONFIG));
+    var isSample = !!dados.isSample;
+
+    var rows = dados.data || [];
+    var tCfg = dados.transformConfig || cfg.transformConfig || null;
+    if (rows.length === 0 && tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
+        try {
+            var raw = MdashTransformBuilder.executeRaw(tCfg);
+            if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
+                rows = raw.rows.map(function (r) {
+                    var o = {};
+                    raw.columns.forEach(function (c, i) { o[c] = r[i]; });
+                    return o;
+                });
+                isSample = false;
+            }
+        } catch (e) {
+            console.warn('[MDash] renderObjectTable fallback transform error:', e.message);
+        }
+    }
+    if (rows.length === 0) {
+        rows = getMdashSampleData('table');
+        isSample = true;
+    }
+
+    _tblCSS();
+    var theme = _tblResolveTheme(_TABLE_THEMES[cfg.theme] || _TABLE_THEMES.phcPrimary);
+    var stl = cfg.styling || {};
+    var tblId = 'mtbl_' + stamp;
+    var wrapId = 'mtbl-wrap_' + stamp;
+
+    var badgeHtml = isSample
+        ? '<div class="mchart-sample-badge"><i class="glyphicon glyphicon-info-sign"></i> Dados de amostra \u2014 configure a fonte</div>'
+        : '';
+
+    var toolbarHtml = '';
+    var exp = cfg.exportOptions || {};
+    if (exp.enableExcel || exp.enablePDF) {
+        toolbarHtml = '<div class="mtbl-toolbar">'
+            + '<span class="mtbl-row-count"><strong>' + rows.length + '</strong> registos</span>'
+            + '<div class="mtbl-toolbar-right">';
+        if (exp.enableExcel) toolbarHtml += '<button type="button" class="mtbl-export-btn mtbl-exp-xlsx" title="Exportar Excel"><i class="fa fa-file-excel-o"></i> Excel</button>';
+        if (exp.enablePDF) toolbarHtml += '<button type="button" class="mtbl-export-btn mtbl-exp-pdf" title="Exportar PDF"><i class="fa fa-file-pdf-o"></i> PDF</button>';
+        toolbarHtml += '</div></div>';
+    }
+
+    var hdrBg = stl.headerBg || theme.headerBg;
+    var accentC = stl.accentColor || theme.accent;
+    var cssVars = '--mtbl-hdr-bg:' + hdrBg + ';'
+        + '--mtbl-hdr-text:' + (stl.headerText || theme.headerText) + ';'
+        + '--mtbl-accent:' + accentC + ';'
+        + '--mtbl-row-even:' + (theme.rowEven) + ';'
+        + '--mtbl-row-hover:' + (theme.rowHover) + ';'
+        + '--mtbl-border:' + (theme.border) + ';'
+        + '--mtbl-radius:' + (stl.borderRadius || 10) + 'px;'
+        + '--mtbl-fs:' + (stl.fontSize || 13) + 'px;';
+
+    var html = badgeHtml
+        + '<div id="' + wrapId + '" class="mtbl-wrap" style="' + cssVars + '">'
+        + toolbarHtml
+        + '<div id="' + tblId + '"></div>'
+        + '</div>';
+
+    $(dados.containerSelector).html(html);
+
+    setTimeout(function () {
+        var dom = document.getElementById(tblId);
+        if (!dom) return;
+
+        var columns = _tblBuildColumns(cfg, rows);
+
+        var tblCfg = {
+            data: rows,
+            columns: columns,
+            layout: cfg.layout || 'fitColumns',
+            responsiveLayout: cfg.responsiveLayout || false,
+            movableColumns: cfg.movableColumns || false,
+            resizableColumns: cfg.resizableColumns !== false,
+            selectable: cfg.selectable || false,
+            placeholder: '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;"><i class="glyphicon glyphicon-info-sign"></i> Sem dados para apresentar</div>',
+            locale: 'pt-br',
+            langs: {
+                'pt-br': {
+                    data: { loading: 'A carregar...', error: 'Erro' },
+                    groups: { item: 'item', items: 'itens' },
+                    pagination: {
+                        page_size: 'Registos por p\u00e1gina', first: 'Primeira', first_title: 'Primeira',
+                        last: '\u00daltima', last_title: '\u00daltima', prev: 'Anterior', prev_title: 'Anterior',
+                        next: 'Seguinte', next_title: 'Seguinte', all: 'Todos',
+                        counter: { showing: 'A mostrar', of: 'de', rows: 'registos', pages: 'p\u00e1ginas' }
+                    },
+                    headerFilters: { 'default': 'filtrar...' }
+                }
+            }
+        };
+
+        if (cfg.height && cfg.height !== 'auto') tblCfg.height = cfg.height;
+        if (cfg.maxHeight) tblCfg.maxHeight = cfg.maxHeight;
+
+        if (cfg.pagination && cfg.pagination.enabled) {
+            tblCfg.pagination = 'local';
+            tblCfg.paginationSize = cfg.pagination.size || 15;
+            tblCfg.paginationSizeSelector = [5, 10, 15, 25, 50, 100];
+        }
+
+        if (cfg.dataTree && cfg.dataTree.enabled) {
+            var treeData = _tblBuildTree(rows, cfg.dataTree.parentField, cfg.dataTree.childField);
+            tblCfg.data = treeData;
+            tblCfg.dataTree = true;
+            tblCfg.dataTreeChildField = '_children';
+            tblCfg.dataTreeStartExpanded = cfg.dataTree.startExpanded !== false;
+            if (columns.length > 0) tblCfg.dataTreeElementColumn = columns[0].field;
+        }
+
+        var table = new Tabulator('#' + tblId, tblCfg);
+
+        if (cfg.footer && cfg.footer.showRowCount) {
+            table.on('dataFiltered', function (filters, filteredRows) {
+                var $wrap = $('#' + wrapId);
+                $wrap.find('.mtbl-row-count strong').text(filteredRows.length);
+            });
+        }
+
+        var $wrap = $('#' + wrapId);
+        $wrap.on('click', '.mtbl-exp-xlsx', function () {
+            table.download('xlsx', 'dados.xlsx', { sheetName: 'Dados' });
+        });
+        $wrap.on('click', '.mtbl-exp-pdf', function () {
+            table.download('pdf', 'dados.pdf', {
+                orientation: 'landscape', title: 'Relat\u00f3rio',
+                autoTable: { styles: { fillColor: [30, 41, 59] }, margin: { top: 30 } }
+            });
+        });
+
+        table.on('tableBuilt', function () {
+            if (dom._mdashTableReady) return;
+            dom._mdashTableReady = true;
+            if (window.ResizeObserver) {
+                var ro = new ResizeObserver(function () { table.redraw(); });
+                ro.observe(dom);
+            }
+            // ── Inline column rename via click ──
+            $(dom).on('click', '.tabulator-col-title', function (e) {
+                e.stopPropagation();
+                var $ttl = $(this);
+                if ($ttl.find('input').length) return;
+                var oldT = $ttl.text();
+                var cEl = $ttl.closest('.tabulator-col');
+                var fld = cEl.attr('tabulator-field');
+                if (!fld) return;
+                var $inp = $('<input type="text" class="form-control input-sm" />')
+                    .css({ width:'100%','font-size':'inherit',padding:'0 4px',height:'auto',
+                           background:'#fff',border:'1.5px solid var(--mtbl-accent,#2563eb)',
+                           'border-radius':'3px','text-align':'center','box-shadow':'0 0 0 2px rgba(37,99,235,.15)' })
+                    .val(oldT);
+                $ttl.empty().append($inp);
+                $inp.focus().select();
+                var done = false;
+                function commit() {
+                    if (done) return; done = true;
+                    var nT = $inp.val().trim() || oldT;
+                    $ttl.text(nT);
+                    // updateDefinition removido — visual já definido, config salva abaixo
+                    // re-render limpo após gravar
+                    var dCfg = dados.config || (dados.itemObject || {}).config;
+                    if (dCfg) {
+                        if (!dCfg.columns || !dCfg.columns.length) {
+                            dCfg.autoColumns = false;
+                            dCfg.columns = table.getColumnDefinitions().map(function (d) {
+                                return { field: d.field, title: d.title, visible: true, hozAlign: d.hozAlign || 'left',
+                                         formatter: d.formatter || 'plaintext', sorter: d.sorter || 'string' };
+                            });
+                        }
+                        (dCfg.columns || []).forEach(function (cc) {
+                            if (cc.field === fld) cc.title = nT;
+                        });
+                        var io = dados.itemObject || {};
+                        io.configjson = JSON.stringify(io.config);
+                        if (typeof realTimeComponentSync === 'function') {
+                            realTimeComponentSync(io, io.table, io.idfield);
+                        }
+                        _mciRerender(io);
+                    }
+                }
+                $inp.on('blur', commit);
+                $inp.on('keydown', function (ev) {
+                    if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+                    if (ev.key === 'Escape') { done = true; $ttl.text(oldT); }
+                });
+            });
+        });
+    }, 0);
+}
+
+// ── Construir colunas Tabulator ──────────────────────────────────────────────
+function _tblBuildColumns(cfg, rows) {
+    var cols = cfg.columns || [];
+    if ((!cols.length || cfg.autoColumns) && cfg.autoColumns !== false && rows.length > 0) {
+        var keys = Object.keys(rows[0]);
+        return keys.map(function (k) {
+            var col = {
+                title: k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '),
+                field: k,
+                headerFilter: cfg.headerFilter === true ? 'input' : false,
+                resizable: true,
+                sorter: _tblGuessSorter(rows, k)
+            };
+            var sample = rows[0][k];
+            if (typeof sample === 'number') {
+                col.hozAlign = 'right';
+                if (k.match(/total|valor|preco|custo|salario|margem|price|amount/i)) {
+                    col.formatter = 'money';
+                    col.formatterParams = { thousand: '.', decimal: ',', precision: 2, symbol: '\u20ac', symbolAfter: true };
+                }
+            }
+            if (typeof sample === 'boolean') {
+                col.formatter = 'tickCross';
+                col.hozAlign = 'center';
+            }
+            return col;
+        });
+    }
+    return cols.filter(function (c) { return c.visible !== false; }).map(function (c) {
+        var col = {
+            title: c.title || c.field,
+            field: c.field,
+            hozAlign: c.hozAlign || 'left',
+            vertAlign: c.vertAlign || 'middle',
+            resizable: c.resizable !== false,
+            frozen: c.frozen || false,
+            sorter: c.sorter || 'string',
+            headerFilter: (cfg.headerFilter === true && c.headerFilter !== false) ? 'input' : false
+        };
+        if (c.width) col.width = c.width;
+        if (c.minWidth) col.minWidth = c.minWidth;
+        if (c.formatter) {
+            col.formatter = c.formatter;
+            if (c.formatterParams) {
+                col.formatterParams = c.formatterParams;
+                if (c.formatter === 'money') col.formatterParams.symbolAfter = true;
+            }
+        }
+        return col;
+    });
+}
+
+// ── Adivinhar sorter ─────────────────────────────────────────────────────────
+function _tblGuessSorter(rows, field) {
+    for (var i = 0; i < Math.min(rows.length, 5); i++) {
+        var v = rows[i][field];
+        if (v === null || v === undefined) continue;
+        if (typeof v === 'number') return 'number';
+        if (typeof v === 'boolean') return 'boolean';
+        if (typeof v === 'string' && !isNaN(Date.parse(v)) && v.match(/\d{4}[-\/]\d{2}/)) return 'date';
+        return 'string';
+    }
+    return 'string';
+}
+
+// ── Construir \u00e1rvore (dataTree) ──────────────────────────────────────────────
+function _tblBuildTree(data, parentField, childField) {
+    var lookup = {};
+    var roots = [];
+    data.forEach(function (item) { lookup[item[parentField]] = Object.assign({}, item); });
+    data.forEach(function (item) {
+        var node = lookup[item[parentField]];
+        if (!node) return;
+        var parentRef = item[childField];
+        if (parentRef === null || parentRef === undefined || parentRef === '') {
+            roots.push(node);
+        } else if (lookup[parentRef]) {
+            if (!lookup[parentRef]._children) lookup[parentRef]._children = [];
+            lookup[parentRef]._children.push(node);
+        } else {
+            roots.push(node);
+        }
+    });
+    return roots;
+}
+
+// ── Painel de propriedades inline da Tabela ──────────────────────────────────
+function renderTablePropertiesInline(obj, panel) {
+    var stamp = obj.mdashcontaineritemobjectstamp;
+    var cfg = obj.config
+        ? JSON.parse(JSON.stringify(obj.config))
+        : JSON.parse(JSON.stringify(_TABLE_SAMPLE_CONFIG));
+    var fontes = _mciGetFontes(obj);
+    var fields = _mciGetFields(obj);
+
+    _mciCSS();
+    _tblCSS();
+
+    var _timer = null;
+    function fire() {
+        clearTimeout(_timer);
+        _timer = setTimeout(function () {
+            if (!panel.find('.mtbl-root').length) return;
+            _tblReadConfig(panel, obj);
+            if (typeof realTimeComponentSync === 'function')
+                realTimeComponentSync(obj, obj.table, obj.idfield);
+            _mciRerender(obj);
+        }, 400);
+    }
+
+    // Transform badge
+    var _hasTrans = !!((obj.transformConfig && obj.transformConfig.sourceTable)
+        || (cfg.transformConfig && cfg.transformConfig.sourceTable));
+
+    // ── Sec\u00e7\u00e3o: Dados ──
+    var sDados = '<div class="mcbi-field"><label>Fonte de dados</label>'
+        + '<select class="mcbi-fonte form-control input-sm"><option value="">-- seleccione uma fonte --</option>'
+        + fontes.map(function (f) {
+            return '<option value="' + _mciEsc(f.mdashfontestamp) + '"'
+                + (obj.fontestamp === f.mdashfontestamp ? ' selected' : '') + '>'
+                + _mciEsc(f.descricao || f.codigo || f.mdashfontestamp) + '</option>';
+        }).join('') + '</select></div>'
+        + (!fontes.length ? '<div class="mcbi-info">Nenhuma fonte dispon\u00edvel neste dashboard.</div>' : '')
+        + '<div class="mcbi-transform-status' + (_hasTrans ? ' is-active' : '') + '">'
+        + '<span class="mcbi-ts-badge">'
+        + (_hasTrans
+            ? '<i class="glyphicon glyphicon-ok-sign"></i> Transforma\u00e7\u00e3o: <strong>'
+              + _mciEsc((obj.transformConfig && obj.transformConfig.sourceTable)
+                  || (cfg.transformConfig && cfg.transformConfig.sourceTable) || 'SQL')
+              + '</strong>'
+            : '<i class="glyphicon glyphicon-filter"></i> Sem transforma\u00e7\u00e3o de dados')
+        + '</span>'
+        + '<button type="button" class="mcbi-btn-transform">'
+        + (_hasTrans ? '<i class="glyphicon glyphicon-pencil"></i> Editar' : '<i class="glyphicon glyphicon-plus"></i> Configurar')
+        + '</button></div>';
+
+    // ── Sec\u00e7\u00e3o: Tema visual ──
+    var sTema = '<div class="mcbi-field"><label>Tema</label>'
+        + '<div class="mtbl-theme-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:5px;">';
+    Object.keys(_TABLE_THEMES).forEach(function (k) {
+        var t = _tblResolveTheme(_TABLE_THEMES[k]);
+        var isActive = (cfg.theme || 'phcPrimary') === k;
+        sTema += '<button type="button" class="mtbl-theme-btn' + (isActive ? ' is-on' : '') + '" data-theme="' + k + '"'
+            + ' style="display:flex;flex-direction:column;align-items:center;padding:6px 4px;border-radius:7px;border:1.5px solid ' + (isActive ? t.accent : 'rgba(0,0,0,.08)') + ';background:' + (isActive ? 'rgba(37,99,235,.06)' : '#fff') + ';cursor:pointer;transition:all .15s;">'
+            + '<div style="display:flex;gap:2px;margin-bottom:3px;">'
+            + '<span style="width:16px;height:10px;border-radius:2px;background:' + t.headerBg + ';"></span>'
+            + '<span style="width:8px;height:10px;border-radius:2px;background:' + t.accent + ';opacity:.6;"></span>'
+            + '</div>'
+            + '<span style="font-size:9.5px;font-weight:600;color:#475569;">' + t.name + '</span>'
+            + '</button>';
+    });
+    sTema += '</div></div>';
+
+    // ── Sec\u00e7\u00e3o: Layout ──
+    var sLayout = '<div class="mcbi-field"><label>Modo de layout</label>'
+        + '<select class="mtbl-layout form-control input-sm">'
+        + [['fitColumns', 'Ajustar colunas'], ['fitData', 'Ajustar aos dados'], ['fitDataFill', 'Preencher'], ['fitDataStretch', 'Esticar']].map(function (o) {
+            return '<option value="' + o[0] + '"' + ((cfg.layout || 'fitColumns') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+        }).join('') + '</select></div>'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Altura</label>'
+        + '<select class="mtbl-height form-control input-sm">'
+        + [['auto', 'Autom\u00e1tica'], ['300px', '300px'], ['400px', '400px'], ['500px', '500px'], ['600px', '600px'], ['800px', '800px']].map(function (o) {
+            return '<option value="' + o[0] + '"' + ((cfg.height || 'auto') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+        }).join('') + '</select></div>'
+        + '<div class="mcbi-field"><label>Altura m\u00e1xima</label>'
+        + '<input type="text" class="mtbl-maxheight form-control input-sm" value="' + _mciEsc(cfg.maxHeight || '500px') + '" placeholder="ex: 500px"></div>'
+        + '</div>'
+        + '<div class="mcbi-checks">'
+        + _mciChk('mtbl-striped', 'Linhas alternadas', cfg.stripedRows !== false)
+        + _mciChk('mtbl-hover', 'Highlight ao passar', cfg.hoverHighlight !== false)
+        + _mciChk('mtbl-resizable', 'Colunas redimension\u00e1veis', cfg.resizableColumns !== false)
+        + _mciChk('mtbl-movable', 'Colunas mov\u00edveis', cfg.movableColumns === true)
+        + _mciChk('mtbl-headerfilter', 'Filtros no cabe\u00e7alho', cfg.headerFilter === true)
+        + '</div>';
+
+    // ── Sec\u00e7\u00e3o: Pagina\u00e7\u00e3o ──
+    var pgn = cfg.pagination || {};
+    var sPagination = '<div class="mcbi-checks">'
+        + _mciChk('mtbl-paginate', 'Ativar pagina\u00e7\u00e3o', pgn.enabled === true)
+        + '</div>'
+        + '<div class="mcbi-field"><label>Registos por p\u00e1gina</label>'
+        + '<select class="mtbl-pagesize form-control input-sm">'
+        + [5, 10, 15, 25, 50, 100].map(function (n) {
+            return '<option value="' + n + '"' + ((pgn.size || 15) === n ? ' selected' : '') + '>' + n + '</option>';
+        }).join('') + '</select></div>';
+
+    // ── Sec\u00e7\u00e3o: Colunas ──
+    var sColunas = '<div class="mcbi-checks">'
+        + _mciChk('mtbl-autocols', 'Auto-gerar colunas', cfg.autoColumns !== false)
+        + '</div>'
+        + '<div class="mtbl-cols-manual" style="' + (cfg.autoColumns !== false ? 'display:none;' : '') + '">'
+        + '<div class="mtbl-col-list" style="max-height:300px;overflow:auto;">';
+    var manualCols = cfg.columns || [];
+    if (manualCols.length) {
+        manualCols.forEach(function (c, i) {
+            sColunas += _tblColCard(c, i, fields);
+        });
+    } else {
+        sColunas += '<div class="mcbi-info">Desative "Auto-gerar" e adicione colunas manualmente.</div>';
+    }
+    sColunas += '</div>'
+        + '<button type="button" class="btn btn-xs btn-default mtbl-add-col" style="margin-top:6px;width:100%;"><i class="glyphicon glyphicon-plus"></i> Adicionar coluna</button>'
+        + '</div>';
+
+    // ── Sec\u00e7\u00e3o: Hierarquia ──
+    var dt = cfg.dataTree || {};
+    var sTree = '<div class="mcbi-checks">'
+        + _mciChk('mtbl-tree', 'Ativar estrutura hier\u00e1rquica', dt.enabled === true)
+        + '</div>'
+        + '<div class="mtbl-tree-opts" style="' + (dt.enabled ? '' : 'display:none;') + '">'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Campo ID</label>'
+        + '<select class="mtbl-tree-parent form-control input-sm">'
+        + _tblFieldOpts(fields, dt.parentField) + '</select></div>'
+        + '<div class="mcbi-field"><label>Campo pai</label>'
+        + '<select class="mtbl-tree-child form-control input-sm">'
+        + _tblFieldOpts(fields, dt.childField) + '</select></div>'
+        + '</div>'
+        + '<div class="mcbi-checks">'
+        + _mciChk('mtbl-tree-expand', 'Expandir tudo inicialmente', dt.startExpanded !== false)
+        + '</div></div>';
+
+    // ── Sec\u00e7\u00e3o: Exporta\u00e7\u00e3o ──
+    var expCfg = cfg.exportOptions || {};
+    var sExport = '<div class="mcbi-checks">'
+        + _mciChk('mtbl-exp-excel', 'Exportar Excel', expCfg.enableExcel !== false)
+        + _mciChk('mtbl-exp-pdf-chk', 'Exportar PDF', expCfg.enablePDF === true)
+        + '</div>';
+
+    // ── Sec\u00e7\u00e3o: Estilo ──
+    var stl = cfg.styling || {};
+    var sEstilo = '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Cor cabe\u00e7alho</label>'
+        + '<input type="color" class="mtbl-hdrbg form-control input-sm" value="' + (stl.headerBg || '#1e293b') + '" style="width:50px;height:28px;padding:2px;"></div>'
+        + '<div class="mcbi-field"><label>Texto cabe\u00e7alho</label>'
+        + '<input type="color" class="mtbl-hdrtext form-control input-sm" value="' + (stl.headerText || '#f8fafc') + '" style="width:50px;height:28px;padding:2px;"></div>'
+        + '</div>'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Cor destaque</label>'
+        + '<input type="color" class="mtbl-accent form-control input-sm" value="' + (stl.accentColor || '#2563eb') + '" style="width:50px;height:28px;padding:2px;"></div>'
+        + '<div class="mcbi-field"><label>Raio bordas</label>'
+        + '<input type="number" class="mtbl-radius form-control input-sm" value="' + (stl.borderRadius || 10) + '" min="0" max="20" style="width:70px;"></div>'
+        + '</div>'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Tamanho fonte</label>'
+        + '<input type="number" class="mtbl-fontsize form-control input-sm" value="' + (stl.fontSize || 13) + '" min="10" max="18" style="width:70px;"> px</div>'
+        + '</div>';
+
+    // ── Montar HTML ──
+    var html = '<div class="mcbi-root mtbl-root" data-stamp="' + stamp + '">'
+        + _mciSection('dados', 'Dados', 'glyphicon-hdd', true, sDados)
+        + _mciSection('tema', 'Tema Visual', 'glyphicon-eye-open', true, sTema)
+        + _mciSection('layout', 'Layout', 'glyphicon-th-large', true, sLayout)
+        + _mciSection('paginacao', 'Pagina\u00e7\u00e3o', 'glyphicon-forward', false, sPagination)
+        + _mciSection('colunas', 'Colunas', 'glyphicon-th-list', false, sColunas)
+        + _mciSection('hierarquia', 'Hierarquia', 'glyphicon-tree-deciduous', false, sTree)
+        + _mciSection('exportacao', 'Exporta\u00e7\u00e3o', 'glyphicon-download-alt', false, sExport)
+        + _mciSection('estilo', 'Estilo Avan\u00e7ado', 'glyphicon-tint', false, sEstilo)
+        + '</div>';
+
+    panel.html(html);
+
+    // ── Event handlers ──
+
+    // Section toggle
+    panel.on('click', '.mcbi-section-hd', function () {
+        var sec = $(this).closest('.mcbi-section');
+        sec.toggleClass('is-open');
+        $(this).find('.mcbi-chev').toggleClass('glyphicon-chevron-down glyphicon-chevron-up');
+    });
+
+    // Checkbox toggle
+    panel.on('change', 'input[type="checkbox"]', function () {
+        $(this).closest('.mcbi-chk').toggleClass('is-on', this.checked);
+        // Auto-columns toggle
+        if ($(this).hasClass('mtbl-autocols')) {
+            panel.find('.mtbl-cols-manual').toggle(!this.checked);
+            if (!this.checked) {
+                var _af = _mciGetFields(obj);
+                if (!_af.length) {
+                    var _sRows = (typeof getMdashSampleData === 'function') ? getMdashSampleData('table') : [];
+                    if (_sRows && _sRows.length) _af = Object.keys(_sRows[0]);
+                }
+                var $clist = panel.find('.mtbl-col-list');
+                $clist.empty();
+                if (_af.length) {
+                    _af.forEach(function (f, idx) {
+                        $clist.append(_tblColCard({
+                            field: f,
+                            title: f.charAt(0).toUpperCase() + f.slice(1).replace(/_/g, ' '),
+                            visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext'
+                        }, idx, _af));
+                    });
+                }
+            }
+        }
+        // Tree toggle
+        if ($(this).hasClass('mtbl-tree')) {
+            panel.find('.mtbl-tree-opts').toggle(this.checked);
+        }
+        fire();
+    });
+
+    // Fonte change
+    panel.on('change', '.mcbi-fonte', function () {
+        var fs = $(this).val();
+        obj.fontestamp = fs;
+        _mciAutoApplyFonteTransform(fs, obj, panel);
+        var newFields = _mciGetFields(obj);
+        _tblRefreshFieldSelects(panel, newFields);
+        fire();
+    });
+
+    // Transform button
+    panel.on('click', '.mcbi-btn-transform', function () {
+        var currentTC = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
+        _mciOpenTransformModalFor(currentTC, obj, function (newT) {
+            obj.transformConfig = newT;
+            obj.transformconfigjson = JSON.stringify(newT);
+            obj.config = obj.config || {};
+            obj.config.transformConfig = newT;
+            if (typeof realTimeComponentSync === 'function')
+                realTimeComponentSync(obj, obj.table, obj.idfield);
+            var $ts = panel.find('.mcbi-transform-status');
+            $ts.addClass('is-active');
+            $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-ok-sign"></i> Transforma\u00e7\u00e3o: <strong>' + _mciEsc(newT.sourceTable || 'SQL') + '</strong>');
+            $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-pencil"></i> Editar');
+            var nf = _mciGetFields(obj);
+            _tblRefreshFieldSelects(panel, nf);
+            fire();
+        });
+    });
+
+    // Theme buttons
+    panel.on('click', '.mtbl-theme-btn', function () {
+        panel.find('.mtbl-theme-btn').each(function () {
+            $(this).removeClass('is-on').css({ 'border-color': 'rgba(0,0,0,.08)', 'background': '#fff' });
+        });
+        var k = $(this).data('theme');
+        var t = _tblResolveTheme(_TABLE_THEMES[k] || _TABLE_THEMES.phcPrimary);
+        $(this).addClass('is-on').css({ 'border-color': t.accent, 'background': 'rgba(37,99,235,.06)' });
+        // Sync style inputs from theme
+        panel.find('.mtbl-hdrbg').val(t.headerBg);
+        panel.find('.mtbl-hdrtext').val(t.headerText);
+        panel.find('.mtbl-accent').val(t.accent);
+        fire();
+    });
+
+    // Inputs change
+    panel.on('input change', 'select, input[type="text"], input[type="number"], input[type="color"]', function () {
+        fire();
+    });
+
+    // Add column
+    panel.on('click', '.mtbl-add-col', function () {
+        var newFields = _mciGetFields(obj);
+        if (!newFields.length) {
+            var _sr = (typeof getMdashSampleData === 'function') ? getMdashSampleData('table') : [];
+            if (_sr && _sr.length) newFields = Object.keys(_sr[0]);
+        }
+        var usedFields = [];
+        panel.find('.mtbl-col-field').each(function () { usedFields.push($(this).val()); });
+        var nextField = '';
+        for (var _fi = 0; _fi < newFields.length; _fi++) {
+            if (usedFields.indexOf(newFields[_fi]) === -1) { nextField = newFields[_fi]; break; }
+        }
+        if (!nextField && newFields.length) nextField = newFields[0];
+        var $list = panel.find('.mtbl-col-list');
+        $list.find('.mcbi-info').remove();
+        var idx = $list.find('.mtbl-col-card').length;
+        $list.append(_tblColCard({ field: nextField, title: nextField, visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }, idx, newFields));
+        fire();
+    });
+
+    // Remove column
+    panel.on('click', '.mtbl-col-remove', function () {
+        $(this).closest('.mtbl-col-card').remove();
+        fire();
+    });
+}
+
+// ── Helpers de UI da tabela ──────────────────────────────────────────────────
+
+function _tblFieldOpts(fields, current) {
+    return '<option value="">-- campo --</option>'
+        + fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (current === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join('');
+}
+
+function _tblColCard(col, idx, fields) {
+    return '<div class="mtbl-col-card" data-idx="' + idx + '" style="padding:8px;border:1px solid rgba(0,0,0,.08);border-radius:7px;margin-bottom:4px;background:#fafbfc;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+        + '<strong style="font-size:11px;color:#334155;">' + _mciEsc(col.title || col.field || 'Coluna') + '</strong>'
+        + '<button type="button" class="mtbl-col-remove" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:13px;padding:0 2px;" title="Remover"><i class="glyphicon glyphicon-trash"></i></button>'
+        + '</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">'
+        + '<select class="mtbl-col-field form-control input-sm" style="font-size:10.5px;">'
+        + fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (col.field === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join('')
+        + '</select>'
+        + '<input type="text" class="mtbl-col-title form-control input-sm" value="' + _mciEsc(col.title || '') + '" placeholder="T\u00edtulo" style="font-size:10.5px;">'
+        + '<select class="mtbl-col-align form-control input-sm" style="font-size:10.5px;">'
+        + _TABLE_ALIGNS.map(function (a) { return '<option value="' + a.value + '"' + ((col.hozAlign || 'left') === a.value ? ' selected' : '') + '>' + a.label + '</option>'; }).join('')
+        + '</select>'
+        + '<select class="mtbl-col-formatter form-control input-sm" style="font-size:10.5px;">'
+        + _TABLE_FORMATTERS.map(function (f) { return '<option value="' + f.value + '"' + ((col.formatter || 'plaintext') === f.value ? ' selected' : '') + '>' + f.label + '</option>'; }).join('')
+        + '</select>'
+        + '</div>'
+        + '<div style="display:flex;gap:8px;margin-top:4px;">'
+        + '<label style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px;"><input type="checkbox" class="mtbl-col-visible"' + (col.visible !== false ? ' checked' : '') + '> Vis\u00edvel</label>'
+        + '<label style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px;"><input type="checkbox" class="mtbl-col-frozen"' + (col.frozen ? ' checked' : '') + '> Congelar</label>'
+        + '<label style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px;"><input type="checkbox" class="mtbl-col-filter"' + (col.headerFilter !== false ? ' checked' : '') + '> Filtro</label>'
+        + '</div></div>';
+}
+
+function _tblRefreshFieldSelects(panel, fields) {
+    var opts = _tblFieldOpts(fields, '');
+    panel.find('.mtbl-col-field, .mtbl-tree-parent, .mtbl-tree-child').each(function () {
+        var cur = $(this).val();
+        $(this).html(fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (cur === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join(''));
+    });
+}
+
+// ── Ler config do painel ─────────────────────────────────────────────────────
+function _tblReadConfig(panel, obj) {
+    var cfg = obj.config || {};
+
+    // Tema (bot\u00e3o activo)
+    var activeTheme = panel.find('.mtbl-theme-btn.is-on').data('theme');
+    if (activeTheme) cfg.theme = activeTheme;
+
+    // Layout
+    cfg.layout = panel.find('.mtbl-layout').val() || 'fitColumns';
+    cfg.height = panel.find('.mtbl-height').val() || 'auto';
+    cfg.maxHeight = panel.find('.mtbl-maxheight').val() || '500px';
+
+    // Toggles
+    cfg.stripedRows = panel.find('.mtbl-striped').is(':checked');
+    cfg.hoverHighlight = panel.find('.mtbl-hover').is(':checked');
+    cfg.resizableColumns = panel.find('.mtbl-resizable').is(':checked');
+    cfg.movableColumns = panel.find('.mtbl-movable').is(':checked');
+    cfg.headerFilter = panel.find('.mtbl-headerfilter').is(':checked');
+
+    // Pagina\u00e7\u00e3o
+    cfg.pagination = {
+        enabled: panel.find('.mtbl-paginate').is(':checked'),
+        size: parseInt(panel.find('.mtbl-pagesize').val(), 10) || 15
+    };
+
+    // Auto-colunas e colunas manuais
+    cfg.autoColumns = panel.find('.mtbl-autocols').is(':checked');
+    if (!cfg.autoColumns) {
+        cfg.columns = [];
+        panel.find('.mtbl-col-card').each(function () {
+            cfg.columns.push({
+                field: $(this).find('.mtbl-col-field').val(),
+                title: $(this).find('.mtbl-col-title').val(),
+                hozAlign: $(this).find('.mtbl-col-align').val() || 'left',
+                formatter: $(this).find('.mtbl-col-formatter').val() || 'plaintext',
+                visible: $(this).find('.mtbl-col-visible').is(':checked'),
+                frozen: $(this).find('.mtbl-col-frozen').is(':checked'),
+                headerFilter: $(this).find('.mtbl-col-filter').is(':checked'),
+                sorter: 'string'
+            });
+        });
+    }
+
+    // Hierarquia
+    cfg.dataTree = {
+        enabled: panel.find('.mtbl-tree').is(':checked'),
+        parentField: panel.find('.mtbl-tree-parent').val() || 'id',
+        childField: panel.find('.mtbl-tree-child').val() || 'parentId',
+        startExpanded: panel.find('.mtbl-tree-expand').is(':checked')
+    };
+
+    // Exporta\u00e7\u00e3o
+    cfg.exportOptions = {
+        enableExcel: panel.find('.mtbl-exp-excel').is(':checked'),
+        enablePDF: panel.find('.mtbl-exp-pdf-chk').is(':checked')
+    };
+
+    // Estilo
+    cfg.styling = {
+        headerBg: panel.find('.mtbl-hdrbg').val() || '',
+        headerText: panel.find('.mtbl-hdrtext').val() || '#f8fafc',
+        accentColor: panel.find('.mtbl-accent').val() || '',
+        borderRadius: parseInt(panel.find('.mtbl-radius').val(), 10) || 10,
+        fontSize: parseInt(panel.find('.mtbl-fontsize').val(), 10) || 13
+    };
+
+    obj.config = cfg;
+    obj.configjson = JSON.stringify(cfg);
+}
+
+// ── Dynamic Schema (legacy compat) ──────────────────────────────────────────
+function createDynamicSchemaTable(data) {
+    var fieldOptions = [];
+    if (data && data.length > 0) {
+        Object.keys(data[0]).forEach(function (key) { fieldOptions.push(key); });
+    }
+    return {
+        type: 'object',
+        title: 'Configura\u00e7\u00e3o da Tabela',
+        properties: {
+            layout: { type: 'string', title: 'Layout', 'enum': ['fitColumns', 'fitData', 'fitDataFill', 'fitDataStretch'], 'default': 'fitColumns' },
+            height: { type: 'string', title: 'Altura', 'default': 'auto' },
+            columns: {
+                type: 'array', title: 'Colunas',
+                items: {
+                    type: 'object', properties: {
+                        field: { type: 'string', title: 'Campo', 'enum': fieldOptions },
+                        title: { type: 'string', title: 'T\u00edtulo' },
+                        visible: { type: 'boolean', title: 'Vis\u00edvel', 'default': true },
+                        formatter: { type: 'string', title: 'Formatador', 'enum': ['plaintext', 'number', 'money', 'tickCross', 'star', 'progress', 'color', 'link', 'html'] }
+                    }
+                }
+            }
+        }
+    };
+}
+
+
+
+// ============================================================================
 // MdashChartBuilder
 // Motor visual de configuração e renderização de gráficos para Mdash 2.0.
 //
@@ -3711,22 +4574,15 @@ function getTiposObjectoConfig() {
     },
     {
         tipo: "table",
-        descricao: "Tabela",
+        descricao: "Tabela de Dados",
         label: "Tabela",
         icon: "fa fa-table",
         categoria: "editor",
-        createDynamicSchema: createTableSchema,
-        renderObject: function (params) {
-            var containerSelector = params.containerSelector;
-            var itemObject = params.itemObject;
-            var config = params.config;
-            var data = params.data;
-            if (!data || data.length === 0) {
-                console.warn("Nenhum dado disponível para renderizar a tabela");
-                return;
-            }
-            updateTable(containerSelector, itemObject, config, data);
-        }
+        renderPropertiesInline: renderTablePropertiesInline,
+        createDynamicSchema: createDynamicSchemaTable,
+        renderObject: renderObjectTable,
+        getSampleData: function () { return getMdashSampleData('table'); },
+        sampleConfig: _TABLE_SAMPLE_CONFIG
     },
     {
         tipo: "text",
