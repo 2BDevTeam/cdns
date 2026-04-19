@@ -1066,7 +1066,8 @@ function initJSONEditorMrendConfig(relatorioConfig) {
             for (var key in editor.editors) {
                 if (editor.editors.hasOwnProperty(key)) {
                     var ed = editor.editors[key];
-                    if (['array', 'object'].indexOf(ed.schema && ed.schema.type) !== -1 && ed.editor_holder) {
+                    if (!ed || !ed.schema) continue;
+                    if (['array', 'object'].indexOf(ed.schema.type) !== -1 && ed.editor_holder) {
                         ed.editor_holder.style.display = 'none';
                         ed.collapsed = true;
                         if (ed.toggle_button) {

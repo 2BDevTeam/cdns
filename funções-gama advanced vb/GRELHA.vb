@@ -28,7 +28,7 @@ if isbimoedactivo
          return true
 end if 
     
-  Dim myCol as New BoundColumn()
+    Dim myCol as New BoundColumn()
     myCol.HeaderText = "Pr.Unit.(USD)"
     myCol.DataField = "pv"
     myCol.Visible = True

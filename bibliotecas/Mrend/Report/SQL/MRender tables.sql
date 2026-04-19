@@ -125,7 +125,7 @@ CREATE TABLE MrendColuna
     alinhamento VARCHAR(100) DEFAULT '',
     addBtn BIT DEFAULT 0,
     descbtnModelo VARCHAR(250) DEFAULT '',
-    modelocoluna BIT DEFAULT 0,
+    modelo BIT DEFAULT 0,
     expressaojsevento TEXT DEFAULT '',
     executaeventochange BIT DEFAULT 0,
     inactivo BIT DEFAULT 0,

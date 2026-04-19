@@ -2421,7 +2421,7 @@ function Mrend(options) {
                     if (colunaConfig) {
 
 
-                        tableRow[cell.campo] = handleDefaultValueByDataType(colunaConfig.config.tipo, cell[cell.campo])
+                        tableRow[cell.campo] = handleDefaultValueByDataType(colunaConfig.config.tipo, cell[colunaConfig.config.campo])
 
                     } else {
                         console.warn("ALERTA ConvertMrendObjectToTable:  Coluna não encontrada para o cellObject: ", cell);
@@ -2582,7 +2582,7 @@ function Mrend(options) {
                 if (MrendConversionConfig.tableKey != key && configCol) {
 
 
-                    var rowid = record[MrendConversionConfig.tableKey]
+                    var rowid = record[MrendConversionConfig.tableKey] || record.rowid || "";
 
                     // //console.log((configCol.campo, record[configCol.campo])
                     mrendObject.campo = MrendConversionConfig.chunkMapping == true ? key : configCol.campo;
@@ -2590,7 +2590,7 @@ function Mrend(options) {
                     mrendObject.coluna = key;
                     mrendObject.rowid = rowid;
                     mrendObject.codigolinha = MrendConversionConfig.table;
-                    mrendObject.cellId = key + "COLUNA___LINHA" + rowid.trim();
+                    mrendObject.cellId = key + "COLUNA___LINHA" + String(rowid != null ? rowid : "").trim();
                     mrendObject.ordemField = MrendConversionConfig.extras.ordemField;
                     mrendObject.tipocolField = MrendConversionConfig.extras.tipocolField;
                     mrendObject.tipocol = configCol.tipo || "text";
@@ -2720,7 +2720,7 @@ function Mrend(options) {
                 if (MrendConversionConfig.tableKey != key && configCol) {
 
 
-                    var rowid = record[MrendConversionConfig.tableKey]
+                    var rowid = record[MrendConversionConfig.tableKey] || record.rowid || "";
 
                     // //console.log((configCol.campo, record[configCol.campo])
                     mrendObject.campo = MrendConversionConfig.chunkMapping == true ? key : configCol.campo;
@@ -2728,7 +2728,7 @@ function Mrend(options) {
                     mrendObject.coluna = key;
                     mrendObject.rowid = rowid;
                     mrendObject.codigolinha = MrendConversionConfig.table;
-                    mrendObject.cellId = key + "COLUNA___LINHA" + rowid.trim();
+                    mrendObject.cellId = key + "COLUNA___LINHA" + String(rowid != null ? rowid : "").trim();
                     mrendObject.ordemField = MrendConversionConfig.extras.ordemField;
                     mrendObject.tipocolField = MrendConversionConfig.extras.tipocolField;
                     mrendObject.tipocol = configCol.tipo || "text";
@@ -3492,7 +3492,9 @@ function Mrend(options) {
 
 
         cellObjectConfig.setDefaultValue();
-        linh.UIObject[mrendThis.dbTableToMrendObject.chunkMapping ? coluna.config.campo : coluna.codigocoluna] = cellObjectConfig.valor;
+        // Tabulator usa o `field` da coluna (codigocoluna). Em chunkMapping=true,
+        // usar `campo` causa colisão entre instâncias do mesmo modelo.
+        linh.UIObject[coluna.codigocoluna] = cellObjectConfig.valor;
         linh.UIObject.cellId = cellObjectConfig.cellid;
 
         var cellValue = cellObjectConfig.valor;
@@ -5172,18 +5174,44 @@ function Mrend(options) {
 
                 if (colunaCnfgFound) {
 
-                    var colDefinition = columns.find(function (colDef) {
+                    // Atualizar minOrdemGrupo com base na config, independentemente
+                    // de a coluna estar renderizada ou ser modelo sem instâncias
+                    if (colunaCnfgFound.ordem < minOrdemGrupo) {
+                        minOrdemGrupo = colunaCnfgFound.ordem;
+                    }
 
-                        return colDef.field === colunaCnfgFound.codigocoluna;
-                    });
+                    // Colunas modelo: adicionar todas as instâncias (field começa com codigocoluna + "___")
+                    if (colunaCnfgFound.modelo) {
+                        var prefixModelo = colunaCnfgFound.codigocoluna.trim() + "___";
+                        var instanceCols = columns.filter(function (colDef) {
+                            if (colDef.field.indexOf(prefixModelo) === 0) {
+                                return true;
+                            }
 
-                    if (colDefinition) {
-                        colDefinition.frozen = false;
-                        tmpGrupoColunaDefinition.columns.push(colDefinition);
-                        addedToColGroup.push(colDefinition);
+                            // Compatibilidade: também aceitar instâncias antigas sem prefixo
+                            // desde que pertençam ao mesmo colunastamp de modelo.
+                            var renderedCol = mrendThis.GRenderedColunas.find(function (rc) {
+                                return rc.codigocoluna === colDef.field;
+                            });
+                            return renderedCol
+                                && renderedCol.config
+                                && renderedCol.config.colunastamp === colunaCnfgFound.colunastamp;
+                        });
+                        instanceCols.forEach(function (colDefinition) {
+                            colDefinition.frozen = false;
+                            tmpGrupoColunaDefinition.columns.push(colDefinition);
+                            addedToColGroup.push(colDefinition);
+                        });
+                    } else {
+                        var colDefinition = columns.find(function (colDef) {
 
-                        if (colunaCnfgFound.ordem < minOrdemGrupo) {
-                            minOrdemGrupo = colunaCnfgFound.ordem;
+                            return colDef.field === colunaCnfgFound.codigocoluna;
+                        });
+
+                        if (colDefinition) {
+                            colDefinition.frozen = false;
+                            tmpGrupoColunaDefinition.columns.push(colDefinition);
+                            addedToColGroup.push(colDefinition);
                         }
                     }
 
@@ -5191,9 +5219,22 @@ function Mrend(options) {
 
             });
 
-            if (tmpGrupoColunaDefinition.columns.length > 0) {
-                sortableEntries.push({ ordem: minOrdemGrupo, def: tmpGrupoColunaDefinition });
+            // Se o grupo não tem colunas (ex: todas são modelo sem instâncias),
+            // adicionar uma coluna placeholder para o Tabulator não crashar
+            if (tmpGrupoColunaDefinition.columns.length === 0) {
+                tmpGrupoColunaDefinition.columns.push({
+                    title: "",
+                    field: "_placeholder_" + grupo.grupocolunastamp,
+                    width: 1,
+                    minWidth: 1,
+                    headerSort: false,
+                    cssClass: "mrender-placeholder-col",
+                    formatter: function () { return ""; }
+                });
             }
+
+            var ordemFinal = minOrdemGrupo === Infinity ? grupo.ordem : minOrdemGrupo;
+            sortableEntries.push({ ordem: ordemFinal, def: tmpGrupoColunaDefinition });
 
         });
 
@@ -5606,9 +5647,12 @@ function Mrend(options) {
 
         linhasToRender.forEach(function (linhaToRender) {
 
+            var codigoLinhaToRender = String(linhaToRender && linhaToRender.codigo != null ? linhaToRender.codigo : "").trim();
+
             var recordData = records.find(function (record) {
 
-                return record.codigolinha == linhaToRender.codigo || String(record.codigolinha.trim()).includes(linhaToRender.codigo.trim() + "___")
+                var codigoLinhaRecord = String(record && record.codigolinha != null ? record.codigolinha : "").trim();
+                return codigoLinhaRecord === codigoLinhaToRender || codigoLinhaRecord.indexOf(codigoLinhaToRender + "___") !== -1
             });
 
             //console.log(("linhasToRender", linhasToRender, recordData)
@@ -5616,7 +5660,8 @@ function Mrend(options) {
             if (recordData) {
 
                 var linhaRecords = records.filter(function (record) {
-                    return record.codigolinha == linhaToRender.codigo || String(record.codigolinha.trim()).includes(linhaToRender.codigo.trim() + "___")
+                    var codigoLinhaRecord = String(record && record.codigolinha != null ? record.codigolinha : "").trim();
+                    return codigoLinhaRecord === codigoLinhaToRender || codigoLinhaRecord.indexOf(codigoLinhaToRender + "___") !== -1
                 }
                 );
 
@@ -5661,7 +5706,8 @@ function Mrend(options) {
             else {
                 var isFilhaRendered = mrendThis.GTMPFilhas.find(function (filha) {
 
-                    return filha.codigo.trim() == linhaToRender.codigo.trim();
+                    var codigoFilha = String(filha && filha.codigo != null ? filha.codigo : "").trim();
+                    return codigoFilha === codigoLinhaToRender;
                 });
 
                 if (!isFilhaRendered) {
@@ -6056,6 +6102,12 @@ function Mrend(options) {
             })
         });
     }
+    this.isSourceStampValid = function (currentStamp) {
+        var stored = getSourceStamp();
+        var current = String(currentStamp != null ? currentStamp : "").trim();
+        return current !== "" && current === stored;
+    }
+
     this.clearSourceStamp = function () {
 
         localStorage.removeItem("sourcestamp_" + mrendThis.dbTableToMrendObject.dbName + "_" + mrendThis.tableSourceName);
@@ -6341,8 +6393,7 @@ function Mrend(options) {
 
         var ordemColuna = maxOrdemColuna + 1;
         var colunaToRender = new RenderedColuna({
-            // codigocoluna: colConfig.codigocoluna + "___" + generateTimestampNumber(10),
-            codigocoluna: generateTimestampNumber(10),
+            codigocoluna: (colConfig.codigocoluna || "").trim() + "___" + generateTimestampNumber(10),
             ordem: ordemColuna,
             desccoluna: "Coluna " + ordemColuna,
             config: colConfig
@@ -6427,15 +6478,248 @@ function Mrend(options) {
             });
             var columns = [];
             addTabulatorColumns(colunas, columns);
-            columns.forEach(function (col) {
 
-                mrendThis.GTable.addColumn(col, false).then(function () {
-                    ////console.log(("Coluna adicionada:", col);
+            var grupoColunaItemsCfg = (mrendThis.reportConfig && mrendThis.reportConfig.config && mrendThis.reportConfig.config.grupocolunaItems) || [];
+            var grupoColunasCfg = (mrendThis.reportConfig && mrendThis.reportConfig.config && mrendThis.reportConfig.config.grupocolunas) || [];
+            var colunasCfg = (mrendThis.reportConfig && mrendThis.reportConfig.config && mrendThis.reportConfig.config.colunas) || [];
+
+            function getGrupoStampByColunaStamp(colunaStamp) {
+                var item = grupoColunaItemsCfg.find(function (it) {
+                    return it.colunastamp === colunaStamp;
+                });
+                return item ? item.grupocolunastamp : "";
+            }
+
+            function getGrupoStampByField(field) {
+                if (!field) {
+                    return "";
+                }
+
+                if (field.indexOf("_placeholder_") === 0) {
+                    return field.replace("_placeholder_", "");
+                }
+
+                var rendered = mrendThis.GRenderedColunas.find(function (rc) {
+                    return rc.codigocoluna === field;
+                });
+                if (rendered && rendered.config && rendered.config.colunastamp) {
+                    return getGrupoStampByColunaStamp(rendered.config.colunastamp);
+                }
+
+                var cfg = colunasCfg.find(function (c) {
+                    return c.codigocoluna === field;
+                });
+                if (cfg && cfg.colunastamp) {
+                    return getGrupoStampByColunaStamp(cfg.colunastamp);
+                }
+
+                return "";
+            }
+
+            function getOrderByField(field) {
+                if (!field) {
+                    return 999999;
+                }
+
+                if (field.indexOf("_placeholder_") === 0) {
+                    return 999999;
+                }
+
+                var rendered = mrendThis.GRenderedColunas.find(function (rc) {
+                    return rc.codigocoluna === field;
                 });
 
+                if (rendered && rendered.config && rendered.config.colunastamp) {
+                    var item = grupoColunaItemsCfg.find(function (it) {
+                        return it.colunastamp === rendered.config.colunastamp;
+                    });
+                    if (item) {
+                        return item.ordem || 0;
+                    }
 
+                    return rendered.ordem || 0;
+                }
 
+                var cfg = colunasCfg.find(function (c) {
+                    return c.codigocoluna === field;
+                });
+                if (cfg) {
+                    var itemCfg = grupoColunaItemsCfg.find(function (it) {
+                        return it.colunastamp === cfg.colunastamp;
+                    });
+                    if (itemCfg) {
+                        return itemCfg.ordem || 0;
+                    }
+
+                    return cfg.ordem || 0;
+                }
+
+                return 999999;
+            }
+
+            function findGroupDefinition(definitions, grupoStamp) {
+                var found = null;
+
+                function walk(defs) {
+                    if (!Array.isArray(defs) || found) {
+                        return;
+                    }
+
+                    defs.forEach(function (def) {
+                        if (found || !def || !Array.isArray(def.columns)) {
+                            return;
+                        }
+
+                        var isTarget = def.columns.some(function (sub) {
+                            return getGrupoStampByField(sub && sub.field) === grupoStamp;
+                        });
+
+                        if (isTarget) {
+                            found = def;
+                            return;
+                        }
+
+                        walk(def.columns);
+                    });
+                }
+
+                walk(definitions);
+                return found;
+            }
+
+            function getGrupoSortedItems(grupoStamp) {
+                return grupoColunaItemsCfg
+                    .filter(function (it) {
+                        return it.grupocolunastamp === grupoStamp;
+                    })
+                    .sort(function (a, b) {
+                        return (a.ordem || 0) - (b.ordem || 0);
+                    });
+            }
+
+            function getRenderedFieldsForItem(item) {
+                var colunaBaseCfg = colunasCfg.find(function (cfg) {
+                    return cfg.colunastamp === item.colunastamp;
+                });
+
+                if (!colunaBaseCfg) {
+                    return [];
+                }
+
+                if (colunaBaseCfg.modelo === true) {
+                    var prefix = (colunaBaseCfg.codigocoluna || "").trim() + "___";
+                    return mrendThis.GRenderedColunas
+                        .filter(function (rc) {
+                            var isPrefixedInstance = (rc.codigocoluna || "").indexOf(prefix) === 0;
+                            var isSameModelStamp = rc.config && rc.config.colunastamp === colunaBaseCfg.colunastamp;
+                            return (isPrefixedInstance || isSameModelStamp) && mrendThis.GTable.getColumn(rc.codigocoluna);
+                        })
+                        .sort(function (a, b) {
+                            return (a.ordem || 0) - (b.ordem || 0);
+                        })
+                        .map(function (rc) {
+                            return rc.codigocoluna;
+                        });
+                }
+
+                var field = (colunaBaseCfg.codigocoluna || "").trim();
+                return mrendThis.GTable.getColumn(field) ? [field] : [];
+            }
+
+            function getAnchorForGroup(grupoStamp, colunaOrdem) {
+                var itemDefs = getGrupoSortedItems(grupoStamp);
+                var orderedFields = [];
+
+                itemDefs.forEach(function (itemDef) {
+                    var fields = getRenderedFieldsForItem(itemDef);
+                    fields.forEach(function (f) {
+                        orderedFields.push({ field: f, ordem: itemDef.ordem || 0 });
+                    });
+                });
+
+                var placeholderField = "_placeholder_" + grupoStamp;
+                var hasPlaceholder = !!mrendThis.GTable.getColumn(placeholderField);
+
+                if (orderedFields.length === 0 && hasPlaceholder) {
+                    return { field: placeholderField, before: true, removePlaceholder: true };
+                }
+
+                if (orderedFields.length === 0) {
+                    return null;
+                }
+
+                var prev = null;
+                var next = null;
+                orderedFields.forEach(function (entry) {
+                    if (entry.ordem <= (colunaOrdem || 0)) {
+                        prev = entry;
+                    }
+                    if (!next && entry.ordem > (colunaOrdem || 0)) {
+                        next = entry;
+                    }
+                });
+
+                if (prev) {
+                    return { field: prev.field, before: false, removePlaceholder: hasPlaceholder };
+                }
+                if (next) {
+                    return { field: next.field, before: true, removePlaceholder: hasPlaceholder };
+                }
+
+                return { field: orderedFields[orderedFields.length - 1].field, before: false, removePlaceholder: hasPlaceholder };
+            }
+
+            var currentDefinitions = mrendThis.GTable.getColumnDefinitions();
+
+            columns.forEach(function (col) {
+                var renderedColuna = colunas.find(function (rc) {
+                    return rc.codigocoluna === col.field;
+                });
+                var colunaStamp = renderedColuna && renderedColuna.config ? renderedColuna.config.colunastamp : "";
+                var grupoStamp = colunaStamp ? getGrupoStampByColunaStamp(colunaStamp) : "";
+
+                if (!grupoStamp) {
+                    currentDefinitions.push(col);
+                    return;
+                }
+
+                var groupDef = findGroupDefinition(currentDefinitions, grupoStamp);
+
+                if (!groupDef) {
+                    var grupoCfg = grupoColunasCfg.find(function (g) {
+                        return g.grupocolunastamp === grupoStamp;
+                    });
+
+                    groupDef = {
+                        title: grupoCfg ? grupoCfg.descgrupo : "",
+                        frozen: grupoCfg ? grupoCfg.fixa : false,
+                        columns: []
+                    };
+
+                    currentDefinitions.push(groupDef);
+                }
+
+                if (!Array.isArray(groupDef.columns)) {
+                    groupDef.columns = [];
+                }
+
+                groupDef.columns = groupDef.columns.filter(function (sub) {
+                    return !(sub && sub.field && sub.field === "_placeholder_" + grupoStamp);
+                });
+
+                var newOrder = getOrderByField(col.field);
+                var insertAt = groupDef.columns.findIndex(function (sub) {
+                    return getOrderByField(sub && sub.field) > newOrder;
+                });
+
+                if (insertAt === -1) {
+                    groupDef.columns.push(col);
+                } else {
+                    groupDef.columns.splice(insertAt, 0, col);
+                }
             });
+
+            mrendThis.GTable.setColumns(currentDefinitions);
 
             var colunasSetFim = mrendThis.GRenderedColunas.filter(function (coluna) {
 
@@ -6448,6 +6732,17 @@ function Mrend(options) {
 
             // //console.log(("colunasSetFim", colunasSetFim)
             colunasSetFim.forEach(function (coluna) {
+
+                var grupoStampColuna = "";
+                if (coluna && coluna.config && coluna.config.colunastamp) {
+                    grupoStampColuna = getGrupoStampByColunaStamp(coluna.config.colunastamp);
+                }
+
+                // Colunas de grupo não devem ser movidas globalmente para evitar
+                // sair do respetivo group header.
+                if (grupoStampColuna) {
+                    return;
+                }
 
                 var columnExists = mrendThis.GTable.getColumn(lastRendered.trim())
                 if (columnExists) {
@@ -6875,6 +7170,9 @@ function Mrend(options) {
 
         return new Promise(function (resolve, reject) {
             mrendThis.db[mrendThis.tableSourceName].toArray().then(function (records) {
+
+                var avCritRecords = records.filter(function (r) { return r.sourceTable === "u_avcrit"; });
+                console.log("getDbData u_avcrit records:", avCritRecords);
 
                 var recordsConverted = ConvertMrendObjectToTable(records)
 

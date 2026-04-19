@@ -1,20 +1,186 @@
-[
+Coloquei em    GMRENDAVALIACOESCOT.getDbData().then(function (reportData) {
+
+            // DEBUG: query direta ao Dexie para ver MrendObjects raw
+            GMRENDAVALIACOESCOT.db[GMRENDAVALIACOESCOT.tableSourceName].toArray().then(function (rawRecords) {
+                var avCritRaw = rawRecords.filter(function (r) { return r.sourceTable === "u_avcrit"; });
+                console.log("DEBUG RAW u_avcrit MrendObjects:", avCritRaw);
+            });
+ veja o resultado  do console.log [
     {
-        "sourceTable": "u_histmand",
-        "sourceKey": "u_histmandstamp",
-        "registo": {
-            "u_osociasstamp": "154341bf8f3d166560e2da",
-            "cargoant": "Director+Geral",
-            "cargoact": "Director+Geral",
-            "empant": "MOZAL",
-            "noempant": "86",
-            "empact": "Rádio+Moçambique,+E.P.+-+600000039",
-            "noempact": "80",
-            "dataalt": "2026-04-13",
-            "datainimandant": "1900-01-01",
-            "datafimmandant": "2026-04-17",
-            "dataini": "2026-04-18",
-            "u_histmandstamp": "a06fb59a-93ea-44a7-9828-f"
-        }
+        "cellId": "3847b080-4950-4753-82db-1",
+        "coluna": "criterio___criterio_PREC",
+        "rowid": "ad78d1f5-7d94-43f7-9094-6",
+        "sourceTable": "u_avcrit",
+        "sourceKey": "u_avcritstamp",
+        "sourceKeyValue": "ad78d1f5-7d94-43f7-9094-6",
+        "valor": "",
+        "campo": "descricao",
+        "linkid": "",
+        "linkField": "",
+        "codigolinha": "bi___1776603624",
+        "ordemField": "lordem",
+        "descColuna": "Preço",
+        "descColunaField": "",
+        "cellIdField": "",
+        "rowIdField": "",
+        "colunaField": "",
+        "linhaField": "u_codlinha",
+        "ordemColunaField": "",
+        "ordemcoluna": 0,
+        "ordem": 1002,
+        "tipocolField": "",
+        "tipocol": "text",
+        "descricao": "AFS Multi C Service, Lda",
+        "descLinhaField": "",
+        "ordemColuna": 4,
+        "descLinha": "Bi"
+    },
+    {
+        "cellId": "9d07bf89-115b-41d0-88c3-d",
+        "coluna": "criterio___criterio_MANU",
+        "rowid": "80970065-7302-46f0-8d9e-c",
+        "sourceTable": "u_avcrit",
+        "sourceKey": "u_avcritstamp",
+        "sourceKeyValue": "80970065-7302-46f0-8d9e-c",
+        "valor": "",
+        "campo": "descricao",
+        "linkid": "",
+        "linkField": "",
+        "codigolinha": "bi___1776603624",
+        "ordemField": "lordem",
+        "descColuna": "Manutenção",
+        "descColunaField": "",
+        "cellIdField": "",
+        "rowIdField": "",
+        "colunaField": "",
+        "linhaField": "u_codlinha",
+        "ordemColunaField": "",
+        "ordemcoluna": 0,
+        "ordem": 1001,
+        "tipocolField": "",
+        "tipocol": "text",
+        "descricao": "Supermercado Paz",
+        "descLinhaField": "",
+        "ordemColuna": 5,
+        "descLinha": "Bi"
+    },
+    {
+        "cellId": "ed5b1d7f-cda9-4351-8aec-6",
+        "coluna": "criterio___criterio_PREC",
+        "rowid": "80970065-7302-46f0-8d9e-c",
+        "sourceTable": "u_avcrit",
+        "sourceKey": "u_avcritstamp",
+        "sourceKeyValue": "80970065-7302-46f0-8d9e-c",
+        "valor": "",
+        "campo": "descricao",
+        "linkid": "",
+        "linkField": "",
+        "codigolinha": "bi___1776603624",
+        "ordemField": "lordem",
+        "descColuna": "Preço",
+        "descColunaField": "",
+        "cellIdField": "",
+        "rowIdField": "",
+        "colunaField": "",
+        "linhaField": "u_codlinha",
+        "ordemColunaField": "",
+        "ordemcoluna": 0,
+        "ordem": 1001,
+        "tipocolField": "",
+        "tipocol": "text",
+        "descricao": "Supermercado Paz",
+        "descLinhaField": "",
+        "ordemColuna": 4,
+        "descLinha": "Bi"
+    },
+    {
+        "cellId": "fc12bd29-7693-4998-8fa2-7",
+        "coluna": "criterio___criterio_MANU",
+        "rowid": "ad78d1f5-7d94-43f7-9094-6",
+        "sourceTable": "u_avcrit",
+        "sourceKey": "u_avcritstamp",
+        "sourceKeyValue": "ad78d1f5-7d94-43f7-9094-6",
+        "valor": "",
+        "campo": "descricao",
+        "linkid": "",
+        "linkField": "",
+        "codigolinha": "bi___1776603624",
+        "ordemField": "lordem",
+        "descColuna": "Manutenção",
+        "descColunaField": "",
+        "cellIdField": "",
+        "rowIdField": "",
+        "colunaField": "",
+        "linhaField": "u_codlinha",
+        "ordemColunaField": "",
+        "ordemcoluna": 0,
+        "ordem": 1002,
+        "tipocolField": "",
+        "tipocol": "text",
+        "descricao": "AFS Multi C Service, Lda",
+        "descLinhaField": "",
+        "ordemColuna": 5,
+        "descLinha": "Bi"
     }
-]
+] basicamente  precisamos de imitar array ReportData que tem essa estrutura [
+    {
+        "sourceTable": "bi",
+        "sourceKey": "bistamp",
+        "records": [
+            {
+                "debito": 60000,
+                "design": "Pagamentos Diversos",
+                "nome": 60000,
+                "descricao": "Supermercado Paz",
+                "ref": "DESP02305",
+                "qtt": 1,
+                "bistamp": "80970065-7302-46f0-8d9e-c",
+                "": "",
+                "lordem": 1001,
+                "u_codlinha": "bi___1776603624"
+            },
+            {
+                "nome": 0,
+                "descricao": "AFS Multi C Service, Lda",
+                "debito": 0,
+                "design": "Outros Serviços",
+                "qtt": 3,
+                "ref": "D6380",
+                "bistamp": "ad78d1f5-7d94-43f7-9094-6",
+                "": "",
+                "lordem": 1002,
+                "u_codlinha": "bi___1776603624"
+            }
+        ]
+    },
+    {
+        "sourceTable": "u_avcrit",
+        "sourceKey": "u_avcritstamp",
+        "records": [
+            {
+                "nome": 0,
+                "descricao": "AFS Multi C Service, Lda",
+                "debito": 0,
+                "design": "Outros Serviços",
+                "qtt": 3,
+                "ref": "D6380",
+                "u_avcritstamp": "ad78d1f5-7d94-43f7-9094-6",
+                "": "",
+                "lordem": 1002,
+                "u_codlinha": "bi___1776603624"
+            },
+            {
+                "debito": 60000,
+                "design": "Pagamentos Diversos",
+                "nome": 60000,
+                "descricao": "Supermercado Paz",
+                "ref": "DESP02305",
+                "qtt": 1,
+                "u_avcritstamp": "80970065-7302-46f0-8d9e-c",
+                "": "",
+                "lordem": 1001,
+                "u_codlinha": "bi___1776603624"
+            }
+        ]
+    }
+] . No caso o sourceTable será u_avcrit
