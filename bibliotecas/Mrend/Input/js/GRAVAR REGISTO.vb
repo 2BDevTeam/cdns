@@ -67,7 +67,7 @@ Try
       if cabecalhoRegisto("ndos")<>43
         return true
       End if
-      Xcutil.LogViewSource(mpage,"Bostamp do registo a gravar 4333: " &jsonData)
+      'Xcutil.LogViewSource(mpage,"Bostamp do registo a gravar 4333: " &jsonData)
 
 
     
