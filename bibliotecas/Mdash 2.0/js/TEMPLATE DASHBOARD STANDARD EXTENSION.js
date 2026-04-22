@@ -1172,10 +1172,15 @@ function renderObjectTable(dados) {
                            'border-radius':'3px','text-align':'center','box-shadow':'0 0 0 2px rgba(37,99,235,.15)' })
                     .val(oldT);
                 $ttl.empty().append($inp);
-                $inp.focus().select();
+                $inp.focus();
                 var done = false;
+                var _nsColRename = 'mousedown.tblcolrename' + Date.now();
+                function _cleanupColRename() {
+                    $(document).off(_nsColRename);
+                }
                 function commit() {
                     if (done) return; done = true;
+                    _cleanupColRename();
                     var nT = $inp.val().trim() || oldT;
                     $ttl.text(nT);
                     // updateDefinition removido — visual já definido, config salva abaixo
@@ -1200,10 +1205,17 @@ function renderObjectTable(dados) {
                         _mciRerender(io);
                     }
                 }
+                // Forçar commit ao clicar fora do header (blur nem sempre dispara em elementos não-focalizáveis)
+                $(document).on(_nsColRename, function (ev) {
+                    if (!$(ev.target).closest($ttl).length) {
+                        _cleanupColRename();
+                        commit();
+                    }
+                });
                 $inp.on('blur', commit);
                 $inp.on('keydown', function (ev) {
                     if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
-                    if (ev.key === 'Escape') { done = true; $ttl.text(oldT); }
+                    if (ev.key === 'Escape') { done = true; _cleanupColRename(); $ttl.text(oldT); }
                 });
             });
         });
@@ -1474,16 +1486,18 @@ function renderTablePropertiesInline(obj, panel) {
     panel.html(html);
 
     // ── Event handlers ──
+    // Limpar handlers anteriores (evita duplicação em re-renders ao mudar de tab)
+    panel.off('.tblinline');
 
     // Section toggle
-    panel.on('click', '.mcbi-section-hd', function () {
+    panel.on('click.tblinline', '.mcbi-section-hd', function () {
         var sec = $(this).closest('.mcbi-section');
         sec.toggleClass('is-open');
         $(this).find('.mcbi-chev').toggleClass('glyphicon-chevron-down glyphicon-chevron-up');
     });
 
     // Checkbox toggle
-    panel.on('change', 'input[type="checkbox"]', function () {
+    panel.on('change.tblinline', 'input[type="checkbox"]', function () {
         $(this).closest('.mcbi-chk').toggleClass('is-on', this.checked);
         // Auto-columns toggle
         if ($(this).hasClass('mtbl-autocols')) {
@@ -1515,7 +1529,7 @@ function renderTablePropertiesInline(obj, panel) {
     });
 
     // Fonte change
-    panel.on('change', '.mcbi-fonte', function () {
+    panel.on('change.tblinline', '.mcbi-fonte', function () {
         var fs = $(this).val();
         obj.fontestamp = fs;
         _mciAutoApplyFonteTransform(fs, obj, panel);
@@ -1525,7 +1539,7 @@ function renderTablePropertiesInline(obj, panel) {
     });
 
     // Transform button
-    panel.on('click', '.mcbi-btn-transform', function () {
+    panel.on('click.tblinline', '.mcbi-btn-transform', function () {
         var currentTC = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
         _mciOpenTransformModalFor(currentTC, obj, function (newT) {
             obj.transformConfig = newT;
@@ -1545,7 +1559,7 @@ function renderTablePropertiesInline(obj, panel) {
     });
 
     // Theme buttons
-    panel.on('click', '.mtbl-theme-btn', function () {
+    panel.on('click.tblinline', '.mtbl-theme-btn', function () {
         panel.find('.mtbl-theme-btn').each(function () {
             $(this).removeClass('is-on').css({ 'border-color': 'rgba(0,0,0,.08)', 'background': '#fff' });
         });
@@ -1560,12 +1574,12 @@ function renderTablePropertiesInline(obj, panel) {
     });
 
     // Inputs change
-    panel.on('input change', 'select, input[type="text"], input[type="number"], input[type="color"]', function () {
+    panel.on('input.tblinline change.tblinline', 'select, input[type="text"], input[type="number"], input[type="color"]', function () {
         fire();
     });
 
     // Add column
-    panel.on('click', '.mtbl-add-col', function () {
+    panel.on('click.tblinline', '.mtbl-add-col', function () {
         var newFields = _mciGetFields(obj);
         if (!newFields.length) {
             var _sr = (typeof getMdashSampleData === 'function') ? getMdashSampleData('table') : [];
@@ -1586,7 +1600,7 @@ function renderTablePropertiesInline(obj, panel) {
     });
 
     // Remove column
-    panel.on('click', '.mtbl-col-remove', function () {
+    panel.on('click.tblinline', '.mtbl-col-remove', function () {
         $(this).closest('.mtbl-col-card').remove();
         fire();
     });
@@ -3296,7 +3310,18 @@ function _mciRerender(obj) {
     if (!$(sel).length) return;
     var items = (window.appState && window.appState.containerItems) ? window.appState.containerItems : GMDashContainerItems;
     var ci = (items || []).find(function (x) { return x.mdashcontaineritemstamp === obj.mdashcontaineritemstamp; });
-    if (ci) obj.renderObjectByContainerItem(sel, ci);
+    if (!ci) return;
+    // Guardar scroll antes de re-render — Tabulator e outros componentes podem causar scroll durante init
+    var _sTop = $(window).scrollTop();
+    var _sLeft = $(window).scrollLeft();
+    // Blur do elemento focado evita que o browser tente manter em viewport um elemento prestes a ser destruído
+    if (document.activeElement && document.activeElement !== document.body) {
+        document.activeElement.blur();
+    }
+    obj.renderObjectByContainerItem(sel, ci);
+    // Restaurar a 0ms (pós-render síncrono) e a 100ms (cobre init assíncrono do Tabulator)
+    setTimeout(function () { $(window).scrollTop(_sTop); $(window).scrollLeft(_sLeft); }, 0);
+    setTimeout(function () { $(window).scrollTop(_sTop); $(window).scrollLeft(_sLeft); }, 100);
 }
 
 function _mciPreviewUpdate(stamp, cfg, rows) {
@@ -4289,6 +4314,372 @@ function _mciCSS() {
     return '';
 }
 
+// ============================================================================
+// HTML OBJECT TYPE — Template Handlebars com dados de fonte
+// Permite ao utilizador escrever HTML com {{campo}} e {{#each rows}}
+// usando Handlebars.js (já carregado via CDN).
+// ============================================================================
+
+var _HTML_SAMPLE_CONFIG = {
+    htmlTemplate: '<div class="mhtml-card">\n  <h4>{{titulo}}</h4>\n  <p>{{descricao}}</p>\n</div>\n\n{{!-- Para listas use: --}}\n{{!-- {{#each rows}}<div>{{nome}}</div>{{/each}} --}}',
+    cssCode: '.mhtml-card { padding: 16px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; }',
+    sanitize: true,
+    minHeight: ''
+};
+
+// ── Helper: interpolação Handlebars ─────────────────────────────────────────
+function _htmlRenderTemplate(template, data) {
+    if (typeof Handlebars === 'undefined') {
+        // Fallback simples se Handlebars não estiver carregado
+        return template.replace(/\{\{([^}]+)\}\}/g, function (_, key) {
+            key = key.trim();
+            var row = (data && data.length) ? data[0] : {};
+            return row[key] !== undefined ? String(row[key]) : '';
+        });
+    }
+    try {
+        var compiled = Handlebars.compile(template);
+        var ctx = {};
+        // Spread do 1.º registo no root para acesso directo a {{campo}}
+        if (data && data.length) {
+            var first = data[0];
+            Object.keys(first).forEach(function (k) { ctx[k] = first[k]; });
+        }
+        ctx.rows  = data || [];
+        ctx.total = (data || []).length;
+        ctx.row   = (data && data.length) ? data[0] : {};
+        return compiled(ctx);
+    } catch (e) {
+        return '<div style="color:#ef4444;padding:8px;font-size:11px;"><i class="glyphicon glyphicon-warning-sign"></i> Erro no template: ' + _mciEsc(e.message) + '</div>';
+    }
+}
+
+// ── Helper: sanitizar HTML (strip <script> e atributos on*) ─────────────────
+function _htmlSanitize(html) {
+    // Remove blocos <script>...</script>
+    html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+    // Remove atributos de evento inline (onclick, onload, etc.)
+    html = html.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
+    // Remove href="javascript:..."
+    html = html.replace(/href\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, 'href="#"');
+    return html;
+}
+
+// ── renderObjectHtml ─────────────────────────────────────────────────────────
+function renderObjectHtml(dados) {
+    var cfg = dados.config
+        ? JSON.parse(JSON.stringify(dados.config))
+        : JSON.parse(JSON.stringify(_HTML_SAMPLE_CONFIG));
+    var rows = dados.data || [];
+    var stamp = dados.itemObject.mdashcontaineritemobjectstamp;
+    var sel   = dados.containerSelector;
+
+    // Transform fallback
+    var tCfg = dados.transformConfig || cfg.transformConfig || null;
+    if (rows.length === 0 && tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
+        try {
+            var raw = MdashTransformBuilder.executeRaw(tCfg);
+            if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
+                rows = raw.rows.map(function (r) {
+                    var o = {};
+                    raw.columns.forEach(function (c, i) { o[c] = r[i]; });
+                    return o;
+                });
+            }
+        } catch (e) { /* silêncio */ }
+    }
+
+    var template = cfg.htmlTemplate || '';
+    var cssCode  = cfg.cssCode || '';
+
+    if (!template) {
+        $(sel).html(
+            '<div style="padding:16px;text-align:center;color:#94a3b8;font-size:12px;">'
+            + '<i class="fa fa-code" style="font-size:24px;display:block;margin-bottom:6px;opacity:.5;"></i>'
+            + 'HTML — sem template definido'
+            + '</div>'
+        );
+        return;
+    }
+
+    // CSS scoped
+    var styleId = 'mhtml-style-' + stamp;
+    $('#' + styleId).remove();
+    if (cssCode) {
+        $('head').append('<style id="' + styleId + '">' + cssCode + '</style>');
+    }
+
+    // Render template
+    var rendered = _htmlRenderTemplate(template, rows);
+    if (cfg.sanitize !== false) rendered = _htmlSanitize(rendered);
+
+    var wrapStyle = cfg.minHeight ? 'min-height:' + _mciEsc(cfg.minHeight) + ';' : '';
+    $(sel).html('<div class="mhtml-root" style="' + wrapStyle + '">' + rendered + '</div>');
+}
+
+// ── renderHtmlPropertiesInline ───────────────────────────────────────────────
+function renderHtmlPropertiesInline(obj, panel) {
+    var stamp  = obj.mdashcontaineritemobjectstamp;
+    var cfg    = obj.config
+        ? JSON.parse(JSON.stringify(obj.config))
+        : JSON.parse(JSON.stringify(_HTML_SAMPLE_CONFIG));
+    var fontes = _mciGetFontes(obj);
+    var fields = _mciGetFields(obj);
+
+    _mciCSS();
+
+    var _timer = null;
+    function fire() {
+        clearTimeout(_timer);
+        _timer = setTimeout(function () {
+            if (!panel.find('.mhtml-root-props').length) return;
+            _htmlReadConfig(panel, obj);
+            if (typeof realTimeComponentSync === 'function')
+                realTimeComponentSync(obj, obj.table, obj.idfield);
+            _mciRerender(obj);
+        }, 400);
+    }
+
+    var _hasTrans = !!((obj.transformConfig && obj.transformConfig.sourceTable)
+        || (cfg.transformConfig && cfg.transformConfig.sourceTable));
+
+    // ── Secção: Dados ────────────────────────────────────────────────────────
+    var sDados = '<div class="mcbi-field"><label>Fonte de dados</label>'
+        + '<select class="mcbi-fonte form-control input-sm"><option value="">-- seleccione uma fonte --</option>'
+        + fontes.map(function (f) {
+            return '<option value="' + _mciEsc(f.mdashfontestamp) + '"'
+                + (obj.fontestamp === f.mdashfontestamp ? ' selected' : '') + '>'
+                + _mciEsc(f.descricao || f.codigo || f.mdashfontestamp) + '</option>';
+        }).join('') + '</select></div>'
+        + (!fontes.length ? '<div class="mcbi-info">Nenhuma fonte disponível neste dashboard.</div>' : '')
+        + '<div class="mcbi-transform-status' + (_hasTrans ? ' is-active' : '') + '">'
+        + '<span class="mcbi-ts-badge">'
+        + (_hasTrans
+            ? '<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>'
+              + _mciEsc((obj.transformConfig && obj.transformConfig.sourceTable)
+                  || (cfg.transformConfig && cfg.transformConfig.sourceTable) || 'SQL') + '</strong>'
+            : '<i class="glyphicon glyphicon-filter"></i> Sem transformação de dados')
+        + '</span>'
+        + '<button type="button" class="mcbi-btn-transform">'
+        + (_hasTrans ? '<i class="glyphicon glyphicon-pencil"></i> Editar' : '<i class="glyphicon glyphicon-plus"></i> Configurar')
+        + '</button></div>';
+
+    // ── Secção: Campos disponíveis ────────────────────────────────────────────
+    var sFields = fields.length
+        ? fields.map(function (f) {
+            return '<code style="cursor:pointer;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;margin:1px;display:inline-block;" class="mhtml-field-pill" data-field="' + _mciEsc(f) + '">' + _mciEsc(f) + '</code>';
+        }).join(' ')
+        : '<em style="color:#94a3b8;">Sem campos — seleccione uma fonte</em>';
+
+    var sCampos = '<div class="mcbi-field"><label>Campos disponíveis <small style="font-weight:400;color:#94a3b8;">(clique para inserir)</small></label>'
+        + '<div class="mhtml-fields-list" style="font-size:10.5px;max-height:80px;overflow:auto;line-height:1.9;">'
+        + sFields + '</div></div>';
+
+    // ── Secção: Template HTML ─────────────────────────────────────────────────
+    var htmlValue = cfg.htmlTemplate || _HTML_SAMPLE_CONFIG.htmlTemplate;
+    var sTemplate = '<div class="mcbi-field">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+        + '<label style="margin:0;">Template HTML</label>'
+        + '<button type="button" class="btn btn-xs btn-default mhtml-expand-html" title="Editar em ecrã completo"><i class="glyphicon glyphicon-fullscreen"></i></button>'
+        + '</div>'
+        + '<div id="mhtml-ace-' + stamp + '" style="width:100%;height:220px;border:1px solid rgba(0,0,0,.12);border-radius:6px;"></div>'
+        + '</div>';
+
+    // ── Secção: CSS ───────────────────────────────────────────────────────────
+    var cssValue = cfg.cssCode || '';
+    var sCSS = '<div class="mcbi-field">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+        + '<label style="margin:0;">CSS (opcional)</label>'
+        + '<button type="button" class="btn btn-xs btn-default mhtml-expand-css" title="Editar CSS em ecrã completo"><i class="glyphicon glyphicon-fullscreen"></i></button>'
+        + '</div>'
+        + '<div id="mhtml-ace-css-' + stamp + '" style="width:100%;height:100px;border:1px solid rgba(0,0,0,.12);border-radius:6px;"></div>'
+        + '</div>';
+
+    // ── Secção: Opções ────────────────────────────────────────────────────────
+    var sOpcoes = '<div class="mcbi-field">'
+        + _mciChk('mhtml-sanitize', 'Sanitizar HTML (remover scripts e eventos inline)', cfg.sanitize !== false)
+        + '</div>'
+        + '<div class="mcbi-field"><label>Altura mínima</label>'
+        + '<input type="text" class="mhtml-minheight form-control input-sm" value="' + _mciEsc(cfg.minHeight || '') + '" placeholder="ex: 120px" style="width:120px;"></div>';
+
+    // ── Ajuda Handlebars ───────────────────────────────────────────────────────
+    var sAjuda = '<div style="font-size:10.5px;color:#64748b;line-height:1.7;">'
+        + '<p style="margin:0 0 5px;"><strong>Sintaxe Handlebars:</strong></p>'
+        + '<code>{{campo}}</code> — valor do 1.º registo<br>'
+        + '<code>{{{campo}}}</code> — valor sem escape (HTML raw)<br>'
+        + '<code>{{rows.length}}</code> — total de registos<br>'
+        + '<hr style="margin:7px 0;border-color:rgba(0,0,0,.07);">'
+        + '<p style="margin:0 0 3px;"><strong>Iterar sobre dados:</strong></p>'
+        + '<pre style="background:rgba(0,0,0,.04);padding:7px;border-radius:5px;font-size:9.5px;margin:0;">'
+        + '{{#each rows}}\n  &lt;div&gt;{{nome}} — {{valor}}&lt;/div&gt;\n{{/each}}'
+        + '</pre>'
+        + '<hr style="margin:7px 0;border-color:rgba(0,0,0,.07);">'
+        + '<p style="margin:0 0 3px;"><strong>Condicionais:</strong></p>'
+        + '<pre style="background:rgba(0,0,0,.04);padding:7px;border-radius:5px;font-size:9.5px;margin:0;">'
+        + '{{#if ativo}}&lt;span&gt;Activo&lt;/span&gt;{{/if}}'
+        + '</pre></div>';
+
+    var html = '<div class="mcbi-root mhtml-root-props" data-stamp="' + stamp + '">'
+        + _mciSection('html-dados',    'Dados',         'glyphicon-hdd',            true,  sDados)
+        + _mciSection('html-campos',   'Campos',        'glyphicon-list-alt',        true,  sCampos)
+        + _mciSection('html-template', 'Template HTML', 'glyphicon-edit',            true,  sTemplate)
+        + _mciSection('html-css',      'CSS',           'glyphicon-tint',            false, sCSS)
+        + _mciSection('html-opcoes',   'Opções',        'glyphicon-cog',             false, sOpcoes)
+        + _mciSection('html-ajuda',    'Ajuda Handlebars', 'glyphicon-question-sign', false, sAjuda)
+        + '</div>';
+
+    panel.html(html);
+
+    // ── Init ACE editors ──────────────────────────────────────────────────────
+    var aceHtml = null, aceCss = null;
+    if (typeof ace !== 'undefined') {
+        aceHtml = ace.edit('mhtml-ace-' + stamp);
+        aceHtml.session.setMode('ace/mode/html');
+        aceHtml.setTheme(typeof getMDashEditorTheme === 'function' ? getMDashEditorTheme('dark') : 'ace/theme/monokai');
+        aceHtml.setOptions({ fontSize: '11px', showPrintMargin: false, wrap: true, maxLines: 30, minLines: 8 });
+        aceHtml.setValue(htmlValue, -1);
+        aceHtml.on('change', function () { fire(); });
+
+        aceCss = ace.edit('mhtml-ace-css-' + stamp);
+        aceCss.session.setMode('ace/mode/css');
+        aceCss.setTheme(typeof getMDashEditorTheme === 'function' ? getMDashEditorTheme('dark') : 'ace/theme/monokai');
+        aceCss.setOptions({ fontSize: '11px', showPrintMargin: false, wrap: true, maxLines: 12, minLines: 3 });
+        aceCss.setValue(cssValue, -1);
+        aceCss.on('change', function () { fire(); });
+    }
+
+    panel.data('_mhtmlAceHtml', aceHtml);
+    panel.data('_mhtmlAceCss',  aceCss);
+
+    // ── Event handlers ────────────────────────────────────────────────────────
+    panel.off('.mhtmlinline');
+
+    // Section collapse
+    panel.on('click.mhtmlinline', '.mcbi-section-hd', function () {
+        var $s = $(this).closest('.mcbi-section');
+        $s.toggleClass('is-open');
+        var open = $s.hasClass('is-open');
+        $(this).find('.mcbi-chev').toggleClass('glyphicon-chevron-up', open).toggleClass('glyphicon-chevron-down', !open);
+        if (open) setTimeout(function () { if (aceHtml) aceHtml.resize(); if (aceCss) aceCss.resize(); }, 50);
+    });
+
+    // Fonte change
+    panel.on('change.mhtmlinline', '.mcbi-fonte', function () {
+        obj.fontestamp = $(this).val() || '';
+        _mciAutoApplyFonteTransform(obj.fontestamp, obj, panel);
+        var newFields = _mciGetFields(obj);
+        panel.find('.mhtml-fields-list').html(
+            newFields.length
+                ? newFields.map(function (f) {
+                    return '<code style="cursor:pointer;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;margin:1px;display:inline-block;" class="mhtml-field-pill" data-field="' + _mciEsc(f) + '">' + _mciEsc(f) + '</code>';
+                }).join(' ')
+                : '<em style="color:#94a3b8;">Sem campos</em>'
+        );
+        fire();
+    });
+
+    // Clicar num campo insere {{campo}} no editor ACE activo
+    panel.on('click.mhtmlinline', '.mhtml-field-pill', function () {
+        var f = $(this).data('field');
+        if (aceHtml) {
+            aceHtml.insert('{{' + f + '}}');
+            aceHtml.focus();
+        }
+    });
+
+    // Transform button
+    panel.on('click.mhtmlinline', '.mcbi-btn-transform', function () {
+        var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
+        if (!MTB) { if (typeof alertify !== 'undefined') alertify.error('MdashTransformBuilder não disponível.', 4000); return; }
+
+        var _tFnt = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
+        var _tName = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : '';
+        var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
+
+        // Carregar cache na DB in-memory (para PRAGMA e botão Testar)
+        if (_tFnt && typeof mdashExtractRowsFromCache === 'function' && typeof mdashLoadFonteIntoDb === 'function') {
+            var _tRows = mdashExtractRowsFromCache(_tFnt.lastResultscached);
+            if (_tRows.length > 0) mdashLoadFonteIntoDb(_tFnt, _tRows);
+        }
+
+        var _tSchema = _mciGetFonteSchema(_tFnt);
+        var _tCfgRaw = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
+        var _tConf = _tCfgRaw || (_tName ? MTB.autoConfig(_tName, 'HTML') : { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
+        if (!_tConf.columns.length && _tSchema.length) {
+            _tConf.sourceTable = _tName;
+            _tConf.columns = _tSchema.map(function (s) { return { field: s.field, alias: '', aggregate: 'none', visible: true }; });
+        }
+
+        _mciOpenTransformModalFor({
+            title: 'Transformação de Dados',
+            fonteName: _tFntName,
+            modalId: 'mhtml-transform-modal',
+            hostId: 'mhtml-transform-modal-host',
+            config: _tConf,
+            schema: _tSchema,
+            onSave: function (newT) {
+                obj.transformConfig = newT;
+                obj.transformconfigjson = JSON.stringify(newT);
+                obj.config = obj.config || {};
+                obj.config.transformConfig = newT;
+                if (typeof realTimeComponentSync === 'function')
+                    realTimeComponentSync(obj, obj.table, obj.idfield);
+                var $ts = panel.find('.mcbi-transform-status');
+                $ts.addClass('is-active');
+                $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc(newT.sourceTable || 'SQL') + '</strong>');
+                $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-pencil"></i> Editar');
+                var nf = _mciGetFields(obj);
+                panel.find('.mhtml-fields-list').html(
+                    nf.length
+                        ? nf.map(function (f) { return '<code style="cursor:pointer;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;margin:1px;display:inline-block;" class="mhtml-field-pill" data-field="' + _mciEsc(f) + '">' + _mciEsc(f) + '</code>'; }).join(' ')
+                        : '<em style="color:#94a3b8;">Sem campos</em>'
+                );
+                fire();
+            }
+        });
+    });
+
+    // Fullscreen — HTML
+    panel.on('click.mhtmlinline', '.mhtml-expand-html', function () {
+        _mccOpenEditorModal('html', aceHtml, function (newVal) {
+            if (aceHtml) aceHtml.setValue(newVal, -1);
+            fire();
+        });
+    });
+
+    // Fullscreen — CSS
+    panel.on('click.mhtmlinline', '.mhtml-expand-css', function () {
+        _mccOpenEditorModal('css', aceCss, function (newVal) {
+            if (aceCss) aceCss.setValue(newVal, -1);
+            fire();
+        });
+    });
+
+    // Checkboxes
+    panel.on('change.mhtmlinline', 'input[type="checkbox"]', function () {
+        $(this).closest('.mcbi-chk').toggleClass('is-on', this.checked);
+        fire();
+    });
+
+    // Inputs
+    panel.on('input.mhtmlinline change.mhtmlinline', 'input[type="text"]', function () {
+        fire();
+    });
+}
+
+// ── _htmlReadConfig ───────────────────────────────────────────────────────────
+function _htmlReadConfig(panel, obj) {
+    var cfg = obj.config || {};
+    var aceHtml = panel.data('_mhtmlAceHtml');
+    var aceCss  = panel.data('_mhtmlAceCss');
+    cfg.htmlTemplate = aceHtml ? aceHtml.getValue() : (cfg.htmlTemplate || '');
+    cfg.cssCode      = aceCss  ? aceCss.getValue()  : (cfg.cssCode || '');
+    cfg.sanitize     = panel.find('.mhtml-sanitize').is(':checked');
+    cfg.minHeight    = panel.find('.mhtml-minheight').val().trim();
+    obj.config    = cfg;
+    obj.configjson = JSON.stringify(cfg);
+}
+
 function getTiposObjectoConfig() {
     /*
      { tipo: 'chart', label: 'Gráfico', icon: '	fa fa-bar-chart' },
@@ -4607,6 +4998,18 @@ function getTiposObjectoConfig() {
         createDynamicSchema: crateDynamicSchemaCustomCode,
         renderObject: renderObjectCustomCode,
         sampleConfig: _CUSTOMCODE_SAMPLE_CONFIG
+    },
+    {
+        tipo: "html",
+        descricao: "HTML Template",
+        label: "HTML",
+        categoria: "editor",
+        icon: "fa fa-html5",
+        renderPropertiesInline: renderHtmlPropertiesInline,
+        createDynamicSchema: function () { return null; },
+        renderObject: renderObjectHtml,
+        getSampleData: function () { return getMdashSampleData('table'); },
+        sampleConfig: _HTML_SAMPLE_CONFIG
     },
     {
         tipo: "detail",
