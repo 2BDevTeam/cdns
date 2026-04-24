@@ -214,6 +214,11 @@ function mdashCopySelection() {
     // Actualizar estado reactivo para os botões de paste
     window.appState.clipboardType = type;
 
+    // Toggle de classe no body → faz aparecer o botão "Colar" em slots quando há objecto copiado
+    try {
+        $('body').toggleClass('mdash-has-object-clipboard', type === 'object');
+    } catch (e) { }
+
     // Visual feedback — marcar como "copied"
     _clipUpdateCopiedVisuals();
 
@@ -257,13 +262,13 @@ function mdashPasteClipboard() {
             pastedCount += _clipPasteContainerItem(snap, targetContainerStamp);
         });
     } else if (clip.type === 'object') {
-        var targetItemStamp = _clipResolveTargetItem();
-        if (!targetItemStamp) {
-            if (typeof alertify !== 'undefined') alertify.warning('Seleccione um item para colar o(s) objecto(s).');
+        var target = _clipResolveTargetItemSlot();
+        if (!target.itemStamp) {
+            if (typeof alertify !== 'undefined') alertify.warning('Seleccione um slot (ou item) para colar o(s) objecto(s).');
             return;
         }
         clip.items.forEach(function (snap) {
-            pastedCount += _clipPasteObject(snap, targetItemStamp);
+            pastedCount += _clipPasteObject(snap, target.itemStamp, target.slotId);
         });
     }
 
@@ -366,12 +371,18 @@ function _clipPasteContainerItem(snap, targetContainerStamp) {
     return 1;
 }
 
-function _clipPasteObject(snap, targetItemStamp) {
+function _clipPasteObject(snap, targetItemStamp, targetSlotId) {
     var newStamp = generateUUID();
     var data = _clipDeepClone(snap);
     data.mdashcontaineritemobjectstamp = newStamp;
     data.mdashcontaineritemstamp = targetItemStamp;
     data.dashboardstamp = GMDashStamp;
+    // Se foi especificado um slot destino, sobrepõe o slotid original.
+    // Se NÃO foi especificado (cola dentro do mesmo item ou grupo), mantém o slotid original
+    // para preservar o layout.
+    if (typeof targetSlotId === 'string') {
+        data.slotid = targetSlotId;
+    }
 
     var newObj = new MdashContainerItemObject(data);
     window.appState.containerItemObjects.push(newObj);
@@ -404,6 +415,33 @@ function _clipResolveTargetItem() {
     if (sel.type === 'slot' && sel.data && sel.data.itemStamp) return sel.data.itemStamp;
     if (sel.type === 'object' && sel.data && sel.data.mdashcontaineritemstamp) return sel.data.mdashcontaineritemstamp;
     return '';
+}
+
+/**
+ * Resolve o destino para um paste de 'object' (objecto dentro de slot).
+ * Devolve { itemStamp, slotId }. `slotId` pode ser undefined — nesse caso o
+ * objecto será colado preservando o `slotid` original do snapshot (ou vazio se não tinha).
+ */
+function _clipResolveTargetItemSlot() {
+    var sel = _currentSelectedComponent;
+    if (!sel) return { itemStamp: '', slotId: undefined };
+
+    // Prioridade 1: slot seleccionado → destino é esse slot específico
+    if (sel.type === 'slot' && sel.data && sel.data.itemStamp) {
+        return { itemStamp: sel.data.itemStamp, slotId: sel.data.slotId };
+    }
+    // Prioridade 2: objecto seleccionado → colar no mesmo slot (duplicação lateral)
+    if (sel.type === 'object' && sel.data) {
+        return {
+            itemStamp: sel.data.mdashcontaineritemstamp || '',
+            slotId: sel.data.slotid || ''
+        };
+    }
+    // Prioridade 3: item seleccionado → slot indefinido (mantém o original do snapshot)
+    if (sel.type === 'containerItem' && sel.stamp) {
+        return { itemStamp: sel.stamp, slotId: undefined };
+    }
+    return { itemStamp: '', slotId: undefined };
 }
 
 // ── Visual feedback ────────────────────────────────────────────────────────
@@ -535,7 +573,6 @@ function _mdashInitKeyboardShortcuts() {
 
         // Ctrl+C — Copiar
         if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-            console.log('[Ctrl+C] isTabTitleInput=', isTabTitleInput, '| hasInputSelection=', hasInputSelection, '| _currentSelectedComponent=', _currentSelectedComponent, '| multi=', GMDashMultiSelection.stamps.length, '| target=', e.target);
             if (isTabTitleInput && hasInputSelection) return; // deixa o browser copiar texto
             if (!_currentSelectedComponent && !GMDashMultiSelection.stamps.length) return;
             e.preventDefault();
@@ -2149,15 +2186,12 @@ function realTimeComponentSync(recordData, table, idfield) {
             }];
         }
 
-        var __payload = JSON.stringify([{ config: configData, recordsToDelete: GMdashDeleteRecords }]);
-        console.log('[realTimeComponentSync] table=', table, '| payload=', __payload);
-
         $.ajax({
             type: "POST",
             url: "../programs/gensel.aspx?cscript=realtimecomponentsync",
             async: false,
             data: {
-                '__EVENTARGUMENT': __payload,
+                '__EVENTARGUMENT': JSON.stringify([{ config: configData, recordsToDelete: GMdashDeleteRecords }]),
             },
             success: function (response) {
                 try {
@@ -2261,11 +2295,9 @@ function loadDashboardDataFromServer(config) {
                     // Tabs
                     if (dashboardData.tabs || dashboardData.mdashTabs) {
                         var tabsData = dashboardData.tabs || dashboardData.mdashTabs;
-                        console.log('[loadDashboard] raw tabsData from server:', JSON.stringify(tabsData));
                         GMDashTabs = tabsData.map(function (t) {
                             return new MdashTab(t);
                         });
-                        console.log('[loadDashboard] GMDashTabs after construction:', GMDashTabs.map(function(t){ return { stamp: t.mdashtabstamp, configjson: t.configjson }; }));
                     }
 
                     // Containers
@@ -2852,6 +2884,8 @@ function injectSlotDropOverlays(itemStamp, template) {
                 dropHtml += '<button type="button" class="mdash-slot-zone-obj-props" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Propriedades do objecto"><i class="' + getObjectTypeIcon(obj.tipo) + '"></i> ' + (obj.tipo || 'Objecto') + '</button>';
                 // Copiar objecto
                 dropHtml += '<button type="button" class="mdash-slot-zone-obj-copy mdash-clip-btn" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Copiar objecto"><i class="glyphicon glyphicon-copy"></i></button>';
+                // Colar objecto no slot (visível via CSS só quando clipboard tem objecto)
+                dropHtml += '<button type="button" class="mdash-slot-zone-obj-paste mdash-clip-btn mdash-clip-paste" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Colar objecto do clipboard aqui"><i class="glyphicon glyphicon-paste"></i></button>';
                 // Lado direito: remover OBJECTO
                 dropHtml += '<button type="button" class="mdash-slot-zone-remove mdash-slot-zone-toolbar-right" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Remover objecto"><i class="glyphicon glyphicon-remove"></i> Remover</button>';
                 dropHtml += '</div>';
@@ -2868,6 +2902,7 @@ function injectSlotDropOverlays(itemStamp, template) {
             dropHtml = '<div class="mdash-slot-zone-drop" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '">';
             dropHtml += '<div class="mdash-slot-zone-toolbar">';
             dropHtml += '<button type="button" class="mdash-slot-zone-settings mdash-slot-zone-toolbar-left" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i> Slot</button>';
+            dropHtml += '<button type="button" class="mdash-slot-zone-obj-paste mdash-clip-btn mdash-clip-paste" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Colar objecto do clipboard aqui"><i class="glyphicon glyphicon-paste"></i></button>';
             dropHtml += '</div>';
             dropHtml += '<span class="mdash-slot-zone-hint"><i class="glyphicon glyphicon-plus-sign"></i> ' + (slotDef.label || slotId) + '</span>';
             dropHtml += '</div>';
@@ -2993,6 +3028,32 @@ function bindSlotDropZoneEvents($drop, itemStamp, slotId) {
         GMDashMultiSelection.stamps = [];
         GMDashMultiSelection.type = '';
         mdashCopySelection();
+    });
+
+    // Click 📥 colar objecto no slot — destino é SEMPRE este slot específico
+    $drop.on('click', '.mdash-slot-zone-obj-paste', function (e) {
+        e.stopPropagation();
+        if (!GMDashClipboard.items.length || GMDashClipboard.type !== 'object') {
+            if (typeof alertify !== 'undefined') alertify.warning('Clipboard não contém objectos. Copie um objecto primeiro (Ctrl+C).');
+            return;
+        }
+        var $btn = $(this);
+        var targetItemStamp = $btn.data('item-stamp');
+        var targetSlotId = $btn.data('slot-id');
+        if (!targetItemStamp) return;
+
+        var pastedCount = 0;
+        GMDashClipboard.items.forEach(function (snap) {
+            pastedCount += _clipPasteObject(snap, targetItemStamp, String(targetSlotId || ''));
+        });
+        if (pastedCount > 0) {
+            setTimeout(function () {
+                if (typeof refreshSlotOverlays === 'function') refreshSlotOverlays(targetItemStamp);
+                if (typeof renderAllContainerItemTemplates === 'function') renderAllContainerItemTemplates();
+                if (typeof initDragAndDrop === 'function') initDragAndDrop();
+            }, 50);
+            if (typeof alertify !== 'undefined') alertify.success(pastedCount + ' objecto(s) colado(s) neste slot');
+        }
     });
 
     // Hover × remove → realça o bloco do objecto (vermelho)
@@ -3867,7 +3928,6 @@ function initModernDashboardUI() {
             try { cfg = JSON.parse(tab.configjson || '{}') || {}; } catch (e) { }
             cfg.corIcone = phcType || 'primary';
             tab.configjson = JSON.stringify(cfg);
-            console.log('[setTabIconColor] phcType=', phcType, '| tab.configjson AFTER=', tab.configjson, '| tab=', tab);
             if (typeof realTimeComponentSync === 'function') {
                 realTimeComponentSync(tab, tab.table, tab.idfield);
             }
@@ -8819,6 +8879,10 @@ function loadModernDashboardStyles() {
     // Object toolbar copy button
     styles += ".mdash-slot-zone-obj-copy { display:inline-flex; align-items:center; gap:3px; background:rgba(255,255,255,0.18); color:#fff !important; border:none; border-radius:3px; padding:2px 6px; font-size:10px; cursor:pointer; transition:background 0.15s, box-shadow 0.15s; line-height:1.4; flex-shrink:0; opacity:0.7; }";
     styles += ".mdash-slot-zone-obj-copy:hover { background:rgba(255,255,255,0.38); opacity:1; box-shadow:0 0 0 2px rgba(255,255,255,0.25); }";
+    // Paste button in slot toolbar — hidden by default, appears only when clipboard has an object
+    styles += ".mdash-slot-zone-obj-paste { display:none; align-items:center; gap:3px; background:rgba(16,185,129,0.25); color:#fff !important; border:none; border-radius:3px; padding:2px 6px; font-size:10px; cursor:pointer; transition:background 0.15s, box-shadow 0.15s, transform 0.15s; line-height:1.4; flex-shrink:0; }";
+    styles += "body.mdash-has-object-clipboard .mdash-slot-zone-obj-paste { display:inline-flex; }";
+    styles += ".mdash-slot-zone-obj-paste:hover { background:rgba(16,185,129,0.55); box-shadow:0 0 0 2px rgba(16,185,129,0.35); transform:scale(1.06); }";
 
     // ===== DASHBOARD TABS (Browser-like, enterprise) =====
     styles += ".mdash-tabs-toggle { display:inline-flex; align-items:center; gap:7px; margin-right:8px; font-size:11px; font-weight:700; color:#475569; background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:999px; padding:4px 10px; }";
