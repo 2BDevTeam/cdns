@@ -97,7 +97,7 @@ function mdashCopySelection() {
         stamps = sel.stamps.slice();
     } else if (_currentSelectedComponent && _currentSelectedComponent.type && _currentSelectedComponent.stamp) {
         var t = _currentSelectedComponent.type;
-        if (t !== 'container' && t !== 'containerItem' && t !== 'object') return;
+        if (t !== 'container' && t !== 'containerItem' && t !== 'object' && t !== 'tab') return;
         type = t;
         stamps = [_currentSelectedComponent.stamp];
     } else {
@@ -156,6 +156,40 @@ function mdashCopySelection() {
                 });
             snapshots.push(snap);
         });
+    } else if (type === 'tab') {
+        lookup = window.appState.tabs || GMDashTabs;
+        stamps.forEach(function (st) {
+            var tab = lookup.find(function (x) { return x.mdashtabstamp === st; });
+            if (!tab) return;
+            var snap = _clipSnapshot(tab);
+            // Incluir todos os containers desta tab + items + objectos
+            snap._containers = (window.appState.containers || [])
+                .filter(function (c) { return c.mdashtabstamp === st; })
+                .map(function (c) {
+                    var cSnap = _clipSnapshot(c);
+                    cSnap._children = (window.appState.containerItems || [])
+                        .filter(function (i) { return i.mdashcontainerstamp === c.mdashcontainerstamp; })
+                        .map(function (item) {
+                            var itemSnap = _clipSnapshot(item);
+                            itemSnap._objects = (window.appState.containerItemObjects || [])
+                                .filter(function (o) { return o.mdashcontaineritemstamp === item.mdashcontaineritemstamp; })
+                                .map(function (o) {
+                                    var os = _clipSnapshot(o);
+                                    if (typeof o.stringifyJSONFields === 'function') {
+                                        o.stringifyJSONFields();
+                                        os.configjson = o.configjson;
+                                        os.transformconfigjson = o.transformconfigjson;
+                                        os.fontesstampsjson = o.fontesstampsjson;
+                                        os.queryconfigjson = o.queryconfigjson || JSON.stringify(o.queryConfig || {});
+                                    }
+                                    return os;
+                                });
+                            return itemSnap;
+                        });
+                    return cSnap;
+                });
+            snapshots.push(snap);
+        });
     } else if (type === 'object') {
         lookup = window.appState.containerItemObjects;
         stamps.forEach(function (st) {
@@ -183,7 +217,7 @@ function mdashCopySelection() {
     // Visual feedback — marcar como "copied"
     _clipUpdateCopiedVisuals();
 
-    var labels = { container: 'container(s)', containerItem: 'item(ns)', object: 'objecto(s)' };
+    var labels = { container: 'container(s)', containerItem: 'item(ns)', object: 'objecto(s)', tab: 'separador(es)' };
     if (typeof alertify !== 'undefined') {
         alertify.success(snapshots.length + ' ' + (labels[type] || 'elemento(s)') + ' copiado(s) — Ctrl+V para colar');
     }
@@ -204,7 +238,11 @@ function mdashPasteClipboard() {
 
     var pastedCount = 0;
 
-    if (clip.type === 'container') {
+    if (clip.type === 'tab') {
+        clip.items.forEach(function (snap) {
+            pastedCount += _clipPasteTab(snap);
+        });
+    } else if (clip.type === 'container') {
         clip.items.forEach(function (snap) {
             pastedCount += _clipPasteContainer(snap);
         });
@@ -234,19 +272,60 @@ function mdashPasteClipboard() {
             renderAllContainerItemTemplates();
             if (typeof initDragAndDrop === 'function') initDragAndDrop();
         }, 50);
-        var labels = { container: 'container(s)', containerItem: 'item(ns)', object: 'objecto(s)' };
+        var labels = { container: 'container(s)', containerItem: 'item(ns)', object: 'objecto(s)', tab: 'separador(es)' };
         if (typeof alertify !== 'undefined') alertify.success(pastedCount + ' ' + (labels[clip.type] || 'elemento(s)') + ' colado(s)');
     }
 }
 
 // ── Paste helpers ──────────────────────────────────────────────────────────
 
-function _clipPasteContainer(snap) {
+function _clipPasteTab(snap) {
+    var newTabStamp = generateUUID();
+    var data = _clipDeepClone(snap);
+    data.mdashtabstamp = newTabStamp;
+    data.dashboardstamp = GMDashStamp;
+    data.titulo = (data.titulo || 'Separador') + ' (cópia)';
+    var tabs = window.appState.tabs || GMDashTabs;
+    data.ordem = (tabs.length || 0) + 1;
+    delete data._containers;
+    delete data.localsource;
+    delete data.idfield;
+    delete data.table;
+
+    var newTab = new MdashTab(data);
+    tabs.push(newTab);
+    if (typeof realTimeComponentSync === 'function') realTimeComponentSync(newTab, newTab.table, newTab.idfield);
+
+    // Colar containers filhos com novo mdashtabstamp
+    if (snap._containers && snap._containers.length) {
+        snap._containers.forEach(function (cSnap) {
+            _clipPasteContainer(cSnap, newTabStamp);
+        });
+    }
+
+    // Activar a nova tab
+    window.appState.activeTabStamp = newTabStamp;
+    var settings = window.appState.dashboardSettings || {};
+    settings.activeTabStamp = newTabStamp;
+    window.appState.dashboardSettings = settings;
+    if (typeof mdashSyncDashboardConfigRealtime === 'function') mdashSyncDashboardConfigRealtime();
+
+    return 1;
+}
+
+function _clipPasteContainer(snap, overrideTabStamp) {
     var newStamp = generateUUID();
     var data = _clipDeepClone(snap);
     data.mdashcontainerstamp = newStamp;
     data.dashboardstamp = GMDashStamp;
-    data.titulo = (data.titulo || 'Container') + ' (cópia)';
+    if (typeof overrideTabStamp === 'string') {
+        data.mdashtabstamp = overrideTabStamp;
+    }
+    // Só sufixa '(cópia)' se for cópia individual de container — quando vem de uma tab,
+    // mantemos o título original (a tab é que ganha o sufixo).
+    if (typeof overrideTabStamp !== 'string') {
+        data.titulo = (data.titulo || 'Container') + ' (cópia)';
+    }
     data.ordem = (window.appState.containers.length + 1);
     delete data._children;
 
@@ -435,22 +514,51 @@ function _mdashInitKeyboardShortcuts() {
     $(document).off('keydown.mdashclip').on('keydown.mdashclip', function (e) {
         // Ignorar se o foco está num input/textarea/select/editor
         var tag = (e.target.tagName || '').toLowerCase();
-        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-        if ($(e.target).closest('.m-editor, .ace_editor, [contenteditable]').length) return;
+        var $target = $(e.target);
+        var isTabTitleInput = $target.hasClass('mdash-dashboard-tab-title');
+        var isFormElement = (tag === 'input' || tag === 'textarea' || tag === 'select');
+
+        // Excepção: se o foco está no input do título de uma tab e não há texto seleccionado,
+        // permitir Ctrl+C / Ctrl+V para copiar/colar a tab inteira (UX mais previsível).
+        if (isFormElement && !isTabTitleInput) return;
+        if ($target.closest('.m-editor, .ace_editor, [contenteditable]').length) return;
+
+        var hasInputSelection = false;
+        if (isTabTitleInput) {
+            try {
+                var inp = e.target;
+                hasInputSelection = (typeof inp.selectionStart === 'number' &&
+                                     typeof inp.selectionEnd === 'number' &&
+                                     inp.selectionEnd > inp.selectionStart);
+            } catch (err) { hasInputSelection = false; }
+        }
 
         // Ctrl+C — Copiar
         if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+            console.log('[Ctrl+C] isTabTitleInput=', isTabTitleInput, '| hasInputSelection=', hasInputSelection, '| _currentSelectedComponent=', _currentSelectedComponent, '| multi=', GMDashMultiSelection.stamps.length, '| target=', e.target);
+            if (isTabTitleInput && hasInputSelection) return; // deixa o browser copiar texto
             if (!_currentSelectedComponent && !GMDashMultiSelection.stamps.length) return;
             e.preventDefault();
+            // Se a selecção MDash não é uma tab mas o foco está no input de título da tab,
+            // tirar foco para evitar que o próximo Ctrl+V caia dentro do input.
+            if (isTabTitleInput && _currentSelectedComponent && _currentSelectedComponent.type !== 'tab') {
+                try { e.target.blur(); } catch (err) { }
+            }
             mdashCopySelection();
             return;
         }
 
         // Ctrl+V — Colar
         if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-            if (!GMDashClipboard.items.length) return;
-            e.preventDefault();
-            mdashPasteClipboard();
+            // Se temos componentes MDash no clipboard, PREVALECE sempre (mesmo dentro do input
+            // do título da tab) — evita que o utilizador cole por engano o objecto/container no
+            // campo de texto da tab. Só devolvemos controlo ao browser em textareas ou editores.
+            if (GMDashClipboard.items.length) {
+                e.preventDefault();
+                // Tirar foco do input para não ficar a cursor piscar em campo desactualizado
+                if (isTabTitleInput) { try { e.target.blur(); } catch (err) { } }
+                mdashPasteClipboard();
+            }
             return;
         }
 
@@ -3340,6 +3448,7 @@ function initModernDashboardUI() {
     mainHtml += '            <span class="mdash-dashboard-tab-curve mdash-dashboard-tab-curve-r" aria-hidden="true"></span>';
     mainHtml += '            <button type="button" class="mdash-dashboard-tab-iconbtn" @click.stop="toggleTabEditor(tab.mdashtabstamp)" title="Alterar ícone / cor"><i :class="tab.icone || \'glyphicon glyphicon-list-alt\'"></i></button>';
     mainHtml += '            <input type="text" :value="tab.titulo" @click.stop="selectDashboardTab(tab.mdashtabstamp)" @change.stop="updateDashboardTabTitle(tab, $event)" class="mdash-dashboard-tab-title" placeholder="Sem nome" />';
+    mainHtml += '            <span class="mdash-dashboard-tab-duplicate" @click.stop="duplicateDashboardTab(tab.mdashtabstamp)" title="Duplicar separador"><i class="glyphicon glyphicon-duplicate"></i></span>';
     mainHtml += '            <span class="mdash-dashboard-tab-close" @click.stop="deleteDashboardTab(tab.mdashtabstamp)" title="Remover separador"><i class="glyphicon glyphicon-remove"></i></span>';
     mainHtml += '            <div v-if="tabEditorOpenFor === tab.mdashtabstamp" class="mdash-tab-editor-popover" @click.stop>';
     mainHtml += '              <div class="mdash-tab-editor-section"><div class="mdash-tab-editor-title">Cor de fundo</div>';
@@ -3927,6 +4036,14 @@ function initModernDashboardUI() {
             var settings = window.appState.dashboardSettings || {};
             settings.activeTabStamp = tabStamp;
             window.appState.dashboardSettings = settings;
+
+            // Marcar tab como componente seleccionado para Ctrl+C / Ctrl+V
+            var tabObj = (window.appState.tabs || GMDashTabs).find(function (t) { return t.mdashtabstamp === tabStamp; });
+            if (tabObj) {
+                this.selectedComponent = { type: 'tab', stamp: tabStamp, data: tabObj };
+                _currentSelectedComponent = { type: 'tab', stamp: tabStamp, data: tabObj };
+            }
+
             mdashSyncDashboardConfigRealtime();
             // Re-render item templates (bodies são injectados imperativamente — PetiteVue
             // recria os nós .mdash-canvas-item-body vazios ao trocar de tab) e
@@ -3949,6 +4066,19 @@ function initModernDashboardUI() {
         updateDashboardTabColor: function (tab, phcType) {
             // legacy entry point — delegates to setTabColor (PHC type picker)
             this.setTabColor(tab, phcType || 'primary');
+        },
+
+        duplicateDashboardTab: function (tabStamp) {
+            var tab = (window.appState.tabs || GMDashTabs).find(function (t) { return t.mdashtabstamp === tabStamp; });
+            if (!tab) return;
+            // Selecciona, copia e cola — usa o motor existente do clipboard para garantir
+            // que toda a árvore (containers + items + objectos) é duplicada com novos stamps.
+            this.selectDashboardTab(tabStamp);
+            _currentSelectedComponent = { type: 'tab', stamp: tabStamp, data: tab };
+            GMDashMultiSelection.stamps = [];
+            GMDashMultiSelection.type = '';
+            mdashCopySelection();
+            mdashPasteClipboard();
         },
 
         deleteDashboardTab: function (tabStamp) {
@@ -5364,7 +5494,7 @@ function makeDashboardTabsSortable() {
         axis: 'x',
         tolerance: 'pointer',
         distance: 4,
-        cancel: 'input, button, .mdash-tab-editor-popover, .mdash-dashboard-tab-close, .mdash-dashboard-tab-iconbtn, .mdash-dashboard-tab-title',
+        cancel: 'input, button, .mdash-tab-editor-popover, .mdash-dashboard-tab-close, .mdash-dashboard-tab-duplicate, .mdash-dashboard-tab-iconbtn, .mdash-dashboard-tab-title',
         placeholder: 'mdash-dashboard-tab-placeholder',
         helper: 'original',
         forcePlaceholderSize: true,
@@ -8698,7 +8828,7 @@ function loadModernDashboardStyles() {
     styles += ".mdash-dashboard-tabs-wrap::after { content:''; position:absolute; left:0; right:0; bottom:0; height:1px; background:rgba(15,23,42,0.08); }";
     styles += ".mdash-dashboard-tabs { display:flex; align-items:flex-end; gap:2px; min-width:max-content; position:relative; z-index:1; padding-bottom:0; }";
     // Inactive: faded bg using tab accent at low alpha via mix; Active: full accent bg.
-    styles += ".mdash-dashboard-tab { --mdash-tab-accent: var(--md-primary); --mdash-tab-icon: var(--md-primary); --mdash-tab-text: #475569; --mdash-tab-font: inherit; position:relative; min-width:168px; max-width:260px; height:40px; padding:0 34px 0 12px; display:inline-flex; align-items:center; gap:8px; cursor:grab; background:color-mix(in srgb, var(--mdash-tab-accent) 14%, #edf1f7); color:var(--mdash-tab-text); font-family:var(--mdash-tab-font); border-radius:10px 10px 0 0; transition:background .18s ease, color .18s ease, box-shadow .18s ease, transform .15s ease, filter .18s ease; margin-bottom:0; }";
+    styles += ".mdash-dashboard-tab { --mdash-tab-accent: var(--md-primary); --mdash-tab-icon: var(--md-primary); --mdash-tab-text: #475569; --mdash-tab-font: inherit; position:relative; min-width:188px; max-width:280px; height:40px; padding:0 56px 0 12px; display:inline-flex; align-items:center; gap:8px; cursor:grab; background:color-mix(in srgb, var(--mdash-tab-accent) 14%, #edf1f7); color:var(--mdash-tab-text); font-family:var(--mdash-tab-font); border-radius:10px 10px 0 0; transition:background .18s ease, color .18s ease, box-shadow .18s ease, transform .15s ease, filter .18s ease; margin-bottom:0; }";
     styles += ".mdash-dashboard-tab:active { cursor:grabbing; }";
     styles += ".mdash-dashboard-tab:hover { background:color-mix(in srgb, var(--mdash-tab-accent) 22%, #edf1f7); filter:brightness(1.02); }";
     styles += ".mdash-dashboard-tab.is-active { background:var(--mdash-tab-accent); color:var(--mdash-tab-text); box-shadow:0 -2px 10px rgba(15,23,42,0.08); z-index:3; }";
@@ -8717,6 +8847,10 @@ function loadModernDashboardStyles() {
     styles += ".mdash-dashboard-tab-close { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:18px; height:18px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:9px; color:currentColor; opacity:0; transition:opacity .15s, background .15s, color .15s, transform .15s; cursor:pointer; }";
     styles += ".mdash-dashboard-tab:hover .mdash-dashboard-tab-close, .mdash-dashboard-tab.is-active .mdash-dashboard-tab-close { opacity:.7; }";
     styles += ".mdash-dashboard-tab-close:hover { opacity:1 !important; background:rgba(220,38,38,.18); color:#fff; transform:translateY(-50%) scale(1.1); }";
+    // Duplicate button — same position pattern as close, but to the left of it
+    styles += ".mdash-dashboard-tab-duplicate { position:absolute; right:30px; top:50%; transform:translateY(-50%); width:18px; height:18px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:9px; color:currentColor; opacity:0; transition:opacity .15s, background .15s, color .15s, transform .15s; cursor:pointer; }";
+    styles += ".mdash-dashboard-tab:hover .mdash-dashboard-tab-duplicate, .mdash-dashboard-tab.is-active .mdash-dashboard-tab-duplicate { opacity:.7; }";
+    styles += ".mdash-dashboard-tab-duplicate:hover { opacity:1 !important; background:rgba(37,99,235,.22); color:#fff; transform:translateY(-50%) scale(1.1); }";
     // + add tab
     styles += ".mdash-dashboard-tab-add { min-width:32px; width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; margin-left:6px; margin-bottom:2px; background:transparent; color:#94a3b8; border:none; border-radius:50%; cursor:pointer; transition:background .15s, color .15s, transform .15s; align-self:flex-end; }";
     styles += ".mdash-dashboard-tab-add:hover { background:rgba(var(--md-primary-rgb),.1); color:var(--md-primary); transform:scale(1.08); }";
