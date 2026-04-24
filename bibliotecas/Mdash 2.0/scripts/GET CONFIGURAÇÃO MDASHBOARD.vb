@@ -43,6 +43,12 @@ Try
     Dim sqlParametersFonte as new List(Of System.Data.SqlClient.SqlParameter)
     sqlParametersFonte.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
     Dim queryResultFonte as DataTable= ExecuteQuery(queryMdashFonte,sqlParametersFonte)
+
+    Dim queryMdashTab="select MdashTab.* from MdashTab join u_mdash on u_mdash.u_mdashstamp=MdashTab.dashboardstamp where u_mdash.codigo=@codigo order by MdashTab.ordem asc"
+    Dim sqlParametersTab as new List(Of System.Data.SqlClient.SqlParameter)
+    sqlParametersTab.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
+    Dim queryResultTab as DataTable= ExecuteQuery(queryMdashTab,sqlParametersTab)
+
     Dim dadosRelatorio as New With {
         .dashboard = queryResultMdashboard,
         .containers = queryResultContainer,
@@ -50,7 +56,8 @@ Try
         .containerItemObjects = queryResultContainerItemObject,
         .filters = queryResultFilter,
         .containerItemLayouts = queryResultContainerItemLayout,
-        .fontes = queryResultFonte
+        .fontes = queryResultFonte,
+        .tabs = queryResultTab
         }
      
      Dim responseDTO= New With {.cod ="0000" ,.codDesc="Success",.message="Success",.data=dadosRelatorio}

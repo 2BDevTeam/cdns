@@ -21,6 +21,7 @@ CREATE TABLE [dbo].[u_mdash](
 	[usrdata] [datetime] NOT NULL,
 	[usrhora] [varchar](8) NOT NULL,
 	[marcada] [bit] NOT NULL,
+	[configjson] [text] NOT NULL,
 CONSTRAINT [pk_u_mdash] PRIMARY KEY NONCLUSTERED 
 (
 	[u_mdashstamp] ASC
@@ -66,6 +67,9 @@ GO
 ALTER TABLE [dbo].[u_mdash] ADD  DEFAULT ((0)) FOR [marcada]
 GO
 
+ALTER TABLE [dbo].[u_mdash] ADD  DEFAULT ('{}') FOR [configjson]
+GO
+
 Create table MdashContainer(
 
     mdashcontainerstamp VARCHAR(25) PRIMARY KEY,
@@ -76,7 +80,8 @@ Create table MdashContainer(
     tamanho INT DEFAULT 0,
     layoutmode VARCHAR(20) DEFAULT 'auto',
     ordem INT DEFAULT 0,
-    dashboardstamp VARCHAR(25) DEFAULT ''
+    dashboardstamp VARCHAR(25) DEFAULT '',
+    mdashtabstamp VARCHAR(25) NOT NULL DEFAULT ''  -- FK → MdashTab; '' = sem tab (legacy)
 )
 
 CREATE TABLE MdashContainerItem(
@@ -121,7 +126,9 @@ CREATE TABLE MdashFilter(
     expressaolistagem TEXT DEFAULT '',
     expressaojslistagem TEXT DEFAULT '',
     valordefeito TEXT DEFAULT '',
-    ordem INT DEFAULT 0
+    ordem INT DEFAULT 0,
+    escopo VARCHAR(20) NOT NULL DEFAULT 'global',  -- 'global' = todos os tabs; 'tab' = só o tab indicado
+    mdashtabstamp VARCHAR(25) NOT NULL DEFAULT ''   -- FK → MdashTab; só relevante quando escopo = 'tab'
 );
 
 CREATE TABLE MDashFonte(
@@ -208,4 +215,25 @@ CREATE TABLE MdashContainerItemLayout(
     ordem INT DEFAULT 0,
     inactivo BIT DEFAULT 0
 )
+
+
+-- ============================================================================
+-- MdashTab - Separadores (tabs) de um dashboard
+-- Um dashboard pode ter 0 ou N tabs.
+-- Quando não existem tabs (ou activarMultiSeparadores = 0 no dashboard),
+-- o comportamento é o legacy: todos os containers renderizam sem tab.
+-- ============================================================================
+CREATE TABLE MdashTab (
+
+    mdashtabstamp   VARCHAR(25)  NOT NULL  CONSTRAINT pk_MdashTab PRIMARY KEY,
+    dashboardstamp  VARCHAR(25)  NOT NULL  DEFAULT '',  -- FK → u_mdash.u_mdashstamp
+    titulo          VARCHAR(250) NOT NULL  DEFAULT '',  -- Label visível na tab bar
+    icone           VARCHAR(100) NOT NULL  DEFAULT '',  -- Glyphicon opcional (ex: 'glyphicon-home')
+    configjson      TEXT         NOT NULL  DEFAULT '{}',-- Config visual e comportamental da tab (cores, estilo, etc.)
+    ordem           INT          NOT NULL  DEFAULT 0,
+    inactivo        BIT          NOT NULL  DEFAULT 0
+)
+GO
+
+
 
