@@ -3906,7 +3906,7 @@ function initModernDashboardUI() {
                 dashboardstamp: GMDashStamp,
                 titulo: 'Separador ' + nextIndex,
                 icone: 'glyphicon glyphicon-folder-open',
-                configjson: JSON.stringify({ cor: 'primary' })
+                configjson: JSON.stringify({ cor: 'primary', corIcone: '#ffffff', corTexto: '#ffffff' })
             });
 
             window.appState.activeTabStamp = tab.mdashtabstamp;
