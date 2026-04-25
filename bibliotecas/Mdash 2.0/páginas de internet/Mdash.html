@@ -17,7 +17,49 @@
 <!-- Flatpickr Portuguese localization -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
 
+<!-- ============================================================== -->
+<!-- MDASH 2.0 — CDNs alinhados com Eventos/INSERIR SCRIPTS.vb       -->
+<!-- ============================================================== -->
+<script src="https://raw.githack.com/2BDevTeam/cdns/master/2BGLOBALSTYLES.JS"></script>
+<script src="https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
+<script src="https://bossanova.uk/jspreadsheet/v5/jspreadsheet.js"></script>
+<link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v5/jspreadsheet.css" />
+<script src="https://jsuites.net/v5/jsuites.js"></script>
+<link rel="stylesheet" href="https://jsuites.net/v5/jsuites.css" />
+<script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/handlebars@4.7.8/dist/handlebars.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/0.3.2/js/sql.js"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" />
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js"></script>
+
 <style>
+  body {
+    background-color: #f3f7fe !important;
+    background-size: cover !important;
+    font-family: Nunito, sans-serif !important;
+    color: #002c52 !important;
+  }
+
+  body form>.container {
+    background-color: #f3f7fe !important;
+  }
+
+  #master-content {
+    background-color: #f3f7fe !important;
+  }
+
+  #maincontent{
+     background-color: #f3f7fe !important;
+  }
+
+
+
   .select2-selection__rendered {
     overflow-x: scroll !important;
   }
@@ -343,54 +385,119 @@
     }
   }
 
-  
-  /* mdash-skeleton base */
-  .mdash-skeleton {
-    background: #eee;
-    border-radius: 6px;
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — SKELETON SYSTEM (professional + stable heights)              */
+  /* ======================================================================== */
+
+  .mdash-skel-shell {
+    --md-skel-min-h: 320px;
+    min-height: var(--md-skel-min-h);
+    width: 100%;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #eef2f7;
+    padding: 16px 18px;
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
   }
 
-  /* Shimmer animation */
-  .mdash-skeleton::after {
+  .mdash-skel-shell::after {
     content: "";
     position: absolute;
-    top: 0;
-    left: -150px;
-    height: 100%;
-    width: 150px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    animation: shimmer 1.5s infinite;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.75) 46%,
+        rgba(255, 255, 255, 0) 100%);
+    animation: mdash-skel-shimmer 1.35s ease-in-out infinite;
+    pointer-events: none;
   }
 
-  @keyframes shimmer {
-    0% {
-      left: -150px;
-    }
-
-    100% {
-      left: 100%;
-    }
+  .mdash-skel-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
-  /* mdash-skeleton shapes */
-  .mdash-skeleton-image {
-    width: 100%;
-    height: 150px;
-    margin-bottom: 20px;
+  .mdash-skel-dot,
+  .mdash-skel-line,
+  .mdash-skel-block,
+  .mdash-skel-chip {
+    background: linear-gradient(180deg, #e6edf6 0%, #dbe5f1 100%);
+    border-radius: 10px;
+    flex: 0 0 auto;
   }
 
-  .mdash-skeleton-title {
+  .mdash-skel-dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+  }
+
+  .mdash-skel-line {
+    height: 12px;
+  }
+
+  .mdash-skel-line.w-20 {
+    width: 20%;
+  }
+
+  .mdash-skel-line.w-35 {
+    width: 35%;
+  }
+
+  .mdash-skel-line.w-45 {
+    width: 45%;
+  }
+
+  .mdash-skel-line.w-55 {
+    width: 55%;
+  }
+
+  .mdash-skel-line.w-70 {
     width: 70%;
-    height: 20px;
-    margin: 0 auto 15px auto;
   }
 
-  .mdash-skeleton-text {
-    width: 90%;
-    height: 15px;
-    margin: 8px auto;
+  .mdash-skel-line.w-100 {
+    width: 100%;
+  }
+
+  .mdash-skel-chip {
+    width: 88px;
+    height: 22px;
+    border-radius: 999px;
+  }
+
+  .mdash-skel-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .mdash-skel-block {
+    height: 78px;
+    border-radius: 12px;
+  }
+
+  .mdash-skel-table {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .mdash-skel-table .mdash-skel-line {
+    height: 10px;
+  }
+
+  @keyframes mdash-skel-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   .snapshot:hover,
@@ -415,43 +522,65 @@
     display: none;
   }
 
+  /* Dashboard top header — unified 2B card */
   .m-dash-header {
-    column-gap: 0.4em;
     display: flex;
-    margin-bottom: 30px;
-    background: #FFF;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
     align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    margin: 0 0 22px 0;
+    padding: 16px 22px;
+
+
+    
+  }
+
+  .m-dash-header .mdash-dashboard-title {
+    margin: 0;
+    font-size: 36px;
+    font-weight: bold;
+    color: #626e78 !important;
+    letter-spacing: -.01em;
+    line-height: 1.3;
+    flex: 1 1 auto;
+    text-align: left;
+  }
+
+  .m-dash-header .btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    flex: 0 0 auto;
+    margin-left: auto;
   }
 
   .m-dash-horizonta-filter-container {
-    margin-bottom: 30px;
-    background: #FFF;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
+    margin-bottom: 22px;
+    background: #fff;
+    padding: 0;
+    border-radius: 12px;
   }
 
   .m-dash-body {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-  }
-
-  .m-dash-header h1 {
-    margin: 0;
-    font-weight: bold;
-    color: #626e78 !important;
+    gap: 22px;
+    align-items: flex-start;
+    --md-sidebar-sync-h: auto;
   }
 
   .m-dash-filter {
     background: #FFF;
-    -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-    -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-    border-radius: 12px;
+    -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    -moz-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     padding: 30px;
   }
 
@@ -469,10 +598,12 @@
 
   .m-dash-data-headers {
     background: #FFF;
-    -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-    -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-    border-radius: 12px;
+    -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    -moz-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     padding: 30px;
     display: flex;
     flex-direction: column;
@@ -500,7 +631,10 @@
   .stats-card {
     background-color: #efefef;
     padding: 15px;
-    border-radius: 5px;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
 
   .stats-card-grid {
@@ -529,10 +663,12 @@
 
   .m-dash-item {
     background: #FFF;
-    -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-    -moz-box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, .08);
-    border-radius: 12px;
+    -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    -moz-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     padding: 30px;
     width: 100%;
     overflow-x: auto;
@@ -575,6 +711,7 @@
 
   .m-dash-render-area {
     height: 100% !important;
+    min-height: var(--md-item-min-h, 320px);
   }
 
   @media screen and (min-width: 768px) {
@@ -591,15 +728,17 @@
   @media screen and (min-width: 1024px) {
     .m-dash-body {
       flex-direction: row;
+      align-items: stretch;
     }
 
     .m-dash-data-headers {
       flex-direction: row;
     }
 
-    .m-dash-filter {
+    .m-dash-filter,
+    .mdash-filter-card--vertical {
       min-width: 275px;
-      max-width: 275px;
+      max-width: 340px;
     }
 
     .m-dash-charts {
@@ -678,6 +817,756 @@
     padding: 12px 15px;
     border-right: none;
   }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — classes próprias do dashboard (independentes da lib BPM)      */
+  /* ======================================================================== */
+
+  .mdash-panel {
+    background: white;
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .mdash-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #ffffff;
+  }
+
+  .mdash-panel-title {
+    margin: 0;
+    flex: 1 1 auto;
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    line-height: 1.25;
+    text-align: left;
+  }
+
+  .mdash-panel-content {
+    padding: 18px;
+    background: #ffffff;
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — Separadores estilo browser (replicado do builder REFACTOR.js) */
+  /* ======================================================================== */
+
+  .mdash-dashboard-tabs-wrap {
+    --mdash-tabs-canvas: #ffffff;
+    overflow: visible;
+    padding: 8px 4px 0;
+    position: relative;
+    margin: 0 0 -1px;
+  }
+
+  .mdash-dashboard-tabs-wrap::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        rgba(56, 189, 248, 0.22) 0%,
+        rgba(59, 130, 246, 0.16) 45%,
+        rgba(14, 165, 233, 0.14) 100%);
+  }
+
+  .mdash-dashboard-tabs {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    min-width: max-content;
+    position: relative;
+    z-index: 1;
+    padding-bottom: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  .mdash-dashboard-tabs::-webkit-scrollbar {
+    height: 5px;
+  }
+
+  .mdash-dashboard-tabs::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 6px;
+  }
+
+  .mdash-dashboard-tab {
+    --mdash-tab-accent: var(--md-primary, #2563eb);
+    --mdash-tab-icon: var(--md-primary, #2563eb);
+    --mdash-tab-text: #475569;
+    --mdash-tab-font: inherit;
+    position: relative;
+    min-width: 140px;
+    max-width: 280px;
+    height: 40px;
+    padding: 0 14px 0 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    background: color-mix(in srgb, var(--mdash-tab-accent) 14%, #edf1f7);
+    color: var(--mdash-tab-text);
+    font-family: var(--mdash-tab-font);
+    border-radius: 10px 10px 0 0;
+    transition: background .18s ease, color .18s ease, box-shadow .18s ease;
+    user-select: none;
+    border: none;
+    outline: none;
+  }
+
+  .mdash-dashboard-tab:hover {
+    background: color-mix(in srgb, var(--mdash-tab-accent) 22%, #edf1f7);
+    filter: brightness(1.02);
+  }
+
+  .mdash-dashboard-tab.is-active {
+    background: var(--mdash-tab-accent);
+    color: var(--mdash-tab-text);
+    box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.08);
+    z-index: 3;
+  }
+
+  .mdash-dashboard-tab>.mdash-dashboard-tab-accent {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--mdash-tab-accent);
+    opacity: 0;
+    transition: opacity .18s ease;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  .mdash-dashboard-tab.is-active>.mdash-dashboard-tab-accent {
+    opacity: 0;
+  }
+
+  .mdash-dashboard-tab i {
+    font-size: 12px;
+    flex-shrink: 0;
+    color: var(--mdash-tab-icon);
+  }
+
+  .mdash-dashboard-tab-label {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: .01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: inherit;
+  }
+
+  .mdash-tabs-empty {
+    padding: 10px 16px;
+    color: #64748b;
+    font-size: 13px;
+    font-style: italic;
+    background: #ffffff;
+    border: 1px dashed #e5e7eb;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .mdash-tab-content-fade {
+    animation: mdash-tab-fade-in 220ms ease;
+  }
+
+  @keyframes mdash-tab-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .mdash-dashboard-content-area {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — CONTAINER SECTION                                            */
+  /* Padrão: left-border accent strip (Atlassian / Azure / Fluent Design)      */
+  /* Zero card shell — apenas borda esquerda + tipografia                      */
+  /* ======================================================================== */
+
+  .mdash-section {
+    margin: 0 0 4px 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .mdash-section:has(.mdash-section__header) {
+    margin-top: 20px;
+    margin-bottom: 6px;
+  }
+
+  /* ---------- Header ---------- */
+  .mdash-section__header {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 10px 12px 10px 16px;
+    margin: 0 0 14px 0;
+    background: rgba(37, 99, 235, .04);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    width: 100%;
+    transition: background 150ms ease;
+    position: relative;
+  }
+
+  .mdash-section__header:hover {
+    background: rgba(37, 99, 235, .08);
+  }
+
+  .mdash-section.is-collapsed .mdash-section__header {
+    margin-bottom: 0;
+  }
+
+  .mdash-section.is-collapsed .mdash-section__header:hover {
+    background: rgba(37, 99, 235, .08);
+  }
+
+  /* ---------- Accent: escondido — a borda esquerda substitui ---------- */
+  .mdash-section__accent {
+    display: none;
+  }
+
+  /* ---------- Title ---------- */
+  .mdash-section__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    letter-spacing: -.01em;
+    margin: 0;
+    flex: 1 1 auto;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 150ms ease;
+    padding-left: 2px;
+  }
+
+  .mdash-section__header:hover .mdash-section__title {
+    color: #1e293b;
+  }
+
+  /* ---------- Collapsed hint ---------- */
+  .mdash-section__collapsed-hint {
+    font-size: 11px;
+    font-weight: 400;
+    color: #94a3b8;
+    flex: 0 0 auto;
+    margin-right: 8px;
+    opacity: 0;
+    transition: opacity 180ms ease;
+    pointer-events: none;
+    white-space: nowrap;
+    font-style: italic;
+  }
+
+  .mdash-section.is-collapsed .mdash-section__collapsed-hint {
+    opacity: 1;
+  }
+
+  /* ---------- Chevron ---------- */
+  .mdash-section__chevron {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    font-size: 9px;
+    transition: transform 240ms cubic-bezier(.4, 0, .2, 1), color 150ms ease;
+  }
+
+  .mdash-section__header:hover .mdash-section__chevron {
+    color: #2563eb;
+  }
+
+  .mdash-section.is-collapsed .mdash-section__chevron {
+    transform: rotate(-90deg);
+  }
+
+  /* ---------- Body ---------- */
+  .mdash-section__body {
+    overflow: hidden;
+    padding: 0;
+    background: transparent;
+    transition: max-height 300ms cubic-bezier(.4, 0, .2, 1), opacity 200ms ease;
+  }
+
+  .mdash-section.is-collapsed .mdash-section__body {
+    max-height: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — FILTER BAR (Tailwind-style 2B card — same linguagem)          */
+  /* ======================================================================== */
+  .mdash {
+    --md-primary: #2563eb;
+    --md-primary-rgb: 37, 99, 235;
+    --md-surface: #ffffff;
+    --md-bg: #f8fafc;
+    --md-text: #0f172a;
+    --md-muted: #64748b;
+    --md-border: #e5e7eb;
+    --md-border-soft: #f1f5f9;
+  }
+
+  /* Sidebar = white 2B card */
+  .mdash .mdash-sidebar {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: box-shadow 200ms ease;
+    align-self: stretch;
+    width: 100%;
+
+    background: white;
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+    
+  }
+
+  .mdash .mdash-sidebar:hover {
+    box-shadow: 0 2px 4px rgba(15, 23, 42, .08), 0 12px 24px rgba(15, 23, 42, .08);
+  }
+
+  .mdash .mdash-sidebar-header {
+    padding: 14px 18px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--md-border-soft);
+    color: var(--md-text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .mdash .mdash-sidebar-header h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--md-text);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1.3;
+    letter-spacing: -.005em;
+  }
+
+  .mdash .mdash-sidebar-header h4 i {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--md-primary-rgb), .10);
+    color: var(--md-primary);
+    font-size: 13px;
+  }
+
+  .mdash .mdash-sidebar-header .mdash-sidebar-action {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid var(--md-border);
+    background: #ffffff;
+    color: var(--md-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 220ms ease;
+  }
+
+  .mdash .mdash-sidebar-header .mdash-sidebar-action:hover {
+    background: rgba(var(--md-primary-rgb), .08);
+    color: var(--md-primary);
+    border-color: rgba(var(--md-primary-rgb), .25);
+    transform: rotate(0deg);
+  }
+
+  .mdash .mdash-sidebar-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px;
+    background: #ffffff;
+    min-height: 240px;
+  }
+
+  .mdash-filter-card--horizontal .mdash-sidebar-body {
+    min-height: 164px;
+  }
+
+  .mdash-filter-card--vertical .mdash-sidebar-body {
+    min-height: 360px;
+  }
+
+  /* Tablet: filtro vertical acompanha a coluna principal sem ficar anão */
+  @media screen and (min-width: 768px) and (max-width: 1199px) {
+    .mdash-filter-card--vertical {
+      width: clamp(290px, 28vw, 360px);
+      min-height: max(520px, var(--md-sidebar-sync-h, 520px));
+    }
+
+    .mdash-filter-card--vertical .mdash-sidebar-body {
+      min-height: 0;
+      max-height: none;
+      overflow-y: auto;
+    }
+  }
+
+  /* Desktop: acompanha a altura da coluna principal e mantém presença visual */
+  @media screen and (min-width: 1200px) {
+    .mdash-filter-card--vertical {
+      width: clamp(300px, 24vw, 380px);
+      min-height: max(620px, var(--md-sidebar-sync-h, 620px));
+      position: sticky;
+      top: 16px;
+    }
+
+    .mdash-filter-card--vertical .mdash-sidebar-body {
+      min-height: 0;
+      max-height: none;
+      overflow-y: auto;
+    }
+  }
+
+  /* Mobile: sem altura forçada para não cortar filtros */
+  @media screen and (max-width: 767px) {
+    .mdash-filter-card--vertical,
+    .mdash-filter-card--vertical .mdash-sidebar-body,
+    .mdash-filter-card--horizontal .mdash-sidebar-body {
+      min-height: 0;
+      max-height: none;
+    }
+  }
+
+  /* Strip Bootstrap panel chrome inside the filter card — body-only */
+  .mdash .mdash-sidebar-body .panel {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .mdash .mdash-sidebar-body .panel-heading {
+    display: none;
+  }
+
+  .mdash .mdash-sidebar-body .panel-body {
+    padding: 0;
+    background: transparent;
+  }
+
+  /* Filter inputs */
+  .mdash-filter-card--vertical .m-dash-dynamic-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .mdash-filter-card--horizontal .gr-row {
+    row-gap: 14px;
+  }
+
+  .mdash-filter-card .m-dash-filter-item {
+    margin-bottom: 0;
+  }
+
+  .m-dash-filter-item>label,
+  .m-dash-dynamic-filters label {
+    color: #475569 !important;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .input-mdash-filter {
+    border: 1px solid var(--md-border) !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    height: auto !important;
+    box-shadow: none !important;
+    background: #ffffff;
+    font-size: 13px;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .input-mdash-filter:focus {
+    border-color: var(--md-primary) !important;
+    box-shadow: 0 0 0 3px rgba(var(--md-primary-rgb), .15) !important;
+    outline: none;
+  }
+
+  .select-mdash-filter {
+    appearance: none;
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — ENTERPRISE CARD (default fallback when no template)           */
+  /* ======================================================================== */
+  .mdash-card {
+    --mdash-card-accent: #2563eb;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    transition: box-shadow 200ms ease, transform 200ms ease;
+    position: relative;
+  }
+
+  .mdash-card:hover {
+    box-shadow: 0 2px 6px rgba(15, 23, 42, .06), 0 16px 32px rgba(15, 23, 42, .08);
+  }
+
+  .mdash-card__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  }
+
+  .mdash-card__icon {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--mdash-card-accent) 12%, transparent);
+    color: var(--mdash-card-accent);
+    font-size: 15px;
+  }
+
+  .mdash-card__title {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #0f172a;
+    letter-spacing: -.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mdash-card__actions {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mdash-card__action {
+    background: transparent;
+    border: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    color: #64748b;
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mdash-card__action:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+
+  .mdash-card__body {
+    flex: 1 1 auto;
+    padding: 18px 20px;
+    overflow: auto;
+    min-height: 80px;
+    position: relative;
+  }
+
+  .mdash-card__footer {
+    padding: 10px 20px;
+    border-top: 1px solid #f1f5f9;
+    background: #fafbfc;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .mdash-card__footer:empty {
+    display: none;
+  }
+
+  /* Slot containers within an item */
+  .mdash-slot {
+    position: relative;
+    display: block;
+    min-height: 40px;
+  }
+
+  .mdash-slot[data-mdash-slot="header"] {
+    padding: 0 0 8px 0;
+  }
+
+  .mdash-slot[data-mdash-slot="footer"] {
+    padding: 8px 0 0 0;
+  }
+
+  .mdash-slot.is-empty {
+    color: #94a3b8;
+    font-size: 12px;
+    font-style: italic;
+    display: none;
+    /* hide empty slots in viewer */
+  }
+
+  .mdash-slot>.cont-item-object-rendered {
+    display: block;
+    width: 100%;
+  }
+
+  .mdash-slot>.cont-item-object-rendered+.cont-item-object-rendered {
+    margin-top: 12px;
+  }
+
+  /* States */
+  .mdash-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #94a3b8;
+    text-align: center;
+    padding: 24px 16px;
+    min-height: 100px;
+  }
+
+  .mdash-state__icon {
+    font-size: 28px;
+    opacity: .6;
+  }
+
+  .mdash-state__text {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .mdash-state--error {
+    color: #b91c1c;
+  }
+
+  .mdash-state--error .mdash-state__icon {
+    color: #ef4444;
+    opacity: .8;
+  }
+
+  /* Detail action footer */
+  .mdash-card__detail-btn {
+    background: var(--mdash-card-accent);
+    color: #ffffff;
+    border: 0;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 150ms ease, transform 100ms ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mdash-card__detail-btn:hover {
+    background: color-mix(in srgb, var(--mdash-card-accent) 88%, #000);
+    transform: translateY(-1px);
+  }
+
+  /* Item host wraps the card; supports grid placement when layoutmode='manual' */
+  .m-dash-item-host {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* Smooth fade for content swap */
+  .mdash-content-fade-in {
+    animation: mdash-content-fade 240ms ease;
+  }
+
+  @keyframes mdash-content-fade {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 </style>
 
 <script src="https://unpkg.com/vue-multiselect"></script>
@@ -685,224 +1574,204 @@
 
 <body>
   <div id="mdash" class="mdash">
-    <div class="m-dash-header">
-      <h1>{{ mdash.dashboardconfig.descricao }}</h1>
+    <div class="m-dash-header mdash-panel">
+      <h1 class="mdash-dashboard-title">{{ mdash.dashboardconfig.descricao }}</h1>
       <button style="font-size: 12px;" v-if="mdash.dashboardconfig.temfiltro==false" @click="refreshDashboard()"
         type='button' id='btn-refrescar-filtro' class='btn btn-primary btn-sm glyphicon glyphicon-refresh filtro'>
       </button>
     </div>
 
     <div v-if="mdash.dashboardconfig.filtrohorizont && mdash.dashboardconfig.temfiltro==true"
-      class="m-dash-horizonta-filter-container">
+      class="mdash-sidebar mdash-panel mdash-filter-card mdash-filter-card--horizontal"
+      style="width: 100%; min-width: 0; margin-bottom: 18px;">
       {{initDomObjects()}}
-      <div class="gr-row">
-        <div class=" gr-col-md-12 gr-col-lg-12 gr-col-sm-12">
-          <div class="m-dash-filter-btn-group">
-            <div style="display: flex;column-gap: 0.4em;align-items: center;" class="">
-              <p class="m-dash-item-text">Refrescar</p>
-              <button @click="refreshDashboard()" type='button' id='btn-refrescar-filtro'
-                class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp"
-          :class="[`gr-col-md-${filter.tamanho}`, `gr-col-sm-${filter.tamanho}`, `gr-col-lg-${filter.tamanho}`]">
-          <div class="m-dash-dynamic-filters">
-            <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
-
-              <div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'">
-                <button style="margin-left: 0.4em;border-radius: 4px;" type="button" class="btn btn-xs btn-primary"
-                  @click="selectAllOptions(filter)">Todas
-                  opções</button> <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
-                  class="btn btn-xs btn-default" @click="deselectAllOptions(filter)">Desmarcar</button>
+      <div class="mdash-sidebar-header mdash-panel-header">
+        <h4 class="mdash-panel-title"><i class="glyphicon glyphicon-filter"></i> Filtros</h4>
+        <button @click="refreshDashboard()" type="button" id="btn-refrescar-filtro" class="mdash-sidebar-action"
+          data-tooltip="true" title="Refrescar">
+          <i class="glyphicon glyphicon-refresh"></i>
+        </button>
+      </div>
+      <div class="mdash-sidebar-body mdash-panel-content">
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div class="gr-row">
+              <div v-for="filter in getVisibleFilters()" :key="filter.mdashfilterstamp"
+                :class="[`gr-col-md-${filter.tamanho}`, `gr-col-sm-${filter.tamanho}`, `gr-col-lg-${filter.tamanho}`]">
+                <div class="m-dash-dynamic-filters">
+                  <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
+                    <div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'">
+                      <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
+                        class="btn btn-xs btn-primary" @click="selectAllOptions(filter)">Todas opções</button>
+                      <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
+                        class="btn btn-xs btn-default" @click="deselectAllOptions(filter)">Desmarcar</button>
+                    </div>
+                  </label>
+                  <!-- text -->
+                  <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
+                    class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                    v-model="mdash.filterValues[filter.codigo]" />
+                  <!-- digit -->
+                  <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
+                    class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                    v-model="mdash.filterValues[filter.codigo]" />
+                  <input data-language="pt" @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'date'"
+                    type="text" class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                    v-model="mdash.filterValues[filter.codigo]" />
+                  <!-- list -->
+                  <div v-else-if="filter.tipo === 'list'">
+                    <select @change="updateFilter(filter,$event)"
+                      class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
+                      v-model="mdash.filterValues[filter.codigo]">
+                      <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">{{
+                        opt[filter.campooption] }}</option>
+                    </select>
+                  </div>
+                  <div v-else-if="filter.tipo === 'multiselect'">
+                    <select @vue:mounted="initMultiselect($el,filter)" multiple="multiple"
+                      @change="updateFilter(filter,$event)"
+                      class="multisel form-control select-mdash-filter input-mdash-filter" :id="filter.codigo">
+                      <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">{{
+                        opt[filter.campooption] }}</option>
+                    </select>
+                  </div>
+                  <!-- logic -->
+                  <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
+                    class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
+                  <!-- fallback -->
+                  <input data-else="elseinput" @change="updateFilter(filter,$event)" v-else type="text"
+                    class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                    v-model="mdash.filterValues[filter.codigo]" />
+                </div>
               </div>
-            </label>
-
-            <!-- text -->
-            <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
-              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
-              v-model="mdash.filterValues[filter.codigo]" />
-
-            <!-- digit -->
-            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
-              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
-              v-model="mdash.filterValues[filter.codigo]" />
-
-            <input data-language="pt" @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'date'"
-              type="text" class="form-control input-sm input-mdash-filter" :id="filter.codigo"
-              v-model="mdash.filterValues[filter.codigo]" />
-
-            <!-- list -->
-            <div v-else-if="filter.tipo === 'list'">
-              <select @change="updateFilter(filter,$event)" class="form-control select-mdash-filter input-mdash-filter"
-                :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]">
-                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
-                  {{ opt[filter.campooption] }}
-                </option>
-              </select>
             </div>
-
-            <div v-else-if="filter.tipo === 'multiselect'">
-
-              <select @vue:mounted="initMultiselect($el,filter)" multiple="multiple"
-                @change="updateFilter(filter,$event)"
-                class=" multisel form-control select-mdash-filter input-mdash-filter" :id="filter.codigo">
-                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
-                  {{ opt[filter.campooption] }}
-                </option>
-              </select>
-
-
-            </div>
-
-            <!-- logic -->
-            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
-              class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
-
-            <!-- fallback -->
-            <input data-else="elseinput" @change="updateFilter(filter,$event)" v-else type="text"
-              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
-              v-model="mdash.filterValues[filter.codigo]" />
           </div>
         </div>
       </div>
     </div>
 
     <div class="m-dash-body">
-      <div v-if="mdash.dashboardconfig.temfiltro && mdash.dashboardconfig.filtrohorizont==false" class="m-dash-filter">
-        <div class="m-dash-filter-btn-group">
-          <div class="m-dash-btn-filter">
-            <p class="m-dash-item-text">Refrescar</p>
-            <button @click="refreshDashboard()" type='button' id='btn-refrescar-filtro'
-              class='btn btn-default btn-sm glyphicon glyphicon-refresh filtro'>
-            </button>
-          </div>
+      <div v-if="mdash.dashboardconfig.temfiltro && mdash.dashboardconfig.filtrohorizont==false"
+        class="mdash-sidebar mdash-panel mdash-filter-card mdash-filter-card--vertical">
+        <div class="mdash-sidebar-header mdash-panel-header">
+          <h4 class="mdash-panel-title"><i class="glyphicon glyphicon-filter"></i> Filtros</h4>
+          <button @click="refreshDashboard()" type="button" id="btn-refrescar-filtro" class="mdash-sidebar-action"
+            data-tooltip="true" title="Refrescar">
+            <i class="glyphicon glyphicon-refresh"></i>
+          </button>
         </div>
-
-        <div class="m-dash-dynamic-filters">
-          <div v-for="filter in mdash.filters" :key="filter.mdashfilterstamp" class="m-dash-filter-item">
-            <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
-
-              <div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'">
-                <button style="margin-left: 0.4em;border-radius: 4px;" type="button" class="btn btn-xs btn-primary"
-                  @click="selectAllOptions(filter)">Todas
-                  opções</button> <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
-                  class="btn btn-xs btn-default" @click="deselectAllOptions(filter)">Desmarcar todas</button>
+        <div class="mdash-sidebar-body mdash-panel-content">
+          <div class="panel panel-default">
+            <div class="panel-body">
+              <div class="m-dash-dynamic-filters">
+                <div v-for="filter in getVisibleFilters()" :key="filter.mdashfilterstamp" class="m-dash-filter-item">
+                  <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
+                    <div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'">
+                      <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
+                        class="btn btn-xs btn-primary" @click="selectAllOptions(filter)">Todas opções</button>
+                      <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
+                        class="btn btn-xs btn-default" @click="deselectAllOptions(filter)">Desmarcar todas</button>
+                    </div>
+                  </label>
+                  <!-- text -->
+                  <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
+                    class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                    v-model="mdash.filterValues[filter.codigo]" />
+                  <!-- digit -->
+                  <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
+                    class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                    v-model="mdash.filterValues[filter.codigo]" />
+                  <input data-language="pt" @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'date'"
+                    type="text" class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                    v-model="mdash.filterValues[filter.codigo]" />
+                  <!-- list -->
+                  <div v-else-if="filter.tipo === 'list'">
+                    <select @change="updateFilter(filter,$event)"
+                      class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
+                      v-model="mdash.filterValues[filter.codigo]">
+                      <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">{{
+                        opt[filter.campooption] }}</option>
+                    </select>
+                  </div>
+                  <div v-else-if="filter.tipo === 'multiselect'">
+                    <select @vue:mounted="initMultiselect($el,filter)" multiple="multiple"
+                      @change="updateFilter(filter,$event)"
+                      class="multisel form-control select-mdash-filter input-mdash-filter" :id="filter.codigo">
+                      <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">{{
+                        opt[filter.campooption] }}</option>
+                    </select>
+                  </div>
+                  <!-- logic -->
+                  <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
+                    class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
+                  <!-- fallback -->
+                  <input @change="updateFilter(filter,$event)" v-else type="text"
+                    class="form-control input-sm input-mdash-filter" :id="filter.codigo"
+                    v-model="mdash.filterValues[filter.codigo]" />
+                </div>
               </div>
-            </label>
-
-
-            <!-- text -->
-            <input @change="updateFilter(filter,$event)" v-if="filter.tipo === 'text'" type="text"
-              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
-              v-model="mdash.filterValues[filter.codigo]" />
-
-            <!-- digit -->
-            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'digit'" type="text"
-              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
-              v-model="mdash.filterValues[filter.codigo]" />
-
-            <input data-language="pt" @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'date'"
-              type="text" class="form-control input-sm input-mdash-filter" :id="filter.codigo"
-              v-model="mdash.filterValues[filter.codigo]" />
-
-            <!-- list -->
-            <div v-else-if="filter.tipo === 'list'">
-              <select @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'list'"
-                class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
-                v-model="mdash.filterValues[filter.codigo]">
-                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
-                  {{ opt[filter.campooption] }}
-                </option>
-              </select>
             </div>
-
-
-            <div v-else-if="filter.tipo === 'multiselect'">
-
-              <select @vue:mounted="initMultiselect($el,filter)" multiple="multiple"
-                @change="updateFilter(filter,$event)"
-                class=" multisel form-control select-mdash-filter input-mdash-filter" :id="filter.codigo">
-                <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">
-                  {{ opt[filter.campooption] }}
-                </option>
-              </select>
-
-
-            </div>
-
-
-
-            <!-- logic -->
-            <input @change="updateFilter(filter,$event)" v-else-if="filter.tipo === 'logic'" type="checkbox"
-              class="form-check-input" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
-
-            <!-- fallback -->
-            <input @change="updateFilter(filter,$event)" v-else type="text"
-              class="form-control input-sm input-mdash-filter" :id="filter.codigo"
-              v-model="mdash.filterValues[filter.codigo]" />
           </div>
-        </div>
-
-        <div class="m-dash-dynamic-filters">
         </div>
       </div>
 
-      <div class="m-dash-main">
-        <div v-for="container in mdash.containers" :key="container.mdashcontainerstamp"
-          :class="[`gr-col-md-${container.tamanho}`, `gr-col-sm-${container.tamanho}`, `gr-col-lg-${container.tamanho}`]">
-          <div class='mon-collapse'>
-            <div class='mon-grupo-header'>
-              {{initUI()}}
-              <div v-if="container.titulo.length>0"
-                style="font-size: 18px;color:#626e78 ;column-gap: 0.4em;display: flex;align-items: center;box-shadow:  0 4px 8px rgba(0, 0, 0, .08);background-color:white;font-size:1em;border-radius: 6px; font-weight: bold; margin: 0 0 20px 0; padding: 8px;">
-                <div>
-                  <i style="font-size: 18px;" class='glyphicon glyphicon-chevron-down mainformcptitulo'></i>
-                </div>
-                <div >
-                  <p style="font-size: 18px;margin-top:0.4em" class='mainformcptitulo'>
-                    {{ container.titulo }}
-                  </p>
-                </div>
-
-
-              </div>
-
-            </div>
-            <div class='mon-grupo-body'>
-              <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)" :key="'row-' + rowIndex"
-                class="gr-row m-dash-container-item-row " style="margin-top: 1em!important;margin-bottom:3em">
-
-                <div style="height: 100%!important;" v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
-                  :id="item.mdashcontaineritemstamp" :class="['m-dash-render-area',
-                                        `gr-col-md-${item.tamanho}`,
-                                        `gr-col-sm-${item.tamanho}`,
-                                        `gr-col-lg-${item.tamanho}`]">
-                </div>
-              </div>
-            </div>
-
+      <div class="m-dash-main mdash-dashboard-content-area">
+        <!-- ============================================================ -->
+        <!-- MDASH 2.0 — SEPARADORES estilo browser                       -->
+        <!-- ============================================================ -->
+        <div v-if="tabsEnabled()" class="mdash-dashboard-tabs-wrap">
+          <div v-if="getSortedTabs().length === 0" class="mdash-tabs-empty">
+            <i class="glyphicon glyphicon-info-sign"></i> Nenhum separador configurado.
           </div>
-          <div v-if="container.titulo.length > 0" style="margin-bottom: 0.8em;" class="gr-col-md-12 pull-left">
-            <!--  <h1 class="m-dash-item-text">{{ container.titulo }}</h1>
-            <hr>
-            -->
+          <div v-else class="mdash-dashboard-tabs" role="tablist">
+            <div v-for="tab in getSortedTabs()" :key="tab.mdashtabstamp"
+              :class="['mdash-dashboard-tab', { 'is-active': isTabActive(tab) }]" :style="getTabStyle(tab)" role="tab"
+              :aria-selected="isTabActive(tab) ? 'true' : 'false'" @click="selectTab(tab.mdashtabstamp)">
+              <span class="mdash-dashboard-tab-accent"></span>
+              <i :class="tab.icone || 'glyphicon glyphicon-list-alt'"></i>
+              <span class="mdash-dashboard-tab-label">{{ tab.titulo || 'Separador' }}</span>
+            </div>
           </div>
-
-          <!-- Aqui usamos os grupos de rows -->
-
         </div>
-      </div>
+
+        <!-- grid de containers (animated on tab change) -->
+        <div :class="{ 'mdash-tab-content-fade': tabsEnabled() }" :key="'tab-content-' + (activeTabStamp || 'all')">
+          <div v-for="container in getVisibleContainers()" :key="container.mdashcontainerstamp"
+            :class="[`gr-col-md-${container.tamanho}`, `gr-col-sm-${container.tamanho}`, `gr-col-lg-${container.tamanho}`]">
+            <section :class="['mdash-section', { 'is-collapsed': isContainerCollapsed(container) }]">
+              <header v-if="container.titulo && container.titulo.length > 0" class="mdash-section__header" role="button"
+                tabindex="0" :aria-expanded="!isContainerCollapsed(container)" @click="toggleContainer(container)"
+                @keydown.enter.prevent="toggleContainer(container)" @keydown.space.prevent="toggleContainer(container)">
+                <span class="mdash-section__accent" aria-hidden="true"></span>
+                <h2 class="mdash-section__title">{{ container.titulo }}</h2>
+                <span class="mdash-section__collapsed-hint" aria-hidden="true">recolhido</span>
+                <span class="mdash-section__chevron" aria-hidden="true">
+                  <i class="glyphicon glyphicon-chevron-down"></i>
+                </span>
+              </header>
+              <div class="mdash-section__body">
+                {{initUI()}}
+                <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)"
+                  :key="'row-' + rowIndex" class="gr-row m-dash-container-item-row"
+                  style="margin-top: 0.6em;margin-bottom:1.6em">
+                  <div v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
+                    :id="item.mdashcontaineritemstamp" :class="getItemClasses(item)" :style="getItemGridStyle(item)">
+                  </div>
+                </div>
+              </div>
+            </section>
+            <!-- Aqui usamos os grupos de rows -->
+
+          </div>
+        </div><!-- fim grid containers -->
+      </div><!-- fim mdash-dashboard-content-area -->
     </div>
   </div>
 </body>
 
 <script src="https://unpkg.com/petite-vue"></script>
 <script src="https://cdn.jsdelivr.net/npm/alasql"></script>
-<script src="../js/TEMPLATE DASHBOARD STANDARD EXTENSION.js"></script>
-<script src="../js/MDash config lib REFACTOR.js"></script>
-<script src="../js/DATA SOURCE Operations.js"></script>
+
 <script>
   function buildAlert(alertClass, alertText) {
     var alerta = ""
@@ -911,6 +1780,112 @@
     alerta += "</div>"
 
     return alerta
+  }
+
+  // ============================================================================
+  // MDASH 2.0 — LIB SHIM (defensive bridge to MDash config lib REFACTOR.js +
+  //                     TEMPLATE DASHBOARD STANDARD EXTENSION.js)
+  // Allows the viewer to degrade gracefully when builder libraries are not
+  // available at runtime (e.g. CDN failure or path mismatch). All call sites
+  // go through __mdashLib so the viewer never crashes with ReferenceError.
+  // ============================================================================
+  var __mdashLib = {
+    has: function (name) { return typeof window[name] === 'function'; },
+    getTemplateLayoutOptions: function () {
+      return (typeof getTemplateLayoutOptions === 'function') ? getTemplateLayoutOptions() : [];
+    },
+    getTemplateLayoutByCode: function (code) {
+      if (typeof getTemplateLayoutByCode === 'function') return getTemplateLayoutByCode(code);
+      var list = this.getTemplateLayoutOptions();
+      return list.find(function (t) { return t.codigo === code; }) || null;
+    },
+    getMdashObjectTypeEntry: function (tipo) {
+      if (typeof getMdashObjectTypeEntry === 'function') return getMdashObjectTypeEntry(tipo);
+      if (typeof getTiposObjectoConfig === 'function') {
+        return getTiposObjectoConfig().find(function (t) { return t.tipo === tipo; }) || null;
+      }
+      return null;
+    },
+    getTiposObjectoConfig: function () {
+      return (typeof getTiposObjectoConfig === 'function') ? getTiposObjectoConfig() : [];
+    },
+    mdashResolveObjectData: function (obj, fallback) {
+      if (typeof mdashResolveObjectData === 'function') {
+        try { return mdashResolveObjectData(obj, fallback); } catch (e) { /* fallthrough */ }
+      }
+      return { data: fallback || [], isSample: false };
+    },
+    forceJSONParse: function (raw, fallback) {
+      if (typeof forceJSONParse === 'function') return forceJSONParse(raw, fallback);
+      try { return JSON.parse(raw || ''); } catch (e) { return fallback; }
+    },
+    generateButton: function (d) {
+      if (typeof generateButton === 'function') return generateButton(d);
+      d = d || {};
+      return '<button id="' + (d.buttonId || '') + '" type="button" class="' + (d.classes || 'btn btn-default') + '" style="' + (d.style || '') + '" ' + (d.customData || '') + '>' + (d.label || '') + '</button>';
+    },
+    generateModalHTML: function (d) {
+      if (typeof generateModalHTML === 'function') return generateModalHTML(d);
+      d = d || {};
+      var html = '';
+      html += '<div id="' + (d.id || '') + '" class="modal fade ' + (d.otherclassess || '') + '" tabindex="-1" role="dialog" ' + (d.customData || '') + '>';
+      html += '<div class="modal-dialog modal-lg" role="document"><div class="modal-content">';
+      html += '<div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button>';
+      html += '<h4 class="modal-title">' + (d.title || '') + '</h4></div>';
+      html += '<div class="modal-body">' + (d.body || '') + '</div>';
+      html += '<div class="modal-footer">' + (d.footerContent || '') + '</div>';
+      html += '</div></div></div>';
+      return html;
+    },
+    generateSkeleton: function (d) {
+      if (typeof generateSkeleton === 'function') return generateSkeleton(d);
+      d = d || {};
+      var id = d.id || '';
+      return '<div id="' + id + '" class="mdash-skel">' +
+        '<div class="mdash-skeleton mdash-skeleton-title"></div>' +
+        '<div class="mdash-skeleton mdash-skeleton-text" style="width:95%"></div>' +
+        '<div class="mdash-skeleton mdash-skeleton-text" style="width:78%"></div>' +
+        '<div class="mdash-skeleton mdash-skeleton-text" style="width:62%"></div>' +
+        '</div>';
+    },
+    getColorByType: function (type) {
+      if (typeof getColorByType === 'function') {
+        try {
+          var c = getColorByType(type || 'primary');
+          if (c && c.background) return c.background;
+        } catch (e) { /* ignore */ }
+      }
+      var map = { primary: '#2563eb', success: '#16a34a', info: '#0891b2', warning: '#ea580c', danger: '#dc2626', default: '#64748b' };
+      return map[type] || map.primary;
+    },
+    replaceLocalDbKeywords: function (data) {
+      return (typeof replaceLocalDbKeywords === 'function') ? replaceLocalDbKeywords(data) : data;
+    }
+  };
+
+  // Modern enterprise card built-in (used when item has no template selected).
+  function mdashRenderEnterpriseCard(opts) {
+    opts = opts || {};
+    var accent = __mdashLib.getColorByType(opts.tipo || 'primary');
+    var iconCls = opts.icon || 'glyphicon glyphicon-stats';
+    var actions = '';
+    if (opts.refreshable !== false) {
+      actions += '<button type="button" class="mdash-card__action mdash-card__refresh" data-tooltip="true" title="Refrescar">' +
+        '<i class="glyphicon glyphicon-refresh"></i></button>';
+    }
+    var html = '';
+    html += '<div id="' + (opts.id || '') + '" class="mdash-card" style="--mdash-card-accent:' + accent + ';">';
+    if (opts.title || opts.icon) {
+      html += '<div class="mdash-card__header">';
+      html += '  <span class="mdash-card__icon"><i class="' + iconCls + '"></i></span>';
+      html += '  <h4 class="mdash-card__title">' + (opts.title || '&nbsp;') + '</h4>';
+      html += '  <div class="mdash-card__actions">' + actions + '</div>';
+      html += '</div>';
+    }
+    html += '<div class="mdash-card__body" data-mdash-slot="body">' + (opts.bodyContent || '') + '</div>';
+    html += '<div class="mdash-card__footer" data-mdash-slot="footer"></div>';
+    html += '</div>';
+    return html;
   }
 
   function groupItemsByRows(containerItems, maxRowSize = 12) {
@@ -952,6 +1927,86 @@
     return rows;
   }
 
+  function getMdashSkeletonMinHeightBySize(size) {
+    var itemSize = parseInt(size, 10) || 4;
+    if (itemSize >= 10) return 430;
+    if (itemSize >= 8) return 390;
+    if (itemSize >= 6) return 350;
+    return 300;
+  }
+
+  function generateMdashSkeleton(data) {
+    data = data || {};
+    var id = data.id || '';
+    var minHeight = parseInt(data.minHeight, 10) || 320;
+    var label = data.title ? String(data.title) : 'A carregar dados';
+    var html = '';
+    html += '<div id="' + id + '" class="mdash-skel-shell" style="--md-skel-min-h:' + minHeight + 'px" aria-label="' + label + '">';
+    html += '  <div class="mdash-skel-row">';
+    html += '    <span class="mdash-skel-dot"></span>';
+    html += '    <span class="mdash-skel-line w-45"></span>';
+    html += '    <span class="mdash-skel-chip" style="margin-left:auto"></span>';
+    html += '  </div>';
+    html += '  <div class="mdash-skel-grid">';
+    html += '    <span class="mdash-skel-block"></span>';
+    html += '    <span class="mdash-skel-block"></span>';
+    html += '  </div>';
+    html += '  <div class="mdash-skel-row">';
+    html += '    <span class="mdash-skel-line w-100"></span>';
+    html += '  </div>';
+    html += '  <div class="mdash-skel-row">';
+    html += '    <span class="mdash-skel-line w-70"></span>';
+    html += '  </div>';
+    html += '  <div class="mdash-skel-table">';
+    html += '    <span class="mdash-skel-line w-100"></span>';
+    html += '    <span class="mdash-skel-line w-100"></span>';
+    html += '    <span class="mdash-skel-line w-100"></span>';
+    html += '    <span class="mdash-skel-line w-55"></span>';
+    html += '    <span class="mdash-skel-line w-35"></span>';
+    html += '    <span class="mdash-skel-line w-20"></span>';
+    html += '  </div>';
+    html += '</div>';
+    return html;
+  }
+
+  var __mdSidebarSyncTimer = null;
+
+  function syncMdashSidebarHeight() {
+    var body = document.querySelector('.m-dash-body');
+    var sidebar = document.querySelector('.mdash-filter-card--vertical');
+    var main = document.querySelector('.m-dash-main');
+    if (!body || !sidebar || !main) return;
+
+    if (window.innerWidth < 768) {
+      body.style.setProperty('--md-sidebar-sync-h', 'auto');
+      sidebar.style.removeProperty('height');
+      var mobileBody = sidebar.querySelector('.mdash-sidebar-body');
+      if (mobileBody) mobileBody.style.removeProperty('max-height');
+      return;
+    }
+
+    var mainHeight = Math.round(main.getBoundingClientRect().height || 0);
+    var sidebarHeader = sidebar.querySelector('.mdash-sidebar-header');
+    var headerHeight = sidebarHeader ? Math.round(sidebarHeader.getBoundingClientRect().height || 0) : 64;
+    var minHeight = window.innerWidth >= 1200 ? 620 : 520;
+    var viewportCap = Math.max(minHeight, window.innerHeight - 120);
+    var targetHeight = Math.max(mainHeight, minHeight);
+    targetHeight = Math.min(targetHeight, viewportCap);
+
+    body.style.setProperty('--md-sidebar-sync-h', targetHeight + 'px');
+    sidebar.style.height = targetHeight + 'px';
+
+    var bodyArea = sidebar.querySelector('.mdash-sidebar-body');
+    if (bodyArea) {
+      bodyArea.style.maxHeight = Math.max(220, targetHeight - headerHeight - 2) + 'px';
+    }
+  }
+
+  function scheduleMdashSidebarHeightSync() {
+    if (__mdSidebarSyncTimer) clearTimeout(__mdSidebarSyncTimer);
+    __mdSidebarSyncTimer = setTimeout(syncMdashSidebarHeight, 140);
+  }
+
   function generateStandardCard(cardData) {
     return `<div class="m-dash-item">
                     <h4 class="m-dash-item-text">${cardData.titulo || "Sem título"}</h4>
@@ -978,8 +2033,15 @@
     this.descricao = data.descricao || "";
     this.categoria = data.categoria || "";
     this.dashboardstamp = data.dashboardstamp || "";
+    this.u_mdashstamp = data.u_mdashstamp || data.dashboardstamp || "";
     this.temfiltro = data.temfiltro || false;
     this.filtrohorizont = data.filtrohorizont || false;
+    this.configjson = data.configjson || "{}";
+    var settings = {};
+    try { settings = JSON.parse(this.configjson || "{}") || {}; } catch (e) { settings = {}; }
+    this.settings = settings;
+    this.activarMultiSeparadores = !!settings.activarMultiSeparadores;
+    this.activeTabStamp = settings.activeTabStamp || "";
   }
 
   function Mdash(data) {
@@ -1004,11 +2066,42 @@
       return new MdashContainerItem(item);
     }) : [];
 
+    // ── MDASH 2.0: Use lib classes whenever available so viewer & editor share
+    //    the same constructors, prototype methods (renderObjectByContainerItem,
+    //    execute, etc.) and stay maintainable. Local declarations below act as
+    //    fallback when the lib didn't load.
+    var ObjClass = (typeof window.MdashContainerItemObject === 'function')
+      ? window.MdashContainerItemObject : null;
+    var FonteClass = (typeof window.MDashFonte === 'function')
+      ? window.MDashFonte : null;
+
     this.containerItemObjects = Array.isArray(data.containerItemObjects) ? data.containerItemObjects.map(function (itemObject) {
-      return new MdashContainerItemObject(itemObject);
+      return ObjClass ? new ObjClass(itemObject) : new MdashContainerItemObject(itemObject);
+    }) : [];
+
+    // ── MDASH 2.0: Tabs (multi-separadores) ────────────────────────────────
+    this.tabs = Array.isArray(data.tabs) ? data.tabs.map(function (t) {
+      return new MdashRendTab(t);
+    }) : [];
+
+    // ── MDASH 2.0: Fontes (in-memory data sources) ─────────────────────────
+    //    Wrapped as MDashFonte instances so .execute() / .lastResults work
+    //    exactly as in the editor.
+    this.fontes = Array.isArray(data.fontes) ? data.fontes.map(function (f) {
+      return FonteClass ? new FonteClass(f) : f;
     }) : [];
 
     this.reactiveInstance = null;
+
+    function MdashRendTab(data) {
+      this.mdashtabstamp = data.mdashtabstamp || generateUUID();
+      this.dashboardstamp = data.dashboardstamp || GMDashStamp;
+      this.titulo = data.titulo || "";
+      this.icone = data.icone || "";
+      this.ordem = (typeof data.ordem === 'number') ? data.ordem : (parseInt(data.ordem, 10) || 0);
+      this.inactivo = !!data.inactivo;
+      this.configjson = data.configjson || "{}";
+    }
 
     function MdashRendFilter(data) {
       this.mdashfilterstamp = data.mdashfilterstamp || generateUUID();
@@ -1025,6 +2118,9 @@
       //this.expressaolistagem = data.expressaolistagem || "";
       this.valordefeito = data.valordefeito || "";
       this.ordem = data.ordem || 0;
+      // MDASH 2.0: filter scope ('global' | 'tab')
+      this.escopo = data.escopo || "global";
+      this.mdashtabstamp = data.mdashtabstamp || "";
     }
 
     function MdashRendContainer(data) {
@@ -1035,6 +2131,8 @@
       this.tamanho = data.tamanho || 12;
       this.ordem = data.ordem || 0;
       this.dashboardstamp = data.dashboardstamp || GMDashStamp;
+      // MDASH 2.0: container belongs to a tab when activarMultiSeparadores=true
+      this.mdashtabstamp = data.mdashtabstamp || "";
     }
 
     function MdashContainerItem(data) {
@@ -1064,15 +2162,64 @@
       this.fontelocal = data.fontelocal || false;
       this.renderedContent = data.renderedContent || generateStandardCard({ titulo: "Sem conteúdo disponível", bodyContent: "" }) || "";
       this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
+      // MDASH 2.0: slot system + grid placement
+      this.slotsconfigjson = data.slotsconfigjson || "[]";
+      this.layoutmode = data.layoutmode || "inherit"; // 'inherit' | 'auto' | 'manual'
+      this.gridrow = data.gridrow || "";
+      this.gridcolstart = data.gridcolstart || "";
+      this.gridcolspan = data.gridcolspan || "";
+      this.gridrowspan = data.gridrowspan || "";
+      this.lastMeasuredHeight = parseInt(data.lastMeasuredHeight, 10) || 0;
       this.records = [];
     }
+
+    MdashContainerItem.prototype._calculateLoadingHeight = function () {
+      var host = document.getElementById(this.mdashcontaineritemstamp);
+      var currentHeight = 0;
+      if (host) {
+        currentHeight = Math.round(host.getBoundingClientRect().height || 0);
+      }
+      if (currentHeight > 120) {
+        this.lastMeasuredHeight = currentHeight;
+        return currentHeight;
+      }
+      if (this.lastMeasuredHeight > 120) return this.lastMeasuredHeight;
+      return getMdashSkeletonMinHeightBySize(this.tamanho);
+    };
+
+    MdashContainerItem.prototype._lockHostMinHeight = function (height) {
+      var host = document.getElementById(this.mdashcontaineritemstamp);
+      if (!host) return;
+      var h = parseInt(height, 10) || getMdashSkeletonMinHeightBySize(this.tamanho);
+      host.style.setProperty('--md-item-min-h', h + 'px');
+    };
+
+    MdashContainerItem.prototype._captureRenderedHeight = function () {
+      var containerItem = this;
+      var host = document.getElementById(containerItem.mdashcontaineritemstamp);
+      if (!host) return;
+      [80, 260].forEach(function (delay) {
+        setTimeout(function () {
+          var h = Math.round(host.getBoundingClientRect().height || 0);
+          if (h > 120) {
+            containerItem.lastMeasuredHeight = h;
+            host.style.setProperty('--md-item-min-h', h + 'px');
+            scheduleMdashSidebarHeightSync();
+          }
+        }, delay);
+      });
+    };
 
     MdashContainerItem.prototype.refreshContent = async function () {
       var containerItem = this;
       var errorMessage = "ao trazer resultados no [refreshContent] " + containerItem.titulo
       try {
         if (!containerItem.urlfetch) {
-          containerItem.cleanAndRender(buildAlert("alert-danger", "URL para listagem  não definida"));
+          containerItem._renderState({
+            type: 'error',
+            icon: 'glyphicon glyphicon-link',
+            text: 'URL para listagem não definida'
+          });
           return;
         }
 
@@ -1095,152 +2242,206 @@
         });
 
         if (response.cod != "0000") {
-          console.log("Erro " + errorMessage, response)
-          containerItem.cleanAndRender(buildAlert("alert-danger", "Erro ao trazer resultados: "));
+          console.warn("[Mdash] " + errorMessage, response);
+          containerItem._renderState({
+            type: 'error',
+            icon: 'glyphicon glyphicon-exclamation-sign',
+            text: 'Erro ao trazer resultados (' + (response.cod || '?') + ')'
+          });
           return false
         }
 
         var contentRecords = response.data || [];
-
         containerItem.records = contentRecords;
 
-
-
-        var containerItemObjects = globalThis.containerItemObjects.filter(function (itemObject) {
-          return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp
-            && itemObject.categoria == "editor"
+        // ── Dispatch objects per slot (MDASH 2.0 slot system) ───────────────
+        var allItemObjects = globalThis.containerItemObjects.filter(function (o) {
+          return o.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp;
         });
 
-        var containerItemObjectsDetails = globalThis.containerItemObjects.filter(function (itemObject) {
-          return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp
-            && itemObject.categoria == "detail"
+        var renderableObjects = allItemObjects.filter(function (o) {
+          return o.categoria === 'editor' || o.categoria === 'custom';
+        });
+        var detailObjects = allItemObjects.filter(function (o) { return o.categoria === 'detail'; });
+
+        // Group by slot id (default 'body' when none specified)
+        var slotMap = {};
+        renderableObjects.sort(function (a, b) { return (a.ordem || 0) - (b.ordem || 0); });
+        renderableObjects.forEach(function (o) {
+          var sid = o.slotid || 'body';
+          if (!slotMap[sid]) slotMap[sid] = [];
+          slotMap[sid].push(o);
         });
 
-        var containerItemObjectsCustom = globalThis.containerItemObjects.filter(function (itemObject) {
-          return itemObject.mdashcontaineritemstamp === containerItem.mdashcontaineritemstamp
-            && itemObject.categoria == "custom"
-        });
+        var hostSelector = '#' + containerItem.mdashcontaineritemstamp;
 
-        containerItemObjects.forEach(function (itemObject) {
-          var containerItemSelector = "#" + containerItem.mdashcontaineritemstamp + " " + containerItem.dadosTemplate.containerSelectorToRender;
-          var containerItemObject = "<div id=cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp + " class='cont-item-object-rendered'  ></div>";
-          $(containerItemSelector).append(containerItemObject);
-
-          itemObject.renderObjectByContainerItem("#cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp, containerItem);
-        });
-
-        containerItemObjectsCustom.forEach(function (itemObject) {
-          var containerItemSelector = "#" + containerItem.mdashcontaineritemstamp + " " + containerItem.dadosTemplate.containerSelectorToRender;
-          var containerItemObject = "<div id=cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp + " class='cont-item-object-rendered'  ></div>";
-          $(containerItemSelector).append(containerItemObject);
-
-          itemObject.renderObjectByContainerItem("#cont-item-obj-" + itemObject.mdashcontaineritemobjectstamp, containerItem);
+        // For each slot we know about, mount its objects
+        Object.keys(slotMap).forEach(function (slotId) {
+          var $slot = containerItem._resolveSlot(slotId);
+          if (!$slot || !$slot.length) return; // template doesn't expose this slot
+          $slot.empty();
+          slotMap[slotId].forEach(function (obj) {
+            var objHostId = 'cont-item-obj-' + obj.mdashcontaineritemobjectstamp;
+            $slot.append('<div id="' + objHostId + '" class="cont-item-object-rendered"></div>');
+            try {
+              obj.renderObjectByContainerItem('#' + objHostId, containerItem);
+            } catch (err) {
+              console.error('[Mdash] erro a renderizar objecto', obj.tipo, err);
+              $('#' + objHostId).html('<div class="mdash-state mdash-state--error">' +
+                '<i class="glyphicon glyphicon-warning-sign mdash-state__icon"></i>' +
+                '<span class="mdash-state__text">Falha a renderizar ' + (obj.tipo || 'objecto') + '</span></div>');
+            }
+          });
         });
 
         if (containerItem.expressaoapresentacaodados) {
-          eval(containerItem.expressaoapresentacaodados);
+          try { eval(containerItem.expressaoapresentacaodados); } catch (e) { console.warn('[Mdash] expressaoapresentacaodados', e); }
         }
 
-        if (containerItemObjectsDetails.length > 0) {
-          var botaoDetalhe = {
-            style: "margin-top:1em",
-            buttonId: "botao-detalhe-" + containerItem.mdashcontaineritemstamp,
-            classes: "btn btn-sm btn-primary btn-detalhe",
-            customData: " type='button' data-tooltip='true' data-original-title='Ver detalhes' ",
-            label: "Detalhes",
-            onClick: "",
-          };
-
-          var buttonHtml = generateButton(botaoDetalhe);
-          var containerBtnDetalhes = "<div style='display:flex;justify-content:end;column-gap:0.4em;position:absolute;bottom:0;right:0;left:0;padding:0.5em;'>";
-          containerBtnDetalhes += buttonHtml
-          containerBtnDetalhes += "</div>"
-
-          $("#" + this.mdashcontaineritemstamp + " " + this.dadosTemplate.containerSelectorToRender).css(
-            {
-              "position": "relative",
-              "padding-bottom": "3em",
-            }
-          )
-          $("#" + this.mdashcontaineritemstamp + " " + this.dadosTemplate.containerSelectorToRender).append(containerBtnDetalhes);
-
-          var modalHtmlBody = "<div id='detalhe-container-body-" + this.mdashcontaineritemstamp + "' ></div>"
-          var modalData = {
-            title: "Detalhes-" + containerItem.titulo,
-            id: "detalhe-modal-" + this.mdashcontaineritemstamp,
-            customData: "",
-            otherclassess: "",
-            body: modalHtmlBody,
-            footerContent: ""
-          };
-
-          var modalHTML = generateModalHTML(modalData);
-          $("#mainPage").append(modalHTML);
-          $("#detalhe-modal-" + this.mdashcontaineritemstamp + " .modal-dialog").css("width", "90%");
-
-          $(document).off("click", "#" + botaoDetalhe.buttonId).on("click", "#" + botaoDetalhe.buttonId, function (e) {
-            e.preventDefault();
-            $("#detalhe-modal-" + containerItem.mdashcontaineritemstamp).modal("show");
-
-            containerItemObjectsDetails.forEach(function (itemObject) {
-              var containerItemObject = "<div id=cont-item-obj-detalhe-" + itemObject.mdashcontaineritemobjectstamp + " class='cont-item-object-rendered'  ></div>";
-              $("#detalhe-container-body-" + containerItem.mdashcontaineritemstamp).append(containerItemObject);
-
-              itemObject.renderObjectByContainerItem("#cont-item-obj-detalhe-" + itemObject.mdashcontaineritemobjectstamp, containerItem);
-            });
-          })
+        // ── Detail modal (footer button) ────────────────────────────────────
+        if (detailObjects.length > 0) {
+          containerItem._mountDetailButton(detailObjects);
         }
 
         containerItem.hideSkeleton();
+        // Smooth fade-in
+        $(hostSelector).find('.mdash-card').addClass('mdash-content-fade-in');
+        containerItem._captureRenderedHeight();
 
       } catch (error) {
-        console.log("Erro interno " + errorMessage, error)
-        containerItem.cleanAndRender(buildAlert("alert-danger", "Erro interno ao processar resultados: "));
-
-        //alertify.error("Erro interno " + errorMessage, 10000)
+        console.error("[Mdash] Erro interno " + errorMessage, error);
+        containerItem._renderState({
+          type: 'error',
+          icon: 'glyphicon glyphicon-exclamation-sign',
+          text: 'Erro interno: ' + (error && error.message ? error.message : '')
+        });
       }
     };
 
-    MdashContainerItem.prototype.handleLayout = function (content) {
+    // Resolve a slot host inside the item DOM. Supports both template-driven
+    // [data-mdash-slot="ID"] and the legacy `containerSelectorToRender` from
+    // builder-defined templates. Falls back to the card body slot.
+    MdashContainerItem.prototype._resolveSlot = function (slotId) {
+      var hostSelector = '#' + this.mdashcontaineritemstamp;
+      // Preferred: explicit data-mdash-slot attribute
+      var $byAttr = $(hostSelector + ' [data-mdash-slot="' + slotId + '"]');
+      if ($byAttr.length) return $byAttr.first();
+      // Legacy: template containerSelectorToRender for default 'body' slot
+      if (slotId === 'body' && this.dadosTemplate && this.dadosTemplate.containerSelectorToRender) {
+        var $legacy = $(hostSelector + ' ' + this.dadosTemplate.containerSelectorToRender);
+        if ($legacy.length) return $legacy.first();
+      }
+      // Fallback: card body
+      var $body = $(hostSelector + ' .mdash-card__body, ' + hostSelector + ' .dashcard-body');
+      return $body.length ? $body.first() : null;
+    };
+
+    MdashContainerItem.prototype._renderState = function (state) {
+      var hostSelector = '#' + this.mdashcontaineritemstamp;
+      var cls = 'mdash-state' + (state.type === 'error' ? ' mdash-state--error' : '');
+      var html = '<div class="' + cls + '">' +
+        '<i class="' + (state.icon || 'glyphicon glyphicon-info-sign') + ' mdash-state__icon"></i>' +
+        '<span class="mdash-state__text">' + (state.text || '') + '</span>' +
+        '</div>';
+      // If a card was already rendered, replace its body. Otherwise, render a fresh card.
+      var $body = $(hostSelector + ' .mdash-card__body, ' + hostSelector + ' .dashcard-body').first();
+      if ($body.length) {
+        $body.empty().append(html);
+      } else {
+        $(hostSelector).empty().append(mdashRenderEnterpriseCard({
+          id: 'm-dash-layout-' + this.mdashcontaineritemstamp,
+          title: this.titulo || '',
+          tipo: 'default',
+          bodyContent: html
+        }));
+      }
+      this._captureRenderedHeight();
+    };
+
+    MdashContainerItem.prototype._mountDetailButton = function (detailObjects) {
       var containerItem = this;
+      var hostSelector = '#' + this.mdashcontaineritemstamp;
+      var btnId = 'botao-detalhe-' + this.mdashcontaineritemstamp;
+      var modalId = 'detalhe-modal-' + this.mdashcontaineritemstamp;
+      var $footer = $(hostSelector + ' .mdash-card__footer').first();
+      var $target = $footer.length ? $footer : $(hostSelector + ' .mdash-card__body, ' + hostSelector + ' .dashcard-body').first();
 
-      containerItem.skeletonId = "skeleton-" + containerItem.mdashcontaineritemstamp;
+      var btnHtml = '<button id="' + btnId + '" type="button" class="mdash-card__detail-btn" data-tooltip="true" title="Ver detalhes">' +
+        '<i class="glyphicon glyphicon-search"></i>Detalhes</button>';
+      $target.append(btnHtml);
 
-      // Gerar skeleton HTML
-      var skeletonHTML = generateSkeleton({
-        id: containerItem.skeletonId
-      });
-      if (containerItem.layoutcontaineritemdefault) {
-
-        var listaTemplates = getTemplateLayoutOptions();
-        var selectedTemplate = listaTemplates.find(function (template) {
-          return template.codigo === containerItem.templatelayout;
+      // Build modal once
+      if (!$('#' + modalId).length) {
+        var modalHtml = __mdashLib.generateModalHTML({
+          title: 'Detalhes — ' + (containerItem.titulo || ''),
+          id: modalId,
+          customData: '',
+          otherclassess: 'mdash-detail-modal',
+          body: "<div id='detalhe-container-body-" + this.mdashcontaineritemstamp + "'></div>",
+          footerContent: ''
         });
+        $('#mainPage').append(modalHtml);
+        $('#' + modalId + ' .modal-dialog').css('width', '90%');
+      }
 
-        if (selectedTemplate) {
+      $(document).off('click.' + btnId).on('click.' + btnId, '#' + btnId, function (e) {
+        e.preventDefault();
+        var $body = $('#detalhe-container-body-' + containerItem.mdashcontaineritemstamp).empty();
+        detailObjects.forEach(function (obj) {
+          var hostId = 'cont-item-obj-detalhe-' + obj.mdashcontaineritemobjectstamp;
+          $body.append('<div id="' + hostId + '" class="cont-item-object-rendered"></div>');
+          try { obj.renderObjectByContainerItem('#' + hostId, containerItem); } catch (err) { console.error(err); }
+        });
+        $('#' + modalId).modal('show');
+      });
+    };
 
-          containerItem.dadosTemplate = selectedTemplate
-          $("#" + this.mdashcontaineritemstamp).empty();
+    MdashContainerItem.prototype.handleLayout = function () {
+      var containerItem = this;
+      containerItem.skeletonId = "skeleton-" + containerItem.mdashcontaineritemstamp;
+      var loadingHeight = containerItem._calculateLoadingHeight();
+      containerItem._lockHostMinHeight(loadingHeight);
+      var skeletonHTML = generateMdashSkeleton({
+        id: containerItem.skeletonId,
+        title: containerItem.titulo,
+        minHeight: loadingHeight
+      });
+      var hostSelector = '#' + this.mdashcontaineritemstamp;
 
-          $("#" + this.mdashcontaineritemstamp).append(selectedTemplate.generateCard({
+      // Custom layout expression takes precedence when explicitly disabled
+      if (!containerItem.layoutcontaineritemdefault && containerItem.expressaolayoutcontaineritem) {
+        try { eval(containerItem.expressaolayoutcontaineritem); return; } catch (e) { console.warn('[Mdash] expressaolayoutcontaineritem', e); }
+      }
+
+      // Try to use a builder-registered template
+      var template = null;
+      try { template = __mdashLib.getTemplateLayoutByCode(containerItem.templatelayout); } catch (e) { template = null; }
+
+      if (template && typeof template.generateCard === 'function') {
+        containerItem.dadosTemplate = template;
+        try {
+          var cardHtml = template.generateCard({
             title: containerItem.titulo,
             id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp,
-            tipo: selectedTemplate.UIData.tipo || "primary",
-            bodyContent: skeletonHTML,
-          }));
-
+            tipo: (template.UIData && template.UIData.tipo) || 'primary',
+            bodyContent: skeletonHTML
+          });
+          $(hostSelector).empty().append(cardHtml);
           return;
+        } catch (e) {
+          console.warn('[Mdash] template.generateCard falhou, a usar fallback', e);
         }
-
-        containerItem.cleanAndRender(generateDashCardHTML({ id: "m-dash-layout-" + containerItem.mdashcontaineritemstamp, title: containerItem.titulo, bodyContent: "" }));
-
-        return;
       }
 
-      if (containerItem.expressaolayoutcontaineritem) {
-        eval(containerItem.expressaolayoutcontaineritem);
-      }
-    }
+      // Enterprise built-in card (works without builder libs)
+      $(hostSelector).empty().append(mdashRenderEnterpriseCard({
+        id: 'm-dash-layout-' + containerItem.mdashcontaineritemstamp,
+        title: containerItem.titulo || '',
+        tipo: 'primary',
+        icon: 'glyphicon glyphicon-stats',
+        bodyContent: skeletonHTML
+      }));
+    };
 
     MdashContainerItem.prototype.render = function (content) {
       $("#" + this.mdashcontaineritemstamp).append(content);
@@ -1291,6 +2492,16 @@
       this.tipoquery = data.tipoquery || "item"; // local, remote
       this.objectsUIFormConfig = data.objectsUIFormConfig || [];
       this.localsource = data.localsource || "";
+      // MDASH 2.0: slot binding + data-source pipeline
+      this.slotid = data.slotid || "body";
+      this.fontestamp = data.fontestamp || "";
+      this.fontesstampsjson = data.fontesstampsjson || "[]";
+      try { this.fontesstamps = JSON.parse(this.fontesstampsjson || "[]") || []; } catch (e) { this.fontesstamps = []; }
+      this.processaFonte = (data.processaFonte === undefined) ? true : !!data.processaFonte;
+      this._processaFonteFromDB = (data.processaFonte !== undefined);
+      this.objectexpressaodblistagem = data.objectexpressaodblistagem || "";
+      this.transformconfigjson = data.transformconfigjson || "";
+      try { this.transformConfig = JSON.parse(this.transformconfigjson || "null") || null; } catch (e) { this.transformConfig = null; }
 
       var config = {}
       if (data.configjson) {
@@ -1308,17 +2519,8 @@
       this.objectoConfig = data.objectoConfig || {};
 
       if (this.tipo) {
-
-        var tiposObjecto = getTiposObjectoConfig();
-        var self = this;
-
-        var tipoObjecto = tiposObjecto.find(function (tipo) {
-          return tipo.tipo === self.tipo;
-        });
-
-        if (tipoObjecto) {
-          this.objectoConfig = tipoObjecto || {};
-        }
+        var tipoObjecto = __mdashLib.getMdashObjectTypeEntry(this.tipo);
+        if (tipoObjecto) this.objectoConfig = tipoObjecto;
       }
 
       var queryConfig = data.queryConfig || {
@@ -1360,116 +2562,154 @@
       this.queryconfigjson = queryConfig ? JSON.stringify(queryConfig) : JSON.stringify(queryConfigVoid);
     }
 
-    MdashContainerItemObject.prototype.renderObjectByContainerItem = async function (containerSelector, containerItem) {
-      var self = this;
+    // ── MDASH 2.0: Single source of truth for object rendering ─────────
+    //    Delegate to the lib's prototype method (REFACTOR.js) so editor and
+    //    viewer share the SAME algorithm. The local fallback below only kicks
+    //    in if the lib failed to load.
+    if (typeof window.MdashContainerItemObject === 'function'
+      && window.MdashContainerItemObject !== MdashContainerItemObject
+      && typeof window.MdashContainerItemObject.prototype.renderObjectByContainerItem === 'function') {
+      MdashContainerItemObject.prototype.renderObjectByContainerItem =
+        window.MdashContainerItemObject.prototype.renderObjectByContainerItem;
+    } else {
+      MdashContainerItemObject.prototype.renderObjectByContainerItem = async function (containerSelector, containerItem) {
+        var self = this;
+        var $host = $(containerSelector);
 
-      //  console.log("SELLLF", self); 
-      if (Object.keys(self.objectoConfig).length == 0 || containerItem.records.length == 0) {
-        $(containerSelector).append("<p style='font-size:18px!important;font-weight:bold;margin-top:7em' class='m-dash-item-text'>Sem registos</p>")
-        return;
-      }
+        // Resolve the renderer entry from the builder library (always look up
+        // fresh — the proxy from PetiteVue can lose function references).
+        var entry = __mdashLib.getMdashObjectTypeEntry(self.tipo);
 
+        if (!entry || typeof entry.renderObject !== 'function') {
+          // No renderer available — show a polite placeholder rather than crash
+          $host.html('<div class="mdash-state mdash-state--error">' +
+            '<i class="glyphicon glyphicon-warning-sign mdash-state__icon"></i>' +
+            '<span class="mdash-state__text">Tipo de objecto não suportado: ' + (self.tipo || '?') + '</span></div>');
+          return;
+        }
 
-      var mainRecords = [];
+        // Honour processaFonte from registry first, then DB-saved value
+        var processaFonte = (entry.processaFonte !== undefined) ? entry.processaFonte : self.processaFonte;
 
-
-
-
-      switch (self.tipoquery) {
-        case "item":
-
-          mainRecords = containerItem.records || [];
-          break;
-        case "object":
-
-
-          var requestData = {
-            codigo: globalThis.dashboardconfig.codigo,
-            mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
-            mdashcontaineritemobjectstamp: self.mdashcontaineritemobjectstamp,
-            tipoquery: self.tipoquery,
-            filters: globalThis.filterValues || {},
+        // ── Fetch records ──────────────────────────────────────────────────
+        var mainRecords = [];
+        try {
+          switch (self.tipoquery) {
+            case 'item':
+              mainRecords = containerItem.records || [];
+              break;
+            case 'object':
+              var requestData = {
+                codigo: globalThis.dashboardconfig.codigo,
+                mdashcontaineritemstamp: containerItem.mdashcontaineritemstamp,
+                mdashcontaineritemobjectstamp: self.mdashcontaineritemobjectstamp,
+                tipoquery: self.tipoquery,
+                filters: globalThis.filterValues || {}
+              };
+              var response = await $.ajax({
+                type: 'POST',
+                url: containerItem.urlfetch,
+                data: { '__EVENTARGUMENT': JSON.stringify([requestData]) }
+              });
+              if (response.cod != '0000') {
+                console.warn('[Mdash] objecto fetch falhou', response);
+                $host.html('<div class="mdash-state mdash-state--error">' +
+                  '<i class="glyphicon glyphicon-exclamation-sign mdash-state__icon"></i>' +
+                  '<span class="mdash-state__text">Erro ao trazer dados</span></div>');
+                return;
+              }
+              mainRecords = response.data || [];
+              break;
+            default:
+              mainRecords = containerItem.records || [];
           }
+        } catch (err) {
+          console.error('[Mdash] erro a obter dados do objecto', err);
+          $host.html('<div class="mdash-state mdash-state--error">' +
+            '<i class="glyphicon glyphicon-exclamation-sign mdash-state__icon"></i>' +
+            '<span class="mdash-state__text">Erro: ' + (err.message || 'desconhecido') + '</span></div>');
+          return;
+        }
 
-          var response = await $.ajax({
-            type: "POST",
-            url: containerItem.urlfetch,
-            data: {
-              '__EVENTARGUMENT': JSON.stringify([requestData]),
-            }
-          });
+        // ── Resolve effective dataset (transform → fonte → fallback records) ─
+        var resolved = __mdashLib.mdashResolveObjectData(self, mainRecords);
+        var effectiveData = resolved.data || [];
 
-
-          console.log("RESPONSE OBJECT", response)
-          if (response.cod != "0000") {
-            console.log("Erro ao trazer resultados para o objecto: ", response)
-            $(containerSelector).append(buildAlert("alert-danger", "Erro ao trazer resultados para o objecto: "));
-            return false
+        // Apply legacy alasql refinement when generatedSQL is configured
+        try {
+          if (self.queryConfig && self.queryConfig.generatedSQL && typeof alasql === 'function') {
+            var alasqlData = __mdashLib.replaceLocalDbKeywords(effectiveData);
+            effectiveData = alasql(self.queryConfig.generatedSQL, [alasqlData]) || [];
           }
-          mainRecords = response.data || [];
-          break;
+        } catch (e) {
+          console.warn('[Mdash] alasql refine falhou', e);
+        }
 
+        var hasData = effectiveData && effectiveData.length > 0;
 
-        default:
-          throw new Error("Tipo de query não suportado: " + self.tipoquery);
-      }
-
-
-      var alasqlData = replaceLocalDbKeywords(mainRecords);
-
-      var localQueryResult = alasql(self.queryConfig.generatedSQL, [alasqlData]);
-      var contentRecords = localQueryResult;
-
-
-
-      switch (self.categoria) {
-
-        case "editor":
-          self.objectoConfig.renderObject({
-            containerSelector: containerSelector,
-            itemObject: self,
-            queryConfig: self.queryConfig,
-            config: self.config,
-            containerItem: containerItem,
-            data: localQueryResult || [],
-          });
-
-          break;
-
-        case "detail":
-          var tipoObjecto = self.tipoobjectodetalhes;
-          var tipoObjecto = getTiposObjectoConfig().find(function (tipo) {
-            return tipo.tipo === tipoObjecto;
-          });
-
-          if (tipoObjecto) {
-            tipoObjecto.renderObject({
-              containerSelector: containerSelector,
-              itemObject: self,
-              queryConfig: self.queryConfig,
-              config: self.config,
-              containerItem: containerItem,
-              data: localQueryResult || [],
-            });
-          }
-
-          break;
-        case "custom":
-          console.log("EXECUTING EXPRESSAOOBJECTO", self.expressaoobjecto)
-          if (self.expressaoobjecto) {
+        // Empty state when this object DOES depend on data and there is none
+        if (!hasData && processaFonte !== false) {
+          if (typeof entry.getSampleData === 'function') {
+            // Render with sample data so user sees a structural preview
             try {
-              eval(self.expressaoobjecto);
-            } catch (error) {
-              console.error("Erro ao executar expressão do objeto:", error);
-              // alertify.error("Erro ao executar expressão do objeto. Verifique o console para mais detalhes.", 4000);
-            }
+              entry.renderObject({
+                containerSelector: containerSelector,
+                itemObject: self,
+                queryConfig: self.queryConfig,
+                config: self.config,
+                transformConfig: self.transformConfig,
+                containerItem: containerItem,
+                data: entry.getSampleData(),
+                isSample: true
+              });
+              return;
+            } catch (e) { console.warn('[Mdash] sample render falhou', e); }
           }
-          break;
+          $host.html('<div class="mdash-state">' +
+            '<i class="glyphicon glyphicon-inbox mdash-state__icon"></i>' +
+            '<span class="mdash-state__text">Sem registos</span></div>');
+          return;
+        }
 
-        default:
-          break;
-      }
-    }
+        // ── Dispatch by category ───────────────────────────────────────────
+        try {
+          switch (self.categoria) {
+            case 'editor':
+            case 'detail':
+              var renderEntry = entry;
+              if (self.categoria === 'detail' && self.tipoobjectodetalhes) {
+                var detailEntry = __mdashLib.getMdashObjectTypeEntry(self.tipoobjectodetalhes);
+                if (detailEntry) renderEntry = detailEntry;
+              }
+              renderEntry.renderObject({
+                containerSelector: containerSelector,
+                itemObject: self,
+                queryConfig: self.queryConfig,
+                config: self.config,
+                transformConfig: self.transformConfig,
+                containerItem: containerItem,
+                data: effectiveData,
+                isSample: !!resolved.isSample
+              });
+              break;
+            case 'custom':
+              if (self.expressaoobjecto) {
+                try { eval(self.expressaoobjecto); } catch (error) {
+                  console.error('[Mdash] expressaoobjecto falhou', error);
+                }
+              }
+              break;
+            default:
+              break;
+          }
+        } catch (err) {
+          console.error('[Mdash] renderObject falhou', err);
+          $host.html('<div class="mdash-state mdash-state--error">' +
+            '<i class="glyphicon glyphicon-warning-sign mdash-state__icon"></i>' +
+            '<span class="mdash-state__text">Erro a renderizar ' + (self.tipo || 'objecto') + '</span></div>');
+        }
+      };
+    } // end fallback else
   }
 
   var GMainDashInstance = new Mdash({
@@ -1539,6 +2779,8 @@
 
     var state = PetiteVue.reactive({
       mdash: GMainDashInstance,
+      activeTabStamp: "",
+      collapsedContainers: {},
       initFlatpickr,
       initDomObjects() {
         var self = this;
@@ -1547,7 +2789,7 @@
       initUI() {
 
         setTimeout(() => {
-          
+
           $(".mon-grupo-header").on("click", function () {
             var grupoId = $(this).attr("data-grupo-id");
             $(this).find("i").toggleClass("glyphicon-chevron-down");
@@ -1665,10 +2907,216 @@
         // Agrupa em rows
         return groupItemsByRows(containerItems);
       },
+      // ── MDASH 2.0: TABS RUNTIME ─────────────────────────────────────────
+      tabsEnabled() {
+        var d = this.mdash && this.mdash.dashboardconfig;
+        return !!(d && d.activarMultiSeparadores);
+      },
+      getSortedTabs() {
+        var tabs = (this.mdash && this.mdash.tabs) ? this.mdash.tabs : [];
+        return tabs.filter(function (t) { return !t.inactivo; })
+          .slice()
+          .sort(function (a, b) { return (a.ordem || 0) - (b.ordem || 0); });
+      },
+      isTabActive(tab) {
+        return tab && tab.mdashtabstamp === this.activeTabStamp;
+      },
+      _readTabConfig(tab) {
+        if (!tab) return {};
+        try { return JSON.parse(tab.configjson || '{}') || {}; } catch (e) { return {}; }
+      },
+      _resolveTabColor(phcType) {
+        if (typeof phcType === 'string' && phcType.charAt(0) === '#') return phcType;
+        if (typeof phcType === 'string' && (phcType.indexOf('rgb') === 0 || phcType.indexOf('hsl') === 0)) return phcType;
+        return __mdashLib.getColorByType(phcType || 'primary');
+      },
+      _getTabContrastColor(hex) {
+        try {
+          var c = (hex || '').charAt(0) === '#' ? hex.substring(1) : (hex || '');
+          if (c.length === 3) c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+          var r = parseInt(c.substring(0, 2), 16);
+          var g = parseInt(c.substring(2, 4), 16);
+          var b = parseInt(c.substring(4, 6), 16);
+          var lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+          return lum > 0.62 ? '#0f172a' : '#ffffff';
+        } catch (e) {
+          return '#0f172a';
+        }
+      },
+      getTabStyle(tab) {
+        // Prefer editor runtime when available to keep parity.
+        try {
+          if (typeof GMDashTabsRuntime !== 'undefined' && GMDashTabsRuntime
+            && typeof GMDashTabsRuntime.getTabStyle === 'function') {
+            return GMDashTabsRuntime.getTabStyle(tab);
+          }
+        } catch (e) { /* swallow */ }
+
+        // Fallback: replicate REFACTOR.js tab style resolution from configjson.
+        var cfg = this._readTabConfig(tab);
+        var bgType = cfg.cor || 'primary';
+        var iconType = cfg.corIcone || bgType;
+        var textType = cfg.corTexto || 'default';
+        var bg = this._resolveTabColor(bgType);
+        var icon = this._resolveTabColor(iconType);
+        var text = (textType && textType !== 'default')
+          ? this._resolveTabColor(textType)
+          : this._getTabContrastColor(bg);
+        var style = '--mdash-tab-accent:' + bg + ';--mdash-tab-icon:' + icon + ';--mdash-tab-text:' + text + ';';
+        if (cfg.fontFamily) style += '--mdash-tab-font:' + cfg.fontFamily + ';';
+        return style;
+      },
+      getItemClasses(item) {
+        var base = ['m-dash-render-area'];
+        if (item.layoutmode !== 'manual') {
+          base.push('gr-col-md-' + item.tamanho, 'gr-col-sm-' + item.tamanho, 'gr-col-lg-' + item.tamanho);
+        } else {
+          base.push('m-dash-item-host');
+        }
+        return base;
+      },
+      isContainerCollapsed(container) {
+        if (!container) return false;
+        return !!this.collapsedContainers[container.mdashcontainerstamp];
+      },
+      toggleContainer(container) {
+        if (!container) return;
+        var key = container.mdashcontainerstamp;
+        var next = !this.collapsedContainers[key];
+        // PetiteVue reactivity needs a fresh object reference for nested keys
+        var clone = Object.assign({}, this.collapsedContainers);
+        clone[key] = next;
+        this.collapsedContainers = clone;
+        // Persist user preference
+        try {
+          var codigo = (this.mdash && this.mdash.dashboardconfig && this.mdash.dashboardconfig.codigo) || '';
+          window.localStorage.setItem('mdashCollapsed_' + codigo, JSON.stringify(this.collapsedContainers));
+        } catch (e) { /* ignore */ }
+      },
+      getItemGridStyle(item) {
+        if (item.layoutmode !== 'manual') return 'height:100%';
+        var s = 'height:100%;';
+        if (item.gridrow) s += 'grid-row:' + item.gridrow + ';';
+        if (item.gridcolstart) s += 'grid-column-start:' + item.gridcolstart + ';';
+        if (item.gridcolspan) s += 'grid-column-end: span ' + item.gridcolspan + ';';
+        if (item.gridrowspan) s += 'grid-row-end: span ' + item.gridrowspan + ';';
+        return s;
+      },
+      getVisibleContainers() {
+        var all = (this.mdash && this.mdash.containers) ? this.mdash.containers : [];
+        if (!this.tabsEnabled()) return all;
+        var active = this.activeTabStamp;
+        if (!active) return [];
+        return all.filter(function (c) {
+          // Containers without tab assignment fall through when no tabs exist;
+          // when tabs are enabled they are only shown if their stamp matches.
+          return (c.mdashtabstamp || "") === active;
+        });
+      },
+      getVisibleFilters() {
+        var all = (this.mdash && this.mdash.filters) ? this.mdash.filters : [];
+        if (!this.tabsEnabled()) return all;
+        var active = this.activeTabStamp;
+        return all.filter(function (f) {
+          var scope = (f.escopo || 'global');
+          if (scope === 'global') return true;
+          return (f.mdashtabstamp || "") === active;
+        });
+      },
+      selectTab(tabStamp) {
+        if (!tabStamp || tabStamp === this.activeTabStamp) return;
+        this.activeTabStamp = tabStamp;
+        // Persist on dashboardconfig for next loads (local cache only)
+        try {
+          if (this.mdash && this.mdash.dashboardconfig) {
+            this.mdash.dashboardconfig.activeTabStamp = tabStamp;
+          }
+          if (window.appState) window.appState.activeTabStamp = tabStamp;
+          window.localStorage.setItem("mdashActiveTab_" + (this.mdash.dashboardconfig.codigo || ''), tabStamp);
+        } catch (e) { /* ignore */ }
+        // Defer until DOM swap done, then refresh visible items
+        var self = this;
+        setTimeout(function () { self._refreshVisibleItems(); }, 30);
+      },
+      _getFonteDependentItemMap() {
+        var map = {};
+        setTimeout(function () {
+          self._refreshVisibleItems();
+          scheduleMdashSidebarHeightSync();
+        }, 30);
+        objects.forEach(function (obj) {
+          var hasMainFonte = !!(obj && obj.fontestamp && String(obj.fontestamp).trim().length > 0);
+          var hasMultiFontes = false;
+          if (Array.isArray(obj.fontesstamps) && obj.fontesstamps.length > 0) {
+            hasMultiFontes = true;
+          } else if (obj && obj.fontesstampsjson) {
+            try {
+              var parsed = JSON.parse(obj.fontesstampsjson || '[]') || [];
+              hasMultiFontes = Array.isArray(parsed) && parsed.length > 0;
+            } catch (e) { /* ignore */ }
+          }
+          var dependsOnFonte = (hasMainFonte || hasMultiFontes) && obj.processaFonte !== false;
+          if (dependsOnFonte && obj.mdashcontaineritemstamp) {
+            map[obj.mdashcontaineritemstamp] = true;
+          }
+        });
+        return map;
+      },
+      _refreshItemsByStampMap(stampMap) {
+        this.mdash.containerItems.forEach(function (item) {
+          if (!stampMap || stampMap[item.mdashcontainerstamp]) {
+            try { item.refreshContent(); } catch (e) { /* ignore */ }
+          }
+        });
+      },
+      _refreshVisibleItems() {
+        var self = this;
+        var visible = this.getVisibleContainers();
+        var stamps = {};
+        visible.forEach(function (c) { stamps[c.mdashcontainerstamp] = true; });
+        // Render visible items immediately (no blocking).
+        self._refreshItemsByStampMap(stamps);
+        scheduleMdashSidebarHeightSync();
+
+        // Re-execute fontes in background, then refresh only items that depend on fontes.
+        var fontesToRun = (this.mdash.fontes || []).filter(function (f) {
+          return f && (f.refreshmode === 'onfilterchange' || f.refreshmode === 'onload');
+        });
+        var dependentObjects = this._getFonteDependentItemMap();
+        loadAllFontes(fontesToRun).then(function () {
+          var dependentVisibleStamps = {};
+          self.mdash.containerItems.forEach(function (item) {
+            if (stamps[item.mdashcontainerstamp] && dependentObjects[item.mdashcontaineritemstamp]) {
+              dependentVisibleStamps[item.mdashcontainerstamp] = true;
+            }
+          });
+          self._refreshItemsByStampMap(dependentVisibleStamps);
+          scheduleMdashSidebarHeightSync();
+        });
+      },
       refreshDashboard() {
         console.log("Refreshing Dashboard.....");
-        this.mdash.containerItems.forEach(function (containerItem) {
-          containerItem.refreshContent();
+        if (this.tabsEnabled()) {
+          this._refreshVisibleItems();
+          return;
+        }
+        var self = this;
+        // Render all items immediately first.
+        self._refreshItemsByStampMap(null);
+        scheduleMdashSidebarHeightSync();
+
+        // Then re-render only fonte-dependent items when fontes finish.
+        var dependentObjects = this._getFonteDependentItemMap();
+        var fontesToRun = (this.mdash.fontes || []).filter(function (f) {
+          return f && (f.refreshmode === 'onfilterchange' || f.refreshmode === 'onload');
+        });
+        loadAllFontes(fontesToRun).then(function () {
+          self.mdash.containerItems.forEach(function (containerItem) {
+            if (dependentObjects[containerItem.mdashcontaineritemstamp]) {
+              try { containerItem.refreshContent(); } catch (e) { /* ignore */ }
+            }
+          });
+          scheduleMdashSidebarHeightSync();
         });
       },
 
@@ -1734,20 +3182,82 @@
     });
 
     window.mdashAppState = state;
+    window.addEventListener('resize', scheduleMdashSidebarHeightSync);
 
     PetiteVue.createApp(state).mount("#mdash");
 
     handleMdashConfigData().then(function (data) {
       if (GConfigDash) {
+        var st = window.mdashAppState;
+        var tabsOn = st && st.mdash && st.mdash.dashboardconfig && st.mdash.dashboardconfig.activarMultiSeparadores;
+        var visibleStamps = null;
+        if (tabsOn) {
+          var active = st.activeTabStamp || "";
+          visibleStamps = {};
+          (st.mdash.containers || []).forEach(function (c) {
+            if ((c.mdashtabstamp || "") === active) visibleStamps[c.mdashcontainerstamp] = true;
+          });
+        }
+        // Render first visible items immediately (without waiting for fontes).
         window.mdashAppState.mdash.containerItems.forEach(function (item) {
           try {
+            if (visibleStamps && !visibleStamps[item.mdashcontainerstamp]) return;
             item.refreshContent();
           } catch (error) {
           }
-        })
+        });
+        scheduleMdashSidebarHeightSync();
+
+        // Then refresh only fonte-dependent items after fontes are available.
+        var dependentObjects = {};
+        (window.mdashAppState.mdash.containerItemObjects || []).forEach(function (obj) {
+          var hasMainFonte = !!(obj && obj.fontestamp && String(obj.fontestamp).trim().length > 0);
+          var hasMultiFontes = false;
+          if (Array.isArray(obj.fontesstamps) && obj.fontesstamps.length > 0) {
+            hasMultiFontes = true;
+          } else if (obj && obj.fontesstampsjson) {
+            try {
+              var parsed = JSON.parse(obj.fontesstampsjson || '[]') || [];
+              hasMultiFontes = Array.isArray(parsed) && parsed.length > 0;
+            } catch (e) { /* ignore */ }
+          }
+          var dependsOnFonte = (hasMainFonte || hasMultiFontes) && obj.processaFonte !== false;
+          if (dependsOnFonte && obj.mdashcontaineritemstamp) {
+            dependentObjects[obj.mdashcontaineritemstamp] = true;
+          }
+        });
+
+        loadAllFontes(st.mdash.fontes || []).then(function () {
+          window.mdashAppState.mdash.containerItems.forEach(function (item) {
+            try {
+              if (visibleStamps && !visibleStamps[item.mdashcontainerstamp]) return;
+              if (!dependentObjects[item.mdashcontaineritemstamp]) return;
+              item.refreshContent();
+            } catch (error) {
+            }
+          });
+          scheduleMdashSidebarHeightSync();
+        });
       }
     })
   });
+
+  // Execute every MDashFonte sequentially (in parallel) and resolve once all
+  // have settled — success or error. Fontes whose .execute() throws or whose
+  // class is not the lib's MDashFonte simply resolve as no-ops so the UI never
+  // gets blocked by a faulty source.
+  function loadAllFontes(fontes) {
+    if (!Array.isArray(fontes) || fontes.length === 0) return Promise.resolve();
+    var jobs = fontes.map(function (fonte) {
+      return new Promise(function (resolve) {
+        if (!fonte || typeof fonte.execute !== 'function') return resolve();
+        try {
+          fonte.execute({ filters: (window.mdashAppState && window.mdashAppState.mdash && window.mdashAppState.mdash.filterValues) || {} }, function () { resolve(); });
+        } catch (e) { console.warn('[Mdash] fonte.execute falhou', fonte && fonte.codigo, e); resolve(); }
+      });
+    });
+    return Promise.all(jobs);
+  }
 
   async function handleMdashConfigData() {
     try {
@@ -1812,11 +3322,52 @@
 
       window.mdashAppState.mdash = configData;
 
+      // ── MDASH 2.0: Expose appState shim so GMDashTabsRuntime (from builder
+      //    library) can resolve tab styles, sorted tabs, visible containers, etc.
+      try {
+        window.appState = window.appState || {};
+        window.appState.tabs = configData.tabs || [];
+        window.appState.containers = configData.containers || [];
+        window.appState.containerItems = configData.containerItems || [];
+        window.appState.containerItemObjects = configData.containerItemObjects || [];
+        window.appState.fontes = configData.fontes || [];
+        window.appState.dashboardConfig = configData.dashboardconfig;
+        window.appState.dashboardSettings = configData.dashboardconfig.settings || {};
+        // Mirror to globals consumed by builder-side helpers
+        if (typeof GMDashTabs !== 'undefined') { window.GMDashTabs = configData.tabs || []; }
+        if (typeof GMDashFontes !== 'undefined') { window.GMDashFontes = configData.fontes || []; }
+        if (typeof GMDashConfig !== 'undefined') { window.GMDashConfig = [configData.dashboardconfig]; }
+
+        // Resolve initial active tab (priority: localStorage > settings.activeTabStamp > first tab)
+        var sortedTabs = (configData.tabs || []).filter(function (t) { return !t.inactivo; })
+          .slice().sort(function (a, b) { return (a.ordem || 0) - (b.ordem || 0); });
+        var activeStamp = "";
+        try {
+          activeStamp = window.localStorage.getItem("mdashActiveTab_" + dashboardconfig.codigo) || "";
+        } catch (e) { activeStamp = ""; }
+        if (!activeStamp) activeStamp = configData.dashboardconfig.activeTabStamp || "";
+        var exists = sortedTabs.some(function (t) { return t.mdashtabstamp === activeStamp; });
+        if (!exists && sortedTabs.length) activeStamp = sortedTabs[0].mdashtabstamp;
+        window.mdashAppState.activeTabStamp = activeStamp || "";
+        window.appState.activeTabStamp = activeStamp || "";
+
+        // Restore persisted container collapsed state
+        try {
+          var rawCollapsed = window.localStorage.getItem('mdashCollapsed_' + dashboardconfig.codigo);
+          if (rawCollapsed) {
+            window.mdashAppState.collapsedContainers = JSON.parse(rawCollapsed) || {};
+          }
+        } catch (e) { /* ignore */ }
+      } catch (err) {
+        console.warn('[Mdash 2.0] tabs runtime init falhou', err);
+      }
+
       setTimeout(function () {
         // $("[data-language]").datepicker()
       }, 1000)
 
       GConfigDash = configData;
+  scheduleMdashSidebarHeightSync();
 
       // console.log("configData", configData)
 

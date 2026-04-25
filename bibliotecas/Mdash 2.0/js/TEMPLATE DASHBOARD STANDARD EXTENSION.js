@@ -6737,6 +6737,12 @@ function getDefaultLayoutDefinitions() {
 // ── Legacy generate* removidas — renderização agora via renderUnifiedLayout() ──
 
 function MDashCard(data) {
+    var baseCardStyles = [
+        'border-radius:16px',
+        'border:1px solid #f1f5f9',
+        'box-shadow:0 1px 2px rgba(0, 0, 0, 0.05)'
+    ].join(';') + ';';
+
     this.title = data.title || "";
     this.id = data.id || ""
     this.tipo = data.tipo || "primary";
@@ -6744,7 +6750,7 @@ function MDashCard(data) {
     this.icon = data.icon || "";
     this.customData = data.customData || {};
     this.classes = data.classes || "";
-    this.styles = data.styles || "";
+    this.styles = baseCardStyles + (data.styles || "");
     this.footer = data.footer || "";
     this.header = data.header || "";
     this.headerClasses = data.headerClasses || "";
