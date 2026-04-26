@@ -43,6 +43,42 @@ function mdashInferSqlType(value) {
     return 'TEXT';
 }
 
+function mdashNormalizeFiltersForSqlTokens(filters) {
+    var src = (filters && typeof filters === 'object') ? filters : {};
+    var out = {};
+
+    var isIsoDateLike = function (value) {
+        return /^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?$/.test(value);
+    };
+
+    Object.keys(src).forEach(function (k) {
+        var v = src[k];
+
+        if (typeof v !== 'string') {
+            out[k] = v;
+            return;
+        }
+
+        var trimmed = v.trim();
+
+        // Keep explicit SQL literals untouched (already quoted by the user).
+        if (/^'.*'$/.test(trimmed)) {
+            out[k] = trimmed;
+            return;
+        }
+
+        // Backend token replacement is textual; date-like values must be quoted.
+        if (isIsoDateLike(trimmed)) {
+            out[k] = "'" + trimmed.replace(/'/g, "''") + "'";
+            return;
+        }
+
+        out[k] = v;
+    });
+
+    return out;
+}
+
 // Converte resultado bruto de db.exec() para array de objectos
 function mdashSqlResultToObjects(result) {
     if (!result || !result.length) return [];
@@ -234,6 +270,8 @@ MdashExecutorRegistry.register({
     execute: function (fonte, context, callback) {
         var url = fonte.urlfetch || '../programs/gensel.aspx?cscript=getdbcontaineritemdata';
         var dashConfig = (typeof GMDashConfig !== 'undefined' && GMDashConfig.length > 0) ? GMDashConfig[0] : {};
+        var rawFilters = (context || {}).filters || {};
+        var filters = mdashNormalizeFiltersForSqlTokens(rawFilters);
 
         var requestData = {
             codigo: dashConfig.codigo || '',
@@ -241,7 +279,7 @@ MdashExecutorRegistry.register({
             mdashcontaineritemstamp: '',
             mdashcontaineritemobjectstamp: '',
             tipoquery: 'fonte',
-            filters: (context || {}).filters || {}
+            filters: filters
         };
 
         $.ajax({

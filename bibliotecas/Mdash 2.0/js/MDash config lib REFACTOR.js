@@ -3406,7 +3406,6 @@ function initModernDashboardUI() {
     mainHtml += '                  <div class="mdash-sidebar-item-content" @click="editFilter(filter.mdashfilterstamp)">';
     mainHtml += '                    <i :class="getFilterTypeIcon(filter.tipo)"></i>';
     mainHtml += '                    <span>{{ filter.descricao || filter.codigo || \'Sem nome\' }}</span>';
-    mainHtml += '                    <small class="mdash-filter-scope-badge">{{ (filter.escopo || \'global\') === \'global\' ? \'Global\' : \'Tab\' }}</small>';
     mainHtml += '                  </div>';
     mainHtml += '                  <div class="mdash-sidebar-item-actions">';
     mainHtml += '                    <button type="button" @click.stop="deleteFilter(filter.mdashfilterstamp)" class="btn btn-xs mdash-btn-delete">';
@@ -3748,13 +3747,8 @@ function initModernDashboardUI() {
             },
 
             visibleFilters: function () {
-                var all = window.appState.filters || [];
-                if (!GMDashTabsRuntime || !GMDashTabsRuntime.isEnabled()) return all;
-                var active = window.appState.activeTabStamp || '';
-                return all.filter(function (f) {
-                    var scope = f.escopo || 'global';
-                    if (scope === 'global') return true;
-                    return (f.mdashtabstamp || '') === active;
+                return (window.appState.filters || []).slice().sort(function (a, b) {
+                    return (a.ordem || 0) - (b.ordem || 0);
                 });
             },
 
@@ -8173,6 +8167,7 @@ function openFilterEditModal(filter) {
         // Div (Editor de código)
         else if (isDiv) {
             formHtml += '    <div id="' + obj.campo + '" ';
+            formHtml += '         data-field="' + obj.campo + '" ';
             formHtml += '         class="' + fieldClasses + '" ';
             formHtml += '         style="' + (obj.style || 'width: 100%; height: 200px;') + '">';
             formHtml += currentValue;
@@ -8219,7 +8214,7 @@ function openFilterEditModal(filter) {
     $('body').append(modalHtml);
 
     // Inicializa PetiteVue para reatividade
-    PetiteVue.createApp({
+    var filterModalVm = {
         mdashFilterItem: filter,
 
         handleChangeFilter: function () {
@@ -8234,17 +8229,53 @@ function openFilterEditModal(filter) {
 
         changeDivContent: function (campo) {
             // Atualiza o conteúdo do editor ACE
-            var editor = ace.edit(campo);
-            this.mdashFilterItem[campo] = editor.getValue();
+            var nextValue = '';
+            try {
+                if (typeof ace !== 'undefined' && ace.edit) {
+                    nextValue = ace.edit(campo).getValue();
+                } else {
+                    nextValue = $('#' + campo).text();
+                }
+            } catch (e) {
+                nextValue = $('#' + campo).text();
+            }
+            this.mdashFilterItem[campo] = nextValue;
             this.handleChangeFilter();
         }
-    }).mount('#mdash-filter-edit-modal');
+    };
+
+    window.__mdashFilterModalVm = filterModalVm;
+
+    PetiteVue.createApp(filterModalVm).mount('#mdash-filter-edit-modal');
 
     $('#mdash-filter-edit-modal').modal('show');
 
     // Inicializa editores de código ACE após o modal estar visível
     $('#mdash-filter-edit-modal').on('shown.bs.modal', function () {
         handleCodeEditor();
+
+        // Bind robust real-time sync from ACE (does not rely on DOM keyup bubbling).
+        $('#mdash-filter-edit-modal .m-editor').each(function () {
+            var editorId = this.id;
+            var fieldName = $(this).attr('data-field') || editorId;
+            if (!editorId || !fieldName || typeof ace === 'undefined' || !ace.edit) return;
+
+            var aceEd = ace.edit(editorId);
+            if (!aceEd || !aceEd.session) return;
+
+            var syncTimer = null;
+            aceEd.session.on('change', function () {
+                if (syncTimer) clearTimeout(syncTimer);
+                syncTimer = setTimeout(function () {
+                    if (!window.__mdashFilterModalVm || !window.__mdashFilterModalVm.mdashFilterItem) return;
+                    window.__mdashFilterModalVm.mdashFilterItem[fieldName] = aceEd.getValue();
+                    window.__mdashFilterModalVm.handleChangeFilter();
+                }, 260);
+            });
+        });
+    }).on('hidden.bs.modal', function () {
+        window.__mdashFilterModalVm = null;
+        $(this).remove();
     });
 }
 
@@ -8266,6 +8297,28 @@ function onEventoChangeToggle() {
  * Guarda as alterações do filtro (chamado pelo botão Guardar)
  */
 function saveFilterFromModal() {
+    if (window.__mdashFilterModalVm && window.__mdashFilterModalVm.mdashFilterItem) {
+        $('#mdash-filter-edit-modal .m-editor').each(function () {
+            var editorId = this.id;
+            var fieldName = $(this).attr('data-field') || editorId;
+            if (!fieldName) return;
+
+            var val = '';
+            try {
+                if (typeof ace !== 'undefined' && ace.edit && editorId) {
+                    val = ace.edit(editorId).getValue();
+                } else {
+                    val = $(this).text();
+                }
+            } catch (e) {
+                val = $(this).text();
+            }
+            window.__mdashFilterModalVm.mdashFilterItem[fieldName] = val;
+        });
+
+        window.__mdashFilterModalVm.handleChangeFilter();
+    }
+
     // Fecha modal
     $('#mdash-filter-edit-modal').modal('hide');
 
