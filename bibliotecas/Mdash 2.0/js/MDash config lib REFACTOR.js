@@ -2085,6 +2085,38 @@ function buildMDashConfigData(options) {
     return configData;
 }
 
+function openDashboardPreview() {
+    var mdashConfig = (window.appState && window.appState.dashboardConfig)
+        ? window.appState.dashboardConfig
+        : (GMDashConfig[0] || {});
+    var codigo = mdashConfig.codigo || "";
+    if (!codigo) {
+        if (typeof alertify !== "undefined") alertify.error("Defina o Código do dashboard antes de pré-visualizar.", 6000);
+        else alert("Defina o Código do dashboard antes de pré-visualizar.");
+        return;
+    }
+    var url = "../programs/ewpview.aspx?codigo=mdash&codigomdash=" + encodeURIComponent(codigo);
+
+    if (document.getElementById("mdash-preview-overlay")) return; // já aberto
+
+    var overlay = document.createElement("div");
+    overlay.id = "mdash-preview-overlay";
+    overlay.className = "mdash-preview-overlay";
+
+    var bar = document.createElement("div");
+    bar.className = "mdash-preview-overlay-bar";
+    bar.innerHTML = '<span><i class="glyphicon glyphicon-eye-open" style="margin-right:6px"></i>Pré-visualização — ' + codigo + '</span>'
+        + '<button onclick="document.getElementById(\'mdash-preview-overlay\').remove()"><i class="glyphicon glyphicon-remove" style="margin-right:4px"></i>Fechar</button>';
+
+    var iframe = document.createElement("iframe");
+    iframe.src = url;
+    iframe.allow = "fullscreen";
+
+    overlay.appendChild(bar);
+    overlay.appendChild(iframe);
+    document.body.appendChild(overlay);
+}
+
 function exportarConfiguracaoMDashboard() {
     try {
         var configData = buildMDashConfigData({ includeHeader: true });
@@ -3274,6 +3306,7 @@ function initModernDashboardUI() {
     mainHtml += '  <div class="mdash-top-toolbar-actions">';
     mainHtml += '    <button type="button" onclick="actualizarConfiguracaoMDashboard()" class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-floppy-disk"></i> Guardar</button>';
     mainHtml += '    <button type="button" onclick="exportarConfiguracaoMDashboard()" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-download-alt"></i> Exportar</button>';
+    mainHtml += '    <button type="button" onclick="openDashboardPreview()" class="btn btn-success btn-sm mdash-preview-btn"><i class="glyphicon glyphicon-eye-open"></i> Pré-visualizar</button>';
     mainHtml += '  </div>';
     mainHtml += '</div>';
     mainHtml += '<div class="mdash-modern-layout" v-scope @vue:mounted="onMounted">';
@@ -3495,7 +3528,7 @@ function initModernDashboardUI() {
     mainHtml += '            <input type="checkbox" :checked="$computed.isMultiTabsEnabled()" @change="toggleMultiTabs($event)" />';
     mainHtml += '            <span>Multi separadores</span>';
     mainHtml += '          </label>';
-    mainHtml += '          <button type="button"  class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-eye-open"></i> Pré visualizar</button>';
+  //  mainHtml += '          <button type="button"  class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-eye-open"></i> Pré visualizar</button>';
    /* mainHtml += '          <button type="button" @click="addNewFilter" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-filter"></i> Novo Filtro</button>';
     mainHtml += '          <button type="button" @click="addNewFonte" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-oil"></i> Nova Fonte</button>';*/
     mainHtml += '        </div>';
@@ -8444,6 +8477,14 @@ function loadModernDashboardStyles() {
     styles += ".mdash-top-toolbar-brand { color: #fff; font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; letter-spacing: 0.2px; }";
     styles += ".mdash-top-toolbar-brand i { color: #fff; opacity: 0.95; }";
     styles += ".mdash-top-toolbar-actions { display: flex; align-items: center; gap: 8px; }";
+    styles += ".mdash-preview-btn { background: #22c55e !important; border-color: #16a34a !important; color: #fff !important; font-weight: 600; }";
+    styles += ".mdash-preview-btn:hover { background: #16a34a !important; border-color: #15803d !important; }";
+    styles += ".mdash-preview-overlay { position: fixed; inset: 0; z-index: 99999; background: #000; display: flex; flex-direction: column; }";
+    styles += ".mdash-preview-overlay-bar { background: #101828; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.12); }";
+    styles += ".mdash-preview-overlay-bar span { font-size: 14px; font-weight: 600; opacity: 0.9; }";
+    styles += ".mdash-preview-overlay-bar button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px; padding: 4px 14px; cursor: pointer; font-size: 14px; }";
+    styles += ".mdash-preview-overlay-bar button:hover { background: rgba(255,255,255,0.2); }";
+    styles += ".mdash-preview-overlay iframe { flex: 1; width: 100%; border: none; }";
 
     // ===== MAIN LAYOUT =====
     styles += ".mdash-modern-layout { display: flex; flex: 1; overflow: hidden; gap: 8px; padding: 8px; }";

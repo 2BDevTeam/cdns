@@ -5077,20 +5077,60 @@ function getTiposObjectoConfig() {
 
 var _TEXT_SAMPLE_CONFIG = {
     dataField: '', staticText: 'Texto personalizado aqui...',
-    dataFormat: { type: 'text', locale: 'pt-PT', currency: 'EUR', currencyPosition: 'right', minimumFractionDigits: 0, maximumFractionDigits: 2, prefix: '', suffix: '' },
+    dataFormat: { type: 'text', locale: 'pt-PT', currency: 'EUR', currencyPosition: 'right', decimalSeparator: 'locale', minimumFractionDigits: 0, maximumFractionDigits: 2, prefix: '', suffix: '' },
     content: { htmlEnabled: false, multipleValues: false, separator: ', ' },
-    textFormat: { fontSize: 16, fontWeight: 'bold', fontStyle: 'normal', fontFamily: 'Nunito, sans-serif', textAlign: 'center', lineHeight: 1.5 },
-    colors: { textColor: '#333333', backgroundColor: 'transparent', borderColor: 'transparent' },
+    textFormat: { fontSize: 18, fontWeight: 'bold', fontStyle: 'normal', fontFamily: 'Nunito, sans-serif', textAlign: 'center', lineHeight: 1.5 },
+    colors: { textColor: '#6d7c91', backgroundColor: 'transparent', borderColor: 'transparent' },
     spacing: { paddingTop: 10, paddingRight: 10, paddingBottom: 10, paddingLeft: 10, marginTop: 0, marginBottom: 0 },
     border: { width: 0, style: 'solid', radius: 0 },
     effects: { textShadow: false, shadowColor: '#666666', shadowBlur: 2, shadowOffsetX: 1, shadowOffsetY: 1 },
     dimensions: { width: '100%', height: 'auto', maxWidth: 'none' }
 };
 
+function _txtDeepMerge(target, source) {
+    if (!source || typeof source !== 'object') return target;
+    Object.keys(source).forEach(function (key) {
+        var srcVal = source[key];
+        if (Array.isArray(srcVal)) {
+            target[key] = srcVal.slice();
+            return;
+        }
+        if (srcVal && typeof srcVal === 'object') {
+            var base = (target[key] && typeof target[key] === 'object' && !Array.isArray(target[key])) ? target[key] : {};
+            target[key] = _txtDeepMerge(base, srcVal);
+            return;
+        }
+        if (srcVal !== undefined) target[key] = srcVal;
+    });
+    return target;
+}
+
+function _txtNormalizeConfig(rawCfg) {
+    var base = JSON.parse(JSON.stringify(_TEXT_SAMPLE_CONFIG));
+    if (!rawCfg || typeof rawCfg !== 'object') return base;
+
+    // Compatibilidade com configs antigas que guardavam separador fora de content
+    if (typeof rawCfg.separator === 'string' && rawCfg.separator.length >= 0) {
+        base.content.separator = rawCfg.separator;
+    }
+    if (rawCfg.content && typeof rawCfg.content.separador === 'string' && rawCfg.content.separador.length >= 0) {
+        base.content.separator = rawCfg.content.separador;
+    }
+
+    return _txtDeepMerge(base, rawCfg);
+}
+
+function _txtGetSeparator(cfg) {
+    if (!cfg || typeof cfg !== 'object') return ', ';
+    if (cfg.content && typeof cfg.content.separator === 'string') return cfg.content.separator;
+    if (cfg.content && typeof cfg.content.separador === 'string') return cfg.content.separador;
+    if (typeof cfg.separator === 'string') return cfg.separator;
+    return ', ';
+}
+
 function renderObjectTexto(dados) {
     var stamp = dados.itemObject.mdashcontaineritemobjectstamp;
-    var cfg = dados.config ? JSON.parse(JSON.stringify(dados.config))
-        : JSON.parse(JSON.stringify(_TEXT_SAMPLE_CONFIG));
+    var cfg = _txtNormalizeConfig(dados.config);
     var isSample = !!dados.isSample;
 
     var rows = dados.data || [];
@@ -5121,7 +5161,7 @@ function renderObjectTexto(dados) {
             var values = rows.map(function (item) {
                 return formatDataValue(item[cfg.dataField], cfg.dataFormat);
             });
-            content = values.join((cfg.content && cfg.content.separator) || ', ');
+            content = values.join(_txtGetSeparator(cfg));
         } else {
             content = formatDataValue(rows[0][cfg.dataField], cfg.dataFormat);
         }
@@ -5150,14 +5190,14 @@ function renderObjectTexto(dados) {
 function _txtBuildStyles(cfg) {
     var s = '';
     var tf = cfg.textFormat || {};
-    s += 'font-size:' + (tf.fontSize || 16) + 'px;';
-    s += 'font-weight:' + (tf.fontWeight || 'normal') + ';';
+    s += 'font-size:' + (tf.fontSize || 18) + 'px;';
+    s += 'font-weight:' + (tf.fontWeight || 'bold') + ';';
     s += 'font-style:' + (tf.fontStyle || 'normal') + ';';
-    s += 'font-family:' + (tf.fontFamily || 'Arial') + ';';
+    s += 'font-family:' + (tf.fontFamily || 'Nunito, sans-serif') + ';';
     s += 'text-align:' + (tf.textAlign || 'left') + ';';
     s += 'line-height:' + (tf.lineHeight || 1.5) + ';';
     var cl = cfg.colors || {};
-    s += 'color:' + (cl.textColor || '#333333') + ';';
+    s += 'color:' + (cl.textColor || '#6d7c91') + ';';
     if (cl.backgroundColor && cl.backgroundColor !== 'transparent') s += 'background-color:' + cl.backgroundColor + ';';
     var sp = cfg.spacing || {};
     s += 'padding:' + (sp.paddingTop || 0) + 'px ' + (sp.paddingRight || 0) + 'px ' + (sp.paddingBottom || 0) + 'px ' + (sp.paddingLeft || 0) + 'px;';
@@ -5176,8 +5216,7 @@ function _txtBuildStyles(cfg) {
 
 function renderTextPropertiesInline(obj, panel) {
     var stamp = obj.mdashcontaineritemobjectstamp;
-    var cfg = obj.config ? JSON.parse(JSON.stringify(obj.config))
-        : JSON.parse(JSON.stringify(_TEXT_SAMPLE_CONFIG));
+    var cfg = _txtNormalizeConfig(obj.config);
     var fontes = _mciGetFontes(obj);
     var fields = _mciGetFields(obj);
     var isSample = !obj.fontestamp;
@@ -5217,7 +5256,7 @@ function renderTextPropertiesInline(obj, panel) {
         + _mciChk('mtxt-html', 'Permitir HTML', ct.htmlEnabled)
         + '</div>'
         + '<div class="mcbi-field"><label>Separador</label>'
-        + '<input type="text" class="mtxt-sep form-control input-sm" value="' + _mciEsc(ct.separator || ', ') + '" style="width:80px;"></div>';
+        + '<input type="text" class="mtxt-sep form-control input-sm" value="' + _mciEsc(_txtGetSeparator(cfg)) + '" style="width:80px;"></div>';
 
     // Formatação de dados
     var df = cfg.dataFormat || {};
@@ -5241,6 +5280,11 @@ function renderTextPropertiesInline(obj, panel) {
         + '<div class="mcbi-field"><label>Max. decimais</label>'
         + '<input type="number" class="mtxt-maxdec form-control input-sm" value="' + (df.maximumFractionDigits || 2) + '" min="0" max="20"></div>'
         + '</div>'
+        + '<div class="mcbi-field"><label>Separador decimal</label>'
+        + '<select class="mtxt-decsep form-control input-sm">'
+        + [['locale', 'Do locale'], [',', 'Vírgula (,)'], ['.', 'Ponto (.)']].map(function (o) {
+            return '<option value="' + o[0] + '"' + ((df.decimalSeparator || 'locale') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+        }).join('') + '</select></div>'
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Prefixo</label>'
         + '<input type="text" class="mtxt-prefix form-control input-sm" value="' + _mciEsc(df.prefix || '') + '"></div>'
@@ -5250,8 +5294,8 @@ function renderTextPropertiesInline(obj, panel) {
 
     // Tipografia
     var tx = cfg.textFormat || {};
-    var sTipo = '<div class="mcbi-field"><label>Tamanho: <strong class="mtxt-fs-lbl">' + (tx.fontSize || 16) + '</strong> px</label>'
-        + '<input type="range" class="mtxt-fontsize mcbi-height" min="8" max="72" step="1" value="' + (tx.fontSize || 16) + '"></div>'
+    var sTipo = '<div class="mcbi-field"><label>Tamanho: <strong class="mtxt-fs-lbl">' + (tx.fontSize || 18) + '</strong> px</label>'
+        + '<input type="range" class="mtxt-fontsize mcbi-height" min="8" max="72" step="1" value="' + (tx.fontSize || 18) + '"></div>'
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Família</label>'
         + '<select class="mtxt-family form-control input-sm">'
@@ -5283,7 +5327,7 @@ function renderTextPropertiesInline(obj, panel) {
     var cl = cfg.colors || {};
     var sCores = '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Cor do texto</label>'
-        + '<input type="color" class="mtxt-textcolor" value="' + (cl.textColor || '#333333') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
+        + '<input type="color" class="mtxt-textcolor" value="' + (cl.textColor || '#6d7c91') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
         + '<div class="mcbi-field"><label>Cor de fundo</label>'
         + '<input type="color" class="mtxt-bgcolor" value="' + (cl.backgroundColor && cl.backgroundColor !== 'transparent' ? cl.backgroundColor : '#ffffff') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;">'
         + ' ' + _mciChk('mtxt-bgtransp', 'Transparente', cl.backgroundColor === 'transparent') + '</div>'
@@ -5539,7 +5583,10 @@ function renderTextPropertiesInline(obj, panel) {
 }
 
 function _txtReadConfig(panel, obj) {
-    var cfg = obj.config ? JSON.parse(JSON.stringify(obj.config)) : {};
+    var cfg = _txtNormalizeConfig(obj.config);
+    var separatorValue = panel.find('.mtxt-sep').val();
+    if (separatorValue === undefined || separatorValue === null) separatorValue = ', ';
+    separatorValue = String(separatorValue);
 
     cfg.dataField = panel.find('.mtxt-datafield').val() || '';
     cfg.staticText = panel.find('.mtxt-static').val() || '';
@@ -5547,14 +5594,17 @@ function _txtReadConfig(panel, obj) {
     cfg.content = {
         multipleValues: panel.find('.mtxt-multi').is(':checked'),
         htmlEnabled: panel.find('.mtxt-html').is(':checked'),
-        separator: panel.find('.mtxt-sep').val() || ', '
+        separator: separatorValue
     };
+    // Compatibilidade com serializações antigas
+    cfg.separator = separatorValue;
 
     cfg.dataFormat = {
         type: panel.find('.mtxt-fmttype').val() || 'text',
         locale: panel.find('.mtxt-locale').val() || 'pt-PT',
         currency: panel.find('.mtxt-currency').val() || 'EUR',
         currencyPosition: 'right',
+        decimalSeparator: panel.find('.mtxt-decsep').val() || 'locale',
         minimumFractionDigits: parseInt(panel.find('.mtxt-mindec').val()) || 0,
         maximumFractionDigits: parseInt(panel.find('.mtxt-maxdec').val()) || 2,
         prefix: panel.find('.mtxt-prefix').val() || '',
@@ -5563,7 +5613,7 @@ function _txtReadConfig(panel, obj) {
 
     var align = panel.find('.mtxt-align.is-on').data('align') || 'center';
     cfg.textFormat = {
-        fontSize: parseInt(panel.find('.mtxt-fontsize').val()) || 16,
+        fontSize: parseInt(panel.find('.mtxt-fontsize').val()) || 18,
         fontFamily: panel.find('.mtxt-family').val() || 'Nunito, sans-serif',
         fontWeight: panel.find('.mtxt-weight').val() || 'bold',
         fontStyle: panel.find('.mtxt-style').val() || 'normal',
@@ -5574,7 +5624,7 @@ function _txtReadConfig(panel, obj) {
     var bgTransp = panel.find('.mtxt-bgtransp').is(':checked');
     var borderTransp = panel.find('.mtxt-bordertransp').is(':checked');
     cfg.colors = {
-        textColor: panel.find('.mtxt-textcolor').val() || '#333333',
+        textColor: panel.find('.mtxt-textcolor').val() || '#6d7c91',
         backgroundColor: bgTransp ? 'transparent' : (panel.find('.mtxt-bgcolor').val() || '#ffffff'),
         borderColor: borderTransp ? 'transparent' : (panel.find('.mtxt-bordercolor').val() || '#cccccc')
     };
@@ -5634,6 +5684,7 @@ function createDynamicSchemaTexto(data) {
                     locale: { type: "string", title: "Localização", 'enum': ["pt-PT", "pt-BR", "en-US", "en-GB", "fr-FR", "de-DE", "es-ES"], 'default': "pt-PT" },
                     currency: { type: "string", title: "Código da Moeda", 'default': "EUR" },
                     currencyPosition: { type: "string", title: "Posição da Moeda", 'enum': ["left", "right"], 'default': "right" },
+                    decimalSeparator: { type: "string", title: "Separador Decimal", 'enum': ["locale", ",", "."], 'default': "locale" },
                     minimumFractionDigits: { type: "integer", title: "Mínimo de Casas Decimais", 'default': 0, minimum: 0, maximum: 20 },
                     maximumFractionDigits: { type: "integer", title: "Máximo de Casas Decimais", 'default': 2, minimum: 0, maximum: 20 },
                     prefix: { type: "string", title: "Prefixo", 'default': "" },
@@ -5651,7 +5702,7 @@ function createDynamicSchemaTexto(data) {
             textFormat: {
                 type: "object", title: "Formatação do Texto",
                 properties: {
-                    fontSize: { type: "integer", title: "Tamanho da Fonte (px)", 'default': 16, minimum: 8, maximum: 72 },
+                    fontSize: { type: "integer", title: "Tamanho da Fonte (px)", 'default': 18, minimum: 8, maximum: 72 },
                     fontWeight: { type: "string", title: "Peso da Fonte", 'enum': ["normal", "bold", "lighter", "bolder", "100", "200", "300", "400", "500", "600", "700", "800", "900"], 'default': "bold" },
                     fontStyle: { type: "string", title: "Estilo da Fonte", 'enum': ["normal", "italic", "oblique"], 'default': "normal" },
                     fontFamily: { type: "string", title: "Família da Fonte", 'enum': ["Arial", "Nunito, sans-serif", "Helvetica", "Times New Roman", "Georgia", "Verdana", "Courier New", "Comic Sans MS", "Impact", "Trebuchet MS", "Arial Black"], 'default': "Nunito, sans-serif" },
@@ -5662,7 +5713,7 @@ function createDynamicSchemaTexto(data) {
             colors: {
                 type: "object", title: "Cores",
                 properties: {
-                    textColor: { type: "string", title: "Cor do Texto", format: "color", 'default': "#333333" },
+                    textColor: { type: "string", title: "Cor do Texto", format: "color", 'default': "#6d7c91" },
                     backgroundColor: { type: "string", title: "Cor de Fundo", format: "color", 'default': "#fff" },
                     borderColor: { type: "string", title: "Cor da Borda", format: "color", 'default': "transparent" }
                 }
@@ -5722,7 +5773,7 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
             var values = data.map(function (item) {
                 return formatDataValue(item[config.dataField], config.dataFormat);
             });
-            content = values.join(config.content.separator || ", ");
+            content = values.join(_txtGetSeparator(config));
         } else {
             // Primeiro valor apenas
             var rawValue = data[0][config.dataField];
@@ -5737,15 +5788,15 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
     // Construir estilos CSS
     var styles = "";
     if (config.textFormat) {
-        styles += "font-size: " + (config.textFormat.fontSize || 16) + "px;";
-        styles += "font-weight: " + (config.textFormat.fontWeight || "normal") + ";";
+        styles += "font-size: " + (config.textFormat.fontSize || 18) + "px;";
+        styles += "font-weight: " + (config.textFormat.fontWeight || "bold") + ";";
         styles += "font-style: " + (config.textFormat.fontStyle || "normal") + ";";
-        styles += "font-family: " + (config.textFormat.fontFamily || "Arial") + ";";
+        styles += "font-family: " + (config.textFormat.fontFamily || "Nunito, sans-serif") + ";";
         styles += "text-align: " + (config.textFormat.textAlign || "left") + ";";
         styles += "line-height: " + (config.textFormat.lineHeight || 1.5) + ";";
     }
     if (config.colors) {
-        styles += "color: " + (config.colors.textColor || "#333333") + ";";
+        styles += "color: " + (config.colors.textColor || "#6d7c91") + ";";
         if (config.colors.backgroundColor !== "transparent") {
             styles += "background-color: " + config.colors.backgroundColor + ";";
         }
@@ -5801,6 +5852,34 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
 function formatDataValue(value, formatConfig) {
     if ((!formatConfig || !value) && (formatConfig.type != "currency" && formatConfig.type != "number")) return value;
     var formattedValue = value;
+
+    function applyDecimalSeparator(val, cfg) {
+        if (!cfg) return val;
+        var desiredSep = cfg.decimalSeparator;
+        if (desiredSep !== ',' && desiredSep !== '.') return val;
+
+        var str = String(val);
+        var maxDec = parseInt(cfg.maximumFractionDigits, 10);
+        if (isNaN(maxDec) || maxDec <= 0) return str;
+
+        var lastDot = str.lastIndexOf('.');
+        var lastComma = str.lastIndexOf(',');
+        var idx = Math.max(lastDot, lastComma);
+        if (idx <= 0 || idx >= str.length - 1) return str;
+
+        if (!/\d/.test(str.charAt(idx - 1))) return str;
+
+        var j = idx + 1;
+        var decDigits = 0;
+        while (j < str.length && /\d/.test(str.charAt(j))) {
+            decDigits++;
+            j++;
+        }
+
+        if (decDigits === 0 || decDigits > maxDec) return str;
+        return str.substring(0, idx) + desiredSep + str.substring(idx + 1);
+    }
+
     try {
         switch (formatConfig.type) {
             case "number":
@@ -5810,6 +5889,7 @@ function formatDataValue(value, formatConfig) {
                         minimumFractionDigits: formatConfig.minimumFractionDigits || 0,
                         maximumFractionDigits: formatConfig.maximumFractionDigits || 2
                     }).format(num);
+                    formattedValue = applyDecimalSeparator(formattedValue, formatConfig);
                 }
                 break;
             case "currency":
@@ -5823,6 +5903,7 @@ function formatDataValue(value, formatConfig) {
                         maximumFractionDigits: formatConfig.maximumFractionDigits || 2,
                         currencyDisplay: 'symbol'
                     }).format(num);
+                    formattedValue = applyDecimalSeparator(formattedValue, formatConfig);
                     // Mover símbolo da moeda para a direita
                     if (formatConfig.currencyPosition === 'right') {
                         var parts = formattedValue.match(/^([^\d]*)([\d\s.,]+)([^\d]*)$/);
@@ -5842,6 +5923,7 @@ function formatDataValue(value, formatConfig) {
                         minimumFractionDigits: formatConfig.minimumFractionDigits || 0,
                         maximumFractionDigits: formatConfig.maximumFractionDigits || 2
                     }).format(num / 100);
+                    formattedValue = applyDecimalSeparator(formattedValue, formatConfig);
                 }
                 break;
             case "date":
