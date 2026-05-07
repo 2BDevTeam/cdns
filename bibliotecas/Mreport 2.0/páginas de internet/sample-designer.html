@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<!--
+    Mreport 2.0 - Sample / Standalone designer page
+    ================================================
+    Página exemplo (fora do PHC) para desenvolvimento local. Carrega CDNs +
+    biblioteca local com mock de DataLayer (sem chamadas AJAX reais).
+
+    Para usar dentro do PHC: este HTML não é necessário; ver Eventos/MREPORT-IMPORTAR SCRIPT.vb
+-->
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Mreport 2.0 - Sample Designer</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.4/jsoneditor.min.css">
+<link rel="stylesheet" href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css">
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/alasql/4.1.10/alasql.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.4/jsoneditor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/alertify.js/1.0.12/alertify.min.js"></script>
+
+<style>
+    body{margin:0;background:#eef1f6;font-family:Inter,sans-serif}
+    header.toolbar{background:#1a1f2e;color:#fff;padding:8px 16px;display:flex;align-items:center;gap:12px}
+    header.toolbar h1{font-size:14px;margin:0;font-weight:600}
+    header.toolbar button{background:#3b82f6;color:#fff;border:0;border-radius:4px;padding:6px 12px;cursor:pointer}
+    .mreport-editor-wrapper{padding:12px}
+</style>
+</head>
+<body>
+
+<header class="toolbar">
+    <h1>Mreport 2.0 — Sample Designer</h1>
+    <button id="btnGravarRelatorio"><i class="fa fa-save"></i> Gravar</button>
+    <button id="btnReset"><i class="fa fa-undo"></i> Reset</button>
+    <span style="margin-left:auto;opacity:.6">scaffolding preview</span>
+</header>
+
+<!-- Mock DataLayer ANTES da lib real -->
+<script>
+window.__MREPORT_MOCK = {
+    config: { mreportstamp:"DEMO123", descricao:"Relatório Demo", activarmultiseparadores:0, orientacao:"P", pagesize:"A4" },
+    tabs: [],
+    layouts: [],
+    sections: [
+        { mreportsectionstamp:"sec_h", codigo:"header",  descricao:"Cabeçalho", tipo:"header",  ordem:0, layoutmode:"absolute", height:80 },
+        { mreportsectionstamp:"sec_c", codigo:"content", descricao:"Conteúdo",  tipo:"content", ordem:1, layoutmode:"absolute", height:380 },
+        { mreportsectionstamp:"sec_f", codigo:"footer",  descricao:"Rodapé",    tipo:"footer",  ordem:2, layoutmode:"absolute", height:60 }
+    ],
+    objects: [
+        { mreportobjectstamp:"obj1", mreportstamp:"DEMO123", mreportsectionstamp:"sec_h", section:"header",
+          tipo:"texto", descricao:"Título do Relatório", layoutmode:"absolute",
+          x:20,y:10,width:400,height:30, ordem:0, configjson:'{"text":"Relatório de Demonstração","fontSize":18}' }
+    ],
+    objectDetails: [], valoresDinamicos: [], filters: [], fontes: []
+};
+</script>
+
+<!-- Lib real -->
+<script src="../js/Local DB Operations.js"></script>
+<script src="../js/MREPORT DATA LAYER.js"></script>
+<script src="../js/TEMPLATE MREPORT STANDARD EXTENSION.js"></script>
+<script src="../js/MREPORT CONFIG LIB.js"></script>
+<script src="../js/MREPORT RENDERER.js"></script>
+
+<!-- Override DataLayer com mock -->
+<script>
+(function(){
+    var orig = window.MReportDataLayer.fetchConfig;
+    window.MReportDataLayer.fetchConfig = function(stamp){
+        return Promise.resolve(window.__MREPORT_MOCK);
+    };
+    window.MReportDataLayer.syncReal = function(){ return Promise.resolve({cod:"0000"}); };
+    window.MReportDataLayer.commitFinal = function(){ return Promise.resolve({cod:"0000"}); };
+})();
+</script>
+
+<div id="mreport-designer-root" class="mreport-editor-wrapper"></div>
+
+<script>
+$(function () {
+    window.MReportLib.init("DEMO123", {
+        mode: "edit",
+        container: document.getElementById("mreport-designer-root")
+    });
+    $("#btnGravarRelatorio").on("click", function () {
+        window.MReportLib.commit().then(function () { alertify.success("Gravado (mock)"); });
+    });
+    $("#btnReset").on("click", function () { location.reload(); });
+});
+</script>
+
+</body>
+</html>

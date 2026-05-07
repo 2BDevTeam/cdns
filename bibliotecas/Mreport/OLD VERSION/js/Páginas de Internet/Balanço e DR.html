@@ -1,0 +1,1598 @@
+<head>
+    <meta charset="UTF-8" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alasql/4.1.10/alasql.min.js"
+        integrity="sha512-Igz7esT29XvklQE5s9lKkzY/xN5OmbsWYzXml2AE7hEYyAxxIgbQ0NXvyqt4S9VrWHA0lRUKkhLgc62QO3vkoQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        .print-table td {
+            padding: 3px !important
+        }
+
+        table {
+            border-collapse: collapse;
+            font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif !important;
+        }
+
+        .page {
+            page-break-after: always;
+        }
+
+        .page:last-child {
+            page-break-after: auto !important;
+        }
+
+        .report-table-2b {
+            text-align: left;
+            width: 100vw;
+            max-width: 880px;
+            margin: 10px auto;
+            padding: 10px;
+            border: 2px solid #d0d0d5;
+        }
+
+        .black {
+            height: 1px;
+            background-color: black;
+            border: none;
+        }
+
+        .blue {
+            height: 3px;
+            background-color: #043e75;
+            border: none;
+        }
+
+        .custom-margin-bottom-15 {
+            margin-bottom: -15px;
+        }
+
+        .custom-margin-bottom-20 {
+            margin-bottom: -20px;
+        }
+
+        .custom-margin-bottom-30 {
+            margin-bottom: -55px;
+        }
+
+        .custom-margin-top-20 {
+            margin-top: -15px;
+        }
+
+        .data:nth-of-type(4n + 3) {
+            background-color: #e9f1ff;
+        }
+
+        /* Use nth-child first, explain it doesn't work, switch to nth-of-type */
+        .data:nth-of-type(4n + 1) {
+            background-color: #e9f1ff;
+        }
+
+        .custom-margin-top-bottom {
+            margin-top: -20px;
+            margin-bottom: -20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="filtersContainer" class="">
+
+        <div style="margin-bottom: 2em;" class="row">
+            <div class="col-md-6">
+                <span style="font-size: 14px;" class='control-label  '>Report:</span>
+                <select class="form-control filterreportfield" id="relatorioSelect"></select>
+            </div>
+
+        </div>
+        <div class="row">
+            <div class="col-md-3">
+                <span style="font-size: 14px;" class='control-label  '>Devise:</span>
+                <select class="form-control filterreportfield" id="moedasSelect"></select>
+            </div>
+
+            <div class="col-md-3">
+                <span style="font-size: 14px;" class='control-label  '>Année:</span>
+                <select class="form-control filterreportfield" id="anoSelect"></select>
+            </div>
+            <div class="col-md-3 ">
+                <span style="font-size: 14px;" class='control-label  '>Date de début:</span>
+                <input data-language="pt" class="form-control input-sm filterreportfield" id="dataInicio">
+            </div>
+
+            <div class="col-md-3 ">
+                <span style="font-size: 14px;" class='control-label  '>Date de fin:</span>
+                <input data-language="pt" class="form-control input-sm filterreportfield" id="dataFim">
+            </div>
+
+            <div class="col-md-6 ">
+                <span style="font-size: 14px;" class='control-label  '>Compte de début:</span>
+                <input value="3" class="form-control input-sm filterreportfield" id="contaInicio">
+            </div>
+
+            <div class="col-md-6 ">
+                <span style="font-size: 14px;" class='control-label  '>Compte de fin:</span>
+                <input value="5" class="form-control input-sm filterreportfield" id="contaFim">
+            </div>
+
+        </div>
+    </div>
+    <div class="header-print-section">
+        <div style="justify-content: space-between;align-items: center;" class="d-flex">
+
+            <div style="height: 36px;width: 100px;"></div>
+            <h4 id='titulonota' style="font-weight: bold;text-align: center;margin-top:2.4em;color: white;"></h4>
+            <h4 style="font-weight: bold;text-align: right;margin-top:2.4em;color: white;"><span>Empresa:</span><span
+                    id="nomeempresa"></span></h4>
+        </div>
+
+    </div>
+
+    <div style="display:none" id="paginationContainer"></div>
+    <div id="kpiContainer" class="row table-print-container">
+    </div>
+
+    <div style="border-top: 1px solid black;" class="footer-print-section">
+
+        <div style="justify-content: space-between;align-items: center;" class="d-flex">
+            <div style="display: flex;margin-top: 0.4em;">
+                <p style="font-size: 10px;">PHC Software</p>
+                <p style="font-size: 10px;margin-left: 0.3em;" class="text-left">Powered by 2Business, SA
+                </p>
+
+            </div>
+            <p style="font-size: 10px;" id='assinatura' class="text-left">Printed by: Denilson Sibinde on 28/02/2023</p>
+            <p class="page-number" style="text-align: right;font-size: 10px;">1</p>
+        </div>
+
+    </div>
+
+</body>
+
+</html>
+
+<script>
+    var anoval = ""
+    var dataInicio = ""
+    var dataFim = ""
+    var moeda = ""
+    var contaInicio = "3";
+    var contaFim = "5";
+    var relatorio = ""
+    var periodoanterior = ""
+    var periodo = ""
+    var anoanteriorval = ""
+    var linha = ""
+    var filtros = ""
+    var filtrosRelatorio = ""
+    var configuracaoLinha;
+    var configuracaoModelo
+    var grupos = []
+    var gruposRelatorio = []
+    var dadosLinhas = []
+    var dadosColunas = []
+    var confRelatorio = []
+    var referencedGroups = []
+    var GdadosRelatorio = {}
+
+    var variaveiPublicas = [
+        {
+            original: "{{moeda}}",
+            preenchida: "moeda"
+        },
+        {
+            original: "{{anoval}}",
+            preenchida: "anoval"
+        },
+        {
+            original: "{{anoanteriorval}}",
+            preenchida: "anoanteriorval"
+        },
+        {
+            original: "{{dataInicio}}",
+            preenchida: "dataInicio"
+        },
+        {
+            original: "{{dataFim}}",
+            preenchida: "dataFim"
+        },
+        {
+            original: "{{contaInicio}}",
+            preenchida: "contaInicio"
+        },
+        {
+            original: "{{contaFim}}",
+            preenchida: "contaFim"
+        }
+    ]
+
+    async function getFilters() {
+        try {
+            mainSpinner("show")
+            $("#anoSelect").select2({
+                width: "100%",
+                allowClear: false
+            });
+
+            $("#relatorioSelect").select2({
+                width: "100%",
+                allowClear: false
+            });
+
+            var kpisIndicadoresBalanco = await getListaRelatorios()
+
+            if (kpisIndicadoresBalanco?.cod != "0000") {
+                console.log("Erro ao trazer lista de relatorios", kpisIndicadoresBalanco)
+                return false
+            }
+
+            var relatorios = kpisIndicadoresBalanco.data
+            var relatorioSelect = $("#relatorioSelect")
+
+            relatorios.forEach(function (relatorio) {
+                relatorioSelect.append("<option value='" + relatorio.codigo + "'>" + relatorio.descricao + "</option>")
+            })
+
+            var moedas = await getMoedas();
+
+            if (moedas?.cod != "0000") {
+                console.log("Erro ao trazer lista de moedas", moedas)
+                return false
+            }
+
+            var moedasSelect = $("#moedasSelect")
+            moeda = moedas?.data[0]?.moeda
+
+            moedas.data.forEach(function (moeda) {
+                moedasSelect.append("<option value='" + moeda.moeda + "'>" + moeda.moeda + "</option>")
+            })
+
+            var anos = await getAnos()
+
+            if (anos?.cod != "0000") {
+                console.log("Erro ao trazer lista de anos", anos)
+                return false
+            }
+
+            var anoSelect = $("#anoSelect")
+
+            anos.data.forEach(function (ano) {
+                anoSelect.append("<option value='" + ano.ano + "'>" + ano.ano + "</option>")
+            })
+
+            $("#anoSelect").select2({
+                width: "100%",
+                allowClear: false
+            });
+
+            $("#moedasSelect").select2({
+                width: "100%",
+                allowClear: false
+            });
+
+            $("#relatorioSelect").select2({
+                width: "100%",
+                allowClear: false
+            });
+
+            mainSpinner("hide")
+        } catch (error) {
+            console.log("Erro interno ao obter filtros", error)
+            alertify.error("Erro ao obter filtros", 8000)
+        }
+    }
+
+    async function getAnos() {
+        return $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=getAnos",
+        })
+    }
+
+    async function getMoedas() {
+        return $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=getmoedas",
+        })
+    }
+
+    async function getListaRelatorios() {
+        return $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=getkpibymodelo",
+            data: {
+                '__EVENTARGUMENT': JSON.stringify([{ modelo: "BALANCODR", categoria: "Consolidação" }]),
+            },
+        })
+    }
+
+    function buildFilters(filters) {
+        var filterResult = "AND 1=1"
+
+        filters.forEach(filter => {
+            filterResult += (["Todas", "Todos"].indexOf(filter?.filtervalue) >= 0 ? " AND 1=1 " : " AND " + filter.filterkey + "='" + filter.filtervalue + "' ")
+        })
+
+        return filterResult
+    }
+
+    function buildFiltersRelatorios(filters) {
+        var filterResult = "AND 1=1"
+
+        filters.forEach(filter => {
+            var filterkey = filter.filterkey
+            if (filter.filterkey == "cct") {
+                var selectedOption = $('#empresaSelect').find(':selected');
+                var dataNumero = selectedOption.data('numero');
+                filterkey = "noempresa"
+                filterResult += (["Todas", "Todos"].indexOf(filter?.filtervalue) >= 0 ? " AND 1=1 " : " AND " + filterkey + "='" + dataNumero + "' ")
+            }
+        })
+
+        return filterResult
+    }
+
+    function getFonteResultSync(variaveisFontePreenchida) {
+        var fonteResult;
+        $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=getfonteresult",
+            async: false,
+            data: {
+                '__EVENTARGUMENT': JSON.stringify(variaveisFontePreenchida),
+            },
+            success: function (response) {
+                fonteResult = response;
+            }
+        });
+        return fonteResult;
+    }
+
+    function getReportConfigByCodigo(relatorio) {
+        var dadosRelatorio = getDadosRelatorioSync(relatorio);
+        var configuracaoRelatorio = dadosRelatorio.data.dadosRelatorio[0];
+
+        if (dadosRelatorio.cod != "0000") {
+            throw new Error("Erro ao trazer dados do relatorio", response)
+            return false
+        }
+
+        var dadosListagem = getListagemSync(configuracaoRelatorio.syncstamp);
+
+        if (dadosListagem.cod != "0000") {
+            throw new Error("Erro ao trazer dados da listagem", dadosListagem)
+            return false
+        }
+
+        var colunas = _.uniqBy(dadosListagem.data, function (v) {
+            return [v.codigocoluna, v.u_colunarelstamp, v.u_colunarelstamp].join();
+        });
+
+        var linhas = _.uniqBy(dadosListagem.data, function (v) {
+            return [v.u_linhastamp, v.ordemlinha].join();
+        });
+
+        linhas.sort(function (a, b) {
+            return a.ordemlinha - b.ordemlinha
+        });
+
+        colunas.sort(function (a, b) {
+            return a.ordemcoluna - b.ordemcoluna
+        });
+
+        var variaveisFontePreenchida = []
+        var variaveisFonte = dadosRelatorio.data.variaveisFonte
+
+        variaveisFonte.forEach(function (variavelFonte) {
+            var variaveis = []
+            var fonte = variavelFonte.fonte
+            variaveis = variavelFonte.variaveis
+            var variaveisPreenchidas = []
+
+            variaveis.forEach(function (dadosVariavel) {
+                variaveisPreenchidas.push({
+                    original: dadosVariavel.original,
+                    preenchida: eval(dadosVariavel.nome)
+                })
+            })
+
+            variaveiPublicas.forEach(function (variavelPublica) {
+                variaveisPreenchidas.push({
+                    original: variavelPublica.original,
+                    preenchida: eval(variavelPublica.preenchida)
+                })
+            })
+
+            variaveisFontePreenchida.push({
+                fonte: fonte,
+                variaveis: variaveisPreenchidas
+            })
+        })
+
+        var fonteResult = getFonteResultSync(variaveisFontePreenchida)
+
+        if (fonteResult.cod != "0000") {
+            throw new Error("Erro ao trazer dados da fonte de dados", fonteResult)
+        }
+
+        fonteResult.data = fonteResult.data.map(fr => {
+            dadosListagem.data.map(dl => {
+                dl.valor = dl.valor.replace(fr.fonte, fr.fonte + "_REF");
+                dl.valor1 = dl.valor1.replace(fr.fonte, fr.fonte + "_REF");
+                dl.valorcelula = dl.valorcelula.replace(fr.fonte, fr.fonte + "_REF");
+                return dl;
+            });
+
+            fr.fonte = fr.fonte + "_REF";
+            return fr;
+        });
+
+        buildLocalDatabaseTablesSync(fonteResult.data)
+
+        return {
+            configuracaoRelatorio: configuracaoRelatorio,
+            dadosListagem: dadosListagem.data,
+            grupos: dadosListagem.grupos,
+            colunas: colunas,
+            linhas: linhas
+        }
+    }
+
+    async function initRelatorio() {
+        try {
+            mainSpinner("show")
+
+            anoanteriorval = anoval - 1
+            var dadosRelatorio = await getDadosRelatorio(relatorio)
+
+            var configuracaoRelatorio = dadosRelatorio.data.dadosRelatorio[0]
+
+            if (dadosRelatorio.cod != "0000") {
+                generateSemResultadosAlert()
+                console.log("Erro ao trazer dados do relatorio", response)
+                mainSpinner("hide")
+                return false
+            }
+
+            var dadosModelo = []
+            var variaveisFontePreenchida = []
+            var variaveisFonte = dadosRelatorio.data.variaveisFonte
+
+            variaveisFonte.forEach(function (variavelFonte) {
+                var variaveis = []
+                var fonte = variavelFonte.fonte
+                variaveis = variavelFonte.variaveis
+                var variaveisPreenchidas = []
+
+                variaveis.forEach(function (dadosVariavel) {
+                    variaveisPreenchidas.push({
+                        original: dadosVariavel.original,
+                        preenchida: eval(dadosVariavel.nome)
+                    })
+                })
+
+                variaveiPublicas.forEach(function (variavelPublica) {
+                    variaveisPreenchidas.push({
+                        original: variavelPublica.original,
+                        preenchida: eval(variavelPublica.preenchida)
+                    })
+                })
+
+                variaveisFontePreenchida.push({
+                    fonte: fonte,
+                    variaveis: variaveisPreenchidas
+                })
+            })
+
+            var fonteResult = await getFonteResult(variaveisFontePreenchida)
+
+            if (fonteResult.cod != "0000") {
+                generateSemResultadosAlert()
+                console.log("Erro ao trazer dados da fonte de dados", fonteResult)
+                mainSpinner("hide")
+                return false
+            }
+
+            console.log("fonteResult.data", fonteResult.data)
+            await buildLocalDatabaseTables(fonteResult.data)
+
+            var dadosListagem = await getListagem(configuracaoRelatorio.syncstamp)
+
+            if (dadosListagem.cod != "0000") {
+                generateSemResultadosAlert()
+                console.log("Erro ao trazer dados da listagem", dadosListagem)
+                mainSpinner("hide")
+                return false
+            }
+
+            var modeloRelatorio = configuracaoRelatorio.modelo
+            configuracaoModelo = dadosListagem.data
+
+            switch (modeloRelatorio) {
+                case "BALANCODR":
+                    await buildModeloBalancoDR(configuracaoRelatorio, dadosListagem.data, dadosListagem.grupos);
+                    break;
+                default:
+                    break;
+            }
+
+            mainSpinner("hide")
+        } catch (error) {
+            mainSpinner("hide")
+            console.log("Erro interno ", error)
+        }
+    }
+
+    async function showSpinner() {
+        console.log("Spinner loading....")
+        return mainSpinner("show")
+    }
+
+    async function refreshFilters() {
+        anoval = $("#anoSelect").val();
+        relatorio = $("#relatorioSelect").val();
+
+        var filters = [{
+            filterkey: $("#labelEmpresa").data("filterkey"),
+            filtervalue: $("#empresaSelect").val()
+        }]
+
+        var filterResult = buildFilters(filters)
+        var filtersRelatoriosResult = buildFiltersRelatorios(filters);
+
+        filtros = filterResult
+        filtrosRelatorio = filtersRelatoriosResult
+    }
+
+    async function getUserData() {
+        return $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=getuserdata",
+        })
+    }
+
+    $(document).ready(function () {
+        showSpinner().then(result => {
+            getUserData().then(userData => {
+                if (userData?.cod != "0000") {
+                    console.log("Erro ao obter dados do utilizador", userData)
+                    alertify.error("Erro ao obter dados do utilizador", 8000)
+                    return false
+                }
+
+                var username = userData.data.username;
+                var assinatura = " Printed by: " + username + " on " + new Date().toLocaleDateString("pt-PT") + " " + new Date().toLocaleTimeString("pt-PT");
+                $("#assinatura").html(assinatura);
+
+                getFilters().then(result => {
+                    refreshReport();
+                }).catch(err => {
+                    console.log("ERR", err)
+                })
+            })
+        });
+
+        var currentYear = new Date().getFullYear();
+
+        function pad(n) { return n < 10 ? '0' + n : n; }
+
+        var inicioStr = currentYear + '-' + pad(1) + '-' + pad(1);
+        var fimStr = currentYear + '-' + pad(12) + '-' + pad(31);
+        $("#dataInicio").val(inicioStr);
+        $("#dataFim").val(fimStr);
+        dataInicio = inicioStr;
+        dataFim = fimStr;
+
+        $("#moedasSelect").off("change").on("change", function () {
+            moeda = $(this).val();
+        });
+
+        $("#contaInicio").off("change").on("change", function () {
+            contaInicio = $(this).val();
+        });
+
+        $("#contaFim").off("change").on("change", function () {
+            contaFim = $(this).val();
+        });
+
+        $("#dataInicio").off("change").on("change", function () {
+            dataInicio = $(this).val();
+        });
+
+        $("#dataFim").off("change").on("change", function () {
+            dataFim = $(this).val();
+        });
+
+        $("#anoSelect").off("change").on("change", function () {
+            var selectedYear = parseInt($(this).val(), 10);
+            if (isNaN(selectedYear)) return;
+
+            var inicioStr = selectedYear + '-' + pad(1) + '-' + pad(1);
+            var fimStr = selectedYear + '-' + pad(12) + '-' + pad(31);
+            dataInicio = inicioStr;
+            dataFim = fimStr;
+
+            $("#dataInicio").datepicker("destroy").datepicker({
+                dateFormat: "yyyy-mm-dd",
+                defaultDate: new Date(selectedYear, 0, 1),
+                minDate: new Date(selectedYear, 0, 1),
+                maxDate: new Date(selectedYear, 11, 31),
+                onSelect: function (dateText, date, inst) {
+                    dataInicio = dateText;
+                    const event = new Event('change', { bubbles: true });
+                    inst.el.dispatchEvent(event);
+                }
+            });
+
+            $("#dataFim").datepicker("destroy").datepicker({
+                dateFormat: "yyyy-mm-dd",
+                defaultDate: new Date(selectedYear, 11, 31),
+                minDate: new Date(selectedYear, 0, 1),
+                maxDate: new Date(selectedYear, 11, 31),
+                onSelect: function (dateText, date, inst) {
+                    dataFim = dateText;
+                    const event = new Event('change', { bubbles: true });
+                    inst.el.dispatchEvent(event);
+                }
+            });
+
+            $("#dataInicio").val(inicioStr);
+            $("#dataFim").val(fimStr);
+        });
+
+        $("#dataInicio").datepicker({
+            dateFormat: "yyyy-mm-dd",
+            defaultDate: new Date(currentYear, 0, 1),
+            minDate: new Date(currentYear, 0, 1),
+            maxDate: new Date(currentYear, 11, 31),
+            onSelect: function (dateText, date, inst) {
+                dataInicio = dateText;
+                const event = new Event('change', { bubbles: true });
+                inst.el.dispatchEvent(event);
+            }
+        });
+
+        $("#dataFim").datepicker({
+            dateFormat: "yyyy-mm-dd",
+            minDate: new Date(currentYear, 0, 1),
+            maxDate: new Date(currentYear, 11, 31),
+            onSelect: function (dateText, date, inst) {
+                dataFim = dateText;
+                const event = new Event('change', { bubbles: true });
+                inst.el.dispatchEvent(event);
+            }
+        })
+
+        $(document).off("change", ".filterreportfield").on("change", ".filterreportfield", function () {
+            refreshReport()
+        })
+
+        generateImpressaoButtons()
+        registerClickListenerImpressaoKPI()
+
+        function refreshReport() {
+            refreshFilters().then(data => {
+                initRelatorio().then(result => {
+                    mainSpinner("hide")
+                })
+            })
+        }
+    })
+
+    function buildLocalDatabaseTablesSync(data) {
+        if (!localDataBaseExists("relatorioDb")) {
+            alasql('CREATE DATABASE relatorioDb; USE relatorioDb;');
+        }
+        for (const fonte of data) {
+            var codigoFonte = fonte.fonte
+            if (localTableExists("relatorioDb", codigoFonte) == true) {
+                alasql(`DROP TABLE ${codigoFonte};`);
+            }
+
+            try {
+                alasql(`DROP TABLE ${codigoFonte};`);
+            } catch (error) { }
+
+            if (fonte.resultados.length > 0) {
+                var dadosSchema = fonte.resultados[0]
+                var resultados = fonte.resultados
+                const typeMap = {
+                    number: 'NUMERIC',
+                    string: 'VARCHAR(max)',
+                    boolean: "BIT",
+                };
+
+                const tableSchema = Object.entries(dadosSchema)
+                    .map(([key, value]) => `${key} ${typeMap[typeof value]}`)
+                    .join(', ');
+
+                if (localTableExists("relatorioDb", codigoFonte) != true) {
+                    const createTableQuery = `CREATE TABLE ${codigoFonte} (${tableSchema});`;
+                    alasql(createTableQuery);
+                }
+
+                const batchInsertData = [];
+                alasql.tables[codigoFonte].data = resultados;
+            }
+        }
+    }
+
+    async function buildLocalDatabaseTables(data) {
+        if (!localDataBaseExists("relatorioDb")) {
+            alasql('CREATE DATABASE relatorioDb; USE relatorioDb;');
+        }
+        for (const fonte of data) {
+            var codigoFonte = fonte.fonte
+            if (localTableExists("relatorioDb", codigoFonte) == true) {
+                alasql(`DROP TABLE ${codigoFonte};`);
+            }
+
+            try {
+                alasql(`DROP TABLE ${codigoFonte};`);
+            } catch (error) { }
+
+            if (fonte.resultados.length > 0) {
+                var dadosSchema = fonte.resultados[0]
+                var resultados = fonte.resultados
+                const typeMap = {
+                    number: 'NUMERIC',
+                    string: 'VARCHAR(max)',
+                    boolean: "BIT",
+                };
+
+                const tableSchema = Object.entries(dadosSchema)
+                    .map(([key, value]) => `${key} ${typeMap[typeof value]}`)
+                    .join(', ');
+
+                if (localTableExists("relatorioDb", codigoFonte) != true) {
+                    const createTableQuery = `CREATE TABLE ${codigoFonte} (${tableSchema});`;
+                    await alasql(createTableQuery);
+                }
+
+                const batchInsertData = [];
+                alasql.tables[codigoFonte].data = resultados;
+            }
+        }
+    }
+
+    function getListagemSync(syncstamp) {
+        var listagem;
+        $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=getlistagemrelatorio",
+            async: false,
+            data: {
+                '__EVENTARGUMENT': JSON.stringify([{ syncstamp: syncstamp }]),
+            },
+            success: function (response) {
+                listagem = response;
+            }
+        });
+        return listagem;
+    }
+
+    function getDadosRelatorioSync(relatorio) {
+        var dadosRelatorio;
+        $.ajax({
+            type: "POST",
+            async: false,
+            url: "../programs/gensel.aspx?cscript=getdadosrelatorio",
+            data: {
+                '__EVENTARGUMENT': JSON.stringify([{ relatorio: relatorio }]),
+            },
+            success: function (response) {
+                dadosRelatorio = response;
+            }
+        })
+        return dadosRelatorio;
+    }
+
+    var linhaToDebug = false;
+
+    function getReporReference(linhaColDesc, coluna, report) {
+        var result = getReportConfigByCodigo(report);
+
+        var celulaEncontrada = getCelulaReferencedByAnother(linhaColDesc, coluna, result.dadosListagem, result.colunas);
+
+        var celulaValue = getCelulaValue(celulaEncontrada);
+        var valorDinamico = getValorDinamicoCelula(celulaEncontrada, result.dadosListagem);
+
+        var celulaResult = 0;
+        var valorDinamicoResult = 0;
+
+        if (celulaValue.erro != true) {
+            celulaResult = Number(celulaValue.unformatted)
+        }
+
+        if (valorDinamico.erro != true) {
+            valorDinamicoResult = Number(valorDinamico.unformatted)
+        }
+
+        var valorFinal = (valorDinamicoResult + celulaResult).toFixed(2);
+
+        return valorFinal;
+    }
+
+    function buildModeloBalancoDR(dadosRelatorio, dadosModelo, gruposRel) {
+        confRelatorio = dadosModelo
+        var tableData = {
+            tableId: "dd",
+            classes: "table report-table-2b",
+            customData: "",
+            style: "",
+            header: {
+                rows: [],
+            },
+            body: {
+                customData: "",
+                rows: [
+                    {
+                        style: "",
+                        rowId: "",
+                        classes: "",
+                        customData: "",
+                        cols: [
+                            {
+                                style: "",
+                                colId: "",
+                                classes: "",
+                                content: "Data 1",
+                                customData: "",
+                            },
+                            {
+                                style: "",
+                                colId: "",
+                                classes: "",
+                                content: "Data 2",
+                                customData: "",
+                            },
+                        ],
+                    },
+                    {
+                        style: "",
+                        rowId: "",
+                        classes: "",
+                        customData: "",
+                        cols: [
+                            {
+                                style: "",
+                                colId: "",
+                                classes: "",
+                                content: "Data 3",
+                                customData: "",
+                            },
+                            {
+                                style: "",
+                                colId: "",
+                                classes: "",
+                                content: "Data 4",
+                                customData: "",
+                            },
+                        ],
+                    },
+                ],
+            },
+        };
+
+        var tipoListagem = dadosRelatorio.tipolistagem
+        gruposRelatorio = gruposRel;
+        GdadosRelatorio = dadosRelatorio;
+
+        tableData.tableId = "impressaoTable"
+        tableData.classes = "table report-table-2b  "
+
+        tableData.body.rows = []
+        tableData.header.rows = []
+
+        var colunas = _.uniqBy(dadosModelo, function (v) {
+            return [v.codigocoluna, v.u_colunarelstamp, v.u_colunarelstamp].join();
+        });
+
+        var linhas = _.uniqBy(dadosModelo, function (v) {
+            return [v.u_linhastamp, v.ordemlinha].join();
+        });
+
+        linhas.sort(function (a, b) {
+            return a.ordemlinha - b.ordemlinha
+        });
+
+        colunas.sort(function (a, b) {
+            return a.ordemcoluna - b.ordemcoluna
+        });
+
+        dadosLinhas = []
+        dadosColunas = []
+        dadosLinhas = linhas
+        dadosColunas = colunas
+
+        var rowHeaderRelatorio = {
+            rowId: "",
+            customData: "",
+            cols: []
+        }
+
+        var r = 0
+
+        tableData.header.rows.push({
+            rowId: "",
+            customData: "",
+            cols: [{
+                style: "color:#033076!important;text-align:left;font-weight:bold;font-size:19px;border-bottom:0px solid #033076!important;",
+                colId: "",
+                classses: "",
+                content: "<img style='margin-left:-1em' src='../pimages/demo_logomaisritmop.png' alt='Logo' height='46' width='100' /><br><p>" + $("#relatorioSelect option:selected").text() + "</p>",
+                customData: "",
+            }]
+        })
+
+        var index = 0;
+        colunas.forEach(function (coluna) {
+            var colunaId = coluna.u_colunarelstamp
+            var codigo = coluna.codigocoluna
+            var nomeColuna = coluna.valorcoluna
+            var ordem = coluna.ordemcoluna
+
+            if (nomeColuna == "N") {
+                nomeColuna = anoval
+            }
+            if (nomeColuna == "N-1") {
+                nomeColuna = anoanteriorval
+            }
+
+            rowHeaderRelatorio.cols.push({
+                style: (codigo == "DESC" ? "text-align:left!important;" : "text-align:right!important;") + "border-top:0px solid #033076!important;border-bottom:1px solid #033076;font-size:9px!important;background:white!important;color:#033076!important;font-weight:bold;",
+                colId: "",
+                classses: "",
+                content: nomeColuna,
+                customData: "data-ordem='" + ordem + "' data-codigo='" + codigo + "' data-valor='" + nomeColuna + "' id='" + colunaId + "' class='coluna-conf'",
+            });
+            r++;
+            index++;
+        })
+
+        tableData.header.rows.push(rowHeaderRelatorio)
+
+        switch (tipoListagem) {
+            case "Grupo-Fixa":
+                var gruposParent = gruposRelatorio.filter(function (obj) {
+                    return obj.parent == true
+                })
+
+                gruposParent.sort(function (a, b) {
+                    return a.ordem - b.ordem
+                })
+
+                gruposParent.forEach(function (grupoParent) {
+                    getGrupoElements(grupoParent, tableData)
+                });
+                break;
+
+            case "Dinâmica":
+                var dadosConfiguracaoLinha = linhas[0]
+                configuracaoLinha = dadosConfiguracaoLinha
+                var resultadoLinha = alasql(dadosConfiguracaoLinha.expressao)
+                var campoagrupamento = ""
+                var expressaocomp = "1==1"
+                var linhasCloned = [...resultadoLinha]
+                var grupos = [{ naomostragrupo: true }]
+
+                if (dadosConfiguracaoLinha.temgrupo == true) {
+                    campoagrupamento = dadosConfiguracaoLinha.campoagrupamento
+                    var grupos = _.uniqBy(resultadoLinha, function (v) {
+                        return [v[campoagrupamento]].join();
+                    });
+                    expressaocomp = "obj[campoagrupamento]==grupo[campoagrupamento]"
+                }
+
+                grupos.forEach(grupo => {
+                    var linhasGrupo = []
+                    linhasGrupo = resultadoLinha.filter(obj => eval(expressaocomp))
+
+                    if (grupo.naomostragrupo != true) {
+                        var rowGrupo = {
+                            style: "",
+                            rowId: "",
+                            classes: "",
+                            customData: "",
+                            cols: [{
+                                style: "font-weight:bold;text-align:right;text-align:right!important;",
+                                colId: "",
+                                classes: "",
+                                content: grupo[campoagrupamento],
+                            }, {
+                                style: "font-weight:bold;text-align:right;text-align:right!important;",
+                                colId: "",
+                                classes: "",
+                                content: "",
+                                customData: colunas.length - 1
+                            }]
+                        }
+                        tableData.body.rows.push(rowGrupo)
+                    }
+
+                    linhasGrupo.forEach(function (dadosLinha) {
+                        linha = dadosLinha
+                        var row = {
+                            style: "text-align:right!important;",
+                            rowId: "",
+                            classes: "",
+                            customData: "",
+                            cols: []
+                        }
+
+                        var linhaId = dadosConfiguracaoLinha.u_linhastamp
+                        colunas.forEach(function (coluna) {
+                            var celula = _.find(dadosModelo, function (o) {
+                                return o.u_colunarelstamp == coluna.u_colunarelstamp && o.u_linhastamp == linhaId
+                            });
+                            var valor = (celula ? celula.valorcelula : "")
+                            var temCalculo = (celula ? celula.calculo : false)
+                            var celulaId = (celula ? celula.u_celulastamp : generateUUID())
+                            var colunaId = (celula ? celula.u_colunarelstamp : coluna.u_colunarelstamp);
+
+                            var celulaValue = getCelulaValue(celula)
+                            row.cols.push({
+                                style: "text-align:right;text-align:right!important;" + (celulaValue.erro == true ? "color:red!important;" : ""),
+                                colId: "",
+                                classes: "",
+                                content: celulaValue.valor,
+                            })
+                        })
+                        tableData.body.rows.push(row)
+                    })
+                });
+            default:
+                break;
+        }
+
+        $("#kpiContainer").empty();
+        var tableHtml = generateTableV2(tableData)
+
+        $("#nomeIndicador").text(dadosRelatorio.descricao)
+
+        $("#kpiContainer").append(tableHtml)
+
+        actualizarTotaisReport();
+        handleStylesBasedOnTipoListagem(tipoListagem)
+
+        $("#impressaoTable td").css("width", "5%")
+    }
+
+    function handleStylesBasedOnTipoListagem(tipoListagem) {
+        switch (tipoListagem) {
+            case "Dinâmica":
+                $(".report-table-2b").css({ "max-width": "1400px" })
+                $(".report-table-2b tbody td").css({ "font-size": "9px" })
+                break;
+
+            case "Grupo-Fixa":
+                $(".report-table-2b").css({ "max-width": "880px" });
+                $(".coluna-conf").css({
+                    "font-size": "13px",
+                    "width": "6%"
+                })
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    function getCelulaReferencedByAnother(sourceCelula, codigocoluna, confRelatorio, dadosColunas) {
+        var celula = _.find(confRelatorio, function (o) {
+            return o.valorcelula == sourceCelula
+        });
+
+        var linhastamp = "";
+        var colunastamp = "";
+
+        if (!celula) {
+            console.log("CELULA REFERENCIADA BY ANOTHER NOT FOUND", sourceCelula)
+            return
+        }
+
+        var coluna = dadosColunas.find(function (col) {
+            return col.codigocoluna == codigocoluna
+        });
+
+        if (!coluna) {
+            console.log("Colunas existentes", dadosColunas)
+            console.log("COLUNA REFERENCIADA NOT FOUND", codigocoluna)
+            return;
+        }
+
+        linhastamp = celula.u_linhastamp;
+        colunastamp = coluna.u_colunarelstamp;
+
+        var celulaEncontrada = _.find(confRelatorio, function (o) {
+            return o.u_linhastamp == linhastamp && o.u_colunarelstamp == colunastamp
+        });
+
+        return celulaEncontrada;
+    }
+
+    function getGrupoElements(grupoElement, tableData) {
+        var grupoId = grupoElement.u_gruporelstamp
+        var ordemGrupo = grupoElement.ordem
+        var gruposNodeRef = gruposRelatorio.filter(function (obj) {
+            return obj.noderef == grupoElement.u_gruporelstamp
+        })
+
+        var linhasGrupo = dadosLinhas.filter(function (obj) {
+            return obj.grupostamp == grupoElement.u_gruporelstamp
+        })
+
+        var rowGrupoHtml = {}
+        var parent = grupoElement.parent
+        var firstParent = gruposRelatorio.findIndex(function (obj) {
+            return obj.u_gruporelstamp == grupoElement.u_gruporelstamp
+        })
+
+        var borderTop = (firstParent > 0 ? "border-top: 1px solid #a5a2a2!important;" : "")
+        var totClass = ""
+        var totNodeRef = ""
+
+        if (parent == true) {
+            totClass = "total-grupo-row"
+
+            rowGrupoHtml = {
+                style: "font-size:11px!important;background:white!important;color:#033076!important;text-align:right;font-weight:bold;text-align:left!important",
+                rowId: "",
+                classes: "",
+                customData: "grupoid='" + grupoId + "'",
+                cols: [
+                    {
+                        style: "font-size:11px!important;background:white!important;color:#033076!important;text-align:left;font-weight:bold;text-align:left!important",
+                        colId: "",
+                        classes: "",
+                        content: grupoElement.descricao,
+                    },
+                    {
+                        style: "font-size:11px!important;background:white!important;color:#033076!important;text-align:right;font-weight:bold;text-align:left!important",
+                        colId: "",
+                        classes: "",
+                        content: "",
+                        customData: "colspan='" + dadosColunas.length + "'"
+                    }
+                ]
+            }
+
+            tableData.body.rows.push(rowGrupoHtml)
+
+        } else {
+            totClass = "total-subgrupo-row"
+            totNodeRef = "tot-noderef=" + grupoElement.noderef + ""
+
+            rowGrupoHtml = {
+                style: "background-color: #e9f1ff!important;font-family: Nunito,sans-serif;font-size:11px!important;color:#033076!important;text-align:right;font-weight:bold;text-align:center!important",
+                rowId: "",
+                classes: "",
+                customData: "grupoid='" + grupoId + "'",
+                cols: [
+                    {
+                        style: "text-align:left;",
+                        colId: "",
+                        classes: "",
+                        content: grupoElement.descricao,
+                    },
+                    {
+                        style: "font-family: Nunito,font-weight:bold;text-align:center!important",
+                        colId: "",
+                        classes: "",
+                        content: "",
+                        customData: "colspan='" + dadosColunas.length + "'"
+                    }
+                ]
+            }
+
+            tableData.body.rows.push(rowGrupoHtml)
+        }
+
+        gruposNodeRef.sort(function (a, b) {
+            return a.ordem - b.ordem
+        })
+
+        gruposNodeRef.forEach(function (grupoNodeRef) {
+            var nodes = gruposRelatorio.filter(function (node) {
+                return node.noderef == grupoNodeRef.u_gruporelstamp
+            })
+
+            var linhasNodes = dadosLinhas.filter(function (nodeLinha) {
+                return nodeLinha.grupostamp == grupoNodeRef.u_gruporelstamp
+            })
+
+            if (nodes.length > 0 || linhasNodes.length > 0) {
+                getGrupoElements(grupoNodeRef, tableData)
+            }
+        });
+
+        linhasGrupo.sort(function (a, b) {
+            return a.ordem - b.ordem
+        })
+
+        linhasGrupo.forEach(function (linha) {
+            var row = {
+                style: "text-align:right!important;",
+                rowId: "",
+                classes: "linha-item",
+                customData: "grupoid='" + grupoId + "'",
+                cols: []
+            }
+
+            var linhaId = linha.u_linhastamp
+            var r = 0;
+
+            dadosColunas.forEach(function (coluna) {
+                var celula = _.find(confRelatorio, function (o) {
+                    return o.u_colunarelstamp == coluna.u_colunarelstamp && o.u_linhastamp == linha.u_linhastamp
+                });
+                var valor = (celula ? celula.valorcelula : "")
+                var temCalculo = (celula ? celula.calculo : false)
+                var celulaId = (celula ? celula.u_celulastamp : generateUUID())
+                var colunaId = (celula ? celula.u_colunarelstamp : coluna.u_colunarelstamp);
+                configuracaoLinha = linha
+                var celulaValue = getCelulaValue(celula);
+
+                var valorDinamico = getValorDinamicoCelula(celula, confRelatorio);
+                var celulaResult = 0;
+                var valorDinamicoResult = 0;
+
+                if (celulaValue.erro != true) {
+                    celulaResult = Number(celulaValue.unformatted)
+                }
+
+                if (valorDinamico.erro != true) {
+                    valorDinamicoResult = Number(valorDinamico.unformatted)
+                }
+
+                var valorFinal = (valorDinamicoResult + celulaResult).toFixed(2);
+
+                valorFinal = (celula.tipocelula == "digit" && isNaN(valorFinal) ? "0" : valorFinal)
+                var unformatted = (celula.tipocelula == "digit" ? "data-unformatted='" + valorFinal + "'" : "")
+
+                row.cols.push({
+                    style: (coluna.codigocoluna == "DESC" ? "text-align:left;font-style: italic;font-size:11px " : "text-align:right;font-size:11px") + ";" + (celulaValue.erro == true ? "color:red!important;" : ""),
+                    colId: "",
+                    classes: "",
+                    content: celula.tipocelula == "digit" ? formatInputValue(valorFinal) : celulaValue.valor,
+                    customData: "codigo-coluna='" + coluna.codigocoluna + "' data-grupoid='" + grupoId + "' " + unformatted
+                })
+                r++
+            })
+            tableData.body.rows.push(row)
+        })
+
+        if (grupoElement.temtotais) {
+            var rowTotalGrupo = {
+                style: "text-align:left!important;border-bottom:1px solid #033076;",
+                rowId: "",
+                classes: " " + totClass,
+                customData: "grupoid='" + grupoId + "' " + totNodeRef + "",
+                cols: [
+                    {
+                        style: "text-align:left!important;border-bottom:1px solid #033076;font-weight:bold;font-size:10px",
+                        colId: "",
+                        classes: "",
+                        content: "Total- " + grupoElement.descricao,
+                    }
+                ]
+            }
+
+            dadosColunas
+            var colunastotais = (grupoElement.colunastotais ? grupoElement.colunastotais.split(",") : [])
+
+            var indexColuna = 0
+            dadosColunas.forEach(function (coluna) {
+                var indexColunaTotais = colunastotais.findIndex(function (obj) {
+                    return obj == coluna.codigocoluna
+                })
+
+                if (indexColunaTotais >= 0) {
+                    rowTotalGrupo.cols.push({
+                        style: "text-align:left!important;border-bottom:1px solid #033076;font-weight:bold;font-size:11px;text-align:right!important",
+                        colId: "",
+                        classes: "",
+                        content: "0",
+                        customData: "codigo-coluna='" + coluna.codigocoluna + "' data-grupoid='" + grupoId + "'"
+                    })
+                } else if (colunastotais.length > 0 && indexColuna > 0) {
+                    rowTotalGrupo.cols.push({
+                        style: "text-align:left!important;border-bottom:1px solid #033076;font-weight:bold;font-size:11px;text-align:right!important",
+                        colId: "",
+                        classes: "",
+                        content: "",
+                        customData: "codigo-coluna='" + coluna.codigocoluna + "' data-grupoid='" + grupoId + "'"
+                    })
+                }
+
+                indexColuna++
+            })
+            tableData.body.rows.push(rowTotalGrupo)
+        }
+    }
+
+    function calcularValorCelula(confRelatorio, celulaId) {
+        try {
+            var celula = _.find(confRelatorio, function (o) {
+                return o.u_celulastamp == celulaId
+            });
+
+            if (!celula) {
+                console.warn("Célula não encontrada:", celulaId);
+                return "0";
+            }
+
+            var celulaValue = getCelulaValue(celula);
+            var valorDinamicoResult = getValorDinamicoCelula(celula, confRelatorio);
+            var valorDinamico = 0;
+            var valor = 0;
+
+            if (celulaValue && celulaValue.erro != true && celulaValue.unformatted) {
+                var parsedValue = Number(celulaValue.unformatted);
+                if (!isNaN(parsedValue) && isFinite(parsedValue)) {
+                    valor = parsedValue;
+                }
+            }
+
+            if (valorDinamicoResult && valorDinamicoResult.erro != true && valorDinamicoResult.unformatted) {
+                var parsedDynamic = Number(valorDinamicoResult.unformatted);
+                if (!isNaN(parsedDynamic) && isFinite(parsedDynamic)) {
+                    valorDinamico = parsedDynamic;
+                }
+            }
+
+            var resultado = valor + valorDinamico;
+            return (!isNaN(resultado) && isFinite(resultado)) ? resultado.toString() : "0";
+        } catch (error) {
+            console.error("Erro em calcularValorCelula:", error, "celulaId:", celulaId);
+            return "0";
+        }
+    }
+
+    function getValorDinamicoCelula(celula, confRelatorio) {
+        var result = 0;
+        var expressao = ""
+
+        try {
+            if (celula.valordinamico && celula.valordinamico != "") {
+                var dadosValoresDinamicos = JSON.parse(celula.valordinamico);
+
+                dadosValoresDinamicos.forEach(function (valorDinamico) {
+                    switch (valorDinamico.tipo) {
+                        case "Standard":
+                            var valorStd = valorDinamico.valor;
+                            if (valorStd && valorStd.trim() !== "") {
+                                expressao += valorStd;
+                            }
+                            break;
+
+                        case "Celula":
+                            var valorCelula = calcularValorCelula(confRelatorio, valorDinamico.valor);
+                            if (valorCelula && !isNaN(valorCelula) && valorCelula !== "NaN") {
+                                expressao += valorCelula;
+                            } else {
+                                expressao += "0";
+                            }
+                            break;
+                    }
+                });
+
+                if (expressao != "" && expressao != undefined) {
+                    var result = eval(expressao);
+                    if (isNaN(result) || !isFinite(result)) {
+                        result = 0;
+                    }
+                }
+            }
+
+            return { erro: false, unformatted: parseFloat(result).toFixed(2), valor: formatInputValue(parseFloat(result).toFixed(2)) }
+        } catch (error) {
+            console.error("Erro em getValorDinamicoCelula:", error, "celula:", celula);
+            return { erro: true, unformatted: 0, valor: "0" }
+        }
+    }
+
+    function actualizarTotaisReport() {
+        gruposRelatorio.filter(function (obj) {
+            return obj.parent == false
+        }).forEach(function (grupo) {
+            if (grupo.temtotais == true) {
+                var colunasTotais = grupo.colunastotais.split(",")
+                var grupoId = grupo.u_gruporelstamp
+
+                colunasTotais.forEach(function (coluna) {
+                    var totalColunaGrupo = 0
+                    $(".linha-item[grupoid='" + grupoId + "'] td[codigo-coluna='" + coluna + "']").each(function () {
+                        var unformatted = $(this).data("unformatted")
+                        var valor = (isNaN(unformatted) ? 0 : Number(unformatted));
+
+                        totalColunaGrupo += valor;
+                    })
+
+                    $(".total-subgrupo-row[grupoid='" + grupoId + "'] td[codigo-coluna='" + coluna + "']").attr("data-unformatted", totalColunaGrupo.toString())
+                    $(".total-subgrupo-row[grupoid='" + grupoId + "'] td[codigo-coluna='" + coluna + "']").text(formatInputValue(parseFloat(totalColunaGrupo).toFixed(2)))
+                })
+            }
+        })
+
+        gruposRelatorio.filter(function (obj) {
+            return obj.parent == true
+        }).forEach(function (grupo) {
+            if (grupo.temtotais == true) {
+                var colunasTotais = grupo.colunastotais.split(",")
+                var grupoId = grupo.u_gruporelstamp
+
+                colunasTotais.forEach(function (coluna) {
+                    var numberOfChilds = $(".total-subgrupo-row[tot-noderef='" + grupoId + "'] td[codigo-coluna='" + coluna + "']").length
+
+                    if (numberOfChilds == 0) {
+                        var totalColunaGrupo = 0
+                        $(".linha-item[grupoid='" + grupoId + "'] td[codigo-coluna='" + coluna + "']").each(function () {
+                            var unformatted = $(this).data("unformatted")
+                            var valor = (isNaN(unformatted) ? 0 : Number(unformatted));
+
+                            totalColunaGrupo += valor;
+                        })
+                    } else {
+                        var totalColunaGrupo = 0
+                        $(".total-subgrupo-row[tot-noderef='" + grupoId + "'] td[codigo-coluna='" + coluna + "']").each(function () {
+                            var unformatted = $(this).data("unformatted")
+                            var valor = (isNaN(unformatted) ? 0 : Number(unformatted));
+
+                            totalColunaGrupo += valor;
+                        })
+                    }
+
+                    $(".total-grupo-row[grupoid='" + grupoId + "'] td[codigo-coluna='" + coluna + "']").attr("data-unformatted", totalColunaGrupo.toString())
+                    $(".total-grupo-row[grupoid='" + grupoId + "'] td[codigo-coluna='" + coluna + "']").text(formatInputValue(parseFloat(totalColunaGrupo).toFixed(2)))
+                })
+            }
+        })
+    }
+
+    function generateSemResultadosAlert() {
+        var alertHtml = buildAlert("alert-info", "Erro ao trazer resultados")
+        $("#kpiContainer").empty()
+        $("#kpiContainer").append(alertHtml)
+    }
+
+    function generateImpressaoButtons() {
+        var btnImpressao = "<button type='button' style='margin-right:1.3em' id='previsaoImpressao' class=' btn btn-default btn-sm' >Previsão da impressão</button>"
+        btnImpressao += "<button type='button' style='margin-right:1.3em' id='downloadImpressao' class=' btn btn-default btn-sm' ><i class='fa fa-print'></i></button>"
+        btnImpressao += "<button type='button' style='margin-right:1.3em' id='downloadImpressaoExcel' class=' btn btn-default btn-sm' ><i class='fa fa-file-excel-o'></i></button>"
+        $("#OptionsRecordDropDown > button").before(btnImpressao)
+    }
+
+    function registerClickListenerImpressaoKPI() {
+        $(document).off("click", "#downloadImpressao").on("click", "#downloadImpressao", function () {
+            paginateContentKPi()
+            var params = new URLSearchParams(document.location.search);
+            var registo = params.get("registo");
+            var nota = params.get("nota");
+            var tabela = params.get("tabela");
+            var coluna = params.get("coluna");
+
+            var format = ($("#impressaoTable th").length > 15 ? "a2" : "a4")
+            var opt = {
+                margin: [0.2, 0.2, 0.1, 0.2],
+                filename: nota + (Math.floor(Math.random() * 9000) + 1000) + ".pdf",
+                html2canvas: { scale: 1.8 },
+                jsPDF: { unit: 'in', format: format, orientation: 'landscape' },
+                pagebreak: { mode: 'avoid-all', after: '.page' },
+            };
+
+            var worker = html2pdf().from(document.getElementById('paginationContainer')).set(opt).save().then(function () {
+                console.log('PDF saved successfully');
+                window.location.reload()
+            }).catch(function (error) {
+                alertify.error("Erro ao tentar fazer descarregar o ficheiro", 9000)
+            });;
+        })
+
+        $(document).off("click", "#downloadImpressaoExcel").on("click", "#downloadImpressaoExcel", function () {
+            formatarImpressaoParaExcel()
+            var containerDiv = document.getElementById("impressaoTable");
+            var htmlContent = "<table>" + containerDiv.innerHTML + "</table>";
+            htmlContent += "<br> <div><img style='margin-left:-1em' src='http://tecnica.2business-si.com:85/tecnica/IGEPE/intranet/pimages/demo_logomaisritmop.png' height='0' width='93'  alt='sample image' /></div>"
+
+            footerElement = document.getElementsByClassName("footer-print-section");
+            htmlContent += "<br>" + $(".footer-print-section").html();
+
+            var base64Content = btoa(unescape(encodeURIComponent(htmlContent)));
+            var params = new URLSearchParams(document.location.search);
+            var nota = params.get("nota");
+
+            var a = document.createElement("a");
+            a.href = "data:application/vnd.ms-excel;base64," + base64Content;
+            a.download = nota + (Math.floor(Math.random() * 9000) + 1000) + ".xls";
+            a.click();
+        })
+
+        $(document).off("click", "#previsaoImpressao").on("click", "#previsaoImpressao", function () {
+            var opt = {
+                margin: [0.2, 0.2, 0.1, 0.2],
+                html2canvas: {
+                    scale: 1.8,
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true
+                },
+                jsPDF: {
+                    unit: 'in',
+                    format: 'a4',
+                    orientation: 'landscape',
+                    putOnlyUsedFonts: true
+                },
+                pagebreak: {
+                    mode: ['avoid-all', 'css', 'legacy'],
+                    before: '.page-break-before',
+                    after: '.page-break-after',
+                    avoid: '.avoid-break'
+                }
+            };
+            paginateContentKPi()
+
+            var worker = html2pdf().set(opt).from(document.getElementById('paginationContainer')).toPdf();
+
+            worker.output('datauristring').then(function (pdfAsString) {
+                var win = window.open();
+                win.document.write('<iframe src="' + pdfAsString + '" frameborder="0" style="width:100%; height:100%;" allowfullscreen></iframe>');
+                window.location.reload()
+            }).catch(function (error) {
+                alertify.error("Erro ao tentar fazer pré visualizar  o ficheiro", 9000)
+            });
+        })
+    }
+    function paginateContentKPi() {
+        $('#paginationContainer').empty();
+
+        var itensPorPagina = 18; // Teste valores menores
+        var linhas = $('#impressaoTable tbody tr');
+        var numPaginas = Math.ceil(linhas.length / itensPorPagina);
+        var reportCabecalho = $(".header-print-section").html();
+        var reportFooter = $(".footer-print-section").html();
+
+        console.log("numPaginas", numPaginas)
+        for (var i = 0; i < numPaginas; i++) {
+            var pageNumber = i + 1;
+            var pageId = "page" + pageNumber;
+            var pagina = $('<div class="page" id="' + pageId + '"></div>');
+            var tabela = $('<table class="table print-table"></table>');
+            var cabecalho = $('#impressaoTable thead').clone();
+            var rodape = $('<tfoot></tfoot>');
+
+            tabela.append(cabecalho);
+            linhas.slice(i * itensPorPagina, (i + 1) * itensPorPagina).each(function () {
+                tabela.append($(this).clone());
+            });
+            tabela.append(rodape);
+
+            pagina.append("<div class='header-print-section'>" + reportCabecalho + "</div>");
+            pagina.append(tabela);
+            pagina.append("<div class='footer-print-section'>" + reportFooter + "</div>");
+            $('#paginationContainer').append(pagina);
+
+            $("#" + pageId + " .page-number").text("Página " + pageNumber + " de " + numPaginas);
+            $('#paginationContainer .page').last().css('page-break-after', 'auto');
+        }
+
+        // CSS para evitar quebras e páginas em branco
+        $('.page').css({
+            position: 'relative'
+            // minHeight: "765px", // Remova ou ajuste conforme necessário
+        });
+        $('.page .footer-print-section').css({
+            position: 'absolute',
+            /*bottom: '0',*/
+            width: '100%',
+            "text-align": "center",
+            "border-top": "1px solid black",
+            /*padding: "35px"*/
+        });
+
+        $("#paginationContainer").show();
+    }
+</script>

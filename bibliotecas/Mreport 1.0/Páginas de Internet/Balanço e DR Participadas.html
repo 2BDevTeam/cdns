@@ -1,0 +1,1668 @@
+<head></head>
+<meta charset="UTF-8" />
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js'></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/alasql/4.1.10/alasql.min.js"
+    integrity="sha512-Igz7esT29XvklQE5s9lKkzY/xN5OmbsWYzXml2AE7hEYyAxxIgbQ0NXvyqt4S9VrWHA0lRUKkhLgc62QO3vkoQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-treetable/3.2.0/jquery.treetable.min.js"
+    integrity="sha512-2pYVakljd2zLnVvVC264Ib+XGvOvu3iFyKCIwLzn77mfbjuVi1dGJUxGjDAI8MjgPgTfSIM/vZirW04LCQmY2Q=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-treetable/3.2.0/css/jquery.treetable.css"
+    integrity="sha512-l1bJ1VnsPD+m5ZYhfcl9PrJgbCQixXtQ/zs423QYu0w1xDGXJOSC0TmorOocaYY8md5+YMRcxZ/UgjyOSIlTYw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/jquery-treetable/3.2.0/css/jquery.treetable.theme.default.min.css"
+    integrity="sha512-+QlAY2+q9M7bP5NBnGKrBO5u/asZTHsHJ8yVvw/opoi50KZube+tfc3ojM5MHa0d+vTorqu3Mf/IKyTyxWWbzg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<style>
+    .print-table td {
+        padding: 3px !important
+    }
+
+    .tooltip-inner {
+
+        max-width: 1650px;
+        max-width: 1650px;
+        /* Limitar altura */
+        background: #033076;
+
+        /* Permitir scroll vertical */
+    }
+
+    .container-kpi {
+
+
+        border: 1px solid #fff;
+        background-color: #ffffff;
+
+    }
+
+    .mainbody,
+    .header-cont,
+    .footer-cont {
+        padding: 5px;
+    }
+
+
+    .mainbody {
+        margin-top: 0;
+        width: 100%;
+        height: 668px;
+        overflow: auto;
+    }
+
+    .header-cont {
+        height: 40px;
+        border-bottom: 1px solid #EEE;
+        background-color: #ffffff;
+        height: 40px;
+        -webkit-border-top-left-radius: 5px;
+        -webkit-border-top-right-radius: 5px;
+        -moz-border-radius-topleft: 5px;
+        -moz-border-radius-topright: 5px;
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
+    }
+
+    .footer-cont {
+        height: 40px;
+        background-color: whiteSmoke;
+        border-top: 1px solid #DDD;
+        -webkit-border-bottom-left-radius: 5px;
+        -webkit-border-bottom-right-radius: 5px;
+        -moz-border-radius-bottomleft: 5px;
+        -moz-border-radius-bottomright: 5px;
+        border-bottom-left-radius: 5px;
+        border-bottom-right-radius: 5px;
+    }
+
+
+    div {
+        white-space: nowrap !important;
+        white-space: normal;
+        /* Collapses multiple spaces and newlines */
+
+        /* Forces text to stay on one line */
+    }
+
+    table {
+        border-collapse: collapse;
+        font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif !important;
+    }
+
+
+    .report-table-2b {
+        text-align: left;
+        width: 100vw;
+        max-width: 880px;
+        margin: 10px auto;
+        padding: 10px;
+        border: 2px solid #d0d0d5;
+    }
+
+
+
+    .black {
+        height: 1px;
+        background-color: black;
+        border: none;
+    }
+
+    .blue {
+        height: 3px;
+        background-color: #043e75;
+        border: none;
+    }
+
+    .custom-margin-bottom-15 {
+        margin-bottom: -15px;
+    }
+
+    .custom-margin-bottom-20 {
+        margin-bottom: -20px;
+    }
+
+    .custom-margin-bottom-30 {
+        margin-bottom: -55px;
+    }
+
+    .custom-margin-top-20 {
+        margin-top: -15px;
+    }
+
+    .data:nth-of-type(4n + 3) {
+        background-color: #e9f1ff;
+    }
+
+    /* Use nth-child first, explain it doesn't work,
+  switch to nth-of-type */
+    .data:nth-of-type(4n + 1) {
+        background-color: #e9f1ff;
+    }
+
+    .custom-margin-top-bottom {
+        margin-top: -20px;
+        margin-bottom: -20px;
+    }
+</style>
+</head>
+
+<body>
+
+    <div class="modal additional-class" id="modalConfiguraçãoNota" tabindex="-1">
+        <div style="width: 100%;" class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h5 style="font-weight: bold;" class="modal-title">Configuração do relatório</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <!-- Modal Body -->
+                <div id="modalConfiguracaoBody" class="modal-body table-responsive">
+
+                </div>
+
+                <!-- Modal Footer -->
+
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 0.3em;" class="row">
+
+        <div class="col-md-6 pull-left">
+            <button onclick="showModalConfiguracao()" type="button" class="btn btn-primary">Ver configuração</button>
+
+        </div>
+
+
+    </div>
+
+
+
+
+    <div id="filtersContainer" class="">
+
+        <div style="margin-bottom: 2em;" class="row">
+            <div class="col-md-6">
+                <p style="font-size: 14px;" class='control-label  '>Periodo:</p>
+                <select class="form-control filterreportfield" id="periodoSelect"></select>
+            </div>
+            <div class="col-md-6">
+                <p style="font-size: 14px;" class='control-label  '>Relatório:</p>
+                <select class="form-control filterreportfield" id="relatorioSelect"></select>
+            </div>
+        </div>
+
+
+
+    </div>
+    <div style="display: flex;display: none;" class="header-print-section">
+
+        <h4 id="nomeempresa" style="font-weight: bold;"></h4>
+
+    </div>
+
+    <div style="display:none" id="paginationContainer"></div>
+    <div id="kpiContainer" class="row table-print-container">
+    </div>
+
+    <div style="border-top: 1px solid black;" class="footer-print-section">
+
+        <div style="justify-content: space-between;align-items: center;" class="d-flex">
+            <div style="display: flex;">
+                <p style="font-size: 10px;">PHC Software</p>
+                <p style="font-size: 10px;margin-left: 0.3em;" class="text-left">Powered by 2Business, SA
+                </p>
+
+            </div>
+            <p style="font-size: 10px;" id='assinatura' class="text-center"> </p>
+            <p class="page-number" style="text-align: right;font-size: 10px;">1</p>
+        </div>
+
+
+    </div>
+
+
+</body>
+
+</html>
+
+
+<script>
+
+    var periodo = ""
+    var relatorio = ""
+    var periodoanterior = ""
+    var periodo = ""
+    var periodoanterior = ""
+    var linha = ""
+    var filtros = ""
+    var filtrosRelatorio = ""
+    var configuracaoLinha;
+    var configuracaoModelo
+    var grupos = []
+    var gruposRelatorio = []
+    var dadosLinhas = []
+    var dadosColunas = []
+    var confRelatorio = []
+    var referencedGroups = []
+    var selectCellMode = false
+
+
+
+    function showModalConfiguracao() {
+
+        $("#modalConfiguraçãoNota").modal("show")
+        getListagemGrupoFixa()
+    }
+
+    function preencherValoresDinamicos() {
+
+        $(".valor-dinamico-container").remove();
+
+        var html = "<div class='col-md-12 valor-dinamico-container' ><div style='display:flex;flex-direction:column;gap:0.4em' >"
+
+        //console.log("dadosValoresDinamicos",dadosValoresDinamicos)
+        dadosValoresDinamicos.forEach(function (item) {
+
+
+            html += "        <input readonly data-toggle='tooltip'  data-html='true'  data-original-title='" + item.descricao + "' data-id='" + item.id + "' data-valor='" + item.valor + "' value='" + item.descricao + "' class='form-control input-sm descricaoValorDinamico'>"
+
+
+        })
+        html += "</div></div>";
+
+        celulaHtmlObject.attr("data-valordinamico", JSON.stringify(dadosValoresDinamicos))
+        $("#valoresDinamicosContainer").append(html);
+        $('[data-toggle="tooltip"]').tooltip();
+    }
+
+    function getListagemGrupoFixa() {
+
+        $("#listagemContainer").remove()
+
+        $("#modalConfiguracaoBody").empty()
+        $("#modalConfiguracaoBody").append("<div id='listagemContainer' style='margin-top:2.5em' ><div class='row' id='listagemItem'></div></div>")
+        var spinnerListagemContainer = ""
+        spinnerListagemContainer += "<div class='overlay'>"
+        spinnerListagemContainer += "    <div class='spinner'></div>"
+
+        spinnerListagemContainer += "    <div class='w-100 d-flex justify-content-center align-items-center'>"
+
+        spinnerListagemContainer += "    </div>"
+        spinnerListagemContainer += "</div>"
+        $("#listagemContainer").append(spinnerListagemContainer);
+
+        var listagemItem = "<div style='margin-bottom:1em'  class='col-md-12'>"
+        listagemItem += "<br>"
+        // listagemItem += "         <button style='margin-top:0.3em' type='button' class='btn btn-sm btn-warning adicionar-linha-btn'>Adicionar linha</button>"
+        listagemItem += "   </div>"
+        listagemItem += "   <div class='col-md-12'>"
+        listagemItem += "      <div class='row table-responsive listagemTableContainer'>"
+        listagemItem += "      <table id='listagemTable' class='table listagem-table'>"
+        listagemItem += "        <thead>"
+        listagemItem += "          <tr class='defgridheader' style='background:#033076!important'></tr>"
+        listagemItem += "        </thead>"
+        listagemItem += "        <tbody id='listagemBody'>"
+        listagemItem += "        </tbody>"
+        listagemItem += "      </table>"
+        listagemItem += "      </div>"
+        listagemItem += "      <div class='options-listagem-table row'>"
+        listagemItem += "          <div class='col-md-6 pull-left'>"
+        listagemItem += "        "
+        listagemItem += "          </div>"
+        listagemItem += "       </div>"
+
+        listagemItem += "   </div>"
+
+        $("#listagemContainer #listagemItem").append(listagemItem);
+        $("#listagemContainer .overlay").show()
+        // $("#listagemTable thead").empty()
+        //$("#listagemTable tbody").empty()
+
+        //var syncstampSelecionado = $("#relatorioSelect option:selected").data("syncstamp")
+        var listagemResult = $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=getlistagemrelatorio",
+            data: {
+                '__EVENTARGUMENT': JSON.stringify([{ syncstamp: $("#relatorioSelect option:selected").data("syncstamp") }]),
+            },
+            success: function (response) {
+
+                var errorMessage = "ao trazer resultados "
+                try {
+                    console.log(response)
+                    if (response.cod != "0000") {
+
+                        console.log("Erro " + errorMessage, response)
+                        return false
+                    }
+                } catch (error) {
+                    console.log("Erro interno " + errorMessage, response)
+                    //alertify.error("Erro interno " + errorMessage, 10000)
+                }
+
+                //  javascript:__doPostBack('','')
+            }
+        });
+
+        listagemResult.then(function (response) {
+
+            var colunas = _.uniqBy(response.data, function (v) {
+                return [v.codigocoluna, v.u_colunarelstamp, v.u_colunarelstamp].join();
+            });
+
+            confRelatorio = response.data
+
+
+            gruposRelatorio = response.grupos
+
+
+
+            var linhas = _.uniqBy(response.data, function (v) {
+                return [v.u_linhastamp, v.ordemlinha].join();
+            })
+
+            linhas.sort(function (a, b) {
+                return a.ordemlinha - b.ordemlinha
+            })
+
+            dadosLinhas = []
+            dadosColunas = []
+            dadosLinhas = linhas
+            dadosColunas = colunas
+
+            //console.log("linhas", linhas)
+            $("#listagemTable thead tr").append("<th style='width:30%!important' class='coluna-acoes'></th>")
+
+            colunas.sort(function (a, b) {
+                return a.ordemcoluna - b.ordemcoluna
+            })
+            colunas.forEach(function (coluna) {
+                var colunaId = coluna.u_colunarelstamp
+                var codigo = coluna.codigocoluna
+                var nomeColuna = coluna.valorcoluna
+                var ordem = coluna.ordemcoluna
+                $("#listagemTable thead tr").append("<th data-ordem='" + ordem + "' data-codigo='" + codigo + "' data-valor='" + nomeColuna + "' id='" + colunaId + "' class='coluna-conf'>" + nomeColuna + "</th>")
+            })
+
+
+            var gruposParent = gruposRelatorio.filter(function (obj) {
+                return obj.parent == true
+            })
+
+            gruposParent.sort(function (a, b) {
+                return a.ordem - b.ordem
+            })
+
+
+            gruposParent.forEach(function (grupoParent) {
+
+                getGrupoElementsConfiguracao(grupoParent)
+
+
+
+            })
+            /* linhas.forEach(function (linha) {
+        
+                 var linhaId = linha.u_linhastamp
+                 var colunaHtml = "<td><button type='button' style='color:white!important;background:#d9534f!important' class='btn btn-sm btn-danger removeLinha'><span  class='glyphicon glyphicon glyphicon-trash'></span></button></td>"
+        
+                 colunas.forEach(function (coluna) {
+        
+                     var celula = _.find(response.data, function (o) {
+                         return o.u_colunarelstamp == coluna.u_colunarelstamp && o.u_linhastamp == linha.u_linhastamp
+                     })
+                     var valor = (celula ? celula.valorcelula : "")
+                     var temCalculo = (celula ? celula.calculo : false)
+                     var celulaId = (celula ? celula.u_celulastamp : generateUUID())
+                     var colunaId = (celula ? celula.u_colunarelstamp : coluna.u_colunarelstamp)
+                     var tipo = (celula.tipocelula ? celula.tipocelula : "text")
+                     colunaHtml += "<td><input data-tipo='" + tipo + "' data-temcalculo='" + temCalculo + "' data-celulaid='" + celulaId + "' data-colunaid='" + colunaId + "' readonly class='form-control input-sm celula-inpt' type='text' value='" + valor + "'></td>"
+        
+                 })
+        
+                 $("#listagemTable tbody").append("<tr data-ordem='" + linha.ordemlinha + "' id='" + linhaId + "' class='linha-item'>" + colunaHtml + "</tr>")
+             })*/
+            //opcoesTabelaHandler()
+            inicializeGrupoTreeTable()
+
+            //console.log("colunas", colunas)
+            $("#listagemContainer .overlay").hide()
+        })
+
+
+
+
+    }
+
+    function getGrupoElementsConfiguracao(grupoElement) {
+
+        var grupoId = grupoElement.u_gruporelstamp
+        var ordemGrupo = grupoElement.ordem
+        var gruposNodeRef = gruposRelatorio.filter(function (obj) {
+            return obj.noderef == grupoElement.u_gruporelstamp
+        })
+
+        var linhasGrupo = dadosLinhas.filter(function (obj) {
+            return obj.grupostamp == grupoElement.u_gruporelstamp
+        })
+
+        var atributosListagem = " data-temtotais='" + grupoElement.temtotais + "' data-colunastotais='" + grupoElement.colunastotais + "'  data-tipodado='" + grupoElement.tipodado + "' data-temcalculo='" + grupoElement.temcalculo + "' data-expressaogrupo='" + grupoElement.expressaogrupo + "' "
+        var parent = grupoElement.parent
+        var coluna = "<td>"
+        coluna += ""
+        coluna += ""
+        coluna += "</td>"
+        coluna += "<td " + atributosListagem + " class='grupo-conf' colspan='" + (dadosColunas.length) + "'>"
+        coluna += "        <span style='color:#033076' class='grupo-nome-span'>" + grupoElement.descricao + "</span>"
+        coluna += "</td>"
+
+        var classeGrupo = (grupoElement.parent ? "grupo-item" : "subgrupo-item");
+
+
+        $("#listagemTable tbody").append("<tr " + (grupoElement.noderef ? " data-tt-parent-id='" + grupoElement.noderef + "'" : "") + "  data-parent='" + parent + "' data-tt-id='" + grupoId + "' style='background:#e9f1ff!important' data-parent=true data-grupoid='" + grupoId + "' data-ordem='" + ordemGrupo + "' id='" + grupoId + "' class='" + classeGrupo + "'>" + coluna + "</tr>")
+
+        console.log("gruposNodeRef", gruposNodeRef)
+        gruposNodeRef.sort(function (a, b) {
+            return a.ordem - b.ordem
+        })
+        gruposNodeRef.forEach(function (grupoNodeRef) {
+
+            var nodes = gruposRelatorio.filter(function (node) {
+                return node.noderef == grupoNodeRef.u_gruporelstamp
+            })
+
+            var linhasNodes = dadosLinhas.filter(function (nodeLinha) {
+                return nodeLinha.grupostamp == grupoNodeRef.u_gruporelstamp
+            })
+
+            if (nodes.length > 0 || linhasNodes.length > 0) {
+
+                getGrupoElementsConfiguracao(grupoNodeRef)
+            }
+        });
+
+
+
+
+        linhasGrupo.sort(function (a, b) {
+            return a.ordem - b.ordem
+        })
+
+        linhasGrupo.forEach(function (linha) {
+
+            var linhaId = linha.u_linhastamp
+            var colunaHtml = "<td></td>"
+
+            dadosColunas.forEach(function (coluna) {
+
+                var celula = _.find(confRelatorio, function (o) {
+                    return o.u_colunarelstamp == coluna.u_colunarelstamp && o.u_linhastamp == linha.u_linhastamp
+                });
+                // console.log("CELULA DATA grupo fixa",celula)
+                var valor = (celula ? celula.valorcelula : "")
+                var temCalculo = (celula ? celula.calculo : false)
+                var celulaId = (celula ? celula.u_celulastamp : generateUUID())
+                var colunaId = (celula ? celula.u_colunarelstamp : coluna.u_colunarelstamp)
+                var tipo = (celula.tipocelula ? celula.tipocelula : "text");
+                var valordinamico = celula.valordinamico ? celula.valordinamico : "[]"
+                colunaHtml += "<td><input data-toggle='tooltip' data-html='true' title='<p>" + valor + "</p>'  data-valordinamico='" + valordinamico + "'   data-tipo='" + tipo + "' data-temcalculo='" + temCalculo + "' data-celulaid='" + celulaId + "' data-colunaid='" + colunaId + "' readonly class='form-control input-sm celula-inpt' type='text' value='" + valor + "'></td>"
+
+            });
+
+
+
+            $("#listagemTable tbody").append("<tr ' data-tt-id='" + linhaId + "' data-tt-parent-id=" + grupoId + " data-ordem='" + linha.ordemlinha + "' id='" + linhaId + "' class='linha-item'>" + colunaHtml + "</tr>")
+        })
+
+
+    }
+    function inicializeGrupoTreeTable() {
+
+        $('#listagemTable').treetable('destroy')
+        $(".indenter").remove()
+        $('#listagemTable').treetable({
+            expandable: true
+        });
+
+
+        $("#listagemTable th").css("border", "0px solid");
+
+        $('[data-toggle="tooltip"]').tooltip();
+
+    }
+    async function getFilters() {
+
+        try {
+            mainSpinner("show")
+            $("#periodoSelect").select2({
+                // placeholder: "Selecione um relatório",
+                width: "100%",
+                allowClear: false
+            });
+
+
+            var kpisIndicadoresBalanco = await getListaRelatorios()
+
+            if (kpisIndicadoresBalanco?.cod != "0000") {
+                console.log("Erro ao trazer lista de relatorios", kpisIndicadoresBalanco)
+                return false
+            }
+
+            var relatorios = kpisIndicadoresBalanco.data
+
+            var relatorioSelect = $("#relatorioSelect")
+
+            relatorios.forEach(function (relatorio) {
+                relatorioSelect.append("<option data-syncstamp='" + relatorio.syncstamp + "' value='" + relatorio.codigo + "'>" + relatorio.descricao + "</option>")
+            })
+
+
+
+
+            var periodos = await getPeriodos()
+
+            if (periodos?.cod != "0000") {
+                console.log("Erro ao trazer lista de periodos", periodos)
+                return false
+            }
+
+            var periodoSelect = $("#periodoSelect")
+
+            periodos.data.forEach(function (periodo) {
+                //
+                periodoSelect.append("<option data-periodicidade='" + periodo.periodicidade + "' value='" + periodo.periodo.trim() + "'>" + periodo.periodicidade.trim() + "-" + periodo.periodo.trim() + "</option>")
+            })
+
+            $("#periodoSelect").select2({
+                // placeholder: "Selecione um relatório",
+                width: "100%",
+                allowClear: false
+            });
+
+            $("#relatorioSelect").select2({
+                // placeholder: "Selecione um relatório",
+                width: "100%",
+                allowClear: false
+            });
+
+
+        } catch (error) {
+
+            console.log("Erro interno ao obter filtros", error)
+            alertify.error("Erro ao obter filtros", 8000)
+
+        }
+
+
+
+
+
+    }
+
+
+
+
+    async function getPeriodos() {
+        return $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=getperiodicidades",
+        })
+    }
+
+    async function getListaRelatorios() {
+
+        return $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=getkpibymodelo",
+            data: {
+                '__EVENTARGUMENT': JSON.stringify([{ modelo: "BALANCODR", categoria: "Participadas" }]),
+            },
+        })
+    }
+    function buildFilters(filters) {
+
+        var filterResult = "AND 1=1"
+
+        filters.forEach(filter => {
+
+            filterResult += (["Todas", "Todos"].indexOf(filter?.filtervalue) >= 0 ? " AND 1=1 " : " AND " + filter.filterkey + "='" + filter.filtervalue + "' ")
+
+        })
+
+        return filterResult
+
+    }
+
+    function buildFiltersRelatorios(filters) {
+
+        var filterResult = "AND 1=1"
+
+        filters.forEach(filter => {
+
+            var filterkey = filter.filterkey
+
+            if (filter.filterkey == "cct") {
+                var selectedOption = $('#empresaSelect').find(':selected');
+                var dataNumero = selectedOption.data('numero');
+                filterkey = "noempresa"
+                filterResult += (["Todas", "Todos"].indexOf(filter?.filtervalue) >= 0 ? " AND 1=1 " : " AND " + filterkey + "='" + dataNumero + "' ")
+            }
+
+        })
+
+        return filterResult
+
+    }
+
+
+    async function initRelatorio() {
+
+        try {
+            mainSpinner("show")
+
+            var periodoAnteriorResult = await getPeriodoAnterior(periodo)
+
+            if (periodoAnteriorResult.cod != "0000") {
+                generateSemResultadosAlert()
+                console.log("ErroXX ao trazer dados da periodo anterior", periodoAnteriorResult)
+                //mainSpinner("hide")
+                //return false
+            }
+            // console.log("periodoAnteriorResult",periodoAnteriorResult)
+
+
+            // periodoanterior = periodoAnteriorResult.data[0].periodo
+            periodoanterior = (periodoAnteriorResult.data == "0F" ? "N/D" : periodoAnteriorResult.data)
+
+
+
+            var dadosRelatorio = await getDadosRelatorio(relatorio)
+
+            var configuracaoRelatorio = dadosRelatorio.data.dadosRelatorio[0]
+            if (dadosRelatorio.cod != "0000") {
+                generateSemResultadosAlert()
+                console.log("Erro ao trazer dados do relatorio", response)
+                mainSpinner("hide")
+                return false
+            }
+
+            //console.log("dadosRelatorio", dadosRelatorio)
+            var dadosModelo = []
+
+            var variaveisFontePreenchida = []
+            var variaveisFonte = dadosRelatorio.data.variaveisFonte
+
+            //console.log("configuracaoRelatorio", configuracaoRelatorio)
+
+            variaveisFonte.forEach(function (variavelFonte) {
+
+                var variaveis = []
+                var fonte = variavelFonte.fonte
+                variaveis = variavelFonte.variaveis
+                //console.log("fonte",fonte)
+                var variaveisPreenchidas = []
+
+                variaveis.forEach(function (dadosVariavel) {
+
+                    variaveisPreenchidas.push({
+                        original: dadosVariavel.original,
+                        preenchida: eval(dadosVariavel.nome)
+                    })
+
+                })
+
+                variaveisFontePreenchida.push({
+                    fonte: fonte,
+                    variaveis: variaveisPreenchidas
+                })
+
+            })
+
+
+            var fonteResult = await getFonteResult(variaveisFontePreenchida)
+            if (fonteResult.cod != "0000") {
+                generateSemResultadosAlert()
+                console.log("Erro ao trazer dados da fonte de dados", response)
+                mainSpinner("hide")
+                return false
+            }
+            console.log("fonteResult.data", fonteResult.data)
+            await buildLocalDatabaseTables(fonteResult.data)
+
+            // await buildModeloBalancoDR(dadosRelatorio.data, dadosModelo)
+
+            var dadosListagem = await getListagem(configuracaoRelatorio.syncstamp)
+
+            if (dadosListagem.cod != "0000") {
+                generateSemResultadosAlert()
+                console.log("Erro ao trazer dados da listagem", response)
+                mainSpinner("hide")
+                return false
+            }
+            var modeloRelatorio = configuracaoRelatorio.modelo
+
+            configuracaoModelo = dadosListagem.data
+            //console.log("dadosListagem", dadosListagem)
+
+            var modeloRelatorio = configuracaoRelatorio.modelo
+
+            //console.log("Modelo relatorio",modeloRelatorio)
+            switch (modeloRelatorio) {
+                case "BALANCODR":
+
+                    await buildModeloBalancoDR(configuracaoRelatorio, dadosListagem.data, dadosListagem.grupos);
+                    break;
+
+                default:
+                    break;
+            }
+
+
+
+
+
+            mainSpinner("hide")
+
+
+        } catch (error) {
+            mainSpinner("hide")
+            console.log("Erro interno ", error)
+        }
+
+
+
+    }
+
+    async function refreshFilters() {
+        periodo = $("#periodoSelect").val();
+        relatorio = $("#relatorioSelect").val();
+
+        var filters = [{
+            filterkey: $("#labelEmpresa").data("filterkey"),
+            filtervalue: $("#empresaSelect").val()
+        },
+        {
+            filterkey: $("#labelSector").data("filterkey"),
+            filtervalue: $("#sectorSelect").val()
+        },
+        {
+            filterkey: $("#labelImportanciaEstrategica").data("filterkey"),
+            filtervalue: $("#importanciaEstrategicaSelect").val()
+        }]
+
+        var filterResult = buildFilters(filters)
+        var filtersRelatoriosResult = buildFiltersRelatorios(filters)
+
+        filtros = filterResult
+        filtrosRelatorio = filtersRelatoriosResult
+    }
+
+
+    async function getEmpresa() {
+
+        return $.ajax({
+            type: "POST",
+            url: "../programs/gensel.aspx?cscript=getuserEmpresa",
+        })
+    }
+
+
+    function initModalCelula() {
+
+        var celulaHtml = "<div class='row'>"
+      
+    
+        celulaHtml += "    <div style='margin-top:0.6em;border-radius:12px;border:1px solid #033076' class='col-md-12'>"
+        celulaHtml += "        <span class='control-label'>Valores dinâmicos:</span>"
+        celulaHtml += "      <div class='row' id='valoresDinamicosContainer' style='height:107px'>"
+        celulaHtml += "     <div style='padding:7px' class='col-md-12 pull-left'></div>"
+        //  celulaHtml += "        <input id='campoagrupamento' class='form-control input-sm campoagrupamento'>"
+        celulaHtml += "      </div>"
+        celulaHtml += "    </div>"
+
+        celulaHtml += "    <div style='margin-top:0.6em' class='col-md-12'>"
+        celulaHtml += "        <span class='control-label'>Valor:</span>"
+        celulaHtml += "        <textarea readonly rows='20' id='valorCelula' class='form-control input-sm nomeCelula'></textarea>"
+        celulaHtml += "    </div>"
+
+        celulaHtml += "    </div>"
+        var modalData = {
+            title: "Configuração da célula",
+            id: "modalCelula",
+            customData: "",
+            otherclassess: "",
+            body: celulaHtml,
+            footerContent: ""
+        };
+        var modalHTML = generateModalHTML(modalData);
+        $("#maincontent").append(modalHTML)
+        $("#tipocelula").select2({
+            width: "100%",
+        })
+    }
+    function registerListeners() {
+        $(document).off("click", ".celula-inpt").on("click", ".celula-inpt", function () {
+
+
+
+
+            var celulaId = $(this).attr("data-celulaid")
+            var colunaId = $(this).attr("data-colunaid")
+            var valor = $(this).val()
+
+            if (selectCellMode) {
+
+                $("#modalCelula").modal("hide");
+
+                selectCellMode = false;
+                var colIndex = $(this).closest("td").index();
+                var header = $("#listagemTable thead th").eq(colIndex);
+                var linhaVal = $(this).closest("tr").find('td:eq(1) .celula-inpt').val();
+
+                var valorCabecalho = header.data("valor");
+
+                var descricao = linhaVal + ";" + valorCabecalho
+
+                var valorDinamicoData = dadosValoresDinamicos.find(function (obj) {
+                    return obj.id == valorDinamicoHtmlObject.data("id")
+                });
+
+                if (valorDinamicoData) {
+
+                    valorDinamicoData.descricao = descricao;
+                    valorDinamicoData.valor = "" + celulaId + "";
+                    valorDinamicoData.tipo = "Celula";
+
+                }
+
+
+                $(".celula-inpt").removeClass("select-cell-mode");
+                preencherValoresDinamicos();
+                celulaHtmlObject.trigger("click");
+                return
+            }
+
+            celulaHtmlObject = $(this);
+
+            var temCalculo = $(this).attr("data-temcalculo")
+            var tipo = $(this).attr("data-tipo")
+            var expressaolinha = $(this).closest("tr").attr("data-expressaolinha");
+
+
+            dadosValoresDinamicos = JSON.parse($(this).attr("data-valordinamico"));
+
+
+            $("#modalCelula #valorCelula").val(valor)
+            $("#modalCelula #expressaolinha").val(expressaolinha)
+            $("#modalCelula #temgrupo").prop("checked", $(this).closest("tr").attr("data-temgrupo") == "true" ? true : false)
+            $("#modalCelula #campoagrupamento").val($(this).closest("tr").attr("data-campoagrupamento"))
+            $("#modalCelula #temCalculo").prop("checked", temCalculo == "true" ? true : false)
+            $("#modalCelula #tipocelula").val(tipo)
+            $("#modalCelula #tipocelula").trigger("change");
+            $("#modalCelula").modal("show")
+            celulaHtmlData = $(this);
+
+            preencherValoresDinamicos();
+
+
+        })
+    }
+
+    function pad(n) { return n < 10 ? '0' + n : n; }
+
+    $(document).ready(function () {
+
+        initModalCelula();
+        registerListeners();
+        showSpinner().then(result => {
+            getUserData().then(userData => {
+                if (userData?.cod == "0000") {
+                    var username = userData.data.username;
+                    var assinatura = " Printed by: " + username + " on " + new Date().toLocaleDateString("pt-PT") + " " + new Date().toLocaleTimeString("pt-PT");
+                    $("#assinatura").html(assinatura);
+                }
+            }).catch(function () { });
+
+            getFilters().then(async result => {
+                var empresa = await getEmpresa();
+                if (empresa?.cod != "0000") {
+                    console.log("Erro ao trazer dados da empresa", empresa);
+                }
+                $("#nomeempresa").text(empresa.nomeEmpresa);
+                refreshReport();
+            }).catch(err => {
+                console.log("ERR", err);
+            });
+        })
+        $(document).off("change", ".filterreportfield").on("change", ".filterreportfield", function () {
+
+            refreshReport()
+
+        })
+
+        generateImpressaoButtons()
+
+        registerClickListenerImpressaoKPI()
+
+
+
+
+
+
+        function refreshReport() {
+
+
+            refreshFilters().then(data => {
+                initRelatorio().then(result => {
+                    mainSpinner("hide")
+                })
+
+            })
+
+            // console.log("filterResult", filterResult)
+            //mainSpinner("hide")
+        }
+
+        /* showSpinner().then(result => {
+             initRelatorio().then(result => {
+                 mainSpinner("hide")
+                 generateImpressaoButtons()
+             })
+         })*/
+
+        /* initRelatorio().then(result => {
+             mainSpinner("hide")
+         })*/
+
+
+    })
+
+    function getReportConfigByCodigo(relatorio) {
+        var dadosRelatorio = getDadosRelatorioSync(relatorio);
+        var configuracaoRelatorio = dadosRelatorio.data.dadosRelatorio[0];
+
+        if (dadosRelatorio.cod != "0000") {
+            throw new Error("Erro ao trazer dados do relatorio");
+        }
+
+        var dadosListagem = getListagemSync(configuracaoRelatorio.syncstamp);
+
+        if (dadosListagem.cod != "0000") {
+            throw new Error("Erro ao trazer dados da listagem");
+        }
+
+        var colunas = _.uniqBy(dadosListagem.data, function (v) {
+            return [v.codigocoluna, v.u_colunarelstamp, v.u_colunarelstamp].join();
+        });
+
+        var linhas = _.uniqBy(dadosListagem.data, function (v) {
+            return [v.u_linhastamp, v.ordemlinha].join();
+        });
+
+        linhas.sort(function (a, b) { return a.ordemlinha - b.ordemlinha; });
+        colunas.sort(function (a, b) { return a.ordemcoluna - b.ordemcoluna; });
+
+        var variaveisFontePreenchida = [];
+        var variaveisFonte = dadosRelatorio.data.variaveisFonte;
+
+        variaveisFonte.forEach(function (variavelFonte) {
+            var fonte = variavelFonte.fonte;
+            var variaveisPreenchidas = [];
+
+            variavelFonte.variaveis.forEach(function (dadosVariavel) {
+                variaveisPreenchidas.push({
+                    original: dadosVariavel.original,
+                    preenchida: eval(dadosVariavel.nome)
+                });
+            });
+
+            variaveisFontePreenchida.push({ fonte: fonte, variaveis: variaveisPreenchidas });
+        });
+
+        var fonteResult = getFonteResultSync(variaveisFontePreenchida);
+
+        if (fonteResult.cod != "0000") {
+            throw new Error("Erro ao trazer dados da fonte de dados");
+        }
+
+        fonteResult.data = fonteResult.data.map(fr => {
+            dadosListagem.data.map(dl => {
+                dl.valor = dl.valor.replace(fr.fonte, fr.fonte + "_REF");
+                dl.valor1 = dl.valor1.replace(fr.fonte, fr.fonte + "_REF");
+                dl.valorcelula = dl.valorcelula.replace(fr.fonte, fr.fonte + "_REF");
+                return dl;
+            });
+            fr.fonte = fr.fonte + "_REF";
+            return fr;
+        });
+
+        buildLocalDatabaseTablesSync(fonteResult.data);
+
+        return {
+            configuracaoRelatorio: configuracaoRelatorio,
+            dadosListagem: dadosListagem.data,
+            grupos: dadosListagem.grupos,
+            colunas: colunas,
+            linhas: linhas
+        };
+    }
+
+
+    function buildModeloBalancoDR(dadosRelatorio, dadosModelo, gruposRel) {
+
+        // console.log("mODELO REL", dadosRelatorio, dadosModelo)
+        confRelatorio = dadosModelo
+        var tableData = {
+            tableId: "dd",
+            classes: "table report-table-2b",
+            customData: "",
+            style: "",
+            header: {
+                rows: [
+
+
+                ],
+            },
+            body: {
+                customData: "",
+                rows: [
+                    {
+                        style: "",
+                        rowId: "",
+                        classes: "",
+                        customData: "",
+                        cols: [
+                            {
+                                style: "",
+                                colId: "",
+                                classes: "",
+                                content: "Data 1",
+                                customData: "",
+                            },
+                            {
+                                style: "",
+                                colId: "",
+                                classes: "",
+                                content: "Data 2",
+                                customData: "",
+                            },
+                        ],
+                    },
+                    {
+                        style: "",
+                        rowId: "",
+                        classes: "",
+                        customData: "",
+                        cols: [
+                            {
+                                style: "",
+                                colId: "",
+                                classes: "",
+                                content: "Data 3",
+                                customData: "",
+                            },
+                            {
+                                style: "",
+                                colId: "",
+                                classes: "",
+                                content: "Data 4",
+                                customData: "",
+                            },
+                        ],
+                    },
+                ],
+            },
+        };
+
+        var tipoListagem = dadosRelatorio.tipolistagem
+        gruposRelatorio = gruposRel
+
+        tableData.tableId = "impressaoTable"
+        tableData.classes = "table report-table-2b  "
+
+        tableData.body.rows = []
+        tableData.header.rows = []
+
+        var colunas = _.uniqBy(dadosModelo, function (v) {
+            return [v.codigocoluna, v.u_colunarelstamp, v.u_colunarelstamp].join();
+        });
+
+        var linhas = _.uniqBy(dadosModelo, function (v) {
+            return [v.u_linhastamp, v.ordemlinha].join();
+        });
+
+        linhas.sort(function (a, b) {
+            return a.ordemlinha - b.ordemlinha
+        });
+        colunas.sort(function (a, b) {
+            return a.ordemcoluna - b.ordemcoluna
+        });
+
+        dadosLinhas = []
+        dadosColunas = []
+        dadosLinhas = linhas
+        dadosColunas = colunas
+        var rowHeaderRelatorio = {
+            //  style: "background:#e9f1ff!important",
+            rowId: "",
+            // classes: "row-header-grupo defgridheader",
+            customData: "",
+            cols: [
+
+            ]
+        }
+
+        var r = 0
+
+        tableData.header.rows.push({
+            //  style: "background:#e9f1ff!important",
+            rowId: "",
+            // classes: "row-header-grupo defgridheader",
+            customData: "",
+            cols: [{
+                style: "color:#033076!important;text-align:left;font-weight:bold;font-size:19px;border-bottom:0px solid #033076!important;",
+                colId: "",
+                classses: "",
+                // classes: "defgridheader",
+                content: "<img src='../pimages/demo_logomaisritmop.png' alt='Logo' height='46' width='100' /><br><p>" + $("#relatorioSelect option:selected").text() + "</p>",
+                customData: "",
+            }
+
+            ]
+        })
+        colunas.forEach(function (coluna) {
+            var colunaId = coluna.u_colunarelstamp
+            var codigo = coluna.codigocoluna
+            var nomeColuna = coluna.valorcoluna
+            var ordem = coluna.ordemcoluna
+
+
+            if (nomeColuna == "N") {
+
+                nomeColuna = periodo
+            }
+            if (nomeColuna == "N-1") {
+
+                nomeColuna = periodoanterior
+            }
+
+            /*  if (nomeColuna == "Descrição") {
+  
+                  nomeColuna = ""
+              }
+  */
+            rowHeaderRelatorio.cols.push({
+                style: (codigo == "DESC" ? "text-align:left!important;" : "text-align:right!important;") + "border-top:0px solid #033076!important;border-bottom:1px solid #033076;font-size:13px!important;background:white!important;color:#033076!important;font-weight:bold;",
+                colId: "",
+                classses: "",
+                // classes: "defgridheader",
+                content: nomeColuna,
+                customData: "data-ordem='" + ordem + "' data-codigo='" + codigo + "' data-valor='" + nomeColuna + "' id='" + colunaId + "' class='coluna-conf'",
+            })
+            r++;
+            //$("#listagemTable thead tr").append("<th data-ordem='" + ordem + "' data-codigo='" + codigo + "' data-valor='" + nomeColuna + "' id='" + colunaId + "' class='coluna-conf'>" + nomeColuna + "</th>")
+        })
+
+        tableData.header.rows.push(rowHeaderRelatorio)
+
+        switch (tipoListagem) {
+
+            case "Grupo-Fixa":
+                var gruposParent = gruposRelatorio.filter(function (obj) {
+                    return obj.parent == true
+                })
+
+                gruposParent.sort(function (a, b) {
+                    return a.ordem - b.ordem
+                })
+
+                gruposParent.forEach(function (grupoParent) {
+
+                    getGrupoElements(grupoParent, tableData)
+
+
+
+                })
+
+            default:
+
+                break;
+        }
+
+
+        $("#kpiContainer").empty()
+        var tableHtml = generateTableV2(tableData)
+
+        //console.log("tableHtml", tableHtml)
+        $("#nomeIndicador").text(dadosRelatorio.descricao)
+
+        $("#kpiContainer").append(tableHtml)
+
+        actualizarTotaisReport();
+        handleStylesBasedOnTipoListagem(tipoListagem);
+        $("#impressaoTable td").css("width", "5%");
+    }
+
+
+
+    function getGrupoElements(grupoElement, tableData) {
+
+        var grupoId = grupoElement.u_gruporelstamp
+        var ordemGrupo = grupoElement.ordem
+        var gruposNodeRef = gruposRelatorio.filter(function (obj) {
+            return obj.noderef == grupoElement.u_gruporelstamp
+        })
+
+        var linhasGrupo = dadosLinhas.filter(function (obj) {
+            return obj.grupostamp == grupoElement.u_gruporelstamp
+        })
+
+        var rowGrupoHtml = {}
+        console.log("GRUPO ELEMENT TO CHECK", grupoElement)
+        var parent = grupoElement.parent
+
+        var firstParent = gruposRelatorio.findIndex(function (obj) {
+            return obj.u_gruporelstamp == grupoElement.u_gruporelstamp
+        })
+
+        var borderTop = (firstParent > 0 ? "border-top: 1px solid #a5a2a2!important;" : "")
+        var totClass = ""
+        var totNodeRef = ""
+
+        if (grupoElement.temtotais == true) {
+            if (parent == true) {
+
+                totClass = "total-grupo-row"
+
+                rowGrupoHtml = {
+                    style: "font-size:11px!important;background:white!important;color:#033076!important;text-align:right;font-weight:bold;text-align:left!important",
+                    rowId: "",
+                    classes: "",
+                    customData: "grupoid='" + grupoId + "'",
+                    cols: [
+                        {
+                            style: "font-size:11px!important;background:white!important;color:#033076!important;text-align:right;font-weight:bold;text-align:left!important",
+                            colId: "",
+                            classes: "",
+                            content: grupoElement.descricao,
+                            //customData: "data-empresano='" + dadosEmpresa.empresano + "' data-empresanome='" + dadosEmpresa.empresanome + "' data-coluna='" + coluna.coluna + "' data-colunadesc='" + coluna.descricao + "'",
+                        },
+                        {
+                            style: "font-size:11px!important;background:white!important;color:#033076!important;text-align:right;font-weight:bold;text-align:left!important",
+                            colId: "",
+                            classes: "",
+                            content: "",
+                            customData: "colspan='" + dadosColunas.length + "'"
+                            //customData: "data-empresano='" + dadosEmpresa.empresano + "' data-empresanome='" + dadosEmpresa.empresanome + "' data-coluna='" + coluna.coluna + "' data-colunadesc='" + coluna.descricao + "'",
+                        }
+                    ]
+
+                }
+
+                tableData.body.rows.push(rowGrupoHtml)
+
+
+            } else {
+
+                totClass = "total-subgrupo-row"
+                totNodeRef = "tot-noderef=" + grupoElement.noderef + ""
+
+                rowGrupoHtml = {
+                    style: "background-color: #e9f1ff!important;font-family: Nunito,sans-serif;font-size:11px!important;color:#033076!important;text-align:right;font-weight:bold;text-align:center!important",
+                    rowId: "",
+                    classes: "",
+                    customData: "grupoid='" + grupoId + "'",
+                    cols: [
+                        {
+                            style: "text-align:left;",
+                            colId: "",
+                            classes: "",
+                            content: grupoElement.descricao,
+                            //customData: "data-empresano='" + dadosEmpresa.empresano + "' data-empresanome='" + dadosEmpresa.empresanome + "' data-coluna='" + coluna.coluna + "' data-colunadesc='" + coluna.descricao + "'",
+                        },
+                        {
+                            style: "font-family: Nunito,font-weight:bold;text-align:center!important",
+                            colId: "",
+                            classes: "",
+                            content: "",
+                            customData: "colspan='" + dadosColunas.length + "'"
+                            //customData: "data-empresano='" + dadosEmpresa.empresano + "' data-empresanome='" + dadosEmpresa.empresanome + "' data-coluna='" + coluna.coluna + "' data-colunadesc='" + coluna.descricao + "'",
+                        }
+                    ]
+
+                }
+
+                tableData.body.rows.push(rowGrupoHtml)
+
+            }
+
+        }
+
+        gruposNodeRef.sort(function (a, b) {
+            return a.ordem - b.ordem
+        })
+        gruposNodeRef.forEach(function (grupoNodeRef) {
+
+            var nodes = gruposRelatorio.filter(function (node) {
+                return node.noderef == grupoNodeRef.u_gruporelstamp
+            })
+
+            var linhasNodes = dadosLinhas.filter(function (nodeLinha) {
+                return nodeLinha.grupostamp == grupoNodeRef.u_gruporelstamp
+            })
+
+            if (nodes.length > 0 || linhasNodes.length > 0) {
+
+                getGrupoElements(grupoNodeRef, tableData)
+            }
+        });
+
+        linhasGrupo.sort(function (a, b) {
+            return a.ordem - b.ordem
+        })
+
+        linhasGrupo.forEach(function (linha) {
+
+            var row = {
+                style: "text-align:right!important;",
+                rowId: "",
+                classes: "linha-item",
+                customData: "grupoid='" + grupoId + "'",
+                cols: [
+                ]
+
+            }
+            var linhaId = linha.u_linhastamp
+            var r = 0
+            dadosColunas.forEach(function (coluna) {
+
+                var celula = _.find(confRelatorio, function (o) {
+                    return o.u_colunarelstamp == coluna.u_colunarelstamp && o.u_linhastamp == linha.u_linhastamp
+                });
+                var valor = (celula ? celula.valorcelula : "")
+                var temCalculo = (celula ? celula.calculo : false)
+                var celulaId = (celula ? celula.u_celulastamp : generateUUID())
+                var colunaId = (celula ? celula.u_colunarelstamp : coluna.u_colunarelstamp);
+                configuracaoLinha = linha
+                var celulaValue = getCelulaValue(celula);
+
+                var valorDinamico = getValorDinamicoCelula(celula, confRelatorio);
+                // console.log("VALOR DINAMICO", valorDinamico);
+                var celulaResult = 0;
+                var valorDinamicoResult = 0;
+
+                if (celulaValue.erro != true) {
+
+                    celulaResult = Number(celulaValue.unformatted)
+                }
+
+                if (valorDinamico.erro != true) {
+                    valorDinamicoResult = Number(valorDinamico.unformatted)
+                }
+
+                var valorFinal = (valorDinamicoResult + celulaResult).toFixed(2)
+
+                var unformatted = (celula.tipocelula == "digit" ? "data-unformatted='" + valorFinal + "'" : "")
+
+                row.cols.push({
+                    style: (coluna.codigocoluna == "DESC" ? "text-align:left;font-style: italic;font-size:11px " : "text-align:right;font-size:11px") + ";" + (celulaValue.erro == true || valorDinamico.erro == true ? "color:red!important;" : ""),
+                    colId: "",
+                    classes: "",
+                    content: celula.tipocelula == "digit" ? formatInputValue(valorFinal) : celulaValue.valor,
+                    customData: "codigo-coluna='" + coluna.codigocoluna + "' data-grupoid='" + grupoId + "' " + unformatted
+                    //customData: "data-empresano='" + dadosEmpresa.empresano + "' data-empresanome='" + dadosEmpresa.empresanome + "' data-coluna='" + coluna.coluna + "' data-colunadesc='" + coluna.descricao + "'",
+                })
+                r++
+            })
+            tableData.body.rows.push(row)
+        })
+
+        var rowTotalGrupo = {
+            style: "text-align:left!important;border-bottom:1px solid #033076;",
+            rowId: "",
+            classes: " " + totClass,
+            customData: "grupoid='" + grupoId + "' " + totNodeRef + "",
+            cols: [
+                {
+                    style: "text-align:left!important;border-bottom:1px solid #033076;font-weight:bold;font-size:10px",
+                    colId: "",
+                    classes: "",
+                    content: "Total- " + grupoElement.descricao,
+                    //customData: "data-empresano='" + dadosEmpresa.empresano + "' data-empresanome='" + dadosEmpresa.empresanome + "' data-coluna='" + coluna.coluna + "' data-colunadesc='" + coluna.descricao + "'",
+                }
+
+            ]
+
+        }
+
+        dadosColunas
+
+        //console.log("Grupos tot", grupoElement.colunastotais)
+        var colunastotais = (grupoElement.colunastotais ? grupoElement.colunastotais.split(",") : [])
+
+
+        dadosColunas.forEach(function (coluna) {
+
+            var indexColunaTotais = colunastotais.findIndex(function (obj) {
+                return obj == coluna.codigocoluna
+            })
+
+            if (indexColunaTotais >= 0) {
+                rowTotalGrupo.cols.push({
+                    style: "text-align:left!important;border-bottom:1px solid #033076;font-weight:bold;font-size:11px;text-align:right!important",
+                    colId: "",
+                    classes: "",
+                    content: "0",
+                    customData: "codigo-coluna='" + coluna.codigocoluna + "' data-grupoid='" + grupoId + "'"
+                    //customData: "data-empresano='" + dadosEmpresa.empresano + "' data-empresanome='" + dadosEmpresa.empresanome + "' data-coluna='" + coluna.coluna + "' data-colunadesc='" + coluna.descricao + "'",
+                })
+            }
+
+            // r++
+        })
+        if (grupoElement.temtotais == true) {
+
+            tableData.body.rows.push(rowTotalGrupo)
+        }
+
+
+    }
+
+    function registerClickListenerImpressaoKPI() {
+        $(document).off("click", "#downloadImpressao").on("click", "#downloadImpressao", function () {
+
+            paginateContentKPi()
+            var params = new URLSearchParams(document.location.search);
+            var registo = params.get("registo");
+            var nota = params.get("nota");
+            var tabela = params.get("tabela");
+            var coluna = params.get("coluna");
+
+            var format = ($("#impressaoTable th").length > 15 ? "a2" : "a4")
+            var opt = {
+                margin: [0.2, 0.2, 0.1, 0.2],
+                filename: nota + (Math.floor(Math.random() * 9000) + 1000) + ".pdf",
+                html2canvas: { scale: 1.8 },  // Increase the DPI
+                //jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+                jsPDF: { unit: 'in', format: format, orientation: 'landscape' }, // Change format to 'a3' and orientation to 'landscape'
+                pagebreak: { mode: 'avoid-all', after: '.page' },
+            };
+
+            var worker = html2pdf().from(document.getElementById('paginationContainer')).set(opt).save().then(function () {
+                console.log('PDF saved successfully');
+                window.location.reload()
+            }).catch(function (error) {
+                alertify.error("Erro ao tentar fazer descarregar o ficheiro", 9000)
+            });;
+
+        })
+        $(document).off("click", "#downloadImpressaoExcel").on("click", "#downloadImpressaoExcel", function () {
+
+
+            //formatarImpressaoParaExcel()
+
+
+            $('#impressaoTable td[data-unformatted]').each(function () {
+                // Pega o conteúdo atual da td
+                var content = $(this).text();
+
+                // Faz as substituições desejadas
+                content = content.replaceAll(" ", "").replaceAll(".", ",");
+
+                // Define o novo conteúdo
+                $(this).text(content);
+            });
+            var containerDiv = document.getElementById("impressaoTable");
+
+
+            var htmlContent = "<table>" + containerDiv.innerHTML + "</table>";
+            htmlContent += "<br> <div><img src='http://tecnica.2business-si.com:85/tecnica/IGEPE/intranet/pimages/demo_logomaisritmop.png' height='0' width='93'  alt='sample image' /></div>"
+
+            footerElement = document.getElementsByClassName("footer-print-section");
+            htmlContent += "<br>" + $(".footer-print-section").html();
+            // Encode the table content as Base64
+            var base64Content = btoa(htmlContent);
+            var params = new URLSearchParams(document.location.search);
+            var nota = params.get("nota");
+            // Create a download link
+            var a = document.createElement("a");
+            a.href = "data:application/vnd.ms-excel;base64," + base64Content;
+            a.download = nota + (Math.floor(Math.random() * 9000) + 1000) + ".xls";
+            a.click();
+
+
+        })
+
+        $(document).off("click", "#previsaoImpressao").on("click", "#previsaoImpressao", function () {
+
+            paginateContentKPi()
+
+            var worker = html2pdf().set({
+                jsPDF: {
+                    orientation: 'landscape',
+                    unit: 'in',
+                    //   format: 'letter',
+                    putOnlyUsedFonts: true
+                },
+                pagebreak: { mode: 'avoid-all', after: '.page' },
+                margin: [0.2, 0.2, 0.1, 0.2], // top, left, bottom, right margins in inches,
+                html2canvas: { scale: 2, }  // Increase the DPI
+
+            }).from(document.getElementById('paginationContainer')).toPdf();
+
+            worker.output('datauristring').then(function (pdfAsString) {
+                var win = window.open();
+                win.document.write('<iframe src="' + pdfAsString + '" frameborder="0" style="width:100%; height:100%;" allowfullscreen></iframe>');
+                window.location.reload()
+            }).catch(function (error) {
+                alertify.error("Erro ao tentar fazer pré visualizar  o ficheiro", 9000)
+            });
+
+        })
+    }
+
+    function paginateContentKPi() {
+        // Definir o número de itens por página
+        var itensPorPagina = 20;
+        //1366x768
+        // Obter todas as linhas da tabela, excluindo a primeira linha do cabeçalho
+        var linhas = $('#impressaoTable tbody tr')
+
+        // Calcular o número de páginas necessárias
+        var numPaginas = Math.ceil(linhas.length / itensPorPagina);
+        var reportCabecalho = $(".header-print-section").html()
+        var reportFooter = $(".footer-print-section").html()
+        // Dividir as linhas em páginas e adicionar à div de paginacao
+        for (var i = 0; i < numPaginas; i++) {
+            var pageNumber = i + 1
+            var pageId = "page" + pageNumber
+            var pagina = $('<div   id=' + pageId + ' class= "page container-kpi" ></div > ');
+            var tabela = $('<table class="table print-table"></table>');
+            var mainbody = $('<table class="mainbody"></table>');
+            var cabecalho = $('#impressaoTable thead').clone();
+            //console.log("THEAD CLONED")
+            var rodape = $('<tfoot></tfoot>');
+
+            // Adicionar cabeçalho à tabela
+            tabela.append(cabecalho);
+
+            // Adicionar linhas à tabela
+            linhas.slice(i * itensPorPagina, (i + 1) * itensPorPagina).each(function () {
+                if ($(this) != undefined) {
+
+                    tabela.append($(this).clone());
+                }
+            });
+
+            // Adicionar rodapé à tabela
+            tabela.append(rodape);
+
+            // pagina.append(reportCabecalho);
+            pagina.append("<div class='header-print-section header-cont' >" + reportCabecalho + "</div>");
+
+            mainbody.append(tabela)
+            pagina.append(mainbody);
+            pagina.append("<div style='align-self:flex-end;width:100%' class='footer-print-section footer-cont' >" + reportFooter + "</div>");
+            $('#paginationContainer').append(pagina);
+            $(".print-table").css("margin-top", "1em")
+
+            var descritivoPagina = "Página " + pageNumber + " de " + numPaginas
+            $("#" + pageId + " .page-number").text(descritivoPagina)
+
+            var screenWidth = $(window).width();
+            var screenHeight = $(window).height();
+            //  alert(screenWidth + " " + screenHeight)
+            console.log("Screen width: " + screenWidth);
+            var minHeight = '0'
+            if (screenHeight >= 937) {
+                minHeight = "77vh"
+            }
+
+            if (screenHeight <= 625) {
+                minHeight = "117vh"
+            }
+
+            if (screenHeight <= 415) {
+                minHeight = "87vh"
+            }
+
+
+            //            //    minHeight: "117vh"
+            console.log("Screen height: " + screenHeight);
+            $('.page').css({
+                //  position: 'relative',
+
+            });
+            // style="border-top: 1px solid black;"
+            /*   $('.page .footer-print-section').css({
+                   position: 'absolute',
+                   bottom: '0',
+                   width: '100%',
+                   "text-align": "center",
+                   "border-top": "1px solid black",
+                   padding: "8px",
+                   height: '70px'
+               });*/
+
+            $('.page').each(function () {
+                if ($(this).is(':empty')) {
+                    $(this).remove();
+                }
+            });
+            $("#paginationContainer").show()
+
+
+
+        }
+    }
+
+</script>
