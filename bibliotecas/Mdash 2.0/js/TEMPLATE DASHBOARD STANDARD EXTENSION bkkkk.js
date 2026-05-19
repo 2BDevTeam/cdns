@@ -1,4 +1,4 @@
-﻿// ── Cache de cores por tipo (evita ~40 manipulações DOM repetidas) ───────────
+﻿// -- Cache de cores por tipo (evita ~40 manipulações DOM repetidas) -----------
 var _colorCache = {};
 function getCachedColor(type) {
     if (!_colorCache[type]) {
@@ -20,28 +20,7 @@ $(document).ready(function () {
     styles.forEach(function (style) {
         globalStyle += style;
     });
-    // Injectar APÓS o PHC terminar de adicionar os seus estilos ao <head>.
-    // MutationObserver com debounce: injeta 150ms depois da última mutação em <head>.
-    // Fallback de segurança: injeta no máximo após 2000ms mesmo sem mutações.
-    var _styleTimer = null;
-    var _styleInjected = false;
-
-    function _doInjectGlobalStyle() {
-        if (_styleInjected) return;
-        _styleInjected = true;
-        if (_styleObserver) _styleObserver.disconnect();
-        clearTimeout(_styleTimer);
-        $('head').append('<style>' + globalStyle + '</style>');
-    }
-
-    var _styleObserver = new MutationObserver(function () {
-        clearTimeout(_styleTimer);
-        _styleTimer = setTimeout(_doInjectGlobalStyle, 150);
-    });
-    _styleObserver.observe(document.head, { childList: true });
-
-    // Fallback: injecta mesmo que não haja mutações (ex: PHC já não injeta mais nada)
-    _styleTimer = setTimeout(_doInjectGlobalStyle, 2000);
+    $('head').append('<style>' + globalStyle + '</style>');
 });
 
 
@@ -194,7 +173,7 @@ function addTabulatorStyles(styles) {
     styles.push(tabulatorCSS);
 }
 
-// ── applyTabulatorStylesWithJqueryMdash removida — estilos já via CSS string ──
+// -- applyTabulatorStylesWithJqueryMdash removida — estilos já via CSS string --
 
 // ...existing code...
 function generateCardTimeLine(cardData) {
@@ -489,11 +468,11 @@ function generateDashCardStandard(cardData) {
     return cardHTML;
 }
 
-// ── Custom Code Object Type ─────────────────────────────────────────────────
+// -- Custom Code Object Type -------------------------------------------------
 // Permite ao utilizador escrever JavaScript personalizado que é executado
 // com acesso directo ao containerSelector, data (rows), config e jQuery.
 // Funciona tanto no builder (editor) como no dashboard renderizado (mdash.html).
-// ────────────────────────────────────────────────────────────────────────────
+// ----------------------------------------------------------------------------
 
 var _CUSTOMCODE_SAMPLE_CONFIG = {
     code: '// Variáveis disponíveis:\n// containerSelector — selector CSS do container (string)\n// $container       — $(containerSelector) (jQuery)\n// data             — array de registos da fonte\n// config           — objecto de configuração\n// itemObject       — MdashContainerItemObject\n// fetchData()      — função que devolve array de dados da fonte+transform\n\n$container.html(\'<div style="padding:16px;color:#64748b;font-size:13px;"><i class="fa fa-code"></i> Código personalizado</div>\');',
@@ -501,18 +480,18 @@ var _CUSTOMCODE_SAMPLE_CONFIG = {
     executeOnEdit: true
 };
 
-// ── Renderer ────────────────────────────────────────────────────────────────
+// -- Renderer ----------------------------------------------------------------
 function renderObjectCustomCode(dados) {
     var cfg = dados.config
         ? JSON.parse(JSON.stringify(dados.config))
         : JSON.parse(JSON.stringify(_CUSTOMCODE_SAMPLE_CONFIG));
+    var rows = dados.data || [];
     var stamp = dados.itemObject.mdashcontaineritemobjectstamp;
     var sel = dados.containerSelector;
 
-    // PRIORIDADE: transformConfig SEMPRE tem prioridade sobre dados.data
-    var rows = [];
+    // Transform fallback
     var tCfg = dados.transformConfig || cfg.transformConfig || null;
-    if (tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
+    if (rows.length === 0 && tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
         try {
             var raw = MdashTransformBuilder.executeRaw(tCfg);
             if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
@@ -523,11 +502,6 @@ function renderObjectCustomCode(dados) {
                 });
             }
         } catch (e) { /* silêncio */ }
-    }
-    
-    // Fallback: usar dados.data se não há transformConfig ou se a transformação falhou
-    if (rows.length === 0 && dados.data && dados.data.length > 0) {
-        rows = dados.data;
     }
 
     var code = cfg.code || '';
@@ -550,7 +524,7 @@ function renderObjectCustomCode(dados) {
         $('head').append('<style id="' + styleId + '">' + cssCode + '</style>');
     }
 
-    // ── Helper: fetchData() — obtém dados da fonte + transform configurada ──
+    // -- Helper: fetchData() — obtém dados da fonte + transform configurada --
     var _ccItemObject = dados.itemObject;
     var fetchData = function () {
         var resolved = mdashResolveObjectData(_ccItemObject, []);
@@ -589,7 +563,7 @@ function renderObjectCustomCode(dados) {
     }
 }
 
-// ── Inline Properties Editor ────────────────────────────────────────────────
+// -- Inline Properties Editor ------------------------------------------------
 function renderCustomCodePropertiesInline(obj, panel) {
     var stamp = obj.mdashcontaineritemobjectstamp;
     var cfg = obj.config
@@ -600,15 +574,13 @@ function renderCustomCodePropertiesInline(obj, panel) {
 
     _mciCSS();
 
-    // ── fire() — debounce save + re-render ──
+    // -- fire() — debounce save + re-render --
     var _timer = null;
     function fire() {
         clearTimeout(_timer);
         _timer = setTimeout(function () {
             if (!panel.find('.mcc-root').length) return;
             _ccReadConfig(panel, obj);
-            // Sincronizar a invariante triplicada antes de persistir
-            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
             if (typeof realTimeComponentSync === 'function')
                 realTimeComponentSync(obj, obj.table, obj.idfield);
             _mciRerender(obj);
@@ -616,10 +588,10 @@ function renderCustomCodePropertiesInline(obj, panel) {
     }
     panel.data('_mciTimer', _timer);
 
-    // ── Transform badge — SEMPRE usar obj.transformConfig (root level) como fonte de verdade ──
-    var _hasTrans = !!(obj.transformConfig && obj.transformConfig.sourceTable);
+    // -- Transform badge --
+    var _hasTrans = !!((obj.transformConfig && obj.transformConfig.sourceTable) || (cfg.transformConfig && cfg.transformConfig.sourceTable));
 
-    // ── Section: Dados (fonte + transform) ──
+    // -- Section: Dados (fonte + transform) --
     var sDados = '<div class="mcbi-field"><label>Fonte de dados</label>'
         + '<select class="mcbi-fonte form-control input-sm"><option value="">-- seleccione uma fonte --</option>'
         + fontes.map(function (f) {
@@ -631,15 +603,15 @@ function renderCustomCodePropertiesInline(obj, panel) {
         + '<div class="mcbi-transform-status' + (_hasTrans ? ' is-active' : '') + '">'
         + '<span class="mcbi-ts-badge">'
         + (_hasTrans
-            ? '<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc(obj.transformConfig.sourceTable) + '</strong>'
+            ? '<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc((obj.transformConfig && obj.transformConfig.sourceTable) || (cfg.transformConfig && cfg.transformConfig.sourceTable) || 'SQL') + '</strong>'
             : '<i class="glyphicon glyphicon-filter"></i> Sem transformação de dados')
         + '</span>'
         + '<button type="button" class="mcbi-btn-transform">'
-        + (_hasTrans ? '<i class="glyphicon glyphicon-pencil"></i> Editar' : '<i class="glyphicon glyphicon-pencil"></i> Configurar')
+        + (_hasTrans ? '<i class="glyphicon glyphicon-pencil"></i> Editar' : '<i class="glyphicon glyphicon-plus"></i> Configurar')
         + '</button>'
         + '</div>';
 
-    // ── Section: Código JavaScript ──
+    // -- Section: Código JavaScript --
     var codeValue = cfg.code || _CUSTOMCODE_SAMPLE_CONFIG.code;
     var sCodigo = '<div class="mcbi-field">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
@@ -650,7 +622,7 @@ function renderCustomCodePropertiesInline(obj, panel) {
         + '</div>'
         + '</div>';
 
-    // ── Section: CSS ──
+    // -- Section: CSS --
     var cssValue = cfg.cssCode || '';
     var sCSS = '<div class="mcbi-field">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
@@ -661,7 +633,7 @@ function renderCustomCodePropertiesInline(obj, panel) {
         + '</div>'
         + '</div>';
 
-    // ── Section: Opções ──
+    // -- Section: Opções --
     var sOpcoes = '<div class="mcbi-field">'
         + _mciChk('mcc-exec-edit', 'Executar no editor (live preview)', cfg.executeOnEdit !== false)
         + '</div>'
@@ -671,7 +643,7 @@ function renderCustomCodePropertiesInline(obj, panel) {
         + (fields.length ? fields.map(function (f) { return '<code style="background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;margin:1px;">' + _mciEsc(f) + '</code>'; }).join(' ') : '<em>Sem campos — seleccione uma fonte</em>')
         + '</div></div>';
 
-    // ── Ajuda ──
+    // -- Ajuda --
     var sAjuda = '<div style="font-size:10.5px;color:#64748b;line-height:1.6;">'
         + '<p style="margin:0 0 6px;"><strong>Variáveis disponíveis:</strong></p>'
         + '<code>containerSelector</code> — selector CSS (string)<br>'
@@ -687,7 +659,7 @@ function renderCustomCodePropertiesInline(obj, panel) {
         + '$container.empty();\nvar html = \'&lt;ul&gt;\';\ndata.forEach(function(row) {\n  html += \'&lt;li&gt;\' + row.nome + \'&lt;/li&gt;\';\n});\nhtml += \'&lt;/ul&gt;\';\n$container.html(html);'
         + '</pre></div>';
 
-    // ── Assemble HTML ──
+    // -- Assemble HTML --
     var html = '<div class="mcbi-root mcc-root" data-stamp="' + stamp + '">'
         + _mciSection('dados', 'Dados', 'glyphicon-hdd', true, sDados)
         + _mciSection('codigo', 'Código JavaScript', 'glyphicon-console', true, sCodigo)
@@ -698,7 +670,7 @@ function renderCustomCodePropertiesInline(obj, panel) {
 
     panel.html(html);
 
-    // ── Init ACE editors ──
+    // -- Init ACE editors --
     var aceJsId = 'mcc-ace-' + stamp;
     var aceCssId = 'mcc-ace-css-' + stamp;
     var aceJs = null, aceCss = null;
@@ -721,12 +693,12 @@ function renderCustomCodePropertiesInline(obj, panel) {
         aceCss.on('change', function () { fire(); });
     }
 
-    // ── Store ace references on panel for readConfig ──
+    // -- Store ace references on panel for readConfig --
     panel.data('_mccAceJs', aceJs);
     panel.data('_mccAceCss', aceCss);
 
-    // ── Event handlers ──
-    panel.off(); // Limpar TODOS os handlers (incluindo de outros tipos de objetos)
+    // -- Event handlers --
+    panel.off('.mcbi');
 
     // Section collapse
     panel.on('click.mcbi', '.mcbi-section-hd', function () {
@@ -758,30 +730,11 @@ function renderCustomCodePropertiesInline(obj, panel) {
         var currentTC = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
         var fonteStamp = obj.fontestamp;
         var fonte = fonteStamp && _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === fonteStamp; });
-        
-        // Obter schema da fonte (tenta schemajson, lastResultscached, ou DB)
-        var schema = _mciGetFonteSchema(fonte);
-        var tbl = (fonte && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(fonte) : null;
-        
-        // Se não há transformConfig existente E temos fonte válida, criar config inicial
-        if (!currentTC && tbl && typeof MdashTransformBuilder !== 'undefined') {
-            currentTC = MdashTransformBuilder.autoConfig(tbl, 'CustomCode');
+        var schema = [];
+        if (fonte && typeof mdashFonteTableName === 'function' && typeof MdashTransformBuilder !== 'undefined') {
+            var tbl = mdashFonteTableName(fonte);
+            if (tbl) schema = MdashTransformBuilder.getTableSchema(tbl);
         }
-        
-        // Se ainda não há config (sem fonte), criar config vazio
-        if (!currentTC) {
-            currentTC = {
-                sourceTable: '',
-                mode: 'visual',
-                columns: [],
-                measures: [],
-                filters: [],
-                orderBy: [],
-                limit: null,
-                sqlFree: ''
-            };
-        }
-        
         _mciOpenTransformModalFor({
             title: 'Transformação — Código Personalizado',
             fonteName: fonte ? (fonte.descricao || fonte.codigo) : '',
@@ -835,7 +788,7 @@ function renderCustomCodePropertiesInline(obj, panel) {
     });
 }
 
-// ── Full-screen editor modal ────────────────────────────────────────────────
+// -- Full-screen editor modal ------------------------------------------------
 function _mccOpenEditorModal(mode, aceRef, onApply) {
     var modalId = 'mcc-editor-fullscreen-modal';
     $('#' + modalId).remove();
@@ -881,7 +834,7 @@ function _mccOpenEditorModal(mode, aceRef, onApply) {
     $modal.on('hidden.bs.modal', function () { $(this).remove(); });
 }
 
-// ── Read config from panel ──────────────────────────────────────────────────
+// -- Read config from panel --------------------------------------------------
 function _ccReadConfig(panel, obj) {
     var cfg = obj.config || {};
     var aceJs = panel.data('_mccAceJs');
@@ -890,14 +843,10 @@ function _ccReadConfig(panel, obj) {
     cfg.code = aceJs ? aceJs.getValue() : (cfg.code || '');
     cfg.cssCode = aceCss ? aceCss.getValue() : (cfg.cssCode || '');
     cfg.executeOnEdit = panel.find('.mcc-exec-edit').is(':checked');
-    // Preservar transformConfig de obj.config OU obj.transformConfig (fallback)
-    cfg.transformConfig = cfg.transformConfig || obj.transformConfig || null;
+    cfg.transformConfig = cfg.transformConfig || null;
 
     obj.config = cfg;
-    obj.transformConfig = cfg.transformConfig;
-    
-    // NÃO atualizar configjson ou transformconfigjson manualmente!
-    // stringifyJSONFields() será chamado no fire() e fará a sincronização completa
+    obj.configjson = JSON.stringify(cfg);
 }
 
 
@@ -950,16 +899,10 @@ var _TABLE_SAMPLE_CONFIG = {
         rowHeight: 'normal',
         accentColor: ''
     },
-    footer: { showRowCount: true, showColumnsInfo: false },
-    filters: {
-        enabled: false,
-        position: 'top',
-        activeFilterKey: null,
-        definitions: []
-    }
+    footer: { showRowCount: true, showColumnsInfo: false }
 };
 
-// ── Temas visuais da tabela ──────────────────────────────────────────────────
+// -- Temas visuais da tabela --------------------------------------------------
 var _TABLE_THEMES = {
     phcPrimary: { name: 'PHC Primary', phcType: 'primary', headerBg: '', headerText: '#ffffff', accent: '', rowEven: '#f8fafc', rowHover: 'rgba(0,0,0,.03)', border: 'rgba(0,0,0,.06)' },
     phcSuccess: { name: 'PHC Success', phcType: 'success', headerBg: '', headerText: '#ffffff', accent: '', rowEven: '#f8fafc', rowHover: 'rgba(0,0,0,.03)', border: 'rgba(0,0,0,.06)' },
@@ -972,9 +915,7 @@ var _TABLE_THEMES = {
     vibrant:    { name: 'Vibrante',    headerBg: '#7c3aed', headerText: '#faf5ff', accent: '#a78bfa', rowEven: '#faf5ff', rowHover: 'rgba(167,139,250,.06)', border: 'rgba(124,58,237,.08)' },
     earth:      { name: 'Terra',       headerBg: '#78350f', headerText: '#fef3c7', accent: '#b45309', rowEven: '#fffbeb', rowHover: 'rgba(180,83,9,.05)', border: 'rgba(120,53,15,.08)' },
     dark:       { name: 'Escuro',      headerBg: '#0f172a', headerText: '#e2e8f0', accent: '#60a5fa', rowEven: '#1e293b', rowHover: 'rgba(96,165,250,.08)', border: 'rgba(226,232,240,.08)' },
-    minimal:    { name: 'Minimalista', headerBg: 'transparent', headerText: '#475569', accent: '#64748b', rowEven: 'transparent', rowHover: 'rgba(0,0,0,.02)', border: 'rgba(0,0,0,.06)' },
-    yellow:     { name: 'Amarelo',     headerBg: '#efe21b',    headerText: '#1a1a00', accent: '#c8c000', rowEven: '#fefee8', rowHover: 'rgba(239,226,27,.08)', border: 'rgba(200,192,0,.15)' },
-    black:      { name: 'Preto',       headerBg: '#111111',    headerText: '#f5f5f5', accent: '#444444', rowEven: '#f7f7f7', rowHover: 'rgba(0,0,0,.04)', border: 'rgba(0,0,0,.10)' }
+    minimal:    { name: 'Minimalista', headerBg: 'transparent', headerText: '#475569', accent: '#64748b', rowEven: 'transparent', rowHover: 'rgba(0,0,0,.02)', border: 'rgba(0,0,0,.06)' }
 };
 
 // Resolve tema PHC em runtime (getCachedColor só funciona após DOM ready)
@@ -989,31 +930,29 @@ function _tblResolveTheme(themeDef) {
     };
 }
 
-// ── Formatadores disponíveis ─────────────────────────────────────────────────
+// -- Formatadores disponíveis -------------------------------------------------
 var _TABLE_FORMATTERS = [
     { value: 'plaintext', label: 'Texto' },
     { value: 'number', label: 'Número' },
     { value: 'money', label: 'Moeda (€)' },
     { value: 'percentage', label: 'Percentagem' },
     { value: 'datetime', label: 'Data/Hora' },
-    { value: 'date', label: 'Só Data (dd/mm/aaaa)' },
     { value: 'tickCross', label: 'Sim/Não' },
     { value: 'star', label: 'Estrelas' },
     { value: 'progress', label: 'Barra de Progresso' },
     { value: 'color', label: 'Cor' },
     { value: 'link', label: 'Link' },
-    { value: 'linkButton', label: 'Botão (link)' },
     { value: 'html', label: 'HTML' }
 ];
 
-// ── Opções de alinhamento ────────────────────────────────────────────────────
+// -- Opções de alinhamento ----------------------------------------------------
 var _TABLE_ALIGNS = [
     { value: 'left', label: 'Esquerda', icon: 'glyphicon-align-left' },
     { value: 'center', label: 'Centro', icon: 'glyphicon-align-center' },
     { value: 'right', label: 'Direita', icon: 'glyphicon-align-right' }
 ];
 
-// ── Opções de ordenação ──────────────────────────────────────────────────────
+// -- Opções de ordenação ------------------------------------------------------
 var _TABLE_SORTERS = [
     { value: 'string', label: 'Texto' },
     { value: 'number', label: 'Número' },
@@ -1023,7 +962,7 @@ var _TABLE_SORTERS = [
     { value: 'datetime', label: 'Data/Hora' }
 ];
 
-// ── Injectar CSS da Tabela (idempotente) ─────────────────────────────────────
+// -- Injectar CSS da Tabela (idempotente) -------------------------------------
 var _tblCssInjected = false;
 function _tblCSS() {
     if (_tblCssInjected) return;
@@ -1057,6 +996,13 @@ function _tblCSS() {
     s += '.mtbl-wrap .tabulator .tabulator-tableholder::-webkit-scrollbar-track{background:transparent;}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:3px;}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.2);}';
+    s += '.mtbl-toolbar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#f8fafc;border-bottom:1px solid rgba(0,0,0,.06);}';
+    s += '.mtbl-toolbar-right{display:flex;gap:6px;align-items:center;}';
+    s += '.mtbl-export-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;border:1px solid rgba(0,0,0,.1);background:#fff;font-size:11px;font-weight:600;color:#475569;cursor:pointer;transition:all .15s;}';
+    s += '.mtbl-export-btn:hover{border-color:var(--mtbl-accent,#2563eb);color:var(--mtbl-accent,#2563eb);background:#f0f4ff;}';
+    s += '.mtbl-export-btn i{font-size:12px;}';
+    s += '.mtbl-row-count{font-size:11px;color:#94a3b8;}';
+    s += '.mtbl-row-count strong{color:#475569;font-weight:600;}';
     s += '.mtbl-money{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}';
     s += '.tabulator .tabulator-cell .tabulator-data-tree-branch{display:none;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col:hover{background:var(--mtbl-hdr-bg) !important;cursor:default;}';
@@ -1065,7 +1011,7 @@ function _tblCSS() {
     $('head').append(s);
 }
 
-// ── Render ───────────────────────────────────────────────────────────────────
+// -- Render -------------------------------------------------------------------
 function renderObjectTable(dados) {
     var stamp = dados.itemObject.mdashcontaineritemobjectstamp;
     var cfg = dados.config
@@ -1095,12 +1041,7 @@ function renderObjectTable(dados) {
         isSample = true;
     }
 
-    // Injetar CSS para tabela e filtros
     _tblCSS();
-    _tblAddFiltersCSS();
-    
-    console.log('[Table] Renderizando tabela. Config filters:', cfg.filters);
-    
     var theme = _tblResolveTheme(_TABLE_THEMES[cfg.theme] || _TABLE_THEMES.phcPrimary);
     var stl = cfg.styling || {};
     var tblId = 'mtbl_' + stamp;
@@ -1111,9 +1052,15 @@ function renderObjectTable(dados) {
         : '';
 
     var toolbarHtml = '';
-
-    // Renderizar filtros
-    var filtersHtml = _tblRenderFilters(cfg.filters, rows);
+    var exp = cfg.exportOptions || {};
+    if (exp.enableExcel || exp.enablePDF) {
+        toolbarHtml = '<div class="mtbl-toolbar">'
+            + '<span class="mtbl-row-count"><strong>' + rows.length + '</strong> registos</span>'
+            + '<div class="mtbl-toolbar-right">';
+        if (exp.enableExcel) toolbarHtml += '<button type="button" class="mtbl-export-btn mtbl-exp-xlsx" title="Exportar Excel"><i class="fa fa-file-excel-o"></i> Excel</button>';
+        if (exp.enablePDF) toolbarHtml += '<button type="button" class="mtbl-export-btn mtbl-exp-pdf" title="Exportar PDF"><i class="fa fa-file-pdf-o"></i> PDF</button>';
+        toolbarHtml += '</div></div>';
+    }
 
     var hdrBg = stl.headerBg || theme.headerBg;
     var accentC = stl.accentColor || theme.accent;
@@ -1127,9 +1074,8 @@ function renderObjectTable(dados) {
         + '--mtbl-fs:' + (stl.fontSize || 13) + 'px;';
 
     var html = badgeHtml
-        + '<div id="' + wrapId + '" class="mtbl-wrap" style="' + cssVars + '" data-stamp="' + stamp + '">'
+        + '<div id="' + wrapId + '" class="mtbl-wrap" style="' + cssVars + '">'
         + toolbarHtml
-        + filtersHtml
         + '<div id="' + tblId + '"></div>'
         + '</div>';
 
@@ -1199,106 +1145,19 @@ function renderObjectTable(dados) {
         });
         $wrap.on('click', '.mtbl-exp-pdf', function () {
             table.download('pdf', 'dados.pdf', {
-                orientation: 'landscape', title: 'Relatório',
+                orientation: 'landscape', title: 'Relat\u00f3rio',
                 autoTable: { styles: { fillColor: [30, 41, 59] }, margin: { top: 30 } }
             });
-        });
-
-        // ── Event handlers para filtros (com toggle) ──
-        $wrap.on('click', '.mtbl-filter-btn', function() {
-            var $btn = $(this);
-            var filterKey = $btn.data('filter-key');
-            var wasActive = $btn.hasClass('is-active');
-            
-            if (!cfg.filters || !cfg.filters.definitions) return;
-            
-            // Encontrar definição do filtro
-            var filterDef = cfg.filters.definitions.find(function(f) { return f.key === filterKey; });
-            if (!filterDef) return;
-            
-            var allData = rows;
-            var filteredData;
-            
-            if (wasActive) {
-                // TOGGLE OFF: Desativar filtro e mostrar todos os dados
-                $btn.removeClass('is-active');
-                $btn.removeAttr('style'); // Remove estilo inline
-                filteredData = allData;
-                cfg.filters.activeFilterKey = null;
-                
-                console.log('[Table Filters] Filtro desativado:', filterKey);
-            } else {
-                // TOGGLE ON: Ativar filtro
-                $wrap.find('.mtbl-filter-btn').removeClass('is-active');
-                // Remover estilos de cor ativa de outros botões, mas preservar customStyles
-                $wrap.find('.mtbl-filter-btn').each(function() {
-                    var $otherBtn = $(this);
-                    if ($otherBtn[0] !== $btn[0]) {
-                        $otherBtn.css({
-                            'background-color': '',
-                            'border-color': '',
-                            'color': ''
-                        });
-                    }
-                });
-                
-                $btn.addClass('is-active');
-                
-                // Aplicar estilos personalizados (com suporte a cores PHC)
-                if (filterDef.style) {
-                    var styles = {};
-                    if (filterDef.style.activeColor) {
-                        var activeColor = _tblResolvePHCColor(filterDef.style.activeColor) || filterDef.style.activeColor;
-                        styles['background-color'] = activeColor;
-                        styles['border-color'] = activeColor;
-                        styles['color'] = '#fff';
-                    }
-                    if (Object.keys(styles).length > 0) {
-                        $btn.css(styles);
-                    }
-                    // Estilos customizados adicionais via customStyle são aplicados inline no HTML
-                }
-                
-                // Aplicar filtro
-                filteredData = _tblApplyFilter(allData, filterDef);
-                cfg.filters.activeFilterKey = filterKey;
-                
-                console.log('[Table Filters] Filtro ativado:', filterKey, 'registos:', filteredData.length);
-            }
-            
-            // Atualizar Tabulator
-            table.setData(filteredData);
-            
-            // Guardar estado do filtro
-            if (dados.itemObject) {
-                dados.itemObject.config = cfg;
-                dados.itemObject.configjson = JSON.stringify(cfg);
-                if (typeof realTimeComponentSync === 'function') {
-                    realTimeComponentSync(dados.itemObject, dados.itemObject.table, dados.itemObject.idfield);
-                }
-            }
         });
 
         table.on('tableBuilt', function () {
             if (dom._mdashTableReady) return;
             dom._mdashTableReady = true;
-            
-            // Aplicar filtro ativo (se houver) sem trigger para evitar toggle
-            if (cfg.filters && cfg.filters.enabled && cfg.filters.activeFilterKey) {
-                var activeFilter = cfg.filters.definitions.find(function(f) { return f.key === cfg.filters.activeFilterKey; });
-                if (activeFilter) {
-                    var filteredData = _tblApplyFilter(rows, activeFilter);
-                    table.setData(filteredData);
-                    $wrap.find('.mtbl-row-count strong').text(filteredData.length);
-                    console.log('[Table Filters] Filtro inicial aplicado:', cfg.filters.activeFilterKey);
-                }
-            }
-            
             if (window.ResizeObserver) {
                 var ro = new ResizeObserver(function () { table.redraw(); });
                 ro.observe(dom);
             }
-            // ── Inline column rename via click ──
+            // -- Inline column rename via click --
             $(dom).on('click', '.tabulator-col-title', function (e) {
                 e.stopPropagation();
                 var $ttl = $(this);
@@ -1363,7 +1222,7 @@ function renderObjectTable(dados) {
     }, 0);
 }
 
-// ── Construir colunas Tabulator ──────────────────────────────────────────────
+// -- Construir colunas Tabulator ----------------------------------------------
 function _tblBuildColumns(cfg, rows) {
     var cols = cfg.columns || [];
     if ((!cols.length || cfg.autoColumns) && cfg.autoColumns !== false && rows.length > 0) {
@@ -1404,213 +1263,18 @@ function _tblBuildColumns(cfg, rows) {
         };
         if (c.width) col.width = c.width;
         if (c.minWidth) col.minWidth = c.minWidth;
-        // Aceitar urlExpr/labelExpr/target no topo da coluna (UX) — copiar p/ formatterParams
-        if (c.formatter === 'link' || c.formatter === 'linkButton') {
-            var fp = (c.formatterParams && typeof c.formatterParams === 'object')
-                ? c.formatterParams : {};
-            if (c.urlExpr && !fp.urlExpr) fp.urlExpr = c.urlExpr;
-            if (c.labelExpr && !fp.labelExpr) fp.labelExpr = c.labelExpr;
-            if (c.linkLabel && !fp.linkLabel) fp.linkLabel = c.linkLabel;
-            if (c.linkColor && !fp.linkColor) fp.linkColor = c.linkColor;
-            if (c.target && !fp.target) fp.target = c.target;
-            if (c.urlBase && !fp.urlBase) fp.urlBase = c.urlBase;
-            c.formatterParams = fp;
-        }
         if (c.formatter) {
-            if (c.formatter === 'linkButton') {
-                // Custom formatter: renderiza um <button> e navega via JS (resolve URLs relativas)
-                col.formatterParams = _tblPrepareFormatterParams('link', c.formatterParams || {});
-                col.formatter = _tblLinkButtonFormatter;
-                col.cellClick = function () { }; // ignora; o botão trata
-                col.hozAlign = c.hozAlign || 'center';
-            } else if (c.formatter === 'date') {
-                // Formata apenas a data (dd/mm/aaaa) — descarta a hora
-                col.formatter = function (cell) {
-                    var v = cell.getValue();
-                    if (v === null || v === undefined || v === '') return '';
-                    var d = new Date(v);
-                    if (isNaN(d.getTime())) return String(v);
-                    return ('0' + d.getDate()).slice(-2) + '/' +
-                           ('0' + (d.getMonth() + 1)).slice(-2) + '/' +
-                           d.getFullYear();
-                };
-                col.sorter = c.sorter || 'date';
-            } else {
-                col.formatter = c.formatter;
-                if (c.formatterParams) {
-                    col.formatterParams = _tblPrepareFormatterParams(c.formatter, c.formatterParams);
-                    if (c.formatter === 'money') col.formatterParams.symbolAfter = true;
-                } else if (c.formatter === 'link') {
-                    col.formatterParams = { target: '_blank' };
-                }
+            col.formatter = c.formatter;
+            if (c.formatterParams) {
+                col.formatterParams = c.formatterParams;
+                if (c.formatter === 'money') col.formatterParams.symbolAfter = true;
             }
         }
         return col;
     });
 }
 
-// ── Base URL da aplicação (resolve URLs relativas tipo "../intranet/...") ────
-function _mdashGetAppBaseUrl() {
-    // 1) override do utilizador
-    if (window.MdashConfig && typeof window.MdashConfig.appBaseUrl === 'string' && window.MdashConfig.appBaseUrl) {
-        var b = window.MdashConfig.appBaseUrl;
-        if (b.charAt(b.length - 1) !== '/') b += '/';
-        return b;
-    }
-    // 2) auto-deteção: assume que existe um segmento /intranet/ ou /programs/ na URL actual
-    var path = window.location.pathname || '';
-    var m = path.match(/^(.*\/intranet)\//i);
-    if (m) return window.location.origin + m[1] + '/';
-    m = path.match(/^(.*)\/programs\//i);
-    if (m) return window.location.origin + m[1] + '/';
-    // 3) fallback: directório actual
-    var idx = path.lastIndexOf('/');
-    return window.location.origin + (idx >= 0 ? path.substring(0, idx + 1) : '/');
-}
-
-// ── Resolve uma URL (absoluta, ~/raiz, ou relativa) contra a base da app ────
-function _mdashResolveUrl(url, urlBase) {
-    if (!url) return '#';
-    url = String(url);
-    if (/^(https?:)?\/\//i.test(url) || url.charAt(0) === '/') return url; // já absoluta
-    var base = urlBase || _mdashGetAppBaseUrl();
-    if (base && base.charAt(base.length - 1) !== '/') base += '/';
-    if (url.indexOf('~/') === 0) return base + url.substring(2);
-    // Resolução relativa via URL API
-    try { return new URL(url, base).href; } catch (e) { return base + url; }
-}
-// Expor globalmente para uso em expressões urlExpr (ex: mdashResolveUrl('~/intranet/flow/x.aspx'))
-window.mdashResolveUrl = _mdashResolveUrl;
-window.mdashAppBaseUrl = _mdashGetAppBaseUrl;
-
-// ── Paleta PHC para botões link ─────────────────────────────────────────────
-var _PHC_BTN_PALETTE = {
-    primary: { bg: '#2563eb', hover: '#1d4ed8', fg: '#fff', border: '#2563eb' },
-    success: { bg: '#16a34a', hover: '#15803d', fg: '#fff', border: '#16a34a' },
-    info:    { bg: '#0ea5e9', hover: '#0284c7', fg: '#fff', border: '#0ea5e9' },
-    warning: { bg: '#f59e0b', hover: '#d97706', fg: '#fff', border: '#f59e0b' },
-    danger:  { bg: '#ef4444', hover: '#dc2626', fg: '#fff', border: '#ef4444' },
-    dark:    { bg: '#1f2937', hover: '#111827', fg: '#fff', border: '#1f2937' }
-};
-function _mdashResolveBtnColor(linkColor) {
-    if (!linkColor) return _PHC_BTN_PALETTE.primary;
-    if (linkColor.indexOf('phc:') === 0) {
-        var k = linkColor.replace('phc:', '');
-        return _PHC_BTN_PALETTE[k] || _PHC_BTN_PALETTE.primary;
-    }
-    // Custom hex
-    var hex = String(linkColor);
-    return { bg: hex, hover: _mdashDarkenHex(hex, 0.12), fg: '#fff', border: hex };
-}
-function _mdashDarkenHex(hex, amount) {
-    try {
-        var h = hex.replace('#', '');
-        if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
-        var r = Math.max(0, Math.round(parseInt(h.substr(0, 2), 16) * (1 - amount)));
-        var g = Math.max(0, Math.round(parseInt(h.substr(2, 2), 16) * (1 - amount)));
-        var b = Math.max(0, Math.round(parseInt(h.substr(4, 2), 16) * (1 - amount)));
-        return '#' + [r, g, b].map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
-    } catch (e) { return hex; }
-}
-
-// ── Custom formatter: linkButton ────────────────────────────────────────────
-function _tblLinkButtonFormatter(cell, formatterParams) {
-    var url = '#', label = '';
-    try { url = formatterParams.url ? formatterParams.url(cell) : (cell.getValue() || '#'); } catch (e) { }
-    // Resolução de label (prioridade): labelExpr (function `label`) > linkLabel (texto fixo) > labelField > 'Abrir'
-    try {
-        if (formatterParams.label) {
-            label = formatterParams.label(cell);
-        } else if (formatterParams.linkLabel) {
-            label = formatterParams.linkLabel;
-        } else if (formatterParams.labelField) {
-            label = (cell.getData() || {})[formatterParams.labelField];
-        } else {
-            label = 'Abrir';
-        }
-    } catch (e) { label = formatterParams.linkLabel || 'Abrir'; }
-    // Resolver URL relativa
-    url = _mdashResolveUrl(url, formatterParams.urlBase);
-    var target = formatterParams.target || '_self';
-    var palette = _mdashResolveBtnColor(formatterParams.linkColor);
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'mdash-tbl-linkbtn';
-    btn.textContent = label != null && label !== '' ? String(label) : 'Abrir';
-    btn.title = String(label || 'Abrir'); // tooltip = label, NÃO a URL
-    btn.style.cssText = 'padding:3px 12px;border:1px solid ' + palette.border + ';background:' + palette.bg + ';color:' + palette.fg + ';border-radius:4px;cursor:pointer;font-size:12px;font-weight:500;line-height:1.4;';
-    btn.addEventListener('mouseenter', function () { btn.style.background = palette.hover; btn.style.borderColor = palette.hover; });
-    btn.addEventListener('mouseleave', function () { btn.style.background = palette.bg; btn.style.borderColor = palette.border; });
-    btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (target === '_blank') window.open(url, '_blank');
-        else window.location.href = url;
-    });
-    return btn;
-}
-
-// ── Prepara formatterParams (compila urlExpr/labelExpr p/ formatter 'link') ──
-function _tblPrepareFormatterParams(formatter, params) {
-    var out = {};
-    for (var k in params) if (Object.prototype.hasOwnProperty.call(params, k)) out[k] = params[k];
-
-    if (formatter === 'link') {
-        // urlExpr: expressão JS por linha, com acesso a `row`, `value`, `cell`
-        // ex: "'../intranet/flow/wwfaform.aspx?oristamp=' + encodeURIComponent(getStampEncriptado(row.wwfastamp)) + '&acao=aprovar'"
-        if (typeof out.urlExpr === 'string' && out.urlExpr.trim()) {
-            var _urlFn;
-            try {
-                _urlFn = new Function('cell', 'row', 'value',
-                    'with(row){return (' + out.urlExpr + ');}');
-            } catch (e) {
-                console.warn('[Tabulator link] urlExpr inválida:', e.message, '|', out.urlExpr);
-                _urlFn = function () { return '#'; };
-            }
-            var _urlBase = out.urlBase;
-            out.url = function (cell) {
-                try {
-                    var row = cell.getData() || {};
-                    var raw = _urlFn(cell, row, cell.getValue());
-                    return _mdashResolveUrl(raw, _urlBase);
-                } catch (err) {
-                    console.warn('[Tabulator link] url runtime error:', err.message);
-                    return '#';
-                }
-            };
-            delete out.urlExpr;
-        }
-        // labelExpr: expressão JS para texto do link (caso contrário usa value/labelField)
-        if (typeof out.labelExpr === 'string' && out.labelExpr.trim()) {
-            var _lblFn;
-            try {
-                _lblFn = new Function('cell', 'row', 'value',
-                    'with(row){return (' + out.labelExpr + ');}');
-            } catch (e) {
-                console.warn('[Tabulator link] labelExpr inválida:', e.message, '|', out.labelExpr);
-                _lblFn = function () { return ''; };
-            }
-            out.label = function (cell) {
-                try {
-                    var row = cell.getData() || {};
-                    return _lblFn(cell, row, cell.getValue());
-                } catch (err) {
-                    console.warn('[Tabulator link] label runtime error:', err.message);
-                    return cell.getValue();
-                }
-            };
-            delete out.labelExpr;
-        }
-        // linkLabel: texto fixo. Se não houver label (de labelExpr), usar este.
-        if (typeof out.linkLabel === 'string' && out.linkLabel && !out.label) {
-            var _ll = out.linkLabel;
-            out.label = function () { return _ll; };
-        }
-        if (!out.target) out.target = '_blank';
-    }
-    return out;
-}
-
-// ── Adivinhar sorter ─────────────────────────────────────────────────────────
+// -- Adivinhar sorter ---------------------------------------------------------
 function _tblGuessSorter(rows, field) {
     for (var i = 0; i < Math.min(rows.length, 5); i++) {
         var v = rows[i][field];
@@ -1623,7 +1287,7 @@ function _tblGuessSorter(rows, field) {
     return 'string';
 }
 
-// ── Construir \u00e1rvore (dataTree) ──────────────────────────────────────────────
+// -- Construir \u00e1rvore (dataTree) ----------------------------------------------
 function _tblBuildTree(data, parentField, childField) {
     var lookup = {};
     var roots = [];
@@ -1644,309 +1308,7 @@ function _tblBuildTree(data, parentField, childField) {
     return roots;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TABLE FILTERS SYSTEM - Operadores e Motor de Filtragem
-// ═══════════════════════════════════════════════════════════════════════════
-
-// Helper: Avaliar expressão JavaScript se for uma expressão
-function _tblEvalExpression(value, row, allRows) {
-    if (typeof value !== 'string') return value;
-    
-    // Detectar se é uma expressão JavaScript (contém operadores, funções, etc.)
-    // Expressões começam com "=" ou contêm "row.", operadores matemáticos, funções, etc.
-    var isExpression = value.startsWith('=') || 
-                      value.includes('row.') || 
-                      value.includes('row[') ||
-                      /[\+\-\*\/\(\)\[\]]/.test(value) ||
-                      /^(Math\.|Number\.|String\.|Date\.|parseFloat|parseInt|isNaN)/.test(value);
-    
-    if (!isExpression) return value;
-    
-    try {
-        // Remove "=" inicial se existir
-        var expr = value.startsWith('=') ? value.substring(1) : value;
-        
-        // Criar contexto seguro com variáveis disponíveis
-        var fn = new Function('row', 'allRows', 'Math', 'Number', 'String', 'Date', 'parseFloat', 'parseInt', 
-            'return (' + expr + ');'
-        );
-        
-        var result = fn(row, allRows, Math, Number, String, Date, parseFloat, parseInt);
-        console.log('[Filter] Expressão avaliada:', value, '→', result);
-        return result;
-    } catch(e) {
-        console.error('[Filter] Erro ao avaliar expressão:', value, e);
-        return value; // Fallback para valor original
-    }
-}
-
-var _TABLE_FILTER_OPERATORS = {
-    'eq': function(fieldValue, filterValue, row, allRows) { 
-        var evaluatedValue = _tblEvalExpression(filterValue, row, allRows);
-        return fieldValue == evaluatedValue; 
-    },
-    'neq': function(fieldValue, filterValue, row, allRows) { 
-        var evaluatedValue = _tblEvalExpression(filterValue, row, allRows);
-        return fieldValue != evaluatedValue; 
-    },
-    'gt': function(fieldValue, filterValue, row, allRows) { 
-        var evaluatedValue = _tblEvalExpression(filterValue, row, allRows);
-        return parseFloat(fieldValue) > parseFloat(evaluatedValue); 
-    },
-    'gte': function(fieldValue, filterValue, row, allRows) { 
-        var evaluatedValue = _tblEvalExpression(filterValue, row, allRows);
-        return parseFloat(fieldValue) >= parseFloat(evaluatedValue); 
-    },
-    'lt': function(fieldValue, filterValue, row, allRows) { 
-        var evaluatedValue = _tblEvalExpression(filterValue, row, allRows);
-        return parseFloat(fieldValue) < parseFloat(evaluatedValue); 
-    },
-    'lte': function(fieldValue, filterValue, row, allRows) { 
-        var evaluatedValue = _tblEvalExpression(filterValue, row, allRows);
-        return parseFloat(fieldValue) <= parseFloat(evaluatedValue); 
-    },
-    'contains': function(fieldValue, filterValue) {
-        if (!fieldValue) return false;
-        return String(fieldValue).toLowerCase().includes(String(filterValue).toLowerCase());
-    },
-    'startsWith': function(fieldValue, filterValue) {
-        if (!fieldValue) return false;
-        return String(fieldValue).toLowerCase().startsWith(String(filterValue).toLowerCase());
-    },
-    'in': function(fieldValue, filterValue) {
-        return Array.isArray(filterValue) && filterValue.includes(fieldValue);
-    },
-    'dateEq': function(fieldValue, filterValue) { return _tblCompareDates(fieldValue, filterValue, 'eq'); },
-    'dateGt': function(fieldValue, filterValue) { return _tblCompareDates(fieldValue, filterValue, 'gt'); },
-    'dateLt': function(fieldValue, filterValue) { return _tblCompareDates(fieldValue, filterValue, 'lt'); },
-    'dateBetween': function(fieldValue, filterValue) {
-        if (!Array.isArray(filterValue) || filterValue.length < 2) return false;
-        return _tblDateInRange(fieldValue, filterValue[0], filterValue[1]);
-    },
-    'isNull': function(fieldValue) { return fieldValue == null || fieldValue === ''; },
-    'isNotNull': function(fieldValue) { return fieldValue != null && fieldValue !== ''; },
-    'custom': function(fieldValue, filterValue, row, allRows) {
-        if (typeof filterValue === 'function') {
-            try { return filterValue(fieldValue, row, allRows); }
-            catch(e) { console.error('[Filter] Custom error:', e); return false; }
-        }
-        return true;
-    }
-};
-
-function _tblParseDate(value) {
-    if (!value) return null;
-    if (value instanceof Date) return value;
-    var parsed = new Date(value);
-    if (!isNaN(parsed.getTime())) return parsed;
-    var parts = String(value).split('/');
-    if (parts.length === 3) {
-        return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
-    }
-    return null;
-}
-
-function _tblCompareDates(dateValue, filterValue, operator) {
-    var d1 = _tblParseDate(dateValue);
-    var d2 = _tblParseDate(filterValue);
-    if (!d1 || !d2) return false;
-    d1.setHours(0, 0, 0, 0);
-    d2.setHours(0, 0, 0, 0);
-    var t1 = d1.getTime(), t2 = d2.getTime();
-    switch(operator) {
-        case 'eq': return t1 === t2;
-        case 'gt': return t1 > t2;
-        case 'lt': return t1 < t2;
-        default: return false;
-    }
-}
-
-function _tblDateInRange(dateValue, startValue, endValue) {
-    var d = _tblParseDate(dateValue);
-    var start = _tblParseDate(startValue);
-    var end = _tblParseDate(endValue);
-    if (!d || !start || !end) return false;
-    d.setHours(0, 0, 0, 0);
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
-    var t = d.getTime();
-    return t >= start.getTime() && t <= end.getTime();
-}
-
-function _tblResolveFilterValue(value) {
-    if (typeof value !== 'string') return value;
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
-    switch(value) {
-        case 'TODAY': return today;
-        case 'YESTERDAY': return new Date(today.getTime() - 86400000);
-        case 'WEEK_START':
-            var d = new Date(today);
-            var day = d.getDay();
-            var diff = d.getDate() - day + (day === 0 ? -6 : 1);
-            return new Date(d.setDate(diff));
-        case 'WEEK_END':
-            var start = _tblResolveFilterValue('WEEK_START');
-            return new Date(start.getTime() + 6 * 86400000);
-        case 'LAST_7_DAYS': return new Date(today.getTime() - 7 * 86400000);
-        case 'LAST_30_DAYS': return new Date(today.getTime() - 30 * 86400000);
-        default: return value;
-    }
-}
-
-function _tblApplyFilter(rows, filterDef) {
-    if (!rows || !Array.isArray(rows)) return [];
-    if (!filterDef || !filterDef.conditions || !filterDef.conditions.length || filterDef.conditions[0].field === null) {
-        return rows;
-    }
-    return rows.filter(function(row) {
-        var results = [];
-        for (var i = 0; i < filterDef.conditions.length; i++) {
-            var cond = filterDef.conditions[i];
-            var fieldValue = row[cond.field];
-            var filterValue = _tblResolveFilterValue(cond.value);
-            var operator = _TABLE_FILTER_OPERATORS[cond.operator];
-            if (!operator) {
-                results.push({ result: false, logic: cond.logic || 'AND' });
-                continue;
-            }
-            var result = operator(fieldValue, filterValue, row, rows);
-            results.push({ result: result, logic: cond.logic || 'AND' });
-        }
-        if (!results.length) return true;
-        var finalResult = results[0].result;
-        for (var j = 1; j < results.length; j++) {
-            var prevLogic = results[j-1].logic;
-            finalResult = prevLogic === 'OR' ? (finalResult || results[j].result) : (finalResult && results[j].result);
-        }
-        return finalResult;
-    });
-}
-
-function _tblCalculateFilterCount(filterDef, allData) {
-    if (!allData || !Array.isArray(allData)) return 0;
-    if (filterDef.badge && filterDef.badge.field) {
-        var field = filterDef.badge.field;
-        var value = filterDef.badge.value;
-        if (value !== null && value !== undefined) {
-            return allData.filter(function(row) { return row[field] == value; }).length;
-        }
-        return allData.length;
-    }
-    return _tblApplyFilter(allData, filterDef).length;
-}
-
-// ── Helper: Resolver cor PHC ──
-function _tblResolvePHCColor(colorStr) {
-    if (!colorStr) return null;
-    if (typeof colorStr === 'string' && colorStr.indexOf('phc:') === 0) {
-        var phcType = colorStr.replace('phc:', '');
-        if (typeof getCachedColor === 'function') {
-            var c = getCachedColor(phcType);
-            return c && c.background ? c.background : null;
-        }
-    }
-    return colorStr;
-}
-
-function _tblRenderFilters(filterConfig, currentData) {
-    console.log('[Table Filters] _tblRenderFilters chamado:', filterConfig);
-    
-    if (!filterConfig || !filterConfig.enabled || !filterConfig.definitions || !filterConfig.definitions.length) {
-        console.log('[Table Filters] Filtros não renderizados:', {
-            hasConfig: !!filterConfig,
-            enabled: filterConfig ? filterConfig.enabled : 'N/A',
-            hasDefinitions: filterConfig ? !!filterConfig.definitions : 'N/A',
-            definitionsLength: filterConfig && filterConfig.definitions ? filterConfig.definitions.length : 0
-        });
-        return '';
-    }
-    
-    console.log('[Table Filters] Renderizando', filterConfig.definitions.length, 'filtros');
-    
-    var html = '<div class="mtbl-filters-bar">';
-    filterConfig.definitions.forEach(function(filter) {
-        if (filter.type === 'button') {
-            var isActive = filterConfig.activeFilterKey === filter.key;
-            var count = _tblCalculateFilterCount(filter, currentData);
-            
-            console.log('[Table Filters] Filtro:', filter.label, 'count:', count, 'active:', isActive);
-            
-            // Classes: base + ativa + customizadas
-            var classes = ['mtbl-filter-btn'];
-            if (isActive) classes.push('is-active');
-            if (filter.style && filter.style.customClass) {
-                classes.push(_mciEsc(filter.style.customClass));
-            }
-            
-            html += '<button type="button" class="' + classes.join(' ') + '"';
-            html += ' data-filter-key="' + _mciEsc(filter.key) + '"';
-            
-            // Estilos inline customizados
-            var styles = [];
-            if (filter.style) {
-                // Cor ativa
-                if (isActive && filter.style.activeColor) {
-                    var activeColor = _tblResolvePHCColor(filter.style.activeColor) || filter.style.activeColor;
-                    styles.push('background-color:' + _mciEsc(activeColor));
-                    styles.push('border-color:' + _mciEsc(activeColor));
-                    // Detectar se cor é clara → texto escuro para legibilidade
-                    var txtOnActive = '#fff';
-                    if (activeColor && activeColor.charAt(0) === '#') {
-                        var _h = activeColor.replace('#','');
-                        if (_h.length === 3) _h = _h[0]+_h[0]+_h[1]+_h[1]+_h[2]+_h[2];
-                        var _lum = (0.299*parseInt(_h.substr(0,2),16) + 0.587*parseInt(_h.substr(2,2),16) + 0.114*parseInt(_h.substr(4,2),16)) / 255;
-                        if (_lum > 0.52) txtOnActive = '#1a1a1a';
-                    }
-                    styles.push('color:' + txtOnActive);
-                }
-                // Estilos customizados adicionais
-                if (filter.style.customStyle) {
-                    styles.push(_mciEsc(filter.style.customStyle));
-                }
-            }
-            if (styles.length > 0) {
-                html += ' style="' + styles.join(';') + '"';
-            }
-            
-            html += '>';
-            if (filter.icon) html += '<i class="' + _mciEsc(filter.icon) + '"></i> ';
-            html += _mciEsc(filter.label);
-            if (filter.badge && filter.badge.enabled) {
-                html += ' <span class="mtbl-filter-badge">' + _mciEsc(filter.badge.format.replace('{count}', count)) + '</span>';
-            }
-            html += '</button>';
-        }
-    });
-    html += '</div>';
-    
-    console.log('[Table Filters] HTML gerado:', html.length, 'chars');
-    return html;
-}
-
-function _tblAddFiltersCSS() {
-    if ($('#mtbl-filters-styles').length) return;
-    var css = '<style id="mtbl-filters-styles">'
-        + '.mtbl-filters-bar{display:flex;flex-wrap:wrap;gap:8px;padding:10px 2px;background:transparent;}'
-        + '.mtbl-filter-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;font-size:14px;font-weight:600;'
-        + 'color:#475569;background:#f8fafc;border:1.5px solid rgba(0,0,0,.11);border-radius:8px;cursor:pointer;'
-        + 'transition:background .15s,border-color .15s,color .15s;white-space:nowrap;user-select:none;}'
-        + '.mtbl-filter-btn:hover{background:#f1f5f9;border-color:#2563eb;color:#2563eb;}'
-        + '.mtbl-filter-btn.is-active{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700;}'
-        + '.mtbl-filter-btn.is-active:hover{background:#1d4ed8;border-color:#1d4ed8;}'
-        + '.mtbl-filter-btn i{font-size:13px;opacity:.85;}'
-        + '.mtbl-filter-badge{display:inline-block;min-width:20px;height:20px;padding:0 6px;font-size:12px;font-weight:700;'
-        + 'line-height:20px;text-align:center;background:rgba(0,0,0,.12);color:inherit;border-radius:10px;}'
-        + '.mtbl-filter-btn.is-active .mtbl-filter-badge{background:rgba(255,255,255,.25);color:#fff;}'
-        + '@media (max-width:768px){.mtbl-filters-bar{gap:6px;padding:8px 12px;}'
-        + '.mtbl-filter-btn{padding:8px 14px;font-size:13px;}'
-        + '.mtbl-filter-badge{font-size:10px;min-width:18px;height:18px;line-height:18px;}}'
-        + '</style>';
-    $('head').append(css);
-}
-
-
-// ── Painel de propriedades inline da Tabela ──────────────────────────────────
+// -- Painel de propriedades inline da Tabela ----------------------------------
 function renderTablePropertiesInline(obj, panel) {
     var stamp = obj.mdashcontaineritemobjectstamp;
     var cfg = obj.config
@@ -1964,8 +1326,6 @@ function renderTablePropertiesInline(obj, panel) {
         _timer = setTimeout(function () {
             if (!panel.find('.mtbl-root').length) return;
             _tblReadConfig(panel, obj);
-            // Sincronizar a invariante triplicada antes de persistir
-            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
             if (typeof realTimeComponentSync === 'function')
                 realTimeComponentSync(obj, obj.table, obj.idfield);
             _mciRerender(obj);
@@ -1976,7 +1336,7 @@ function renderTablePropertiesInline(obj, panel) {
     var _hasTrans = !!((obj.transformConfig && obj.transformConfig.sourceTable)
         || (cfg.transformConfig && cfg.transformConfig.sourceTable));
 
-    // ── Sec\u00e7\u00e3o: Dados ──
+    // -- Sec\u00e7\u00e3o: Dados --
     var sDados = '<div class="mcbi-field"><label>Fonte de dados</label>'
         + '<select class="mcbi-fonte form-control input-sm"><option value="">-- seleccione uma fonte --</option>'
         + fontes.map(function (f) {
@@ -1998,7 +1358,7 @@ function renderTablePropertiesInline(obj, panel) {
         + (_hasTrans ? '<i class="glyphicon glyphicon-pencil"></i> Editar' : '<i class="glyphicon glyphicon-plus"></i> Configurar')
         + '</button></div>';
 
-    // ── Sec\u00e7\u00e3o: Tema visual ──
+    // -- Sec\u00e7\u00e3o: Tema visual --
     var sTema = '<div class="mcbi-field"><label>Tema</label>'
         + '<div class="mtbl-theme-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:5px;">';
     Object.keys(_TABLE_THEMES).forEach(function (k) {
@@ -2015,7 +1375,7 @@ function renderTablePropertiesInline(obj, panel) {
     });
     sTema += '</div></div>';
 
-    // ── Sec\u00e7\u00e3o: Layout ──
+    // -- Sec\u00e7\u00e3o: Layout --
     var sLayout = '<div class="mcbi-field"><label>Modo de layout</label>'
         + '<select class="mtbl-layout form-control input-sm">'
         + [['fitColumns', 'Ajustar colunas'], ['fitData', 'Ajustar aos dados'], ['fitDataFill', 'Preencher'], ['fitDataStretch', 'Esticar']].map(function (o) {
@@ -2038,7 +1398,7 @@ function renderTablePropertiesInline(obj, panel) {
         + _mciChk('mtbl-headerfilter', 'Filtros no cabe\u00e7alho', cfg.headerFilter === true)
         + '</div>';
 
-    // ── Sec\u00e7\u00e3o: Pagina\u00e7\u00e3o ──
+    // -- Sec\u00e7\u00e3o: Pagina\u00e7\u00e3o --
     var pgn = cfg.pagination || {};
     var sPagination = '<div class="mcbi-checks">'
         + _mciChk('mtbl-paginate', 'Ativar pagina\u00e7\u00e3o', pgn.enabled === true)
@@ -2049,7 +1409,7 @@ function renderTablePropertiesInline(obj, panel) {
             return '<option value="' + n + '"' + ((pgn.size || 15) === n ? ' selected' : '') + '>' + n + '</option>';
         }).join('') + '</select></div>';
 
-    // ── Sec\u00e7\u00e3o: Colunas ──
+    // -- Sec\u00e7\u00e3o: Colunas --
     var sColunas = '<div class="mcbi-checks">'
         + _mciChk('mtbl-autocols', 'Auto-gerar colunas', cfg.autoColumns !== false)
         + '</div>'
@@ -2067,7 +1427,7 @@ function renderTablePropertiesInline(obj, panel) {
         + '<button type="button" class="btn btn-xs btn-default mtbl-add-col" style="margin-top:6px;width:100%;"><i class="glyphicon glyphicon-plus"></i> Adicionar coluna</button>'
         + '</div>';
 
-    // ── Sec\u00e7\u00e3o: Hierarquia ──
+    // -- Sec\u00e7\u00e3o: Hierarquia --
     var dt = cfg.dataTree || {};
     var sTree = '<div class="mcbi-checks">'
         + _mciChk('mtbl-tree', 'Ativar estrutura hier\u00e1rquica', dt.enabled === true)
@@ -2085,14 +1445,14 @@ function renderTablePropertiesInline(obj, panel) {
         + _mciChk('mtbl-tree-expand', 'Expandir tudo inicialmente', dt.startExpanded !== false)
         + '</div></div>';
 
-    // ── Sec\u00e7\u00e3o: Exporta\u00e7\u00e3o ──
+    // -- Sec\u00e7\u00e3o: Exporta\u00e7\u00e3o --
     var expCfg = cfg.exportOptions || {};
     var sExport = '<div class="mcbi-checks">'
         + _mciChk('mtbl-exp-excel', 'Exportar Excel', expCfg.enableExcel !== false)
         + _mciChk('mtbl-exp-pdf-chk', 'Exportar PDF', expCfg.enablePDF === true)
         + '</div>';
 
-    // ── Sec\u00e7\u00e3o: Estilo ──
+    // -- Sec\u00e7\u00e3o: Estilo --
     var stl = cfg.styling || {};
     var sEstilo = '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Cor cabe\u00e7alho</label>'
@@ -2111,53 +1471,23 @@ function renderTablePropertiesInline(obj, panel) {
         + '<input type="number" class="mtbl-fontsize form-control input-sm" value="' + (stl.fontSize || 13) + '" min="10" max="18" style="width:70px;"> px</div>'
         + '</div>';
 
-    // ── Secção: Filtros Rápidos ──
-    var flt = cfg.filters || { enabled: false, definitions: [] };
-    var sFiltros = '<div class="mcbi-checks">';
-    sFiltros += _mciChk('mtbl-filters-enable', 'Ativar filtros rápidos', flt.enabled === true);
-    sFiltros += '</div>';
-    sFiltros += '<div class="mtbl-filters-config" style="' + (flt.enabled ? '' : 'display:none;') + '">';
-    sFiltros += '<div class="mcbi-field" style="margin-top:12px;">';
-    sFiltros += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
-    sFiltros += '<label style="margin:0;font-weight:600;">Filtros Configurados</label>';
-    sFiltros += '<button type="button" class="btn btn-xs btn-default mtbl-add-filter">';
-    sFiltros += '<i class="glyphicon glyphicon-plus"></i> Adicionar</button>';
-    sFiltros += '</div>';
-    sFiltros += '<div class="mtbl-filters-list" style="margin-top:8px;">';
-    if (flt.definitions && flt.definitions.length) {
-        flt.definitions.forEach(function(f, idx) {
-            sFiltros += '<div class="mtbl-filter-item" data-idx="' + idx + '" style="display:flex;align-items:center;gap:6px;padding:6px;background:#f8fafc;border-radius:6px;margin-bottom:4px;">';
-            sFiltros += '<span class="glyphicon glyphicon-menu-hamburger" style="color:#94a3b8;cursor:move;font-size:10px;"></span>';
-            sFiltros += '<input type="text" class="form-control input-sm mtbl-filter-label" value="' + _mciEsc(f.label || '') + '" placeholder="Label" style="flex:1;">';
-            sFiltros += '<button type="button" class="btn btn-xs btn-default mtbl-filter-edit" title="Editar condições">';
-            sFiltros += '<i class="glyphicon glyphicon-cog"></i></button>';
-            sFiltros += '<button type="button" class="btn btn-xs btn-danger mtbl-filter-remove" title="Remover">';
-            sFiltros += '<i class="glyphicon glyphicon-trash"></i></button>';
-            sFiltros += '</div>';
-        });
-    } else {
-        sFiltros += '<div class="mcbi-info">Nenhum filtro. Clique "Adicionar".</div>';
-    }
-    sFiltros += '</div></div></div>';
-
-    // ── Montar HTML ──
+    // -- Montar HTML --
     var html = '<div class="mcbi-root mtbl-root" data-stamp="' + stamp + '">'
         + _mciSection('dados', 'Dados', 'glyphicon-hdd', true, sDados)
         + _mciSection('tema', 'Tema Visual', 'glyphicon-eye-open', true, sTema)
         + _mciSection('layout', 'Layout', 'glyphicon-th-large', true, sLayout)
-        + _mciSection('filtros', 'Filtros Rápidos', 'glyphicon-filter', false, sFiltros)
-        + _mciSection('paginacao', 'Paginação', 'glyphicon-forward', false, sPagination)
+        + _mciSection('paginacao', 'Pagina\u00e7\u00e3o', 'glyphicon-forward', false, sPagination)
         + _mciSection('colunas', 'Colunas', 'glyphicon-th-list', false, sColunas)
         + _mciSection('hierarquia', 'Hierarquia', 'glyphicon-tree-deciduous', false, sTree)
-        + _mciSection('exportacao', 'Exportação', 'glyphicon-download-alt', false, sExport)
-        + _mciSection('estilo', 'Estilo Avançado', 'glyphicon-tint', false, sEstilo)
+        + _mciSection('exportacao', 'Exporta\u00e7\u00e3o', 'glyphicon-download-alt', false, sExport)
+        + _mciSection('estilo', 'Estilo Avan\u00e7ado', 'glyphicon-tint', false, sEstilo)
         + '</div>';
 
     panel.html(html);
 
-    // ── Event handlers ──
-    // Limpar TODOS os handlers (incluindo de outros tipos de objetos)
-    panel.off();
+    // -- Event handlers --
+    // Limpar handlers anteriores (evita duplicação em re-renders ao mudar de tab)
+    panel.off('.tblinline');
 
     // Section toggle
     panel.on('click.tblinline', '.mcbi-section-hd', function () {
@@ -2211,56 +1541,20 @@ function renderTablePropertiesInline(obj, panel) {
     // Transform button
     panel.on('click.tblinline', '.mcbi-btn-transform', function () {
         var currentTC = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
-        var fonteStamp = obj.fontestamp;
-        var fonte = fonteStamp && _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === fonteStamp; });
-        
-        // Obter schema da fonte (tenta schemajson, lastResultscached, ou DB)
-        var schema = _mciGetFonteSchema(fonte);
-        var tbl = (fonte && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(fonte) : null;
-        
-        // Se não há transformConfig existente E temos fonte válida, criar config inicial
-        if (!currentTC && tbl && typeof MdashTransformBuilder !== 'undefined') {
-            currentTC = MdashTransformBuilder.autoConfig(tbl, 'Table');
-        }
-        
-        // Se ainda não há config (sem fonte), criar config vazio
-        if (!currentTC) {
-            currentTC = {
-                sourceTable: '',
-                mode: 'visual',
-                columns: [],
-                measures: [],
-                filters: [],
-                orderBy: [],
-                limit: null,
-                sqlFree: ''
-            };
-        }
-        
-        _mciOpenTransformModalFor({
-            title: 'Transformação — Tabela',
-            fonteName: fonte ? (fonte.descricao || fonte.codigo) : '',
-            modalId: 'mtbl-transform-modal',
-            hostId: 'mtbl-transform-modal-host',
-            config: currentTC,
-            schema: schema,
-            onSave: function (newT) {
-                // Atualizar apenas as localizações fundamentais
-                obj.transformConfig = newT;
-                obj.config = obj.config || {};
-                obj.config.transformConfig = newT;
-                // Sincronizar a invariante triplicada antes de persistir
-                if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
-                if (typeof realTimeComponentSync === 'function')
-                    realTimeComponentSync(obj, obj.table, obj.idfield);
-                var $ts = panel.find('.mcbi-transform-status');
-                $ts.addClass('is-active');
-                $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc(newT.sourceTable || 'SQL') + '</strong>');
-                $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-pencil"></i> Editar');
-                var nf = _mciGetFields(obj);
-                _tblRefreshFieldSelects(panel, nf);
-                fire();
-            }
+        _mciOpenTransformModalFor(currentTC, obj, function (newT) {
+            obj.transformConfig = newT;
+            obj.transformconfigjson = JSON.stringify(newT);
+            obj.config = obj.config || {};
+            obj.config.transformConfig = newT;
+            if (typeof realTimeComponentSync === 'function')
+                realTimeComponentSync(obj, obj.table, obj.idfield);
+            var $ts = panel.find('.mcbi-transform-status');
+            $ts.addClass('is-active');
+            $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-ok-sign"></i> Transforma\u00e7\u00e3o: <strong>' + _mciEsc(newT.sourceTable || 'SQL') + '</strong>');
+            $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-pencil"></i> Editar');
+            var nf = _mciGetFields(obj);
+            _tblRefreshFieldSelects(panel, nf);
+            fire();
         });
     });
 
@@ -2279,9 +1573,8 @@ function renderTablePropertiesInline(obj, panel) {
         fire();
     });
 
-    // Inputs change — apenas no 'change' (blur/Enter), NÃO em 'input'/keyup,
-    // para evitar refresh constante da tabela enquanto se digita.
-    panel.on('change.tblinline', 'select, input[type="text"], input[type="number"], input[type="color"]', function () {
+    // Inputs change
+    panel.on('input.tblinline change.tblinline', 'select, input[type="text"], input[type="number"], input[type="color"]', function () {
         fire();
     });
 
@@ -2311,146 +1604,9 @@ function renderTablePropertiesInline(obj, panel) {
         $(this).closest('.mtbl-col-card').remove();
         fire();
     });
-
-    // Mostrar/esconder painel de opções de link quando se muda o formatter
-    panel.on('change.tblinline', '.mtbl-col-formatter', function () {
-        var $card = $(this).closest('.mtbl-col-card');
-        var fmt = $(this).val();
-        var isLink = (fmt === 'link' || fmt === 'linkButton');
-        var isBtn = (fmt === 'linkButton');
-        $card.find('.mtbl-col-link-opts').toggle(isLink);
-        $card.find('.mtbl-col-color-wrap').toggle(isBtn);
-        var colorKey = $card.find('.mtbl-col-color-sel').val() || 'primary';
-        $card.find('.mtbl-col-color-custom').toggle(isBtn && colorKey === 'custom');
-    });
-
-    // Toggle do color picker custom
-    panel.on('change.tblinline', '.mtbl-col-color-sel', function () {
-        var $card = $(this).closest('.mtbl-col-card');
-        $card.find('.mtbl-col-color-custom').toggle($(this).val() === 'custom');
-    });
-
-    // ── Filtros: Ativar/Desativar ──
-    panel.on('change.tblinline', '.mtbl-filters-enable', function() {
-        var enabled = $(this).is(':checked');
-        panel.find('.mtbl-filters-config').toggle(enabled);
-        fire();
-    });
-
-    // ── Filtros: Adicionar novo filtro ──
-    panel.on('click.tblinline', '.mtbl-add-filter', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        console.log('[Table Filters] Adicionar filtro clicado');
-        
-        // Modificar obj.config diretamente (não a cópia local cfg)
-        if (!obj.config) obj.config = {};
-        if (!obj.config.filters) obj.config.filters = { enabled: true, activeFilterKey: null, definitions: [] };
-        if (!obj.config.filters.definitions) obj.config.filters.definitions = [];
-        
-        var newFilter = {
-            key: 'filtro_' + Date.now(),
-            label: 'Novo Filtro',
-            type: 'button',
-            icon: '',
-            badge: { enabled: true, format: '{count}' },
-            style: { activeColor: 'phc:primary' },
-            conditions: [{ field: null, operator: null, value: null }]
-        };
-        
-        obj.config.filters.definitions.push(newFilter);
-        var idx = obj.config.filters.definitions.length - 1;
-        
-        console.log('[Table Filters] Filtro adicionado, idx:', idx, 'total:', obj.config.filters.definitions.length);
-        
-        // Adicionar diretamente no DOM sem re-render completo
-        var $list = panel.find('.mtbl-filters-list');
-        $list.find('.mcbi-info').remove(); // Remove mensagem "Nenhum filtro"
-        
-        var filterHtml = '<div class="mtbl-filter-item" data-idx="' + idx + '" style="display:flex;align-items:center;gap:6px;padding:6px;background:#f8fafc;border-radius:6px;margin-bottom:4px;">';
-        filterHtml += '<span class="glyphicon glyphicon-menu-hamburger" style="color:#94a3b8;cursor:move;font-size:10px;"></span>';
-        filterHtml += '<input type="text" class="form-control input-sm mtbl-filter-label" value="' + (newFilter.label || '') + '" placeholder="Label" style="flex:1;">';
-        filterHtml += '<button type="button" class="btn btn-xs btn-default mtbl-filter-edit" title="Editar condições">';
-        filterHtml += '<i class="glyphicon glyphicon-cog"></i></button>';
-        filterHtml += '<button type="button" class="btn btn-xs btn-danger mtbl-filter-remove" title="Remover">';
-        filterHtml += '<i class="glyphicon glyphicon-trash"></i></button>';
-        filterHtml += '</div>';
-        
-        $list.append(filterHtml);
-        
-        console.log('[Table Filters] Item adicionado ao DOM');
-        fire();
-    });
-
-    // ── Filtros: Atualizar label (só ao sair do campo ou Enter) ──
-    panel.on('blur.tblinline', '.mtbl-filter-label', function() {
-        var idx = $(this).closest('.mtbl-filter-item').data('idx');
-        if (obj.config && obj.config.filters && obj.config.filters.definitions && obj.config.filters.definitions[idx]) {
-            obj.config.filters.definitions[idx].label = $(this).val();
-            fire();
-        }
-    });
-    
-    panel.on('keypress.tblinline', '.mtbl-filter-label', function(e) {
-        if (e.which === 13) { // Enter
-            e.preventDefault();
-            $(this).blur(); // Aciona o blur que já salva
-        }
-    });
-
-    // ── Filtros: Remover filtro ──
-    panel.on('click.tblinline', '.mtbl-filter-remove', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        var $item = $(this).closest('.mtbl-filter-item');
-        var idx = $item.data('idx');
-        
-        if (obj.config && obj.config.filters && obj.config.filters.definitions) {
-            obj.config.filters.definitions.splice(idx, 1);
-            
-            // Remove do DOM
-            $item.remove();
-            
-            // Re-indexar items restantes
-            panel.find('.mtbl-filter-item').each(function(newIdx) {
-                $(this).attr('data-idx', newIdx);
-            });
-            
-            // Se não sobrou nenhum filtro, mostrar mensagem
-            if (obj.config.filters.definitions.length === 0) {
-                panel.find('.mtbl-filters-list').html('<div class="mcbi-info">Nenhum filtro. Clique "Adicionar".</div>');
-            }
-            
-            fire();
-        }
-    });
-
-    // ── Filtros: Editar condições ──
-    panel.on('click.tblinline', '.mtbl-filter-edit', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        var idx = $(this).closest('.mtbl-filter-item').data('idx');
-        if (obj.config && obj.config.filters && obj.config.filters.definitions && obj.config.filters.definitions[idx]) {
-            _tblOpenFilterConditionsModal(obj.config.filters.definitions[idx], fields, function(updatedFilter) {
-                obj.config.filters.definitions[idx] = updatedFilter;
-                
-                // Atualizar apenas o label no DOM se mudou
-                var $item = panel.find('.mtbl-filter-item[data-idx="' + idx + '"]');
-                if ($item.length) {
-                    $item.find('.mtbl-filter-label').val(updatedFilter.label);
-                }
-                
-                console.log('[Table Filters] Modal salvo, filtro atualizado:', updatedFilter);
-                fire();
-            });
-        }
-    });
 }
 
-// ── Helpers de UI da tabela ──────────────────────────────────────────────────
+// -- Helpers de UI da tabela --------------------------------------------------
 
 function _tblFieldOpts(fields, current) {
     return '<option value="">-- campo --</option>'
@@ -2458,26 +1614,6 @@ function _tblFieldOpts(fields, current) {
 }
 
 function _tblColCard(col, idx, fields) {
-    var isLink = (col.formatter === 'link' || col.formatter === 'linkButton');
-    var isBtn = (col.formatter === 'linkButton');
-    var fp = col.formatterParams || {};
-    var urlExpr = col.urlExpr || fp.urlExpr || '';
-    var labelExpr = col.labelExpr || fp.labelExpr || '';
-    var linkLabel = col.linkLabel || fp.linkLabel || '';
-    var target = col.target || fp.target || '_self';
-    var linkColor = col.linkColor || fp.linkColor || 'phc:primary';
-    var isCustomColor = linkColor && linkColor.charAt(0) === '#';
-    var customColorVal = isCustomColor ? linkColor : '#2563eb';
-    var colorKey = isCustomColor ? 'custom' : (linkColor.indexOf('phc:') === 0 ? linkColor.replace('phc:', '') : 'primary');
-    var PHC_BTN_COLORS = [
-        { key: 'primary', label: 'Primary (azul)' },
-        { key: 'success', label: 'Success (verde)' },
-        { key: 'info', label: 'Info (ciano)' },
-        { key: 'warning', label: 'Warning (laranja)' },
-        { key: 'danger', label: 'Danger (vermelho)' },
-        { key: 'dark', label: 'Dark (preto)' },
-        { key: 'custom', label: 'Personalizada\u2026' }
-    ];
     return '<div class="mtbl-col-card" data-idx="' + idx + '" style="padding:8px;border:1px solid rgba(0,0,0,.08);border-radius:7px;margin-bottom:4px;background:#fafbfc;">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
         + '<strong style="font-size:11px;color:#334155;">' + _mciEsc(col.title || col.field || 'Coluna') + '</strong>'
@@ -2487,33 +1623,13 @@ function _tblColCard(col, idx, fields) {
         + '<select class="mtbl-col-field form-control input-sm" style="font-size:10.5px;">'
         + fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (col.field === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join('')
         + '</select>'
-        + '<input type="text" class="mtbl-col-title form-control input-sm" value="' + _mciEsc(col.title || '') + '" placeholder="T\u00edtulo da coluna" style="font-size:10.5px;">'
+        + '<input type="text" class="mtbl-col-title form-control input-sm" value="' + _mciEsc(col.title || '') + '" placeholder="T\u00edtulo" style="font-size:10.5px;">'
         + '<select class="mtbl-col-align form-control input-sm" style="font-size:10.5px;">'
         + _TABLE_ALIGNS.map(function (a) { return '<option value="' + a.value + '"' + ((col.hozAlign || 'left') === a.value ? ' selected' : '') + '>' + a.label + '</option>'; }).join('')
         + '</select>'
         + '<select class="mtbl-col-formatter form-control input-sm" style="font-size:10.5px;">'
         + _TABLE_FORMATTERS.map(function (f) { return '<option value="' + f.value + '"' + ((col.formatter || 'plaintext') === f.value ? ' selected' : '') + '>' + f.label + '</option>'; }).join('')
         + '</select>'
-        + '</div>'
-        + '<div class="mtbl-col-link-opts" style="margin-top:6px;padding:8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;display:' + (isLink ? 'block' : 'none') + ';">'
-        + '<div style="font-size:10px;font-weight:bold;color:#9a3412;margin-bottom:6px;">\uD83D\uDD17 Op\u00e7\u00f5es do Link / Bot\u00e3o</div>'
-        + '<label style="font-size:10px;color:#7c2d12;display:block;margin-bottom:1px;font-weight:600;">T\u00edtulo do bot\u00e3o</label>'
-        + '<input type="text" class="mtbl-col-linklabel form-control input-sm" value="' + _mciEsc(linkLabel) + '" placeholder="Ex: Aprovar" style="font-size:11px;margin-bottom:6px;">'
-        + '<label style="font-size:10px;color:#7c2d12;display:block;margin-bottom:1px;font-weight:600;">URL (express\u00e3o JS)</label>'
-        + '<input type="text" class="mtbl-col-urlexpr form-control input-sm" value="' + _mciEsc(urlExpr) + '" placeholder="\'~/flow/wwfaform.aspx?oristamp=\' + encodeURIComponent(getStampEncriptado(wwfastamp))" style="font-size:10.5px;margin-bottom:6px;font-family:monospace;">'
-        + '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:4px;align-items:end;">'
-        + '<div><label style="font-size:10px;color:#7c2d12;display:block;margin-bottom:1px;font-weight:600;">Abrir em</label>'
-        + '<select class="mtbl-col-target form-control input-sm" style="font-size:10.5px;">'
-        + '<option value="_self"' + (target === '_self' ? ' selected' : '') + '>Mesma janela</option>'
-        + '<option value="_blank"' + (target === '_blank' ? ' selected' : '') + '>Nova tab</option>'
-        + '</select></div>'
-        + '<div class="mtbl-col-color-wrap" style="display:' + (isBtn ? 'block' : 'none') + ';"><label style="font-size:10px;color:#7c2d12;display:block;margin-bottom:1px;font-weight:600;">Cor do bot\u00e3o</label>'
-        + '<select class="mtbl-col-color form-control input-sm mtbl-col-color-sel" style="font-size:10.5px;">'
-        + PHC_BTN_COLORS.map(function (c) { return '<option value="' + c.key + '"' + (colorKey === c.key ? ' selected' : '') + '>' + c.label + '</option>'; }).join('')
-        + '</select></div>'
-        + '<input type="color" class="mtbl-col-color-custom" value="' + _mciEsc(customColorVal) + '" style="width:34px;height:30px;padding:0;border:1px solid #ccc;border-radius:4px;display:' + (isBtn && colorKey === 'custom' ? '' : 'none') + ';">'
-        + '</div>'
-        + '<div style="font-size:9.5px;color:#7c2d12;margin-top:6px;line-height:1.3;">Helpers dispon\u00edveis na URL: <code>getStampEncriptado(s)</code>, <code>mdashResolveUrl(p)</code>. Prefixos: <code>~/</code>=raiz da app, <code>../</code>=relativa, <code>/</code>=absoluta.</div>'
         + '</div>'
         + '<div style="display:flex;gap:8px;margin-top:4px;">'
         + '<label style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px;"><input type="checkbox" class="mtbl-col-visible"' + (col.visible !== false ? ' checked' : '') + '> Vis\u00edvel</label>'
@@ -2530,300 +1646,7 @@ function _tblRefreshFieldSelects(panel, fields) {
     });
 }
 
-// ── Modal de Edição de Condições de Filtro ──────────────────────────────────
-function _tblOpenFilterConditionsModal(filterDef, fields, onSave) {
-    var modalId = 'mtbl-filter-conditions-modal';
-    $('#' + modalId).remove();
-    
-    // Paleta de cores PHC
-    var PHC_COLORS = [
-        { key: 'primary', name: 'Primary', phcType: 'primary' },
-        { key: 'success', name: 'Success', phcType: 'success' },
-        { key: 'info', name: 'Info', phcType: 'info' },
-        { key: 'warning', name: 'Warning', phcType: 'warning' },
-        { key: 'danger', name: 'Danger', phcType: 'danger' },
-        { key: 'custom', name: 'Personalizada', custom: true }
-    ];
-    
-    // Resolver cor atual (phc:tipo ou custom)
-    var currentColorKey = 'primary'; // padrão
-    var currentCustomColor = '#2563eb';
-    if (filterDef.style && filterDef.style.activeColor) {
-        var ac = filterDef.style.activeColor;
-        if (ac.indexOf('phc:') === 0) {
-            currentColorKey = ac.replace('phc:', '');
-        } else {
-            currentColorKey = 'custom';
-            currentCustomColor = ac;
-        }
-    }
-    
-    var operators = [
-        { value: 'eq', label: 'Igual (=)' },
-        { value: 'neq', label: 'Diferente (≠)' },
-        { value: 'gt', label: 'Maior (>)' },
-        { value: 'gte', label: 'Maior ou igual (≥)' },
-        { value: 'lt', label: 'Menor (<)' },
-        { value: 'lte', label: 'Menor ou igual (≤)' },
-        { value: 'contains', label: 'Contém' },
-        { value: 'startsWith', label: 'Começa com' },
-        { value: 'in', label: 'Em lista' },
-        { value: 'dateEq', label: 'Data igual' },
-        { value: 'dateGt', label: 'Data posterior' },
-        { value: 'dateLt', label: 'Data anterior' },
-        { value: 'dateBetween', label: 'Entre datas' },
-        { value: 'isNull', label: 'É nulo' },
-        { value: 'isNotNull', label: 'Não é nulo' }
-    ];
-    
-    var mHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1">'
-        + '<div class="modal-dialog" style="width:700px;">'
-        + '<div class="modal-content">'
-        + '<div class="modal-header">'
-        + '<button type="button" class="close" data-dismiss="modal">&times;</button>'
-        + '<h4 class="modal-title"><i class="glyphicon glyphicon-cog"></i> Editar Filtro: ' + _mciEsc(filterDef.label) + '</h4>'
-        + '</div>'
-        + '<div class="modal-body">'
-        + '<div class="form-group">'
-        + '<label>Ícone (classe glyphicon)</label>'
-        + '<input type="text" class="form-control mtbl-fc-icon" value="' + _mciEsc(filterDef.icon || '') + '" placeholder="glyphicon-tag">'
-        + '</div>'
-        + '<div class="form-group">'
-        + '<label>Tipo</label>'
-        + '<select class="form-control mtbl-fc-type">'
-        + '<option value="button"' + (filterDef.type === 'button' ? ' selected' : '') + '>Botão</option>'
-        + '<option value="dropdown"' + (filterDef.type === 'dropdown' ? ' selected' : '') + '>Dropdown</option>'
-        + '<option value="search"' + (filterDef.type === 'search' ? ' selected' : '') + '>Pesquisa</option>'
-        + '</select>'
-        + '</div>'
-        + '<div class="form-group">'
-        + '<label><input type="checkbox" class="mtbl-fc-badge-enable"' + (filterDef.badge && filterDef.badge.enabled ? ' checked' : '') + '> Mostrar contador (badge)</label>'
-        + '<input type="text" class="form-control mtbl-fc-badge-format" value="' + _mciEsc((filterDef.badge && filterDef.badge.format) || '{count}') + '" placeholder="{count}" style="margin-top:4px;">'
-        + '</div>'
-        + '<div class="form-group">'
-        + '<label>Cor do Filtro</label>'
-        + '<div class="mtbl-fc-color-palettes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'
-        + PHC_COLORS.map(function(pc) {
-            var isActive = currentColorKey === pc.key;
-            var btnStyle = 'display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:2px solid;border-radius:8px;background:#fff;cursor:pointer;font-size:12px;font-weight:500;transition:all 0.2s;';
-            if (isActive) {
-                btnStyle += 'border-color:var(--md-primary,#2563eb);background:rgba(37,99,235,0.04);';
-            } else {
-                btnStyle += 'border-color:#e2e8f0;';
-            }
-            var swatchStyle = 'width:16px;height:16px;border-radius:4px;';
-            if (!pc.custom) {
-                var phcColor = (typeof getCachedColor === 'function' && getCachedColor(pc.phcType)) ? getCachedColor(pc.phcType).background : '#2563eb';
-                swatchStyle += 'background:' + phcColor + ';';
-            } else {
-                swatchStyle += 'background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);';
-            }
-            return '<button type="button" class="mtbl-fc-color-btn' + (isActive ? ' is-active' : '') + '" data-color-key="' + pc.key + '" style="' + btnStyle + '">'
-                + '<span style="' + swatchStyle + '"></span>'
-                + '<span>' + pc.name + '</span>'
-                + '</button>';
-        }).join('')
-        + '</div>'
-        + '<div class="mtbl-fc-custom-color-panel" style="' + (currentColorKey === 'custom' ? '' : 'display:none;') + 'padding:12px;background:#f8fafc;border-radius:8px;margin-bottom:8px;">'
-        + '<label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#475569;display:block;margin-bottom:8px;">Cor personalizada</label>'
-        + '<input type="color" class="form-control mtbl-fc-color-custom" value="' + _mciEsc(currentCustomColor) + '" style="width:100%;height:40px;padding:4px;">'
-        + '</div>'
-        + '<div style="margin-top:12px;">'
-        + '<label style="font-size:11px;color:#64748b;margin-bottom:4px;">Classe CSS adicional (opcional)</label>'
-        + '<input type="text" class="form-control input-sm mtbl-fc-custom-class" value="' + _mciEsc((filterDef.style && filterDef.style.customClass) || '') + '" placeholder="ex: filtro-urgente filtro-vermelho">'
-        + '</div>'
-        + '<div style="margin-top:8px;">'
-        + '<label style="font-size:11px;color:#64748b;margin-bottom:4px;">Estilos CSS inline (opcional)</label>'
-        + '<input type="text" class="form-control input-sm mtbl-fc-custom-style" value="' + _mciEsc((filterDef.style && filterDef.style.customStyle) || '') + '" placeholder="ex: font-weight:bold; text-transform:uppercase;">'
-        + '<small class="text-muted" style="display:block;font-size:10px;margin-top:2px;">Estilos CSS adicionais separados por ;</small>'
-        + '</div>'
-        + '</div>'
-        + '<hr>'
-        + '<label><strong>Condições</strong></label>'
-        + '<div class="mtbl-fc-conditions"></div>'
-        + '<button type="button" class="btn btn-sm btn-default mtbl-fc-add-condition"><i class="glyphicon glyphicon-plus"></i> Adicionar Condição</button>'
-        + '</div>'
-        + '<div class="modal-footer">'
-        + '<button type="button" class="btn btn-primary mtbl-fc-save">Guardar</button>'
-        + '<button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>'
-        + '</div>'
-        + '</div></div></div>';
-    
-    $('body').append(mHtml);
-    var $modal = $('#' + modalId);
-    
-    // ── Toggle color palette ──
-    $modal.on('click', '.mtbl-fc-color-btn', function() {
-        var $btn = $(this);
-        var colorKey = $btn.data('color-key');
-        
-        // Update button states
-        $modal.find('.mtbl-fc-color-btn').removeClass('is-active').css({
-            'border-color': '#e2e8f0',
-            'background': '#fff'
-        });
-        $btn.addClass('is-active').css({
-            'border-color': 'var(--md-primary,#2563eb)',
-            'background': 'rgba(37,99,235,0.04)'
-        });
-        
-        // Show/hide custom color panel
-        if (colorKey === 'custom') {
-            $modal.find('.mtbl-fc-custom-color-panel').slideDown(200);
-        } else {
-            $modal.find('.mtbl-fc-custom-color-panel').slideUp(200);
-        }
-    });
-    
-    // Toggle custom input visibility based on preset selection
-    $modal.on('change', '.mtbl-fc-value-preset', function() {
-        var $preset = $(this);
-        var $custom = $preset.siblings('.mtbl-fc-value-custom');
-        if ($preset.val() === 'CUSTOM') {
-            $custom.show().focus();
-        } else {
-            $custom.hide().val('');
-        }
-    });
-    
-    // Render conditions
-    function renderCondition(cond, idx) {
-        // Valores pré-definidos (constantes de data + personalizado)
-        var presetValues = [
-            { value: 'CUSTOM', label: '🔧 Personalizado' },
-            { value: 'TODAY', label: '📅 Hoje' },
-            { value: 'YESTERDAY', label: '📅 Ontem' },
-            { value: 'WEEK_START', label: '📅 Início da Semana' },
-            { value: 'WEEK_END', label: '📅 Fim da Semana' },
-            { value: 'LAST_7_DAYS', label: '📅 Últimos 7 Dias' },
-            { value: 'LAST_30_DAYS', label: '📅 Últimos 30 Dias' }
-        ];
-        
-        // Detectar se valor atual é preset ou custom
-        var currentValue = cond.value || '';
-        var isPreset = presetValues.some(function(p) { return p.value === currentValue && p.value !== 'CUSTOM'; });
-        var selectedPreset = isPreset ? currentValue : 'CUSTOM';
-        var customValue = isPreset ? '' : currentValue;
-        
-        var html = '<div class="mtbl-fc-cond" data-idx="' + idx + '" style="display:grid;grid-template-columns:1fr 1fr 2fr auto auto;gap:4px;margin-bottom:6px;padding:8px;background:#f8fafc;border-radius:6px;">';
-        
-        // Campo
-        html += '<select class="form-control input-sm mtbl-fc-field">';
-        html += '<option value="">-- sem filtro --</option>';
-        fields.forEach(function(f) {
-            html += '<option value="' + _mciEsc(f) + '"' + (cond.field === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>';
-        });
-        html += '</select>';
-        
-        // Operador
-        html += '<select class="form-control input-sm mtbl-fc-operator">';
-        operators.forEach(function(op) {
-            html += '<option value="' + op.value + '"' + (cond.operator === op.value ? ' selected' : '') + '>' + op.label + '</option>';
-        });
-        html += '</select>';
-        
-        // Valor: Dropdown + Input Personalizado
-        html += '<div style="display:flex;gap:4px;">';
-        html += '<select class="form-control input-sm mtbl-fc-value-preset" style="flex:0 0 180px;">';
-        presetValues.forEach(function(p) {
-            html += '<option value="' + p.value + '"' + (selectedPreset === p.value ? ' selected' : '') + '>' + p.label + '</option>';
-        });
-        html += '</select>';
-        html += '<input type="text" class="form-control input-sm mtbl-fc-value-custom" value="' + _mciEsc(customValue) + '" placeholder="Número ou expressão JS (ex: row.quantidade)" style="flex:1;' + (isPreset ? 'display:none;' : '') + '">';
-        html += '</div>';
-        
-        // Lógica
-        html += '<select class="form-control input-sm mtbl-fc-logic" style="width:70px;">';
-        html += '<option value="AND"' + (cond.logic === 'AND' ? ' selected' : '') + '>AND</option>';
-        html += '<option value="OR"' + (cond.logic === 'OR' ? ' selected' : '') + '>OR</option>';
-        html += '</select>';
-        
-        // Remover
-        html += '<button type="button" class="btn btn-xs btn-danger mtbl-fc-remove-cond"><i class="glyphicon glyphicon-trash"></i></button>';
-        html += '</div>';
-        return html;
-    }
-    
-    function renderConditions() {
-        var conditions = filterDef.conditions || [{ field: null, operator: null, value: null, logic: 'AND' }];
-        var html = '';
-        conditions.forEach(function(cond, idx) {
-            html += renderCondition(cond, idx);
-        });
-        $modal.find('.mtbl-fc-conditions').html(html);
-    }
-    
-    renderConditions();
-    
-    // Add condition
-    $modal.on('click', '.mtbl-fc-add-condition', function() {
-        if (!filterDef.conditions) filterDef.conditions = [];
-        filterDef.conditions.push({ field: null, operator: 'eq', value: '', logic: 'AND' });
-        renderConditions();
-    });
-    
-    // Remove condition
-    $modal.on('click', '.mtbl-fc-remove-cond', function() {
-        var idx = $(this).closest('.mtbl-fc-cond').data('idx');
-        filterDef.conditions.splice(idx, 1);
-        if (filterDef.conditions.length === 0) {
-            filterDef.conditions = [{ field: null, operator: null, value: null, logic: 'AND' }];
-        }
-        renderConditions();
-    });
-    
-    // Save
-    $modal.on('click', '.mtbl-fc-save', function() {
-        filterDef.icon = $modal.find('.mtbl-fc-icon').val();
-        filterDef.type = $modal.find('.mtbl-fc-type').val();
-        filterDef.badge = {
-            enabled: $modal.find('.mtbl-fc-badge-enable').is(':checked'),
-            format: $modal.find('.mtbl-fc-badge-format').val()
-        };
-        
-        // Ler cor selecionada
-        var selectedColorKey = $modal.find('.mtbl-fc-color-btn.is-active').data('color-key') || 'primary';
-        var activeColor;
-        if (selectedColorKey === 'custom') {
-            activeColor = $modal.find('.mtbl-fc-color-custom').val();
-        } else {
-            activeColor = 'phc:' + selectedColorKey;
-        }
-        
-        var customClass = $modal.find('.mtbl-fc-custom-class').val();
-        var customStyle = $modal.find('.mtbl-fc-custom-style').val();
-        
-        filterDef.style = {};
-        if (activeColor) filterDef.style.activeColor = activeColor;
-        if (customClass) filterDef.style.customClass = customClass;
-        if (customStyle) filterDef.style.customStyle = customStyle;
-        
-        filterDef.conditions = [];
-        $modal.find('.mtbl-fc-cond').each(function() {
-            var $cond = $(this);
-            var preset = $cond.find('.mtbl-fc-value-preset').val();
-            var customVal = $cond.find('.mtbl-fc-value-custom').val();
-            var finalValue = (preset === 'CUSTOM') ? customVal : preset;
-            
-            filterDef.conditions.push({
-                field: $cond.find('.mtbl-fc-field').val() || null,
-                operator: $cond.find('.mtbl-fc-operator').val() || null,
-                value: finalValue || null,
-                logic: $cond.find('.mtbl-fc-logic').val()
-            });
-        });
-        
-        console.log('[Table Filters] Modal salvo. FilterDef:', filterDef);
-        
-        $modal.modal('hide');
-        if (onSave) onSave(filterDef);
-    });
-    
-    $modal.on('hidden.bs.modal', function() { $(this).remove(); });
-    $modal.modal('show');
-}
-
-// ── Ler config do painel ─────────────────────────────────────────────────────
+// -- Ler config do painel -----------------------------------------------------
 function _tblReadConfig(panel, obj) {
     var cfg = obj.config || {};
 
@@ -2854,35 +1677,16 @@ function _tblReadConfig(panel, obj) {
     if (!cfg.autoColumns) {
         cfg.columns = [];
         panel.find('.mtbl-col-card').each(function () {
-            var $card = $(this);
-            var fmt = $card.find('.mtbl-col-formatter').val() || 'plaintext';
-            var colDef = {
-                field: $card.find('.mtbl-col-field').val(),
-                title: $card.find('.mtbl-col-title').val(),
-                hozAlign: $card.find('.mtbl-col-align').val() || 'left',
-                formatter: fmt,
-                visible: $card.find('.mtbl-col-visible').is(':checked'),
-                frozen: $card.find('.mtbl-col-frozen').is(':checked'),
-                headerFilter: $card.find('.mtbl-col-filter').is(':checked'),
+            cfg.columns.push({
+                field: $(this).find('.mtbl-col-field').val(),
+                title: $(this).find('.mtbl-col-title').val(),
+                hozAlign: $(this).find('.mtbl-col-align').val() || 'left',
+                formatter: $(this).find('.mtbl-col-formatter').val() || 'plaintext',
+                visible: $(this).find('.mtbl-col-visible').is(':checked'),
+                frozen: $(this).find('.mtbl-col-frozen').is(':checked'),
+                headerFilter: $(this).find('.mtbl-col-filter').is(':checked'),
                 sorter: 'string'
-            };
-            if (fmt === 'link' || fmt === 'linkButton') {
-                var ue = ($card.find('.mtbl-col-urlexpr').val() || '').trim();
-                var ll = ($card.find('.mtbl-col-linklabel').val() || '').trim();
-                var tg = $card.find('.mtbl-col-target').val() || '_self';
-                if (ue) colDef.urlExpr = ue;
-                if (ll) colDef.linkLabel = ll;
-                colDef.target = tg;
-                if (fmt === 'linkButton') {
-                    var colorKey = $card.find('.mtbl-col-color-sel').val() || 'primary';
-                    if (colorKey === 'custom') {
-                        colDef.linkColor = $card.find('.mtbl-col-color-custom').val() || '#2563eb';
-                    } else {
-                        colDef.linkColor = 'phc:' + colorKey;
-                    }
-                }
-            }
-            cfg.columns.push(colDef);
+            });
         });
     }
 
@@ -2909,50 +1713,11 @@ function _tblReadConfig(panel, obj) {
         fontSize: parseInt(panel.find('.mtbl-fontsize').val(), 10) || 13
     };
 
-    // Filtros - Preservar definitions de obj.config (modificado pelos event handlers)
-    // e apenas atualizar enabled + labels do DOM
-    if (!cfg.filters) {
-        // Se não existir em cfg, tentar ler de obj.config (pode ter sido modificado pelos event handlers)
-        if (obj.config && obj.config.filters && obj.config.filters.definitions) {
-            cfg.filters = JSON.parse(JSON.stringify(obj.config.filters)); // Copiar de obj.config
-        } else {
-            cfg.filters = { enabled: false, activeFilterKey: null, definitions: [] };
-        }
-    } else if (!cfg.filters.definitions) {
-        // Se cfg.filters existe mas definitions não, tentar de obj.config
-        if (obj.config && obj.config.filters && obj.config.filters.definitions) {
-            cfg.filters.definitions = JSON.parse(JSON.stringify(obj.config.filters.definitions));
-        } else {
-            cfg.filters.definitions = [];
-        }
-    }
-    
-    cfg.filters.enabled = panel.find('.mtbl-filters-enable').is(':checked');
-    
-    // Atualizar labels dos filtros (condições já foram atualizadas via modal)
-    panel.find('.mtbl-filter-item').each(function() {
-        var idx = $(this).data('idx');
-        if (cfg.filters.definitions && cfg.filters.definitions[idx]) {
-            cfg.filters.definitions[idx].label = $(this).find('.mtbl-filter-label').val();
-        }
-    });
-
-    console.log('[Table Filters] Config lida do painel:', cfg.filters);
-    console.log('[Table Filters] obj.config.filters antes de salvar:', obj.config ? obj.config.filters : 'obj.config undefined');
-
-    // Preservar transformConfig de obj.config OU obj.transformConfig (fallback)
-    cfg.transformConfig = cfg.transformConfig || obj.transformConfig || null;
-
     obj.config = cfg;
-    obj.transformConfig = cfg.transformConfig;
-    
-    // NÃO atualizar configjson ou transformconfigjson manualmente!
-    // stringifyJSONFields() será chamado no fire() e fará a sincronização completa
-    
-    console.log('[Table Filters] Config salvo. transformConfig:', obj.transformConfig ? 'PRESENTE' : 'null');
+    obj.configjson = JSON.stringify(cfg);
 }
 
-// ── Dynamic Schema (legacy compat) ──────────────────────────────────────────
+// -- Dynamic Schema (legacy compat) ------------------------------------------
 function createDynamicSchemaTable(data) {
     var fieldOptions = [];
     if (data && data.length > 0) {
@@ -2971,7 +1736,7 @@ function createDynamicSchemaTable(data) {
                         field: { type: 'string', title: 'Campo', 'enum': fieldOptions },
                         title: { type: 'string', title: 'T\u00edtulo' },
                         visible: { type: 'boolean', title: 'Vis\u00edvel', 'default': true },
-                        formatter: { type: 'string', title: 'Formatador', 'enum': ['plaintext', 'number', 'money', 'tickCross', 'star', 'progress', 'color', 'link', 'linkButton', 'html'] }
+                        formatter: { type: 'string', title: 'Formatador', 'enum': ['plaintext', 'number', 'money', 'tickCross', 'star', 'progress', 'color', 'link', 'html'] }
                     }
                 }
             }
@@ -2988,13 +1753,13 @@ function createDynamicSchemaTable(data) {
 // Arquitectura:
 //   - 5 temas premium (modern/vibrant/corporate/earth/dark)
 //   - 9 tipos de gráfico com ícones SVG
-//   - buildEchartsOption(config, rows) → opção ECharts pronta
-//   - render(selector, options) → painel de 3 tabs (Dados | Gráfico | Estilo)
-//   - readConfig($container) → lê estado actual do painel
+//   - buildEchartsOption(config, rows) ? opção ECharts pronta
+//   - render(selector, options) ? painel de 3 tabs (Dados | Gráfico | Estilo)
+//   - readConfig($container) ? lê estado actual do painel
 // ============================================================================
 var MdashChartBuilder = (function () {
 
-    // ── 6 Paletas premium (phclegacy é a 1ª — mais compatível com PHC CS Web) ──
+    // -- 6 Paletas premium (phclegacy é a 1ª — mais compatível com PHC CS Web) --
     var THEMES = {
         phclegacy: {
             name: 'PHC / 1.0',
@@ -3046,7 +1811,7 @@ var MdashChartBuilder = (function () {
         }
     };
 
-    // ── Paletas dedicadas para gráficos de pizza / donut ─────────────────────
+    // -- Paletas dedicadas para gráficos de pizza / donut ---------------------
     var PIE_PALETTES = [
         { key: 'theme', name: 'Do tema', colors: null },
         { key: 'phclegacy', name: 'PHC / Mdash 1.0', colors: ['#d43f3a', '#00897B', '#91c7ae', '#f79523'] },
@@ -3057,7 +1822,7 @@ var MdashChartBuilder = (function () {
         { key: 'custom', name: 'Personalizada', colors: null, custom: true }
     ];
 
-    // ── 9 Tipos com ícones SVG inline ─────────────────────────────────────────
+    // -- 9 Tipos com ícones SVG inline -----------------------------------------
     var CHART_TYPES = [
         { type: 'bar', label: 'Barras', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="8" width="5" height="15" rx="1.5"/><rect x="9.5" y="4" width="5" height="19" rx="1.5"/><rect x="18" y="12" width="5" height="11" rx="1.5"/></svg>' },
         { type: 'bar_h', label: 'Horiz.', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><rect y="1" x="0" height="5" width="15" rx="1.5"/><rect y="9.5" x="0" height="5" width="22" rx="1.5"/><rect y="18" x="0" height="5" width="11" rx="1.5"/></svg>' },
@@ -3070,7 +1835,7 @@ var MdashChartBuilder = (function () {
         { type: 'funnel', label: 'Funil', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 3L22 3L16 10L16 21L8 21L8 10Z" rx="1"/></svg>' }
     ];
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // -- Helpers ---------------------------------------------------------------
     function _alpha(hex, a) {
         // Handle rgb(r,g,b) or rgba(r,g,b,a) returned by getColorByType/getCachedColor
         if (typeof hex === 'string' && hex.indexOf('rgb') === 0) {
@@ -3114,7 +1879,7 @@ var MdashChartBuilder = (function () {
         };
     }
 
-    // ── ECharts Option Builder — centro do sistema ────────────────────────────
+    // -- ECharts Option Builder — centro do sistema ----------------------------
     function buildEchartsOption(cfg, rows) {
         cfg = cfg || {};
         rows = rows || [];
@@ -3381,10 +2146,10 @@ var MdashChartBuilder = (function () {
         });
     }
 
-    // ── Config panel UI ───────────────────────────────────────────────────────
+    // -- Config panel UI -------------------------------------------------------
     // Utiliza PetiteVue para reactividde total:
-    //   • onTransformChange → state.updateFields(newFields) → selects de campo actualizam sozinhos
-    //   • v-model nos inputs → readConfig() lê de state, não do DOM
+    //   • onTransformChange ? state.updateFields(newFields) ? selects de campo actualizam sozinhos
+    //   • v-model nos inputs ? readConfig() lê de state, não do DOM
     function render(containerSel, options) {
         var $c = $(containerSel);
         if (!$c.length) return;
@@ -3395,7 +2160,7 @@ var MdashChartBuilder = (function () {
         _injectCSS();
         $c.data('mcbTransformConfig', initTransCfg);
 
-        // ── Estado reactivo ───────────────────────────────────────────────────
+        // -- Estado reactivo ---------------------------------------------------
         var _fireTimer = null;
         var state = {
             activeTab: 'dados',
@@ -3516,7 +2281,7 @@ var MdashChartBuilder = (function () {
         }
         $c.data('mcbPvState', state);
 
-        // ── Template HTML com directivas v-* ─────────────────────────────────
+        // -- Template HTML com directivas v-* ---------------------------------
         var uid = 'mcbpv' + (Date.now() + Math.floor(Math.random() * 9999));
         // O root element escuta o evento 'mcb-refresh' disparado externamente (onSave do TransformBuilder)
         // Isto garante que changeDataSource() corre SEMPRE no contexto reactivo do PetiteVue
@@ -3531,10 +2296,10 @@ var MdashChartBuilder = (function () {
         h += '<button class="mcb-tab" :class="{active:activeTab===\'estilo\'}" @click="activeTab=\'estilo\'"><i class="glyphicon glyphicon-tint"></i> Estilo</button>';
         h += '</div>';
 
-        // ─── Panel Dados ──────────────────────────────────────────────────────
+        // --- Panel Dados ------------------------------------------------------
         h += '<div class="mcb-panel" :class="{active:activeTab===\'dados\'}"><div class="mcb-transform-host"></div></div>';
 
-        // ─── Panel Gráfico ────────────────────────────────────────────────────
+        // --- Panel Gráfico ----------------------------------------------------
         h += '<div class="mcb-panel" :class="{active:activeTab===\'grafico\'}">'
             // Selector de fonte de dados (transform / bruto / outra fonte)
             + '<div class="mcb-fg"><label>Fonte de Dados</label>'
@@ -3571,7 +2336,7 @@ var MdashChartBuilder = (function () {
             + '</label>'
             + '<div class="mcb-series-list">'
             + '<div v-for="(s,i) in cfg.series" :key="i" class="mcb-serie">'
-            + '<span class="mcb-drag">⠿</span>'
+            + '<span class="mcb-drag">?</span>'
             + '<select class="mcb-sf form-control input-sm" v-model="s.field" @change="fire()">'
             + '<option value="">campo…</option>'
             + '<option v-for="f in fields" :value="f" :key="f">{{ f }}</option>'
@@ -3596,7 +2361,7 @@ var MdashChartBuilder = (function () {
             + '</div>'
             + '</div>'; // panel-grafico
 
-        // ─── Panel Estilo ─────────────────────────────────────────────────────
+        // --- Panel Estilo -----------------------------------------------------
         h += '<div class="mcb-panel" :class="{active:activeTab===\'estilo\'}">';
         h += '<div class="mcb-fg"><label>Tema</label><div class="mcb-themes">';
         Object.keys(THEMES).forEach(function (k) {
@@ -3641,7 +2406,7 @@ var MdashChartBuilder = (function () {
                     // 1. Persistir transform no container
                     $c.data('mcbTransformConfig', newT);
                     // 2. Disparar evento DOM no root PetiteVue — changeDataSource() corre
-                    //    no contexto reactivo interno (this = proxy correcto → DOM actualiza)
+                    //    no contexto reactivo interno (this = proxy correcto ? DOM actualiza)
                     var rootEl = document.getElementById(uid);
                     if (rootEl) rootEl.dispatchEvent(new CustomEvent('mcb-refresh'));
                     // 3. Notificar o modal (actualizar preview)
@@ -3663,7 +2428,7 @@ var MdashChartBuilder = (function () {
             return '<option value="' + t + '"' + (s.type === t ? ' selected' : '') + '>' + (t === 'default' ? 'Auto' : t.charAt(0).toUpperCase() + t.slice(1)) + '</option>';
         }).join('');
         var h = '<div class="mcb-serie" data-idx="' + i + '">';
-        h += '<span class="mcb-drag">⠿</span>';
+        h += '<span class="mcb-drag">?</span>';
         h += '<select class="mcb-sf form-control input-sm"><option value="">campo…</option>' + fOpts + '</select>';
         h += '<input type="text" class="mcb-sn form-control input-sm" value="' + _esc(s.name || '') + '" placeholder="Nome">';
         if (ct === 'mixed') {
@@ -3733,7 +2498,7 @@ var MdashChartBuilder = (function () {
         }, 200);
     }
 
-    // ── CSS injection ─────────────────────────────────────────────────────────
+    // -- CSS injection ---------------------------------------------------------
     function _injectCSS() {
         if ($('#mcb-styles').length) return;
         var s = '<style id="mcb-styles">';
@@ -3801,7 +2566,7 @@ var MdashChartBuilder = (function () {
 
 })();
 
-// ── Legacy stub mantido para compatibilidade com referências existentes ───────
+// -- Legacy stub mantido para compatibilidade com referências existentes -------
 function createDynamicSchemaGrafico(data) {
     // Substituído por renderChartPropertiesInline()
     return null;
@@ -4130,7 +2895,7 @@ function renderObjectGrafico(dados) {
         }
     }
 
-    // Sem config → aplicar config de amostra e dados de amostra para render imediato
+    // Sem config ? aplicar config de amostra e dados de amostra para render imediato
     // Resolver dados por série (quando alguma série tem fonte/transformação própria)
     if (!isSample && rows.length > 0 && cfg.series) {
         var _mergedRows = _mciResolveSeriesRows(cfg, rows);
@@ -4381,13 +3146,13 @@ var _MCHART_SAMPLE_CONFIG = {
 // without opening any modal. Changes are applied & persisted in real time.
 // ============================================================================
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// -- Helpers ------------------------------------------------------------------
 
 function _mciEsc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Devolve as fontes visiveis para um objecto (heranca: object → containeritem → container → global).
+// Devolve as fontes visiveis para um objecto (heranca: object ? containeritem ? container ? global).
 // Sem obj devolve todas as fontes (compatibilidade retroactiva).
 function _mciGetFontes(obj) {
     if (obj && obj.mdashcontaineritemobjectstamp && typeof MDashFonte !== 'undefined' && typeof MDashFonte.getAvailableFontes === 'function') {
@@ -4400,7 +3165,7 @@ function _mciGetFontes(obj) {
     return [];
 }
 
-// Devolve [{field, type}] para uma fonte, por prioridade: schemajson → lastResultscached → PRAGMA.
+// Devolve [{field, type}] para uma fonte, por prioridade: schemajson ? lastResultscached ? PRAGMA.
 function _mciGetFonteSchema(fonte) {
     if (!fonte) return [];
     if (fonte.schemajson) {
@@ -4432,7 +3197,7 @@ function _mciSetSelectFields($sel, fields, placeholder) {
         + fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (cur === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join(''));
 }
 
-// ── Auto-aplica uma transformação passthrough quando se selecciona uma fonte ──
+// -- Auto-aplica uma transformação passthrough quando se selecciona uma fonte --
 // Cria um transformConfig com todas as colunas da fonte sem filtros/aggregações.
 // Pode ser chamado em qualquer ponto do código (change handler, init, series, etc.).
 // panel é opcional — se fornecido, actualiza o UI do .mcbi-transform-status.
@@ -4628,10 +3393,7 @@ function _mciReadConfig($root, obj) {
     cfg.legend = { show: $root.find('.mcbi-legend').is(':checked'), position: $root.find('.mcbi-legend-pos').val() || 'top' };
     cfg.title = { show: $root.find('.mcbi-title-show').is(':checked'), text: $root.find('.mcbi-title-text').val() || '' };
     cfg.tooltip = { show: true };
-    // Preservar transformConfig de obj.config OU obj.transformConfig (fallback)
-    cfg.transformConfig = cfg.transformConfig || obj.transformConfig || null;
-    
-    // NÃO atualizar transformconfigjson manualmente - stringifyJSONFields() faz isso
+    cfg.transformConfig = cfg.transformConfig || null;
     return cfg;
 }
 
@@ -4829,9 +3591,9 @@ function _mciResolveSeriesRows(cfg, mainRows) {
     return orderedKeys.map(function (k) { return mergedMap[k]; });
 }
 
-// ── Main inline render function (called by showObjectPropertiesEditor) ────────
+// -- Main inline render function (called by showObjectPropertiesEditor) --------
 
-// ── Modal de transformação genérico (reutilizável) ───────────────────────
+// -- Modal de transformação genérico (reutilizável) -----------------------
 // opts: { title, fonteName, modalId, hostId, config, schema, onSave }
 function _mciOpenTransformModalFor(opts) {
     var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
@@ -4853,7 +3615,6 @@ function _mciOpenTransformModalFor(opts) {
         + '</div></div></div></div>';
     $('body').append(mHtml);
     var $modal = $('#' + modalId);
-    
     MTB.render($('#' + hostId)[0], {
         config: opts.config,
         schema: (opts.schema && opts.schema.length) ? opts.schema : undefined,
@@ -4873,7 +3634,7 @@ function renderChartPropertiesInline(obj, panel) {
     var fields = _mciGetFields(obj);
     var isSample = !obj.fontestamp;
 
-    // ── Section bodies ──────────────────────────────────────────────────────
+    // -- Section bodies ------------------------------------------------------
 
     // Dados
     var _hasTrans = !!(cfg.transformConfig && cfg.transformConfig.sourceTable);
@@ -4915,7 +3676,7 @@ function renderChartPropertiesInline(obj, panel) {
     var _pieVal = (cfg.series && cfg.series[0] && cfg.series[0].field) || cfg.valueField || '';
 
     var sCampos =
-        // ── UI para gráficos cartesianos (bar/line/area/mixed/scatter/bar_h) ────
+        // -- UI para gráficos cartesianos (bar/line/area/mixed/scatter/bar_h) ----
         '<div class="mcbi-campos-cartesian">'
         + '<div class="mcbi-field"><label>Eixo X / Categoria</label>'
         + '<select class="mcbi-xf form-control input-sm">' + _mciFieldOpts(cfg.xField) + '</select></div>'
@@ -4926,7 +3687,7 @@ function renderChartPropertiesInline(obj, panel) {
         + '<button type="button" class="mcbi-add-s"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg> Adicionar série</button>'
         + '</div>'
         + '</div>'
-        // ── UI para pizza / donut / funil ────────────────────────────────────────
+        // -- UI para pizza / donut / funil ----------------------------------------
         + '<div class="mcbi-campos-pie">'
         + '<div class="mcbi-field"><label>Campo do Rótulo (fatias)</label>'
         + '<select class="mcbi-pie-lf form-control input-sm">' + _mciFieldOpts(_pieLbl) + '</select></div>'
@@ -4965,7 +3726,7 @@ function renderChartPropertiesInline(obj, panel) {
 
     // Configurações Gerais (stack, toolbox, legendas, título, etiquetas, animações)
     var sGeral =
-        // ── Comportamento das séries ────────────────────────
+        // -- Comportamento das séries ------------------------
         '<div class="mcbi-srs-divider">Séries &amp; Visualização</div>'
         + '<div class="mcbi-checks">'
         + _mciChk('mcbi-stacked', 'Empilhado — barras em cima das outras', cfg.stacked)
@@ -4974,7 +3735,7 @@ function renderChartPropertiesInline(obj, panel) {
         + '<div class="mcbi-checks">'
         + _mciChk('mcbi-toolbox', 'Mostrar ferramentas (linha / barra / stack / guardar imagem)', cfg.toolbox !== false)
         + '</div>'
-        // ── Legenda ─────────────────────────────────────────
+        // -- Legenda -----------------------------------------
         + '<div class="mcbi-srs-divider" style="margin-top:8px">Legenda</div>'
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field">' + _mciChk('mcbi-legend', 'Mostrar legenda', cfg.legend && cfg.legend.show !== false) + '</div>'
@@ -4983,12 +3744,12 @@ function renderChartPropertiesInline(obj, panel) {
         + '<option value="bottom"' + ((cfg.legend && cfg.legend.position) === 'bottom' ? ' selected' : '') + '>Baixo</option>'
         + '<option value="none"' + ((cfg.legend && cfg.legend.position) === 'none' ? ' selected' : '') + '>Nenhuma</option>'
         + '</select></div></div>'
-        // ── Título ──────────────────────────────────────────
+        // -- Título ------------------------------------------
         + '<div class="mcbi-srs-divider" style="margin-top:8px">Título</div>'
         + '<div class="mcbi-field">'
         + _mciChk('mcbi-title-show', 'Mostrar título', cfg.title && cfg.title.show)
         + '<input type="text" class="mcbi-title-text form-control input-sm" value="' + _mciEsc((cfg.title && cfg.title.text) || '') + '" placeholder="Texto do título" style="margin-top:6px;"></div>'
-        // ── Dados & Animações ───────────────────────────────
+        // -- Dados & Animações -------------------------------
         + '<div class="mcbi-srs-divider" style="margin-top:8px">Dados &amp; Apresentação</div>'
         + '<div class="mcbi-checks">'
         + _mciChk('mcbi-labels', 'Etiquetas de dados (global)', cfg.dataLabels)
@@ -5013,7 +3774,7 @@ function renderChartPropertiesInline(obj, panel) {
         + _mciChk('mcbi-yshow', 'Mostrar eixo Y', !cfg.yAxis || cfg.yAxis.show !== false)
         + '</div>';
 
-    // ── Assemble HTML ───────────────────────────────────────────────────────
+    // -- Assemble HTML -------------------------------------------------------
     var h = '<div class="mcbi-root" data-stamp="' + stamp + '" data-ct="' + (cfg.chartType || 'bar') + '">'
         + (isSample ? '<div class="mcbi-sample-label"><i class="glyphicon glyphicon-info-sign"></i> Dados de amostra — configure a fonte</div>' : '')
         + _mciSection('dados', 'Dados', 'glyphicon-hdd', true, sDados)
@@ -5048,7 +3809,7 @@ function renderChartPropertiesInline(obj, panel) {
         }
     });
 
-    // ── Events ─────────────────────────────────────────────────────────────
+    // -- Events -------------------------------------------------------------
     var _mciTimer = null;
     // Expor timer no painel para que possa ser cancelado quando o painel é destruído
     panel.data('_mciTimer', null);
@@ -5059,9 +3820,7 @@ function renderChartPropertiesInline(obj, panel) {
             if (!panel.find('.mcbi-ct-btn').length) { _mciTimer = null; panel.removeData('_mciTimer'); return; }
             var newCfg = _mciReadConfig(panel, obj);
             obj.config = newCfg;
-            obj.transformConfig = newCfg.transformConfig;
-            // Sincronizar a invariante triplicada antes de persistir
-            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+            obj.configjson = JSON.stringify(newCfg);
             if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
             _mciRerender(obj);
             _mciTimer = null;
@@ -5070,7 +3829,7 @@ function renderChartPropertiesInline(obj, panel) {
         panel.data('_mciTimer', _mciTimer);
     }
 
-    // ── Transform Builder — abre num modal dedicado ────────────────────────
+    // -- Transform Builder — abre num modal dedicado ------------------------
     var _mciTransformInited = false;
 
     function _mciOpenTransformModal() {
@@ -5140,13 +3899,11 @@ function renderChartPropertiesInline(obj, panel) {
             config: _tConf,
             schema: _tSchema,
             onSave: function (newT) {
-                // Atualizar apenas as localizações fundamentais
                 obj.transformConfig = newT;
+                obj.transformconfigjson = JSON.stringify(newT);
                 cfg.transformConfig = newT;
                 obj.config = obj.config || {};
                 obj.config.transformConfig = newT;
-                // Sincronizar a invariante triplicada antes de persistir
-                if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
                 if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
                 var $ts = panel.find('.mcbi-transform-status');
                 $ts.addClass('is-active');
@@ -5158,7 +3915,7 @@ function renderChartPropertiesInline(obj, panel) {
         });
     }
 
-    // ── Transformação por série ──────────────────────────────────────────────
+    // -- Transformação por série ----------------------------------------------
     function _mciOpenSeriesTransformModal($sr) {
         var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
         if (!MTB) { if (typeof alertify !== 'undefined') alertify.error('MdashTransformBuilder não disponível.', 4000); return; }
@@ -5193,7 +3950,7 @@ function renderChartPropertiesInline(obj, panel) {
         });
     }
 
-    // ── xField helpers ───────────────────────────────────────────────────────
+    // -- xField helpers -------------------------------------------------------
     function _mciGetAllFields(panel, obj) {
         var mainFields = _mciGetFields(obj);
         var seen = {};
@@ -5227,7 +3984,7 @@ function renderChartPropertiesInline(obj, panel) {
             + allFields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (curXF === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join(''));
     }
 
-    panel.off(); // Limpar TODOS os handlers (incluindo de outros tipos de objetos)
+    panel.off('.mcbi');
 
     panel.on('click.mcbi', '.mcbi-section-hd', function () {
         var $s = $(this).closest('.mcbi-section');
@@ -5265,7 +4022,7 @@ function renderChartPropertiesInline(obj, panel) {
 
     panel.on('click.mcbi', '.mcbi-del-s', function (e) { e.stopPropagation(); $(this).closest('.mcbi-sr').remove(); fire(); });
 
-    // ── Fonte por série ────────────────────────────────────────────────────
+    // -- Fonte por série ----------------------------------------------------
     panel.on('click.mcbi', '.mcbi-s-ds-btn', function (e) {
         e.stopPropagation();
         var $sr = $(this).closest('.mcbi-sr');
@@ -5372,8 +4129,6 @@ function renderChartPropertiesInline(obj, panel) {
         }
         _mciRefreshFieldSelects(panel, _mciGetFields(obj));
         _mciRefreshXField(panel, obj);
-        // Sincronizar a invariante triplicada antes de persistir
-        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
         if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
         fire();
     });
@@ -5390,7 +4145,7 @@ function renderChartPropertiesInline(obj, panel) {
     panel.on('change.mcbi', 'input[type=color]', function () { fire(); });
 }
 
-// ── CSS for inline chart editor ───────────────────────────────────────────────
+// -- CSS for inline chart editor -----------------------------------------------
 function _mciCSS() {
     if ($('#mcbi-styles-v15').length) return '';
     $('#mcbi-styles-v14,#mcbi-styles-v13,#mcbi-styles-v12,#mcbi-styles-v11,#mcbi-styles-v10,#mcbi-styles-v9').remove();
@@ -5572,7 +4327,7 @@ var _HTML_SAMPLE_CONFIG = {
     minHeight: ''
 };
 
-// ── Helper: interpolação Handlebars ─────────────────────────────────────────
+// -- Helper: interpolação Handlebars -----------------------------------------
 function _htmlRenderTemplate(template, data) {
     if (typeof Handlebars === 'undefined') {
         // Fallback simples se Handlebars não estiver carregado
@@ -5599,7 +4354,7 @@ function _htmlRenderTemplate(template, data) {
     }
 }
 
-// ── Helper: sanitizar HTML (strip <script> e atributos on*) ─────────────────
+// -- Helper: sanitizar HTML (strip <script> e atributos on*) -----------------
 function _htmlSanitize(html) {
     // Remove blocos <script>...</script>
     html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
@@ -5610,18 +4365,18 @@ function _htmlSanitize(html) {
     return html;
 }
 
-// ── renderObjectHtml ─────────────────────────────────────────────────────────
+// -- renderObjectHtml ---------------------------------------------------------
 function renderObjectHtml(dados) {
     var cfg = dados.config
         ? JSON.parse(JSON.stringify(dados.config))
         : JSON.parse(JSON.stringify(_HTML_SAMPLE_CONFIG));
+    var rows = dados.data || [];
     var stamp = dados.itemObject.mdashcontaineritemobjectstamp;
     var sel   = dados.containerSelector;
 
-    // PRIORIDADE: transformConfig SEMPRE tem prioridade sobre dados.data
-    var rows = [];
+    // Transform fallback
     var tCfg = dados.transformConfig || cfg.transformConfig || null;
-    if (tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
+    if (rows.length === 0 && tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
         try {
             var raw = MdashTransformBuilder.executeRaw(tCfg);
             if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
@@ -5632,11 +4387,6 @@ function renderObjectHtml(dados) {
                 });
             }
         } catch (e) { /* silêncio */ }
-    }
-    
-    // Fallback: usar dados.data se não há transformConfig ou se a transformação falhou
-    if (rows.length === 0 && dados.data && dados.data.length > 0) {
-        rows = dados.data;
     }
 
     var template = cfg.htmlTemplate || '';
@@ -5667,7 +4417,7 @@ function renderObjectHtml(dados) {
     $(sel).html('<div class="mhtml-root" style="' + wrapStyle + '">' + rendered + '</div>');
 }
 
-// ── renderHtmlPropertiesInline ───────────────────────────────────────────────
+// -- renderHtmlPropertiesInline -----------------------------------------------
 function renderHtmlPropertiesInline(obj, panel) {
     var stamp  = obj.mdashcontaineritemobjectstamp;
     var cfg    = obj.config
@@ -5684,18 +4434,16 @@ function renderHtmlPropertiesInline(obj, panel) {
         _timer = setTimeout(function () {
             if (!panel.find('.mhtml-root-props').length) return;
             _htmlReadConfig(panel, obj);
-            // Sincronizar a invariante triplicada antes de persistir
-            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
             if (typeof realTimeComponentSync === 'function')
                 realTimeComponentSync(obj, obj.table, obj.idfield);
             _mciRerender(obj);
         }, 400);
     }
 
-    // SEMPRE usar obj.transformConfig (root level) como fonte de verdade
-    var _hasTrans = !!(obj.transformConfig && obj.transformConfig.sourceTable);
+    var _hasTrans = !!((obj.transformConfig && obj.transformConfig.sourceTable)
+        || (cfg.transformConfig && cfg.transformConfig.sourceTable));
 
-    // ── Secção: Dados ────────────────────────────────────────────────────────
+    // -- Secção: Dados --------------------------------------------------------
     var sDados = '<div class="mcbi-field"><label>Fonte de dados</label>'
         + '<select class="mcbi-fonte form-control input-sm"><option value="">-- seleccione uma fonte --</option>'
         + fontes.map(function (f) {
@@ -5708,14 +4456,15 @@ function renderHtmlPropertiesInline(obj, panel) {
         + '<span class="mcbi-ts-badge">'
         + (_hasTrans
             ? '<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>'
-              + _mciEsc(obj.transformConfig.sourceTable) + '</strong>'
+              + _mciEsc((obj.transformConfig && obj.transformConfig.sourceTable)
+                  || (cfg.transformConfig && cfg.transformConfig.sourceTable) || 'SQL') + '</strong>'
             : '<i class="glyphicon glyphicon-filter"></i> Sem transformação de dados')
         + '</span>'
         + '<button type="button" class="mcbi-btn-transform">'
         + (_hasTrans ? '<i class="glyphicon glyphicon-pencil"></i> Editar' : '<i class="glyphicon glyphicon-plus"></i> Configurar')
         + '</button></div>';
 
-    // ── Secção: Campos disponíveis ────────────────────────────────────────────
+    // -- Secção: Campos disponíveis --------------------------------------------
     var sFields = fields.length
         ? fields.map(function (f) {
             return '<code style="cursor:pointer;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;margin:1px;display:inline-block;" class="mhtml-field-pill" data-field="' + _mciEsc(f) + '">' + _mciEsc(f) + '</code>';
@@ -5726,7 +4475,7 @@ function renderHtmlPropertiesInline(obj, panel) {
         + '<div class="mhtml-fields-list" style="font-size:10.5px;max-height:80px;overflow:auto;line-height:1.9;">'
         + sFields + '</div></div>';
 
-    // ── Secção: Template HTML ─────────────────────────────────────────────────
+    // -- Secção: Template HTML -------------------------------------------------
     var htmlValue = cfg.htmlTemplate || _HTML_SAMPLE_CONFIG.htmlTemplate;
     var sTemplate = '<div class="mcbi-field">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
@@ -5736,7 +4485,7 @@ function renderHtmlPropertiesInline(obj, panel) {
         + '<div id="mhtml-ace-' + stamp + '" style="width:100%;height:220px;border:1px solid rgba(0,0,0,.12);border-radius:6px;"></div>'
         + '</div>';
 
-    // ── Secção: CSS ───────────────────────────────────────────────────────────
+    // -- Secção: CSS -----------------------------------------------------------
     var cssValue = cfg.cssCode || '';
     var sCSS = '<div class="mcbi-field">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
@@ -5746,14 +4495,14 @@ function renderHtmlPropertiesInline(obj, panel) {
         + '<div id="mhtml-ace-css-' + stamp + '" style="width:100%;height:100px;border:1px solid rgba(0,0,0,.12);border-radius:6px;"></div>'
         + '</div>';
 
-    // ── Secção: Opções ────────────────────────────────────────────────────────
+    // -- Secção: Opções --------------------------------------------------------
     var sOpcoes = '<div class="mcbi-field">'
         + _mciChk('mhtml-sanitize', 'Sanitizar HTML (remover scripts e eventos inline)', cfg.sanitize !== false)
         + '</div>'
         + '<div class="mcbi-field"><label>Altura mínima</label>'
         + '<input type="text" class="mhtml-minheight form-control input-sm" value="' + _mciEsc(cfg.minHeight || '') + '" placeholder="ex: 120px" style="width:120px;"></div>';
 
-    // ── Ajuda Handlebars ───────────────────────────────────────────────────────
+    // -- Ajuda Handlebars -------------------------------------------------------
     var sAjuda = '<div style="font-size:10.5px;color:#64748b;line-height:1.7;">'
         + '<p style="margin:0 0 5px;"><strong>Sintaxe Handlebars:</strong></p>'
         + '<code>{{campo}}</code> — valor do 1.º registo<br>'
@@ -5781,7 +4530,7 @@ function renderHtmlPropertiesInline(obj, panel) {
 
     panel.html(html);
 
-    // ── Init ACE editors ──────────────────────────────────────────────────────
+    // -- Init ACE editors ------------------------------------------------------
     var aceHtml = null, aceCss = null;
     if (typeof ace !== 'undefined') {
         aceHtml = ace.edit('mhtml-ace-' + stamp);
@@ -5802,8 +4551,8 @@ function renderHtmlPropertiesInline(obj, panel) {
     panel.data('_mhtmlAceHtml', aceHtml);
     panel.data('_mhtmlAceCss',  aceCss);
 
-    // ── Event handlers ────────────────────────────────────────────────────────
-    panel.off(); // Limpar TODOS os handlers (incluindo de outros tipos de objetos)
+    // -- Event handlers --------------------------------------------------------
+    panel.off('.mhtmlinline');
 
     // Section collapse
     panel.on('click.mhtmlinline', '.mcbi-section-hd', function () {
@@ -5869,12 +4618,10 @@ function renderHtmlPropertiesInline(obj, panel) {
             config: _tConf,
             schema: _tSchema,
             onSave: function (newT) {
-                // Atualizar apenas as localizações fundamentais
                 obj.transformConfig = newT;
+                obj.transformconfigjson = JSON.stringify(newT);
                 obj.config = obj.config || {};
                 obj.config.transformConfig = newT;
-                // Sincronizar a invariante triplicada antes de persistir
-                if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
                 if (typeof realTimeComponentSync === 'function')
                     realTimeComponentSync(obj, obj.table, obj.idfield);
                 var $ts = panel.find('.mcbi-transform-status');
@@ -5920,7 +4667,7 @@ function renderHtmlPropertiesInline(obj, panel) {
     });
 }
 
-// ── _htmlReadConfig ───────────────────────────────────────────────────────────
+// -- _htmlReadConfig -----------------------------------------------------------
 function _htmlReadConfig(panel, obj) {
     var cfg = obj.config || {};
     var aceHtml = panel.data('_mhtmlAceHtml');
@@ -5929,13 +4676,8 @@ function _htmlReadConfig(panel, obj) {
     cfg.cssCode      = aceCss  ? aceCss.getValue()  : (cfg.cssCode || '');
     cfg.sanitize     = panel.find('.mhtml-sanitize').is(':checked');
     cfg.minHeight    = panel.find('.mhtml-minheight').val().trim();
-    // Preservar transformConfig de obj.config OU obj.transformConfig (fallback)
-    cfg.transformConfig = cfg.transformConfig || obj.transformConfig || null;
     obj.config    = cfg;
-    obj.transformConfig = cfg.transformConfig;
-    
-    // NÃO atualizar configjson ou transformconfigjson manualmente!
-    // stringifyJSONFields() será chamado no fire() e fará a sincronização completa
+    obj.configjson = JSON.stringify(cfg);
 }
 
 function getTiposObjectoConfig() {
@@ -6324,1008 +5066,14 @@ function getTiposObjectoConfig() {
             );
         }
     }
-    ,
-    {
-        tipo: "list",
-        descricao: "Lista / Timeline",
-        label: "Lista",
-        categoria: "editor",
-        icon: "fa fa-list-ul",
-        renderPropertiesInline: renderListaPropertiesInline,
-        createDynamicSchema: function () { return null; },
-        renderObject: renderObjectLista,
-        getSampleData: function () { return getMdashSampleData('table'); },
-        sampleConfig: _LISTA_SAMPLE_CONFIG
-    }
     ]
 
 
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ██  OBJECTO LISTA / TIMELINE — Enterprise UI/UX
-// ══════════════════════════════════════════════════════════════════════════════
-
-var _LISTA_SAMPLE_CONFIG = {
-    // Dados
-    labelField: '',
-    linkField: '',
-    linkTarget: '_blank',
-    badgeField: '',
-    subtitleField: '',
-    dateField: '',
-
-    // Estilo da lista
-    listStyle: 'numbered',    // 'numbered' | 'timeline' | 'plain' | 'card' | 'row'
-    bulletSymbol: '●',        // emoji ou símbolo
-    bulletSize: 14,
-    bulletColor: 'primary',   // 'primary'|'success'|'warning'|'danger'|'info'|'secondary'|'custom'
-    bulletColorCustom: '#5b8dee',
-    markerBgColor: '',           // '' = auto; ou hex ex: '#e0e8ff'
-    markerIconColor: '',         // '' = auto; ou hex ex: '#ffffff'
-    timelineLineColor: 'primary',
-    timelineLineColorCustom: '#5b8dee',
-
-    // Item como link
-    isLink: false,
-    linkLabel: '',            // campo para o texto visível do link (se vazio usa labelField)
-
-    // Tipografia
-    textFormat: {
-        fontSize: 14,
-        fontFamily: 'Nunito, sans-serif',
-        fontWeight: 'normal',
-        textAlign: 'left',
-        lineHeight: 1.6
-    },
-
-    // Cores de texto / fundo
-    colors: {
-        textColor: '',             // vazio = herda do tema
-        backgroundColor: 'transparent',
-        borderColor: 'transparent',
-        hoverTextColor: '',
-        hoverBgColor: ''
-    },
-
-    // Layout
-    spacing: { paddingTop: 8, paddingRight: 12, paddingBottom: 8, paddingLeft: 12, gap: 6 },
-    border: { width: 0, style: 'solid', radius: 8 },
-    divider: false,
-    maxItems: 0,               // 0 = sem limite
-
-    // Badge
-    badgeStyle: 'none',       // 'none' | 'pill' | 'dot'
-    badgeColor: 'primary',
-
-    // Items manuais (sem fonte de dados)
-    useManualItems: false,
-    manualItems: []            // [{ label, url, isLink, subtitle }]
-};
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-function _lstNormalizeConfig(rawCfg) {
-    var base = JSON.parse(JSON.stringify(_LISTA_SAMPLE_CONFIG));
-    if (!rawCfg || typeof rawCfg !== 'object') return base;
-    // merge plano + sub-objectos
-    Object.keys(rawCfg).forEach(function (k) {
-        var v = rawCfg[k];
-        if (v !== null && v !== undefined && typeof v === 'object' && !Array.isArray(v) && base[k] && typeof base[k] === 'object') {
-            base[k] = Object.assign({}, base[k], v);
-        } else if (v !== undefined) {
-            base[k] = v;
-        }
-    });
-    return base;
-}
-
-function _lstPhcColor(name, customVal) {
-    // Devolve a cor do Bootstrap/PHC a partir do nome semântico
-    if (name === 'custom' && customVal) return customVal;
-    var map = {
-        primary: 'var(--bs-primary, #5b8dee)',
-        success: 'var(--bs-success, #28a745)',
-        warning: 'var(--bs-warning, #ffc107)',
-        danger: 'var(--bs-danger, #dc3545)',
-        info: 'var(--bs-info, #17a2b8)',
-        secondary: 'var(--bs-secondary, #6c757d)'
-    };
-    // Tenta usar a cor real via jQuery (PHC já tem as variáveis CSS injetadas)
-    return map[name] || map.primary;
-}
-
-function _lstSanitize(s) {
-    return $('<span>').text(String(s === null || s === undefined ? '' : s)).html();
-}
-
-// ── Renderer ─────────────────────────────────────────────────────────────────
-function renderObjectLista(dados) {
-    var stamp = dados.itemObject.mdashcontaineritemobjectstamp;
-    var cfg   = _lstNormalizeConfig(dados.config);
-    var isSample = !!dados.isSample;
-
-    // Resolução de dados
-    var rows = [];
-
-    // Items manuais — prioridade total, salta fontes de dados
-    if (cfg.useManualItems && cfg.manualItems && cfg.manualItems.length > 0) {
-        rows = cfg.manualItems.map(function (it) {
-            return {
-                _mi_label:  String(it.label || ''),
-                _mi_url:    (it.isLink && it.url) ? String(it.url) : '',
-                _mi_sub:    String(it.subtitle || ''),
-                _mi_target: (it.isLink && it.linkTarget) ? String(it.linkTarget) : '_blank',
-                _mi_color:  (it.isLink && it.linkColor)  ? String(it.linkColor)  : ''
-            };
-        });
-        cfg.labelField    = '_mi_label';
-        cfg.linkField     = '_mi_url';
-        cfg.subtitleField = '_mi_sub';
-        cfg.isLink        = true;
-        cfg.linkLabel     = '_mi_label';
-        isSample          = false;
-    } else {
-        var tCfg = dados.transformConfig || cfg.transformConfig || null;
-        if (tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
-            try {
-                var raw = MdashTransformBuilder.executeRaw(tCfg);
-                if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
-                    rows = raw.rows.map(function (r) {
-                        var o = {};
-                        raw.columns.forEach(function (c, i) { o[c] = r[i]; });
-                        return o;
-                    });
-                    isSample = false;
-                }
-            } catch (e) { /* silêncio */ }
-        }
-        if (rows.length === 0 && dados.data && dados.data.length > 0) { rows = dados.data; isSample = false; }
-    }
-    if (rows.length === 0) {
-        rows = [
-            { label: 'Item de exemplo 1', badge: 'Novo', subtitle: 'Subtítulo do item', date: '2026-01-15' },
-            { label: 'Item de exemplo 2', badge: 'Activo', subtitle: 'Descrição breve', date: '2026-02-10' },
-            { label: 'Item de exemplo 3', badge: 'Pendente', subtitle: 'Outro detalhe', date: '2026-03-05' },
-            { label: 'Item de exemplo 4', badge: '', subtitle: '', date: '2026-04-20' }
-        ];
-        if (!cfg.labelField) cfg.labelField = 'label';
-        if (!cfg.badgeField) cfg.badgeField = 'badge';
-        if (!cfg.subtitleField) cfg.subtitleField = 'subtitle';
-        if (!cfg.dateField) cfg.dateField = 'date';
-        isSample = true;
-    }
-
-    var maxItems = parseInt(cfg.maxItems) || 0;
-    if (maxItems > 0 && rows.length > maxItems) rows = rows.slice(0, maxItems);
-
-    var bColor = _lstPhcColor(cfg.bulletColor, cfg.bulletColorCustom);
-    var tlColor = _lstPhcColor(cfg.timelineLineColor, cfg.timelineLineColorCustom);
-    var tf = cfg.textFormat || {};
-    var sp = cfg.spacing || {};
-    var cl = cfg.colors || {};
-    var bd = cfg.border || {};
-
-    var baseTextColor = cl.textColor || 'inherit';
-    var baseFontSize  = (tf.fontSize || 14) + 'px';
-    var baseFontFamily = tf.fontFamily || 'Nunito, sans-serif';
-    var baseLineHeight = tf.lineHeight || 1.6;
-    var baseAlign      = tf.textAlign || 'left';
-    var baseFontWeight = tf.fontWeight || 'normal';
-
-    var containerStyle = 'font-family:' + baseFontFamily + ';font-size:' + baseFontSize + ';'
-        + 'line-height:' + baseLineHeight + ';text-align:' + baseAlign + ';'
-        + 'background:' + (cl.backgroundColor || 'transparent') + ';'
-        + (bd.width > 0 ? 'border:' + bd.width + 'px ' + (bd.style||'solid') + ' ' + (cl.borderColor||'transparent') + ';' : '')
-        + 'border-radius:' + (bd.radius || 0) + 'px;'
-        + 'padding:' + (sp.paddingTop||8) + 'px ' + (sp.paddingRight||12) + 'px '
-        + (sp.paddingBottom||8) + 'px ' + (sp.paddingLeft||12) + 'px;'
-        + 'overflow:hidden;';
-
-    var listId = 'mlst_' + stamp;
-    var styleId = 'mlst-style-' + stamp;
-    var gap = (sp.gap !== undefined ? sp.gap : 6);
-
-    // CSS dinâmico para hover e divider
-    var hoverBg  = cl.hoverBgColor || 'rgba(0,0,0,.04)';
-    var hoverTxt = cl.hoverTextColor || baseTextColor;
-    var dynCss = '<style id="' + styleId + '">'
-        + '#' + listId + ' .mlst-item{transition:background .15s,color .15s,box-shadow .15s;}'
-        + '#' + listId + ' .mlst-item:hover{background:' + hoverBg + ' !important;color:' + hoverTxt + ' !important;box-shadow:0 2px 8px rgba(0,0,0,.07);}'
-        + '#' + listId + ' .mlst-item a{text-decoration:none;color:inherit;}'
-        + '#' + listId + ' .mlst-item a:hover{text-decoration:underline;}'
-        + (cfg.listStyle === 'timeline'
-            ? '#' + listId + ' .mlst-tl-line{background:' + tlColor + '30;}'
-              + '#' + listId + ' .mlst-tl-dot{background:' + bColor + ';box-shadow:0 0 0 3px ' + bColor + '22;}'
-              + '#' + listId + ' .mlst-tl-dot.mlst-tl-dot-first{box-shadow:0 0 0 4px ' + bColor + '44;}'
-            : '')
-        + (cfg.listStyle === 'row'
-            ? '#' + listId + ' .mlst-item:hover .mlst-row-arrow{filter:brightness(.82);}'
-            : '')
-        + '</style>';
-
-    // ── Amostra badge ──
-    var badgeHtml = isSample
-        ? '<div class="mchart-sample-badge" style="font-size:9px;color:#64748b;background:rgba(243,246,251,.95);padding:2px 8px;text-align:center;letter-spacing:.2px;border-bottom:1px solid rgba(0,0,0,.06);margin-bottom:4px;"><i class="glyphicon glyphicon-info-sign"></i> Dados de amostra</div>'
-        : '';
-
-    // ── Render por estilo ──
-    var inner = '';
-
-    if (cfg.listStyle === 'timeline') {
-        inner = _lstRenderTimeline(rows, cfg, bColor, tlColor, baseTextColor, gap);
-    } else if (cfg.listStyle === 'card') {
-        inner = _lstRenderCards(rows, cfg, bColor, baseTextColor, gap, bd);
-    } else if (cfg.listStyle === 'row') {
-        inner = _lstRenderRow(rows, cfg, bColor, baseTextColor, gap);
-    } else {
-        inner = _lstRenderGeneric(rows, cfg, bColor, baseTextColor, gap);
-    }
-
-    var html = dynCss + badgeHtml
-        + '<div id="' + listId + '" class="m-dash-lista-element" style="' + containerStyle + '">'
-        + inner
-        + '</div>';
-    $(dados.containerSelector).html(html);
-}
-
-function _lstRenderGeneric(rows, cfg, bColor, textColor, gap) {
-    var isNumbered = cfg.listStyle === 'numbered';
-    var isPlain    = cfg.listStyle === 'plain';
-    var hasDivider = !!cfg.divider;
-    var tf = cfg.textFormat || {};
-    var fontWeight = tf.fontWeight || 'normal';
-
-    var html = '<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:' + Math.max(0, gap - 2) + 'px;">';
-    rows.forEach(function (row, idx) {
-        var label    = cfg.labelField ? (row[cfg.labelField] !== undefined ? row[cfg.labelField] : '') : (row[Object.keys(row)[0]] || '');
-        var subtitle = cfg.subtitleField ? (row[cfg.subtitleField] || '') : '';
-        var date     = cfg.dateField ? (row[cfg.dateField] || '') : '';
-        var badgeVal = cfg.badgeField ? (row[cfg.badgeField] || '') : '';
-        var isLink   = !!(cfg.isLink && cfg.linkField && row[cfg.linkField]);
-        var href     = isLink ? String(row[cfg.linkField]) : '';
-        var linkText = (cfg.linkLabel && row[cfg.linkLabel]) ? String(row[cfg.linkLabel]) : _lstSanitize(label);
-
-        // Marker — bullet ou número
-        var markerHtml = '';
-        if (!isPlain) {
-            if (isNumbered) {
-                var mBg   = cfg.markerBgColor;
-                var mIcon = cfg.markerIconColor;
-                var numBg   = mBg ? 'linear-gradient(135deg,' + mBg + ',' + mBg + 'bb)' : bColor;
-                var numShad = mBg ? ';box-shadow:0 2px 6px ' + mBg + '44' : '';
-                var numCol  = mIcon || '#fff';
-                markerHtml = '<span class="mlst-bullet" style="min-width:24px;height:24px;border-radius:7px;background:' + numBg + ';color:' + numCol + ';font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px' + numShad + ';">' + (idx + 1) + '</span>';
-            } else {
-                var sym = cfg.bulletSymbol || '●';
-                markerHtml = '<span class="mlst-bullet" style="color:' + bColor + ';font-size:' + (cfg.bulletSize || 14) + 'px;flex-shrink:0;margin-top:2px;line-height:1;opacity:.9;text-shadow:0 1px 3px ' + bColor + '40;">' + _lstSanitize(sym) + '</span>';
-            }
-        }
-
-        // Conteúdo principal
-        var itemTarget = row._mi_target || cfg.linkTarget || '_blank';
-        var itemColor  = row._mi_color  || bColor;
-        var mainContent = isLink
-            ? '<a href="' + _lstSanitize(href) + '" target="' + itemTarget + '" style="font-weight:' + fontWeight + ';color:' + itemColor + ';">' + linkText + '</a>'
-            : '<span style="font-weight:' + fontWeight + ';color:' + (textColor || 'inherit') + ';">' + _lstSanitize(label) + '</span>';
-
-        // Badge
-        var badgeHtml2 = '';
-        if (badgeVal && cfg.badgeStyle !== 'none') {
-            var bC = _lstPhcColor(cfg.badgeColor, '');
-            if (cfg.badgeStyle === 'dot') {
-                badgeHtml2 = '<span style="width:8px;height:8px;border-radius:50%;background:' + bC + ';display:inline-block;margin-left:5px;vertical-align:middle;flex-shrink:0;box-shadow:0 0 0 2px ' + bC + '30;" title="' + _lstSanitize(badgeVal) + '"></span>';
-            } else {
-                badgeHtml2 = '<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:' + bC + '18;color:' + bC + ';border:1px solid ' + bC + '30;white-space:nowrap;flex-shrink:0;letter-spacing:.2px;">' + _lstSanitize(badgeVal) + '</span>';
-            }
-        }
-
-        // Meta (subtítulo + data)
-        var metaHtml = '';
-        if (subtitle || date) {
-            metaHtml = '<div style="font-size:.82em;color:#94a3b8;margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'
-                + (date ? '<span style="display:inline-flex;align-items:center;gap:2px;"><i class="glyphicon glyphicon-time" style="font-size:9px;opacity:.7;"></i>' + _lstSanitize(date) + '</span>' : '')
-                + (date && subtitle ? '<span style="opacity:.35;font-size:.9em;">·</span>' : '')
-                + (subtitle ? '<span>' + _lstSanitize(subtitle) + '</span>' : '')
-                + '</div>';
-        }
-
-        var borderStyle = (hasDivider && idx < rows.length - 1) ? 'border-bottom:1px solid rgba(0,0,0,.06);' : '';
-        html += '<li class="mlst-item" style="display:flex;align-items:flex-start;gap:10px;padding:' + (gap + 2) + 'px 8px;border-radius:8px;cursor:default;' + borderStyle + '">'
-            + markerHtml
-            + '<div style="flex:1;min-width:0;">'
-            + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' + mainContent + badgeHtml2 + '</div>'
-            + metaHtml
-            + '</div>'
-            + '</li>';
-    });
-    html += '</ul>';
-    return html;
-}
-
-function _lstRenderTimeline(rows, cfg, bColor, lineColor, textColor, gap) {
-    var hasDivider = !!cfg.divider;
-    var tf = cfg.textFormat || {};
-    var fontWeight = tf.fontWeight || 'normal';
-
-    var html = '<div class="mlst-timeline" style="position:relative;padding-left:32px;">';
-    // Linha vertical
-    html += '<div class="mlst-tl-line" style="position:absolute;left:11px;top:14px;bottom:14px;width:2px;border-radius:2px;"></div>';
-
-    rows.forEach(function (row, idx) {
-        var label    = cfg.labelField ? (row[cfg.labelField] !== undefined ? row[cfg.labelField] : '') : (row[Object.keys(row)[0]] || '');
-        var subtitle = cfg.subtitleField ? (row[cfg.subtitleField] || '') : '';
-        var date     = cfg.dateField ? (row[cfg.dateField] || '') : '';
-        var badgeVal = cfg.badgeField ? (row[cfg.badgeField] || '') : '';
-        var isLink   = !!(cfg.isLink && cfg.linkField && row[cfg.linkField]);
-        var href     = isLink ? String(row[cfg.linkField]) : '';
-        var linkText = (cfg.linkLabel && row[cfg.linkLabel]) ? String(row[cfg.linkLabel]) : _lstSanitize(label);
-
-        var isFirst = idx === 0;
-        var isLast  = idx === rows.length - 1;
-        var dotSize = isFirst ? '14px' : '10px';
-        var dotLeft = isFirst ? '-26px' : '-24px';
-        var dotClass = 'mlst-tl-dot' + (isFirst ? ' mlst-tl-dot-first' : '');
-        var dotStyle = 'position:absolute;left:' + dotLeft + ';top:5px;width:' + dotSize + ';height:' + dotSize + ';border-radius:50%;';
-
-        var itemTarget = row._mi_target || cfg.linkTarget || '_blank';
-        var itemColor  = row._mi_color  || bColor;
-        var mainContent = isLink
-            ? '<a href="' + _lstSanitize(href) + '" target="' + itemTarget + '" style="font-weight:' + fontWeight + ';color:' + itemColor + ';">' + linkText + '</a>'
-            : '<span style="font-weight:' + fontWeight + ';color:' + (textColor || 'inherit') + ';">' + _lstSanitize(label) + '</span>';
-
-        var badgeHtml2 = '';
-        if (badgeVal && cfg.badgeStyle !== 'none') {
-            var bC = _lstPhcColor(cfg.badgeColor, '');
-            badgeHtml2 = '<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:' + bC + '18;color:' + bC + ';border:1px solid ' + bC + '30;white-space:nowrap;flex-shrink:0;letter-spacing:.2px;">' + _lstSanitize(badgeVal) + '</span>';
-        }
-
-        var metaHtml = '';
-        if (date || subtitle) {
-            metaHtml = '<div style="font-size:.82em;color:#94a3b8;margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'
-                + (date ? '<span style="display:inline-flex;align-items:center;gap:2px;"><i class="glyphicon glyphicon-time" style="font-size:9px;opacity:.7;"></i>' + _lstSanitize(date) + '</span>' : '')
-                + (date && subtitle ? '<span style="opacity:.35;font-size:.9em;">·</span>' : '')
-                + (subtitle ? '<span>' + _lstSanitize(subtitle) + '</span>' : '')
-                + '</div>';
-        }
-
-        html += '<div class="mlst-item" style="position:relative;padding:' + (gap + 2) + 'px 8px ' + (gap + 2) + 'px 4px;border-radius:8px;'
-            + (hasDivider && !isLast ? 'border-bottom:1px solid rgba(0,0,0,.06);' : '') + '">'
-            + '<span class="' + dotClass + '" style="' + dotStyle + '"></span>'
-            + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' + mainContent + badgeHtml2 + '</div>'
-            + metaHtml
-            + '</div>';
-    });
-    html += '</div>';
-    return html;
-}
-
-function _lstRenderCards(rows, cfg, bColor, textColor, gap, bd) {
-    var tf = cfg.textFormat || {};
-    var fontWeight = tf.fontWeight || 'normal';
-    var radius = (bd && bd.radius) || 8;
-
-    var html = '<div style="display:flex;flex-direction:column;gap:' + (gap + 2) + 'px;">';
-    rows.forEach(function (row, idx) {
-        var label    = cfg.labelField ? (row[cfg.labelField] !== undefined ? row[cfg.labelField] : '') : (row[Object.keys(row)[0]] || '');
-        var subtitle = cfg.subtitleField ? (row[cfg.subtitleField] || '') : '';
-        var date     = cfg.dateField ? (row[cfg.dateField] || '') : '';
-        var badgeVal = cfg.badgeField ? (row[cfg.badgeField] || '') : '';
-        var isLink   = !!(cfg.isLink && cfg.linkField && row[cfg.linkField]);
-        var href     = isLink ? String(row[cfg.linkField]) : '';
-        var linkText = (cfg.linkLabel && row[cfg.linkLabel]) ? String(row[cfg.linkLabel]) : _lstSanitize(label);
-
-        var labelWeight = (fontWeight === 'normal') ? '500' : fontWeight;
-        var itemTarget  = row._mi_target || cfg.linkTarget || '_blank';
-        var itemColor   = row._mi_color  || bColor;
-
-        var mainContent = isLink
-            ? '<a href="' + _lstSanitize(href) + '" target="' + itemTarget + '" style="font-weight:' + labelWeight + ';color:' + itemColor + ';">' + linkText + '</a>'
-            : '<span style="font-weight:' + labelWeight + ';color:' + (textColor || '#1e293b') + ';">' + _lstSanitize(label) + '</span>';
-
-        var badgeHtml2 = '';
-        if (badgeVal && cfg.badgeStyle !== 'none') {
-            var bC = _lstPhcColor(cfg.badgeColor, '');
-            if (cfg.badgeStyle === 'dot') {
-                badgeHtml2 = '<span style="width:9px;height:9px;border-radius:50%;background:' + bC + ';display:inline-block;flex-shrink:0;box-shadow:0 0 0 3px ' + bC + '25;" title="' + _lstSanitize(badgeVal) + '"></span>';
-            } else {
-                badgeHtml2 = '<span style="font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px;background:' + bC + '18;color:' + bC + ';border:1px solid ' + bC + '30;white-space:nowrap;flex-shrink:0;letter-spacing:.2px;">' + _lstSanitize(badgeVal) + '</span>';
-            }
-        }
-
-        var metaHtml = '';
-        if (subtitle || date) {
-            metaHtml = '<div style="font-size:.82em;color:#94a3b8;margin-top:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'
-                + (date ? '<span style="display:inline-flex;align-items:center;gap:2px;"><i class="glyphicon glyphicon-time" style="font-size:9px;opacity:.7;"></i>' + _lstSanitize(date) + '</span>' : '')
-                + (date && subtitle ? '<span style="opacity:.35;font-size:.9em;">·</span>' : '')
-                + (subtitle ? '<span>' + _lstSanitize(subtitle) + '</span>' : '')
-                + '</div>';
-        }
-
-        html += '<div class="mlst-item" style="'
-            + 'background:#fff;'
-            + 'border:1px solid rgba(0,0,0,.07);'
-            + 'border-left:3px solid ' + bColor + ';'
-            + 'border-radius:' + radius + 'px;'
-            + 'padding:11px 14px 11px 12px;'
-            + 'cursor:default;'
-            + 'box-shadow:0 1px 3px rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.03);">'
-            + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">'
-            + '<div style="flex:1;min-width:0;">'
-            + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' + mainContent + '</div>'
-            + metaHtml
-            + '</div>'
-            + (badgeVal && cfg.badgeStyle !== 'none' ? '<div style="flex-shrink:0;padding-top:2px;">' + badgeHtml2 + '</div>' : '')
-            + '</div>'
-            + '</div>';
-    });
-    html += '</div>';
-    return html;
-}
-
-function _lstRenderRow(rows, cfg, bColor, textColor, gap) {
-    var tf = cfg.textFormat || {};
-    var fontWeight = cfg.listStyle === 'row' ? (tf.fontWeight || 'normal') : 'normal';
-    var hasDivider = !!cfg.divider;
-
-    var html = '<div style="display:flex;flex-direction:column;">';
-    rows.forEach(function (row, idx) {
-        var label    = cfg.labelField ? (row[cfg.labelField] !== undefined ? row[cfg.labelField] : '') : (row[Object.keys(row)[0]] || '');
-        var subtitle = cfg.subtitleField ? (row[cfg.subtitleField] || '') : '';
-        var date     = cfg.dateField ? (row[cfg.dateField] || '') : '';
-        var badgeVal = cfg.badgeField ? (row[cfg.badgeField] || '') : '';
-        var isLink   = !!(cfg.isLink && cfg.linkField && row[cfg.linkField]);
-        var href     = isLink ? String(row[cfg.linkField]) : '';
-
-        var itemTarget = row._mi_target || cfg.linkTarget || '_blank';
-        var itemColor  = row._mi_color  || bColor;
-
-        var isLast = idx === rows.length - 1;
-        var divStyle = (!isLast && hasDivider) ? 'border-bottom:1px solid rgba(0,0,0,.055);' : '';
-        var rowPad   = (gap + 4) + 'px 10px';
-
-        // Meta
-        var metaHtml = '';
-        if (subtitle || date) {
-            metaHtml = '<div style="font-size:.8em;color:#94a3b8;margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'
-                + (date ? '<span style="display:inline-flex;align-items:center;gap:2px;"><i class="glyphicon glyphicon-time" style="font-size:9px;opacity:.7;"></i>' + _lstSanitize(date) + '</span>' : '')
-                + (date && subtitle ? '<span style="opacity:.3;font-size:.9em;">\u00b7</span>' : '')
-                + (subtitle ? '<span>' + _lstSanitize(subtitle) + '</span>' : '')
-                + '</div>';
-        }
-
-        // Badge
-        var badgeHtml = '';
-        if (badgeVal && cfg.badgeStyle !== 'none') {
-            var bC = _lstPhcColor(cfg.badgeColor, '');
-            if (cfg.badgeStyle === 'dot') {
-                badgeHtml = '<span style="width:7px;height:7px;border-radius:50%;background:' + bC + ';display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px ' + bC + '30;"></span>';
-            } else {
-                badgeHtml = '<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;background:' + bC + '18;color:' + bC + ';border:1px solid ' + bC + '30;white-space:nowrap;flex-shrink:0;letter-spacing:.2px;">' + _lstSanitize(badgeVal) + '</span>';
-            }
-        }
-
-        var arrBg   = cfg.markerBgColor  || 'rgba(0,0,0,.08)';
-        var arrIcon = cfg.markerIconColor || itemColor;
-
-        // Seta (só para links)
-        var arrowHtml = isLink
-            ? '<span class="mlst-row-arrow" style="flex-shrink:0;width:28px;height:28px;border-radius:9px;background:' + arrBg + ';display:inline-flex;align-items:center;justify-content:center;margin-left:6px;">'
-              + '<i class="glyphicon glyphicon-chevron-right" style="font-size:11px;color:' + arrIcon + ';margin-top:1px;"></i>'
-              + '</span>'
-            : '';
-
-        // Layout interno
-        var innerHtml = '<div style="display:flex;align-items:center;gap:8px;width:100%;">'
-            + '<div style="flex:1;min-width:0;">'
-            + '<div style="font-weight:' + fontWeight + ';color:' + (isLink ? itemColor : (textColor || '#1e293b')) + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _lstSanitize(label) + '</div>'
-            + metaHtml
-            + '</div>'
-            + (badgeHtml ? '<span style="flex-shrink:0;">' + badgeHtml + '</span>' : '')
-            + arrowHtml
-            + '</div>';
-
-        if (isLink) {
-            html += '<a href="' + _lstSanitize(href) + '" target="' + itemTarget + '" class="mlst-item" style="display:block;padding:' + rowPad + ';border-radius:8px;text-decoration:none;' + divStyle + '">'
-                + innerHtml
-                + '</a>';
-        } else {
-            html += '<div class="mlst-item" style="display:block;padding:' + rowPad + ';border-radius:8px;' + divStyle + '">'
-                + innerHtml
-                + '</div>';
-        }
-    });
-    html += '</div>';
-    return html;
-}
-
-// ── Helper: linha de item manual ──────────────────────────────────────────────
-function _lstManualItemRow(item) {
-    var isLnk  = !!(item && item.isLink);
-    var lbl    = _mciEsc((item && item.label)      || '');
-    var url    = _mciEsc((item && item.url)        || '');
-    var sub    = _mciEsc((item && item.subtitle)   || '');
-    var tgt    = (item && item.linkTarget) || '_blank';
-    var clr    = _mciEsc((item && item.linkColor)  || '#5b8dee');
-    var tgtBlank = (tgt === '_blank') ? ' selected' : '';
-    var tgtSelf  = (tgt === '_self')  ? ' selected' : '';
-    return '<div class="mlst-manual-row" style="background:rgba(0,0,0,.022);border:1px solid rgba(0,0,0,.08);border-radius:8px;padding:9px 10px;margin-bottom:6px;">'
-        + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">'
-        + '<span style="color:#b0bec5;cursor:grab;font-size:14px;line-height:1;user-select:none;flex-shrink:0;" title="Arrastar para reordenar">⠿</span>'
-        + '<input type="text" class="mlst-mi-label form-control input-sm" placeholder="Título do item…" value="' + lbl + '" style="flex:1;min-width:0;">'
-        + '<button type="button" class="mlst-mi-del" style="background:none;border:1px solid rgba(220,53,69,.3);color:#dc3545;border-radius:6px;width:26px;height:26px;min-width:26px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;" title="Remover item"><i class="glyphicon glyphicon-trash" style="font-size:10px;"></i></button>'
-        + '</div>'
-        + '<input type="text" class="mlst-mi-sub form-control input-sm" placeholder="Subtítulo / descrição (opcional)…" value="' + sub + '" style="margin-bottom:7px;">'
-        + _mciChk('mlst-mi-islink', 'É link', isLnk)
-        + '<div class="mlst-mi-url-wrap" style="margin-top:6px;' + (!isLnk ? 'display:none;' : '') + '">'
-        + '<input type="text" class="mlst-mi-url form-control input-sm" placeholder="URL (ex: https://…)" value="' + url + '" style="margin-bottom:6px;">'
-        + '<div style="display:flex;align-items:center;gap:6px;">'
-        + '<select class="mlst-mi-target form-control input-sm" style="flex:1;">'
-        + '<option value="_blank"' + tgtBlank + '>↗ Nova janela</option>'
-        + '<option value="_self"' + tgtSelf   + '>→ Mesma página</option>'
-        + '</select>'
-        + '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;" title="Cor do texto do link">'
-        + '<i class="glyphicon glyphicon-tint" style="font-size:11px;color:#94a3b8;"></i>'
-        + '<input type="color" class="mlst-mi-color" value="' + clr + '" style="width:32px;height:28px;border-radius:5px;border:1px solid rgba(0,0,0,.12);cursor:pointer;padding:1px;">'
-        + '</div>'
-        + '</div>'
-        + '</div>'
-        + '</div>';
-}
-
-// ── Painel de Propriedades Inline ─────────────────────────────────────────────
-function renderListaPropertiesInline(obj, panel) {
-    panel.off();
-
-    var stamp  = obj.mdashcontaineritemobjectstamp;
-    var cfg    = _lstNormalizeConfig(obj.config);
-    var fontes = _mciGetFontes(obj);
-    var fields = _mciGetFields(obj);
-
-    _mciCSS();
-
-    // ── fire() ───────────────────────────────────────────────────────────────
-    var _timer = null;
-    function fire() {
-        clearTimeout(_timer);
-        _timer = setTimeout(function () {
-            if (!panel.find('.mlst-props-root').length) return;
-            var newCfg = _lstReadConfig(panel, obj);
-            obj.config = newCfg;
-            obj.transformConfig = newCfg.transformConfig || obj.transformConfig || null;
-            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
-            if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
-            _mciRerender(obj);
-        }, 400);
-    }
-
-    // ── Estado de transformação ───────────────────────────────────────────────
-    var _hasTrans = !!(obj.transformConfig && obj.transformConfig.sourceTable);
-
-    // ── Secção Dados ─────────────────────────────────────────────────────────
-    function _fieldOpts(cur) {
-        return '<option value="">-- campo --</option>'
-            + fields.map(function (f) {
-                return '<option value="' + _mciEsc(f) + '"' + (cur === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>';
-            }).join('');
-    }
-
-    var sDados = '<div class="mcbi-field"><label>Fonte de dados</label>'
-        + '<select class="mcbi-fonte form-control input-sm">'
-        + '<option value="">-- seleccione uma fonte --</option>'
-        + fontes.map(function (f) {
-            return '<option value="' + _mciEsc(f.mdashfontestamp) + '"'
-                + (obj.fontestamp === f.mdashfontestamp ? ' selected' : '') + '>'
-                + _mciEsc(f.descricao || f.codigo || f.mdashfontestamp) + '</option>';
-        }).join('') + '</select></div>'
-        + (!fontes.length ? '<div class="mcbi-info">Nenhuma fonte disponível.</div>' : '')
-        + '<div class="mcbi-transform-status' + (_hasTrans ? ' is-active' : '') + '">'
-        + '<span class="mcbi-ts-badge">'
-        + (_hasTrans
-            ? '<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc(obj.transformConfig.sourceTable) + '</strong>'
-            : '<i class="glyphicon glyphicon-filter"></i> Sem transformação')
-        + '</span>'
-        + '<button type="button" class="mcbi-btn-transform">'
-        + (_hasTrans ? '<i class="glyphicon glyphicon-pencil"></i> Editar' : '<i class="glyphicon glyphicon-plus"></i> Configurar')
-        + '</button></div>'
-
-        + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Campo etiqueta</label><select class="mlst-labelfield form-control input-sm">' + _fieldOpts(cfg.labelField) + '</select></div>'
-        + '<div class="mcbi-field"><label>Campo subtítulo</label><select class="mlst-subtitlefield form-control input-sm">' + _fieldOpts(cfg.subtitleField) + '</select></div>'
-        + '</div>'
-        + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Campo data/hora</label><select class="mlst-datefield form-control input-sm">' + _fieldOpts(cfg.dateField) + '</select></div>'
-        + '<div class="mcbi-field"><label>Máx. itens <small>(0=todos)</small></label><input type="number" class="mlst-maxitems form-control input-sm" value="' + (cfg.maxItems || 0) + '" min="0" max="500"></div>'
-        + '</div>';
-
-    // ── Secção Link ───────────────────────────────────────────────────────────
-    var sLink = _mciChk('mlst-islink', 'Item é link', cfg.isLink)
-        + '<div class="mcbi-row2 mlst-link-opts" ' + (!cfg.isLink ? 'style="display:none;"' : '') + '>'
-        + '<div class="mcbi-field"><label>Campo URL</label><select class="mlst-linkfield form-control input-sm">' + _fieldOpts(cfg.linkField) + '</select></div>'
-        + '<div class="mcbi-field"><label>Campo texto link</label><select class="mlst-linklabel form-control input-sm">' + _fieldOpts(cfg.linkLabel) + '</select></div>'
-        + '</div>'
-        + '<div class="mcbi-field mlst-link-opts" ' + (!cfg.isLink ? 'style="display:none;"' : '') + '><label>Target do link</label>'
-        + '<select class="mlst-linktarget form-control input-sm">'
-        + [['_blank','Nova janela'],['_self','Mesma janela'],['_parent','Parent'],['_top','Top']].map(function(o){
-            return '<option value="' + o[0] + '"' + (cfg.linkTarget === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
-        }).join('') + '</select></div>';
-
-    // ── Secção Estilo ─────────────────────────────────────────────────────────
-    var colorNames = [['primary','Primary (PHC)'],['success','Success'],['warning','Warning'],['danger','Danger'],['info','Info'],['secondary','Secondary'],['custom','Personalizada']];
-    function colorSelect(cls, cur, label) {
-        return '<div class="mcbi-field"><label>' + label + '</label>'
-            + '<select class="' + cls + ' form-control input-sm">'
-            + colorNames.map(function(c){ return '<option value="' + c[0] + '"' + (cur===c[0]?' selected':'') + '>' + c[1] + '</option>'; }).join('')
-            + '</select></div>';
-    }
-
-    var sEstilo = '<div class="mcbi-field"><label>Estilo da lista</label>'
-        + '<div class="mcbi-ct-grid3" style="grid-template-columns:repeat(5,1fr);">'
-        + [['numbered','<i class="fa fa-list-ol"></i><span>Numerada</span>'],
-           ['timeline','<i class="fa fa-history"></i><span>Timeline</span>'],
-           ['card','<i class="fa fa-th-large"></i><span>Cards</span>'],
-           ['plain','<i class="fa fa-align-left"></i><span>Simples</span>'],
-           ['row','<i class="glyphicon glyphicon-menu-right"></i><span>Linha</span>']]
-        .map(function(s){
-            return '<button type="button" class="mcbi-ct-btn mlst-style-btn' + (cfg.listStyle===s[0]?' is-on':'') + '" data-style="' + s[0] + '">' + s[1] + '</button>';
-        }).join('') + '</div></div>'
-
-        // Opções do bullet
-        + '<div class="mlst-bullet-opts" ' + (cfg.listStyle==='numbered'||cfg.listStyle==='timeline'||cfg.listStyle==='card'||cfg.listStyle==='plain'||cfg.listStyle==='row' ? 'style="display:none;"' : '') + '>'
-        + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Símbolo bullet</label>'
-        + '<input type="text" class="mlst-bulletsym form-control input-sm" value="' + _mciEsc(cfg.bulletSymbol || '●') + '" style="width:60px;" maxlength="4"></div>'
-        + '<div class="mcbi-field"><label>Tamanho bullet</label>'
-        + '<input type="number" class="mlst-bulletsize form-control input-sm" value="' + (cfg.bulletSize || 14) + '" min="8" max="32"></div>'
-        + '</div></div>'
-
-        + colorSelect('mlst-bulletcolor', cfg.bulletColor, 'Cor bullet / dot / número')
-        + '<div class="mcbi-field mlst-bullet-custom-wrap" ' + (cfg.bulletColor !== 'custom' ? 'style="display:none;"' : '') + '>'
-        + '<label>Cor personalizada bullet</label>'
-        + '<input type="color" class="mlst-bulletcolorcustom" value="' + (cfg.bulletColorCustom || '#5b8dee') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
-
-        + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Fundo do marcador</label>'
-        + '<input type="color" class="mlst-markerbg form-control" value="' + (cfg.markerBgColor || '#e0e8ff') + '" style="padding:2px;height:28px;cursor:pointer;"></div>'
-        + '<div class="mcbi-field"><label>Cor ícone / número</label>'
-        + '<input type="color" class="mlst-markericoncol form-control" value="' + (cfg.markerIconColor || '#5b8dee') + '" style="padding:2px;height:28px;cursor:pointer;"></div>'
-        + '</div>'
-
-        + '<div class="mlst-tl-color-wrap" ' + (cfg.listStyle !== 'timeline' ? 'style="display:none;"' : '') + '>'
-        + colorSelect('mlst-tllinecolor', cfg.timelineLineColor, 'Cor da linha timeline')
-        + '<div class="mcbi-field mlst-tl-custom-wrap" ' + (cfg.timelineLineColor !== 'custom' ? 'style="display:none;"' : '') + '>'
-        + '<label>Cor personalizada linha</label>'
-        + '<input type="color" class="mlst-tllinecolorcustom" value="' + (cfg.timelineLineColorCustom || '#5b8dee') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
-        + '</div>'
-
-        + '<div class="mcbi-checks">'
-        + _mciChk('mlst-divider', 'Separador entre items', cfg.divider)
-        + '</div>'
-
-        // Badge
-        + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Campo badge</label><select class="mlst-badgefield form-control input-sm">' + _fieldOpts(cfg.badgeField) + '</select></div>'
-        + '<div class="mcbi-field"><label>Estilo badge</label>'
-        + '<select class="mlst-badgestyle form-control input-sm">'
-        + [['none','Sem badge'],['pill','Pill'],['dot','Dot']].map(function(o){
-            return '<option value="' + o[0] + '"' + (cfg.badgeStyle===o[0]?' selected':'') + '>' + o[1] + '</option>';
-        }).join('') + '</select></div>'
-        + '</div>'
-        + colorSelect('mlst-badgecolor', cfg.badgeColor, 'Cor do badge');
-
-    // ── Secção Tipografia ──────────────────────────────────────────────────────
-    var tx = cfg.textFormat || {};
-    var sTipo = '<div class="mcbi-field"><label>Tamanho: <strong class="mlst-fs-lbl">' + (tx.fontSize || 14) + '</strong> px</label>'
-        + '<input type="range" class="mlst-fontsize mcbi-height" min="10" max="28" step="1" value="' + (tx.fontSize || 14) + '"></div>'
-        + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Família</label>'
-        + '<select class="mlst-family form-control input-sm">'
-        + ['Arial','Nunito, sans-serif','Helvetica','Georgia','Verdana','Inter, sans-serif','Segoe UI, sans-serif'].map(function(f){
-            return '<option value="' + f + '"' + (tx.fontFamily===f?' selected':'') + '>' + f.split(',')[0] + '</option>';
-        }).join('') + '</select></div>'
-        + '<div class="mcbi-field"><label>Peso</label>'
-        + '<select class="mlst-weight form-control input-sm">'
-        + [['normal','Normal'],['500','Medium'],['600','Semi-bold'],['bold','Bold']].map(function(o){
-            return '<option value="' + o[0] + '"' + (tx.fontWeight===o[0]?' selected':'') + '>' + o[1] + '</option>';
-        }).join('') + '</select></div>'
-        + '</div>'
-        + '<div class="mcbi-field"><label>Alinhamento</label>'
-        + '<div class="mcbi-ct-grid3" style="grid-template-columns:repeat(4,1fr);">'
-        + [['left','glyphicon-align-left'],['center','glyphicon-align-center'],['right','glyphicon-align-right'],['justify','glyphicon-align-justify']].map(function(a){
-            return '<button type="button" class="mcbi-ct-btn mlst-align' + (tx.textAlign===a[0]?' is-on':'') + '" data-align="' + a[0] + '"><i class="glyphicon ' + a[1] + '"></i></button>';
-        }).join('') + '</div></div>';
-
-    // ── Secção Cores ───────────────────────────────────────────────────────────
-    var cl = cfg.colors || {};
-    var sCores = '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Cor do texto</label><input type="color" class="mlst-textcolor" value="' + (cl.textColor && cl.textColor !== '' && cl.textColor !== 'inherit' ? cl.textColor : '#333333') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"> ' + _mciChk('mlst-textcolor-inherit', 'Herdar tema', !cl.textColor || cl.textColor === 'inherit') + '</div>'
-        + '<div class="mcbi-field"><label>Cor de fundo</label><input type="color" class="mlst-bgcolor" value="' + (cl.backgroundColor && cl.backgroundColor !== 'transparent' ? cl.backgroundColor : '#ffffff') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"> ' + _mciChk('mlst-bgtransp', 'Transparente', !cl.backgroundColor || cl.backgroundColor === 'transparent') + '</div>'
-        + '</div>'
-        + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Hover fundo</label><input type="color" class="mlst-hoverbg" value="' + (cl.hoverBgColor || '#f1f5f9') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
-        + '<div class="mcbi-field"><label>Hover texto</label><input type="color" class="mlst-hovertxt" value="' + (cl.hoverTextColor || '#1e293b') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
-        + '</div>';
-
-    // ── Secção Espaçamento/Borda ────────────────────────────────────────────────
-    var sp = cfg.spacing || {};
-    var bd2 = cfg.border || {};
-    var sLayout = '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Gap items</label><input type="number" class="mlst-gap form-control input-sm" value="' + (sp.gap !== undefined ? sp.gap : 6) + '" min="0" max="40"></div>'
-        + '<div class="mcbi-field"><label>Border radius</label><input type="number" class="mlst-brad form-control input-sm" value="' + (bd2.radius || 0) + '" min="0" max="40"></div>'
-        + '</div>'
-        + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Padding H</label><input type="number" class="mlst-ph form-control input-sm" value="' + (sp.paddingLeft || 12) + '" min="0" max="60"></div>'
-        + '<div class="mcbi-field"><label>Padding V</label><input type="number" class="mlst-pv form-control input-sm" value="' + (sp.paddingTop || 8) + '" min="0" max="60"></div>'
-        + '</div>'
-        + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Borda largura</label><input type="number" class="mlst-bw form-control input-sm" value="' + (bd2.width || 0) + '" min="0" max="8"></div>'
-        + '<div class="mcbi-field"><label>Borda cor</label><input type="color" class="mlst-bordercolor" value="' + (bd2.borderColor && bd2.borderColor !== 'transparent' ? bd2.borderColor : '#e2e8f0') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
-        + '</div>';
-
-    // ── Secção Items Manuais ───────────────────────────────────────────────────
-    var sManual = _mciChk('mlst-usemanual', 'Activar items manuais (override de dados)', cfg.useManualItems)
-        + '<div class="mlst-manual-wrap" ' + (!cfg.useManualItems ? 'style="display:none;"' : '') + '>'
-        + '<div class="mlst-manual-list" style="margin-top:10px;">'
-        + (cfg.manualItems && cfg.manualItems.length
-            ? cfg.manualItems.map(function (it) { return _lstManualItemRow(it); }).join('')
-            : '<div class="mcbi-info mlst-mi-empty" style="text-align:center;padding:10px 8px;">Sem items. Clique em <strong>+ Adicionar item</strong> para começar.</div>')
-        + '</div>'
-        + '<button type="button" class="mlst-mi-add" style="margin-top:8px;width:100%;border:1px dashed rgba(91,141,238,.45);background:rgba(91,141,238,.04);color:#5b8dee;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">'
-        + '<i class="glyphicon glyphicon-plus" style="font-size:10px;"></i> Adicionar item</button>'
-        + '</div>';
-
-    // ── Montar HTML do painel ──────────────────────────────────────────────────
-    function _sec(icon, title, body, open) {
-        return '<div class="mcbi-section' + (open ? ' is-open' : '') + '">'
-            + '<div class="mcbi-section-hd"><i class="' + icon + '" style="width:14px;"></i> ' + title
-            + '<i class="glyphicon ' + (open ? 'glyphicon-chevron-up' : 'glyphicon-chevron-down') + ' mcbi-chev" style="margin-left:auto;font-size:9px;"></i></div>'
-            + '<div class="mcbi-section-bd">' + body + '</div></div>';
-    }
-
-    var panelHtml = '<div class="mlst-props-root">'
-        + _sec('fa fa-database', 'Dados & Transformação', sDados, true)
-        + _sec('fa fa-link', 'Link', sLink, !!cfg.isLink)
-        + _sec('fa fa-list-ul', 'Items Manuais', sManual, !!cfg.useManualItems)
-        + _sec('fa fa-paint-brush', 'Estilo da Lista', sEstilo, true)
-        + _sec('fa fa-font', 'Tipografia', sTipo, false)
-        + _sec('fa fa-tint', 'Cores', sCores, false)
-        + _sec('fa fa-arrows-alt', 'Layout & Espaçamento', sLayout, false)
-        + '</div>';
-
-    panel.html(panelHtml);
-
-    // ── Eventos ───────────────────────────────────────────────────────────────
-
-    // Collapse sections
-    panel.on('click.lstinline', '.mcbi-section-hd', function () {
-        var $s = $(this).closest('.mcbi-section');
-        $s.toggleClass('is-open');
-        var open = $s.hasClass('is-open');
-        $(this).find('.mcbi-chev').toggleClass('glyphicon-chevron-up', open).toggleClass('glyphicon-chevron-down', !open);
-    });
-
-    // Botões de estilo de lista
-    panel.on('click.lstinline', '.mlst-style-btn', function () {
-        panel.find('.mlst-style-btn').removeClass('is-on');
-        $(this).addClass('is-on');
-        var style = $(this).data('style');
-        // Mostrar/esconder opções dependentes
-        panel.find('.mlst-bullet-opts').toggle(style === 'bullet');
-        panel.find('.mlst-tl-color-wrap').toggle(style === 'timeline');
-        fire();
-    });
-
-    // Botões de alinhamento
-    panel.on('click.lstinline', '.mlst-align', function () {
-        panel.find('.mlst-align').removeClass('is-on');
-        $(this).addClass('is-on');
-        fire();
-    });
-
-    // Checkbox toggles
-    panel.on('change.lstinline', '.mcbi-chk input[type=checkbox]', function () {
-        $(this).closest('.mcbi-chk').toggleClass('is-on', this.checked);
-        var name = $(this).closest('.mcbi-chk').data('chk') || $(this).closest('.mcbi-chk').attr('class');
-        // Mostrar/esconder link opts
-        if ($(this).hasClass('mlst-islink') || $(this).is('input.mlst-islink')) {
-            panel.find('.mlst-link-opts').toggle(this.checked);
-        }
-        fire();
-    });
-
-    // Cores de bullet/timeline custom
-    panel.on('change.lstinline', '.mlst-bulletcolor', function () {
-        panel.find('.mlst-bullet-custom-wrap').toggle($(this).val() === 'custom');
-        fire();
-    });
-    panel.on('change.lstinline', '.mlst-tllinecolor', function () {
-        panel.find('.mlst-tl-custom-wrap').toggle($(this).val() === 'custom');
-        fire();
-    });
-
-    // Slider de font-size
-    panel.on('input.lstinline', '.mlst-fontsize', function () {
-        panel.find('.mlst-fs-lbl').text($(this).val()); fire();
-    });
-
-    // ── Items manuais ─────────────────────────────────────────────────────────
-    panel.on('change.lstinline', 'input.mlst-usemanual', function () {
-        panel.find('.mlst-manual-wrap').toggle(this.checked);
-        // fire() chamado pelo handler geral de checkboxes
-    });
-    panel.on('change.lstinline', 'input.mlst-mi-islink', function () {
-        $(this).closest('.mlst-manual-row').find('.mlst-mi-url-wrap').toggle(this.checked);
-        // fire() chamado pelo handler geral de checkboxes
-    });
-    panel.on('click.lstinline', '.mlst-mi-del', function () {
-        $(this).closest('.mlst-manual-row').remove();
-        if (!panel.find('.mlst-manual-row').length) {
-            panel.find('.mlst-manual-list').html('<div class="mcbi-info mlst-mi-empty" style="text-align:center;padding:10px 8px;">Sem items. Clique em <strong>+ Adicionar item</strong> para começar.</div>');
-        }
-        fire();
-    });
-    panel.on('click.lstinline', '.mlst-mi-add', function () {
-        panel.find('.mlst-mi-empty').remove();
-        panel.find('.mlst-manual-list').append(_lstManualItemRow({ label: '', url: '', isLink: false, subtitle: '' }));
-        fire();
-    });
-
-    // Todos os outros inputs — text inputs só disparam no change (blur), evita re-render a cada tecla
-    panel.on('change.lstinline', 'input.form-control, select.form-control', function () {
-        fire();
-    });
-    // Sliders, color pickers e number spinners mantêm feedback imediato
-    panel.on('input.lstinline change.lstinline', 'input[type=color], input[type=number], input[type=range]', function () {
-        fire();
-    });
-
-    // Fonte change
-    panel.on('change.lstinline', '.mcbi-fonte', function () {
-        obj.fontestamp = $(this).val();
-        if (obj.fontestamp) {
-            _mciAutoApplyFonteTransform(obj.fontestamp, obj, panel);
-        } else {
-            obj.transformConfig = null;
-            obj.transformconfigjson = null;
-            if (obj.config) obj.config.transformConfig = null;
-            var $ts = panel.find('.mcbi-transform-status');
-            $ts.removeClass('is-active');
-            $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-filter"></i> Sem transformação');
-            $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-plus"></i> Configurar');
-        }
-        var newFields = _mciGetFields(obj);
-        fields = newFields;
-        panel.find('.mlst-labelfield, .mlst-subtitlefield, .mlst-datefield, .mlst-linkfield, .mlst-linklabel, .mlst-badgefield').each(function () {
-            var cur = $(this).val();
-            _mciSetSelectFields($(this), newFields, '-- campo --');
-            if (newFields.indexOf(cur) >= 0) $(this).val(cur);
-        });
-        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
-        if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
-        fire();
-    });
-
-    // Botão transformação
-    panel.on('click.lstinline', '.mcbi-btn-transform', function () { _lstOpenTransformModal(); });
-
-    function _lstOpenTransformModal() {
-        var _tFnt   = fontes.filter(function (f) { return f.mdashfontestamp === obj.fontestamp; })[0] || fontes[0];
-        var _tName  = _tFnt ? (_tFnt.codigo || _tFnt.descricao || '') : '';
-        var _tFntName = _tFnt ? (_tFnt.descricao || _tFnt.codigo || _tName) : '';
-        var _tSchema  = _mciGetFonteSchema(_tFnt);
-        var _tCfgRaw  = obj.transformConfig || null;
-        var MTB = (typeof MdashTransformBuilder !== 'undefined') ? MdashTransformBuilder : null;
-        var _tConf = _tCfgRaw || (_tName && MTB ? MTB.autoConfig(_tName, 'Lista') : { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
-        if (_tConf.columns && !_tConf.columns.length && _tSchema.length) {
-            _tConf.sourceTable = _tName;
-            _tConf.columns = _tSchema.map(function (s) { return { field: s.field, alias: '', aggregate: 'none', visible: true }; });
-        }
-
-        _mciOpenTransformModalFor({
-            title: 'Transformação de Dados — Lista',
-            fonteName: _tFntName,
-            modalId: 'mlst-transform-modal',
-            hostId: 'mlst-transform-modal-host',
-            config: _tConf,
-            schema: _tSchema,
-            onSave: function (newT) {
-                obj.transformConfig = newT;
-                obj.config = obj.config || {};
-                obj.config.transformConfig = newT;
-                if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
-                if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
-                var $ts = panel.find('.mcbi-transform-status');
-                $ts.addClass('is-active');
-                $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc(newT.sourceTable || 'SQL') + '</strong>');
-                $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-pencil"></i> Editar');
-                var newFields = _mciGetFields(obj);
-                fields = newFields;
-                panel.find('.mlst-labelfield, .mlst-subtitlefield, .mlst-datefield, .mlst-linkfield, .mlst-linklabel, .mlst-badgefield').each(function () {
-                    _mciSetSelectFields($(this), newFields, '-- campo --');
-                });
-                fire();
-            }
-        });
-    }
-}
-
-// ── _lstReadConfig ─────────────────────────────────────────────────────────
-function _lstReadConfig(panel, obj) {
-    var cfg = _lstNormalizeConfig(obj.config);
-
-    cfg.labelField    = panel.find('.mlst-labelfield').val() || '';
-    cfg.subtitleField = panel.find('.mlst-subtitlefield').val() || '';
-    cfg.dateField     = panel.find('.mlst-datefield').val() || '';
-    cfg.maxItems      = parseInt(panel.find('.mlst-maxitems').val()) || 0;
-
-    cfg.isLink     = panel.find('input.mlst-islink').is(':checked');
-    cfg.linkField  = panel.find('.mlst-linkfield').val() || '';
-    cfg.linkLabel  = panel.find('.mlst-linklabel').val() || '';
-    cfg.linkTarget = panel.find('.mlst-linktarget').val() || '_blank';
-
-    cfg.listStyle       = panel.find('.mlst-style-btn.is-on').data('style') || 'bullet';
-    cfg.bulletSymbol    = panel.find('.mlst-bulletsym').val() || '●';
-    cfg.bulletSize      = parseInt(panel.find('.mlst-bulletsize').val()) || 14;
-    cfg.bulletColor     = panel.find('.mlst-bulletcolor').val() || 'primary';
-    cfg.bulletColorCustom = panel.find('.mlst-bulletcolorcustom').val() || '#5b8dee';
-    cfg.markerBgColor    = panel.find('.mlst-markerbg').val() || '';
-    cfg.markerIconColor  = panel.find('.mlst-markericoncol').val() || '';
-    cfg.timelineLineColor = panel.find('.mlst-tllinecolor').val() || 'primary';
-    cfg.timelineLineColorCustom = panel.find('.mlst-tllinecolorcustom').val() || '#5b8dee';
-    cfg.divider = panel.find('input.mlst-divider').is(':checked');
-
-    cfg.badgeField = panel.find('.mlst-badgefield').val() || '';
-    cfg.badgeStyle = panel.find('.mlst-badgestyle').val() || 'none';
-    cfg.badgeColor = panel.find('.mlst-badgecolor').val() || 'primary';
-
-    cfg.textFormat = {
-        fontSize:   parseInt(panel.find('.mlst-fontsize').val()) || 14,
-        fontFamily: panel.find('.mlst-family').val() || 'Nunito, sans-serif',
-        fontWeight: panel.find('.mlst-weight').val() || 'normal',
-        textAlign:  panel.find('.mlst-align.is-on').data('align') || 'left',
-        lineHeight: 1.6
-    };
-
-    var textInherit = panel.find('input.mlst-textcolor-inherit').is(':checked');
-    var bgTransp    = panel.find('input.mlst-bgtransp').is(':checked');
-    cfg.colors = {
-        textColor:      textInherit ? '' : (panel.find('.mlst-textcolor').val() || '#333333'),
-        backgroundColor: bgTransp ? 'transparent' : (panel.find('.mlst-bgcolor').val() || '#ffffff'),
-        borderColor:    panel.find('.mlst-bordercolor').val() || 'transparent',
-        hoverBgColor:   panel.find('.mlst-hoverbg').val() || 'rgba(0,0,0,.04)',
-        hoverTextColor: panel.find('.mlst-hovertxt').val() || ''
-    };
-
-    var gap = parseInt(panel.find('.mlst-gap').val());
-    var ph  = parseInt(panel.find('.mlst-ph').val());
-    var pv  = parseInt(panel.find('.mlst-pv').val());
-    cfg.spacing = { paddingTop: isNaN(pv)?8:pv, paddingRight: isNaN(ph)?12:ph, paddingBottom: isNaN(pv)?8:pv, paddingLeft: isNaN(ph)?12:ph, gap: isNaN(gap)?6:gap };
-    cfg.border  = { width: parseInt(panel.find('.mlst-bw').val())||0, style: 'solid', radius: parseInt(panel.find('.mlst-brad').val())||0 };
-
-    cfg.transformConfig = obj.transformConfig || null;
-
-    cfg.useManualItems = panel.find('input.mlst-usemanual').is(':checked');
-    cfg.manualItems = [];
-    panel.find('.mlst-manual-row').each(function () {
-        var $r  = $(this);
-        var lbl = ($r.find('.mlst-mi-label').val() || '').trim();
-        if (!lbl) return;
-        var isLnk = $r.find('input.mlst-mi-islink').is(':checked');
-        cfg.manualItems.push({
-            label:      lbl,
-            url:        isLnk ? ($r.find('.mlst-mi-url').val() || '').trim() : '',
-            isLink:     isLnk,
-            subtitle:   ($r.find('.mlst-mi-sub').val() || '').trim(),
-            linkTarget: isLnk ? ($r.find('.mlst-mi-target').val() || '_blank') : '_blank',
-            linkColor:  isLnk ? ($r.find('.mlst-mi-color').val() || '') : ''
-        });
-    });
-
-    return cfg;
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// ██  OBJECTO TEXTO — Fonte + Transformação + Editor Inline (padrão gráfico)
-// ══════════════════════════════════════════════════════════════════════════════
+// ------------------------------------------------------------------------------
+// ¦¦  OBJECTO TEXTO — Fonte + Transformação + Editor Inline (padrão gráfico)
+// ------------------------------------------------------------------------------
 
 var _TEXT_SAMPLE_CONFIG = {
     dataField: '', staticText: 'Texto personalizado aqui...',
@@ -7385,11 +5133,9 @@ function renderObjectTexto(dados) {
     var cfg = _txtNormalizeConfig(dados.config);
     var isSample = !!dados.isSample;
 
-    var rows = [];
+    var rows = dados.data || [];
     var tCfg = dados.transformConfig || cfg.transformConfig || null;
-    
-    // PRIORIDADE: transformConfig SEMPRE tem prioridade sobre dados.data
-    if (tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
+    if (rows.length === 0 && tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
         try {
             var raw = MdashTransformBuilder.executeRaw(tCfg);
             if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
@@ -7404,14 +5150,6 @@ function renderObjectTexto(dados) {
             console.warn('[MDash] renderObjectTexto fallback transform error:', e.message);
         }
     }
-    
-    // Fallback: usar dados.data se não há transformConfig ou se a transformação falhou
-    if (rows.length === 0 && dados.data && dados.data.length > 0) {
-        rows = dados.data;
-        isSample = false;
-    }
-    
-    // Última opção: dados de amostra
     if (rows.length === 0) {
         rows = getMdashSampleData('text');
         isSample = true;
@@ -7429,10 +5167,6 @@ function renderObjectTexto(dados) {
         }
     } else if (cfg.staticText) {
         content = cfg.staticText;
-        // Aplicar prefix/suffix também em texto estático
-        var dfStatic = cfg.dataFormat || {};
-        if (dfStatic.prefix) content = dfStatic.prefix + content;
-        if (dfStatic.suffix) content = content + dfStatic.suffix;
     } else {
         content = 'Texto personalizado aqui...';
     }
@@ -7481,17 +5215,14 @@ function _txtBuildStyles(cfg) {
 }
 
 function renderTextPropertiesInline(obj, panel) {
-    // Limpar TODOS os event handlers para evitar conflito com outros tipos de objetos
-    panel.off();
-    
     var stamp = obj.mdashcontaineritemobjectstamp;
     var cfg = _txtNormalizeConfig(obj.config);
     var fontes = _mciGetFontes(obj);
     var fields = _mciGetFields(obj);
     var isSample = !obj.fontestamp;
 
-    // Dados (fonte + transform) — SEMPRE usar obj.transformConfig (root level) como fonte de verdade
-    var _hasTrans = !!(obj.transformConfig && obj.transformConfig.sourceTable);
+    // Dados (fonte + transform)
+    var _hasTrans = !!(cfg.transformConfig && cfg.transformConfig.sourceTable);
     var sDados = '<div class="mcbi-field"><label>Fonte de dados</label>'
         + '<select class="mcbi-fonte form-control input-sm"><option value="">-- seleccione uma fonte --</option>'
         + fontes.map(function (f) {
@@ -7503,7 +5234,7 @@ function renderTextPropertiesInline(obj, panel) {
         + '<div class="mcbi-transform-status' + (_hasTrans ? ' is-active' : '') + '">'
         + '<span class="mcbi-ts-badge">'
         + (_hasTrans
-            ? '<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc(obj.transformConfig.sourceTable) + '</strong>'
+            ? '<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc(cfg.transformConfig.sourceTable) + '</strong>'
             : '<i class="glyphicon glyphicon-filter"></i> Sem transformação de dados')
         + '</span>'
         + '<button type="button" class="mcbi-btn-transform">'
@@ -7660,7 +5391,7 @@ function renderTextPropertiesInline(obj, panel) {
             return '<option value="' + m + '"' + (dm.maxWidth === m ? ' selected' : '') + '>' + m + '</option>';
         }).join('') + '</select></div>';
 
-    // ── Assemble HTML ───────────────────────────────────────────────────────
+    // -- Assemble HTML -------------------------------------------------------
     var h = '<div class="mcbi-root mtxt-root" data-stamp="' + stamp + '">'
         + (isSample ? '<div class="mcbi-sample-label"><i class="glyphicon glyphicon-info-sign"></i> Dados de amostra — configure a fonte</div>' : '')
         + _mciSection('txt-dados',     'Dados',        'glyphicon-hdd',              true,  sDados)
@@ -7688,7 +5419,7 @@ function renderTextPropertiesInline(obj, panel) {
         }
     });
 
-    // ── Events ─────────────────────────────────────────────────────────────
+    // -- Events -------------------------------------------------------------
     var _txtTimer = null;
     panel.data('_mciTimer', null);
     function fire() {
@@ -7697,9 +5428,7 @@ function renderTextPropertiesInline(obj, panel) {
             if (!panel.find('.mtxt-root').length) { _txtTimer = null; panel.removeData('_mciTimer'); return; }
             var newCfg = _txtReadConfig(panel, obj);
             obj.config = newCfg;
-            obj.transformConfig = newCfg.transformConfig;
-            // Sincronizar a invariante triplicada antes de persistir
-            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+            obj.configjson = JSON.stringify(newCfg);
             if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
             _mciRerender(obj);
             _txtTimer = null;
@@ -7708,13 +5437,13 @@ function renderTextPropertiesInline(obj, panel) {
         panel.data('_mciTimer', _txtTimer);
     }
 
-    // ── Transform Builder ────────────────────────────────────────────────────
+    // -- Transform Builder ----------------------------------------------------
     var _txtTransformInited = false;
 
     function _txtOpenTransformModal() {
         var _tFnt = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
         var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
-        var modalId = 'mtxt-transform-modal';
+        var modalId = 'mcbi-transform-modal';
         $('#' + modalId).remove();
         _txtTransformInited = false;
 
@@ -7728,7 +5457,7 @@ function renderTextPropertiesInline(obj, panel) {
             + '<button type="button" class="close" data-dismiss="modal" aria-label="Fechar" style="margin-left:auto;font-size:20px;line-height:1;padding:2px 6px;opacity:.5;">&times;</button>'
             + '</div>'
             + '<div style="background:#f8fafc;overflow-y:auto;max-height:80vh;">'
-            + '<div id="mtxt-transform-modal-host" style="max-width:780px;margin:0 auto;padding:16px;"></div>'
+            + '<div id="mcbi-transform-modal-host" style="max-width:780px;margin:0 auto;padding:16px;"></div>'
             + '</div></div></div></div>';
 
         $('body').append(mHtml);
@@ -7767,18 +5496,16 @@ function renderTextPropertiesInline(obj, panel) {
         _mciOpenTransformModalFor({
             title: 'Transformação de Dados',
             fonteName: _tFntName,
-            modalId: 'mtxt-transform-modal',
-            hostId: 'mtxt-transform-modal-host',
+            modalId: 'mcbi-transform-modal',
+            hostId: 'mcbi-transform-modal-host',
             config: _tConf,
             schema: _tSchema,
             onSave: function (newT) {
-                // Atualizar apenas as localizações fundamentais
                 obj.transformConfig = newT;
+                obj.transformconfigjson = JSON.stringify(newT);
                 cfg.transformConfig = newT;
                 obj.config = obj.config || {};
                 obj.config.transformConfig = newT;
-                // Sincronizar a invariante triplicada antes de persistir
-                if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
                 if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
                 var $ts = panel.find('.mcbi-transform-status');
                 $ts.addClass('is-active');
@@ -7793,17 +5520,17 @@ function renderTextPropertiesInline(obj, panel) {
     }
 
     // Section collapse
-    panel.on('click.txtinline', '.mcbi-section-hd', function () {
+    panel.on('click.mcbi', '.mcbi-section-hd', function () {
         var $s = $(this).closest('.mcbi-section');
         $s.toggleClass('is-open');
         var open = $s.hasClass('is-open');
         $(this).find('.mcbi-chev').toggleClass('glyphicon-chevron-up', open).toggleClass('glyphicon-chevron-down', !open);
     });
 
-    panel.on('click.txtinline', '.mcbi-btn-transform', function () { _txtOpenTransformModal(); });
+    panel.on('click.mcbi', '.mcbi-btn-transform', function () { _txtOpenTransformModal(); });
 
     // Fonte change
-    panel.on('change.txtinline', '.mcbi-fonte', function () {
+    panel.on('change.mcbi', '.mcbi-fonte', function () {
         obj.fontestamp = $(this).val();
         _txtTransformInited = false;
         if (obj.fontestamp) {
@@ -7822,37 +5549,35 @@ function renderTextPropertiesInline(obj, panel) {
         var newFields = _mciGetFields(obj);
         fields = newFields;
         _mciSetSelectFields(panel.find('.mtxt-datafield'), newFields, '-- campo --');
-        // Sincronizar a invariante triplicada antes de persistir
-        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
         if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
         fire();
     });
 
     // Alignment buttons
-    panel.on('click.txtinline', '.mtxt-align', function () {
+    panel.on('click.mcbi', '.mtxt-align', function () {
         panel.find('.mtxt-align').removeClass('is-on');
         $(this).addClass('is-on');
         fire();
     });
 
     // Checkbox toggles
-    panel.on('change.txtinline', '.mcbi-chk input[type=checkbox]', function () {
+    panel.on('change.mcbi', '.mcbi-chk input[type=checkbox]', function () {
         $(this).closest('.mcbi-chk').toggleClass('is-on', this.checked);
         fire();
     });
 
     // Font size slider
-    panel.on('input.txtinline', '.mtxt-fontsize', function () {
+    panel.on('input.mcbi', '.mtxt-fontsize', function () {
         panel.find('.mtxt-fs-lbl').text($(this).val()); fire();
     });
 
     // Line height slider
-    panel.on('input.txtinline', '.mtxt-lineheight', function () {
+    panel.on('input.mcbi', '.mtxt-lineheight', function () {
         panel.find('.mtxt-lh-lbl').text($(this).val()); fire();
     });
 
-    // All other inputs → fire
-    panel.on('input.txtinline change.txtinline', 'input.form-control, select.form-control, input[type=color], input[type=number], input[type=range]', function () {
+    // All other inputs ? fire
+    panel.on('input.mcbi change.mcbi', 'input.form-control, select.form-control, input[type=color], input[type=number], input[type=range]', function () {
         fire();
     });
 }
@@ -7933,15 +5658,12 @@ function _txtReadConfig(panel, obj) {
         maxWidth: panel.find('.mtxt-maxw').val() || 'none'
     };
 
-    // Preservar transformConfig de obj.config OU obj.transformConfig (fallback)
-    cfg.transformConfig = cfg.transformConfig || obj.transformConfig || null;
-    
-    // NÃO atualizar transformconfigjson manualmente - stringifyJSONFields() faz isso
+    cfg.transformConfig = cfg.transformConfig || null;
     return cfg;
 }
 
 
-// ── Schema extraído do objecto "Texto" ──────────────────────────────────────
+// -- Schema extraído do objecto "Texto" --------------------------------------
 function createDynamicSchemaTexto(data) {
     var fieldOptions = [];
     if (data && data.length > 0) {
@@ -8060,10 +5782,6 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
     } else if (config.staticText) {
         // Usar texto estático
         content = config.staticText;
-        // Aplicar prefix/suffix também em texto estático
-        var dfStatic = config.dataFormat || {};
-        if (dfStatic.prefix) content = dfStatic.prefix + content;
-        if (dfStatic.suffix) content = content + dfStatic.suffix;
     } else {
         content = "Texto personalizado aqui...";
     }
@@ -8132,17 +5850,8 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
 }
 // FUNÇÃO AUXILIAR PARA FORMATAÇÃO DE DADOS
 function formatDataValue(value, formatConfig) {
-    // Salvaguarda — sem config devolve o valor cru
-    if (!formatConfig) return value;
-
-    var formattedValue;
-    // Tratar valores vazios/null/undefined como string vazia para que
-    // prefixo/sufixo possam ainda assim ser aplicados sobre eles.
-    if (value === null || value === undefined) {
-        formattedValue = '';
-    } else {
-        formattedValue = value;
-    }
+    if ((!formatConfig || !value) && (formatConfig.type != "currency" && formatConfig.type != "number")) return value;
+    var formattedValue = value;
 
     function applyDecimalSeparator(val, cfg) {
         if (!cfg) return val;
@@ -8224,15 +5933,15 @@ function formatDataValue(value, formatConfig) {
                 }
                 break;
             default:
-                formattedValue = (value === null || value === undefined) ? '' : value.toString();
+                formattedValue = value.toString();
         }
+        // Adicionar prefixo e sufixo
+        if (formatConfig.prefix) formattedValue = formatConfig.prefix + formattedValue;
+        if (formatConfig.suffix) formattedValue = formattedValue + formatConfig.suffix;
     } catch (e) {
         console.warn("Erro na formatação do valor:", e);
-        formattedValue = (value === null || value === undefined) ? '' : String(value);
+        formattedValue = value;
     }
-    // Adicionar prefixo e sufixo — SEMPRE, mesmo após erro ou valor vazio
-    if (formatConfig.prefix) formattedValue = formatConfig.prefix + formattedValue;
-    if (formatConfig.suffix) formattedValue = formattedValue + formatConfig.suffix;
     return formattedValue;
 }
 
@@ -8610,7 +6319,7 @@ function createTableSchema(data) {
                         formatter: {
                             type: "string",
                             title: "Formatador",
-                            'enum': ["plaintext", "textarea", "number", "html", "money", "link", "linkButton", "datetime", "datetimediff", "tickCross", "color", "star", "traffic", "progress", "lookup", "buttonTick", "buttonCross", "rownum", "handle"],
+                            'enum': ["plaintext", "textarea", "number", "html", "money", "link", "datetime", "datetimediff", "tickCross", "color", "star", "traffic", "progress", "lookup", "buttonTick", "buttonCross", "rownum", "handle"],
                             'default': "plaintext"
                         },
                         formatterParams: {
@@ -8936,7 +6645,7 @@ function expandChildrenRecursive(row) {
  */
 function getDefaultLayoutDefinitions() {
 
-    // ── HTML Templates partilhados ──────────────────────────────────────────
+    // -- HTML Templates partilhados ------------------------------------------
 
     var _tplDashCardInfo =
         '<div id="mdash{{id}}" class="c-dashboardInfo {{classes}}" style="height:100%!important;{{styles}}">' +
@@ -8971,7 +6680,7 @@ function getDefaultLayoutDefinitions() {
 
     var _tplDashCardStandard =
         '<div id="{{id}}" class="m-dash-item {{classes}}" style="height:100%!important;{{styles}}">' +
-        '<h1 data-mdash-slot="title" classa="m-dash-item-title"></h1>' +
+        '<h1 data-mdash-slot="title" class="m-dash-item-title"></h1>' +
         '<div data-mdash-slot="body" class="m-dash-standard-card-body"></div>' +
         '</div>';
 
@@ -8995,14 +6704,11 @@ function getDefaultLayoutDefinitions() {
         '</div></div>';
 
     var _tplBrdMetric =
-        '<div id="{{id}}" class="brd-card-advanced brd-card-advanced-metrica brd-card-advanced-metrica-{{tipo}} {{classes}}" style="{{styles}}">' +
+        '<div id="{{id}}" class="brd-card-advanced brd-card-advanced-metrica {{classes}}" style="{{styles}}">' +
         '<div class="brd-card-advanced-icon brd-card-advanced-icon-{{tipo}}">' +
         '<i data-mdash-slot="icon" class="material-symbols-rounded">analytics</i>' +
         '</div>' +
-        '<div class="brd-card-advanced-content">' +
-        '<div data-mdash-slot="title" class="brd-card-advanced-label"></div>' +
-        '<div data-mdash-slot="body"></div>' +
-        '</div>' +
+        '<div data-mdash-slot="body" class="brd-card-advanced-content"></div>' +
         '</div>';
 
     var _tplBrdStatus =
@@ -9011,7 +6717,6 @@ function getDefaultLayoutDefinitions() {
         '<i data-mdash-slot="icon" data-mdash-slot-mode="class"></i>' +
         '<span data-mdash-slot="status-badge" class="brd-card-advanced-status-badge"></span>' +
         '</div>' +
-        '<div data-mdash-slot="title" class="brd-card-advanced-status-title"></div>' +
         '<div data-mdash-slot="body" class="brd-card-advanced-status-body"></div>' +
         '</div>';
 
@@ -9020,13 +6725,10 @@ function getDefaultLayoutDefinitions() {
         '<div class="brd-card-advanced-alert-icon">' +
         '<i data-mdash-slot="icon" data-mdash-slot-mode="class"></i>' +
         '</div>' +
-        '<div class="brd-card-advanced-alert-content">' +
-        '<div data-mdash-slot="title" class="brd-card-advanced-alert-title"></div>' +
-        '<div data-mdash-slot="body"></div>' +
-        '</div>' +
+        '<div data-mdash-slot="body" class="brd-card-advanced-alert-content"></div>' +
         '</div>';
 
-    // ── Definições de slots partilhadas ─────────────────────────────────────
+    // -- Definições de slots partilhadas -------------------------------------
 
     var _slotsDashCardInfo = JSON.stringify([
         { id: "title", label: "Título", type: "text" },
@@ -9066,28 +6768,25 @@ function getDefaultLayoutDefinitions() {
     ]);
 
     var _slotsBrdMetric = JSON.stringify([
-        { id: "title", label: "Título", type: "text" },
         { id: "icon", label: "Ícone", type: "icon" },
         { id: "body", label: "Conteúdo", type: "content", isMainContent: true }
     ]);
 
     var _slotsBrdStatus = JSON.stringify([
-        { id: "title", label: "Título", type: "text" },
         { id: "icon", label: "Ícone", type: "icon" },
         { id: "status-badge", label: "Badge de Estado", type: "text" },
         { id: "body", label: "Corpo", type: "content", isMainContent: true }
     ]);
 
     var _slotsBrdAlert = JSON.stringify([
-        { id: "title", label: "Título", type: "text" },
         { id: "icon", label: "Ícone", type: "icon" },
         { id: "body", label: "Conteúdo", type: "content", isMainContent: true }
     ]);
 
-    // ── Definições dos layouts ──────────────────────────────────────────────
+    // -- Definições dos layouts ----------------------------------------------
 
     return [
-        // ───── Snapshots ─────
+        // ----- Snapshots -----
         { descricao: "Snapshot Layout v1", codigo: "snapshot_layout_v1", tipo: "snapshot", UIData: { tipo: "primary" }, htmltemplate: _tplDashCardInfo, csstemplate: "", slotsdefinition: _slotsDashCardInfo, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Snapshot Layout v1 Warning", codigo: "snapshot_layout_v1_warning", tipo: "snapshot", UIData: { tipo: "warning" }, htmltemplate: _tplDashCardInfo, csstemplate: "", slotsdefinition: _slotsDashCardInfo, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Snapshot layout v2", codigo: "snapshot_layout_v2", tipo: "snapshot", UIData: { tipo: "primary" }, htmltemplate: _tplDashCardSnapshot, csstemplate: "", slotsdefinition: _slotsDashCardSnapshot, containerSelectorToRender: '[data-mdash-slot="body"]' },
@@ -9095,35 +6794,29 @@ function getDefaultLayoutDefinitions() {
         { descricao: "Snap Card", codigo: "snap_card", tipo: "snapshot", UIData: { tipo: "primary" }, htmltemplate: _tplMDashCardSnapV2, csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Snap Card Success", codigo: "snap_card_success", tipo: "snapshot", UIData: { tipo: "success" }, htmltemplate: _tplMDashCardSnapV2, csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Snap card Danger", codigo: "snapshot_card_danger", tipo: "snapshot", UIData: { tipo: "danger" }, htmltemplate: _tplMDashCardSnapV2, csstemplate: "", slotsdefinition: _slotsMDashCardSnapV2, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        // ───── Cards ─────
+        // ----- Cards -----
         { descricao: "Card standard", codigo: "card_standard", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplDashCardStandard, csstemplate: "", slotsdefinition: _slotsDashCardStandard, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Card header destacado", codigo: "card_header_highlighted", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplDashCardHTML, csstemplate: "", slotsdefinition: _slotsDashCardHTML, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Plain Card", codigo: "plain_card", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplPlainCard, csstemplate: "", slotsdefinition: _slotsPlainCard, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        // ───── BRD Metric ─────
+        // ----- BRD Metric -----
         { descricao: "Top Border Card Advanced - Metric Primary", codigo: "brd_card_advanced_metric_primary", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Metric Success", codigo: "brd_card_advanced_metric_success", tipo: "card", UIData: { tipo: "success" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Metric Warning", codigo: "brd_card_advanced_metric_warning", tipo: "card", UIData: { tipo: "warning" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Metric Danger", codigo: "brd_card_advanced_metric_danger", tipo: "card", UIData: { tipo: "danger" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Metric Yellow", codigo: "brd_card_advanced_metric_yellow", tipo: "card", UIData: { tipo: "yellow" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Metric Black", codigo: "brd_card_advanced_metric_black", tipo: "card", UIData: { tipo: "black" }, htmltemplate: _tplBrdMetric, csstemplate: "", slotsdefinition: _slotsBrdMetric, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        // ───── BRD Status ─────
+        // ----- BRD Status -----
         { descricao: "Top Border Card Advanced - Status Primary", codigo: "brd_card_advanced_status_primary", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Status Success", codigo: "brd_card_advanced_status_success", tipo: "card", UIData: { tipo: "success" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Status Warning", codigo: "brd_card_advanced_status_warning", tipo: "card", UIData: { tipo: "warning" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Status Danger", codigo: "brd_card_advanced_status_danger", tipo: "card", UIData: { tipo: "danger" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Status Yellow", codigo: "brd_card_advanced_status_yellow", tipo: "card", UIData: { tipo: "yellow" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Status Black", codigo: "brd_card_advanced_status_black", tipo: "card", UIData: { tipo: "black" }, htmltemplate: _tplBrdStatus, csstemplate: "", slotsdefinition: _slotsBrdStatus, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        // ───── BRD Alert ─────
+        // ----- BRD Alert -----
         { descricao: "Top Border Card Advanced - Alert Primary", codigo: "brd_card_advanced_alert_primary", tipo: "card", UIData: { tipo: "primary" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Alert Success", codigo: "brd_card_advanced_alert_success", tipo: "card", UIData: { tipo: "success" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Alert Warning", codigo: "brd_card_advanced_alert_warning", tipo: "card", UIData: { tipo: "warning" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Alert Danger", codigo: "brd_card_advanced_alert_danger", tipo: "card", UIData: { tipo: "danger" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Alert Yellow", codigo: "brd_card_advanced_alert_yellow", tipo: "card", UIData: { tipo: "yellow" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
-        { descricao: "Top Border Card Advanced - Alert Black", codigo: "brd_card_advanced_alert_black", tipo: "card", UIData: { tipo: "black" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' }
+        { descricao: "Top Border Card Advanced - Alert Danger", codigo: "brd_card_advanced_alert_danger", tipo: "card", UIData: { tipo: "danger" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' }
     ];
 }
 
-// ── Legacy generate* removidas — renderização agora via renderUnifiedLayout() ──
+// -- Legacy generate* removidas — renderização agora via renderUnifiedLayout() --
 
 function MDashCard(data) {
     var baseCardStyles = [
@@ -9169,7 +6862,6 @@ function addBtnStyles(styles) {
     styles.push(cssContent);
 }
 function addDashboardStyles(styles) {
-    console.log("Adicionando estilos de dashboard personalizados");
     var dashboardCSS = "";
     dashboardCSS += ".c-dashboardInfo {";
     dashboardCSS += "    margin-bottom: 15px;";
@@ -9724,20 +7416,6 @@ function addDashboardStyles(styles) {
     dashboardCSS += "background:linear-gradient(135deg,#f44336,#e53935);";
     dashboardCSS += "color:#ffffff;";
     dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-icon-yellow{";
-    dashboardCSS += "background:linear-gradient(135deg,#efe21b,#c8c000);";
-    dashboardCSS += "color:#1a1a00;";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-icon-black{";
-    dashboardCSS += "background:linear-gradient(135deg,#333333,#111111);";
-    dashboardCSS += "color:#ffffff;";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-metrica-yellow{";
-    dashboardCSS += "border-top-color:#efe21b;";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-metrica-black{";
-    dashboardCSS += "border-top-color:#111111;";
-    dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-content{";
     dashboardCSS += "flex:1;";
     dashboardCSS += "min-width:0;";
@@ -9843,26 +7521,6 @@ function addDashboardStyles(styles) {
     dashboardCSS += "font-size:13px;";
     dashboardCSS += "color:#94a3b8;";
     dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-status-yellow{";
-    dashboardCSS += "border-top-color:#efe21b;";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-status-yellow .brd-card-advanced-status-header i{";
-    dashboardCSS += "color:#8a7f00;";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-status-yellow .brd-card-advanced-status-badge{";
-    dashboardCSS += "background:rgba(239,226,27,0.15);";
-    dashboardCSS += "color:#8a7f00;";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-status-black{";
-    dashboardCSS += "border-top-color:#111111;";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-status-black .brd-card-advanced-status-header i{";
-    dashboardCSS += "color:#111111;";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-status-black .brd-card-advanced-status-badge{";
-    dashboardCSS += "background:rgba(17,17,17,0.08);";
-    dashboardCSS += "color:#111111;";
-    dashboardCSS += "}";
 
     // Alert Card Advanced
     dashboardCSS += ".brd-card-advanced-alert{";
@@ -9912,22 +7570,6 @@ function addDashboardStyles(styles) {
     dashboardCSS += ".brd-card-advanced-alert-success .brd-card-advanced-alert-icon{";
     dashboardCSS += "background:rgba(76,201,240,0.1);";
     dashboardCSS += "color:#4CAF50;";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-alert-yellow{";
-    dashboardCSS += "border-top-color:#efe21b;";
-    dashboardCSS += "background:rgba(239,226,27,0.03);";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-alert-yellow .brd-card-advanced-alert-icon{";
-    dashboardCSS += "background:rgba(239,226,27,0.15);";
-    dashboardCSS += "color:#8a7f00;";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-alert-black{";
-    dashboardCSS += "border-top-color:#111111;";
-    dashboardCSS += "background:rgba(17,17,17,0.02);";
-    dashboardCSS += "}";
-    dashboardCSS += ".brd-card-advanced-alert-black .brd-card-advanced-alert-icon{";
-    dashboardCSS += "background:rgba(17,17,17,0.08);";
-    dashboardCSS += "color:#111111;";
     dashboardCSS += "}";
     dashboardCSS += ".brd-card-advanced-alert-content{";
     dashboardCSS += "flex:1;";
@@ -10485,3 +8127,105 @@ function loadSortableStyles() {
 /**
  * Carrega estilos para MDash 2.0 Builder (3 colunas drag-and-drop)
  */
+function loadModernDashboardStyles() {
+    var primaryColor = getCachedColor("primary").background;
+    var successColor = getCachedColor("success").background;
+    var dangerColor = getCachedColor("danger").background;
+
+    var builderCSS = "";
+
+    builderCSS += ".mdash-builder-layout{display:flex;height:calc(100vh - 120px);gap:0;background:#f5f5f5;}";
+
+    // Toolbox (left)
+    builderCSS += ".mdash-toolbox{width:280px;background:white;border-right:1px solid #ddd;overflow-y:auto;display:flex;flex-direction:column;}";
+    builderCSS += ".mdash-toolbox-header{padding:15px;border-bottom:1px solid #e0e0e0;background:" + primaryColor + ";color:white;font-weight:bold;font-size:14px;}";
+    builderCSS += ".mdash-toolbox-section{border-bottom:1px solid #e0e0e0;}";
+    builderCSS += ".mdash-toolbox-section-title{padding:12px 15px;background:#fafafa;font-weight:600;font-size:13px;color:#555;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;}";
+    builderCSS += ".mdash-toolbox-section-title:hover{background:#f0f0f0;}";
+    builderCSS += ".mdash-toolbox-section-title i{margin-right:8px;}";
+    builderCSS += ".mdash-toolbox-section-body{padding:10px;}";
+    builderCSS += ".mdash-toolbox-item{padding:10px 12px;margin-bottom:8px;background:white;border:2px dashed #ccc;border-radius:4px;cursor:move;transition:all 0.2s;font-size:13px;display:flex;align-items:center;}";
+    builderCSS += ".mdash-toolbox-item:hover{background:#f9f9f9;border-color:" + primaryColor + ";box-shadow:0 2px 4px rgba(0,0,0,0.1);}";
+    builderCSS += ".mdash-toolbox-item i{margin-right:8px;color:" + primaryColor + ";}";
+    builderCSS += ".mdash-toolbox-item.mdash-dragging{opacity:0.5;transform:scale(0.95);}";
+    builderCSS += ".mdash-toolbox-list-item{padding:8px 12px;margin-bottom:5px;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:3px;cursor:pointer;transition:all 0.2s;font-size:12px;display:flex;align-items:center;justify-content:space-between;}";
+    builderCSS += ".mdash-toolbox-list-item:hover{background:white;border-color:" + primaryColor + ";}";
+    builderCSS += ".mdash-toolbox-list-item i{margin-right:6px;color:" + primaryColor + ";}";
+    builderCSS += ".mdash-toolbox-list-item .btn{padding:2px 6px;margin-left:5px;}";
+
+    // Canvas (center)
+    builderCSS += ".mdash-canvas{flex:1;background:#f5f5f5;overflow-y:auto;display:flex;flex-direction:column;}";
+    builderCSS += ".mdash-canvas-header{padding:15px 20px;background:white;border-bottom:2px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between;}";
+    builderCSS += ".mdash-canvas-header h3{margin:0;font-size:16px;font-weight:600;color:#333;}";
+    builderCSS += ".mdash-canvas-actions{display:flex;gap:8px;}";
+    builderCSS += ".mdash-canvas-body{flex:1;padding:20px;}";
+    builderCSS += ".mdash-canvas-empty{text-align:center;padding:60px 20px;color:#999;}";
+    builderCSS += ".mdash-canvas-empty i{font-size:48px;margin-bottom:15px;display:block;}";
+
+    // Containers
+    builderCSS += ".mdash-container-element{background:white;border:2px solid #ddd;border-radius:6px;margin-bottom:15px;transition:all 0.3s;}";
+    builderCSS += ".mdash-container-element.mdash-selected{border-color:" + primaryColor + ";box-shadow:0 0 0 3px rgba(102,126,234,0.2);}";
+    builderCSS += ".mdash-container-header{padding:12px 15px;background:#fafafa;border-bottom:1px solid #e0e0e0;cursor:move;display:flex;align-items:center;justify-content:space-between;user-select:none;}";
+    builderCSS += ".mdash-container-header:hover{background:#f0f0f0;}";
+    builderCSS += ".mdash-container-title{display:flex;align-items:center;font-weight:600;font-size:14px;color:#333;}";
+    builderCSS += ".mdash-container-title i{margin-right:8px;color:" + primaryColor + ";}";
+    builderCSS += ".mdash-container-actions{display:flex;gap:5px;}";
+    builderCSS += ".mdash-container-body{padding:15px;min-height:80px;display:flex;flex-wrap:wrap;gap:10px;}";
+    builderCSS += ".mdash-container-items-dropzone.mdash-dropzone-active{background:rgba(102,126,234,0.05);outline:2px dashed " + primaryColor + ";outline-offset:-2px;}";
+    builderCSS += ".mdash-container-empty-items{width:100%;text-align:center;padding:30px;color:#999;font-size:13px;}";
+    builderCSS += ".mdash-container-empty-items i{font-size:24px;margin-bottom:8px;display:block;}";
+
+    // Items
+    builderCSS += ".mdash-item-element{background:white;border:1px solid #ddd;border-radius:4px;transition:all 0.3s;min-height:60px;}";
+    builderCSS += ".mdash-item-element.mdash-selected{border-color:" + successColor + ";box-shadow:0 0 0 2px rgba(16,185,129,0.2);}";
+    builderCSS += ".mdash-item-element.mdash-col-1{flex:0 0 calc(8.33% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-2{flex:0 0 calc(16.66% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-3{flex:0 0 calc(25% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-4{flex:0 0 calc(33.33% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-5{flex:0 0 calc(41.66% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-6{flex:0 0 calc(50% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-7{flex:0 0 calc(58.33% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-8{flex:0 0 calc(66.66% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-9{flex:0 0 calc(75% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-10{flex:0 0 calc(83.33% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-11{flex:0 0 calc(91.66% - 10px);}";
+    builderCSS += ".mdash-item-element.mdash-col-12{flex:0 0 calc(100% - 10px);}";
+    builderCSS += ".mdash-item-content{padding:10px;}";
+    builderCSS += ".mdash-item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;cursor:move;user-select:none;}";
+    builderCSS += ".mdash-item-header i{margin-right:6px;color:" + successColor + ";font-size:10px;}";
+    builderCSS += ".mdash-item-header span{flex:1;font-weight:600;font-size:12px;color:#333;}";
+    builderCSS += ".mdash-item-actions{display:flex;gap:3px;}";
+    builderCSS += ".mdash-item-body{font-size:11px;color:#777;}";
+
+    // Properties (right)
+    builderCSS += ".mdash-properties{width:350px;background:white;border-left:1px solid #ddd;overflow-y:auto;display:flex;flex-direction:column;}";
+    builderCSS += ".mdash-properties-header{padding:15px;border-bottom:1px solid #e0e0e0;background:" + primaryColor + ";color:white;font-weight:bold;font-size:14px;}";
+    builderCSS += "#mdash-properties-panel{padding:15px;flex:1;}";
+    builderCSS += "#mdash-properties-panel .form-group{margin-bottom:15px;}";
+    builderCSS += "#mdash-properties-panel .form-group label{font-weight:600;font-size:12px;color:#555;margin-bottom:5px;}";
+    builderCSS += "#mdash-properties-panel .form-control{font-size:13px;}";
+
+    // Sortable effects
+    builderCSS += ".mdash-sortable-ghost{opacity:0.4;background:rgba(102,126,234,0.1);}";
+    builderCSS += ".mdash-sortable-chosen{cursor:grabbing !important;}";
+    builderCSS += ".mdash-sortable-drag{opacity:0.8;box-shadow:0 4px 8px rgba(0,0,0,0.2);}";
+
+    // Buttons
+    builderCSS += ".btn-mdash-primary{background:" + primaryColor + ";color:white;border:none;}";
+    builderCSS += ".btn-mdash-primary:hover{background:" + primaryColor + ";opacity:0.9;color:white;}";
+    builderCSS += ".btn-mdash-success{background:" + successColor + ";color:white;border:none;}";
+    builderCSS += ".btn-mdash-success:hover{background:" + successColor + ";opacity:0.9;color:white;}";
+
+    // Responsive
+    builderCSS += "@media (max-width:1200px){";
+    builderCSS += ".mdash-toolbox{width:240px;}";
+    builderCSS += ".mdash-properties{width:300px;}";
+    builderCSS += "}";
+    builderCSS += "@media (max-width:992px){";
+    builderCSS += ".mdash-builder-layout{flex-direction:column;}";
+    builderCSS += ".mdash-toolbox,.mdash-properties{width:100%;max-height:300px;}";
+    builderCSS += "}";
+
+    $('head').append('<style>' + builderCSS + '</style>');
+    console.log('MDash 2.0 Builder styles loaded');
+}

@@ -406,12 +406,16 @@ function Mrend(options) {
         this.corcomportgrupo = data.corcomportgrupo || "";
         // Código da coluna que fica visível/editável como título na linha de grupo
         this.colunatitulo = data.colunatitulo || "";
+        // Se true, a coluna título leva a descrição da linha (readonly)
+        this.levadesclinha = data.levadesclinha || false;
         // Configuração de totais por linha
         this.linhatemtotal = data.linhatemtotal || false;
         this.tituloparatotal = data.tituloparatotal || "";
         this.colunastotais = data.colunastotais || "";
         this.temexpressaototal = data.temexpressaototal || false;
         this.expressaototal = data.expressaototal || "";
+        // Propriedades que não são herdadas pelas linhas filhas (CSV)
+        this.blacklistheranca = data.blacklistheranca || "comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,temtotais,modelo";
 
     }
 
@@ -1259,6 +1263,19 @@ function Mrend(options) {
             return l.linkstamp === self.config.linhastamp;
         });
         var filhaConfig = linhaFilhaConfig || this.config;
+
+        // Aplicar blacklist de herança: remove propriedades definidas na mãe
+        if (this.config.blacklistheranca && !linhaFilhaConfig) {
+            var blacklist = this.config.blacklistheranca.split(',').map(function(s) { return s.trim(); });
+            filhaConfig = JSON.parse(JSON.stringify(filhaConfig)); // deep clone
+            
+            blacklist.forEach(function(prop) {
+                if (filhaConfig[prop] !== undefined) {
+                    var tipo = typeof filhaConfig[prop];
+                    filhaConfig[prop] = tipo === 'boolean' ? false : tipo === 'number' ? 0 : '';
+                }
+            });
+        }
 
         var codigoLinha = filhaConfig.codigo + "___" + generateTimestampNumber(10);
         var ordem = generateLinhaOrdem();
@@ -3115,6 +3132,29 @@ function Mrend(options) {
     }
 
 
+    /**
+     * Determina se uma coluna é a "coluna título" do grupo para uma linha com comportamentogrupo.
+     * Prioridade:
+     *   1. linha.colunatitulo (se definido)
+     *   2. linha.levadesclinha → primeira coluna fixa ou primeira coluna do grid
+     *   3. coluna.fixacoluna (fallback legado)
+     */
+    function isColunaTituloGrupo(linhaConfig, codigocoluna, colunaConfig) {
+
+        if (linhaConfig.colunatitulo) {
+            return codigocoluna === linhaConfig.colunatitulo;
+        }
+
+        if (linhaConfig.levadesclinha) {
+            var primeiraColuna = mrendThis.GRenderedColunas.find(function (c) { return c.config.fixacoluna; })
+                || mrendThis.GRenderedColunas[0];
+            return primeiraColuna ? codigocoluna === primeiraColuna.codigocoluna : false;
+        }
+
+        return colunaConfig ? !!colunaConfig.fixacoluna : false;
+    }
+
+
     function setLinhaGrupoAndSubgrupo(linh, parentid, records) {
 
         var linha = new RenderedLinha(linh);
@@ -3184,17 +3224,16 @@ function Mrend(options) {
 
                 // comportamentogrupo: coluna título fica editável, restantes sem imputação
                 if (linha.config.comportamentogrupo) {
-                    var isTitulo = linha.config.colunatitulo
-                        ? coluna.codigocoluna === linha.config.colunatitulo
-                        : coluna.config.fixacoluna;
-                    if (!isTitulo) {
+                    var isTitulo = isColunaTituloGrupo(linha.config, coluna.codigocoluna, coluna.config);
+
+                    if (isTitulo) {
+                        setCelula(linhaHtml, linha, coluna, recFlt, coluna.config.categoria, "", {});
+                    } else {
                         var corGrupo = linha.config.corcomportgrupo || "#e8edf2";
                         buildCelulaSemImputacao(linhaHtml, linha, coluna, { customStyles: "background:" + corGrupo + "!important;" });
-                    } else {
-                        setCelula(linhaHtml, linha, coluna, recFlt, coluna.config.categoria, "", {})
                     }
                 } else {
-                    setCelula(linhaHtml, linha, coluna, recFlt, coluna.config.categoria, "", {})
+                    setCelula(linhaHtml, linha, coluna, recFlt, coluna.config.categoria, "", {});
                 }
 
                 return coluna;
@@ -3456,13 +3495,28 @@ function Mrend(options) {
             novoRegisto = true;
         }
 
-        // ── Se coluna tem levadesclinha, usa descricao da linha como valor ──
+        // ── Se coluna OU linha tem levadesclinha, usa descricao da linha como valor ──
         var valorCelula = linhaRecord[coluna.config.campo];
         var atributoCelula = isUndefinedOrNull(configCelula.atributo) ? coluna.config.atributo : configCelula.atributo;
         
+        var deveLevarDescLinha = false;
+        
+        // Caso 1: Coluna configurada para sempre levar descrição
         if (coluna.config.levadesclinha) {
+            deveLevarDescLinha = true;
+        }
+        
+        // Caso 2: Linha com comportamento grupo + levadesclinha + é a coluna título
+        if (linha.config.comportamentogrupo && linha.config.levadesclinha && linha.config.colunatitulo) {
+            var isTitulo = linha.config.colunatitulo === coluna.codigocoluna ||
+                           (coluna.config.fixacoluna && !linha.config.colunatitulo);
+            if (isTitulo) {
+                deveLevarDescLinha = true;
+            }
+        }
+        
+        if (deveLevarDescLinha) {
             valorCelula = linha.config.descricao || "";
-           // console.log("levadesclinha", valorCelula)
             atributoCelula = "readonly";
         }
        
@@ -4060,8 +4114,29 @@ function Mrend(options) {
     function generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content) {
 
         var styles = ""
-        if (colunaConfig.atributo == "readonly" || colunaConfig.colfunc || colunaConfig.levadesclinha) {
-
+        var deveSerReadonly = colunaConfig.atributo == "readonly" || colunaConfig.colfunc || colunaConfig.levadesclinha;
+        
+        // Verifica se a linha também tem levadesclinha configurado
+        if (!deveSerReadonly && cell) {
+            try {
+                var rowData = cell.getRow().getData();
+                var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
+                    return linha.rowid == rowData.rowid;
+                });
+                
+                if (renderedLinha && renderedLinha.config.comportamentogrupo && renderedLinha.config.levadesclinha && renderedLinha.config.colunatitulo) {
+                    var isTitulo = renderedLinha.config.colunatitulo === colunaConfig.codigocoluna ||
+                                   (colunaConfig.fixacoluna && !renderedLinha.config.colunatitulo);
+                    if (isTitulo) {
+                        deveSerReadonly = true;
+                    }
+                }
+            } catch (e) {
+                // Ignora erro se não conseguir obter linha
+            }
+        }
+        
+        if (deveSerReadonly) {
             styles = "background:#dee5eb;"
         }
 
@@ -4080,6 +4155,23 @@ function Mrend(options) {
         // ── Se a coluna tem levadesclinha, deve ser readonly ──
         if (renderedColuna.levadesclinha) {
             return true;
+        }
+        
+        // ── Se a linha tem comportamentogrupo + levadesclinha + esta é a coluna título, deve ser readonly ──
+        try {
+            var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
+                return linha.rowid == rowData.rowid;
+            });
+            
+            if (renderedLinha && renderedLinha.config.comportamentogrupo && renderedLinha.config.levadesclinha && renderedLinha.config.colunatitulo) {
+                var isTitulo = renderedLinha.config.colunatitulo === renderedColuna.codigocoluna ||
+                               (renderedColuna.config.fixacoluna && !renderedLinha.config.colunatitulo);
+                if (isTitulo) {
+                    return true;
+                }
+            }
+        } catch (e) {
+            // Ignora erro
         }
 
         var condicAttrResult = ""
@@ -4147,12 +4239,10 @@ function Mrend(options) {
         var renderedLinhaGrupo = mrendThis.GRenderedLinhas.find(function (l) {
             return l.rowid == rowData.rowid;
         });
-        if (renderedLinhaGrupo && renderedLinhaGrupo.config.comportamentogrupo && !renderedLinhaGrupo.linkid) {
+
+        if (renderedLinhaGrupo && renderedLinhaGrupo.config.comportamentogrupo) {
             var fieldName = (cell.getField() || "").trim();
-            var colunatituloVal = (renderedLinhaGrupo.config.colunatitulo || "").trim();
-            var isTitulo = colunatituloVal
-                ? fieldName == colunatituloVal
-                : colunaConfig.fixacoluna;
+            var isTitulo = isColunaTituloGrupo(renderedLinhaGrupo.config, fieldName, colunaConfig);
             var cor = renderedLinhaGrupo.config.corcomportgrupo || "#e8edf2";
 
             if (!isTitulo) {
@@ -4160,11 +4250,15 @@ function Mrend(options) {
                 emptyDiv.style.cssText = "background:" + cor + ";width:100%;height:100%;min-height:24px;";
                 return emptyDiv;
             }
-            // coluna título: mostra valor da célula; se vazio usa a descricao da linha
+
+            // Coluna título: prioriza descrição da linha quando levadesclinha estiver activo
+            var deveLevarDesc = colunaConfig.levadesclinha || renderedLinhaGrupo.config.levadesclinha;
             var val = cell.getValue();
-            if (val == null || val.toString().trim() === "") {
+
+            if (deveLevarDesc || val == null || val.toString().trim() === "") {
                 val = renderedLinhaGrupo.config.descricao || "";
             }
+
             var content = val ? val.toString() : "&nbsp;";
             return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content);
         }
@@ -5363,8 +5457,39 @@ function Mrend(options) {
                 // ────────────────────────────────────────────────────────────────────────
 
             },
+            movableColumns: true, // Permite arrastar colunas para reordenar
             columns: columnsDefinition,
 
+        });
+
+        // Callback quando uma coluna é movida
+        mrendThis.GTable.on("columnMoved", function (column, columns) {
+            console.log("Coluna movida:", column.getField());
+            
+            // Atualiza o array GMrendConfigColunas com a nova ordem
+            if (typeof GMrendConfigColunas !== 'undefined' && Array.isArray(GMrendConfigColunas)) {
+                // Mapeamento: posição visual -> codigocoluna
+                columns.forEach(function(col, index) {
+                    var codigocoluna = col.getField();
+                    var colunaConfig = GMrendConfigColunas.find(function(c) {
+                        return c.codigocoluna === codigocoluna;
+                    });
+                    if (colunaConfig) {
+                        colunaConfig.ordem = index + 1;
+                    }
+                });
+                
+                // Ordena o array pela nova ordem
+                GMrendConfigColunas.sort(function(a, b) {
+                    return (a.ordem || 0) - (b.ordem || 0);
+                });
+                
+                console.log("GMrendConfigColunas atualizado com nova ordem:", GMrendConfigColunas.map(function(c) {
+                    return c.codigocoluna + ":" + c.ordem;
+                }));
+                
+                alertify.success("Ordem das colunas atualizada! Clique em 'Actualizar Configuração' para guardar.");
+            }
         });
 
         mrendThis.GTable.on("cellEdited", function (cell) {

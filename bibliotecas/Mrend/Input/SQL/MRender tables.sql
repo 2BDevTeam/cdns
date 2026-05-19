@@ -82,11 +82,13 @@ CREATE TABLE MrendLinha
     comportamentogrupo BIT DEFAULT 0,
     corcomportgrupo VARCHAR(50) DEFAULT '',
     colunatitulo VARCHAR(100) DEFAULT '',
+    levadesclinha BIT DEFAULT 0,
     linhatemtotal BIT DEFAULT 0,
     tituloparatotal TEXT DEFAULT '',
     colunastotais TEXT DEFAULT '',
     temexpressaototal BIT DEFAULT 0,
-    expressaototal TEXT DEFAULT ''
+    expressaototal TEXT DEFAULT '',
+    blacklistheranca TEXT DEFAULT 'comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,temtotais,modelo'
 );
 
 

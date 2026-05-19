@@ -54,6 +54,10 @@ function renderObjectTexto(dados) {
         }
     } else if (cfg.staticText) {
         content = cfg.staticText;
+        // Aplicar prefix/suffix também em texto estático
+        var dfStatic = cfg.dataFormat || {};
+        if (dfStatic.prefix) content = dfStatic.prefix + content;
+        if (dfStatic.suffix) content = content + dfStatic.suffix;
     } else {
         content = 'Texto personalizado aqui...';
     }

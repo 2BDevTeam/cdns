@@ -279,7 +279,8 @@ MdashExecutorRegistry.register({
             mdashcontaineritemstamp: '',
             mdashcontaineritemobjectstamp: '',
             tipoquery: 'fonte',
-            filters: filters
+            filters: filters,
+            vars: (typeof mdashBuildVars === 'function') ? mdashBuildVars() : {}
         };
 
         $.ajax({
@@ -527,7 +528,8 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         { value: 'MIN', label: 'Mínimo', sqlFn: 'MIN' },
         { value: 'MAX', label: 'Máximo', sqlFn: 'MAX' },
         { value: 'FIRST', label: 'Primeiro', sqlFn: null }, // via subquery
-        { value: 'LAST', label: 'Último', sqlFn: null }  // via subquery
+        { value: 'LAST', label: 'Último', sqlFn: null },  // via subquery
+        { value: 'JS_EXPR', label: 'ƒx Expressão JS', sqlFn: null } // calculada pós-SQL em JS por linha
     ];
 
     // ── Operadores de filtro ──────────────────────────────────────────────────
@@ -581,6 +583,9 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         var AGG_ALIAS = { COUNT_DIST: 'cnt_dist_', FIRST: 'first_', LAST: 'last_' };
 
         var fields = cols.map(function (c) {
+            if (c.aggregate === 'JS_EXPR') {
+                return c.alias || ('js_expr_' + (c.field || 'col'));
+            }
             if (c.alias) return c.alias;
             if (!c.aggregate || c.aggregate === 'none') return c.field;
             var prefix = AGG_ALIAS[c.aggregate];
@@ -670,7 +675,9 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         if (config.mode === 'sql') return (config.sqlFree || '').trim();
 
         var table = _quoteField(config.sourceTable);
-        var cols = (config.columns || []).filter(function (c) { return c.visible !== false; });
+        var allVisibleCols = (config.columns || []).filter(function (c) { return c.visible !== false; });
+        // JS_EXPR é calculada pós-SQL — não entra no SELECT nem no GROUP BY
+        var cols = allVisibleCols.filter(function (c) { return c.aggregate !== 'JS_EXPR'; });
         var measures = config.measures || [];
 
         if (cols.length === 0 && measures.length === 0) {
@@ -745,13 +752,80 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
     function execute(config) {
         var sql = buildSQL(config);
         if (!sql) return [];
-        return mdashQuery(_sqlAdapt(sql));
+        var rows = mdashQuery(_sqlAdapt(sql));
+        return _applyJsExprsObjects(config, rows);
     }
 
     function executeRaw(config) {
         var sql = buildSQL(config);
         if (!sql) return { columns: [], rows: [], rowCount: 0, error: null };
-        return mdashQueryRaw(_sqlAdapt(sql));
+        var raw = mdashQueryRaw(_sqlAdapt(sql));
+        return _applyJsExprsRaw(config, raw);
+    }
+
+    // ── Pós-processamento de colunas JS_EXPR ──────────────────────────────────
+    // Avalia expressões JS por linha, com acesso a `row` (objecto) e ao escopo
+    // global (funções como getStampEncriptado(), minhaFuncao(), etc.).
+
+    function _compileJsExprs(config) {
+        var jsCols = (config && config.columns || []).filter(function (c) {
+            return c.aggregate === 'JS_EXPR' && c.visible !== false && (c.jsExpr || '').trim();
+        });
+        if (!jsCols.length) return null;
+        return jsCols.map(function (c, idx) {
+            var alias = (c.alias && c.alias.trim()) || ('js_expr_' + (c.field || ('col' + idx)));
+            var fn;
+            try {
+                // `row` é o objecto com as colunas da linha actual (pós-SQL).
+                // `with(row)` permite escrever tanto `row.nome+f()` como `nome+f()`.
+                fn = new Function('row', 'with(row){return (' + c.jsExpr + ');}');
+            } catch (e) {
+                console.warn('[MDash] JS_EXPR syntax error em "' + alias + '":', e.message, '| expr:', c.jsExpr);
+                fn = function () { return '#ERR'; };
+            }
+            return { alias: alias, fn: fn, expr: c.jsExpr };
+        });
+    }
+
+    function _evalJsExpr(item, rowObj) {
+        try { return item.fn(rowObj); }
+        catch (err) {
+            console.warn('[MDash] JS_EXPR runtime error em "' + item.alias + '":', err.message, '| expr:', item.expr);
+            return '#ERR';
+        }
+    }
+
+    function _applyJsExprsRaw(config, raw) {
+        if (!raw || raw.error) return raw;
+        var evals = _compileJsExprs(config);
+        if (!evals) return raw;
+
+        var srcCols = raw.columns || [];
+        var srcRows = raw.rows || [];
+        var newCols = srcCols.slice();
+        evals.forEach(function (e) { newCols.push(e.alias); });
+
+        var newRows = srcRows.map(function (row) {
+            var rowObj = {};
+            for (var i = 0; i < srcCols.length; i++) rowObj[srcCols[i]] = row[i];
+            var out = row.slice();
+            evals.forEach(function (e) { out.push(_evalJsExpr(e, rowObj)); });
+            return out;
+        });
+
+        return { columns: newCols, rows: newRows, rowCount: newRows.length, error: null };
+    }
+
+    function _applyJsExprsObjects(config, rows) {
+        if (!Array.isArray(rows) || !rows.length) return rows;
+        var evals = _compileJsExprs(config);
+        if (!evals) return rows;
+        return rows.map(function (r) {
+            var out = {};
+            for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) out[k] = r[k];
+            evals.forEach(function (e) { out[e.alias] = _evalJsExpr(e, r); });
+            return out;
+        });
     }
 
     // ── Introspecção da tabela in-memory (schema automático) ──────────────────
@@ -930,9 +1004,11 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
             return '<option value="' + a.value + '"' + (col.aggregate === a.value ? ' selected' : '') + '>' + a.label + '</option>';
         }).join('');
         var vis = col.visible !== false;
-        var h = '<div class="mtb-row mtb-col-row" data-idx="' + i + '">';
+        var isJs = col.aggregate === 'JS_EXPR';
+        var h = '<div class="mtb-row mtb-col-row' + (isJs ? ' mtb-col-row-js' : '') + '" data-idx="' + i + '">';
         h += '<label class="mtb-vis-toggle" title="Incluir na query"><input type="checkbox" class="mtb-col-visible"' + (vis ? ' checked' : '') + '><span class="mtb-vis-dot"></span></label>';
-        h += '<select class="mtb-col-field mtb-select mtb-select-field">' + _fieldOpts(allFields, col.field || '') + '</select>';
+        h += '<select class="mtb-col-field mtb-select mtb-select-field' + (isJs ? ' mtb-hidden' : '') + '">' + _fieldOpts(allFields, col.field || '') + '</select>';
+        h += '<input type="text" class="mtb-col-jsexpr mtb-input mtb-input-jsexpr' + (isJs ? '' : ' mtb-hidden') + '" value="' + _escapeHtml(col.jsExpr || '') + '" placeholder="ex: row.nome + getStampEncriptado()" spellcheck="false">';
         h += '<select class="mtb-col-agg mtb-select mtb-select-agg">' + aggOpts + '</select>';
         h += '<input type="text" class="mtb-col-alias mtb-input mtb-input-alias" value="' + _escapeHtml(col.alias || '') + '" placeholder="alias">';
         h += '<button type="button" class="mtb-remove-row mtb-del" title="Remover"><i class="glyphicon glyphicon-remove"></i></button>';
@@ -996,11 +1072,13 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         cfg.columns = [];
         $c.find('.mtb-col-row').each(function () {
             var $r = $(this);
+            var agg = $r.find('.mtb-col-agg').val();
             cfg.columns.push({
-                field: $r.find('.mtb-col-field').val().trim(),
-                aggregate: $r.find('.mtb-col-agg').val(),
+                field: ($r.find('.mtb-col-field').val() || '').trim(),
+                aggregate: agg,
                 alias: $r.find('.mtb-col-alias').val().trim(),
-                visible: $r.find('.mtb-col-visible').is(':checked')
+                visible: $r.find('.mtb-col-visible').is(':checked'),
+                jsExpr: agg === 'JS_EXPR' ? ($r.find('.mtb-col-jsexpr').val() || '') : ''
             });
         });
 
@@ -1092,6 +1170,15 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
             var op = $(this).val();
             var noVal = op === 'IS NULL' || op === 'IS NOT NULL';
             $(this).closest('.mtb-filter-row').find('.mtb-filter-val').toggleClass('mtb-hidden', noVal);
+        });
+
+        // Alternar entre seletor de campo e input de Expressão JS conforme o agregado
+        $c.on('change', '.mtb-col-agg', function () {
+            var isJs = $(this).val() === 'JS_EXPR';
+            var $row = $(this).closest('.mtb-col-row');
+            $row.toggleClass('mtb-col-row-js', isJs);
+            $row.find('.mtb-col-field').toggleClass('mtb-hidden', isJs);
+            $row.find('.mtb-col-jsexpr').toggleClass('mtb-hidden', !isJs);
         });
 
         // Actualizar SQL preview em tempo real ao mudar qualquer input
@@ -1319,6 +1406,9 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         s += '.mtb-input-name{width:86px;flex-shrink:0;}';
         s += '.mtb-input-expr{flex:1;min-width:80px;font-family:monospace;font-size:10.5px;}';
         s += '.mtb-input-val{flex:1;min-width:50px;}';
+        s += '.mtb-input-jsexpr{flex:1;min-width:120px;font-family:monospace;font-size:10.5px;background:#FFF7ED;border-color:rgba(234,88,12,.35);}';
+        s += '.mtb-input-jsexpr:focus{border-color:#EA580C;box-shadow:0 0 0 2px rgba(234,88,12,.18);}';
+        s += '.mtb-col-row-js{background:#FFFBF5;border-color:rgba(234,88,12,.25);}';
         s += '.mtb-select{height:30px;border:1px solid rgba(0,0,0,0.12);border-radius:7px;background:#fff;color:#1e293b;font-size:11px;padding:1px 6px;outline:none;cursor:pointer;transition:border-color .15s,box-shadow .15s;}';
         s += '.mtb-select:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.15);}';
         s += '.mtb-select-field{flex:1;min-width:80px;}';

@@ -46,11 +46,13 @@ function LinhaMrenderConfig(data) {
     this.comportamentogrupo = data.comportamentogrupo || false;
     this.corcomportgrupo = data.corcomportgrupo || "";
     this.colunatitulo = data.colunatitulo || "";
+    this.levadesclinha = data.levadesclinha || false;
     this.linhatemtotal = data.linhatemtotal || false;
     this.tituloparatotal = data.tituloparatotal || "";
     this.colunastotais = data.colunastotais || "";
     this.temexpressaototal = data.temexpressaototal || false;
     this.expressaototal = data.expressaototal || "";
+    this.blacklistheranca = data.blacklistheranca || "comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,temtotais,modelo";
     this.bindData = new BindData(data.bindData ? data.bindData : {})
     this.localSource = data.localSource || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
@@ -91,9 +93,76 @@ function getLinhaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 8, campo: "descbtnModelo", tipo: "text", titulo: "Descrição Botão Modelo", classes: "form-control input-source-form  input-sm" }),
 
         // ── Grupo automático ───────────────────────────────────────────
-        new UIObjectFormConfig({ colSize: 4, campo: "comportamentogrupo", tipo: "checkbox", titulo: "Comportamento Grupo", classes: "input-source-form" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "corcomportgrupo", tipo: "text", titulo: "Cor Comportamento Grupo", classes: "form-control input-source-form  input-sm" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "colunatitulo", tipo: "text", titulo: "Coluna Título", classes: "form-control input-source-form  input-sm" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "comportamentogrupo", tipo: "checkbox", titulo: "Comportamento Grupo", classes: "input-source-form", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "corcomportgrupo", tipo: "text", titulo: "Cor Comportamento Grupo", classes: "form-control input-source-form  input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "colunatitulo", tipo: "text", titulo: "Coluna Título", classes: "form-control input-source-form  input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "levadesclinha", tipo: "checkbox", titulo: "Leva Descrição da Linha", classes: "input-source-form", contentType: "input" }),
+
+        // ── Herança para Linhas Filhas ────────────────────────────────
+        new UIObjectFormConfig({
+            colSize: 12,
+            campo: "blacklistheranca",
+            tipo: "select",
+            titulo: "Propriedades que NÃO herdam para linhas filhas",
+            classes: "form-control input-source-form input-sm",
+            contentType: "select",
+            multiSelect: true,
+            fieldToOption: "option",
+            fieldToValue: "value",
+            selectValues: [
+                // Grupo automático
+                { option: "Comportamento Grupo", value: "comportamentogrupo" },
+                { option: "Cor Comportamento Grupo", value: "corcomportgrupo" },
+                { option: "Coluna Título", value: "colunatitulo" },
+                { option: "Leva Descrição da Linha", value: "levadesclinha" },
+                // Totais
+                { option: "Tem Totais", value: "temtotais" },
+                { option: "Total Key", value: "totkey" },
+                { option: "Total Field", value: "totfield" },
+                { option: "Linha Tem Total", value: "linhatemtotal" },
+                { option: "Título para Total", value: "tituloparatotal" },
+                { option: "Colunas Totais", value: "colunastotais" },
+                { option: "Tem Expressão Total", value: "temexpressaototal" },
+                { option: "Expressão Total", value: "expressaototal" },
+                // Modelo
+                { option: "É Modelo", value: "modelo" },
+                { option: "Descrição Botão Modelo", value: "descbtnModelo" },
+                { option: "Adiciona Filho", value: "addfilho" },
+                // Eventos
+                { option: "Evento Add", value: "eventoadd" },
+                { option: "Expressão Evento Add", value: "eventoaddexpr" },
+                { option: "Evento Delete", value: "eventodelete" },
+                { option: "Expressão Evento Delete", value: "eventodeleteexpr" },
+                { option: "Executa Change", value: "executachange" },
+                { option: "Expressão Change JS", value: "expressaochangejs" },
+                { option: "Executa Change Subgrupo", value: "executachangesubgrupo" },
+                { option: "Expressão Change JS Subgrupo", value: "expressaochangejssubgrupo" },
+                // Estilo
+                { option: "Cor", value: "cor" },
+                { option: "Estilo Personalizado", value: "estilopersonalizado" },
+                { option: "Expressão Estilo Personalizado", value: "expressaoestilopersonalizado" },
+                // Estrutura
+                { option: "Tem Colunas", value: "temcolunas" },
+                { option: "Leitura", value: "leitura" },
+                { option: "Tipo", value: "tipo" },
+                // Validação
+                { option: "Campo Validação", value: "campovalid" },
+                { option: "Condição Validação", value: "condicaovalidacao" },
+                { option: "Sinal Negativo", value: "sinalnegativo" },
+                // Listagem
+                { option: "Tipo Listagem", value: "tipolistagem" },
+                { option: "Objeto Listagem", value: "objectolist" },
+                { option: "ExpList", value: "explist" },
+                { option: "DefSelect", value: "defselect" },
+                { option: "Campo Option", value: "campooption" },
+                { option: "Campo Valor", value: "campovalor" },
+                // Outros
+                { option: "Usa FnPren", value: "usafnpren" },
+                { option: "FnPren", value: "fnpren" },
+                { option: "Categoria", value: "categoria" },
+                { option: "Código Categoria", value: "codcategoria" }
+            ]
+        }),
 
         // ── Origem / Expressão ─────────────────────────────────────────
         new UIObjectFormConfig({ colSize: 6, campo: "origem", tipo: "text", titulo: "Origem", classes: "form-control input-source-form  input-sm" }),
@@ -490,6 +559,7 @@ function UIObjectFormConfig(data) {
     this.fieldToOption = data.fieldToOption || "";
     this.fieldToValue = data.fieldToValue || "";
     this.contentType = data.contentType || "input";
+    this.multiSelect = data.multiSelect || false;
 }
 
 
@@ -1087,7 +1157,7 @@ function initJSONEditorMrendConfig(relatorioConfig) {
 
 $(document).ready(function () {
 
-
+    // loadMrendSortableStyles(); // Comentado: Tabulator usa movableColumns nativo
     registerListenersMrender();
     organizarEcraMrender();
 
@@ -1241,6 +1311,7 @@ function setColunaGrupoReactive() {
                 fieldToValue: obj.fieldToValue,
                 label: obj.titulo,
                 selectData: obj.selectValues,
+                multiSelect: obj.multiSelect || false,
                 value: "",
                 event: "",
                 placeholder: "",
@@ -1309,6 +1380,7 @@ function setColunaGrupoReactive() {
                 fieldToValue: obj.fieldToValue,
                 label: obj.tipo == "button" ? obj.titulo : "",
                 selectData: obj.selectValues,
+                multiSelect: obj.multiSelect || false,
                 value: "",
                 event: "",
                 placeholder: "",
@@ -1628,7 +1700,11 @@ function renderConfigMrender(config) {
     handleTableReactive();
     setColunaGrupoReactive();
     initJSONEditorMrendConfig(config.relatorio || {});
-
+    
+    // Comentado: Tabulator usa movableColumns nativo (não precisa de jQuery UI Sortable)
+    // if (typeof makeColunasSortable === 'function') {
+    //     setTimeout(makeColunasSortable, 200);
+    // }
 
 
 
@@ -1844,6 +1920,11 @@ function addColunaMrenderConfig(coluna, colunaUIObjectFormConfigResult) {
     });
 
     handleTableReactive();
+    
+    // Comentado: Tabulator usa movableColumns nativo (não precisa de jQuery UI Sortable)
+    // if (typeof makeColunasSortable === 'function') {
+    //     setTimeout(makeColunasSortable, 100);
+    // }
 }
 
 
@@ -2018,6 +2099,7 @@ function registerListenersMrender() {
                         fieldToValue: obj.fieldToValue,
                         label: obj.titulo,
                         selectData: obj.selectValues,
+                        multiSelect: obj.multiSelect || false,
                         value: mrendConfigItem[obj.campo],
                         event: "",
                         placeholder: "",
@@ -2081,6 +2163,7 @@ function registerListenersMrender() {
                             fieldToValue: obj.fieldToValue,
                             label: obj.titulo,
                             selectData: obj.selectValues,
+                            multiSelect: obj.multiSelect || false,
                             value: mrendConfigItem.relationRecords[indexField].record[obj.campo],
                             event: "",
                             placeholder: "",
@@ -2589,4 +2672,238 @@ function actualizarConfiguracaoMrender() {
         }
     })
 
+}
+
+
+/**
+ * ---------------------------------------------------------------------------
+ * DRAG & DROP - REORDENAR COLUNAS
+ * ---------------------------------------------------------------------------
+ * Sistema de drag-and-drop para reordenar colunas de forma intuitiva.
+ * Atualiza automaticamente o campo "ordem" e sincroniza com backend.
+ */
+
+/**
+ * Carrega os estilos CSS para drag & drop de colunas
+ */
+function loadMrendSortableStyles() {
+    if (document.getElementById("mrendSortableStyles")) return;
+
+    var style = document.createElement("style");
+    style.id = "mrendSortableStyles";
+    
+    var css = "";
+    
+    // Estilo do ghost (elemento sendo arrastado)
+    css += ".mrend-coluna-sortable-ghost { ";
+    css += "  opacity: 0.4 !important; ";
+    css += "  background: #e3f2fd !important; ";
+    css += "  border: 2px dashed #2196f3 !important; ";
+    css += "} ";
+    
+    // Estilo do placeholder (onde vai soltar)
+    css += ".mrend-coluna-sortable-placeholder { ";
+    css += "  background: #c5e1a5 !important; ";
+    css += "  border: 2px dashed #66bb6a !important; ";
+    css += "  visibility: visible !important; ";
+    css += "} ";
+    
+    // Estilo durante o drag
+    css += ".mrend-coluna-sortable-chosen { ";
+    css += "  cursor: grabbing !important; ";
+    css += "  background: #fff3e0 !important; ";
+    css += "} ";
+    
+    // Handle de drag (�cone que aparece ao hover)
+    css += ".mrend-coluna-drag-handle { ";
+    css += "  position: absolute; ";
+    css += "  top: 5px; ";
+    css += "  right: 30px; ";
+    css += "  cursor: move; ";
+    css += "  cursor: grab; ";
+    css += "  color: #9e9e9e; ";
+    css += "  font-size: 14px; ";
+    css += "  opacity: 0; ";
+    css += "  transition: opacity 0.2s ease; ";
+    css += "  z-index: 10; ";
+    css += "  padding: 3px; ";
+    css += "} ";
+    
+    css += ".colunaHeader:hover .mrend-coluna-drag-handle { ";
+    css += "  opacity: 1; ";
+    css += "} ";
+    
+    css += ".mrend-coluna-drag-handle:active { ";
+    css += "  cursor: grabbing; ";
+    css += "} ";
+    
+    // Adiciona cursor de grab nas colunas
+    css += ".colunaHeader.ui-sortable-handle { ";
+    css += "  cursor: move; ";
+    css += "  cursor: grab; ";
+    css += "} ";
+    
+    style.textContent = css;
+    document.head.appendChild(style);
+}
+
+/**
+ * Torna as colunas do header arrast�veis para reordenar
+ */
+function makeColunasSortable() {
+    // Verifica se jQuery UI Sortable est� dispon�vel
+    if (!$.fn.sortable) {
+        console.warn("MRend Sortable: jQuery UI Sortable n�o est� dispon�vel. Tentando novamente em 500ms...");
+        setTimeout(makeColunasSortable, 500);
+        return;
+    }
+    
+    var $thead = $('#inputReportTable thead tr');
+    
+    if (!$thead.length) {
+        console.warn("MRend Sortable: <thead> n�o encontrado");
+        return;
+    }
+    
+    console.log("MRend Sortable: Inicializando drag-and-drop nas colunas...");
+    
+    // Destroy sortable existente se houver
+    if ($thead.hasClass('ui-sortable')) {
+        try {
+            $thead.sortable('destroy');
+        } catch (e) {
+            console.warn("Erro ao destruir sortable existente:", e);
+        }
+    }
+    
+    // Adiciona �cones de drag a cada coluna (exceto "Ac��es")
+    $thead.find('th.colunaHeader').each(function () {
+        var $th = $(this);
+        
+        // N�o adiciona handle se j� existe
+        if ($th.find('.mrend-coluna-drag-handle').length > 0) return;
+        
+        // N�o adiciona handle na coluna de Ac��es
+        if ($th.attr('id') === 'coluna-acoes') return;
+        
+        var $dragHandle = $('<span class="mrend-coluna-drag-handle" title="Arrastar para reordenar">&#8942;&#8942;</span>');
+        $th.prepend($dragHandle);
+    });
+    
+    // Inicializa jQuery UI Sortable
+    $thead.sortable({
+        items: '> th.colunaHeader:not(#coluna-acoes)', // Exclui coluna de Ac��es
+        axis: 'x',
+        tolerance: 'pointer',
+        distance: 5,
+        cursor: 'grabbing',
+        placeholder: 'mrend-coluna-sortable-placeholder',
+        helper: 'clone',
+        forcePlaceholderSize: true,
+        containment: 'parent',
+        
+        start: function (event, ui) {
+            ui.item.addClass('mrend-coluna-sortable-chosen');
+            ui.placeholder.height(ui.item.outerHeight());
+            console.log("Drag start:", ui.item.attr('id'));
+        },
+        
+        stop: function (event, ui) {
+            ui.item.removeClass('mrend-coluna-sortable-chosen');
+            console.log("Drag stop:", ui.item.attr('id'));
+            
+            // Atualiza a ordem das colunas baseado na nova posi��o no DOM
+            updateColunasOrdemFromDOM();
+        },
+        
+        change: function (event, ui) {
+            // Feedback visual durante o movimento
+            console.log("Posi��o alterada");
+        }
+    });
+    
+    var colunasCount = $thead.find('> th.colunaHeader:not(#coluna-acoes)').length;
+    console.log("✓ MRend Sortable: " + colunasCount + " colunas configuradas para drag & drop");
+    console.log("✓ Para arrastar: passe o mouse sobre a coluna e clique no ícone ⋮⋮");
+}
+
+/**
+ * Atualiza o campo "ordem" de todas as colunas baseado na posi��o atual no DOM
+ */
+function updateColunasOrdemFromDOM() {
+    var $thead = $('#inputReportTable thead tr');
+    var ordem = 1;
+    
+    $thead.find('th.colunaHeader:not(#coluna-acoes)').each(function () {
+        var colunastamp = $(this).attr('id');
+        
+        if (!colunastamp) return;
+        
+        // Encontra a coluna no array GMrendConfigColunas
+        var coluna = GMrendConfigColunas.find(function (col) {
+            return col.colunastamp === colunastamp;
+        });
+        
+        if (coluna && coluna.ordem !== ordem) {
+            console.log("Atualizando ordem:", coluna.desccoluna, "de", coluna.ordem, "para", ordem);
+            coluna.ordem = ordem;
+        }
+        
+        ordem++;
+    });
+    
+    // Re-sort array GMrendConfigColunas pela nova ordem
+    GMrendConfigColunas.sort(function (a, b) {
+        return (a.ordem || 0) - (b.ordem || 0);
+    });
+    
+    // NOTA: updateTbodyCellsOrder() desabilitado - requer recarga da tabela para aplicar nova ordem
+    // updateTbodyCellsOrder();
+    
+    // Feedback ao utilizador
+    alertify.success("Ordem das colunas atualizada! Clique em 'Actualizar Configura��o' para gravar e recarregue a p�gina.", 4000);
+    
+    console.log("? Ordem das colunas atualizada:", GMrendConfigColunas.map(function (c) {
+        return c.desccoluna + " (" + c.ordem + ")";
+    }));
+}
+
+/**
+ * Atualiza a ordem das c�lulas (<td>) nas linhas para corresponder � nova ordem das colunas
+ */
+function updateTbodyCellsOrder() {
+    var $table = $('#inputReportTable');
+    var $thead = $table.find('thead tr');
+    var $tbody = $table.find('tbody');
+    
+    // Obtem a ordem correta das colunas baseado no <thead>
+    var colunaOrder = [];
+    $thead.find('th.colunaHeader:not(#coluna-acoes)').each(function () {
+        var colunastamp = $(this).attr('id');
+        if (colunastamp) {
+            colunaOrder.push(colunastamp);
+        }
+    });
+    
+    // Para cada linha no tbody, reordena as c�lulas
+    $tbody.find('tr').each(function () {
+        var $tr = $(this);
+        var $acoesCell = $tr.find('td:first'); // C�lula de a��es (primeira coluna)
+        var cells = {};
+        
+        // Coleta todas as c�lulas indexadas por colunastamp
+        $tr.find('td[data-colunacell]').each(function () {
+            var colunastamp = $(this).attr('data-colunacell');
+            cells[colunastamp] = $(this).detach();
+        });
+        
+        // Reinsere as c�lulas na ordem correta
+        colunaOrder.forEach(function (colunastamp) {
+            if (cells[colunastamp]) {
+                $tr.append(cells[colunastamp]);
+            }
+        });
+    });
+    
+    console.log("? C�lulas do tbody reordenadas");
 }

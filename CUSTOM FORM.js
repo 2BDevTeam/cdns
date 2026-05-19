@@ -5,48 +5,6 @@ var GFormContainers = [new FormContainer({})];
 //GFormContainers = [];
 
 $(document).ready(function () {
-    // Skeleton auto-posicionamento - cobre apenas o elemento pai sem modificar seu CSS
-    function initSkeletonOverlay() {
-        $('.mdashskeleton').each(function() {
-            var $skeleton = $(this);
-            var $parent = $skeleton.parent();
-            
-            if ($parent.length && !$skeleton.data('positioned')) {
-                var updatePosition = function() {
-                    var rect = $parent[0].getBoundingClientRect();
-                    $skeleton.css({
-                        'position': 'fixed',
-                        'top': rect.top + 'px',
-                        'left': rect.left + 'px',
-                        'width': rect.width + 'px',
-                        'height': rect.height + 'px'
-                    });
-                };
-                
-                updatePosition();
-                $skeleton.data('positioned', true);
-                
-                // Reposiciona em scroll e resize
-                $(window).on('scroll resize', updatePosition);
-            }
-        });
-    }
-    
-    // Inicializa skeletons existentes
-    initSkeletonOverlay();
-    
-    // Observer para skeletons adicionados dinamicamente
-    if (window.MutationObserver) {
-        var observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.addedNodes.length) {
-                    initSkeletonOverlay();
-                }
-            });
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
-    
     $(document).off("change keyup paste", ".custom-form-item").on("change keyup paste", ".custom-form-item", function (e) {
         var containterId = $(this).closest(".mainContainer").attr("id");
         var container = CustomFormData(containterId);
@@ -65,7 +23,7 @@ $(document).ready(function () {
     });
     var styles = [];
     var globalStyle = "";
-    addGridSystemAndSkeletonClasses(styles);
+    addGridSystemClasses(styles);
     //addBpmCustomStyles(styles);
     getIframeLoadingStyle(styles);
 
@@ -77,7 +35,7 @@ $(document).ready(function () {
 });
 
 
-function addGridSystemAndSkeletonClasses(styles) {
+function addGridSystemClasses(styles) {
     var cssCustom = "";
 
     // CONTAINER RESPONSIVO
@@ -211,78 +169,6 @@ function addGridSystemAndSkeletonClasses(styles) {
     cssCustom += ".gr-col-xl-10 { grid-column: span 10; }";
     cssCustom += ".gr-col-xl-11 { grid-column: span 11; }";
     cssCustom += ".gr-col-xl-12 { grid-column: span 12; }";
-    cssCustom += "}";
-
-    // mdash-skeleton base
-    cssCustom += ".mdash-skeleton {";
-    cssCustom += "background: #eee;";
-    cssCustom += "border-radius: 6px;";
-    cssCustom += "position: relative;";
-    cssCustom += "overflow: hidden;";
-    cssCustom += "}";
-    
-    // Container do skeleton como overlay - posicionado via JavaScript
-    cssCustom += ".mdashskeleton {";
-    cssCustom += "display: flex;";
-    cssCustom += "flex-direction: column;";
-    cssCustom += "justify-content: center;";
-    cssCustom += "align-items: center;";
-    cssCustom += "padding: 20px;";
-    cssCustom += "background: rgba(255, 255, 255, 0.95);";
-    cssCustom += "backdrop-filter: blur(2px);";
-    cssCustom += "z-index: 9999;";
-    cssCustom += "border-radius: inherit;";
-    cssCustom += "box-sizing: border-box;";
-    cssCustom += "}";
-
-    // Shimmer animation
-    cssCustom += ".mdash-skeleton::after {";
-    cssCustom += "content: \"\";";
-    cssCustom += "position: absolute;";
-    cssCustom += "top: 0;";
-    cssCustom += "left: -150px;";
-    cssCustom += "height: 100%;";
-    cssCustom += "width: 150px;";
-    cssCustom += "background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);";
-    cssCustom += "animation: shimmer 1.5s infinite;";
-    cssCustom += "}";
-
-    cssCustom += "@keyframes shimmer {";
-    cssCustom += "0% { left: -150px; }";
-    cssCustom += "100% { left: 100%; }";
-    cssCustom += "}";
-
-    // mdash-skeleton shapes
-    cssCustom += ".mdash-skeleton-image {";
-    cssCustom += "width: 100%;";
-    cssCustom += "height: 150px;";
-    cssCustom += "margin-bottom: 20px;";
-    cssCustom += "flex-shrink: 0;";
-    cssCustom += "}";
-
-    cssCustom += ".mdash-skeleton-title {";
-    cssCustom += "width: 70%;";
-    cssCustom += "height: 20px;";
-    cssCustom += "margin: 0 auto 15px auto;";
-    cssCustom += "flex-shrink: 0;";
-    cssCustom += "}";
-
-    cssCustom += ".mdash-skeleton-text {";
-    cssCustom += "width: 90%;";
-    cssCustom += "height: 15px;";
-    cssCustom += "margin: 8px auto;";
-    cssCustom += "flex-shrink: 0;";
-    cssCustom += "}";
-    
-    // Variação para preencher o espaço restante
-    cssCustom += ".mdash-skeleton-text.flex-grow {";
-    cssCustom += "flex-grow: 1;";
-    cssCustom += "min-height: 15px;";
-    cssCustom += "}";
-    
-    // Estado oculto
-    cssCustom += ".mdashskeleton.hidden {";
-    cssCustom += "display: none;";
     cssCustom += "}";
 
     styles.push(cssCustom);
@@ -430,7 +316,7 @@ function HandlerCustomContainerContentGenerator(content) {
             if (content.isReactive && content.selectVariable) {
                 return generateReactiveSelect(content);
             }
-            return generateSelect(content.selectData, content.classes, content.style, content.selectCustomData, content.fieldToOption, content.fieldToValue, content.label);
+            return generateSelect(content.selectData, content.classes, content.style, content.selectCustomData, content.fieldToOption, content.fieldToValue, content.label, content.multiSelect);
         case "button":
             return generateButton(content);
         case "div":
@@ -999,7 +885,7 @@ function handlerContainerContentGenerator(content) {
             return generateTextarea(content);
         case "select":
             content.selectCustomData = content.selectCustomData ? content.selectCustomData + " data-type='text' " : " data-type='text' ";
-            return generateSelect(content.selectData, content.classes, content.style, content.selectCustomData, content.fieldToOption, content.fieldToValue, content.label);
+            return generateSelect(content.selectData, content.classes, content.style, content.selectCustomData, content.fieldToOption, content.fieldToValue, content.label, content.multiSelect);
         case "button":
             content.customData = content.customData ? content.customData + " data-type='action' " : " data-type='action' ";
             return generateButton(content);
@@ -1237,7 +1123,7 @@ function buildAlert(alertClass, alertText) {
 
     return alerta
 }
-function generateSelect(selectData, classes, style, selectCustomData, fieldToOption, fieldToValue, label) {
+function generateSelect(selectData, classes, style, selectCustomData, fieldToOption, fieldToValue, label, multiSelect) {
     // Replace keys based on arguments
     var options = selectData.map(function (n) {
         return {
@@ -1252,11 +1138,14 @@ function generateSelect(selectData, classes, style, selectCustomData, fieldToOpt
         selectHTML += "<label >" + label + "</label>";
     }
     selectHTML += "<select";
+    if (multiSelect) selectHTML += " multiple";
     if (style) selectHTML += " style='" + style + "'";
     if (classes) selectHTML += " class='" + classes + "'";
     if (selectCustomData) selectHTML += " " + selectCustomData;
     selectHTML += ">"
-    selectHTML += "<option selected disabled value='' ></option>";
+    if (!multiSelect) {
+        selectHTML += "<option selected disabled value='' ></option>";
+    }
     options.forEach(function (option) {
         selectHTML += "<option value='" + option.value + "'>" + option.option + "</option>";
     });
@@ -1405,7 +1294,8 @@ function submeterDadosFormulario(dados) {
 
 function getIframeLoadingStyle(styles) {
     var style = "";
-    style += ".iframe-loading-overlay{";
+    // Namespace: cform- (custom form) para evitar conflitos com MDash e outros estilos
+    style += ".cform-iframe-loading-overlay{";
     style += "position:absolute;";
     style += "top:0;";
     style += "left:0;";
@@ -1420,40 +1310,40 @@ function getIframeLoadingStyle(styles) {
     style += "font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;";
     style += "}";
 
-    style += ".screen-loading-animation{";
+    style += ".cform-screen-loading-animation{";
     style += "width:200px;";
     style += "height:120px;";
     style += "position:relative;";
     style += "margin-bottom:20px;";
     style += "}";
 
-    style += ".loading-line{";
+    style += ".cform-loading-line{";
     style += "position:absolute;";
     style += "width:2px;";
     style += "height:100%;";
     style += "background:linear-gradient(to bottom,transparent 0%,"+getColorByType('primary').background+" 50%,transparent 100%);";
-    style += "animation:dataFlow 2s infinite linear;";
+    style += "animation:cformDataFlow 2s infinite linear;";
     style += "}";
 
-    style += ".loading-line:nth-child(1){left:20%;animation-delay:0s;}";
-    style += ".loading-line:nth-child(2){left:40%;animation-delay:0.3s;}";
-    style += ".loading-line:nth-child(3){left:60%;animation-delay:0.6s;}";
-    style += ".loading-line:nth-child(4){left:80%;animation-delay:0.9s;}";
+    style += ".cform-loading-line:nth-child(1){left:20%;animation-delay:0s;}";
+    style += ".cform-loading-line:nth-child(2){left:40%;animation-delay:0.3s;}";
+    style += ".cform-loading-line:nth-child(3){left:60%;animation-delay:0.6s;}";
+    style += ".cform-loading-line:nth-child(4){left:80%;animation-delay:0.9s;}";
 
-    style += ".connection-dot{";
+    style += ".cform-connection-dot{";
     style += "position:absolute;";
     style += "width:8px;";
     style += "height:8px;";
     style += "background:"+getColorByType('primary').background+";";
     style += "border-radius:50%;";
-    style += "animation:pulse 1.5s infinite ease-in-out;";
+    style += "animation:cformPulse 1.5s infinite ease-in-out;";
     style += "}";
 
-    style += ".connection-dot:nth-child(5){top:20%;left:30%;animation-delay:0s;}";
-    style += ".connection-dot:nth-child(6){top:60%;left:50%;animation-delay:0.5s;}";
-    style += ".connection-dot:nth-child(7){top:40%;left:70%;animation-delay:1s;}";
+    style += ".cform-connection-dot:nth-child(5){top:20%;left:30%;animation-delay:0s;}";
+    style += ".cform-connection-dot:nth-child(6){top:60%;left:50%;animation-delay:0.5s;}";
+    style += ".cform-connection-dot:nth-child(7){top:40%;left:70%;animation-delay:1s;}";
 
-    style += ".loading-progress{";
+    style += ".cform-loading-progress{";
     style += "width:200px;"
     style += "height:4px;";
     style += "background:#e9ecef;";
@@ -1462,44 +1352,44 @@ function getIframeLoadingStyle(styles) {
     style += "margin-bottom:15px;";
     style += "}";
 
-    style += ".progress-bar-iframe{";
+    style += ".cform-progress-bar-iframe{";
     style += "width:0%;";
     style += "height:100%;";
     style += "background:linear-gradient(90deg,#007bff,#0056b3);";
-    style += "animation:progressLoad 3s infinite ease-in-out;";
+    style += "animation:cformProgressLoad 3s infinite ease-in-out;";
     style += "}";
 
-    style += ".loading-text{";
+    style += ".cform-loading-text{";
     style += "color:#495057;";
     style += "font-size:14px;";
     style += "font-weight:500;";
     style += "text-align:center;";
     style += "}";
 
-    style += ".loading-subtext{";
+    style += ".cform-loading-subtext{";
     style += "color:#6c757d;";
     style += "font-size:12px;";
     style += "margin-top:5px;";
     style += "}";
 
-    style += "@keyframes dataFlow{";
+    style += "@keyframes cformDataFlow{";
     style += "0%{transform:translateY(-100%);opacity:0;}";
     style += "50%{opacity:1;}";
     style += "100%{transform:translateY(100%);opacity:0;}";
     style += "}";
 
-    style += "@keyframes pulse{";
+    style += "@keyframes cformPulse{";
     style += "0%,100%{transform:scale(1);opacity:0.7;}";
     style += "50%{transform:scale(1.3);opacity:1;}";
     style += "}";
 
-    style += "@keyframes progressLoad{";
+    style += "@keyframes cformProgressLoad{";
     style += "0%{width:0%;}";
     style += "50%{width:70%;}";
     style += "100%{width:100%;}";
     style += "}";
 
-    style += ".iframe-container{";
+    style += ".cform-iframe-container{";
     style += "position:relative;";
     style += "min-height:400px;";
     style += "}";
@@ -1517,25 +1407,25 @@ function generateComponent(componentData) {
     $('#' + containerId).remove(); // Remover container existente, se houver
     var container = $("<div>", {
         id: containerId,
-        'class': 'iframe-container'
+        'class': 'cform-iframe-container'
     });
 
     // Criar overlay de loading
     var overlayHTML = '';
-    overlayHTML += '<div class="screen-loading-animation">';
-    overlayHTML += '    <div class="loading-line"></div>';
-    overlayHTML += '    <div class="loading-line"></div>';
-    overlayHTML += '    <div class="loading-line"></div>';
-    overlayHTML += '    <div class="loading-line"></div>';
-    overlayHTML += '    <div class="connection-dot"></div>';
-    overlayHTML += '    <div class="connection-dot"></div>';
-    overlayHTML += '    <div class="connection-dot"></div>';
+    overlayHTML += '<div class="cform-screen-loading-animation">';
+    overlayHTML += '    <div class="cform-loading-line"></div>';
+    overlayHTML += '    <div class="cform-loading-line"></div>';
+    overlayHTML += '    <div class="cform-loading-line"></div>';
+    overlayHTML += '    <div class="cform-loading-line"></div>';
+    overlayHTML += '    <div class="cform-connection-dot"></div>';
+    overlayHTML += '    <div class="cform-connection-dot"></div>';
+    overlayHTML += '    <div class="cform-connection-dot"></div>';
     overlayHTML += '</div>';
-    overlayHTML += '<div class="loading-text">A carregar conteúdo</div>';
-    overlayHTML += '<div class="loading-subtext">Aguarde um momento...</div>';
+    overlayHTML += '<div class="cform-loading-text">A carregar conteúdo</div>';
+    overlayHTML += '<div class="cform-loading-subtext">Aguarde um momento...</div>';
 
     var overlay = $("<div>", {
-        'class': 'iframe-loading-overlay'
+        'class': 'cform-iframe-loading-overlay'
     }).html(overlayHTML);
 
     // Criar iframe
@@ -1585,7 +1475,7 @@ function generateComponent(componentData) {
 
     // Fallback: se o iframe não carregar em 10 segundos
     setTimeout(function () {
-        if ($('#' + containerId).find('.iframe-loading-overlay').length > 0) {
+        if ($('#' + containerId).find('.cform-iframe-loading-overlay').length > 0) {
             overlay.fadeOut(400, function () {
                 $(this).remove();
                 $('#' + componentData.id).css('opacity', '1');

@@ -127,6 +127,74 @@ Try
 
  if not String.IsNullOrEmpty(queryComFiltros)   Then
 
+    ' ── Substituição de variáveis #namespace.nome# ─────────────────────────
+    ' Suporta tokens estilo "#phcvars.usercode#", "#dashboard.id#", etc.
+    '
+    ' Estratégia de segurança:
+    '   - O namespace "phcvars" é SEMPRE re-resolvido server-side via XcUser.*
+    '     (ignora-se o que o cliente enviou no payload — anti-tampering).
+    '   - Outros namespaces usam os valores enviados no payload em "vars".
+    '   - Strings têm plicas escapadas ('O''Neil') — números/booleanos crus.
+    '   - Tokens cujo namespace/nome não exista ficam literais (não rebenta).
+    '
+    Dim varsPayload As Newtonsoft.Json.Linq.JObject = Nothing
+    If requestJObject("vars") IsNot Nothing AndAlso requestJObject("vars").Type = Newtonsoft.Json.Linq.JTokenType.Object Then
+        varsPayload = requestJObject("vars").ToObject(Of Newtonsoft.Json.Linq.JObject)()
+    End If
+
+    ' Dicionário canónico de valores PHC vindos do servidor (anti-tampering)
+    Dim phcServerVars As New Dictionary(Of String, Object) From {
+        {"usercode",  XcUser.usercode()},
+        {"useremail", XcUser.useremail()},
+        {"iniciais",  XcUser.iniciais()},
+        {"clnome",    XcUser.clnome()},
+        {"clno",      XcUser.clno()},
+        {"username",  XcUser.username()},
+        {"userno",    XcUser.userno()}
+    }
+
+    Dim varsRegex As String = "#([A-Za-z][A-Za-z0-9_]*)\.([A-Za-z][A-Za-z0-9_]*)#"
+    queryComFiltros = Regex.Replace(queryComFiltros, varsRegex, Function(m As Match)
+        Dim ns  As String = m.Groups(1).Value.ToLowerInvariant()
+        Dim key As String = m.Groups(2).Value
+
+        Dim valor As Object = Nothing
+        Dim encontrado As Boolean = False
+
+        If ns = "phcvars" Then
+            ' Server-side override (não confia no payload)
+            Dim keyLower As String = key.ToLowerInvariant()
+            If phcServerVars.ContainsKey(keyLower) Then
+                valor = phcServerVars(keyLower)
+                encontrado = True
+            End If
+        Else
+            ' Outros namespaces: usar payload
+            If varsPayload IsNot Nothing Then
+                Dim fullKey As String = ns & "." & key
+                If varsPayload.ContainsKey(fullKey) Then
+                    Dim tk As Newtonsoft.Json.Linq.JToken = varsPayload(fullKey)
+                    If tk IsNot Nothing AndAlso tk.Type <> Newtonsoft.Json.Linq.JTokenType.Null Then
+                        valor = tk.ToObject(Of Object)()
+                        encontrado = True
+                    End If
+                End If
+            End If
+        End If
+
+        If Not encontrado Then Return m.Value ' deixa literal
+
+        ' Formatar o valor para SQL
+        If valor Is Nothing Then Return "NULL"
+        If TypeOf valor Is Boolean Then Return If(CBool(valor), "1", "0")
+        If TypeOf valor Is Integer OrElse TypeOf valor Is Long OrElse
+           TypeOf valor Is Decimal OrElse TypeOf valor Is Double OrElse
+           TypeOf valor Is Single Then Return Convert.ToString(valor, System.Globalization.CultureInfo.InvariantCulture)
+
+        ' String — escapar plicas (o utilizador escreve as plicas no SQL)
+        Return valor.ToString().Replace("'", "''")
+    End Function)
+
     Dim regexPattern As String = "\{(.*?)\}" ' Padrão para capturar texto dentro de {}
     Dim matches As MatchCollection = Regex.Matches(expressaodblistagem, regexPattern)
     Dim filtros As Newtonsoft.Json.Linq.JObject = requestJObject("filters").ToObject(Of Newtonsoft.Json.Linq.JObject)()
