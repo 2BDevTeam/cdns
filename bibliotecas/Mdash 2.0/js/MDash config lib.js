@@ -566,8 +566,8 @@ function _mdashInitKeyboardShortcuts() {
             try {
                 var inp = e.target;
                 hasInputSelection = (typeof inp.selectionStart === 'number' &&
-                                     typeof inp.selectionEnd === 'number' &&
-                                     inp.selectionEnd > inp.selectionStart);
+                    typeof inp.selectionEnd === 'number' &&
+                    inp.selectionEnd > inp.selectionStart);
             } catch (err) { hasInputSelection = false; }
         }
 
@@ -752,7 +752,7 @@ function renderContainerItemTemplate(item) {
         html = template.sampleHtml;
     } else {
         // fallback simples
-        html = '<div class="preview-card">'; 
+        html = '<div class="preview-card">';
         html += '  <div class="preview-card-header">' + (item.titulo || "Item sem título") + '</div>';
         html += '  <div class="preview-card-body text-muted">Selecione um layout</div>';
         html += '</div>';
@@ -1235,10 +1235,10 @@ MdashContainerItemObject.prototype.stringifyJSONFields = function () {
     });
 
     // Replicar para as 3 localizações (INVARIANTE TRIPLICADA)
-    this.transformConfig     = tc || null;
+    this.transformConfig = tc || null;
     this.transformconfigjson = tc ? JSON.stringify(tc) : ''; // "" em vez de "null" — evita parse(null)
     this.config = this.config || {};
-    
+
     // CRÍTICO: Sempre sincronizar config.transformConfig (adicionar OU remover)
     if (tc) {
         this.config.transformConfig = tc;
@@ -1248,7 +1248,7 @@ MdashContainerItemObject.prototype.stringifyJSONFields = function () {
     }
 
     this.fontesstampsjson = JSON.stringify(this.fontesstamps || []);
-    this.configjson       = JSON.stringify(this.config || {});
+    this.configjson = JSON.stringify(this.config || {});
 
     // DEBUG: Log após a sincronização
     console.log('[stringifyJSONFields] DEPOIS:', {
@@ -1271,9 +1271,11 @@ function getMdashObjectTypeEntry(tipo) {
     var tipoStr = '' + tipo;
 
     // Normalização de nomes legados (valores guardados em BD com nomes Portugueses)
-    var _legacy = { 'gráfico': 'chart', 'grafico': 'chart', 'pie': 'pie', 'pizza': 'pie',
-                    'tabela': 'table', 'texto': 'text', 'customcode': 'customCode',
-                    'detail': 'detail', 'detalhe': 'detail' };
+    var _legacy = {
+        'gráfico': 'chart', 'grafico': 'chart', 'pie': 'pie', 'pizza': 'pie',
+        'tabela': 'table', 'texto': 'text', 'customcode': 'customCode',
+        'detail': 'detail', 'detalhe': 'detail'
+    };
     var normalized = _legacy[tipoStr.toLowerCase()];
     if (normalized) tipoStr = normalized;
 
@@ -1284,7 +1286,7 @@ function getMdashObjectTypeEntry(tipo) {
     var allTypes = getTiposObjectoConfig();
     var entry = allTypes.find(function (t) { return t.tipo === tipoStr; }) || null;
     if (!entry) {
-        console.error('[MDash DEBUG] getMdashObjectTypeEntry: tipo="' + tipoStr + '" NÃO ENCONTRADO. Tipos registados: [' + allTypes.map(function(t){ return t.tipo; }).join(', ') + ']');
+        console.error('[MDash DEBUG] getMdashObjectTypeEntry: tipo="' + tipoStr + '" NÃO ENCONTRADO. Tipos registados: [' + allTypes.map(function (t) { return t.tipo; }).join(', ') + ']');
     }
     return entry;
 }
@@ -1326,18 +1328,18 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
     var self = this;
 
     var tipoStr = '' + (self.tipo || '');
-   
+
     var entry = getMdashObjectTypeEntry(tipoStr);
- 
+
 
     if (entry && typeof entry.renderObject === 'function') {
         var processaFonte = (entry.processaFonte !== undefined) ? entry.processaFonte : self.processaFonte;
         // Resolver dados através da função central (transform ? fonte ? containerItem.records)
         var resolved = mdashResolveObjectData(self, containerItem.records);
         var podeRenderizar = processaFonte === false || resolved.data.length > 0;
-       // console.log('  processaFonte =', processaFonte, '| podeRenderizar =', podeRenderizar, '| data.length =', resolved.data.length);
+        // console.log('  processaFonte =', processaFonte, '| podeRenderizar =', podeRenderizar, '| data.length =', resolved.data.length);
         if (podeRenderizar) {
-           
+
             console.groupEnd();
             entry.renderObject({
                 containerSelector: containerSelector,
@@ -1351,7 +1353,7 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
             });
         } else if (typeof entry.getSampleData === 'function') {
             // Sem dados reais ainda — renderizar com dados de amostra
-           
+
             entry.renderObject({
                 containerSelector: containerSelector,
                 itemObject: self,
@@ -1363,7 +1365,7 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
                 isSample: true
             });
         } else {
-         
+
             $(containerSelector).html(
                 '<div class="mdash-slot-zone-render-placeholder"><i class="' + (getObjectTypeIcon(tipoStr) || 'glyphicon glyphicon-stop') + '"></i> ' + (tipoStr || 'Objecto') + '</div>'
             );
@@ -1410,7 +1412,7 @@ function mdashResolveObjectData(obj, fallbackData) {
 
     // -- 2. transformConfig ? query sobre SQLite in-memory --
     if (obj && obj.transformConfig && obj.transformConfig.sourceTable &&
-            typeof MdashTransformBuilder !== 'undefined') {
+        typeof MdashTransformBuilder !== 'undefined') {
         try {
             var raw = MdashTransformBuilder.executeRaw(obj.transformConfig);
             if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
@@ -1530,29 +1532,29 @@ MDashFonte.prototype.stringifyJSONFields = function () {
  */
 MDashFonte.prototype.toDbRecord = function () {
     return {
-        mdashfontestamp:       this.mdashfontestamp,
-        dashboardstamp:        this.dashboardstamp,
-        codigo:                this.codigo,
-        descricao:             this.descricao,
-        ordem:                 this.ordem,
-        inactivo:              this.inactivo ? 1 : 0,
-        scope:                 this.scope,
-        scopestamp:            this.scopestamp,
-        tipo:                  this.tipo,
-        expressaolistagem:     this.expressaolistagem,
-        urlfetch:              this.urlfetch,
-        expressaojslistagem:   this.expressaojslistagem,
-        apiurl:                this.apiurl,
-        apimethod:             this.apimethod,
-        apiheadersjson:        this.apiheadersjson,
-        apibodyjson:           this.apibodyjson,
-        schemamode:            this.schemamode,
-        schemajson:            this.schemajson,
-        parametrosjson:        this.parametrosjson,
-        refreshmode:           this.refreshmode,
-        refreshintervalsec:    this.refreshintervalsec,
-        lastResultscached:     this.lastResultscached,
-        lastexecuted:          (function (d) {
+        mdashfontestamp: this.mdashfontestamp,
+        dashboardstamp: this.dashboardstamp,
+        codigo: this.codigo,
+        descricao: this.descricao,
+        ordem: this.ordem,
+        inactivo: this.inactivo ? 1 : 0,
+        scope: this.scope,
+        scopestamp: this.scopestamp,
+        tipo: this.tipo,
+        expressaolistagem: this.expressaolistagem,
+        urlfetch: this.urlfetch,
+        expressaojslistagem: this.expressaojslistagem,
+        apiurl: this.apiurl,
+        apimethod: this.apimethod,
+        apiheadersjson: this.apiheadersjson,
+        apibodyjson: this.apibodyjson,
+        schemamode: this.schemamode,
+        schemajson: this.schemajson,
+        parametrosjson: this.parametrosjson,
+        refreshmode: this.refreshmode,
+        refreshintervalsec: this.refreshintervalsec,
+        lastResultscached: this.lastResultscached,
+        lastexecuted: (function (d) {
             if (!d) return null;
             var s = String(d);
             // /Date(ms)/ format (ASP.NET JSON)
@@ -1606,9 +1608,9 @@ MDashFonte.prototype.execute = function (context, callback) {
                     if (typeof callback === 'function') callback(err, null);
                     return;
                 }
-                self.lastResults  = Array.isArray(rows) ? rows : [];
+                self.lastResults = Array.isArray(rows) ? rows : [];
                 self.lastexecuted = new Date().toISOString().slice(0, 19).replace('T', ' ');
-                self.status       = 'loaded';
+                self.status = 'loaded';
                 if (self.schemamode === 'auto' && self.lastResults.length > 0) {
                     self.schema = self.extractSchemaFromResults();
                 }
@@ -1635,9 +1637,9 @@ MDashFonte.prototype.execute = function (context, callback) {
         data: { '__EVENTARGUMENT': JSON.stringify([{ expressaodblistagem: expression, filters: {} }]) },
         success: function (response) {
             if (response && response.cod === '0000') {
-                self.lastResults  = response.data || [];
+                self.lastResults = response.data || [];
                 self.lastexecuted = new Date().toISOString().slice(0, 19).replace('T', ' ');
-                self.status       = 'loaded';
+                self.status = 'loaded';
                 if (typeof callback === 'function') callback(null, self.lastResults);
             } else {
                 self.status = 'error';
@@ -1718,13 +1720,13 @@ function MdashSlot(data) {
  */
 MdashSlot.getEditableProperties = function () {
     return [
-        { field: "cssClass",    title: "Classes CSS",      type: "text",     defaultValue: "" },
-        { field: "inlineStyle", title: "Estilo Inline",    type: "text",     defaultValue: "" },
-        { field: "minHeight",   title: "Altura Mínima",    type: "text",     defaultValue: "" },
-        { field: "maxHeight",   title: "Altura Máxima",    type: "text",     defaultValue: "" },
-        { field: "overflow",    title: "Overflow",         type: "select",   defaultValue: "visible", options: ["visible", "hidden", "auto", "scroll"] },
-        { field: "background",  title: "Fundo",            type: "color",    defaultValue: "" },
-        { field: "padding",     title: "Padding",          type: "text",     defaultValue: "" }
+        { field: "cssClass", title: "Classes CSS", type: "text", defaultValue: "" },
+        { field: "inlineStyle", title: "Estilo Inline", type: "text", defaultValue: "" },
+        { field: "minHeight", title: "Altura Mínima", type: "text", defaultValue: "" },
+        { field: "maxHeight", title: "Altura Máxima", type: "text", defaultValue: "" },
+        { field: "overflow", title: "Overflow", type: "select", defaultValue: "visible", options: ["visible", "hidden", "auto", "scroll"] },
+        { field: "background", title: "Fundo", type: "color", defaultValue: "" },
+        { field: "padding", title: "Padding", type: "text", defaultValue: "" }
     ];
 };
 
@@ -1744,13 +1746,13 @@ MdashSlot.prototype.toJSON = function () {
 MdashSlot.prototype.applyToElement = function ($el) {
     if (!$el || !$el.length) return;
     var c = this.config || {};
-    if (c.cssClass)    $el.addClass(c.cssClass);
+    if (c.cssClass) $el.addClass(c.cssClass);
     if (c.inlineStyle) $el.attr('style', ($el.attr('style') || '') + ';' + c.inlineStyle);
-    if (c.minHeight)   $el.css('min-height', c.minHeight);
-    if (c.maxHeight)   $el.css('max-height', c.maxHeight);
-    if (c.overflow)    $el.css('overflow', c.overflow);
-    if (c.background)  $el.css('background', c.background);
-    if (c.padding)     $el.css('padding', c.padding);
+    if (c.minHeight) $el.css('min-height', c.minHeight);
+    if (c.maxHeight) $el.css('max-height', c.maxHeight);
+    if (c.overflow) $el.css('overflow', c.overflow);
+    if (c.background) $el.css('background', c.background);
+    if (c.padding) $el.css('padding', c.padding);
 };
 
 // ============================================================================
@@ -1814,7 +1816,7 @@ MdashContainerItemLayout.prototype.renderPreview = function (containerSelector) 
     html += '<div data-mdash-scope="' + scopeId + '">';
     html += this.htmltemplate || '<div class="text-muted text-center p-3">Sem template HTML definido</div>';
     html += '</div>';
-    
+
     if (containerSelector) {
         $(containerSelector).html(html);
         // Execute JS template in context
@@ -1897,10 +1899,10 @@ function getContainerItemLayoutUIObjectFormConfigAndSourceValues() {
 function showDeleteConfirmation(options) {
     // options: { title, message, recordToDelete, onConfirm, onCancel }
     GMDashTempRecordToDelete = options.recordToDelete || null;
-    
+
     // Remove modal anterior se existir
     $('#mdash-delete-confirm-modal').remove();
-    
+
     // Cria modal Bootstrap customizada
     var modalHtml = '';
     modalHtml += '<div class="modal fade" id="mdash-delete-confirm-modal" tabindex="-1" role="dialog">';
@@ -1922,41 +1924,41 @@ function showDeleteConfirmation(options) {
     modalHtml += '    </div>';
     modalHtml += '  </div>';
     modalHtml += '</div>';
-    
+
     $('body').append(modalHtml);
-    
+
     // Handler do botão confirmar
-    $('#mdash-delete-confirm-btn').off('click').on('click', function() {
+    $('#mdash-delete-confirm-btn').off('click').on('click', function () {
         // Confirmado: move para GMdashDeleteRecords e executa callback
         if (GMDashTempRecordToDelete) {
             GMdashDeleteRecords.push(GMDashTempRecordToDelete);
         }
         GMDashTempRecordToDelete = null;
-        
+
         $('#mdash-delete-confirm-modal').modal('hide');
-        
+
         if (typeof options.onConfirm === 'function') {
             options.onConfirm();
         }
     });
-    
+
     // Handler do cancelamento (fechar modal ou botão cancelar)
-    $('#mdash-delete-confirm-modal').off('hidden.bs.modal').on('hidden.bs.modal', function() {
+    $('#mdash-delete-confirm-modal').off('hidden.bs.modal').on('hidden.bs.modal', function () {
         // Se ainda há registo temporário, foi cancelado
         if (GMDashTempRecordToDelete !== null) {
             GMDashTempRecordToDelete = null;
-            
+
             if (typeof options.onCancel === 'function') {
                 options.onCancel();
             } else {
                 alertify.message('Eliminação cancelada');
             }
         }
-        
+
         // Remove modal do DOM
         $(this).remove();
     });
-    
+
     // Mostra modal
     $('#mdash-delete-confirm-modal').modal({
         backdrop: 'static',
@@ -2382,7 +2384,7 @@ function loadDashboardDataFromServer(config) {
 
                 // Popula as arrays globais com os dados do servidor
                 //console.log("Dados recebidos do servidor:", response.data);
-                if (response.data ) {
+                if (response.data) {
                     var dashboardData = response.data
 
                     // Dashboard config
@@ -2455,7 +2457,7 @@ function loadDashboardDataFromServer(config) {
                     filters: GMDashFilters.length,
                     fontes: GMDashFontes.length,
                     layouts: GMDashContainerItemLayouts.length,
-                    codigoDash:config.codigo
+                    codigoDash: config.codigo
                 });
 
             } catch (error) {
@@ -2469,7 +2471,7 @@ function loadDashboardDataFromServer(config) {
 // TABS MANAGER (reutilizável para Editor e runtime de visualização)
 // ============================================================================
 
-function MdashTabsManager() {}
+function MdashTabsManager() { }
 
 MdashTabsManager.prototype.getDashboardSettings = function () {
     var dash = (window.appState && window.appState.dashboardConfig)
@@ -3325,7 +3327,7 @@ function getTemplateThumbnailHtml(templateCode) {
             // CSS é automaticamente scoped via scopeLayoutCSS() ? data-mdash-scope wrapper
         } catch (error) {
             // Log para diagnóstico — antes silenciava falhas e mostrava placeholder vazio
-            try { console.warn("[mdash] thumbnail generateCard falhou para", templateCode, error); } catch (e) {}
+            try { console.warn("[mdash] thumbnail generateCard falhou para", templateCode, error); } catch (e) { }
             thumbHtml = "";
         }
     }
@@ -3351,8 +3353,15 @@ function getTemplateThumbnailHtml(templateCode) {
 // - Gestão de Filtros
 // - Gestão de Fontes
 
+$(document).ready(function () {
+   loadModernDashboardStyles();
+});
+
+
 function createModernDashboardUI() {
     // Inicializa a interface completa com sidebar + canvas
+
+    
     initModernDashboardUI();
     // Renderiza pré-visualizações iniciais dos itens
     setTimeout(renderAllContainerItemTemplates, 0);
@@ -3603,9 +3612,9 @@ function initModernDashboardUI() {
     mainHtml += '            <input type="checkbox" :checked="$computed.isMultiTabsEnabled()" @change="toggleMultiTabs($event)" />';
     mainHtml += '            <span>Multi separadores</span>';
     mainHtml += '          </label>';
-  //  mainHtml += '          <button type="button"  class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-eye-open"></i> Pré visualizar</button>';
-   /* mainHtml += '          <button type="button" @click="addNewFilter" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-filter"></i> Novo Filtro</button>';
-    mainHtml += '          <button type="button" @click="addNewFonte" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-oil"></i> Nova Fonte</button>';*/
+    //  mainHtml += '          <button type="button"  class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-eye-open"></i> Pré visualizar</button>';
+    /* mainHtml += '          <button type="button" @click="addNewFilter" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-filter"></i> Novo Filtro</button>';
+     mainHtml += '          <button type="button" @click="addNewFonte" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-oil"></i> Nova Fonte</button>';*/
     mainHtml += '        </div>';
     mainHtml += '      </div>';
     mainHtml += '      <div v-if="$computed.isMultiTabsEnabled()" class="mdash-dashboard-tabs-wrap">';
@@ -3779,7 +3788,7 @@ function initModernDashboardUI() {
     $('#m-dash-main-container').html(mainHtml);
 
     // Carrega estilos
-    loadModernDashboardStyles();
+    //loadModernDashboardStyles();
 
     // Cria estado reativo global centralizado usando PetiteVue.reactive
     var _dashCfg = GMDashConfig[0] || new MdashConfig({ u_mdashstamp: GMDashStamp });
@@ -3824,13 +3833,13 @@ function initModernDashboardUI() {
         tabEditorOpenFor: "",
         objectSearchQuery: "",
         $computed: {
-            sortedFilters: function() {
+            sortedFilters: function () {
                 return window.appState.filters.slice().sort(function (a, b) {
                     return (a.ordem || 0) - (b.ordem || 0);
                 });
             },
 
-            sortedContainers: function() {
+            sortedContainers: function () {
                 return window.appState.containers.slice().sort(function (a, b) {
                     return (a.ordem || 0) - (b.ordem || 0);
                 });
@@ -3888,8 +3897,8 @@ function initModernDashboardUI() {
             return catalog.map(function (cat) {
                 var filtered = cat.items.filter(function (item) {
                     return item.label.toLowerCase().indexOf(q) !== -1 ||
-                           item.description.toLowerCase().indexOf(q) !== -1 ||
-                           item.value.toLowerCase().indexOf(q) !== -1;
+                        item.description.toLowerCase().indexOf(q) !== -1 ||
+                        item.value.toLowerCase().indexOf(q) !== -1;
                 });
                 return filtered.length > 0 ? { category: cat.category, items: filtered } : null;
             }).filter(Boolean);
@@ -3952,9 +3961,9 @@ function initModernDashboardUI() {
             return [
                 { value: 'primary', label: 'Primary' },
                 { value: 'success', label: 'Success' },
-                { value: 'info',    label: 'Info' },
+                { value: 'info', label: 'Info' },
                 { value: 'warning', label: 'Warning' },
-                { value: 'danger',  label: 'Danger' },
+                { value: 'danger', label: 'Danger' },
                 { value: 'default', label: 'Default' }
             ];
         },
@@ -4307,7 +4316,7 @@ function initModernDashboardUI() {
         getItemFlex: function (item) {
             return getItemGridStyleString(item);
         },
-        
+
         getItemSize: function (item) {
             return getItemGridSpan(item);
         },
@@ -4552,7 +4561,7 @@ function initModernDashboardUI() {
             // Durante a digitação, não faz trim para permitir espaços
             item.titulo = event.target.value;
         },
-        
+
         updateItemTitleBlur: function (item, event) {
             // Quando perde foco, faz trim e sincroniza
             item.titulo = event.target.value.trim();
@@ -4562,7 +4571,7 @@ function initModernDashboardUI() {
                 realTimeComponentSync(item, item.table, item.idfield);
             }
         },
-        
+
         updateItemTitle: function (item, event) {
             item.titulo = event.target.value.trim();
             renderContainerItemTemplate(item);
@@ -4652,52 +4661,52 @@ function activatePropertiesTab(tabId) {
 var _SCOPE_RESOLVERS = {
     container: function (data) {
         return {
-            scopeType:  'container',
+            scopeType: 'container',
             scopeStamp: data.mdashcontainerstamp,
             parentContainerItemStamp: '',
-            parentContainerStamp:     '',
+            parentContainerStamp: '',
             label: 'Container'
         };
     },
     containerItem: function (data) {
         return {
-            scopeType:  'containeritem',
+            scopeType: 'containeritem',
             scopeStamp: data.mdashcontaineritemstamp,
             parentContainerItemStamp: '',
-            parentContainerStamp:     data.mdashcontainerstamp,
+            parentContainerStamp: data.mdashcontainerstamp,
             label: 'Container Item'
         };
     },
     slot: function (data) {
         var ciStamp = data.itemStamp || '';
         var ci = ((window.appState && window.appState.containerItems) || [])
-                    .find(function (i) { return i.mdashcontaineritemstamp === ciStamp; });
+            .find(function (i) { return i.mdashcontaineritemstamp === ciStamp; });
         return {
-            scopeType:  'containeritem',
+            scopeType: 'containeritem',
             scopeStamp: ciStamp,
             parentContainerItemStamp: '',
-            parentContainerStamp:     ci ? ci.mdashcontainerstamp : '',
+            parentContainerStamp: ci ? ci.mdashcontainerstamp : '',
             label: 'Slot'
         };
     },
     object: function (data) {
         var ciStamp = data.mdashcontaineritemstamp || '';
         var ci = ((window.appState && window.appState.containerItems) || [])
-                    .find(function (i) { return i.mdashcontaineritemstamp === ciStamp; });
+            .find(function (i) { return i.mdashcontaineritemstamp === ciStamp; });
         return {
-            scopeType:  'object',
+            scopeType: 'object',
             scopeStamp: data.mdashcontaineritemobjectstamp,
             parentContainerItemStamp: ciStamp,
-            parentContainerStamp:     ci ? ci.mdashcontainerstamp : '',
+            parentContainerStamp: ci ? ci.mdashcontainerstamp : '',
             label: 'Objecto'
         };
     },
     global: function () {
         return {
-            scopeType:  'global',
+            scopeType: 'global',
             scopeStamp: '',
             parentContainerItemStamp: '',
-            parentContainerStamp:     '',
+            parentContainerStamp: '',
             label: 'Global'
         };
     }
@@ -4724,14 +4733,14 @@ function renderFontesPanel(selectedComponent) {
 
     var scope = resolver(selectedComponent.data);
 
-    var allFontes     = MDashFonte.getAvailableFontes(scope.scopeType, scope.scopeStamp, scope.parentContainerItemStamp, scope.parentContainerStamp);
-    var isOwn         = function (f) { return f.scope === scope.scopeType && f.scopestamp === scope.scopeStamp; };
-    var ownFontes      = allFontes.filter(isOwn);
+    var allFontes = MDashFonte.getAvailableFontes(scope.scopeType, scope.scopeStamp, scope.parentContainerItemStamp, scope.parentContainerStamp);
+    var isOwn = function (f) { return f.scope === scope.scopeType && f.scopestamp === scope.scopeStamp; };
+    var ownFontes = allFontes.filter(isOwn);
     var inheritedFontes = allFontes.filter(function (f) { return !isOwn(f); });
 
     var sections = [
-        { fontes: ownFontes,       canRemove: true,  icon: 'glyphicon-hdd',  label: 'Fontes deste ' + scope.label, marginTop: false },
-        { fontes: inheritedFontes, canRemove: false, icon: 'glyphicon-link', label: 'Fontes herdadas',             marginTop: true  }
+        { fontes: ownFontes, canRemove: true, icon: 'glyphicon-hdd', label: 'Fontes deste ' + scope.label, marginTop: false },
+        { fontes: inheritedFontes, canRemove: false, icon: 'glyphicon-link', label: 'Fontes herdadas', marginTop: true }
     ];
 
     var html = '<div class="mdash-fonte-add-bar">'
@@ -4754,10 +4763,10 @@ function renderFontesPanel(selectedComponent) {
     panel.html(html);
 
     var bindings = [
-        { ns: 'addfonte',   sel: '.mdash-add-scoped-fonte', stop: false, fn: function () { addScopedFonte($(this).data('scope'), $(this).data('scopestamp')); } },
-        { ns: 'editfonte',  sel: '.mdash-fonte-list-item',  stop: false, fn: function () { var s = $(this).data('fontestamp'); if (s) editFonteInPanel(s); } },
-        { ns: 'removefonte',sel: '.mdash-fonte-remove',      stop: true,  fn: function () { var s = $(this).data('fontestamp'); if (s) removeScopedFonte(s); } },
-        { ns: 'runfonte',   sel: '.mdash-fonte-run',         stop: true,  fn: function () { var s = $(this).data('fontestamp'); if (s) executeFonteByStamp(s); } }
+        { ns: 'addfonte', sel: '.mdash-add-scoped-fonte', stop: false, fn: function () { addScopedFonte($(this).data('scope'), $(this).data('scopestamp')); } },
+        { ns: 'editfonte', sel: '.mdash-fonte-list-item', stop: false, fn: function () { var s = $(this).data('fontestamp'); if (s) editFonteInPanel(s); } },
+        { ns: 'removefonte', sel: '.mdash-fonte-remove', stop: true, fn: function () { var s = $(this).data('fontestamp'); if (s) removeScopedFonte(s); } },
+        { ns: 'runfonte', sel: '.mdash-fonte-run', stop: true, fn: function () { var s = $(this).data('fontestamp'); if (s) executeFonteByStamp(s); } }
     ];
 
     bindings.forEach(function (b) {
@@ -4833,7 +4842,7 @@ function _refreshInlineObjFonteSelect() {
     if (!obj) return;
 
     var allCIs = (window.appState && window.appState.containerItems) || [];
-    var pCI    = allCIs.find(function (i) { return i.mdashcontaineritemstamp === obj.mdashcontaineritemstamp; });
+    var pCI = allCIs.find(function (i) { return i.mdashcontaineritemstamp === obj.mdashcontaineritemstamp; });
     var fontes = MDashFonte.getAvailableFontes(
         'object',
         obj.mdashcontaineritemobjectstamp,
@@ -4991,7 +5000,7 @@ function editFonteInPanel(fonteStamp) {
     html += '        </div>';
     html += '        <div class="m-editor" data-fonte-field="expressaolistagem" style="width:100%;height:160px;">' + _expressaolistagem + '</div>';
     html += '      </div></div>';
-      // Parâmetros detectados na expressão (acima do botão executar)
+    // Parâmetros detectados na expressão (acima do botão executar)
     html += '      <div class="col-md-12 mdash-fonte-params-section"' + (fonte.parametros && fonte.parametros.length > 0 ? '' : ' style="display:none"') + ' style="margin-bottom:0.5em;">';
     html += '        <label style="font-size:11px;color:#888;margin-bottom:4px;"><i class="glyphicon glyphicon-filter"></i> Filtros de teste</label>';
     html += '        <div class="mdash-fonte-params-list">' + buildFonteParamsListHtml(fonte) + '</div>';
@@ -5255,73 +5264,73 @@ function editFonteInPanel(fonteStamp) {
  */
 var GridLayoutEngine = {
     GRID_COLUMNS: 12,
-    
+
     /**
      * Valida se um item cabe numa linha específica
      */
-    canFitInRow: function(containerStamp, targetRow, newItemSpan, excludeItemStamp) {
-        var itemsInRow = GMDashContainerItems.filter(function(item) {
+    canFitInRow: function (containerStamp, targetRow, newItemSpan, excludeItemStamp) {
+        var itemsInRow = GMDashContainerItems.filter(function (item) {
             return item.mdashcontainerstamp === containerStamp &&
-                   parseInt(item.gridrow, 10) === targetRow &&
-                   item.mdashcontaineritemstamp !== excludeItemStamp &&
-                   getEffectiveItemLayoutMode(item) === 'manual';
+                parseInt(item.gridrow, 10) === targetRow &&
+                item.mdashcontaineritemstamp !== excludeItemStamp &&
+                getEffectiveItemLayoutMode(item) === 'manual';
         });
-        
-        var usedColumns = itemsInRow.reduce(function(sum, item) {
+
+        var usedColumns = itemsInRow.reduce(function (sum, item) {
             return sum + getItemGridSpan(item);
         }, 0);
-        
+
         return (usedColumns + newItemSpan) <= this.GRID_COLUMNS;
     },
-    
+
     /**
      * Calcula espaço disponível numa linha
      */
-    getAvailableSpace: function(containerStamp, targetRow, excludeItemStamp) {
-        var itemsInRow = GMDashContainerItems.filter(function(item) {
+    getAvailableSpace: function (containerStamp, targetRow, excludeItemStamp) {
+        var itemsInRow = GMDashContainerItems.filter(function (item) {
             return item.mdashcontainerstamp === containerStamp &&
-                   parseInt(item.gridrow, 10) === targetRow &&
-                   item.mdashcontaineritemstamp !== excludeItemStamp &&
-                   getEffectiveItemLayoutMode(item) === 'manual';
+                parseInt(item.gridrow, 10) === targetRow &&
+                item.mdashcontaineritemstamp !== excludeItemStamp &&
+                getEffectiveItemLayoutMode(item) === 'manual';
         });
-        
-        var usedColumns = itemsInRow.reduce(function(sum, item) {
+
+        var usedColumns = itemsInRow.reduce(function (sum, item) {
             return sum + getItemGridSpan(item);
         }, 0);
-        
+
         return this.GRID_COLUMNS - usedColumns;
     },
-    
+
     /**
      * Encontra item na posição específica
      */
-    findItemAtPosition: function(containerStamp, row, col) {
-        return GMDashContainerItems.find(function(item) {
+    findItemAtPosition: function (containerStamp, row, col) {
+        return GMDashContainerItems.find(function (item) {
             if (item.mdashcontainerstamp !== containerStamp) return false;
             if (getEffectiveItemLayoutMode(item) !== 'manual') return false;
-            
+
             var itemRow = parseInt(item.gridrow, 10);
             var itemColStart = parseInt(item.gridcolstart, 10);
             var itemSpan = getItemGridSpan(item);
             var itemColEnd = itemColStart + itemSpan - 1;
-            
+
             return itemRow === row && col >= itemColStart && col <= itemColEnd;
         });
     },
-    
+
     /**
      * Calcula reajuste automático de items numa linha
      */
-    calculateAutoAdjust: function(containerStamp, targetRow, insertCol, insertSpan, excludeItemStamp) {
-        var itemsInRow = GMDashContainerItems.filter(function(item) {
+    calculateAutoAdjust: function (containerStamp, targetRow, insertCol, insertSpan, excludeItemStamp) {
+        var itemsInRow = GMDashContainerItems.filter(function (item) {
             return item.mdashcontainerstamp === containerStamp &&
-                   parseInt(item.gridrow, 10) === targetRow &&
-                   item.mdashcontaineritemstamp !== excludeItemStamp &&
-                   getEffectiveItemLayoutMode(item) === 'manual';
-        }).sort(function(a, b) {
+                parseInt(item.gridrow, 10) === targetRow &&
+                item.mdashcontaineritemstamp !== excludeItemStamp &&
+                getEffectiveItemLayoutMode(item) === 'manual';
+        }).sort(function (a, b) {
             return parseInt(a.gridcolstart, 10) - parseInt(b.gridcolstart, 10);
         });
-        
+
         console.log('?? calculateAutoAdjust:', {
             targetRow: targetRow,
             insertCol: insertCol,
@@ -5329,22 +5338,22 @@ var GridLayoutEngine = {
             excludeItemStamp: excludeItemStamp ? excludeItemStamp.substring(0, 8) : 'none',
             itemsInRow: itemsInRow.length
         });
-        
+
         var adjustments = [];
         var currentCol = 1;
         var itemInserted = false; // Flag para saber se já inserimos o item
-        
-        itemsInRow.forEach(function(item) {
+
+        itemsInRow.forEach(function (item) {
             var itemColStart = parseInt(item.gridcolstart, 10);
             var itemSpan = getItemGridSpan(item);
-            
+
             // Se chegamos na posição de inserção e ainda não inserimos, reserva espaço
             if (!itemInserted && currentCol >= insertCol) {
                 console.log('  ?? Inserindo item na col', insertCol);
                 currentCol = insertCol + insertSpan;
                 itemInserted = true;
             }
-            
+
             // Se o item atual precisa ser movido
             if (itemColStart !== currentCol) {
                 console.log('  ?? Ajuste:', item.mdashcontaineritemstamp.substring(0, 8), 'de col', itemColStart, 'para col', currentCol);
@@ -5354,25 +5363,25 @@ var GridLayoutEngine = {
                     newCol: currentCol
                 });
             }
-            
+
             currentCol += itemSpan;
         });
-        
+
         // Se o item deve ser inserido no final
         if (!itemInserted) {
             console.log('  ?? Inserindo item no final, col', currentCol);
             currentCol += insertSpan;
         }
-        
+
         var totalColumns = currentCol - 1;
         var isValid = totalColumns <= this.GRID_COLUMNS;
-        
+
         console.log('? Resultado:', {
             totalColumns: totalColumns,
             isValid: isValid,
             adjustments: adjustments.length
         });
-        
+
         return {
             adjustments: adjustments,
             totalColumns: totalColumns,
@@ -5385,76 +5394,76 @@ var GridLayoutEngine = {
  * VisualFeedbackManager - Gere feedback visual durante drag
  */
 var VisualFeedbackManager = {
-    
+
     /**
      * Mostra feedback de erro (linha vermelha + ícone stop)
      * @param {jQuery} $row - O container de items (grid)
      * @param {number} targetGridRow - Número da grid-row específica
      * @param {string} message - Mensagem de erro
      */
-    showErrorFeedback: function($row, targetGridRow, message) {
+    showErrorFeedback: function ($row, targetGridRow, message) {
         this.clearFeedback($row);
-        
+
         // Cria overlay que se posiciona na grid-row específica
         var $errorOverlay = $('<div class="mdash-drop-error-overlay" style="grid-row: ' + targetGridRow + '; grid-column: 1 / -1;">' +
             '<div class="mdash-drop-overlay-bg mdash-drop-error-bg"></div>' +
             '<div class="mdash-drop-overlay-content">' +
-                '<i class="glyphicon glyphicon-ban-circle"></i>' +
-                '<span>' + (message || 'Não cabe nesta linha') + '</span>' +
+            '<i class="glyphicon glyphicon-ban-circle"></i>' +
+            '<span>' + (message || 'Não cabe nesta linha') + '</span>' +
             '</div>' +
-        '</div>');
-        
+            '</div>');
+
         $row.append($errorOverlay);
     },
-    
+
     /**
      * Mostra feedback de sucesso (linha verde + prévia)
      * @param {jQuery} $row - O container de items (grid)
      * @param {number} targetGridRow - Número da grid-row específica
      * @param {Array} adjustments - Items que serão reajustados
      */
-    showSuccessFeedback: function($row, targetGridRow, adjustments) {
+    showSuccessFeedback: function ($row, targetGridRow, adjustments) {
         this.clearFeedback($row);
-        
+
         // Sempre mostra feedback verde quando validação passa
-        var message = (adjustments && adjustments.length > 0) 
+        var message = (adjustments && adjustments.length > 0)
             ? adjustments.length + ' item(s) serão reajustados'
             : '? Válido';
-            
+
         var $successOverlay = $('<div class="mdash-drop-success-overlay" style="grid-row: ' + targetGridRow + '; grid-column: 1 / -1;">' +
             '<div class="mdash-drop-overlay-bg mdash-drop-success-bg"></div>' +
             '<div class="mdash-drop-overlay-content">' +
-                '<i class="glyphicon glyphicon-ok-circle"></i>' +
-                '<span>' + message + '</span>' +
+            '<i class="glyphicon glyphicon-ok-circle"></i>' +
+            '<span>' + message + '</span>' +
             '</div>' +
-        '</div>');
+            '</div>');
         $row.append($successOverlay);
     },
-    
+
     /**
      * Mostra feedback de swap (troca na mesma linha)
      * @param {jQuery} $row - O container de items (grid)
      * @param {number} targetGridRow - Número da grid-row específica
      * @param {Object} targetItem - Item com quem vai trocar
      */
-    showSwapFeedback: function($row, targetGridRow, targetItem) {
+    showSwapFeedback: function ($row, targetGridRow, targetItem) {
         this.clearFeedback($row);
-        
+
         var $swapOverlay = $('<div class="mdash-drop-swap-overlay" style="grid-row: ' + targetGridRow + '; grid-column: 1 / -1;">' +
             '<div class="mdash-drop-overlay-bg mdash-drop-swap-bg"></div>' +
             '<div class="mdash-drop-overlay-content">' +
-                '<i class="glyphicon glyphicon-retweet"></i>' +
-                '<span>Trocar posições</span>' +
+            '<i class="glyphicon glyphicon-retweet"></i>' +
+            '<span>Trocar posições</span>' +
             '</div>' +
-        '</div>');
+            '</div>');
         $row.append($swapOverlay);
     },
-    
+
     /**
      * Limpa todo feedback visual
      * @param {jQuery} $row - A linha ou container para limpar
      */
-    clearFeedback: function($row) {
+    clearFeedback: function ($row) {
         $row.find('.mdash-drop-error-overlay, .mdash-drop-success-overlay, .mdash-drop-swap-overlay').remove();
     }
 };
@@ -5463,14 +5472,14 @@ var VisualFeedbackManager = {
  * DragDropValidator - Valida operações de drag & drop
  */
 var DragDropValidator = {
-    
+
     /**
      * Valida se o drop é possível e retorna estratégia
      */
-    validateDrop: function(draggedItem, targetRow, targetCol, containerStamp) {
+    validateDrop: function (draggedItem, targetRow, targetCol, containerStamp) {
         var draggedSpan = getItemGridSpan(draggedItem);
         var draggedRow = parseInt(draggedItem.gridrow, 10);
-        
+
         console.log('?? validateDrop:', {
             item: draggedItem.mdashcontaineritemstamp.substring(0, 8),
             fromRow: draggedRow,
@@ -5478,7 +5487,7 @@ var DragDropValidator = {
             toCol: targetCol,
             span: draggedSpan
         });
-        
+
         var result = {
             isValid: false,
             strategy: null, // 'swap', 'adjust', 'reposition', 'invalid'
@@ -5486,14 +5495,14 @@ var DragDropValidator = {
             adjustments: [],
             message: ''
         };
-        
+
         // Encontra item na posição alvo
         var targetItem = GridLayoutEngine.findItemAtPosition(containerStamp, targetRow, targetCol);
-        
+
         // ? CASO 1: MESMA LINHA
         if (draggedRow === targetRow) {
             console.log('  ?? Mesma linha detectada');
-            
+
             // Subcaso 1a: Arrastando SOBRE outro item na mesma linha ? SWAP
             if (targetItem && targetItem.mdashcontaineritemstamp !== draggedItem.mdashcontaineritemstamp) {
                 console.log('  ?? SWAP com', targetItem.mdashcontaineritemstamp.substring(0, 8));
@@ -5503,23 +5512,23 @@ var DragDropValidator = {
                 result.message = 'Trocar posições';
                 return result;
             }
-            
+
             // Subcaso 1b: Reposicionando na mesma linha (espaço vazio ou mesma posição)
             console.log('  ?? REPOSITION na mesma linha');
             // Valida se o reajuste cabe na linha
             var adjustResult = GridLayoutEngine.calculateAutoAdjust(
-                containerStamp, 
-                targetRow, 
-                targetCol, 
-                draggedSpan, 
+                containerStamp,
+                targetRow,
+                targetCol,
+                draggedSpan,
                 draggedItem.mdashcontaineritemstamp
             );
-            
+
             if (adjustResult.isValid) {
                 result.isValid = true;
                 result.strategy = 'reposition'; // Nova estratégia para mesma linha
                 result.adjustments = adjustResult.adjustments;
-                result.message = adjustResult.adjustments.length > 0 
+                result.message = adjustResult.adjustments.length > 0
                     ? adjustResult.adjustments.length + ' item(s) reajustados'
                     : 'Reposicionar';
                 console.log('  ? REPOSITION válido');
@@ -5529,14 +5538,14 @@ var DragDropValidator = {
                 result.message = 'Total ultrapassa ' + GridLayoutEngine.GRID_COLUMNS + ' colunas após reajuste';
                 console.log('  ? REPOSITION inválido:', result.message);
             }
-            
+
             return result;
         }
-        
+
         // ? CASO 2: LINHA DIFERENTE - verifica se cabe
         console.log('  ?? Linha diferente detectada');
         var availableSpace = GridLayoutEngine.getAvailableSpace(containerStamp, targetRow, draggedItem.mdashcontaineritemstamp);
-        
+
         if (draggedSpan > availableSpace) {
             result.isValid = false;
             result.strategy = 'invalid';
@@ -5544,16 +5553,16 @@ var DragDropValidator = {
             console.log('  ? Não cabe:', result.message);
             return result;
         }
-        
+
         // ? CASO 3: Cabe - calcula ajustes
         var adjustResult = GridLayoutEngine.calculateAutoAdjust(
-            containerStamp, 
-            targetRow, 
-            targetCol, 
-            draggedSpan, 
+            containerStamp,
+            targetRow,
+            targetCol,
+            draggedSpan,
             draggedItem.mdashcontaineritemstamp
         );
-        
+
         if (adjustResult.isValid) {
             result.isValid = true;
             result.strategy = 'adjust';
@@ -5566,7 +5575,7 @@ var DragDropValidator = {
             result.message = 'Total ultrapassa ' + GridLayoutEngine.GRID_COLUMNS + ' colunas';
             console.log('  ? ADJUST inválido:', result.message);
         }
-        
+
         return result;
     }
 };
@@ -5575,47 +5584,47 @@ var DragDropValidator = {
  * DragDropExecutor - Executa operações de drag & drop
  */
 var DragDropExecutor = {
-    
+
     /**
      * Executa swap entre dois items
      */
-    executeSwap: function(item1, item2) {
+    executeSwap: function (item1, item2) {
         var temp = {
             row: item1.gridrow,
             colStart: item1.gridcolstart
         };
-        
+
         item1.gridrow = item2.gridrow;
         item1.gridcolstart = item2.gridcolstart;
-        
+
         item2.gridrow = temp.row;
         item2.gridcolstart = temp.colStart;
-        
+
         console.log('?? SWAP executado:', {
             item1: item1.mdashcontaineritemstamp.substring(0, 8),
             item2: item2.mdashcontaineritemstamp.substring(0, 8)
         });
-        
+
         // Sincroniza ambos
         if (typeof realTimeComponentSync === 'function') {
             realTimeComponentSync(item1, item1.table, item1.idfield);
             realTimeComponentSync(item2, item2.table, item2.idfield);
         }
     },
-    
+
     /**
      * Executa ajuste de items
      */
-    executeAdjust: function(adjustments) {
-        adjustments.forEach(function(adj) {
+    executeAdjust: function (adjustments) {
+        adjustments.forEach(function (adj) {
             adj.item.gridcolstart = adj.newCol;
-            
+
             console.log('?? ADJUST:', {
                 item: adj.item.mdashcontaineritemstamp.substring(0, 8),
                 oldCol: adj.oldCol,
                 newCol: adj.newCol
             });
-            
+
             if (typeof realTimeComponentSync === 'function') {
                 realTimeComponentSync(adj.item, adj.item.table, adj.item.idfield);
             }
@@ -5626,10 +5635,10 @@ var DragDropExecutor = {
 // ============================================================================
 
 function initDragAndDrop() {
-   /* if (!window.jQuery || !$.fn.draggable || !$.fn.droppable || !$.fn.sortable) {
-        console.warn("jQuery UI (draggable/droppable/sortable) não disponível; drag & drop desativado.");
-        return;
-    }*/
+    /* if (!window.jQuery || !$.fn.draggable || !$.fn.droppable || !$.fn.sortable) {
+         console.warn("jQuery UI (draggable/droppable/sortable) não disponível; drag & drop desativado.");
+         return;
+     }*/
 
     makeToolboxDraggable();
     makeCanvasDroppable();
@@ -6052,10 +6061,10 @@ function detectZone(event, ui, containerStamp, draggedItemStamp) {
     // Obter todos os items existentes neste container (exceto o que está a ser arrastado)
     var existingItems = GMDashContainerItems.filter(function (item) {
         return item.mdashcontainerstamp === containerStamp &&
-               item.mdashcontaineritemstamp !== draggedItemStamp &&
-               getEffectiveItemLayoutMode(item) === 'manual' &&
-               item.gridrow >= 1 &&
-               item.gridcolstart >= 1;
+            item.mdashcontaineritemstamp !== draggedItemStamp &&
+            getEffectiveItemLayoutMode(item) === 'manual' &&
+            item.gridrow >= 1 &&
+            item.gridcolstart >= 1;
     });
 
     // Agrupar items por linha
@@ -6133,13 +6142,13 @@ function detectZone(event, ui, containerStamp, draggedItemStamp) {
     if (detectedCol < 1) detectedCol = 1;
     if (detectedCol > 12) detectedCol = 12;
 
-  /*  console.log('?? detectZone:', {
-        mouseY: Math.round(yRelative),
-        mouseX: Math.round(xRelative),
-        detectedRow: detectedRow,
-        detectedCol: detectedCol,
-        rowHeights: rowHeights
-    });*/
+    /*  console.log('?? detectZone:', {
+          mouseY: Math.round(yRelative),
+          mouseX: Math.round(xRelative),
+          detectedRow: detectedRow,
+          detectedCol: detectedCol,
+          rowHeights: rowHeights
+      });*/
 
     return {
         row: detectedRow,
@@ -6171,7 +6180,7 @@ function computeManualDropSlot(event, ui, containerStamp, item) {
         rowSpan: rowSpan
     };
 
-   // console.log('?? computeManualDropSlot:', slot);
+    // console.log('?? computeManualDropSlot:', slot);
 
     return slot;
 }
@@ -6366,14 +6375,14 @@ function initContainerItemResize() {
                 lastSize = proposed;
                 item.tamanho = proposed;
                 $itemEl.css('grid-column', 'span ' + proposed);
-                
+
                 // Atualiza o badge diretamente no DOM durante o resize usando data-attribute
                 var $badge = $itemEl.find('.mdash-item-size-badge[data-item-stamp="' + itemStamp + '"]');
                 if ($badge.length) {
                     $badge.text(proposed + ' col');
                     $badge.attr('title', 'Largura: ' + proposed + ' colunas');
                 }
-                
+
                 setTimeout(syncAllContainerItemsLayout, 0);
             }
 
@@ -6497,7 +6506,7 @@ function makeContainerItemsSortable() {
                 console.log('?? OUT EVENT disparado');
                 $(this).removeClass('is-drop-over');
                 clearManualPlaceholder($(this));
-                
+
                 // Limpa feedback visual ao sair da linha
                 VisualFeedbackManager.clearFeedback($(this));
             },
@@ -6527,15 +6536,15 @@ function makeContainerItemsSortable() {
             },
             receive: function (event, ui) {
                 console.log('?? RECEIVE EVENT iniciado (item movido entre linhas diferentes)');
-                
+
                 var targetStamp = $(this).closest('.mdash-canvas-container').data('stamp');
                 var movedItemStamp = ui.item && ui.item.data('stamp');
                 var movedItem = GMDashContainerItems.find(function (i) {
                     return i.mdashcontainerstamp === movedItemStamp;
                 });
-                
+
                 var isManualMode = movedItem && getEffectiveItemLayoutMode(movedItem) === 'manual';
-                
+
                 // ? VERIFICA VALIDAÇÃO ANTES DE EXECUTAR
                 if (isManualMode) {
                     var validation = GManualDragState.validation;
@@ -6552,7 +6561,7 @@ function makeContainerItemsSortable() {
                         realTimeComponentSync(movedItem, movedItem.table, movedItem.idfield);
                     }
                 }
-                
+
                 console.log('?? RECEIVE: chamando applyDroppedItemGridPosition');
                 applyDroppedItemGridPosition(event, ui, targetStamp);
                 updateContainerItemsOrder(targetStamp, isManualMode);
@@ -6562,7 +6571,7 @@ function makeContainerItemsSortable() {
                     updateContainerItemsOrder(sourceStamp);
                 }
 
-                setTimeout(function() {
+                setTimeout(function () {
                     var finalItem = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === movedItemStamp; });
                     console.log('?? ESTADO FINAL RECEIVE (após syncAllContainerItemsLayout):', {
                         itemStamp: movedItemStamp.substring(0, 8),
@@ -6605,11 +6614,11 @@ function makeContainerItemsSortable() {
 
                 // ? VALIDAÇÃO EM TEMPO REAL
                 var validation = DragDropValidator.validateDrop(item, slot.row, slot.colStart, targetStamp);
-                
+
                 console.log('? Validação:', validation);
-                
+
                 var $targetRow = $(this); // A grid onde está a arrastar
-                
+
                 // Feedback visual baseado na validação (apenas na grid-row específica)
                 if (!validation.isValid) {
                     VisualFeedbackManager.showErrorFeedback($targetRow, slot.row, validation.message);
@@ -6627,13 +6636,13 @@ function makeContainerItemsSortable() {
                     // ? CANCELA O ESTADO - DROP SERÁ BLOQUEADO NO STOP
                     setManualDragPreviewSlot(null, null, null);
                     GManualDragState.validation = null;
-                    
+
                     console.log('? SORT: Validação falhou - drop será bloqueado');
                 } else {
                     // Salva validação para usar no STOP
                     setManualDragPreviewSlot(item.mdashcontaineritemstamp, targetStamp, slot);
                     GManualDragState.validation = validation;
-                    
+
                     // Feedback visual baseado na estratégia (apenas na grid-row específica)
                     switch (validation.strategy) {
                         case 'swap':
@@ -6644,7 +6653,7 @@ function makeContainerItemsSortable() {
                             VisualFeedbackManager.showSuccessFeedback($targetRow, slot.row, validation.adjustments);
                             break;
                     }
-                    
+
                     // Atualiza placeholder
                     if (ui.placeholder && ui.placeholder.css) {
                         ui.placeholder
@@ -6662,46 +6671,46 @@ function makeContainerItemsSortable() {
                 console.log('?? STOP EVENT disparado');
                 $(this).removeClass('is-drop-over');
                 clearManualPlaceholder($(this));
-                
+
                 // Limpa feedback visual da linha
                 VisualFeedbackManager.clearFeedback($(this));
-                
+
                 var targetStamp = $(this).closest('.mdash-canvas-container').data('stamp');
                 var itemStamp = ui.item && ui.item.data('stamp');
                 var item = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
-                
+
                 if (item && targetStamp) {
                     var isManualMode = getEffectiveItemLayoutMode(item) === 'manual';
-                    
+
                     if (isManualMode) {
                         var validation = GManualDragState.validation;
-                        
+
                         // ? BLOQUEIA DROP SE VALIDAÇÃO FALHOU
                         if (!validation || !validation.isValid) {
                             console.log('? STOP: Validação falhou - cancelando drop e revertendo');
-                            
+
                             // Cancela o sortable - item volta ao lugar original
                             $(this).sortable('cancel');
-                            
+
                             // Limpa estado global
                             clearManualDragPreviewSlot();
                             GManualDragState.validation = null;
-                            
+
                             // Força re-render IMEDIATO para garantir que item voltou visualmente
                             syncAllContainerItemsLayout();
-                            
+
                             console.log('?? Item revertido para posição original');
                             return; // SAI AQUI - não executa mais nada
                         }
-                        
+
                         // ? VALIDAÇÃO OK - EXECUTA ESTRATÉGIA
                         console.log('?? Executando estratégia:', validation.strategy);
-                        
+
                         switch (validation.strategy) {
                             case 'swap':
                                 DragDropExecutor.executeSwap(item, validation.targetItem);
                                 break;
-                                
+
                             case 'reposition':
                                 // Reposiciona na mesma linha
                                 applyDroppedItemGridPosition(event, ui, targetStamp);
@@ -6710,23 +6719,23 @@ function makeContainerItemsSortable() {
                                     DragDropExecutor.executeAdjust(validation.adjustments);
                                 }
                                 break;
-                                
+
                             case 'adjust':
                                 // Aplica posição do item arrastado (linha diferente)
                                 applyDroppedItemGridPosition(event, ui, targetStamp);
                                 // Executa ajustes dos outros items
                                 DragDropExecutor.executeAdjust(validation.adjustments);
                                 break;
-                                
+
                             default:
                                 // Fallback: apenas aplica posição
                                 applyDroppedItemGridPosition(event, ui, targetStamp);
                         }
-                        
+
                         // Atualiza ordem (com flag para NÃO sincronizar coordinates - já foi feito acima)
                         updateContainerItemsOrder(targetStamp, true);
-                        
-                        setTimeout(function() {
+
+                        setTimeout(function () {
                             var finalItem = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
                             console.log('?? ESTADO FINAL STOP:', {
                                 itemStamp: itemStamp.substring(0, 8),
@@ -6740,21 +6749,21 @@ function makeContainerItemsSortable() {
                         updateContainerItemsOrder(targetStamp, false);
                     }
                 }
-                
+
                 // Limpa estado global
                 clearManualDragPreviewSlot();
                 GManualDragState.validation = null;
-                
+
                 setTimeout(syncAllContainerItemsLayout, 0);
             },
             update: function (event, ui) {
                 console.log('?? UPDATE EVENT disparado (movimento dentro da mesma linha)');
-                
+
                 var liveContainerStamp = $(this).closest('.mdash-canvas-container').data('stamp');
                 var itemStamp = ui.item && ui.item.data('stamp');
                 var item = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
                 var isManualMode = item && getEffectiveItemLayoutMode(item) === 'manual';
-                
+
                 // ? VERIFICA VALIDAÇÃO ANTES DE EXECUTAR
                 if (isManualMode) {
                     var validation = GManualDragState.validation;
@@ -6766,13 +6775,13 @@ function makeContainerItemsSortable() {
                         return; // SAI sem fazer nada
                     }
                 }
-                
+
                 applyDroppedItemGridPosition(event, ui, liveContainerStamp);
                 updateContainerItemsOrder(liveContainerStamp, isManualMode);
                 clearManualPlaceholder($(this));
                 clearManualDragPreviewSlot();
-                
-                setTimeout(function() {
+
+                setTimeout(function () {
                     var finalItem = GMDashContainerItems.find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
                     console.log('?? ESTADO FINAL (após syncAllContainerItemsLayout):', {
                         itemStamp: itemStamp.substring(0, 8),
@@ -6781,7 +6790,7 @@ function makeContainerItemsSortable() {
                         tamanho: finalItem.tamanho
                     });
                 }, 100);
-                
+
                 setTimeout(syncAllContainerItemsLayout, 0);
             }
         });
@@ -6794,12 +6803,12 @@ function createContainerByDrop() {
         : '';
     var newContainer = new MdashContainer({ dashboardstamp: GMDashStamp, layoutmode: "manual", mdashtabstamp: tabStamp });
     window.appState.containers.push(newContainer);
-    
+
     // Sincroniza o novo container com a base de dados IMEDIATAMENTE
     if (typeof realTimeComponentSync === 'function') {
         realTimeComponentSync(newContainer, newContainer.table, newContainer.idfield);
     }
-    
+
     var selComp = { type: "container", stamp: newContainer.mdashcontainerstamp, data: newContainer };
     _currentSelectedComponent = selComp;
     handleComponentProperties(selComp);
@@ -6811,12 +6820,12 @@ function createContainerItemByDrop(containerStamp) {
     if (!containerStamp) return;
     var newItem = new MdashContainerItem({ mdashcontainerstamp: containerStamp, dashboardstamp: GMDashStamp });
     window.appState.containerItems.push(newItem);
-    
+
     // Sincroniza o novo item com a base de dados IMEDIATAMENTE
     if (typeof realTimeComponentSync === 'function') {
         realTimeComponentSync(newItem, newItem.table, newItem.idfield);
     }
-    
+
     var selComp = { type: "containerItem", stamp: newItem.mdashcontaineritemstamp, data: newItem };
     _currentSelectedComponent = selComp;
     handleComponentProperties(selComp);
@@ -6855,13 +6864,13 @@ function updateContainerItemsOrder(containerStamp, skipCoordinateCheck) {
         if (item) {
             var oldRow = item.gridrow;
             var oldCol = item.gridcolstart;
-            
+
             item.ordem = idx + 1;
             item.mdashcontainerstamp = containerStamp;
             if (!item.tamanho || item.tamanho < 1) {
                 item.tamanho = getItemGridSpan(item);
             }
-            
+
             if (item.gridrow !== oldRow || item.gridcolstart !== oldCol) {
                 console.log('?? updateContainerItemsOrder MUDOU posição:', {
                     itemStamp: stamp.substring(0, 8),
@@ -6869,7 +6878,7 @@ function updateContainerItemsOrder(containerStamp, skipCoordinateCheck) {
                     depois: { row: item.gridrow, col: item.gridcolstart }
                 });
             }
-            
+
             // Só sincroniza se NÃO for skipCoordinateCheck (modo manual já sincroniza em applyDroppedItemGridPosition)
             if (!skipCoordinateCheck && typeof realTimeComponentSync === "function") {
                 realTimeComponentSync(item, item.table, item.idfield);
@@ -7202,7 +7211,7 @@ function addNewContainer() {
         : '';
     var newContainer = new MdashContainer({
         dashboardstamp: GMDashStamp,
-        layoutmode: "manual",
+        layoutmode: "auto",
         mdashtabstamp: tabStamp
     });
 
@@ -7331,7 +7340,7 @@ function deleteContainer(containerStamp) {
     }
 
     var containerTitle = container.titulo || 'Container sem título';
-    
+
     showDeleteConfirmation({
         title: 'Confirmar eliminação',
         message: 'Tem a certeza que deseja eliminar o container "' + containerTitle + '"?<br><small>Todos os items e objetos serão eliminados também.</small>',
@@ -7340,7 +7349,7 @@ function deleteContainer(containerStamp) {
             stamp: containerStamp,
             tableKey: "mdashcontainerstamp"
         },
-        onConfirm: function() {
+        onConfirm: function () {
             executeDeleteContainer(containerStamp);
         }
     });
@@ -7529,17 +7538,17 @@ function deleteContainerItem(itemStamp, silent) {
     // Usa o array reativo se disponível
     var containerItemsArray = (window.appState && window.appState.containerItems) ? window.appState.containerItems : GMDashContainerItems;
     var containerItemObjectsArray = (window.appState && window.appState.containerItemObjects) ? window.appState.containerItemObjects : GMDashContainerItemObjects;
-    
+
     var item = containerItemsArray.find(function (i) {
         return i.mdashcontaineritemstamp === itemStamp;
     });
 
     if (!item) return;
-    
+
     // Confirmação antes de eliminar (exceto quando silent)
     if (!silent) {
         var itemTitle = item.titulo || 'Item sem título';
-        
+
         showDeleteConfirmation({
             title: 'Confirmar eliminação',
             message: 'Tem a certeza que deseja eliminar o item "' + itemTitle + '"?<br><small>Todos os objetos associados serão eliminados também.</small>',
@@ -7548,14 +7557,14 @@ function deleteContainerItem(itemStamp, silent) {
                 stamp: itemStamp,
                 tableKey: "mdashcontaineritemstamp"
             },
-            onConfirm: function() {
+            onConfirm: function () {
                 executeDeleteContainerItem(itemStamp, containerItemsArray, containerItemObjectsArray);
                 alertify.success('Item eliminado com sucesso!');
             }
         });
         return;
     }
-    
+
     // Se silent = true, elimina diretamente sem confirmação
     // Neste caso precisa adicionar o registo ao GMdashDeleteRecords
     if (silent) {
@@ -7565,7 +7574,7 @@ function deleteContainerItem(itemStamp, silent) {
             tableKey: "mdashcontaineritemstamp"
         });
     }
-    
+
     executeDeleteContainerItem(itemStamp, containerItemsArray, containerItemObjectsArray);
 }
 
@@ -7815,10 +7824,10 @@ function _renderObjectPropertiesPanel(obj, panel) {
     html += '  </div>';
     html += '  <div class="mdash-prop-section-body" id="obj-sec-data">';
     html += '    <div class="row">';
-    var processaBadgeColor  = obj.processaFonte !== false ? 'rgba(16,185,129,0.12)' : 'rgba(107,114,128,0.12)';
-    var processaBadgeText   = obj.processaFonte !== false ? 'Sim' : 'Não';
+    var processaBadgeColor = obj.processaFonte !== false ? 'rgba(16,185,129,0.12)' : 'rgba(107,114,128,0.12)';
+    var processaBadgeText = obj.processaFonte !== false ? 'Sim' : 'Não';
     var processaBadgeBorder = obj.processaFonte !== false ? 'rgba(16,185,129,0.4)' : 'rgba(107,114,128,0.3)';
-    var processaBadgeFg     = obj.processaFonte !== false ? '#0d7a55' : '#555';
+    var processaBadgeFg = obj.processaFonte !== false ? '#0d7a55' : '#555';
     html += '      <div class="col-md-12" style="margin-bottom:6px;"><div class="mdash-prop-field">';
     html += '        <label>Processa Fonte</label>';
     html += '        <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">';
@@ -8448,7 +8457,7 @@ function deleteFilter(filterStamp) {
     }
 
     var filterDesc = filter.descricao || 'Filtro sem descrição';
-    
+
     showDeleteConfirmation({
         title: 'Confirmar eliminação',
         message: 'Tem a certeza que deseja eliminar o filtro "' + filterDesc + '"?',
@@ -8457,7 +8466,7 @@ function deleteFilter(filterStamp) {
             stamp: filterStamp,
             tableKey: "mdashfilterstamp"
         },
-        onConfirm: function() {
+        onConfirm: function () {
             executeDeleteFilter(filterStamp);
         }
     });
@@ -8491,39 +8500,39 @@ function executeDeleteFilter(filterStamp) {
 function getMDashPanelTheme(mode) {
     if (mode === 'dark') {
         return {
-            bodyBg:           'linear-gradient(180deg,#1a2335,#1e2a3d)',
-            panelHeadingBg:   'linear-gradient(180deg,#1e2a3d,#212f47)',
-            panelBodyBg:      '#1a2335',
-            sectionBorder:    'rgba(255,255,255,0.07)',
-            sectionHoverBg:   'rgba(255,255,255,0.04)',
-            sectionTitleColor:'#e2e8f0',
-            chevronColor:     'rgba(255,255,255,0.3)',
-            labelColor:       '#94a3b8',
-            textColor:        '#e2e8f0',
-            mutedColor:       'rgba(255,255,255,0.28)',
-            inputBg:          '#253048',
-            inputBorder:      'rgba(255,255,255,0.12)',
-            inputColor:       '#e2e8f0',
-            itemBg:           'rgba(255,255,255,0.05)',
-            itemBorder:       'rgba(255,255,255,0.08)',
+            bodyBg: 'linear-gradient(180deg,#1a2335,#1e2a3d)',
+            panelHeadingBg: 'linear-gradient(180deg,#1e2a3d,#212f47)',
+            panelBodyBg: '#1a2335',
+            sectionBorder: 'rgba(255,255,255,0.07)',
+            sectionHoverBg: 'rgba(255,255,255,0.04)',
+            sectionTitleColor: '#e2e8f0',
+            chevronColor: 'rgba(255,255,255,0.3)',
+            labelColor: '#94a3b8',
+            textColor: '#e2e8f0',
+            mutedColor: 'rgba(255,255,255,0.28)',
+            inputBg: '#253048',
+            inputBorder: 'rgba(255,255,255,0.12)',
+            inputColor: '#e2e8f0',
+            itemBg: 'rgba(255,255,255,0.05)',
+            itemBorder: 'rgba(255,255,255,0.08)',
         };
     }
     return {
-        bodyBg:           'linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,255,255,0.97))',
-        panelHeadingBg:   'linear-gradient(180deg,#ffffff,#f8fafc)',
-        panelBodyBg:      '#ffffff',
-        sectionBorder:    'rgba(0,0,0,0.06)',
-        sectionHoverBg:   'rgba(0,0,0,0.03)',
-        sectionTitleColor:'#1e293b',
-        chevronColor:     'rgba(0,0,0,0.28)',
-        labelColor:       '#475569',
-        textColor:        '#1e293b',
-        mutedColor:       'rgba(0,0,0,0.38)',
-        inputBg:          '#fff',
-        inputBorder:      'rgba(0,0,0,0.12)',
-        inputColor:       '#1e293b',
-        itemBg:           '#fff',
-        itemBorder:       'var(--md-border)',
+        bodyBg: 'linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,255,255,0.97))',
+        panelHeadingBg: 'linear-gradient(180deg,#ffffff,#f8fafc)',
+        panelBodyBg: '#ffffff',
+        sectionBorder: 'rgba(0,0,0,0.06)',
+        sectionHoverBg: 'rgba(0,0,0,0.03)',
+        sectionTitleColor: '#1e293b',
+        chevronColor: 'rgba(0,0,0,0.28)',
+        labelColor: '#475569',
+        textColor: '#1e293b',
+        mutedColor: 'rgba(0,0,0,0.38)',
+        inputBg: '#fff',
+        inputBorder: 'rgba(0,0,0,0.12)',
+        inputColor: '#1e293b',
+        itemBg: '#fff',
+        itemBorder: 'var(--md-border)',
     };
 }
 
@@ -8666,42 +8675,42 @@ function loadModernDashboardStyles() {
     styles += ".mdash-item-sort-placeholder { min-height: 96px; border: 2px dashed var(--md-primary); border-radius: 10px; background: rgba(var(--md-primary-rgb),0.10); box-sizing: border-box; }";
     styles += ".mdash-item-sort-placeholder.is-manual-preview { position: relative; border-color: rgba(var(--md-primary-rgb),0.95); background: rgba(var(--md-primary-rgb),0.14); z-index: 2; }";
     styles += ".mdash-item-sort-placeholder.is-manual-preview::after { content: attr(data-grid-label); position: absolute; top: 6px; right: 8px; font-size: 11px; font-weight: 700; color: var(--md-primary); background: rgba(255,255,255,0.92); border: 1px solid rgba(var(--md-primary-rgb),0.36); border-radius: 999px; padding: 2px 8px; }";
-    
+
     // ? DRAG & DROP VISUAL FEEDBACK (posicionado na grid-row específica)
     styles += ".mdash-drop-error-overlay, .mdash-drop-success-overlay, .mdash-drop-swap-overlay { position: relative; display: grid; min-height: 100px; z-index: 5; }";
-    
+
     // Background que cobre toda a grid-row
     styles += ".mdash-drop-overlay-bg { grid-column: 1 / -1; grid-row: 1; min-height: 100px; border-radius: 10px; }";
     styles += ".mdash-drop-error-bg { background-color: rgba(255, 0, 0, 0.06); border: 3px dashed #d9534f; }";
     styles += ".mdash-drop-success-bg { background-color: rgba(0, 255, 0, 0.03); border: 3px dashed #5cb85c; }";
     styles += ".mdash-drop-swap-bg { background-color: rgba(0, 123, 255, 0.03); border: 3px dashed #0275d8; }";
-    
+
     // Conteúdo centralizado (overlay com mensagem)
     styles += ".mdash-drop-overlay-content { grid-column: 1 / -1; grid-row: 1; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 18px; z-index: 6; pointer-events: none; }";
     styles += ".mdash-drop-overlay-content { background: transparent; }";
-    
+
     // Badge com mensagem
     styles += ".mdash-drop-error-overlay .mdash-drop-overlay-content { background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%); color: white; border: 2px solid rgba(255,255,255,0.4); border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); font-weight: 700; font-size: 13px; white-space: nowrap; width: fit-content; margin: auto; }";
     styles += ".mdash-drop-success-overlay .mdash-drop-overlay-content { background: linear-gradient(135deg, #5cb85c 0%, #449d44 100%); color: white; border: 2px solid rgba(255,255,255,0.4); border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); font-weight: 700; font-size: 13px; white-space: nowrap; width: fit-content; margin: auto; }";
     styles += ".mdash-drop-swap-overlay .mdash-drop-overlay-content { background: linear-gradient(135deg, #0275d8 0%, #025aa5 100%); color: white; border: 2px solid rgba(255,255,255,0.4); border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); font-weight: 700; font-size: 13px; white-space: nowrap; width: fit-content; margin: auto; }";
-    
+
     // Ícones com animações
     styles += ".mdash-drop-error-overlay i { font-size: 24px; animation: shake 0.5s ease-in-out infinite; }";
     styles += "@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }";
-    
+
     styles += ".mdash-drop-success-overlay i { font-size: 20px; }";
-    
+
     styles += ".mdash-drop-swap-overlay i { font-size: 20px; animation: rotate 1s ease-in-out infinite; }";
     styles += "@keyframes rotate { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(180deg); } }";
-    
+
     // Placeholder em estado de erro
     styles += ".mdash-item-sort-placeholder.mdash-placeholder-error { border-color: #d9534f !important; background: rgba(217, 83, 79, 0.15) !important; }";
     styles += ".mdash-item-sort-placeholder.mdash-placeholder-error::after { background: #d9534f !important; color: white !important; border-color: rgba(255,255,255,0.6) !important; font-weight: 700 !important; }";
-    
+
     // Placeholder em estado de sucesso (válido)
     styles += ".mdash-item-sort-placeholder.mdash-placeholder-success { border-color: #5cb85c !important; background: rgba(92, 184, 92, 0.15) !important; }";
     styles += ".mdash-item-sort-placeholder.mdash-placeholder-success::after { background: #5cb85c !important; color: white !important; border-color: rgba(255,255,255,0.6) !important; font-weight: 700 !important; }";
-    
+
     styles += ".mdash-item-drag-helper { opacity: 0.96; transform: none; box-shadow: 0 18px 32px rgba(2,6,23,0.30); border-radius: 10px; }";
     styles += ".ui-sortable-helper.mdash-canvas-item { z-index: 10050 !important; }";
     styles += ".mdash-canvas-item-card { position: relative; background: #fff; border: 1px solid var(--md-border); border-radius: 10px; padding: 10px 12px; min-height: 96px; box-shadow: 0 2px 8px rgba(2,6,23,0.06); }";
@@ -8728,12 +8737,12 @@ function loadModernDashboardStyles() {
     styles += ".mdash-inline-title:focus { background: rgba(var(--md-primary-rgb),0.09); border-bottom-color: var(--md-primary); }";
     styles += ".mdash-inline-title::placeholder { color: var(--md-muted); font-weight: 500; }";
     styles += ".mdash-inline-title-sm { font-size: 13px !important; font-weight: 600 !important; flex: 1; min-width: 0; cursor: text !important; }";
-    
+
     // Wrapper do título com badge de tamanho
     styles += ".mdash-item-title-wrapper { display: flex; align-items: center; gap: 8px; width: 100%; }";
     styles += ".mdash-item-size-badge { flex-shrink: 0; background: linear-gradient(135deg, rgba(var(--md-primary-rgb), 0.12) 0%, rgba(var(--md-primary-rgb), 0.08) 100%); border: 1px solid rgba(var(--md-primary-rgb), 0.24); color: var(--md-primary); font-size: 9px; font-weight: 700; padding: 3px 6px; border-radius: 5px; letter-spacing: 0.5px; text-transform: uppercase; cursor: default; transition: all 0.2s ease; white-space: nowrap; line-height: 1; user-select: none; }";
     styles += ".mdash-item-size-badge:hover { background: linear-gradient(135deg, rgba(var(--md-primary-rgb), 0.18) 0%, rgba(var(--md-primary-rgb), 0.12) 100%); border-color: rgba(var(--md-primary-rgb), 0.36); }";
-    
+
     styles += ".mdash-inline-layout-picker { position: relative; flex: 1; min-width: 0; }";
     styles += ".mdash-inline-layout-trigger { width: 100%; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(var(--md-primary-rgb),0.35); border-radius: 8px; background: #fff; color: var(--md-text); font-size: 12px; height: 40px; padding: 4px 10px; box-shadow: none; text-align: left; }";
     styles += ".mdash-inline-layout-trigger:hover { border-color: var(--md-primary); }";
@@ -9016,7 +9025,7 @@ function loadModernDashboardStyles() {
     styles += ".modal-header .close:hover { opacity: 1; }";
     styles += ".modal-header .modal-title { margin: 0; color: " + primaryColor + " !important; }";
     styles += ".modal-header .modal-title i { color: " + primaryColor + " !important; }";
-    
+
     // ===== MODAL DE CONFIRMAÇÃO DE ELIMINAÇÃO =====
     styles += "#mdash-delete-confirm-modal .modal-dialog { margin-top: 160px; }";
     styles += "#mdash-delete-confirm-modal .modal-header { background: linear-gradient(120deg, #dc3545, #991d28); padding: 14px 18px; }";
@@ -9149,19 +9158,7 @@ function loadModernDashboardStyles() {
 // INICIALIZAÇÃO AUTOMÁTICA DE ESTILOS
 // ============================================================================
 
-/**
- * Carrega os estilos base do MDash 2.0 assim que o DOM estiver pronto.
- * Isto garante que os estilos estão disponíveis mesmo antes da interface
- * ser inicializada, evitando FOUC (Flash of Unstyled Content).
- */
-$(document).ready(function() {
-    console.log('[MDash 2.0] DOM ready - Carregando estilos base');
-    
-    // Só carrega se ainda não existir (evita duplicação se initModernDashboardUI já foi chamado)
-    if ($('#mdash-modern-styles').length === 0) {
-        loadModernDashboardStyles();
-    }
-});
+
 
 /**
  * Devolve o tema ACE a usar nos editores de expressão.

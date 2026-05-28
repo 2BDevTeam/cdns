@@ -9963,8 +9963,9 @@ function addDashboardStyles(styles) {
     // ============================================================================
     // MDASH 2.0 - MODERN SIDEBAR STYLES (UX/UI Senior Design)
     // ============================================================================
-
+ 
     // Layout Principal - Glass Morphism Effect
+   /*
     dashboardCSS += ".mdash-modern-layout{";
     dashboardCSS += "display:flex;";
     dashboardCSS += "height:calc(100vh - 100px);";
@@ -10439,7 +10440,7 @@ function addDashboardStyles(styles) {
     dashboardCSS += ".mdash-modern-layout{flex-direction:column;}";
     dashboardCSS += ".mdash-sidebar{width:100%;max-height:40vh;}";
     dashboardCSS += ".mdash-canvas{height:60vh;}";
-    dashboardCSS += "}";
+    dashboardCSS += "}";*/
 
     styles.push(dashboardCSS);
 }

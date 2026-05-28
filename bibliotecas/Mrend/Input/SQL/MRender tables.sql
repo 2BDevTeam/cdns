@@ -58,6 +58,7 @@ CREATE TABLE MrendLinha
     totkey VARCHAR(250) DEFAULT '',
     totfield VARCHAR(250) DEFAULT '',
     condicaovalidacao VARCHAR(250) DEFAULT '',
+    blacklistheranca TEXT DEFAULT 'comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,temtotais,modelo',
     categoria VARCHAR(250) DEFAULT '',
     codcategoria VARCHAR(250) DEFAULT '',
     ordem INT DEFAULT 0,
@@ -88,7 +89,7 @@ CREATE TABLE MrendLinha
     colunastotais TEXT DEFAULT '',
     temexpressaototal BIT DEFAULT 0,
     expressaototal TEXT DEFAULT '',
-    blacklistheranca TEXT DEFAULT 'comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,temtotais,modelo'
+   -- blacklistheranca TEXT DEFAULT 'comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,temtotais,modelo'
 );
 
 

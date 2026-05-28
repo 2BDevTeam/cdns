@@ -307,6 +307,18 @@ function CustomFormData(containerId) {
     return container
 }
 function HandlerCustomContainerContentGenerator(content) {
+    // Debug log for ALL select fields
+    if (content.contentType === "select" || content.type === "select") {
+        console.log('HandlerCustomContainerContentGenerator - ' + (content.id || 'unknown') + ':', {
+            contentType: content.contentType,
+            type: content.type,
+            id: content.id,
+            multiSelect: content.multiSelect,
+            hasSelectData: content.selectData && content.selectData.length,
+            allKeys: Object.keys(content)
+        });
+    }
+    
     switch (content.contentType) {
         case "input":
             return generateInput(content);
@@ -1124,6 +1136,23 @@ function buildAlert(alertClass, alertText) {
     return alerta
 }
 function generateSelect(selectData, classes, style, selectCustomData, fieldToOption, fieldToValue, label, multiSelect) {
+    // Extract field name from customData for logging
+    var fieldName = 'unknown';
+    if (selectCustomData) {
+        var matches = selectCustomData.match(/v-model=['"]([^'"]+)['"]/);
+        if (matches && matches[1]) {
+            fieldName = matches[1].split('.').pop();
+        }
+    }
+    
+    // Debug log for ALL selects
+    console.log('generateSelect called for ' + fieldName + ':', {
+        multiSelect: multiSelect,
+        multiSelectType: typeof multiSelect,
+        selectDataLength: selectData ? selectData.length : 0,
+        label: label
+    });
+    
     // Replace keys based on arguments
     var options = selectData.map(function (n) {
         return {
@@ -1138,6 +1167,18 @@ function generateSelect(selectData, classes, style, selectCustomData, fieldToOpt
         selectHTML += "<label >" + label + "</label>";
     }
     selectHTML += "<select";
+    
+    // Add id attribute for multiselect to make it easier to find
+    if (multiSelect && selectCustomData && selectCustomData.indexOf('v-model') !== -1) {
+        // Extract field name from v-model (e.g., v-model='mrendConfigItem.blacklistheranca')
+        var matches = selectCustomData.match(/v-model=['"]([^'"]+)['"]/);
+        if (matches && matches[1]) {
+            var fieldPath = matches[1];
+            var fieldName = fieldPath.split('.').pop(); // Get last part (e.g., 'blacklistheranca')
+            selectHTML += " id='" + fieldName + "'";
+        }
+    }
+    
     if (multiSelect) selectHTML += " multiple";
     if (style) selectHTML += " style='" + style + "'";
     if (classes) selectHTML += " class='" + classes + "'";
@@ -1150,6 +1191,11 @@ function generateSelect(selectData, classes, style, selectCustomData, fieldToOpt
         selectHTML += "<option value='" + option.value + "'>" + option.option + "</option>";
     });
     selectHTML += '</select>';
+    
+    // Debug log for generated HTML
+    if (selectCustomData && selectCustomData.indexOf('blacklistheranca') !== -1) {
+        console.log('generateSelect HTML for blacklistheranca (first 300 chars):', selectHTML.substring(0, 300));
+    }
 
     return selectHTML;
 }

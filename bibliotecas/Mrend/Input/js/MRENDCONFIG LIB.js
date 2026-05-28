@@ -52,7 +52,15 @@ function LinhaMrenderConfig(data) {
     this.colunastotais = data.colunastotais || "";
     this.temexpressaototal = data.temexpressaototal || false;
     this.expressaototal = data.expressaototal || "";
-    this.blacklistheranca = data.blacklistheranca || "comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,temtotais,modelo";
+    // Convert blacklistheranca from CSV string to array for Vue multiselect
+    var defaultBlacklist = "comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,temtotais,modelo";
+    if (data.blacklistheranca) {
+        this.blacklistheranca = typeof data.blacklistheranca === "string"
+            ? data.blacklistheranca.split(',').map(function (s) { return s.trim(); })
+            : data.blacklistheranca;
+    } else {
+        this.blacklistheranca = defaultBlacklist.split(',').map(function (s) { return s.trim(); });
+    }
     this.bindData = new BindData(data.bindData ? data.bindData : {})
     this.localSource = data.localSource || "";
     this.objectsUIFormConfig = data.objectsUIFormConfig || [];
@@ -61,6 +69,155 @@ function LinhaMrenderConfig(data) {
 
 }
 
+// Helper function to initialize select2 on multiple selects
+function initMultipleSelects(containerSelector, vueScope) {
+    console.log("initMultipleSelects called for container:", containerSelector);
+
+    setTimeout(function () {
+        console.log("Looking for selects in:", containerSelector);
+        var $allSelects = $(containerSelector + ' select');
+        console.log("Total selects found:", $allSelects.length);
+
+        // Log details of all selects found
+        $allSelects.each(function (index) {
+            var $s = $(this);
+            console.log("  Select " + index + ":", {
+                name: $s.attr('name'),
+                id: $s.attr('id'),
+                hasMultiple: $s.attr('multiple') !== undefined,
+                vModel: $s.attr('v-model'),
+                classes: $s.attr('class')
+            });
+        });
+
+        var $multipleSelects = $(containerSelector + ' select[multiple]');
+        console.log("Multiple selects found:", $multipleSelects.length);
+
+        $multipleSelects.each(function () {
+            var $select = $(this);
+            var selectId = $select.attr('id') || $select.attr('name');
+            console.log("Processing select:", selectId, "Has multiple attr:", $select.attr('multiple'));
+
+            // Extract v-model binding to get current value
+            var vModelAttr = $select.attr('v-model');
+            console.log("v-model attribute:", vModelAttr);
+
+            // Se temos vueScope e v-model, definir os valores selecionados
+            if (vueScope && vModelAttr) {
+                try {
+                    // Parse v-model path (e.g., "mrendConfigItem.blacklistheranca")
+                    var parts = vModelAttr.split('.');
+                    var value = vueScope;
+                    for (var i = 0; i < parts.length; i++) {
+                        value = value[parts[i]];
+                    }
+
+                    console.log("Current value from Vue:", value);
+
+                    if (value && Array.isArray(value) && value.length > 0) {
+                        console.log("Setting select values to:", value);
+                        $select.val(value);
+                    }
+                } catch (e) {
+                    console.warn("Error extracting v-model value:", e);
+                }
+            }
+
+            if (!$select.data('select2')) {
+                console.log("Initializing select2 for", selectId);
+                $select.select2({
+                    width: '100%',
+                    allowClear: true,
+                    placeholder: 'Selecione as opções',
+                    closeOnSelect: false
+                });
+
+                // Trigger change event for Vue reactivity
+                $select.on('change', function () {
+                    var selectedValues = $select.val() || [];
+                    console.log("Select changed, new values:", selectedValues);
+
+                    // Update Vue data directly
+                    if (vueScope && vModelAttr) {
+                        try {
+                            var parts = vModelAttr.split('.');
+                            var obj = vueScope;
+                            for (var i = 0; i < parts.length - 1; i++) {
+                                obj = obj[parts[i]];
+                            }
+                            obj[parts[parts.length - 1]] = selectedValues;
+                            console.log("Updated Vue data:", parts.join('.'), "=", selectedValues);
+                        } catch (e) {
+                            console.warn("Error updating v-model:", e);
+                        }
+                    }
+
+                    var event = new Event('input', { bubbles: true });
+                    this.dispatchEvent(event);
+                });
+            } else {
+                console.log("Select2 already initialized for", selectId);
+            }
+        });
+    }, 500);
+}
+
+/**
+ * Initialize manual multi-select fields with Select2 and bind directly to a data object.
+ * This bypasses the broken generic form system for multi-select rendering.
+ * 
+ * @param {Object} dataObject - The object whose properties will be updated (e.g., mrendConfigItem)
+ * @param {Array} multiSelectFields - Array of UIObjectFormConfig objects with multiSelect:true
+ * @param {String} idValue - The unique id used to namespace select element ids
+ */
+function initMrendMultiSelects(dataObject, multiSelectFields, idValue) {
+    if (!multiSelectFields || multiSelectFields.length === 0) return;
+
+    // Wait for DOM to be ready after modal show + Vue mount
+    setTimeout(function () {
+        multiSelectFields.forEach(function (obj) {
+            var selectId = "multiselect_" + obj.campo + "_" + idValue;
+            var $select = $("#" + selectId);
+
+            if ($select.length === 0) {
+                console.warn("initMrendMultiSelects: select not found for", obj.campo);
+                return;
+            }
+
+            // Get current value from data object (may be string or array)
+            var currentValue = dataObject[obj.campo];
+            if (typeof currentValue === "string") {
+                currentValue = currentValue.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+            }
+            if (!Array.isArray(currentValue)) {
+                currentValue = [];
+            }
+
+            // Pre-select current values BEFORE Select2 init
+            $select.val(currentValue);
+
+            // Destroy any prior Select2 instance
+            if ($select.data("select2")) {
+                $select.select2("destroy");
+            }
+
+            // Initialize Select2
+            $select.select2({
+                width: "100%",
+                allowClear: true,
+                placeholder: "Selecione as opções",
+                closeOnSelect: false
+            });
+
+            // Bind change: update dataObject directly with array of selected values
+            $select.on("change.mrendMultiselect", function () {
+                var selectedValues = $(this).val() || [];
+                dataObject[obj.campo] = selectedValues;
+                console.log("MultiSelect [" + obj.campo + "] updated:", selectedValues);
+            });
+        });
+    }, 200);
+}
 
 function getLinhaUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
@@ -786,14 +943,14 @@ var GlickedRowComponent
 function atualizarEstiloLinhaComFilhos(linhastamp) {
     var table = $("#" + GRendConfigTableHtml.tableId);
     var $row = table.find("tbody tr#" + linhastamp);
-    
+
     if ($row.length === 0) return;
-    
+
     // Verificar se tem filhos
-    var temFilhos = GMrendConfigLinhas.some(function(l) {
+    var temFilhos = GMrendConfigLinhas.some(function (l) {
         return l.linkstamp === linhastamp;
     });
-    
+
     if (temFilhos) {
         $row.css("background", "#e9f1ff");
         $row.addClass("linha-com-filhos");
@@ -1036,7 +1193,9 @@ MrendInitConfig.createDynamicSchema = function () {
                         "title": "DbTableExtras",
                         "properties": {
                             "ordemField": { "type": "string", "title": "Campo Ordem" },
-                            "linkField": { "type": "string", "title": "Campo Link" },
+                            "linkField": { "type": "string", "title": "Campo Link (rowid pai)" },
+                            "linkCodigoField": { "type": "string", "title": "Campo Link Codigo (codigo pai)" },
+                            "descLinkField": { "type": "string", "title": "Campo Desc. Link (descricao pai)" },
                             "cellIdField": { "type": "string", "title": "Campo Cell ID" },
                             "colunaField": { "type": "string", "title": "Campo Coluna" },
                             "linhaField": { "type": "string", "title": "Campo Linha" },
@@ -1110,6 +1269,26 @@ function initJSONEditorMrendConfig(relatorioConfig) {
                     configToLoad[key] = defaults[key];
                 }
             });
+            // Deep-merge de dbTableToMrendObject.extras: garantir que NOVAS chaves
+            // declaradas no schema (ex: linkCodigoField, descLinkField) existem no
+            // valor carregado — caso contrario o JSONEditor (disable_properties:true)
+            // nao renderiza inputs para chaves ausentes.
+            try {
+                var defExtras = defaults && defaults.dbTableToMrendObject && defaults.dbTableToMrendObject.extras;
+                if (defExtras && configToLoad.dbTableToMrendObject) {
+                    if (!configToLoad.dbTableToMrendObject.extras) {
+                        configToLoad.dbTableToMrendObject.extras = {};
+                    }
+                    Object.keys(defExtras).forEach(function (k) {
+                        if (configToLoad.dbTableToMrendObject.extras[k] === undefined ||
+                            configToLoad.dbTableToMrendObject.extras[k] === null) {
+                            configToLoad.dbTableToMrendObject.extras[k] = defExtras[k] || "";
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn("Merge extras falhou:", e);
+            }
         }
         // Normalizar schemas: pode vir como string JSON de versões anteriores
         if (typeof configToLoad.schemas === 'string') {
@@ -1157,7 +1336,7 @@ function initJSONEditorMrendConfig(relatorioConfig) {
 
 $(document).ready(function () {
 
-    // loadMrendSortableStyles(); // Comentado: Tabulator usa movableColumns nativo
+    loadMrendSortableStyles(); // estilos partilhados por drag&drop de colunas e linhas
     registerListenersMrender();
     organizarEcraMrender();
 
@@ -1169,17 +1348,115 @@ function organizarEcraMrender() {
     $("#ctl00_conteudo_u_mrendrelstamp").hide();
 }
 
+/**
+ * Resolve o relatoriostamp canónico para esta sessão.
+ * Regra única (usar em todos os pontos):
+ *   1) Lê o valor do label do registo aberto. O nome do campo stamp é
+ *      configurável via initTabelaConfiguracaoMrender({ relatorioTableKey })
+ *      e fica em GRelatorioTableKey (default: "u_mrendrelstamp").
+ *      Selector: #ctl00_conteudo_<GRelatorioTableKey>_mLabel1
+ *   2) Se vier vazio, gera um novo UUID.
+ * Esta função é a fonte da verdade para o stamp do relatório, usada também no import.
+ */
+function resolveRelatorioStamp() {
+    var stampField = GRelatorioTableKey || "u_mrendrelstamp";
+    var domStamp = "";
+    try {
+        domStamp = ($("#ctl00_conteudo_u_mrendrelstamp").text() || "").trim();
+    } catch (e) { /* sem DOM */ }
+    if (domStamp) return domStamp;
+    return (typeof generateUUID === "function") ? generateUUID() : "";
+}
+
+/**
+ * Lê os campos do registo aberto da tabela de relatório directamente do DOM.
+ * A tabela de relatório por defeito é u_mrendrel, mas pode ser sobreposta via
+ * initTabelaConfiguracaoMrender({ relatorioTable, relatorioTableKey, relatorioTableFilterField }).
+ * Os campos são labels read-only no ecrã PHC, por isso devem ser sempre
+ * obtidos do DOM (e não de GRelatorioConfig, que pode estar desactualizado).
+ *
+ * Mapping campo -> selector:
+ *   relatoriostamp -> #ctl00_conteudo_<GRelatorioTableKey>_mLabel1         (dinâmico)
+ *   codigo         -> #ctl00_conteudo_<GRelatorioTableFilterField>_mLabel1 (dinâmico)
+ *   nome           -> #ctl00_conteudo_nome_mLabel1
+ *   categoria      -> #ctl00_conteudo_categoria_mLabel1
+ *   expfonte       -> #ctl00_conteudo_expfonte_mLabel  (sem o sufixo 1)
+ *   tipo           -> #ctl00_conteudo_tipo_mLabel1
+ *
+ * Para o stamp aplica-se a regra do resolveRelatorioStamp (DOM -> UUID).
+ */
+function readRelatorioFromDOM() {
+    function readLabel(id) {
+        var $el = $("#" + id);
+        if (!$el.length) return "";
+        // .text() para labels PHC; .val() como fallback para inputs/selects
+        var txt = ($el.text() || "").trim();
+        if (txt) return txt;
+        try { return (($el.val() || "") + "").trim(); } catch (e) { return ""; }
+    }
+    var codigoField = GRelatorioTableFilterField || "codigo";
+    return {
+        relatoriostamp: resolveRelatorioStamp(),
+        codigo: readLabel("ctl00_conteudo_" + codigoField + "_mLabel1"),
+        nome: readLabel("ctl00_conteudo_nome_mLabel1"),
+        categoria: readLabel("ctl00_conteudo_categoria_mLabel1"),
+        expfonte: readLabel("ctl00_conteudo_expfonte_mLabel"),
+        tipo: readLabel("ctl00_conteudo_tipo_mLabel1")
+    };
+}
+
+/**
+ * Escreve valores no formulário PHC (cabeçalho do relatório) tanto no
+ * input editável (`#ctl00_conteudo_<field>`) como na label de visualização
+ * (`#ctl00_conteudo_<field>_mLabel1`). Cobre <input>, <select>, <textarea>,
+ * <span>/<label>. Útil ao importar uma config base para um relatório novo.
+ *
+ * @param {Object} values  { codigo, nome, categoria, tipo, expfonte }
+ *                         A chave 'codigo' é mapeada para o campo dinamico
+ *                         GRelatorioTableFilterField.
+ */
+function writeRelatorioToDOM(values) {
+    if (!values) return;
+    var codigoField = GRelatorioTableFilterField || "codigo";
+    var map = [
+        { key: "codigo", field: codigoField, labelSuffix: "_mLabel1" },
+        { key: "nome", field: "nome", labelSuffix: "_mLabel1" },
+        { key: "categoria", field: "categoria", labelSuffix: "_mLabel1" },
+        { key: "tipo", field: "tipo", labelSuffix: "_mLabel1" },
+        { key: "expfonte", field: "expfonte", labelSuffix: "_mLabel" }
+    ];
+    map.forEach(function (m) {
+        if (!Object.prototype.hasOwnProperty.call(values, m.key)) return;
+        var val = values[m.key];
+        if (val == null) return;
+        // Input/select/textarea editavel
+        var $input = $("#ctl00_conteudo_" + m.field);
+        if ($input.length) {
+            try { $input.val(val).trigger("change"); } catch (e) { /* noop */ }
+        }
+        // Label read-only (modo visualizacao)
+        var $label = $("#ctl00_conteudo_" + m.field + m.labelSuffix);
+        if ($label.length) {
+            // Para spans/labels usa .text(); para inputs hidden tambem .val()
+            try { $label.text(val); } catch (e) { /* noop */ }
+            try { $label.val(val); } catch (e) { /* noop */ }
+        }
+    });
+}
+
 
 function initTabelaConfiguracaoMrender(config) {
 
     GMrendLigacoesPredefinidas = config.ligacoes || [];
-    GRelatorioStamp = config.relatoriostamp || $("#ctl00_conteudo_u_mrendrelstamp_mLabel1").text();
     GConfigCodigo = config.codigo || "";
     GExtraConfigContainer = config.extraConfigContainer || "";
     GDefaultInitConfig = config.defaultInitConfig || null;
     GRelatorioTable = config.relatorioTable || "u_mrendrel";
     GRelatorioTableKey = config.relatorioTableKey || "u_mrendrelstamp";
     GRelatorioTableFilterField = config.relatorioTableFilterField || "codigo";
+    // Resolve o stamp DEPOIS de definir GRelatorioTableKey, para que resolveRelatorioStamp
+    // use o selector correcto (#ctl00_conteudo_<GRelatorioTableKey>_mLabel1).
+    GRelatorioStamp = config.relatoriostamp || resolveRelatorioStamp();
     GRendConfigTableHtml = {
         tableId: "dd",
         classes: "table table-hover config-input-report-table ",
@@ -1253,6 +1530,9 @@ function initTabelaConfiguracaoMrender(config) {
     tableHtml += "<div  class='col-md-12 pull-left'>"
     tableHtml += "    <button  type='button' style='margin-left:0.4em' id='addLinhaBtn' class='btn btn-default'>Adicionar Linha</button>"
     tableHtml += "    <button onClick='actualizarConfiguracaoMrender()' type='button' style='margin-left:0.4em' id='actualizarConfig' class='btn btn-primary'>Actualizar Configuração</button>"
+    tableHtml += "    <button onClick='exportarConfiguracaoMrender()' type='button' style='margin-left:0.4em' id='exportarConfigBtn' class='btn btn-default' title='Exportar configuração para ficheiro JSON'><span class='glyphicon glyphicon-download-alt'></span> Exportar</button>"
+    tableHtml += "    <button onClick='importarConfiguracaoMrender()' type='button' style='margin-left:0.4em' id='importarConfigBtn' class='btn btn-default' title='Importar configuração a partir de ficheiro JSON'><span class='glyphicon glyphicon-import'></span> Importar</button>"
+    tableHtml += "    <input type='file' id='mrendConfigImportFile' accept='.json,application/json' style='display:none' />"
 
     tableHtml += "  </div>"
     $("#campos > .row:last").after("<div style='margin-top:2.5em' class='row table-responsive  sourceTabletableContainer'>" + tableHtml + "</div>");
@@ -1478,6 +1758,9 @@ function setColunaGrupoReactive() {
 
             this.GMrendGrupoColunas.push(grupoColuna);
 
+            // Reinitialize select2 after Vue updates the DOM
+            initMultipleSelects('#colunaGrupoContainer');
+
         },
         removeGrupoColuna: function (grupoColuna) {
             this.GMrendGrupoColunas = this.GMrendGrupoColunas.filter(function (gc) {
@@ -1498,6 +1781,9 @@ function setColunaGrupoReactive() {
                 colunastamp: ""
             });
             this.GMrendGrupoColunaItems.push(grupoColunaItem);
+
+            // Reinitialize select2 after Vue updates the DOM
+            initMultipleSelects('#colunaGrupoContainer');
         },
         removeGrupoColunaItem: function (grupoColunaItem) {
             this.GMrendGrupoColunaItems = this.GMrendGrupoColunaItems.filter(function (gci) {
@@ -1514,10 +1800,11 @@ function setColunaGrupoReactive() {
 
     }).mount('#colunaGrupoContainer');
 
-
-
+    // Initialize select2 on multiple selects
+    initMultipleSelects('#colunaGrupoContainer');
 
 }
+
 
 function fetchConfigMrender(codigo) {
 
@@ -1700,7 +1987,7 @@ function renderConfigMrender(config) {
     handleTableReactive();
     setColunaGrupoReactive();
     initJSONEditorMrendConfig(config.relatorio || {});
-    
+
     // Comentado: Tabulator usa movableColumns nativo (não precisa de jQuery UI Sortable)
     // if (typeof makeColunasSortable === 'function') {
     //     setTimeout(makeColunasSortable, 200);
@@ -1816,12 +2103,15 @@ function handleTableReactive() {
 
     }).mount('#inputReportTable');
 
+    // Initialize select2 on multiple selects
+    initMultipleSelects('#inputReportTable');
+
     // Initialize treetable after reactive updates - with delay to ensure DOM is ready
     setTimeout(function () {
         // Atualizar estilos de todas as linhas que têm filhos
-        GMrendConfigLinhas.forEach(function(linha) {
+        GMrendConfigLinhas.forEach(function (linha) {
             if (linha.linhastamp) {
-                var temFilhos = GMrendConfigLinhas.some(function(l) {
+                var temFilhos = GMrendConfigLinhas.some(function (l) {
                     return l.linkstamp === linha.linhastamp;
                 });
                 if (temFilhos) {
@@ -1831,7 +2121,7 @@ function handleTableReactive() {
                 }
             }
         });
-        
+
         initMrendConfigTreeTable();
     }, 100);
 
@@ -1920,7 +2210,7 @@ function addColunaMrenderConfig(coluna, colunaUIObjectFormConfigResult) {
     });
 
     handleTableReactive();
-    
+
     // Comentado: Tabulator usa movableColumns nativo (não precisa de jQuery UI Sortable)
     // if (typeof makeColunasSortable === 'function') {
     //     setTimeout(makeColunasSortable, 100);
@@ -2081,31 +2371,39 @@ function registerListenersMrender() {
                 sourceKey: localsource
             }
             var containers = [];
+            var multiSelectFields = []; // Campos multiSelect renderizados separadamente
 
             objectsUIFormConfig.forEach(function (obj) {
+
+                // Multi-select fields are handled manually outside the generic system
+                if (obj.multiSelect === true) {
+                    multiSelectFields.push(obj);
+                    return;
+                }
+
+                var containerContent = {
+                    contentType: obj.contentType,
+                    type: obj.tipo,
+                    id: obj.campo,
+                    classes: obj.classes + " mrendconfig-item-input",
+                    customData: obj.customData + " v-model='mrendConfigItem." + obj.campo + "'",
+                    style: obj.style,
+                    selectCustomData: obj.customData + " v-model='mrendConfigItem." + obj.campo + "'",
+                    fieldToOption: obj.fieldToOption,
+                    fieldToValue: obj.fieldToValue,
+                    label: obj.titulo,
+                    selectData: obj.selectValues,
+                    multiSelect: false,
+                    value: mrendConfigItem[obj.campo],
+                    event: "",
+                    placeholder: ""
+                };
 
                 containers.push({
                     colSize: obj.colSize,
                     style: "margin-bottom:0.5em; " + (obj.tipo == "checkbox" ? "display:flex;flex-direction:column" : ""),
-                    content: {
-                        contentType: obj.contentType,
-                        type: obj.tipo,
-                        id: obj.campo,
-                        classes: obj.classes + " mrendconfig-item-input",
-                        customData: obj.customData + " v-model='mrendConfigItem." + obj.campo + "'",
-                        style: obj.style,
-                        selectCustomData: obj.customData + " v-model='mrendConfigItem." + obj.campo + "'",
-                        fieldToOption: obj.fieldToOption,
-                        fieldToValue: obj.fieldToValue,
-                        label: obj.titulo,
-                        selectData: obj.selectValues,
-                        multiSelect: obj.multiSelect || false,
-                        value: mrendConfigItem[obj.campo],
-                        event: "",
-                        placeholder: "",
-
-                    }
-                })
+                    content: containerContent
+                });
 
 
 
@@ -2197,6 +2495,31 @@ function registerListenersMrender() {
             var modalBodyHtml = ""
             modalBodyHtml += formContainerResult;
 
+            // Build manual HTML for multiSelect fields (bypass broken generic system)
+            multiSelectFields.forEach(function (obj) {
+                var selectId = "multiselect_" + obj.campo + "_" + idValue;
+                var optionsHtml = "";
+                obj.selectValues.forEach(function (opt) {
+                    optionsHtml += "<option value='" + opt[obj.fieldToValue] + "'>" + opt[obj.fieldToOption] + "</option>";
+                });
+
+                modalBodyHtml += ""
+                    + "<div class='col-md-" + (obj.colSize || 12) + "' style='margin-bottom:0.5em;'>"
+                    + "<label>" + obj.titulo + "</label>"
+                    + "<select id='" + selectId + "' "
+                    + "data-mrend-multiselect='true' "
+                    + "data-mrend-field='" + obj.campo + "' "
+                    + "data-mrend-idvalue='" + idValue + "' "
+                    + "data-mrend-localsource='" + localsource + "' "
+                    + "data-mrend-idfield='" + idField + "' "
+                    + "multiple "
+                    + "class='" + (obj.classes || "form-control") + "' "
+                    + "style='width:100%;'>"
+                    + optionsHtml
+                    + "</select>"
+                    + "</div>";
+            });
+
             var modalRendConfigItem = {
                 title: "Configuração ",
                 id: "modalRendConfigItem",
@@ -2210,9 +2533,13 @@ function registerListenersMrender() {
             $("#maincontent").append(modalHTML);
 
             $("#modalRendConfigItem").modal("show");
-            PetiteVue.createApp({
+            var vueApp = PetiteVue.createApp({
                 mrendConfigItem: mrendConfigItem,
-            }).mount('#maincontent');
+            });
+            vueApp.mount('#maincontent');
+
+            // Initialize manual multi-selects with Select2 + direct binding to mrendConfigItem
+            initMrendMultiSelects(mrendConfigItem, multiSelectFields, idValue);
 
 
         }
@@ -2391,10 +2718,10 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
     }
 
     // Verificar se esta linha tem filhos para aplicar cor
-    var temFilhos = GMrendConfigLinhas.some(function(l) {
+    var temFilhos = GMrendConfigLinhas.some(function (l) {
         return l.linkstamp === linha.linhastamp;
     });
-    
+
     var rowObj = {
         style: "" + (temFilhos ? "background:#e9f1ff!important" : ""),
         rowId: linha.linhastamp,
@@ -2417,21 +2744,21 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
     // ── Lógica de inserção hierárquica melhorada ──
     if (linha.linkstamp) {
         // Se tem linkstamp, é filho de alguém
-        
+
         // 1. Procurar por irmãos (outras linhas com mesmo parent)
         var $siblings = table.find("tbody tr[data-tt-parent-id='" + linha.linkstamp + "']");
-        
+
         if ($siblings.length > 0) {
             // Se existem irmãos, precisamos inserir após o último descendente do último irmão
             var $lastSibling = $siblings.last();
             var lastSiblingId = $lastSibling.attr('id');
-            
+
             // Encontrar todos os descendentes deste último irmão
             var $descendants = table.find("tbody tr[data-tt-parent-id='" + lastSiblingId + "']");
-            
+
             if ($descendants.length > 0) {
                 // Inserir após o último descendente do último irmão (recursivamente)
-                var insertAfter = function(parentId) {
+                var insertAfter = function (parentId) {
                     var $children = table.find("tbody tr[data-tt-parent-id='" + parentId + "']");
                     if ($children.length > 0) {
                         var lastChildId = $children.last().attr('id');
@@ -2466,6 +2793,10 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
     // Initialize treetable to apply hierarchical styling - with delay
     setTimeout(function () {
         initMrendConfigTreeTable();
+        // Reinicializar drag-and-drop de linhas apos cada insercao (mesmo padrao das colunas)
+        if (typeof makeLinhasSortable === 'function') {
+            makeLinhasSortable();
+        }
     }, 50);
 
 
@@ -2532,7 +2863,7 @@ function addLinhaMrenderConfig(tipo, linha, linhaUIObjectFormConfigResult, celul
         if (linhaObj && linhaObj.linkstamp) {
             atualizarEstiloLinhaComFilhos(linhaObj.linkstamp);
         }
-        
+
         // Reinitialize treetable after removal - with delay
         setTimeout(function () {
             initMrendConfigTreeTable();
@@ -2585,61 +2916,625 @@ function groupRecordsBySource(arr, relationKey) {
     return extraRecords;
 }
 
-function actualizarConfiguracaoMrender() {
-
-    var configData = [{
-        sourceTable: "MrendColuna",
-        sourceKey: "colunastamp",
-        records: GMrendConfigColunas
-    },
-    {
-        sourceTable: "MrendLinha",
-        sourceKey: "linhastamp",
-        records: GMrendConfigLinhas
-    },
-    {
-        sourceTable: "MrendCelula",
-        sourceKey: "celulastamp",
-        records: GMrendConfigCelulas
-    }, {
-        sourceTable: "Mrendconfigligacao",
-        sourceKey: "mrendligacoesstamp",
-        records: GMrendLigacoes
-    },
-    {
-        sourceTable: "MrendGrupoColuna",
-        sourceKey: "grupocolunastamp",
-        records: GMrendGrupoColunas
-    },
-    {
-        sourceTable: "MrendGrupoColunaItem",
-        sourceKey: "grupocolunaitemstamp",
-        records: GMrendGrupoColunaItems
-    },
-    {
-        sourceTable: GRelatorioTable,
-        sourceKey: GRelatorioTableFilterField,
-        records: GRelatorioConfig ? [(function () {
-            var r = {};
-            r[GRelatorioTableFilterField] = GRelatorioConfig[GRelatorioTableFilterField] || GConfigCodigo;
-            r.relatoriostamp = GRelatorioConfig.relatoriostamp || GRelatorioStamp;
-            r.rendopt = GRelatorioConfig.rendopt || "";
-            return r;
-        }())] : []
-    }
+/**
+ * Constrói o configData no formato usado pelo backend de gravação e pelo export JSON.
+ * Único ponto que conhece a estrutura (sourceTable / sourceKey / records).
+ */
+function buildMrendConfigData() {
+    var configData = [
+        { sourceTable: "MrendColuna", sourceKey: "colunastamp", records: GMrendConfigColunas },
+        { sourceTable: "MrendLinha", sourceKey: "linhastamp", records: GMrendConfigLinhas },
+        { sourceTable: "MrendCelula", sourceKey: "celulastamp", records: GMrendConfigCelulas },
+        { sourceTable: "Mrendconfigligacao", sourceKey: "mrendligacoesstamp", records: GMrendLigacoes },
+        { sourceTable: "MrendGrupoColuna", sourceKey: "grupocolunastamp", records: GMrendGrupoColunas },
+        { sourceTable: "MrendGrupoColunaItem", sourceKey: "grupocolunaitemstamp", records: GMrendGrupoColunaItems },
+        {
+            sourceTable: GRelatorioTable,
+            sourceKey: GRelatorioTableFilterField,
+            records: GRelatorioConfig ? [(function () {
+                var r = {};
+                // Chaves dinamicas em funcao da tabela de relatorio configurada.
+                // Default: u_mrendrel -> {u_mrendrelstamp, codigo}. Override em initTabelaConfiguracaoMrender.
+                r[GRelatorioTableFilterField] = GRelatorioConfig[GRelatorioTableFilterField] || GConfigCodigo;
+                r[GRelatorioTableKey] = GRelatorioConfig[GRelatorioTableKey] || GRelatorioConfig.relatoriostamp || GRelatorioStamp;
+                r.rendopt = GRelatorioConfig.rendopt || "";
+                return r;
+            }())] : []
+        }
     ];
-
 
     var extraRecordsColunas = groupRecordsBySource(GMrendConfigColunas, "relationRecords");
     var extraRecordsLinhas = groupRecordsBySource(GMrendConfigLinhas, "relationRecords");
     var extraRecordsCelulas = groupRecordsBySource(GMrendConfigCelulas, "relationRecords");
-
-    // Se quiser juntar tudo:
     var allExtraRecords = [].concat(extraRecordsColunas, extraRecordsLinhas, extraRecordsCelulas);
 
+    return configData.concat(allExtraRecords);
+}
 
 
-    configData = configData.concat(allExtraRecords);
+// ============================================================================
+// EXPORT / IMPORT — Configuração Mrend
+// ----------------------------------------------------------------------------
+// Padrão inspirado no Mdash (exportarConfiguracaoMDashboard / importLayouts).
+//   - exportarConfiguracaoMrender()    descarrega ficheiro JSON
+//   - importarConfiguracaoMrender()    abre file picker
+//   - pedirOpcaoImportMrend()          pergunta se gera novos stamps
+//   - regenerateMrendStamps()          regenera stamps mantendo relações (genérico)
+//   - aplicarImportMrendConfig()       aplica payload às variáveis globais
+// O relatoriostamp tem regra própria (resolveRelatorioStamp) — sempre o do
+// registo aberto; só gera novo se o DOM estiver vazio.
+// ============================================================================
+
+function exportarConfiguracaoMrender() {
+    try {
+        var configData = buildMrendConfigData();
+        var relatorioDOM = readRelatorioFromDOM();
+
+        // Substitui (ou cria) o record da tabela do relatório no configData
+        // com os valores REAIS lidos do ecrã PHC.
+        var relatorioGroup = configData.find(function (g) { return g.sourceTable === GRelatorioTable; });
+        if (!relatorioGroup) {
+            relatorioGroup = { sourceTable: GRelatorioTable, sourceKey: GRelatorioTableFilterField, records: [] };
+            configData.push(relatorioGroup);
+        }
+        var existing = (relatorioGroup.records && relatorioGroup.records[0]) || {};
+        // rendopt vem de GRelatorioConfig (gerado pelo JSONEditor)
+        var rendopt = (GRelatorioConfig && GRelatorioConfig.rendopt) || existing.rendopt || "";
+        // Chaves dinamicas: PK -> GRelatorioTableKey, filtro -> GRelatorioTableFilterField.
+        // Defaults: u_mrendrelstamp / codigo. No MRend Main.js (u_nota): u_notastamp / nota.
+        var novoRecord = Object.assign({}, existing, {
+            nome: relatorioDOM.nome || existing.nome || "",
+            categoria: relatorioDOM.categoria || existing.categoria || "",
+            expfonte: relatorioDOM.expfonte || existing.expfonte || "",
+            tipo: relatorioDOM.tipo || existing.tipo || "",
+            rendopt: rendopt
+        });
+        novoRecord[GRelatorioTableKey] = relatorioDOM.relatoriostamp;
+        novoRecord[GRelatorioTableFilterField] = relatorioDOM.codigo
+            || existing[GRelatorioTableFilterField]
+            || existing.codigo
+            || GConfigCodigo
+            || "";
+        relatorioGroup.records = [novoRecord];
+
+        var payload = {
+            config: configData,
+            generatedAt: new Date().toISOString(),
+            version: "1.0",
+            nome: relatorioDOM.nome,
+            categoria: relatorioDOM.categoria,
+            expfonte: relatorioDOM.expfonte,
+            tipo: relatorioDOM.tipo
+        };
+        // Chaves dinamicas no topo do payload (para inspeccao e nome de ficheiro)
+        payload[GRelatorioTableKey] = relatorioDOM.relatoriostamp;
+        payload[GRelatorioTableFilterField] = relatorioDOM.codigo || GConfigCodigo || "";
+        var fileContents = JSON.stringify(payload, null, 2);
+        var blob = new Blob([fileContents], { type: "application/json;charset=utf-8" });
+        var downloadUrl = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        var timestamp = new Date().toISOString().replace(/[:.-]/g, "");
+        var fileName = "mrend-config-" + (payload[GRelatorioTableFilterField] || payload.codigo || "sem-codigo") + "-" + timestamp + ".json";
+
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 1000);
+
+        if (typeof alertify !== "undefined") {
+            alertify.success("Configuracao exportada: " + fileName, 4000);
+        }
+    } catch (error) {
+        console.error("Erro ao exportar configuracao Mrend", error);
+        if (typeof alertify !== "undefined") {
+            alertify.error("Erro ao exportar configuracao: " + error.message, 9000);
+        }
+    }
+}
+
+function importarConfiguracaoMrender() {
+    var fileInput = document.getElementById("mrendConfigImportFile");
+    if (!fileInput) {
+        if (typeof alertify !== "undefined") alertify.error("Input de importacao nao encontrado", 6000);
+        return;
+    }
+    fileInput.value = "";
+    fileInput.onchange = function (event) {
+        var file = event.target.files && event.target.files[0];
+        if (!file) return;
+        if (!/\.json$/i.test(file.name)) {
+            if (typeof alertify !== "undefined") alertify.error("Selecione um ficheiro .json", 3000);
+            return;
+        }
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+            try {
+                var parsed = JSON.parse(ev.target.result);
+                pedirOpcaoImportMrend(parsed);
+            } catch (err) {
+                console.error("Erro ao ler ficheiro de importacao", err);
+                if (typeof alertify !== "undefined") alertify.error("Ficheiro JSON invalido: " + err.message, 5000);
+            }
+        };
+        reader.readAsText(file);
+    };
+    fileInput.click();
+}
+
+function pedirOpcaoImportMrend(payload) {
+    // Em modo "consultar" (registo já existe e está aberto em visualização)
+    // queremos um fluxo simples: confirmar overwrite, manter stamp/codigo do
+    // registo actual e marcar os componentes existentes para delete.
+    var state = "";
+    try { state = $("#mainPage").data("state") || ""; } catch (e) { state = ""; }
+    if (state === "consultar") {
+        var ok = window.confirm("Sobrescrever a configuração do relatório actual com o conteúdo do ficheiro importado?\n\nOs componentes existentes (linhas, colunas, células, ligações, grupos) serão substituídos.");
+        if (!ok) return;
+        importarOverwriteRelatorioActual(payload);
+        return;
+    }
+    // Caso geral: abre modal com inputs editaveis (codigo/nome/categoria/tipo/expfonte)
+    // pre-preenchidos a partir do payload, permitindo ao utilizador alterar
+    // antes de confirmar (caso de uso: usar config base de outro relatorio).
+    abrirModalImportMrend(payload);
+}
+
+/**
+ * Importa um payload sobrescrevendo o relatório actualmente aberto:
+ *   - relatoriostamp e codigo vêm do DOM do registo actual (campos dinamicos)
+ *   - regenera todos os stamps dos componentes (linhas, colunas, células...)
+ *   - faz replace do código antigo pelo novo dentro do JSON string rendopt
+ *   - marca todos os componentes actuais (GMrend*) em recordsToDelete
+ *   - chama directamente cscript=actualizarmrendconfig
+ *   - recarrega a página em caso de sucesso
+ */
+function importarOverwriteRelatorioActual(payload) {
+    if (!payload || !Array.isArray(payload.config)) {
+        if (typeof alertify !== "undefined") alertify.error("Ficheiro inválido: 'config' em falta", 5000);
+        return;
+    }
+
+    // 1) Stamp e codigo do registo actual a partir do DOM (campos dinamicos)
+    var stampField = GRelatorioTableKey || "u_mrendrelstamp";
+    var filterField = GRelatorioTableFilterField || "codigo";
+    var relStamp = ($("#ctl00_conteudo_u_mrendrelstamp_mLabel1").text() || "").trim();
+    var novoCodigo = ($("#ctl00_conteudo_codigo_mLabel1").text() || "").trim();
+    if (!relStamp) {
+        if (typeof alertify !== "undefined") alertify.error("Não foi possível obter o stamp do relatório actual a partir do DOM", 7000);
+        return;
+    }
+    if (!novoCodigo) {
+        if (typeof alertify !== "undefined") alertify.error("Não foi possível obter o código do relatório actual a partir do DOM", 7000);
+        return;
+    }
+
+    // 2) Clona o configData do payload e regenera stamps dos componentes
+    var configData = JSON.parse(JSON.stringify(payload.config));
+    regenerateMrendStamps(configData);
+
+    // 3) Identifica o codigo antigo (do payload) para substituir no rendopt
+    var relatorioGroup = configData.find(function (x) { return x.sourceTable === GRelatorioTable; });
+    var relatorioRec = (relatorioGroup && relatorioGroup.records && relatorioGroup.records[0]) || null;
+    var codigoAntigo = "";
+    if (relatorioRec) {
+        codigoAntigo = relatorioRec[filterField] || relatorioRec.codigo || "";
+    }
+    if (!codigoAntigo && payload) {
+        codigoAntigo = payload[filterField] || payload.codigo || "";
+    }
+
+    // 4) Substitui o codigo antigo pelo novo dentro do rendopt (string JSON)
+    if (relatorioRec && relatorioRec.rendopt && codigoAntigo && codigoAntigo !== novoCodigo) {
+        try {
+            var rendoptStr = String(relatorioRec.rendopt);
+            // Replace global de todas as ocorrencias do codigo antigo
+            var safeOld = codigoAntigo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            rendoptStr = rendoptStr.replace(new RegExp(safeOld, "g"), novoCodigo);
+            relatorioRec.rendopt = rendoptStr;
+        } catch (e) {
+            console.warn("Falha no replace do codigo antigo no rendopt:", e);
+        }
+    }
+
+    // 5) Força FK relatoriostamp em todos os records auxiliares
+    configData.forEach(function (group) {
+        if (!group || !Array.isArray(group.records)) return;
+        group.records.forEach(function (rec) {
+            if (rec && Object.prototype.hasOwnProperty.call(rec, "relatoriostamp")) {
+                rec.relatoriostamp = relStamp;
+            }
+        });
+    });
+
+    // 6) Acerta as chaves dinamicas do registo do relatorio
+    if (relatorioRec) {
+        if (stampField !== "relatoriostamp" && Object.prototype.hasOwnProperty.call(relatorioRec, "relatoriostamp")) {
+            delete relatorioRec.relatoriostamp;
+        }
+        if (filterField !== "codigo" && Object.prototype.hasOwnProperty.call(relatorioRec, "codigo")) {
+            delete relatorioRec.codigo;
+        }
+        relatorioRec[stampField] = relStamp;
+        relatorioRec[filterField] = novoCodigo;
+    }
+
+    // 7) Marca TODOS os componentes actuais (em memória) para delete
+    var recordsToDelete = [];
+    function pushDeletes(arr, tabela, tableKey) {
+        (arr || []).forEach(function (r) {
+            var stamp = r && r[tableKey];
+            if (stamp) recordsToDelete.push({ table: tabela, stamp: stamp, tableKey: tableKey });
+        });
+    }
+    pushDeletes(GMrendConfigColunas, "MrendColuna", "colunastamp");
+    pushDeletes(GMrendConfigLinhas, "MrendLinha", "linhastamp");
+    pushDeletes(GMrendConfigCelulas, "MrendCelula", "celulastamp");
+    pushDeletes(GMrendLigacoes, "Mrendconfigligacao", "mrendligacoesstamp");
+    pushDeletes(GMrendGrupoColunas, "MrendGrupoColuna", "grupocolunastamp");
+    pushDeletes(GMrendGrupoColunaItems, "MrendGrupoColunaItem", "grupocolunaitemstamp");
+
+    console.log("Overwrite import: relStamp=", relStamp, "codigoAntigo=", codigoAntigo, "novoCodigo=", novoCodigo, "deletes=", recordsToDelete.length);
+
+    // 8) Chamada DIRECTA ao cscript actualizarmrendconfig
+    $.ajax({
+        type: "POST",
+        url: "../programs/gensel.aspx?cscript=actualizarmrendconfig",
+        data: {
+            '__EVENTARGUMENT': JSON.stringify([{
+                relatoriostamp: relStamp,
+                config: configData,
+                recordsToDelete: recordsToDelete
+            }])
+        },
+        success: function (response) {
+            try {
+                console.log("Resposta overwrite import:", response);
+                if (response && response.cod && response.cod !== "0000") {
+                    if (typeof alertify !== "undefined") alertify.error("Erro ao gravar (cod " + response.cod + ")", 9000);
+                    return;
+                }
+                if (typeof alertify !== "undefined") alertify.success("Importação concluída. A recarregar...", 3000);
+                setTimeout(function () { location.reload(); }, 600);
+            } catch (error) {
+                console.error("Erro interno na resposta do overwrite import", error);
+                if (typeof alertify !== "undefined") alertify.error("Erro interno ao gravar importação", 9000);
+            }
+        },
+        error: function (xhr, status, err) {
+            console.error("Erro AJAX overwrite import", status, err);
+            if (typeof alertify !== "undefined") alertify.error("Falha de comunicação: " + (err || status), 9000);
+        }
+    });
+}
+
+function abrirModalImportMrend(payload) {
+    // Remove modal anterior se existir
+    $("#modalImportMrendConfig").remove();
+
+    // Determina valores pre-preenchidos: prioridade ao record da tabela
+    // do relatorio dentro do payload.config; fallback aos campos top-level.
+    var relatorioRec = null;
+    if (payload && Array.isArray(payload.config)) {
+        var g = payload.config.find(function (x) { return x && x.sourceTable === GRelatorioTable; });
+        if (g && Array.isArray(g.records) && g.records.length) relatorioRec = g.records[0];
+    }
+    function pick(field) {
+        if (relatorioRec && relatorioRec[field] != null && relatorioRec[field] !== "") return relatorioRec[field];
+        if (payload && payload[field] != null) return payload[field];
+        return "";
+    }
+    // codigo/filter pode estar sob a chave dinamica ou sob "codigo" legado
+    var codigoVal = "";
+    if (relatorioRec) {
+        codigoVal = relatorioRec[GRelatorioTableFilterField] || relatorioRec.codigo || "";
+    }
+    if (!codigoVal && payload) {
+        codigoVal = payload[GRelatorioTableFilterField] || payload.codigo || "";
+    }
+
+    var nomeVal = pick("nome");
+    var categoriaVal = pick("categoria");
+    var tipoVal = pick("tipo");
+    var expfonteVal = pick("expfonte");
+
+    var filterLabel = GRelatorioTableFilterField || "codigo";
+
+    function esc(v) {
+        return String(v == null ? "" : v)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    var html = ""
+        + "<div class='modal fade' id='modalImportMrendConfig' tabindex='-1' role='dialog'>"
+        + "  <div class='modal-dialog modal-lg' role='document'>"
+        + "    <div class='modal-content'>"
+        + "      <div class='modal-header'>"
+        + "        <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>"
+        + "        <h4 class='modal-title'><span class='glyphicon glyphicon-import'></span> Importar Configuração Mrend</h4>"
+        + "      </div>"
+        + "      <div class='modal-body'>"
+        + "        <p class='text-muted' style='margin-bottom:1em'>Reveja/edite os campos do relatório antes de confirmar a importação. Pode usar uma configuração base de outro relatório e ajustar aqui os identificadores.</p>"
+        + "        <div class='row'>"
+        + "          <div class='form-group col-md-6'>"
+        + "            <label for='impMrend_codigo'>" + esc(filterLabel) + " *</label>"
+        + "            <input type='text' class='form-control input-sm' id='impMrend_codigo' value='" + esc(codigoVal) + "' />"
+        + "          </div>"
+        + "          <div class='form-group col-md-6'>"
+        + "            <label for='impMrend_nome'>Nome</label>"
+        + "            <input type='text' class='form-control input-sm' id='impMrend_nome' value='" + esc(nomeVal) + "' />"
+        + "          </div>"
+        + "          <div class='form-group col-md-6'>"
+        + "            <label for='impMrend_categoria'>Categoria</label>"
+        + "            <input type='text' class='form-control input-sm' id='impMrend_categoria' value='" + esc(categoriaVal) + "' />"
+        + "          </div>"
+        + "          <div class='form-group col-md-6'>"
+        + "            <label for='impMrend_tipo'>Tipo</label>"
+        + "            <input type='text' class='form-control input-sm' id='impMrend_tipo' value='" + esc(tipoVal) + "' />"
+        + "          </div>"
+        + "          <div class='form-group col-md-12'>"
+        + "            <label for='impMrend_expfonte'>Expressão Fonte</label>"
+        + "            <input type='text' class='form-control input-sm' id='impMrend_expfonte' value='" + esc(expfonteVal) + "' />"
+        + "          </div>"
+        + "        </div>"
+        + "        <hr/>"
+        + "        <div class='checkbox'>"
+        + "          <label><input type='checkbox' id='impMrend_gerarNovos' checked /> <strong>Gerar NOVOS stamps</strong> para os componentes (recomendado para criar novo relatório a partir de uma base)</label>"
+        + "        </div>"
+        + "        <p class='text-muted' style='font-size:0.9em;margin-top:0.5em'>Desmarque apenas para migração/substituição mantendo stamps originais.</p>"
+        + "      </div>"
+        + "      <div class='modal-footer'>"
+        + "        <button type='button' class='btn btn-default' data-dismiss='modal'>Cancelar</button>"
+        + "        <button type='button' class='btn btn-primary' id='impMrend_confirmBtn'><span class='glyphicon glyphicon-ok'></span> Confirmar Importação</button>"
+        + "      </div>"
+        + "    </div>"
+        + "  </div>"
+        + "</div>";
+
+    $("body").append(html);
+    $("#modalImportMrendConfig").modal({ backdrop: "static", keyboard: true }).modal("show");
+
+    $("#impMrend_confirmBtn").off("click").on("click", function () {
+        var overrides = {
+            codigo: $("#impMrend_codigo").val(),
+            nome: $("#impMrend_nome").val(),
+            categoria: $("#impMrend_categoria").val(),
+            tipo: $("#impMrend_tipo").val(),
+            expfonte: $("#impMrend_expfonte").val()
+        };
+        if (!overrides.codigo || !String(overrides.codigo).trim()) {
+            if (typeof alertify !== "undefined") alertify.error("Campo '" + filterLabel + "' obrigatório", 4000);
+            $("#impMrend_codigo").focus();
+            return;
+        }
+        var gerarNovos = $("#impMrend_gerarNovos").is(":checked");
+        $("#modalImportMrendConfig").modal("hide");
+        setTimeout(function () { $("#modalImportMrendConfig").remove(); }, 400);
+        aplicarImportMrendConfig(payload, gerarNovos, overrides);
+    });
+}
+
+/**
+ * Regenera stamps mantendo relacoes.
+ * Pass 1: PK (sourceKey) de cada record -> stampMap old->new (excepto tabela do relatorio)
+ * Pass 2: substitui em qualquer campo string que corresponda a um stamp conhecido (cobre FKs)
+ * Pass 3: reconstroi ligacaokey
+ */
+function regenerateMrendStamps(configData) {
+    var stampMap = {};
+
+    configData.forEach(function (group) {
+        if (!group || !Array.isArray(group.records)) return;
+        if (!group.sourceKey) return;
+        if (group.sourceTable === GRelatorioTable) return;
+        group.records.forEach(function (rec) {
+            if (!rec) return;
+            var old = rec[group.sourceKey];
+            if (old && typeof old === "string" && !stampMap[old]) {
+                stampMap[old] = generateUUID();
+            }
+        });
+    });
+
+    configData.forEach(function (group) {
+        if (!group || !Array.isArray(group.records)) return;
+        group.records.forEach(function (rec) {
+            if (!rec) return;
+            Object.keys(rec).forEach(function (field) {
+                var val = rec[field];
+                if (typeof val === "string" && stampMap[val]) {
+                    rec[field] = stampMap[val];
+                }
+            });
+        });
+    });
+
+    configData.forEach(function (group) {
+        if (group.sourceTable !== "Mrendconfigligacao") return;
+        group.records.forEach(function (rec) {
+            if (!rec) return;
+            rec.ligacaokey = (rec.componentelibstamp || "") + "___" + (rec.componentenegstamp || "");
+        });
+    });
+
+    return stampMap;
+}
+
+/**
+ * Aplica o payload importado as variaveis globais G* e re-renderiza.
+ * @param {Object}  payload      O JSON carregado (payload.config = array)
+ * @param {boolean} gerarNovos   true = regenera stamps dos componentes
+ * @param {Object}  [overrides]  Valores editados no modal: {codigo, nome, categoria, tipo, expfonte}
+ *                               Quando presentes, têm prioridade sobre o DOM (permite criar novo
+ *                               relatório a partir de uma config base).
+ */
+function aplicarImportMrendConfig(payload, gerarNovos, overrides) {
+    if (!payload || !Array.isArray(payload.config)) {
+        if (typeof alertify !== "undefined") alertify.error("Ficheiro invalido: 'config' em falta", 5000);
+        return;
+    }
+
+    var configData = JSON.parse(JSON.stringify(payload.config));
+
+    if (gerarNovos) {
+        regenerateMrendStamps(configData);
+    }
+
+    // relatoriostamp: SEMPRE do DOM do registo aberto; se vazio, novo UUID.
+    // Aplica independentemente da opcao gerarNovos (regra explicita do utilizador).
+    var relatorioDOM = readRelatorioFromDOM();
+    var relStamp = relatorioDOM.relatoriostamp;
+    GRelatorioStamp = relStamp;
+
+    // Merge: overrides (modal) > DOM > payload.
+    overrides = overrides || {};
+    function ov(field) {
+        if (overrides[field] != null && String(overrides[field]).trim() !== "") return overrides[field];
+        return relatorioDOM[field];
+    }
+    var finalCodigo = ov("codigo");
+    var finalNome = ov("nome");
+    var finalCategoria = ov("categoria");
+    var finalTipo = ov("tipo");
+    var finalExpfonte = (overrides.expfonte != null) ? overrides.expfonte : relatorioDOM.expfonte;
+
+    configData.forEach(function (group) {
+        if (!group || !Array.isArray(group.records)) return;
+        group.records.forEach(function (rec) {
+            if (rec && Object.prototype.hasOwnProperty.call(rec, "relatoriostamp")) {
+                rec.relatoriostamp = relStamp;
+            }
+        });
+    });
+
+    function getRecords(table) {
+        var g = configData.find(function (x) { return x.sourceTable === table; });
+        return (g && Array.isArray(g.records)) ? g.records : [];
+    }
+
+    var relatorioGroup = configData.find(function (x) { return x.sourceTable === GRelatorioTable; });
+    var relatorioRec = (relatorioGroup && relatorioGroup.records && relatorioGroup.records[0]) || null;
+    if (relatorioRec) {
+        // As chaves PK e filtro dependem da tabela configurada (GRelatorioTableKey / GRelatorioTableFilterField).
+        // Limpa chaves legadas hardcoded para evitar duplicacao quando o JSON importado vem com nomes diferentes.
+        if (GRelatorioTableKey !== "relatoriostamp" && Object.prototype.hasOwnProperty.call(relatorioRec, "relatoriostamp")) {
+            delete relatorioRec.relatoriostamp;
+        }
+        if (GRelatorioTableFilterField !== "codigo" && Object.prototype.hasOwnProperty.call(relatorioRec, "codigo")) {
+            delete relatorioRec.codigo;
+        }
+        relatorioRec[GRelatorioTableKey] = relStamp;
+        if (finalCodigo) relatorioRec[GRelatorioTableFilterField] = finalCodigo;
+        if (finalNome) relatorioRec.nome = finalNome;
+        if (finalCategoria) relatorioRec.categoria = finalCategoria;
+        if (finalExpfonte != null) relatorioRec.expfonte = finalExpfonte;
+        if (finalTipo) relatorioRec.tipo = finalTipo;
+    }
+
+    // Espelha os valores finais no cabeçalho do formulário PHC (inputs + labels)
+    // para que o utilizador veja o estado e o PHC grave os campos correctos.
+    writeRelatorioToDOM({
+        codigo: finalCodigo,
+        nome: finalNome,
+        categoria: finalCategoria,
+        tipo: finalTipo,
+        expfonte: finalExpfonte
+    });
+
+    var configForRender = {
+        colunas: getRecords("MrendColuna"),
+        linhas: getRecords("MrendLinha"),
+        celulas: getRecords("MrendCelula"),
+        grupocolunas: getRecords("MrendGrupoColuna"),
+        grupocolunaItems: getRecords("MrendGrupoColunaItem"),
+        ligacoes: getRecords("Mrendconfigligacao"),
+        relatorio: relatorioRec || {}
+    };
+
+    GMrendDeleteRecords = [];
+    try {
+        GMrendLigacoes = (configForRender.ligacoes || []).map(function (l) {
+            return (typeof Mrendconfigligacao === "function") ? new Mrendconfigligacao(l) : l;
+        });
+    } catch (e) {
+        GMrendLigacoes = (configForRender.ligacoes || []).slice();
+    }
+    GMrendLigacoesExistentes = GMrendLigacoes.slice();
+
+    try {
+        renderConfigMrender(configForRender);
+    } catch (err) {
+        console.error("Erro ao aplicar configuracao importada", err);
+        if (typeof alertify !== "undefined") alertify.error("Erro ao aplicar configuracao: " + err.message, 9000);
+        return;
+    }
+
+    // Grava IMEDIATAMENTE no backend usando o mesmo cscript de actualizarConfiguracaoMrender.
+    // O backend é abstracto: aceita o configData no formato { sourceTable, sourceKey, records }.
+    persistImportMrendConfig(configData, relStamp, gerarNovos);
+}
+
+/**
+ * Persiste o configData importado chamando directamente o cscript
+ * `actualizarmrendconfig` (mesmo endpoint usado por actualizarConfiguracaoMrender).
+ * O backend é abstracto sobre as sourceTables, por isso pode receber o payload
+ * importado tal como foi montado em aplicarImportMrendConfig.
+ */
+function persistImportMrendConfig(configData, relStamp, gerarNovos) {
+    $.ajax({
+        type: "POST",
+        url: "../programs/gensel.aspx?cscript=actualizarmrendconfig",
+        data: {
+            '__EVENTARGUMENT': JSON.stringify([{
+                relatoriostamp: relStamp,
+                config: configData,
+                recordsToDelete: []
+            }])
+        },
+        success: function (response) {
+            try {
+                console.log("Resposta da gravacao da importacao:", response);
+                if (response && response.cod && response.cod !== "0000") {
+                    if (typeof alertify !== "undefined") {
+                        alertify.error("Erro ao gravar configuracao importada (cod " + response.cod + ")", 9000);
+                    }
+                    return;
+                }
+                GMrendDeleteRecords = [];
+                if (typeof alertify !== "undefined") {
+                    alertify.success(
+                        gerarNovos
+                            ? "Configuracao importada e gravada com NOVOS stamps."
+                            : "Configuracao importada e gravada (stamps originais).",
+                        7000
+                    );
+                }
+                // Refresca a partir da BD para garantir consistencia com o que foi gravado.
+                try {
+                    var codigoToFetch = GConfigCodigo || (GRelatorioConfig && GRelatorioConfig[GRelatorioTableFilterField]);
+                    if (codigoToFetch) {
+                        fetchConfigMrender(codigoToFetch);
+                    }
+                } catch (e) {
+                    console.warn("Falha ao refrescar configuracao apos import:", e);
+                }
+            } catch (error) {
+                console.error("Erro interno ao processar resposta da importacao", error);
+                if (typeof alertify !== "undefined") alertify.error("Erro interno ao gravar importacao", 9000);
+            }
+        },
+        error: function (xhr, status, err) {
+            console.error("Erro AJAX ao gravar importacao", status, err);
+            if (typeof alertify !== "undefined") alertify.error("Falha de comunicacao ao gravar importacao: " + (err || status), 9000);
+        }
+    });
+}
+
+function actualizarConfiguracaoMrender() {
+
+    var configData = buildMrendConfigData();
 
     console.log("configData Records", configData)
     $.ajax({
@@ -2691,29 +3586,29 @@ function loadMrendSortableStyles() {
 
     var style = document.createElement("style");
     style.id = "mrendSortableStyles";
-    
+
     var css = "";
-    
+
     // Estilo do ghost (elemento sendo arrastado)
     css += ".mrend-coluna-sortable-ghost { ";
     css += "  opacity: 0.4 !important; ";
     css += "  background: #e3f2fd !important; ";
     css += "  border: 2px dashed #2196f3 !important; ";
     css += "} ";
-    
+
     // Estilo do placeholder (onde vai soltar)
     css += ".mrend-coluna-sortable-placeholder { ";
     css += "  background: #c5e1a5 !important; ";
     css += "  border: 2px dashed #66bb6a !important; ";
     css += "  visibility: visible !important; ";
     css += "} ";
-    
+
     // Estilo durante o drag
     css += ".mrend-coluna-sortable-chosen { ";
     css += "  cursor: grabbing !important; ";
     css += "  background: #fff3e0 !important; ";
     css += "} ";
-    
+
     // Handle de drag (�cone que aparece ao hover)
     css += ".mrend-coluna-drag-handle { ";
     css += "  position: absolute; ";
@@ -2728,21 +3623,73 @@ function loadMrendSortableStyles() {
     css += "  z-index: 10; ";
     css += "  padding: 3px; ";
     css += "} ";
-    
+
     css += ".colunaHeader:hover .mrend-coluna-drag-handle { ";
     css += "  opacity: 1; ";
     css += "} ";
-    
+
     css += ".mrend-coluna-drag-handle:active { ";
     css += "  cursor: grabbing; ";
     css += "} ";
-    
+
     // Adiciona cursor de grab nas colunas
     css += ".colunaHeader.ui-sortable-handle { ";
     css += "  cursor: move; ";
     css += "  cursor: grab; ";
     css += "} ";
-    
+
+    // ── ESTILOS PARA DRAG & DROP DE LINHAS ──────────────────────────
+    // Espelha a estrutura das colunas, adaptado para eixo vertical e treetable
+
+    // Ghost (linha sendo arrastada)
+    css += ".mrend-linha-sortable-ghost { ";
+    css += "  opacity: 0.4 !important; ";
+    css += "  background: #e3f2fd !important; ";
+    css += "  outline: 2px dashed #2196f3 !important; ";
+    css += "} ";
+
+    // Placeholder (onde vai soltar)
+    css += "tr.mrend-linha-sortable-placeholder { ";
+    css += "  background: #c5e1a5 !important; ";
+    css += "  outline: 2px dashed #66bb6a !important; ";
+    css += "  visibility: visible !important; ";
+    css += "} ";
+
+    // Durante o drag
+    css += ".mrend-linha-sortable-chosen { ";
+    css += "  cursor: grabbing !important; ";
+    css += "  background: #fff3e0 !important; ";
+    css += "} ";
+
+    // Handle (icone que aparece ao hover na linha-acoes)
+    css += ".mrend-linha-drag-handle { ";
+    css += "  display: inline-block; ";
+    css += "  cursor: move; ";
+    css += "  cursor: grab; ";
+    css += "  color: #9e9e9e; ";
+    css += "  font-size: 16px; ";
+    css += "  opacity: 0; ";
+    css += "  transition: opacity 0.2s ease; ";
+    css += "  margin-right: 6px; ";
+    css += "  padding: 2px 4px; ";
+    css += "  vertical-align: middle; ";
+    css += "  user-select: none; ";
+    css += "} ";
+
+    css += "tr.linhaHeader:hover .mrend-linha-drag-handle { ";
+    css += "  opacity: 1; ";
+    css += "} ";
+
+    css += ".mrend-linha-drag-handle:active { ";
+    css += "  cursor: grabbing; ";
+    css += "} ";
+
+    // Feedback visual quando drop e invalido (entre paizes diferentes)
+    css += ".mrend-linha-drop-invalid { ";
+    css += "  background: #ffebee !important; ";
+    css += "  outline: 2px dashed #e53935 !important; ";
+    css += "} ";
+
     style.textContent = css;
     document.head.appendChild(style);
 }
@@ -2757,16 +3704,16 @@ function makeColunasSortable() {
         setTimeout(makeColunasSortable, 500);
         return;
     }
-    
+
     var $thead = $('#inputReportTable thead tr');
-    
+
     if (!$thead.length) {
         console.warn("MRend Sortable: <thead> n�o encontrado");
         return;
     }
-    
+
     console.log("MRend Sortable: Inicializando drag-and-drop nas colunas...");
-    
+
     // Destroy sortable existente se houver
     if ($thead.hasClass('ui-sortable')) {
         try {
@@ -2775,21 +3722,21 @@ function makeColunasSortable() {
             console.warn("Erro ao destruir sortable existente:", e);
         }
     }
-    
+
     // Adiciona �cones de drag a cada coluna (exceto "Ac��es")
     $thead.find('th.colunaHeader').each(function () {
         var $th = $(this);
-        
+
         // N�o adiciona handle se j� existe
         if ($th.find('.mrend-coluna-drag-handle').length > 0) return;
-        
+
         // N�o adiciona handle na coluna de Ac��es
         if ($th.attr('id') === 'coluna-acoes') return;
-        
+
         var $dragHandle = $('<span class="mrend-coluna-drag-handle" title="Arrastar para reordenar">&#8942;&#8942;</span>');
         $th.prepend($dragHandle);
     });
-    
+
     // Inicializa jQuery UI Sortable
     $thead.sortable({
         items: '> th.colunaHeader:not(#coluna-acoes)', // Exclui coluna de Ac��es
@@ -2801,27 +3748,27 @@ function makeColunasSortable() {
         helper: 'clone',
         forcePlaceholderSize: true,
         containment: 'parent',
-        
+
         start: function (event, ui) {
             ui.item.addClass('mrend-coluna-sortable-chosen');
             ui.placeholder.height(ui.item.outerHeight());
             console.log("Drag start:", ui.item.attr('id'));
         },
-        
+
         stop: function (event, ui) {
             ui.item.removeClass('mrend-coluna-sortable-chosen');
             console.log("Drag stop:", ui.item.attr('id'));
-            
+
             // Atualiza a ordem das colunas baseado na nova posi��o no DOM
             updateColunasOrdemFromDOM();
         },
-        
+
         change: function (event, ui) {
             // Feedback visual durante o movimento
             console.log("Posi��o alterada");
         }
     });
-    
+
     var colunasCount = $thead.find('> th.colunaHeader:not(#coluna-acoes)').length;
     console.log("✓ MRend Sortable: " + colunasCount + " colunas configuradas para drag & drop");
     console.log("✓ Para arrastar: passe o mouse sobre a coluna e clique no ícone ⋮⋮");
@@ -2833,36 +3780,36 @@ function makeColunasSortable() {
 function updateColunasOrdemFromDOM() {
     var $thead = $('#inputReportTable thead tr');
     var ordem = 1;
-    
+
     $thead.find('th.colunaHeader:not(#coluna-acoes)').each(function () {
         var colunastamp = $(this).attr('id');
-        
+
         if (!colunastamp) return;
-        
+
         // Encontra a coluna no array GMrendConfigColunas
         var coluna = GMrendConfigColunas.find(function (col) {
             return col.colunastamp === colunastamp;
         });
-        
+
         if (coluna && coluna.ordem !== ordem) {
             console.log("Atualizando ordem:", coluna.desccoluna, "de", coluna.ordem, "para", ordem);
             coluna.ordem = ordem;
         }
-        
+
         ordem++;
     });
-    
+
     // Re-sort array GMrendConfigColunas pela nova ordem
     GMrendConfigColunas.sort(function (a, b) {
         return (a.ordem || 0) - (b.ordem || 0);
     });
-    
+
     // NOTA: updateTbodyCellsOrder() desabilitado - requer recarga da tabela para aplicar nova ordem
     // updateTbodyCellsOrder();
-    
+
     // Feedback ao utilizador
     alertify.success("Ordem das colunas atualizada! Clique em 'Actualizar Configura��o' para gravar e recarregue a p�gina.", 4000);
-    
+
     console.log("? Ordem das colunas atualizada:", GMrendConfigColunas.map(function (c) {
         return c.desccoluna + " (" + c.ordem + ")";
     }));
@@ -2875,7 +3822,7 @@ function updateTbodyCellsOrder() {
     var $table = $('#inputReportTable');
     var $thead = $table.find('thead tr');
     var $tbody = $table.find('tbody');
-    
+
     // Obtem a ordem correta das colunas baseado no <thead>
     var colunaOrder = [];
     $thead.find('th.colunaHeader:not(#coluna-acoes)').each(function () {
@@ -2884,19 +3831,19 @@ function updateTbodyCellsOrder() {
             colunaOrder.push(colunastamp);
         }
     });
-    
+
     // Para cada linha no tbody, reordena as c�lulas
     $tbody.find('tr').each(function () {
         var $tr = $(this);
         var $acoesCell = $tr.find('td:first'); // C�lula de a��es (primeira coluna)
         var cells = {};
-        
+
         // Coleta todas as c�lulas indexadas por colunastamp
         $tr.find('td[data-colunacell]').each(function () {
             var colunastamp = $(this).attr('data-colunacell');
             cells[colunastamp] = $(this).detach();
         });
-        
+
         // Reinsere as c�lulas na ordem correta
         colunaOrder.forEach(function (colunastamp) {
             if (cells[colunastamp]) {
@@ -2904,6 +3851,202 @@ function updateTbodyCellsOrder() {
             }
         });
     });
-    
+
     console.log("? C�lulas do tbody reordenadas");
 }
+
+
+/**
+ * ---------------------------------------------------------------------------
+ * DRAG & DROP - REORDENAR LINHAS
+ * ---------------------------------------------------------------------------
+ * Espelha a arquitetura usada para colunas (loadMrendSortableStyles +
+ * makeColunasSortable + updateColunasOrdemFromDOM), adaptada para:
+ *   - eixo vertical (axis: 'y')
+ *   - hierarquia treetable: ao arrastar uma linha pai, todos os descendentes
+ *     (data-tt-parent-id encadeado) movem-se em conjunto
+ *   - restricao: so e permitido reordenar entre irmaos (mesmo parent).
+ *     Drop fora do grupo de irmaos e cancelado.
+ *
+ * Hooks de inicializacao:
+ *   - loadMrendSortableStyles()  -> $(document).ready (uma vez)
+ *   - makeLinhasSortable()       -> apos cada insercao/remocao de linha
+ *
+ * Persistencia:
+ *   - updateLinhasOrdemFromDOM() atualiza GMrendConfigLinhas[].ordem com base
+ *     na nova ordem visual no DOM. O save final usa o array como single source
+ *     of truth (igual ao fluxo das colunas).
+ */
+
+/**
+ * Devolve a linha + todos os seus descendentes (recursivo) na ordem em que
+ * aparecem no DOM. Util para mover uma subtree como bloco unico.
+ *
+ * @param {jQuery} $tr - Elemento <tr> raiz da subtree
+ * @returns {jQuery} Coleccao jQuery com $tr e todos os descendentes
+ */
+function getLinhaSubtree($tr) {
+    var $result = $tr;
+    var stamp = $tr.attr("id");
+    if (!stamp) return $result;
+
+    var $table = $tr.closest("table");
+    var $directChildren = $table.find("tbody tr[data-tt-parent-id='" + stamp + "']");
+
+    $directChildren.each(function () {
+        $result = $result.add(getLinhaSubtree($(this)));
+    });
+
+    return $result;
+}
+
+/**
+ * Torna as linhas do tbody arrastaveis para reordenar.
+ * Espelha makeColunasSortable() para manter o codigo familiar a quem ja
+ * conhece o sistema das colunas.
+ */
+function makeLinhasSortable() {
+    if (!$.fn.sortable) {
+        console.warn("MRend Sortable: jQuery UI Sortable nao esta disponivel. Tentando novamente em 500ms...");
+        setTimeout(makeLinhasSortable, 500);
+        return;
+    }
+
+    var $tbody = $('#' + (GRendConfigTableHtml && GRendConfigTableHtml.tableId ? GRendConfigTableHtml.tableId : 'inputReportTable') + ' tbody');
+
+    if (!$tbody.length) {
+        console.warn("MRend Sortable Linhas: <tbody> nao encontrado");
+        return;
+    }
+
+    // Destroy sortable existente se houver (idempotente)
+    if ($tbody.hasClass('ui-sortable')) {
+        try { $tbody.sortable('destroy'); } catch (e) { console.warn("Erro ao destruir sortable de linhas:", e); }
+    }
+
+    // Adiciona handle de drag em cada linha (na celula .linha-acoes)
+    $tbody.find('tr.linhaHeader').each(function () {
+        var $tr = $(this);
+        var $acoes = $tr.find('td.linha-acoes');
+        if (!$acoes.length) return;
+        if ($acoes.find('.mrend-linha-drag-handle').length > 0) return;
+
+        var $handle = $('<span class="mrend-linha-drag-handle" title="Arrastar para reordenar">&#8942;&#8942;</span>');
+        $acoes.prepend($handle);
+    });
+
+    // Estado de drag (para validacao e movimento da subtree)
+    var dragState = { $subtree: null, originalParent: null, originalIndex: -1 };
+
+    $tbody.sortable({
+        items: '> tr.linhaHeader',
+        handle: '.mrend-linha-drag-handle, td.linha-acoes',
+        axis: 'y',
+        tolerance: 'pointer',
+        distance: 5,
+        cursor: 'grabbing',
+        placeholder: 'mrend-linha-sortable-placeholder',
+        helper: 'clone',
+        forcePlaceholderSize: true,
+
+        start: function (event, ui) {
+            ui.item.addClass('mrend-linha-sortable-chosen');
+            ui.placeholder.height(ui.item.outerHeight());
+
+            dragState.$subtree = getLinhaSubtree(ui.item);
+            dragState.originalParent = ui.item.attr('data-tt-parent-id') || '';
+            dragState.originalIndex = ui.item.index();
+
+            // Esconde os descendentes durante o drag (movem em conjunto no stop)
+            dragState.$subtree.not(ui.item).hide();
+
+            console.log("Linha drag start:", ui.item.attr('id'), "(subtree:", dragState.$subtree.length, "linhas)");
+        },
+
+        stop: function (event, ui) {
+            ui.item.removeClass('mrend-linha-sortable-chosen');
+
+            var $movedRow = ui.item;
+            var newParent = '';
+
+            // Determinar novo parent: irmao acima (mesmo parent) ou raiz se nao houver
+            var $prev = $movedRow.prevAll('tr.linhaHeader:visible').first();
+            if ($prev.length) {
+                newParent = $prev.attr('data-tt-parent-id') || '';
+                // Se prev e o proprio parent original e nao filho de outro contexto, mantem
+            }
+
+            // REGRA: so e permitido reordenar entre irmaos (mesmo parent)
+            if (newParent !== dragState.originalParent) {
+                console.warn("Linha drop invalido: parent diferente. Original='" + dragState.originalParent + "' Novo='" + newParent + "'. Cancelando.");
+                $tbody.sortable('cancel');
+                dragState.$subtree.show();
+                alertify.warning("So e possivel reordenar entre linhas irmas (mesmo nivel hierarquico).", 4000);
+                return;
+            }
+
+            // Reanexa os descendentes logo apos a linha movida, preservando ordem
+            var $descendants = dragState.$subtree.not($movedRow);
+            $descendants.show();
+            var $insertAfter = $movedRow;
+            $descendants.each(function () {
+                $insertAfter.after(this);
+                $insertAfter = $(this);
+            });
+
+            console.log("Linha drag stop:", $movedRow.attr('id'));
+            updateLinhasOrdemFromDOM();
+
+            dragState.$subtree = null;
+        },
+
+        change: function () {
+            // hook reservado para feedback visual futuro
+        }
+    });
+
+    var linhasCount = $tbody.find('> tr.linhaHeader').length;
+    console.log("✓ MRend Sortable: " + linhasCount + " linhas configuradas para drag & drop (axis Y, restrito a irmaos)");
+}
+
+/**
+ * Atualiza o campo "ordem" de todas as linhas baseado na posicao atual no DOM.
+ * Espelha updateColunasOrdemFromDOM().
+ */
+function updateLinhasOrdemFromDOM() {
+    var tableId = (GRendConfigTableHtml && GRendConfigTableHtml.tableId) ? GRendConfigTableHtml.tableId : 'inputReportTable';
+    var $tbody = $('#' + tableId + ' tbody');
+    var ordem = 1;
+    var alteracoes = 0;
+
+    $tbody.find('tr.linhaHeader').each(function () {
+        var linhastamp = $(this).attr('id');
+        if (!linhastamp) return;
+
+        var linha = GMrendConfigLinhas.find(function (l) {
+            return l.linhastamp === linhastamp;
+        });
+
+        if (linha && linha.ordem !== ordem) {
+            console.log("Atualizando ordem linha:", (linha.descricao || linha.codigo || linhastamp), "de", linha.ordem, "para", ordem);
+            linha.ordem = ordem;
+            alteracoes++;
+        }
+
+        ordem++;
+    });
+
+    // Re-sort GMrendConfigLinhas pela nova ordem (single source of truth)
+    GMrendConfigLinhas.sort(function (a, b) {
+        return (a.ordem || 0) - (b.ordem || 0);
+    });
+
+    if (alteracoes > 0) {
+        alertify.success("Ordem das linhas atualizada! Clique em 'Actualizar Configuracao' para gravar.", 4000);
+    }
+
+    console.log("Ordem das linhas atualizada:", GMrendConfigLinhas.map(function (l) {
+        return (l.descricao || l.codigo || l.linhastamp) + " (" + l.ordem + ")";
+    }));
+}
+

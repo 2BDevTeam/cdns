@@ -40,6 +40,8 @@ function organizarEcra() {
                 extras: {
                     ordemField: "naturezaordem",
                     linkField: "gruporowid",
+                    linkCodigoField: "gruponatureza",
+                    descLinkField: "descgrupnatureza",
                     cellIdField: "u_reportlstamp",
                     colunaField: "rubrica",
                     linhaField: "natureza",

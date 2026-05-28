@@ -13,6 +13,11 @@ function organizarCampos() {
 }
 function outrasFuncoes() {
     try {
+
+        if ($("#mainPage").data("state") != "consultar") {
+            return true;
+        }
+
         var codigo = $("#ctl00_conteudo_codigo_codigomBox1").val();
         if ($("#mainPage").data("state") == "consultar") {
             codigo = $("#ctl00_conteudo_codigo_mLabel1").text();
@@ -32,7 +37,7 @@ function outrasFuncoes() {
         setTimeout(function () {
 
 
-        },1000)
+        }, 1000)
     } catch (error) {
         console.log(error)
     }
