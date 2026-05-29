@@ -4834,6 +4834,8 @@ function _mciResolveSeriesRows(cfg, mainRows) {
 // ── Modal de transformação genérico (reutilizável) ───────────────────────
 // opts: { title, fonteName, modalId, hostId, config, schema, onSave }
 function _mciOpenTransformModalFor(opts) {
+    $('#' + modalId).remove();
+    $(".modal-backdrop").remove()
     var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
     if (!MTB) { if (typeof alertify !== 'undefined') alertify.error('MdashTransformBuilder não disponível.', 4000); return; }
     var modalId = opts.modalId || 'mcbi-generic-transform-modal';
@@ -7718,7 +7720,7 @@ function renderTextPropertiesInline(obj, panel) {
         $('#' + modalId).remove();
         _txtTransformInited = false;
 
-        var mHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1" role="dialog">'
+        var mHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1" >'
             + '<div class="modal-dialog" style="width:860px;max-width:96vw;margin:32px auto;">'
             + '<div class="modal-content" style="border-radius:14px;overflow:hidden;border:none;box-shadow:0 24px 80px rgba(0,0,0,.24);">'
             + '<div style="display:flex;align-items:center;gap:10px;padding:14px 20px;background:#fff;border-bottom:1px solid rgba(0,0,0,.08);">'

@@ -5202,19 +5202,28 @@ function editFonteInPanel(fonteStamp) {
 
             // Aplicar: copiar valor para o editor no painel e persistir
             $('#mdash-editor-modal-save').off('click').on('click', function () {
-                var newValue = modalAce.getValue();
-                // Actualizar ACE no painel
-                if (editorId && ace.edit) {
-                    ace.edit(editorId).setValue(newValue, -1);
+                try {
+                    var newValue = modalAce.getValue();
+                    // Actualizar ACE no painel
+                    if (editorId && ace.edit) {
+                        ace.edit(editorId).setValue(newValue, -1);
+                    }
+                    // Actualizar modelo
+                    fonte[field] = newValue;
+                    _persistFonte();
+                    syncFonteParametros(fonte);
+                    var $ps = panel.find('.mdash-fonte-params-section');
+                    $ps.find('.mdash-fonte-params-list').html(buildFonteParamsListHtml(fonte));
+                    $ps.toggle(fonte.parametros && fonte.parametros.length > 0);
+                } catch (error) {
+                    console.error('[MDash] Erro ao aplicar transformação da fonte:', error);
+                    if (typeof alertify !== 'undefined') {
+                        alertify.error('Erro ao aplicar transformação: ' + (error.message || error));
+                    }
+                } finally {
+                    // SEMPRE fecha o modal, mesmo se houver erro
+                    $modal.modal('hide');
                 }
-                // Actualizar modelo
-                fonte[field] = newValue;
-                _persistFonte();
-                syncFonteParametros(fonte);
-                var $ps = panel.find('.mdash-fonte-params-section');
-                $ps.find('.mdash-fonte-params-list').html(buildFonteParamsListHtml(fonte));
-                $ps.toggle(fonte.parametros && fonte.parametros.length > 0);
-                $modal.modal('hide');
             });
         });
 

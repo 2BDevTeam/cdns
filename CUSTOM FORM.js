@@ -1683,34 +1683,29 @@ function generateButton(button) {
 }
 
 function generateModalHTML(modalData) {
-    // Generate the custom data attributes string
+    var customData = modalData.customData ? ' ' + modalData.customData.trim() : '';
+    var otherClasses = modalData.otherclassess ? ' ' + modalData.otherclassess.trim() : '';
+    var dialogClass = modalData.dialogClass ? ' ' + modalData.dialogClass.trim() : (modalData.title ? '' : ' modal-dialog-centered');
+    var dialogStyle = modalData.dialogStyle ? ' style="' + modalData.dialogStyle + '"' : '';
+    var dialogRole = modalData.dialogRole ? ' role="' + modalData.dialogRole + '"' : '';
 
-
-    // Start building up the modal HTML string with the opening div
-    var modalHTML = '<div "' + modalData.customData + '"   class="modal ' + modalData.otherclassess + '" id="' + modalData.id + '" tabindex="-1">';
-
-    // Add the modal dialog and content divs
-    modalHTML += '<div class="modal-dialog ' + (modalData.title ? '' : 'modal-dialog-centered') + '">';
+    var modalHTML = '<div' + customData + ' class="modal' + otherClasses + '" id="' + modalData.id + '" tabindex="-1">';
+    modalHTML += '<div class="modal-dialog' + dialogClass + '"' + dialogStyle + dialogRole + '>';
     modalHTML += '<div class="modal-content">';
 
-    // Add the modal header if there is a title
     if (modalData.title) {
         modalHTML += '<div class="modal-header">';
         modalHTML += '<button type="button" class="close" data-dismiss="modal">×</button>';
         modalHTML += '<h3 style="font-weight: bold;" class="modal-title">' + modalData.title + '</h3>';
-
         modalHTML += '</div>';
     }
-    // Add the modal body
-    modalHTML += '<div class="modal-body">' + modalData.body + '</div>';
 
-    // Add the modal footer if there is footer content
+    modalHTML += '<div class="modal-body">' + (modalData.body || '') + '</div>';
+
     if (modalData.footerContent) {
         modalHTML += '<div class="modal-footer">' + modalData.footerContent + '</div>';
     }
 
-    // Close the modal content and dialog divs, and the modal div itself
     modalHTML += '</div></div></div>';
-
-    return modalHTML.trim(); // Remove any leading/trailing whitespace
+    return modalHTML.trim();
 }
