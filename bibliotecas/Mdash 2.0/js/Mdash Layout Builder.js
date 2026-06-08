@@ -1735,8 +1735,16 @@ function updateSlotsFromPreview() {
     var slots = [];
     $wrapper.find('[data-mdash-slot]').each(function () {
         var slotId = $(this).attr('data-mdash-slot');
-        var defaultContent = $(this).html();
-        if (defaultContent.length > 200) defaultContent = defaultContent.substring(0, 200) + '...';
+
+        // Limpar artefactos do slot mode (badges do editor) ANTES de capturar
+        // o conteúdo — senão o defaultContent fica poluído com HTML do editor
+        // (mdash-lb-slot-badge, data-lb-badge-host…) e quebra o layout no render.
+        var $clone = $(this).clone();
+        $clone.find('.mdash-lb-slot-badge').remove();
+        $clone.find('[data-lb-badge-host]').removeAttr('data-lb-badge-host');
+        $clone.find('[data-lb-badge-empty]').removeAttr('data-lb-badge-empty');
+        $clone.find('.mdash-lb-slot-selected').removeClass('mdash-lb-slot-selected');
+        var defaultContent = $clone.html();
 
         slots.push({
             id: slotId,

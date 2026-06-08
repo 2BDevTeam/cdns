@@ -1,0 +1,1938 @@
+{
+  "js/MDash config lib.js": [
+    {
+      "line": 69,
+      "name": "_clipDeepClone"
+    },
+    {
+      "line": 77,
+      "name": "_clipSnapshot"
+    },
+    {
+      "line": 91,
+      "name": "mdashCopySelection"
+    },
+    {
+      "line": 237,
+      "name": "mdashPasteClipboard"
+    },
+    {
+      "line": 287,
+      "name": "_clipPasteTab"
+    },
+    {
+      "line": 321,
+      "name": "_clipPasteContainer"
+    },
+    {
+      "line": 350,
+      "name": "_clipPasteContainerItem"
+    },
+    {
+      "line": 374,
+      "name": "_clipPasteObject"
+    },
+    {
+      "line": 396,
+      "name": "_clipResolveTargetContainer"
+    },
+    {
+      "line": 411,
+      "name": "_clipResolveTargetItem"
+    },
+    {
+      "line": 425,
+      "name": "_clipResolveTargetItemSlot"
+    },
+    {
+      "line": 449,
+      "name": "_clipUpdateCopiedVisuals"
+    },
+    {
+      "line": 471,
+      "name": "mdashHandleMultiSelect"
+    },
+    {
+      "line": 518,
+      "name": "mdashClearMultiSelection"
+    },
+    {
+      "line": 528,
+      "name": "_multiSelUpdateVisuals"
+    },
+    {
+      "line": 551,
+      "name": "_mdashInitKeyboardShortcuts"
+    },
+    {
+      "line": 635,
+      "name": "_mdashSelectAll"
+    },
+    {
+      "line": 664,
+      "name": "_mdashDeleteMultiSelection"
+    },
+    {
+      "line": 710,
+      "name": "UIObjectFormConfig"
+    },
+    {
+      "line": 725,
+      "name": "renderAllContainerItemTemplates"
+    },
+    {
+      "line": 735,
+      "name": "renderContainerItemTemplate"
+    },
+    {
+      "line": 777,
+      "name": "generateSourceErrorHTML"
+    },
+    {
+      "line": 803,
+      "name": "renderUniversalSourceError"
+    },
+    {
+      "line": 827,
+      "name": "attachErrorButtonHandlers"
+    },
+    {
+      "line": 854,
+      "name": "showContainerItemSourceErrors"
+    },
+    {
+      "line": 874,
+      "name": "openSourceErrorDetailsModalUniversal"
+    },
+    {
+      "line": 909,
+      "name": "escapeHtml"
+    },
+    {
+      "line": 916,
+      "name": "openSourceErrorDetailsModal"
+    },
+    {
+      "line": 920,
+      "name": "showContainerItemError"
+    },
+    {
+      "line": 948,
+      "name": "openContainerItemErrorModal"
+    },
+    {
+      "line": 974,
+      "name": "checkAndIndicateSourceErrors"
+    },
+    {
+      "line": 1006,
+      "name": "addSourceErrorBadgeToContainerItem"
+    },
+    {
+      "line": 1034,
+      "name": "openSourceErrorModal"
+    },
+    {
+      "line": 1066,
+      "name": "MdashConfig"
+    },
+    {
+      "line": 1088,
+      "name": "MdashFilter"
+    },
+    {
+      "line": 1117,
+      "name": "MdashTab"
+    },
+    {
+      "line": 1145,
+      "name": "getMdashFilterUIObjectFormConfigAndSourceValues"
+    },
+    {
+      "line": 1211,
+      "name": "MdashContainer"
+    },
+    {
+      "line": 1234,
+      "name": "MdashContainerItem"
+    },
+    {
+      "line": 1331,
+      "name": "getContainerUIObjectFormConfigAndSourceValues"
+    },
+    {
+      "line": 1344,
+      "name": "getContainerItemUIObjectFormConfigAndSourceValues"
+    },
+    {
+      "line": 1420,
+      "name": "MdashContainerItemObject"
+    },
+    {
+      "line": 1566,
+      "name": "getMdashObjectTypeEntry"
+    },
+    {
+      "line": 1597,
+      "name": "getMdashObjectProcessaFonte"
+    },
+    {
+      "line": 1735,
+      "name": "MdashObjectDependencyAnalyzer"
+    },
+    {
+      "line": 1869,
+      "name": "mdashResolveObjectData"
+    },
+    {
+      "line": 1921,
+      "name": "MDashFonte"
+    },
+    {
+      "line": 2178,
+      "name": "MdashSlot"
+    },
+    {
+      "line": 2234,
+      "name": "MdashContainerItemLayout"
+    },
+    {
+      "line": 2328,
+      "name": "getContainerItemLayoutUIObjectFormConfigAndSourceValues"
+    },
+    {
+      "line": 2371,
+      "name": "showDeleteConfirmation"
+    },
+    {
+      "line": 2443,
+      "name": "gerarIdNumerico"
+    },
+    {
+      "line": 2450,
+      "name": "forceJSONParse"
+    },
+    {
+      "line": 2468,
+      "name": "extractTokensFromExpression"
+    },
+    {
+      "line": 2490,
+      "name": "resolveExpressionTokens"
+    },
+    {
+      "line": 2534,
+      "name": "syncFonteParametros"
+    },
+    {
+      "line": 2573,
+      "name": "buildFonteParamsListHtml"
+    },
+    {
+      "line": 2590,
+      "name": "buildMDashConfigData"
+    },
+    {
+      "line": 2611,
+      "name": "openDashboardPreview"
+    },
+    {
+      "line": 2643,
+      "name": "exportarConfiguracaoMDashboard"
+    },
+    {
+      "line": 2676,
+      "name": "addExportImportButtons"
+    },
+    {
+      "line": 2688,
+      "name": "importarConfiguracaoDashboard"
+    },
+    {
+      "line": 2731,
+      "name": "actualizarConfiguracaoMDashboard"
+    },
+    {
+      "line": 2795,
+      "name": "realTimeComponentSync"
+    },
+    {
+      "line": 2869,
+      "name": "initConfiguracaoDashboard"
+    },
+    {
+      "line": 2908,
+      "name": "loadDashboardDataFromServer"
+    },
+    {
+      "line": 3013,
+      "name": "MdashTabsManager"
+    },
+    {
+      "line": 3173,
+      "name": "mdashSyncDashboardConfigRealtime"
+    },
+    {
+      "line": 3201,
+      "name": "ensureMdashCDNsLoaded"
+    },
+    {
+      "line": 3263,
+      "name": "isMdashCDNLoaded"
+    },
+    {
+      "line": 3287,
+      "name": "scopeLayoutCSS"
+    },
+    {
+      "line": 3405,
+      "name": "_fillSlotsViaRegex"
+    },
+    {
+      "line": 3421,
+      "name": "renderUnifiedLayout"
+    },
+    {
+      "line": 3513,
+      "name": "injectSlotDropOverlays"
+    },
+    {
+      "line": 3629,
+      "name": "bindSlotDropZoneEvents"
+    },
+    {
+      "line": 3826,
+      "name": "refreshSlotOverlays"
+    },
+    {
+      "line": 3835,
+      "name": "getTemplateLayoutOptions"
+    },
+    {
+      "line": 3895,
+      "name": "getDefaultTemplateCodigo"
+    },
+    {
+      "line": 3900,
+      "name": "getTemplateLayoutByCode"
+    },
+    {
+      "line": 3906,
+      "name": "getTemplateThumbnailHtml"
+    },
+    {
+      "line": 3963,
+      "name": "createModernDashboardUI"
+    },
+    {
+      "line": 3972,
+      "name": "loadModernStyles"
+    },
+    {
+      "line": 3985,
+      "name": "initModernDashboardUI"
+    },
+    {
+      "line": 5240,
+      "name": "initPropertiesTabs"
+    },
+    {
+      "line": 5271,
+      "name": "activatePropertiesTab"
+    },
+    {
+      "line": 5341,
+      "name": "renderFontesPanel"
+    },
+    {
+      "line": 5405,
+      "name": "renderFontesList"
+    },
+    {
+      "line": 5442,
+      "name": "getFonteTypeIcon"
+    },
+    {
+      "line": 5458,
+      "name": "_refreshInlineObjFonteSelect"
+    },
+    {
+      "line": 5489,
+      "name": "addScopedFonte"
+    },
+    {
+      "line": 5521,
+      "name": "removeScopedFonte"
+    },
+    {
+      "line": 5537,
+      "name": "executeFonteByStamp"
+    },
+    {
+      "line": 5560,
+      "name": "editFonteInPanel"
+    },
+    {
+      "line": 5697,
+      "name": "_persistFonte"
+    },
+    {
+      "line": 6268,
+      "name": "initDragAndDrop"
+    },
+    {
+      "line": 6288,
+      "name": "makeDashboardTabsSortable"
+    },
+    {
+      "line": 6335,
+      "name": "initSlotDropZones"
+    },
+    {
+      "line": 6341,
+      "name": "syncAllContainerItemsLayout"
+    },
+    {
+      "line": 6378,
+      "name": "containerHasAutoLayoutItems"
+    },
+    {
+      "line": 6386,
+      "name": "getContainerLayoutMode"
+    },
+    {
+      "line": 6398,
+      "name": "getEffectiveItemLayoutMode"
+    },
+    {
+      "line": 6408,
+      "name": "isManualLayoutItem"
+    },
+    {
+      "line": 6417,
+      "name": "getItemGridSpan"
+    },
+    {
+      "line": 6426,
+      "name": "getItemGridStyleMap"
+    },
+    {
+      "line": 6452,
+      "name": "getItemGridStyleString"
+    },
+    {
+      "line": 6457,
+      "name": "isGridAreaFree"
+    },
+    {
+      "line": 6468,
+      "name": "markGridAreaOccupied"
+    },
+    {
+      "line": 6476,
+      "name": "findNextGridSlot"
+    },
+    {
+      "line": 6503,
+      "name": "normalizeContainerItemsAutoLayout"
+    },
+    {
+      "line": 6559,
+      "name": "ensureManualItemsHaveCoordinates"
+    },
+    {
+      "line": 6628,
+      "name": "resolveManualCollisions"
+    },
+    {
+      "line": 6664,
+      "name": "detectZone"
+    },
+    {
+      "line": 6790,
+      "name": "computeManualDropSlot"
+    },
+    {
+      "line": 6819,
+      "name": "clearManualPlaceholder"
+    },
+    {
+      "line": 6830,
+      "name": "setManualDragPreviewSlot"
+    },
+    {
+      "line": 6842,
+      "name": "getManualDragPreviewSlot"
+    },
+    {
+      "line": 6849,
+      "name": "clearManualDragPreviewSlot"
+    },
+    {
+      "line": 6855,
+      "name": "applyDroppedItemGridPosition"
+    },
+    {
+      "line": 6919,
+      "name": "initContainerItemResize"
+    },
+    {
+      "line": 6977,
+      "name": "readClientX"
+    },
+    {
+      "line": 6985,
+      "name": "applySize"
+    },
+    {
+      "line": 7020,
+      "name": "onPointerMove"
+    },
+    {
+      "line": 7030,
+      "name": "cleanup"
+    },
+    {
+      "line": 7050,
+      "name": "onPointerUp"
+    },
+    {
+      "line": 7059,
+      "name": "makeToolboxDraggable"
+    },
+    {
+      "line": 7072,
+      "name": "makeCanvasDroppable"
+    },
+    {
+      "line": 7093,
+      "name": "makeContainersSortable"
+    },
+    {
+      "line": 7117,
+      "name": "makeContainerItemsSortable"
+    },
+    {
+      "line": 7431,
+      "name": "createContainerByDrop"
+    },
+    {
+      "line": 7450,
+      "name": "createContainerItemByDrop"
+    },
+    {
+      "line": 7470,
+      "name": "updateContainerOrderFromDom"
+    },
+    {
+      "line": 7483,
+      "name": "updateContainerItemsOrder"
+    },
+    {
+      "line": 7544,
+      "name": "updatePropsComponentHeader"
+    },
+    {
+      "line": 7585,
+      "name": "handleComponentProperties"
+    },
+    {
+      "line": 7640,
+      "name": "buildModalEntityTitle"
+    },
+    {
+      "line": 7645,
+      "name": "resetModalOpenState"
+    },
+    {
+      "line": 7658,
+      "name": "renderPropertiesForm"
+    },
+    {
+      "line": 7778,
+      "name": "getObjectTypeIcon"
+    },
+    {
+      "line": 7800,
+      "name": "getObjectCatalogDefinitions"
+    },
+    {
+      "line": 7839,
+      "name": "addNewContainer"
+    },
+    {
+      "line": 7859,
+      "name": "editContainer"
+    },
+    {
+      "line": 7875,
+      "name": "openContainerEditModal"
+    },
+    {
+      "line": 7955,
+      "name": "saveContainerFromModal"
+    },
+    {
+      "line": 7963,
+      "name": "deleteContainer"
+    },
+    {
+      "line": 7989,
+      "name": "executeDeleteContainer"
+    },
+    {
+      "line": 8017,
+      "name": "moveContainer"
+    },
+    {
+      "line": 8048,
+      "name": "addContainerItem"
+    },
+    {
+      "line": 8063,
+      "name": "editContainerItem"
+    },
+    {
+      "line": 8079,
+      "name": "openContainerItemEditModal"
+    },
+    {
+      "line": 8168,
+      "name": "deleteContainerItem"
+    },
+    {
+      "line": 8212,
+      "name": "executeDeleteContainerItem"
+    },
+    {
+      "line": 8246,
+      "name": "addContainerItemObject"
+    },
+    {
+      "line": 8258,
+      "name": "editContainerItemObject"
+    },
+    {
+      "line": 8272,
+      "name": "openContainerItemObjectEditModal"
+    },
+    {
+      "line": 8361,
+      "name": "showObjectPropertiesEditor"
+    },
+    {
+      "line": 8381,
+      "name": "_renderObjectPropertiesPanel"
+    },
+    {
+      "line": 8543,
+      "name": "showSlotPropertiesEditor"
+    },
+    {
+      "line": 8688,
+      "name": "_selectGlobalFontesScope"
+    },
+    {
+      "line": 8700,
+      "name": "addNewFonte"
+    },
+    {
+      "line": 8708,
+      "name": "editFonte"
+    },
+    {
+      "line": 8716,
+      "name": "deleteFonte"
+    },
+    {
+      "line": 8724,
+      "name": "getFilterTypeLabel"
+    },
+    {
+      "line": 8740,
+      "name": "getFilterTypeIcon"
+    },
+    {
+      "line": 8756,
+      "name": "addNewFilter"
+    },
+    {
+      "line": 8771,
+      "name": "editFilter"
+    },
+    {
+      "line": 8784,
+      "name": "openFiltersManagerModal"
+    },
+    {
+      "line": 8844,
+      "name": "openFilterEditModal"
+    },
+    {
+      "line": 9033,
+      "name": "onFilterTypeChange"
+    },
+    {
+      "line": 9040,
+      "name": "onEventoChangeToggle"
+    },
+    {
+      "line": 9047,
+      "name": "saveFilterFromModal"
+    },
+    {
+      "line": 9080,
+      "name": "deleteFilter"
+    },
+    {
+      "line": 9106,
+      "name": "executeDeleteFilter"
+    },
+    {
+      "line": 9131,
+      "name": "getMDashPanelTheme"
+    },
+    {
+      "line": 9170,
+      "name": "loadModernDashboardStyles"
+    },
+    {
+      "line": 9836,
+      "name": "getMDashEditorTheme"
+    },
+    {
+      "line": 9843,
+      "name": "handleCodeEditor"
+    },
+    {
+      "line": 9844,
+      "name": "getAceModeForEditor"
+    }
+  ],
+  "js/TEMPLATE DASHBOARD STANDARD EXTENSION.js": [
+    {
+      "line": 3,
+      "name": "getCachedColor"
+    },
+    {
+      "line": 29,
+      "name": "_doInjectGlobalStyle"
+    },
+    {
+      "line": 48,
+      "name": "otherStyles"
+    },
+    {
+      "line": 66,
+      "name": "addTabulatorStyles"
+    },
+    {
+      "line": 200,
+      "name": "generateCardTimeLine"
+    },
+    {
+      "line": 220,
+      "name": "pct"
+    },
+    {
+      "line": 303,
+      "name": "generateTimeLineCardsContainer"
+    },
+    {
+      "line": 310,
+      "name": "generateDashCardBudget"
+    },
+    {
+      "line": 346,
+      "name": "generateMDashCardSnapV2"
+    },
+    {
+      "line": 371,
+      "name": "generateMDashCardSnap"
+    },
+    {
+      "line": 397,
+      "name": "generateBrdCardAdvancedMetric"
+    },
+    {
+      "line": 421,
+      "name": "generateBrdCardAdvancedStatus"
+    },
+    {
+      "line": 447,
+      "name": "generateBrdCardAdvancedAlert"
+    },
+    {
+      "line": 471,
+      "name": "generateDashCardSnapshot"
+    },
+    {
+      "line": 482,
+      "name": "generateDashCardStandard"
+    },
+    {
+      "line": 505,
+      "name": "renderObjectCustomCode"
+    },
+    {
+      "line": 593,
+      "name": "renderCustomCodePropertiesInline"
+    },
+    {
+      "line": 605,
+      "name": "fire"
+    },
+    {
+      "line": 839,
+      "name": "_mccOpenEditorModal"
+    },
+    {
+      "line": 885,
+      "name": "_ccReadConfig"
+    },
+    {
+      "line": 904,
+      "name": "crateDynamicSchemaCustomCode"
+    },
+    {
+      "line": 981,
+      "name": "_tblResolveTheme"
+    },
+    {
+      "line": 1028,
+      "name": "_tblCSS"
+    },
+    {
+      "line": 1069,
+      "name": "renderObjectTable"
+    },
+    {
+      "line": 1319,
+      "name": "_cleanupColRename"
+    },
+    {
+      "line": 1322,
+      "name": "commit"
+    },
+    {
+      "line": 1367,
+      "name": "_tblBuildColumns"
+    },
+    {
+      "line": 1453,
+      "name": "_mdashGetAppBaseUrl"
+    },
+    {
+      "line": 1472,
+      "name": "_mdashResolveUrl"
+    },
+    {
+      "line": 1495,
+      "name": "_mdashResolveBtnColor"
+    },
+    {
+      "line": 1505,
+      "name": "_mdashDarkenHex"
+    },
+    {
+      "line": 1517,
+      "name": "_tblLinkButtonFormatter"
+    },
+    {
+      "line": 1553,
+      "name": "_tblPrepareFormatterParams"
+    },
+    {
+      "line": 1614,
+      "name": "_tblGuessSorter"
+    },
+    {
+      "line": 1627,
+      "name": "_tblBuildTree"
+    },
+    {
+      "line": 1652,
+      "name": "_tblEvalExpression"
+    },
+    {
+      "line": 1737,
+      "name": "_tblParseDate"
+    },
+    {
+      "line": 1749,
+      "name": "_tblCompareDates"
+    },
+    {
+      "line": 1764,
+      "name": "_tblDateInRange"
+    },
+    {
+      "line": 1776,
+      "name": "_tblResolveFilterValue"
+    },
+    {
+      "line": 1797,
+      "name": "_tblApplyFilter"
+    },
+    {
+      "line": 1826,
+      "name": "_tblCalculateFilterCount"
+    },
+    {
+      "line": 1840,
+      "name": "_tblResolvePHCColor"
+    },
+    {
+      "line": 1852,
+      "name": "_tblRenderFilters"
+    },
+    {
+      "line": 1927,
+      "name": "_tblAddFiltersCSS"
+    },
+    {
+      "line": 1950,
+      "name": "renderTablePropertiesInline"
+    },
+    {
+      "line": 1962,
+      "name": "fire"
+    },
+    {
+      "line": 2455,
+      "name": "_tblFieldOpts"
+    },
+    {
+      "line": 2460,
+      "name": "_tblColCard"
+    },
+    {
+      "line": 2525,
+      "name": "_tblRefreshFieldSelects"
+    },
+    {
+      "line": 2534,
+      "name": "_tblOpenFilterConditionsModal"
+    },
+    {
+      "line": 2690,
+      "name": "renderCondition"
+    },
+    {
+      "line": 2747,
+      "name": "renderConditions"
+    },
+    {
+      "line": 2827,
+      "name": "_tblReadConfig"
+    },
+    {
+      "line": 2956,
+      "name": "createDynamicSchemaTable"
+    },
+    {
+      "line": 3074,
+      "name": "_alpha"
+    },
+    {
+      "line": 3088,
+      "name": "_esc"
+    },
+    {
+      "line": 3092,
+      "name": "_resolvePHCColor"
+    },
+    {
+      "line": 3101,
+      "name": "_defaultConfig"
+    },
+    {
+      "line": 3118,
+      "name": "buildEchartsOption"
+    },
+    {
+      "line": 3139,
+      "name": "_tooltipBase"
+    },
+    {
+      "line": 3150,
+      "name": "_gridBase"
+    },
+    {
+      "line": 3159,
+      "name": "_buildCartesianOption"
+    },
+    {
+      "line": 3267,
+      "name": "_buildBarHOption"
+    },
+    {
+      "line": 3301,
+      "name": "_buildPieOption"
+    },
+    {
+      "line": 3339,
+      "name": "_buildScatterOption"
+    },
+    {
+      "line": 3363,
+      "name": "_buildFunnelOption"
+    },
+    {
+      "line": 3388,
+      "name": "render"
+    },
+    {
+      "line": 3658,
+      "name": "_serieRow"
+    },
+    {
+      "line": 3678,
+      "name": "_chk"
+    },
+    {
+      "line": 3682,
+      "name": "readConfig"
+    },
+    {
+      "line": 3694,
+      "name": "_bindUI"
+    },
+    {
+      "line": 3729,
+      "name": "_fire"
+    },
+    {
+      "line": 3737,
+      "name": "_injectCSS"
+    },
+    {
+      "line": 3805,
+      "name": "createDynamicSchemaGrafico"
+    },
+    {
+      "line": 4105,
+      "name": "renderObjectGrafico"
+    },
+    {
+      "line": 4197,
+      "name": "updateChartOnContainer"
+    },
+    {
+      "line": 4357,
+      "name": "getMdashSampleData"
+    },
+    {
+      "line": 4386,
+      "name": "_mciEsc"
+    },
+    {
+      "line": 4392,
+      "name": "_mciGetFontes"
+    },
+    {
+      "line": 4404,
+      "name": "_mciGetFonteSchema"
+    },
+    {
+      "line": 4429,
+      "name": "_mciSetSelectFields"
+    },
+    {
+      "line": 4439,
+      "name": "_mciAutoApplyFonteTransform"
+    },
+    {
+      "line": 4483,
+      "name": "_mciGetFields"
+    },
+    {
+      "line": 4526,
+      "name": "_mciGetRows"
+    },
+    {
+      "line": 4543,
+      "name": "_mciRerender"
+    },
+    {
+      "line": 4562,
+      "name": "_mciPreviewUpdate"
+    },
+    {
+      "line": 4570,
+      "name": "_mciReadConfig"
+    },
+    {
+      "line": 4638,
+      "name": "_mciSection"
+    },
+    {
+      "line": 4645,
+      "name": "_mciChk"
+    },
+    {
+      "line": 4653,
+      "name": "_mciChkVal"
+    },
+    {
+      "line": 4661,
+      "name": "_mciSerieRow"
+    },
+    {
+      "line": 4757,
+      "name": "_mciRefreshFieldSelects"
+    },
+    {
+      "line": 4767,
+      "name": "_mciResolveSeriesRows"
+    },
+    {
+      "line": 4777,
+      "name": "_rawToRows"
+    },
+    {
+      "line": 4781,
+      "name": "_addToMerge"
+    },
+    {
+      "line": 4836,
+      "name": "_mciOpenTransformModalFor"
+    },
+    {
+      "line": 4870,
+      "name": "renderChartPropertiesInline"
+    },
+    {
+      "line": 4911,
+      "name": "_mciFieldOpts"
+    },
+    {
+      "line": 5057,
+      "name": "fire"
+    },
+    {
+      "line": 5078,
+      "name": "_mciOpenTransformModal"
+    },
+    {
+      "line": 5108,
+      "name": "_mciInitTransform"
+    },
+    {
+      "line": 5164,
+      "name": "_mciOpenSeriesTransformModal"
+    },
+    {
+      "line": 5199,
+      "name": "_mciGetAllFields"
+    },
+    {
+      "line": 5225,
+      "name": "_mciRefreshXField"
+    },
+    {
+      "line": 5396,
+      "name": "_mciCSS"
+    },
+    {
+      "line": 5578,
+      "name": "_htmlRenderTemplate"
+    },
+    {
+      "line": 5605,
+      "name": "_htmlSanitize"
+    },
+    {
+      "line": 5616,
+      "name": "renderObjectHtml"
+    },
+    {
+      "line": 5673,
+      "name": "renderHtmlPropertiesInline"
+    },
+    {
+      "line": 5684,
+      "name": "fire"
+    },
+    {
+      "line": 5926,
+      "name": "_htmlReadConfig"
+    },
+    {
+      "line": 5943,
+      "name": "getTiposObjectoConfig"
+    },
+    {
+      "line": 6409,
+      "name": "_lstNormalizeConfig"
+    },
+    {
+      "line": 6424,
+      "name": "_lstPhcColor"
+    },
+    {
+      "line": 6439,
+      "name": "_lstSanitize"
+    },
+    {
+      "line": 6444,
+      "name": "renderObjectLista"
+    },
+    {
+      "line": 6573,
+      "name": "_lstRenderGeneric"
+    },
+    {
+      "line": 6647,
+      "name": "_lstRenderTimeline"
+    },
+    {
+      "line": 6704,
+      "name": "_lstRenderCards"
+    },
+    {
+      "line": 6767,
+      "name": "_lstRenderRow"
+    },
+    {
+      "line": 6844,
+      "name": "_lstManualItemRow"
+    },
+    {
+      "line": 6878,
+      "name": "renderListaPropertiesInline"
+    },
+    {
+      "line": 6890,
+      "name": "fire"
+    },
+    {
+      "line": 6907,
+      "name": "_fieldOpts"
+    },
+    {
+      "line": 6956,
+      "name": "colorSelect"
+    },
+    {
+      "line": 7079,
+      "name": "_sec"
+    },
+    {
+      "line": 7212,
+      "name": "_lstOpenTransformModal"
+    },
+    {
+      "line": 7254,
+      "name": "_lstReadConfig"
+    },
+    {
+      "line": 7344,
+      "name": "_txtDeepMerge"
+    },
+    {
+      "line": 7362,
+      "name": "_txtNormalizeConfig"
+    },
+    {
+      "line": 7377,
+      "name": "_txtGetSeparator"
+    },
+    {
+      "line": 7385,
+      "name": "renderObjectTexto"
+    },
+    {
+      "line": 7427,
+      "name": "out"
+    },
+    {
+      "line": 7432,
+      "name": "spanGroup"
+    },
+    {
+      "line": 7476,
+      "name": "_txtEsc"
+    },
+    {
+      "line": 7481,
+      "name": "_txtFormatNoAffix"
+    },
+    {
+      "line": 7491,
+      "name": "_txtAlignToJustify"
+    },
+    {
+      "line": 7500,
+      "name": "_txtBuildStyles"
+    },
+    {
+      "line": 7532,
+      "name": "renderTextPropertiesInline"
+    },
+    {
+      "line": 7563,
+      "name": "_txtFieldOpts"
+    },
+    {
+      "line": 7743,
+      "name": "fire"
+    },
+    {
+      "line": 7763,
+      "name": "_txtOpenTransformModal"
+    },
+    {
+      "line": 7790,
+      "name": "_txtInitTransform"
+    },
+    {
+      "line": 7909,
+      "name": "_txtReadConfig"
+    },
+    {
+      "line": 7994,
+      "name": "createDynamicSchemaTexto"
+    },
+    {
+      "line": 8089,
+      "name": "updateTextElement"
+    },
+    {
+      "line": 8183,
+      "name": "formatDataValue"
+    },
+    {
+      "line": 8196,
+      "name": "applyDecimalSeparator"
+    },
+    {
+      "line": 8288,
+      "name": "getColorByType"
+    },
+    {
+      "line": 8303,
+      "name": "hexToRgb"
+    },
+    {
+      "line": 8332,
+      "name": "updatePie"
+    },
+    {
+      "line": 8462,
+      "name": "createTableSchema"
+    },
+    {
+      "line": 8727,
+      "name": "buildDataTree"
+    },
+    {
+      "line": 8738,
+      "name": "addChildren"
+    },
+    {
+      "line": 8772,
+      "name": "updateTable"
+    },
+    {
+      "line": 8966,
+      "name": "expandChildrenRecursive"
+    },
+    {
+      "line": 8986,
+      "name": "getDefaultLayoutDefinitions"
+    },
+    {
+      "line": 9177,
+      "name": "MDashCard"
+    },
+    {
+      "line": 9198,
+      "name": "addBtnStyles"
+    },
+    {
+      "line": 9220,
+      "name": "addDashboardStyles"
+    },
+    {
+      "line": 10500,
+      "name": "loadSortableStyles"
+    }
+  ],
+  "js/Mdash Layout Builder.js": [
+    {
+      "line": 48,
+      "name": "addLayoutBuilderStyles"
+    },
+    {
+      "line": 220,
+      "name": "renderLayoutBuilderGallery"
+    },
+    {
+      "line": 285,
+      "name": "selectLayoutForEditing"
+    },
+    {
+      "line": 305,
+      "name": "getLayoutByStamp"
+    },
+    {
+      "line": 311,
+      "name": "getSelectedLayout"
+    },
+    {
+      "line": 320,
+      "name": "initLayoutBuilderAceEditors"
+    },
+    {
+      "line": 363,
+      "name": "destroyLayoutBuilderAceEditors"
+    },
+    {
+      "line": 371,
+      "name": "loadLayoutIntoEditors"
+    },
+    {
+      "line": 392,
+      "name": "saveEditorsToLayout"
+    },
+    {
+      "line": 417,
+      "name": "debounceLayoutPreview"
+    },
+    {
+      "line": 431,
+      "name": "scopeCssToPreview"
+    },
+    {
+      "line": 452,
+      "name": "updateLayoutPreview"
+    },
+    {
+      "line": 493,
+      "name": "executePreviewJS"
+    },
+    {
+      "line": 512,
+      "name": "renderLayoutProperties"
+    },
+    {
+      "line": 604,
+      "name": "renderCdnManager"
+    },
+    {
+      "line": 625,
+      "name": "bindCdnManagerEvents"
+    },
+    {
+      "line": 666,
+      "name": "addNewLayout"
+    },
+    {
+      "line": 681,
+      "name": "deleteLayoutByStamp"
+    },
+    {
+      "line": 705,
+      "name": "deleteSelectedLayout"
+    },
+    {
+      "line": 711,
+      "name": "executeDeleteLayout"
+    },
+    {
+      "line": 729,
+      "name": "duplicateSelectedLayout"
+    },
+    {
+      "line": 759,
+      "name": "saveCurrentLayout"
+    },
+    {
+      "line": 776,
+      "name": "syncLayoutToServer"
+    },
+    {
+      "line": 786,
+      "name": "clearLayoutEditors"
+    },
+    {
+      "line": 819,
+      "name": "loadLayoutsFromServer"
+    },
+    {
+      "line": 851,
+      "name": "getHBFDefaultTemplate"
+    },
+    {
+      "line": 925,
+      "name": "addNewLayoutFromHBFTemplate"
+    },
+    {
+      "line": 955,
+      "name": "openLayoutBuilder"
+    },
+    {
+      "line": 1109,
+      "name": "closeLayoutBuilder"
+    },
+    {
+      "line": 1131,
+      "name": "bindLayoutBuilderEvents"
+    },
+    {
+      "line": 1223,
+      "name": "toggleSlotMode"
+    },
+    {
+      "line": 1250,
+      "name": "bindSlotModeEvents"
+    },
+    {
+      "line": 1283,
+      "name": "unbindSlotModeEvents"
+    },
+    {
+      "line": 1294,
+      "name": "updateSlotBreadcrumb"
+    },
+    {
+      "line": 1339,
+      "name": "showSlotPopover"
+    },
+    {
+      "line": 1398,
+      "name": "hideSlotPopover"
+    },
+    {
+      "line": 1402,
+      "name": "bindSlotPopoverEvents"
+    },
+    {
+      "line": 1504,
+      "name": "getElementBadgeLabel"
+    },
+    {
+      "line": 1532,
+      "name": "getOwnTextContent"
+    },
+    {
+      "line": 1547,
+      "name": "injectSlotModeBadges"
+    },
+    {
+      "line": 1601,
+      "name": "removeSlotModeBadges"
+    },
+    {
+      "line": 1620,
+      "name": "refreshSlotModeBadges"
+    },
+    {
+      "line": 1628,
+      "name": "suggestSlotName"
+    },
+    {
+      "line": 1669,
+      "name": "syncPreviewToHtmlEditor"
+    },
+    {
+      "line": 1702,
+      "name": "beautifyHtml"
+    },
+    {
+      "line": 1731,
+      "name": "updateSlotsFromPreview"
+    },
+    {
+      "line": 1774,
+      "name": "renderDetectedSlots"
+    },
+    {
+      "line": 1816,
+      "name": "exportSelectedLayout"
+    },
+    {
+      "line": 1859,
+      "name": "exportAllLayouts"
+    },
+    {
+      "line": 1904,
+      "name": "importLayouts"
+    },
+    {
+      "line": 1908,
+      "name": "handleImportFile"
+    },
+    {
+      "line": 1964,
+      "name": "getCustomLayoutTemplateOptions"
+    }
+  ],
+  "js/DATA SOURCE Operations.js": [
+    {
+      "line": 13,
+      "name": "getMdashDb"
+    },
+    {
+      "line": 24,
+      "name": "mdashResetDb"
+    },
+    {
+      "line": 35,
+      "name": "mdashFonteTableName"
+    },
+    {
+      "line": 39,
+      "name": "mdashInferSqlType"
+    },
+    {
+      "line": 46,
+      "name": "mdashNormalizeFiltersForSqlTokens"
+    },
+    {
+      "line": 83,
+      "name": "mdashSqlResultToObjects"
+    },
+    {
+      "line": 97,
+      "name": "mdashSqlResultToNormalized"
+    },
+    {
+      "line": 116,
+      "name": "mdashLoadFonteIntoDb"
+    },
+    {
+      "line": 149,
+      "name": "mdashDropFonte"
+    },
+    {
+      "line": 161,
+      "name": "mdashQuery"
+    },
+    {
+      "line": 175,
+      "name": "mdashQueryRaw"
+    },
+    {
+      "line": 195,
+      "name": "mdashGetFonteRows"
+    },
+    {
+      "line": 207,
+      "name": "mdashBuildCachePayload"
+    },
+    {
+      "line": 221,
+      "name": "mdashSaveFonteCache"
+    },
+    {
+      "line": 411,
+      "name": "mdashInitFontesFromCache"
+    },
+    {
+      "line": 424,
+      "name": "mdashExtractRowsFromCache"
+    },
+    {
+      "line": 452,
+      "name": "_mdashExtendFontePrototype"
+    },
+    {
+      "line": 561,
+      "name": "getOutputSchema"
+    },
+    {
+      "line": 602,
+      "name": "_defaultConfig"
+    },
+    {
+      "line": 616,
+      "name": "_quoteField"
+    },
+    {
+      "line": 620,
+      "name": "_buildSelectExpr"
+    },
+    {
+      "line": 639,
+      "name": "_buildFilterExpr"
+    },
+    {
+      "line": 673,
+      "name": "buildSQL"
+    },
+    {
+      "line": 741,
+      "name": "_sqlAdapt"
+    },
+    {
+      "line": 752,
+      "name": "execute"
+    },
+    {
+      "line": 759,
+      "name": "executeRaw"
+    },
+    {
+      "line": 770,
+      "name": "_compileJsExprs"
+    },
+    {
+      "line": 790,
+      "name": "_evalJsExpr"
+    },
+    {
+      "line": 798,
+      "name": "_applyJsExprsRaw"
+    },
+    {
+      "line": 819,
+      "name": "_applyJsExprsObjects"
+    },
+    {
+      "line": 833,
+      "name": "getTableSchema"
+    },
+    {
+      "line": 850,
+      "name": "isNumericField"
+    },
+    {
+      "line": 858,
+      "name": "autoConfig"
+    },
+    {
+      "line": 882,
+      "name": "render"
+    },
+    {
+      "line": 894,
+      "name": "_sec"
+    },
+    {
+      "line": 989,
+      "name": "_fieldOpts"
+    },
+    {
+      "line": 1002,
+      "name": "_renderColumnRow"
+    },
+    {
+      "line": 1019,
+      "name": "_renderMeasureRow"
+    },
+    {
+      "line": 1029,
+      "name": "_renderFilterRow"
+    },
+    {
+      "line": 1051,
+      "name": "_renderOrderRow"
+    },
+    {
+      "line": 1065,
+      "name": "_readConfig"
+    },
+    {
+      "line": 1122,
+      "name": "_bindEvents"
+    },
+    {
+      "line": 1274,
+      "name": "_updateSqlPreview"
+    },
+    {
+      "line": 1289,
+      "name": "_previewHd"
+    },
+    {
+      "line": 1298,
+      "name": "_renderPreview"
+    },
+    {
+      "line": 1348,
+      "name": "_escapeHtml"
+    },
+    {
+      "line": 1354,
+      "name": "_buildCSS"
+    }
+  ],
+  "js/SQLADAPTER.js": [
+    {
+      "line": 64,
+      "name": "extractFunctionArgs"
+    },
+    {
+      "line": 104,
+      "name": "swapFunctionArgs"
+    },
+    {
+      "line": 174,
+      "name": "transformTopToLimit"
+    },
+    {
+      "line": 201,
+      "name": "transformLimitToTop"
+    },
+    {
+      "line": 224,
+      "name": "transformOffsetFetchToLimit"
+    },
+    {
+      "line": 242,
+      "name": "transformStuffForXmlToGroupConcat"
+    },
+    {
+      "line": 334,
+      "name": "splitDepthZeroCommas"
+    },
+    {
+      "line": 357,
+      "name": "findKeywordAtDepthZero"
+    },
+    {
+      "line": 394,
+      "name": "transformForJsonPath"
+    },
+    {
+      "line": 500,
+      "name": "SqlAdapterRule"
+    },
+    {
+      "line": 542,
+      "name": "SqlAdapter"
+    },
+    {
+      "line": 609,
+      "name": "SqlServerToSQLiteAdapter"
+    },
+    {
+      "line": 861,
+      "name": "SQLiteToSqlServerAdapter"
+    }
+  ],
+  "p#U00e1ginas de internet/Mdash.html": [
+    {
+      "line": 2138,
+      "name": "buildAlert"
+    },
+    {
+      "line": 2229,
+      "name": "mdashRenderEnterpriseCard"
+    },
+    {
+      "line": 2253,
+      "name": "groupItemsByRows"
+    },
+    {
+      "line": 2296,
+      "name": "getContainerLayoutModeRuntime"
+    },
+    {
+      "line": 2308,
+      "name": "getEffectiveItemLayoutModeRuntime"
+    },
+    {
+      "line": 2319,
+      "name": "getMdashSkeletonMinHeightBySize"
+    },
+    {
+      "line": 2325,
+      "name": "generateMdashSkeleton"
+    },
+    {
+      "line": 2368,
+      "name": "syncMdashSidebarHeight"
+    },
+    {
+      "line": 2399,
+      "name": "scheduleMdashSidebarHeightSync"
+    },
+    {
+      "line": 2404,
+      "name": "generateStandardCard"
+    },
+    {
+      "line": 2411,
+      "name": "generateDashCardHTML"
+    },
+    {
+      "line": 2425,
+      "name": "MdashRendConfig"
+    },
+    {
+      "line": 2441,
+      "name": "Mdash"
+    },
+    {
+      "line": 2490,
+      "name": "MdashRendTab"
+    },
+    {
+      "line": 2500,
+      "name": "MdashRendFilter"
+    },
+    {
+      "line": 2520,
+      "name": "MdashRendContainer"
+    },
+    {
+      "line": 2533,
+      "name": "MdashContainerItem"
+    },
+    {
+      "line": 2939,
+      "name": "MdashContainerItemObject"
+    },
+    {
+      "line": 3186,
+      "name": "handleDefaultValue"
+    },
+    {
+      "line": 3222,
+      "name": "runExpression"
+    },
+    {
+      "line": 3226,
+      "name": "getValorDefeito"
+    },
+    {
+      "line": 3242,
+      "name": "initFlatpickr"
+    },
+    {
+      "line": 3646,
+      "name": "normMode"
+    },
+    {
+      "line": 3716,
+      "name": "hasToken"
+    },
+    {
+      "line": 3768,
+      "name": "showSkeleton"
+    },
+    {
+      "line": 4000,
+      "name": "applyLoaderColor"
+    },
+    {
+      "line": 4018,
+      "name": "mdashHideLoader"
+    },
+    {
+      "line": 4034,
+      "name": "is"
+    },
+    {
+      "line": 4037,
+      "name": "loadAllFontes"
+    },
+    {
+      "line": 4063,
+      "name": "handleMdashConfigData"
+    }
+  ]
+}

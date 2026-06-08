@@ -1,0 +1,104 @@
+{
+  "containers_items_objects": {
+    "read": [
+      "docs-ai/modules/CONTAINERS-ITEMS-OBJECTS.md"
+    ],
+    "primary_files": [
+      "js/MDash config lib.js",
+      "p#U00e1ginas de internet/Mdash.html"
+    ],
+    "keywords": [
+      "MdashContainer",
+      "MdashContainerItem",
+      "MdashContainerItemObject",
+      "slotsconfig",
+      "templatelayout"
+    ]
+  },
+  "filters": {
+    "read": [
+      "docs-ai/modules/FILTERS.md"
+    ],
+    "primary_files": [
+      "js/MDash config lib.js",
+      "p#U00e1ginas de internet/Mdash.html",
+      "js/TEMPLATE DASHBOARD STANDARD EXTENSION.js"
+    ],
+    "keywords": [
+      "MdashFilter",
+      "filterValues",
+      "executeUpdateFilter",
+      "_tblRenderFilters",
+      "_tblApplyFilter"
+    ]
+  },
+  "fontes_data_cache": {
+    "read": [
+      "docs-ai/modules/FONTES-DATA-CACHE.md"
+    ],
+    "primary_files": [
+      "js/MDash config lib.js",
+      "js/DATA SOURCE Operations.js",
+      "p#U00e1ginas de internet/Mdash.html",
+      "Cache Architecture.md"
+    ],
+    "keywords": [
+      "MDashFonte",
+      "mdashLoadFonteIntoDb",
+      "loadAllFontes",
+      "_runFontePipelineByStampMap",
+      "fontestamp",
+      "fontesstampsjson"
+    ]
+  },
+  "layout_slots_tabs": {
+    "read": [
+      "docs-ai/modules/LAYOUT-SLOTS-TABS.md"
+    ],
+    "primary_files": [
+      "js/MDash config lib.js",
+      "js/Mdash Layout Builder.js",
+      "p#U00e1ginas de internet/Mdash.html"
+    ],
+    "keywords": [
+      "MdashTab",
+      "MdashSlot",
+      "renderUnifiedLayout",
+      "injectSlotDropOverlays",
+      "templatelayout",
+      "activeTabStamp"
+    ]
+  },
+  "render_final": {
+    "read": [
+      "docs-ai/modules/RENDER-MDASH-HTML.md"
+    ],
+    "primary_files": [
+      "p#U00e1ginas de internet/Mdash.html"
+    ],
+    "keywords": [
+      "handleMdashConfigData",
+      "Mdash",
+      "MdashContainerItem",
+      "MdashContainerItemObject",
+      "loadAllFontes"
+    ]
+  },
+  "object_types": {
+    "read": [
+      "docs-ai/modules/OBJECT-TYPES.md"
+    ],
+    "primary_files": [
+      "js/TEMPLATE DASHBOARD STANDARD EXTENSION.js",
+      "js/MDash config lib.js",
+      "docs/OBJECT-TYPE-DEVELOPMENT-GUIDE.md"
+    ],
+    "keywords": [
+      "getMdashObjectTypeEntry",
+      "renderObjectTable",
+      "renderObjectGrafico",
+      "renderObjectCustomCode",
+      "createDynamicSchema"
+    ]
+  }
+}

@@ -36,6 +36,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/0.3.2/js/sql.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js"></script>
 
+
+
 <style>
   body {
     background-color: #f3f7fe !important;
@@ -119,14 +121,20 @@
   }
 
   /* ROW */
+  /* minmax(0, 1fr) alinhado com o editor (.mdash-container-items-row da lib):
+     impede que o conteúdo de um card estique a coluna além de 1fr e empurre
+     os restantes (causava o último card a deslocar-se no layout manual). */
   .gr-row {
     display: grid;
-    grid-template-columns: repeat(12, 1fr);
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 1rem;
     grid-auto-rows: 1fr;
     margin-bottom: 2rem;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  }
 
+  /* ROW com layout automático — mais flexível */
+  .gr-row.mdash-layout-auto {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
   }
 
   /* COLUNAS base */
@@ -534,15 +542,18 @@
     align-items: center;
     justify-content: flex-start;
     gap: 16px;
-    margin: 0 0 24px 0;
-    padding: 24px;
+    margin: 0 0 5px 0;
+    /* padding: 24px; */
+    margin: 0 0 0.3em 0;
+    padding: 0.3em 0.3em 0px 0.3em;
   }
 
   .m-dash-header .mdash-dashboard-title {
     margin: 0;
-    font-size: 30px;
+    font-size: 15px;
     font-weight: 700;
-    color: #1c252e !important;
+    /* color: #1f2429 !important; */
+    color: #3f5670 !important;
     letter-spacing: -.01em;
     line-height: 1.2;
     flex: 1 1 auto;
@@ -820,10 +831,11 @@
   /* ======================================================================== */
 
   .mdash-panel {
-    background: #ffffff;
+    /*
+    background: transparent;
     border-radius: 16px;
-    /*box-shadow: 0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12);*/
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);*/
 
   }
 
@@ -878,16 +890,35 @@
   }
 
   .mdash-dashboard-tabs {
+    --md-tab-basis: 78px;
+    --md-tab-min: 56px;
+    --md-tab-max: 96px;
     display: flex;
     align-items: flex-end;
-    gap: 2px;
-    min-width: max-content;
+    align-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 3px;
+    min-width: 0;
+    width: 100%;
     position: relative;
     z-index: 1;
     padding-bottom: 0;
     overflow-x: auto;
+    overflow-y: visible;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
+  }
+
+  .mdash-dashboard-tabs.is-wrap-mode {
+    flex-wrap: wrap !important;
+    gap: 4px 3px;
+    overflow: visible !important;
+    min-width: 0 !important;
+  }
+
+  .mdash-dashboard-tabs.is-squeeze-mode {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
   }
 
   .mdash-dashboard-tabs::-webkit-scrollbar {
@@ -905,13 +936,14 @@
     --mdash-tab-text: #475569;
     --mdash-tab-font: inherit;
     position: relative;
-    min-width: 140px;
-    max-width: 280px;
-    height: 40px;
-    padding: 0 14px 0 12px;
+    flex: 1 1 var(--md-tab-basis);
+    min-width: var(--md-tab-min);
+    max-width: var(--md-tab-max);
+    height: 32px;
+    padding: 0 10px 0 6px;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     cursor: pointer;
     background: color-mix(in srgb, var(--mdash-tab-accent) 14%, #edf1f7);
     color: var(--mdash-tab-text);
@@ -921,6 +953,7 @@
     user-select: none;
     border: none;
     outline: none;
+    overflow: hidden;
   }
 
   .mdash-dashboard-tab:hover {
@@ -954,13 +987,13 @@
   }
 
   .mdash-dashboard-tab i {
-    font-size: 12px;
+    font-size: 9px;
     flex-shrink: 0;
     color: var(--mdash-tab-icon);
   }
 
   .mdash-dashboard-tab-label {
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 600;
     line-height: 1;
     letter-spacing: .01em;
@@ -1022,8 +1055,10 @@
   }
 
   .mdash-section:has(.mdash-section__header) {
-    margin-top: 20px;
-    margin-bottom: 6px;
+    /* margin-top: 20px; */
+    /* margin-bottom: 6px; */
+    margin-top: 0;
+    margin-bottom: 5px;
   }
 
   /* ---------- Header ---------- */
@@ -1156,7 +1191,7 @@
 
   /* ======================================================================== */
   /* MDASH 2.0 — SIDEBAR RESPONSIVE SYSTEM                                   */
-  /* Mobile-first: full-width block → tablet side-by-side → desktop sticky   */
+  /* Mobile-first: full-width block ? tablet side-by-side ? desktop sticky   */
   /* ======================================================================== */
 
   /* BASE — default 248px, responsive below */
@@ -1262,7 +1297,7 @@
   }
 
   /* ======================================================================== */
-  /* XS  (≤575px) — full-width, compact padding                               */
+  /* XS  (=575px) — full-width, compact padding                               */
   /* ======================================================================== */
   @media screen and (max-width: 575px) {
     .mdash .mdash-sidebar {
@@ -1317,7 +1352,7 @@
   }
 
   /* ======================================================================== */
-  /* XL  (≥1200px) — 248px sticky, body scrolls within viewport              */
+  /* XL  (=1200px) — 248px sticky, body scrolls within viewport              */
   /* ======================================================================== */
   @media screen and (min-width: 1200px) {
     .mdash-filter-card--vertical {
@@ -1764,7 +1799,7 @@
 
   .mdash-loader__ring-arc {
     stroke: var(--mdash-loader-color, #00a76f);
-    /* circumference ≈ 2π×38 ≈ 238.8 */
+    /* circumference ˜ 2p×38 ˜ 238.8 */
     stroke-dasharray: 140 238.8;
     stroke-linecap: round;
   }
@@ -1877,6 +1912,8 @@
   }
 </style>
 
+
+
 <script src="https://unpkg.com/vue-multiselect"></script>
 <link rel="stylesheet" href="https://unpkg.com/vue-multiselect/dist/vue-multiselect.min.css">
 
@@ -1952,9 +1989,10 @@
                     v-model="mdash.filterValues[filter.codigo]" />
                   <!-- list -->
                   <div v-else-if="filter.tipo === 'list'">
-                    <select @change="updateFilter(filter,$event)"
+                    <select @vue:mounted="initListSelect($el,filter)" @change="updateFilter(filter,$event)"
                       class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
                       v-model="mdash.filterValues[filter.codigo]">
+                      <option value="">-- Selecione --</option>
                       <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">{{
                         opt[filter.campooption] }}</option>
                     </select>
@@ -2029,9 +2067,10 @@
                     v-model="mdash.filterValues[filter.codigo]" />
                   <!-- list -->
                   <div v-else-if="filter.tipo === 'list'">
-                    <select @change="updateFilter(filter,$event)"
+                    <select @vue:mounted="initListSelect($el,filter)" @change="updateFilter(filter,$event)"
                       class="form-control select-mdash-filter input-mdash-filter" :id="filter.codigo"
                       v-model="mdash.filterValues[filter.codigo]">
+                      <option value="">-- Selecione --</option>
                       <option v-for="opt in getOptions(filter)" :value="opt[filter.campovalor]">{{
                         opt[filter.campooption] }}</option>
                     </select>
@@ -2077,13 +2116,16 @@
           <div v-if="getSortedTabs().length === 0" class="mdash-tabs-empty">
             <i class="glyphicon glyphicon-info-sign"></i> Nenhum separador configurado.
           </div>
-          <div v-else class="mdash-dashboard-tabs" role="tablist">
+          <div v-else class="mdash-dashboard-tabs" :class="getDashboardTabsClass()" :style="getDashboardTabsStyle()"
+            role="tablist">
             <div v-for="tab in getSortedTabs()" :key="tab.mdashtabstamp"
               :class="['mdash-dashboard-tab', { 'is-active': isTabActive(tab) }]" :style="getTabStyle(tab)" role="tab"
-              :aria-selected="isTabActive(tab) ? 'true' : 'false'" @click="selectTab(tab.mdashtabstamp)">
+              :aria-selected="isTabActive(tab) ? 'true' : 'false'" :title="getTabTooltipTitle(tab)"
+              @click="selectTab(tab.mdashtabstamp)">
               <span class="mdash-dashboard-tab-accent"></span>
               <i :class="tab.icone || 'glyphicon glyphicon-list-alt'"></i>
-              <span class="mdash-dashboard-tab-label">{{ tab.titulo || 'Separador' }}</span>
+              <span class="mdash-dashboard-tab-label" :title="getTabTooltipTitle(tab)">{{ tab.titulo || 'Separador'
+                }}</span>
             </div>
           </div>
         </div>
@@ -2106,7 +2148,7 @@
               <div class="mdash-section__body">
                 {{initUI()}}
                 <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)"
-                  :key="'row-' + rowIndex" class="gr-row m-dash-container-item-row"
+                  :key="'row-' + rowIndex" :class="['gr-row', 'm-dash-container-item-row', getRowLayoutClass(rowGroup)]"
                   style="margin-top: 0.6em;margin-bottom:1.6em">
                   <div v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
                     :id="item.mdashcontaineritemstamp" :class="getItemClasses(item)" :style="getItemGridStyle(item)">
@@ -2281,7 +2323,14 @@
     return rows;
   }
 
+  // ── LAYOUT: lógica CENTRALIZADA em "MDash config lib.js" ───────────────────
+  // O viewer NÃO reimplementa o sistema de layout. Delega nas funções da lib
+  // (carregada globalmente pelo JS de utilizador do PHC). O fallback local
+  // existe apenas para o viewer não rebentar se a lib falhar a carregar.
   function getContainerLayoutModeRuntime(containers, containerStamp) {
+    if (typeof getContainerLayoutMode === 'function') {
+      return getContainerLayoutMode(containerStamp);
+    }
     var list = Array.isArray(containers) ? containers : [];
     var container = list.find(function (c) {
       return c && c.mdashcontainerstamp === containerStamp;
@@ -2291,6 +2340,9 @@
   }
 
   function getEffectiveItemLayoutModeRuntime(item, containers) {
+    if (typeof getEffectiveItemLayoutMode === 'function') {
+      return getEffectiveItemLayoutMode(item);
+    }
     if (!item) return 'auto';
     var itemMode = String(item.layoutmode || 'inherit').toLowerCase();
     if (itemMode === 'manual') return 'manual';
@@ -3166,18 +3218,38 @@
   });
 
   function handleDefaultValue(dataType, valor) {
-    switch (dataType.trim()) {
-      case "digit":
-        var inputValTxt = (String(valor) ? String(valor).replaceAll(" ", "").replaceAll(",", "") : "0")
+    var tipo = dataType ? dataType.trim().toLowerCase() : '';
 
-        return inputValTxt;
-        return isNaN(inputValTxt) || inputValTxt == null || inputValTxt == undefined || inputValTxt == "" ? 0 : inputValTxt;
+    // Se já tem valor definido, retornar
+    if (valor !== null && valor !== undefined && valor !== '') {
+      return valor;
+    }
 
+    // Valores por defeito automáticos se não estiverem configurados
+    switch (tipo) {
       case "text":
-        return valor ? valor : "";
+        return "";
+
+      case "digit":
+        return 0;
+
+      case "date":
+        return "1900-01-01";
+
+      case "list":
+        return "";
+
+      case "multiselect":
+        return [];
+
+      case "radio":
+        return "";
+
+      case "logic":
+        return false;
 
       default:
-        return valor;
+        return "";
     }
   }
 
@@ -3220,7 +3292,7 @@
   var GConfigDash = null;
   $(document).ready(function () {
 
-
+    $("#history").remove();
     var state = PetiteVue.reactive({
       mdash: GMainDashInstance,
       activeTabStamp: "",
@@ -3245,6 +3317,29 @@
 
 
       },
+      initListSelect(el, filtro) {
+        var self = this;
+
+        $(el).select2({
+          width: '100%',
+          placeholder: 'Selecione uma opção',
+          allowClear: true
+        });
+
+        // Sincronizar o valor atual com o select2
+        var valorAtual = this.mdash.filterValues[filtro.codigo];
+        if (valorAtual) {
+          $(el).val(valorAtual).trigger('change.select2');
+        }
+
+        // Listener para mudanças no select2
+        $(el).on('change', (event) => {
+          const valor = $(el).val();
+          this.mdash.filterValues[filtro.codigo] = valor;
+          this.executeUpdateFilter(filtro, valor);
+        });
+      },
+
       initMultiselect(el, filtro) {
 
         var self = this
@@ -3396,12 +3491,68 @@
           .slice()
           .sort(function (a, b) { return (a.ordem || 0) - (b.ordem || 0); });
       },
+      getDashboardTabOverflowMode() {
+        var d = this.mdash && this.mdash.dashboardconfig;
+        var settings = d && d.settings ? d.settings : {};
+        if (settings.tabOverflowMode === 'wrap' || settings.tabOverflowMode === 'squeeze') {
+          return settings.tabOverflowMode;
+        }
+        try {
+          if (typeof GMDashTabsRuntime !== 'undefined' && GMDashTabsRuntime
+            && typeof GMDashTabsRuntime.getTabOverflowMode === 'function') {
+            return GMDashTabsRuntime.getTabOverflowMode();
+          }
+        } catch (e) { /* swallow */ }
+        return 'squeeze';
+      },
+      getDashboardTabWrapAfterCount() {
+        var d = this.mdash && this.mdash.dashboardconfig;
+        var settings = d && d.settings ? d.settings : {};
+        var configuredCount = parseInt(settings.tabWrapAfterCount, 10);
+        if (!isNaN(configuredCount)) return Math.max(1, Math.min(20, configuredCount));
+        try {
+          if (typeof GMDashTabsRuntime !== 'undefined' && GMDashTabsRuntime
+            && typeof GMDashTabsRuntime.getTabWrapAfterCount === 'function') {
+            return GMDashTabsRuntime.getTabWrapAfterCount();
+          }
+        } catch (e) { /* swallow */ }
+        return 5;
+      },
+      shouldWrapTabs() {
+        return this.getDashboardTabOverflowMode() === 'wrap'
+          && this.getSortedTabs().length > this.getDashboardTabWrapAfterCount();
+      },
+      getDashboardTabsClass() {
+        var shouldWrap = this.shouldWrapTabs();
+        return { 'is-wrap-mode': shouldWrap, 'is-squeeze-mode': !shouldWrap };
+      },
+      getDashboardTabsStyle() {
+        var shouldWrap = this.shouldWrapTabs();
+        var mode = this.getDashboardTabOverflowMode();
+        var basis = shouldWrap ? '92px' : (mode === 'wrap' ? '86px' : '78px');
+        var min = shouldWrap ? '82px' : (mode === 'wrap' ? '62px' : '56px');
+        var max = shouldWrap ? '116px' : (mode === 'wrap' ? '102px' : '96px');
+        return (shouldWrap ? 'flex-wrap:wrap;overflow:visible;' : 'flex-wrap:nowrap;overflow-x:auto;overflow-y:visible;')
+          + '--md-tab-basis:' + basis + ';--md-tab-min:' + min + ';--md-tab-max:' + max + ';';
+      },
       isTabActive(tab) {
         return tab && tab.mdashtabstamp === this.activeTabStamp;
       },
       _readTabConfig(tab) {
         if (!tab) return {};
         try { return JSON.parse(tab.configjson || '{}') || {}; } catch (e) { return {}; }
+      },
+      getTabTooltipTitle(tab) {
+        try {
+          if (typeof GMDashTabsRuntime !== 'undefined' && GMDashTabsRuntime
+            && typeof GMDashTabsRuntime.getTabTooltipTitle === 'function') {
+            return GMDashTabsRuntime.getTabTooltipTitle(tab);
+          }
+        } catch (e) { /* swallow */ }
+        var cfg = this._readTabConfig(tab);
+        var tooltipTitle = (cfg.tooltipTitle || '').trim();
+        if (tooltipTitle) return tooltipTitle;
+        return (tab && tab.titulo ? String(tab.titulo).trim() : '') || 'Separador';
       },
       _resolveTabColor(phcType) {
         if (typeof phcType === 'string' && phcType.charAt(0) === '#') return phcType;
@@ -3473,15 +3624,38 @@
           window.localStorage.setItem('mdashCollapsed_' + codigo, JSON.stringify(this.collapsedContainers));
         } catch (e) { /* ignore */ }
       },
+      getRowLayoutClass(rowGroup) {
+        // Alinhar com getRowGroups: se a row contém algum item em modo manual
+        // (efetivo, considerando item.layoutmode + herança do container), usa
+        // grid fixo de 12 colunas para respeitar grid-row/grid-column-start.
+        // Caso contrário usa o grid automático adaptativo.
+        var allContainers = (this.mdash && this.mdash.containers) ? this.mdash.containers : [];
+        var items = (rowGroup && rowGroup.items) ? rowGroup.items : [];
+        var hasManual = items.some(function (item) {
+          return getEffectiveItemLayoutModeRuntime(item, allContainers) === 'manual';
+        });
+        return hasManual ? 'mdash-layout-manual' : 'mdash-layout-auto';
+      },
       getItemGridStyle(item) {
         var allContainers = (this.mdash && this.mdash.containers) ? this.mdash.containers : [];
         var mode = getEffectiveItemLayoutModeRuntime(item, allContainers);
         if (mode !== 'manual') return 'height:100%';
+
+        // DRY: delega na lógica centralizada do config lib.js (span via 'tamanho',
+        // clamp de colStart até 12, rowspan). Assim o sistema de layout vive num
+        // único sítio — mudar lá reflete no editor E no viewer.
+        if (typeof getItemGridStyleString === 'function') {
+          return 'height:100%;' + getItemGridStyleString(item);
+        }
+
+        // Fallback defensivo (só se a lib não carregar)
         var s = 'height:100%;';
         if (item.gridrow) s += 'grid-row:' + item.gridrow + ';';
         if (item.gridcolstart) s += 'grid-column-start:' + item.gridcolstart + ';';
-        if (item.gridcolspan) s += 'grid-column-end: span ' + item.gridcolspan + ';';
-        if (item.gridrowspan) s += 'grid-row-end: span ' + item.gridrowspan + ';';
+        var colspan = parseInt(item.gridcolspan, 10) || parseInt(item.tamanho, 10) || 1;
+        s += 'grid-column-end: span ' + colspan + ';';
+        var rowspan = parseInt(item.gridrowspan, 10) || 1;
+        s += 'grid-row-end: span ' + rowspan + ';';
         return s;
       },
       getVisibleContainers() {
@@ -4033,6 +4207,42 @@
 
       configData.filterValues = filterValues;
 
+      // ── LAYOUTS CUSTOM (Layout Builder) ──────────────────────────────────────
+      // Sem os layouts custom, getTemplateLayoutByCode() não encontra o layout
+      // (codigo 'custom_<stamp>') e o viewer cai no card fallback enterprise — o
+      // layout personalizado não é aplicado.
+      // O endpoint getconfiguracaoclientmdash JÁ devolve os layouts em
+      // response.data.containerItemLayouts; basta construir as instâncias e
+      // expô-las no global lido por getTemplateLayoutOptions(). (Antes fazia-se
+      // uma 2ª chamada a realtimecomponentsync?action=getLayouts que não
+      // devolvia data.layouts, deixando o global vazio.)
+      try {
+        if (typeof MdashContainerItemLayout === 'function'
+          && response.data && Array.isArray(response.data.containerItemLayouts)) {
+          window.GMDashContainerItemLayouts = response.data.containerItemLayouts.map(function (l) {
+            return new MdashContainerItemLayout(l);
+          });
+        }
+      } catch (e) { console.warn('[MDash] carregamento de layouts custom (viewer) falhou:', e); }
+
+      // ── LAYOUT: normalização CENTRALIZADA (mesma função do editor) ───────────
+      // Resolve sobreposições de grid (reatribui gridrow/gridcolstart via
+      // findNextGridSlot da lib) ANTES do render. Sem isto, coordenadas que se
+      // sobrepõem na config faziam os cards aparecer "juntos" no viewer — o
+      // editor já normaliza, por isso lá aparecia bem. Usar a mesma função
+      // garante que viewer e editor produzem o MESMO layout (DRY).
+      try {
+        if (typeof GMDashContainers !== 'undefined') window.GMDashContainers = configData.containers || [];
+        if (typeof GMDashContainerItems !== 'undefined') window.GMDashContainerItems = configData.containerItems || [];
+        window.appState = window.appState || {};
+        window.appState.containers = configData.containers || [];
+        if (typeof normalizeContainerItemsAutoLayout === 'function') {
+          (configData.containers || []).forEach(function (c) {
+            if (c && c.mdashcontainerstamp) normalizeContainerItemsAutoLayout(c.mdashcontainerstamp);
+          });
+        }
+      } catch (e) { console.warn('[MDash] normalização de layout falhou:', e); }
+
       document.title = dashboardconfig.descricao
 
       window.localStorage.setItem("mdashcachedFilters", JSON.stringify(configData.filterValues));
@@ -4067,6 +4277,12 @@
         if (!exists && sortedTabs.length) activeStamp = sortedTabs[0].mdashtabstamp;
         window.mdashAppState.activeTabStamp = activeStamp || "";
         window.appState.activeTabStamp = activeStamp || "";
+
+        // Garantir que o viewer usa o runtime central do MDash config lib.js.
+        if ((!window.GMDashTabsRuntime || typeof window.GMDashTabsRuntime.getTabStyle !== 'function')
+          && typeof window.MdashTabsManager === 'function') {
+          window.GMDashTabsRuntime = new window.MdashTabsManager();
+        }
 
         // Restore persisted container collapsed state
         try {

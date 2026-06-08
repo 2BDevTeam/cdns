@@ -454,40 +454,27 @@ function Mrend(options) {
     function resolveFilhaConfig(parentConfig, filhaRecord) {
         if (!parentConfig) return null;
 
-        // Procura a linha-template filha via linkstamp (igual ao processFilhasRecursivo).
-        // Garante que a filha herda a sua própria config em vez de copiar do pai.
-        var linhasFilhas = mrendThis.reportConfig.config.linhas.filter(function (l) {
+        var filhaTemplates = mrendThis.reportConfig.config.linhas.filter(function (l) {
             return l.linkstamp === parentConfig.linhastamp;
         });
 
-        var filhaConfig = null;
-
-        // Se há múltiplas filhas e filhaRecord foi fornecido, narrowa para a específica
-        if (filhaRecord && filhaRecord.codigolinha && linhasFilhas.length > 0) {
+        var base = null;
+        if (filhaRecord && filhaRecord.codigolinha && filhaTemplates.length > 0) {
             var codigoFilha = String(filhaRecord.codigolinha).split("___")[0].trim();
-            filhaConfig = linhasFilhas.find(function (l) {
+            base = filhaTemplates.find(function (l) {
                 return String(l.codigo || "").trim() === codigoFilha;
             });
         }
-
-        // Se não encontrou específica, usa a primeira
-        if (!filhaConfig) {
-            filhaConfig = linhasFilhas[0];
+        if (!base) base = filhaTemplates[0];
+        if (!base) {
+            // Fallback: no child template found. Use parent config but still strip blacklist.
+            base = parentConfig;
         }
 
-        // Se não há filha template, usa config do pai (fallback)
-        if (!filhaConfig) {
-            filhaConfig = parentConfig;
-        }
-
-        // Clone para permitir mutação livre
-        var clone = JSON.parse(JSON.stringify(filhaConfig));
-
-        // Aplica blacklistheranca APENAS se explicitamente configurada
+        var clone = JSON.parse(JSON.stringify(base));
         if (parentConfig.blacklistheranca) {
             applyBlacklistToConfig(clone, parentConfig.blacklistheranca);
         }
-
         return clone;
     }
 
@@ -877,10 +864,9 @@ function Mrend(options) {
             var edits = JSON.parse(raw);
             var cellIds = Object.keys(edits);
             if (!cellIds.length) return Promise.resolve();
-            var cellIdFieldName = mrendThis.dbTableToMrendObject.extras.cellIdField || "cellId";
             var promises = cellIds.map(function (cellId) {
                 return mrendThis.db[mrendThis.tableSourceName]
-                    .where(cellIdFieldName).equals(cellId)
+                    .where("cellId").equals(cellId)
                     .modify(edits[cellId])
                     .catch(function () { /* registo pode não existir ainda */ });
             });
@@ -1462,34 +1448,21 @@ function Mrend(options) {
 
     RenderedLinha.prototype.addLinhaFilha = function () {
 
-        // Procura a linha-template filha via linkstamp.
-        // Garante que a filha usa a sua própria config (ex: sem comportamentogrupo).
-        var self = this;
-        var linhaFilhaConfig = mrendThis.reportConfig.config.linhas.find(function (l) {
-            return l.linkstamp === self.config.linhastamp;
-        });
-
-        // Se não encontrou template filha, aplica resolveFilhaConfig para aplicar blacklist
-        var filhaConfig = linhaFilhaConfig;
-        if (!filhaConfig) {
-            // Fallback: usa resolveFilhaConfig que vai aplicar blacklist se necessário
-            filhaConfig = resolveFilhaConfig(this.config, null);
-        }
-        if (!filhaConfig) {
-            filhaConfig = JSON.parse(JSON.stringify(this.config));
-        }
+        // CENTRAL: usa resolveFilhaConfig para garantir config-filha correta + blacklist aplicada.
+        // MESMA função usada no refresh (getRenderedLinhas) e na recursão (processFilhasRecursivo).
+        var filhaConfig = resolveFilhaConfig(this.config, null);
+        if (!filhaConfig) filhaConfig = JSON.parse(JSON.stringify(this.config));
 
         var codigoLinha = filhaConfig.codigo + "___" + generateTimestampNumber(10);
         var ordem = generateLinhaOrdem();
         var rowid = generateUUID();
         var renderedLinha = new RenderedLinha({ ordem: ordem, codigo: codigoLinha, novoregisto: true, rowid: rowid, linkid: this.rowid, parentid: "", config: filhaConfig });
 
-        renderedLinha.UIObject = {
-            id: renderedLinha.rowid,
-            rowid: renderedLinha.rowid
-        };
+        // Initialize UIObject with all column fields using centralized utility
+        renderedLinha.UIObject = createUIObjectWithColumns(rowid);
 
         // renderCelula=true: cria uma célula vazia por coluna com linkid=pai → salva no Dexie.
+        // Sem isto, a linha filha não tem registos e desaparece no refresh.
         renderedLinha.addToLocalRenderedLinhasList([], { rowid: rowid }, true, false);
 
         this.isParent = true;
@@ -2102,6 +2075,12 @@ function Mrend(options) {
         var renderedColunas = [new RenderedColuna({})]
         renderedColunas = [];
         var renderedDynamicColunas = [];
+        var staticColumnCodes = {};
+        var claimedDynamicCodes = {};
+
+        colunas.forEach(function (cfgColuna) {
+            staticColumnCodes[String(cfgColuna.codigocoluna || "").trim()] = true;
+        });
 
 
         colunas.filter(function (dadosColuna) {
@@ -2126,16 +2105,27 @@ function Mrend(options) {
         }).forEach(function (coluna) {
 
 
+            var prefix = String((coluna.codigocoluna || "").trim()) + "___";
             var recordsColuna = records.filter(function (record) {
-                return record.coluna.indexOf(coluna.codigocoluna.trim() + "___") > -1;
+                var recordColuna = String(record && record.coluna || "").trim();
+                if (!recordColuna || claimedDynamicCodes[recordColuna] || staticColumnCodes[recordColuna]) {
+                    return false;
+                }
+                if (recordColuna.indexOf(prefix) === 0) {
+                    return true;
+                }
+                // Compatibilidade com inst?ncias criadas por vers?es antigas sem prefixo.
+                var sameField = String(record.campo || "") === String(coluna.campo || "");
+                var sameType = String(record.tipocol || "") === String(coluna.tipo || "");
+                return sameField && sameType;
             });
-
             var distinctColunas = getDistinctWithKeys(recordsColuna, "coluna");
             distinctColunas.sort(function (a, b) {
                 return a.ordemcoluna - b.ordemcoluna;
             });
 
             distinctColunas.forEach(function (distinctColuna) {
+                claimedDynamicCodes[String(distinctColuna.coluna || "").trim()] = true;
                 var renderedColuna = new RenderedColuna({
                     codigocoluna: distinctColuna.coluna,
                     desccoluna: distinctColuna.descColuna,
@@ -2696,7 +2686,7 @@ function Mrend(options) {
 
     function mapRecordToMrendObject(record, MrendConversionConfig) {
         var extras = MrendConversionConfig.extras || {};
-        return new MrendObject({
+        var mrendObject = new MrendObject({
             cellId: record[extras.cellIdField] || "",
             rowid: record[extras.rowIdField] || "",
             rowIdField: extras.rowIdField || "", // <-- Adicionado aqui
@@ -2728,6 +2718,21 @@ function Mrend(options) {
             tipocol: record[extras.tipocolField] || "",
             ordem: record[extras.ordemField] || 0
         });
+
+        // Materializa também os nomes físicos dos campos no objeto Dexie.
+        // Sem isto, updateCellOnDB(where(sourceKey)) falha em chunkMapping:false
+        // porque o registo local tinha apenas aliases internos (cellId/rowid/coluna).
+        applyExtraField(mrendObject, record, extras, "linkField", "linkId");
+        applyExtraField(mrendObject, record, extras, "cellIdField", "cellId");
+        applyExtraField(mrendObject, record, extras, "colunaField", "coluna");
+        applyExtraField(mrendObject, record, extras, "ordemColunaField", "ordemcoluna");
+        applyExtraField(mrendObject, record, extras, "rowIdField", "rowid");
+        applyExtraField(mrendObject, record, extras, "linhaField", "codigolinha");
+        applyExtraField(mrendObject, record, extras, "tipocolField", "tipocol");
+        applyExtraField(mrendObject, record, extras, "descLinhaField", "descLinha");
+        applyExtraField(mrendObject, record, extras, "descColunaField", "descColuna");
+
+        return mrendObject;
     }
 
 
@@ -3686,14 +3691,19 @@ function Mrend(options) {
         var linhaRecord;
 
         var linhaFilterKey = "rowid";
-        // FIX: Procurar o record da COLUNA correta, não simplesmente records[0]
-        // Os records vêm filtrados por rowid (vários, um por coluna).
-        // Precisamos do record cuja propriedade 'coluna' corresponda ao codigocoluna atual.
+        // Compatibilidade com o comportamento estável do MREND 24 ABR 2026:
+        // 1) tenta achar a célula pela coluna exata
+        // 2) se falhar, reutiliza o primeiro record da linha em vez de assumir novo registo
+        // Isto evita materializar células duplicadas no refresh quando a correspondência
+        // de `coluna` falha em clientes antigos/configurações legadas.
         linhaRecord = records.find(function (rec) {
             return rec && String(rec.coluna || "").trim() === String(coluna.codigocoluna || "").trim();
         });
-
-        // Fallback: se não encontrou por coluna, usar o primeiro (comportamento antigo)
+        if (!linhaRecord) {
+            linhaRecord = records.find(function (rec) {
+                return rec && String(rec.campo || "").trim() === String(coluna.config.campo || "").trim();
+            });
+        }
         if (!linhaRecord) {
             linhaRecord = records[0];
         }
@@ -3752,10 +3762,11 @@ function Mrend(options) {
         }
 
 
-        var cellIdFieldName = mrendThis.dbTableToMrendObject.extras.cellIdField || "cellId";
         var cellObjectConfig = new CellObjectConfig(
             {
-                bindData: new BindData({ sourceKey: cellIdFieldName, sourceBind: coluna.config.campo }),
+                // Compatibilidade com o fluxo estável usado no MREND 24 ABR 2026:
+                // a edição de células resolve sempre pelo `cellId` interno do Dexie.
+                bindData: new BindData({ sourceKey: "cellId", sourceBind: coluna.config.campo }),
                 tipolistagem: "",
                 component: "Celula",
                 componentcategoria: "Celula",
@@ -4176,21 +4187,135 @@ function Mrend(options) {
 
 
     function addNewRecords() {
-        if (mrendThis.GNewRecords.length > 0) {
-            addBulkData(mrendThis.db, mrendThis.tableSourceName, mrendThis.GNewRecords).then(function (data) {
-                mrendThis.GNewRecords = []
-
-                mrendThis.GCellObjectsConfig = mrendThis.GCellObjectsConfig.concat(mrendThis.TMPCellObjectCOnfig);
-
-                if (mrendThis.reactiveData.cells) {
-                    console.log("Refreshing reactive cells after adding new records");
-                    mrendThis.refreshReactiveData()
-                }
-
-            }).catch(function (err) {
-                //console.log(("ERROR ON INSERT NEW ROWS", err)
-            });
+        if (mrendThis.GNewRecords.length === 0) {
+            return Promise.resolve([]);
         }
+
+        // Retira imediatamente o lote da fila para chamadas concorrentes não o gravarem
+        // novamente enquanto o bulkPut ainda está em curso.
+        var pendingRecords = mrendThis.GNewRecords.splice(0, mrendThis.GNewRecords.length);
+        var previousWrite = mrendThis._addNewRecordsPromise || Promise.resolve();
+
+        var writePromise = previousWrite.then(function () {
+            if (mrendThis.dbTableToMrendObject.chunkMapping !== false) {
+                return pendingRecords;
+            }
+
+            // Em EAV, rowid + coluna identifica logicamente uma célula. O cellId é um
+            // UUID técnico e não pode transformar a mesma célula num novo registo.
+            return mrendThis.db[mrendThis.tableSourceName].toArray().then(function (existingRecords) {
+                var logicalCells = {};
+
+                existingRecords.forEach(function (record) {
+                    logicalCells[getLogicalCellKey(record)] = true;
+                });
+
+                return pendingRecords.filter(function (record) {
+                    var logicalKey = getLogicalCellKey(record);
+                    if (logicalCells[logicalKey]) {
+                        console.warn("MREND: insert EAV duplicado ignorado", {
+                            rowid: record.rowid,
+                            coluna: record.coluna,
+                            cellId: record.cellId
+                        });
+                        return false;
+                    }
+                    logicalCells[logicalKey] = true;
+                    return true;
+                });
+            });
+        }).then(function (recordsToInsert) {
+            if (recordsToInsert.length === 0) {
+                return [];
+            }
+            return addBulkData(mrendThis.db, mrendThis.tableSourceName, recordsToInsert);
+        }).then(function (data) {
+            mrendThis.GCellObjectsConfig = mrendThis.GCellObjectsConfig.concat(mrendThis.TMPCellObjectCOnfig);
+
+            if (mrendThis.reactiveData.cells) {
+                console.log("Refreshing reactive cells after adding new records");
+                mrendThis.refreshReactiveData()
+            }
+            return data;
+        }).catch(function (err) {
+            // Mantém os registos disponíveis para uma tentativa posterior.
+            mrendThis.GNewRecords = pendingRecords.concat(mrendThis.GNewRecords);
+            console.error("MREND: erro ao inserir novos registos", err);
+            return [];
+        });
+
+        mrendThis._addNewRecordsPromise = writePromise;
+        return writePromise;
+    }
+
+    function getLogicalCellKey(record) {
+        var rowid = String(record && record.rowid != null ? record.rowid : "").trim();
+        var coluna = String(record && record.coluna != null ? record.coluna : "").trim();
+        if (!rowid || !coluna) {
+            return "\u0001" + String(record && record.cellId != null ? record.cellId : generateUUID());
+        }
+        return rowid + "\u0000" + coluna;
+    }
+
+    function reconcileEavRecords(records) {
+        if (mrendThis.dbTableToMrendObject.chunkMapping !== false || !Array.isArray(records)) {
+            return Promise.resolve(records || []);
+        }
+
+        var pendingEdits = {};
+        try {
+            var rawPendingEdits = localStorage.getItem(_pendingEditsKey());
+            pendingEdits = rawPendingEdits ? JSON.parse(rawPendingEdits) : {};
+        } catch (e) { }
+
+        var recordsByLogicalCell = {};
+        var duplicateCellIds = [];
+
+        records.forEach(function (record) {
+            var logicalKey = getLogicalCellKey(record);
+            var current = recordsByLogicalCell[logicalKey];
+
+            if (!current) {
+                recordsByLogicalCell[logicalKey] = record;
+                return;
+            }
+
+            var keepRecord = getEavRecordScore(record, pendingEdits) > getEavRecordScore(current, pendingEdits)
+                ? record
+                : current;
+            var duplicateRecord = keepRecord === record ? current : record;
+
+            recordsByLogicalCell[logicalKey] = keepRecord;
+            if (duplicateRecord.cellId && duplicateRecord.cellId !== keepRecord.cellId) {
+                duplicateCellIds.push(duplicateRecord.cellId);
+            }
+        });
+
+        var reconciledRecords = Object.keys(recordsByLogicalCell).map(function (key) {
+            return recordsByLogicalCell[key];
+        });
+
+        if (duplicateCellIds.length === 0) {
+            return Promise.resolve(reconciledRecords);
+        }
+
+        console.warn("MREND: removendo células EAV duplicadas", duplicateCellIds.length);
+        return mrendThis.db[mrendThis.tableSourceName].bulkDelete(duplicateCellIds).then(function () {
+            return reconciledRecords;
+        });
+    }
+
+    function getEavRecordScore(record, pendingEdits) {
+        var score = pendingEdits && pendingEdits[record.cellId] ? 1000 : 0;
+        var fieldValue = record && record.campo ? record[record.campo] : undefined;
+
+        if (fieldValue !== undefined && fieldValue !== null && String(fieldValue).trim() !== "") {
+            score += 100;
+        }
+        if (record && record.valor !== undefined && record.valor !== null && String(record.valor).trim() !== "") {
+            score += 10;
+        }
+        return score;
     }
     function marcarOptionSelecionado(selectHtml, valorCelula) {
         // Verifica se alguma option tem o valor correspondente
@@ -6085,16 +6210,14 @@ function Mrend(options) {
                     visitados[rowidStr] = true;
 
                     var celulasRow = allRecords.filter(function (rec) {
-                        var codigoLinhaRecord = String(rec && rec.codigolinha != null ? rec.codigolinha : "").trim();
-                        return rec.rowid === distinctRow.rowid &&
-                            (codigoLinhaRecord === codigoLinhaToRender || codigoLinhaRecord.indexOf(codigoLinhaToRender + "___") !== -1);
+                        return String(rec && rec.rowid != null ? rec.rowid : "").trim() === rowidStr;
                     });
 
                     var filhasDesteRow = allRecords.filter(function (rec) {
                         return rec.linkid && rec.linkid.trim() === rowidStr;
                     });
 
-                    addLinha(distinctRow, celulasRow.length ? celulasRow : linhaRecords, linhaConfig, renderedLinhas, filhasDesteRow.length > 0, true, false);
+                    addLinha(distinctRow, celulasRow, linhaConfig, renderedLinhas, filhasDesteRow.length > 0, true, false);
 
                     var distinctFilhas = _.uniqBy(filhasDesteRow, "rowid");
                     distinctFilhas.sort(function (a, b) { return (a.ordem || 0) - (b.ordem || 0); });
@@ -7146,6 +7269,19 @@ function Mrend(options) {
 
             mrendThis.GTable.setColumns(currentDefinitions);
 
+            var refreshedGridData = [];
+            mrendThis.GRenderedLinhas.forEach(function (lin) {
+                var hasCell = mrendThis.GCellObjectsConfig.find(function (cellObj) {
+                    return cellObj.rowid && lin.rowid && cellObj.rowid.trim() == lin.rowid.trim();
+                });
+                if (!String(lin.linkid || "").trim().replaceAll(" ", "") && hasCell) {
+                    refreshedGridData.push(lin.UIObject);
+                }
+            });
+            mrendThis.GGridData = refreshedGridData;
+            mrendThis.GTable.replaceData(refreshedGridData);
+            mrendThis.GTable.redraw(true);
+
             var colunasSetFim = mrendThis.GRenderedColunas.filter(function (coluna) {
 
                 return coluna.config.setfim == true;
@@ -7586,7 +7722,10 @@ function Mrend(options) {
                 mrendThis.clearSourceStamp();
             }
             return handleReportRecords().then(function (reportRecordResult) {
-                RenderHandler(mrendThis.records)
+                return reconcileEavRecords(mrendThis.records).then(function (records) {
+                    mrendThis.records = records;
+                    return RenderHandler(records);
+                });
             })
         });
     }

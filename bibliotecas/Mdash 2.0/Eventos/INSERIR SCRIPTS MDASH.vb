@@ -13,7 +13,7 @@ Try
 
     scriptJs +="<script src='https://bossanova.uk/jspreadsheet/v5/jspreadsheet.js'></script>"   
     scriptJs +="<script src='https://jsuites.net/v5/jsuites.js'></script>" 
-     scriptJs+="<script src='https://cdn.jsdelivr.net/npm/alasql'></script>"
+    scriptJs+="<script src='https://cdn.jsdelivr.net/npm/alasql'></script>"
     scriptJs+="<script src='https://unpkg.com/petite-vue'></script>"
     scriptJs+="<script src='https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js'></script>"
     scriptJs+="<script src='https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js'></script>"
@@ -29,8 +29,8 @@ Try
     Dim registoJSON as String="<textarea style='display:none' id='registoJson' name='registoJson' type='text'></textarea>"
     scriptJs+="<link href='https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded' rel='stylesheet' />"
     scriptJs+="<script src='https://cdnjs.cloudflare.com/ajax/libs/sql.js/0.3.2/js/sql.js'></script>"
-scriptJs+="<link rel='stylesheet' href='https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css'>"
-scriptJs+="<script src='https://code.jquery.com/ui/1.13.2/jquery-ui.min.js'></script>"
+    scriptJs+="<link rel='stylesheet' href='https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css'>"
+    scriptJs+="<script src='https://code.jquery.com/ui/1.13.2/jquery-ui.min.js'></script>"
 
 
     html+=registoJSON

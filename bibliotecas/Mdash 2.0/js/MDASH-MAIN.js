@@ -14,12 +14,9 @@ function organizarCampos() {
 function outrasFuncoes() {
     try {
 
-        if ($("#mainPage").data("state") != "consultar") {
-            return true;
-        }
-
+        var isConsultarState = $("#mainPage").data("state") == "consultar";
         var codigo = $("#ctl00_conteudo_codigo_codigomBox1").val();
-        if ($("#mainPage").data("state") == "consultar") {
+        if (isConsultarState) {
             codigo = $("#ctl00_conteudo_codigo_mLabel1").text();
         }
         var config = {
@@ -30,9 +27,9 @@ function outrasFuncoes() {
             categoria: $("#ctl00_conteudo_categoria_mLabel1").text(),
             filtrohorizont: $("#ctl00_conteudo_filtrohorizont_mBox1").is(":checked"),
             temfiltro: $("#ctl00_conteudo_temfiltro_mBox1").is(":checked"),
-            exportBtnSelector: "#options2 .NextActionButtons"
+            exportBtnSelector: "#options2 .NextActionButtons",
+            renderEditor: isConsultarState
         }
-        //loadModernDashboardStyles()
         initConfiguracaoDashboard(config)
         setTimeout(function () {
 

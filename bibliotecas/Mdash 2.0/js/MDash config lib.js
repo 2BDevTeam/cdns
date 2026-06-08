@@ -725,6 +725,10 @@ function UIObjectFormConfig(data) {
 function renderAllContainerItemTemplates() {
     window.appState.containerItems.forEach(function (item) {
         renderContainerItemTemplate(item);
+        // Verifica se há erros nas fontes e adiciona indicação visual
+        setTimeout(function () {
+            checkAndIndicateSourceErrors(item);
+        }, 500);
     });
 }
 
@@ -764,6 +768,299 @@ function renderContainerItemTemplate(item) {
     if (template && template.htmltemplate) {
         injectSlotDropOverlays(item.mdashcontaineritemstamp, template);
     }
+}
+
+// ============================================================================
+// UNIVERSAL ERROR DISPLAY SYSTEM - Funciona em Editor e Preview
+// ============================================================================
+
+function generateSourceErrorHTML(issues) {
+    if (!issues || !Array.isArray(issues) || issues.length === 0) {
+        return '';
+    }
+
+    var errorCount = issues.length;
+    var debugBtnId = 'debug-errors-' + Math.random().toString(36).substr(2, 9);
+    var countLabel = errorCount === 1 ? '1 dependência com problema' : errorCount + ' dependências com problema';
+
+    // Estado de erro enterprise — preenche o slot do objeto (inline, não flutuante),
+    // garantindo que cada slot ocupa espaço real e nunca se sobrepõe a vizinhos.
+    var errorHtml = '';
+    errorHtml += '<div class="mdash-slot-error-state mdash-error-btn-trigger" data-error-id="' + debugBtnId + '" data-error-issues=\'' + JSON.stringify(issues).replace(/'/g, "&apos;") + '\' title="Clique para ver detalhes técnicos">';
+    errorHtml += '  <div class="mdash-slot-error-icon">';
+    errorHtml += '    <i class="glyphicon glyphicon-wrench"></i>';
+    errorHtml += '    <span class="mdash-slot-error-count">' + errorCount + '</span>';
+    errorHtml += '  </div>';
+    errorHtml += '  <div class="mdash-slot-error-body">';
+    errorHtml += '    <div class="mdash-slot-error-title">Erro interno</div>';
+    errorHtml += '    <div class="mdash-slot-error-sub">' + countLabel + '</div>';
+    errorHtml += '  </div>';
+    errorHtml += '</div>';
+
+    return errorHtml;
+}
+
+function renderUniversalSourceError(containerSelector, issues) {
+    var errorHtml = generateSourceErrorHTML(issues);
+
+    var $container = $(containerSelector);
+    if ($container.length === 0) {
+        console.warn('[renderUniversalSourceError] Seletor não encontrado:', containerSelector);
+        return;
+    }
+
+    // O indicador fica DENTRO do próprio slot do objeto (não num pai partilhado).
+    // Assim cada objeto que falha mostra o seu próprio indicador no seu slot,
+    // evitando que múltiplos botões se empilhem no mesmo card.
+    if ($container.css('position') === 'static') {
+        $container.css('position', 'relative');
+    }
+
+    // Limpa qualquer conteúdo anterior do slot (render bloqueado) e o indicador anterior
+    $container.find('.mdash-error-indicator-minimal').remove();
+    $container.html(errorHtml);
+
+    // Attach handlers para os botões de erro (com delay para garantir DOM)
+    setTimeout(attachErrorButtonHandlers, 50);
+}
+
+function attachErrorButtonHandlers() {
+    $(document).off('click', '.mdash-error-btn-trigger').on('click', '.mdash-error-btn-trigger', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var $indicator = $(this);
+        var issuesJson = $indicator.data('error-issues');
+
+        // Se issues for string, fazer parse
+        if (typeof issuesJson === 'string') {
+            try {
+                issuesJson = JSON.parse(issuesJson);
+            } catch (err) {
+                console.error('[attachErrorButtonHandlers] Erro ao parsear issues:', err);
+                console.error('Issues JSON:', issuesJson);
+                return;
+            }
+        }
+
+        if (Array.isArray(issuesJson)) {
+            openSourceErrorDetailsModalUniversal(issuesJson);
+        } else {
+            console.warn('[attachErrorButtonHandlers] Issues não é um array:', issuesJson);
+        }
+    });
+}
+
+function showContainerItemSourceErrors(containerItemStamp, issues) {
+    var bodySelector = ".mdash-canvas-item[data-stamp='" + containerItemStamp + "'] .mdash-canvas-item-body";
+    var $body = $(bodySelector);
+    if (!$body.length) {
+        console.warn('[showContainerItemSourceErrors] Elemento não encontrado:', bodySelector);
+        return;
+    }
+
+    if (!issues || !Array.isArray(issues)) {
+        console.warn('[showContainerItemSourceErrors] Issues inválido:', issues);
+        return;
+    }
+
+    var errorHtml = generateSourceErrorHTML(issues);
+    $body.html(errorHtml);
+
+    // Attach handlers para os botões de erro
+    setTimeout(attachErrorButtonHandlers, 100);
+}
+
+function openSourceErrorDetailsModalUniversal(issues) {
+    if (!issues || !Array.isArray(issues)) {
+        console.error('[openSourceErrorDetailsModalUniversal] Issues inválido:', issues);
+        return;
+    }
+
+    var modalBody = '';
+
+    // Apenas lista técnica de erros (sem blá blá)
+    modalBody += '<div class="mdash-modal-technical-errors">';
+    issues.forEach(function (issue, idx) {
+        modalBody += '<div class="mdash-tech-error-item">';
+        modalBody += '  <code class="mdash-tech-error-type">' + (issue.type || 'unknown') + '</code>';
+        modalBody += '  <div class="mdash-tech-error-content">';
+        modalBody += '    <strong>' + (issue.source || 'Unknown') + '</strong>';
+        modalBody += '    <pre class="mdash-tech-error-message">' + escapeHtml(issue.message || '') + '</pre>';
+        modalBody += '  </div>';
+        modalBody += '</div>';
+    });
+    modalBody += '</div>';
+
+    var modalId = 'modal-source-errors-' + Math.random().toString(36).substr(2, 9);
+    var modalData = {
+        title: 'Erros Técnicos (' + issues.length + ')',
+        id: modalId,
+        body: modalBody,
+        footerContent: '<button type="button" class="btn btn-default" data-dismiss="modal">Fechar</button>'
+    };
+
+    $('#' + modalId).remove();
+    var modalHTML = generateModalHTML(modalData);
+    $('body').append(modalHTML);
+    $('#' + modalId).modal('show');
+}
+
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Alias para compatibilidade
+function openSourceErrorDetailsModal(containerItemStamp, issues) {
+    openSourceErrorDetailsModalUniversal(issues);
+}
+
+function showContainerItemError(containerItemStamp, error, errorDetails) {
+    var bodySelector = ".mdash-canvas-item[data-stamp='" + containerItemStamp + "'] .mdash-canvas-item-body";
+    var $body = $(bodySelector);
+    if (!$body.length) return;
+
+    var errorId = 'error-' + containerItemStamp;
+    var debugBtnId = 'debug-btn-' + containerItemStamp;
+
+    var errorHtml = '';
+    errorHtml += '<div class="mdash-error-container" style="padding: 20px; background: #fff5f5; border: 2px solid #f56565; border-radius: 6px; text-align: center;">';
+    errorHtml += '  <div style="margin-bottom: 15px;">';
+    errorHtml += '    <i class="glyphicon glyphicon-exclamation-sign" style="color: #f56565; font-size: 32px;"></i>';
+    errorHtml += '  </div>';
+    errorHtml += '  <h4 style="color: #c53030; margin: 10px 0;">Erro ao Renderizar</h4>';
+    errorHtml += '  <p style="color: #742a2a; margin: 10px 0; font-size: 13px;">' + (error || 'Erro desconhecido') + '</p>';
+    errorHtml += '  <button type="button" id="' + debugBtnId + '" class="btn btn-sm btn-danger" title="Ver detalhes do erro">';
+    errorHtml += '    <i class="glyphicon glyphicon-bug"></i> Debug';
+    errorHtml += '  </button>';
+    errorHtml += '</div>';
+
+    $body.html(errorHtml);
+
+    // Evento para abrir modal com erro completo
+    $('#' + debugBtnId).on('click', function () {
+        openContainerItemErrorModal(containerItemStamp, error, errorDetails);
+    });
+}
+
+function openContainerItemErrorModal(containerItemStamp, error, errorDetails) {
+    var errorDetailsHtml = '<pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto; font-size: 12px; color: #d63031;">';
+    errorDetailsHtml += 'ERRO:\n' + (error || 'Erro desconhecido') + '\n\n';
+    if (errorDetails) {
+        errorDetailsHtml += 'DETALHES:\n' + JSON.stringify(errorDetails, null, 2);
+    }
+    errorDetailsHtml += '</pre>';
+
+    var modalData = {
+        title: 'Erro ao Renderizar ContainerItem',
+        id: 'modal-error-' + containerItemStamp,
+        body: errorDetailsHtml,
+        footerContent: '<button type="button" class="btn btn-default" data-dismiss="modal">Fechar</button>'
+    };
+
+    // Remove modal anterior se existir
+    $('#' + modalData.id).remove();
+
+    // Gera HTML do modal usando função do CUSTOM FORM.js
+    var modalHTML = generateModalHTML(modalData);
+    $('body').append(modalHTML);
+
+    // Abre modal
+    $('#' + modalData.id).modal('show');
+}
+
+function checkAndIndicateSourceErrors(containerItem) {
+    if (!containerItem) return;
+
+    var containerItemStamp = containerItem.mdashcontaineritemstamp;
+    var sourceErrors = [];
+
+    // Procura objetos que usam fontes
+    var itemObjects = window.appState && window.appState.containerItemObjects ?
+        window.appState.containerItemObjects.filter(function (obj) {
+            return obj.mdashcontaineritemstamp === containerItemStamp;
+        }) : [];
+
+    itemObjects.forEach(function (itemObj) {
+        if (itemObj.fontestamp) {
+            var fonte = window.appState && window.appState.fontes ?
+                window.appState.fontes.find(function (f) { return f.mdashfontestamp === itemObj.fontestamp; }) : null;
+
+            if (fonte && fonte.status === 'error') {
+                sourceErrors.push({
+                    codigo: fonte.codigo,
+                    message: fonte.errorMessage || 'Erro desconhecido'
+                });
+            }
+        }
+    });
+
+    // Se houver erros, adiciona badge
+    if (sourceErrors.length > 0) {
+        addSourceErrorBadgeToContainerItem(containerItemStamp, sourceErrors);
+    }
+}
+
+function addSourceErrorBadgeToContainerItem(containerItemStamp, sourceErrors) {
+    var containerSelector = ".mdash-canvas-item[data-stamp='" + containerItemStamp + "']";
+    var $container = $(containerSelector);
+    if (!$container.length) return;
+
+    var badgeId = 'source-error-badge-' + containerItemStamp;
+
+    // Remove badge anterior se existir
+    $('#' + badgeId).remove();
+
+    var errorMessages = sourceErrors.map(function (err) {
+        return err.codigo + ': ' + err.message;
+    }).join('\n');
+
+    var badgeHtml = '';
+    badgeHtml += '<div id="' + badgeId + '" class="mdash-source-error-badge" title="Erro ao carregar dados. Clique para ver detalhes">';
+    badgeHtml += '  <i class="glyphicon glyphicon-warning-sign"></i>';
+    badgeHtml += '  <span class="badge-text">Dados desatualizados</span>';
+    badgeHtml += '</div>';
+
+    $container.prepend(badgeHtml);
+
+    // Evento para abrir modal com erro das fontes
+    $('#' + badgeId).on('click', function () {
+        openSourceErrorModal(containerItemStamp, sourceErrors);
+    });
+}
+
+function openSourceErrorModal(containerItemStamp, sourceErrors) {
+    var errorHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+
+    errorHtml += '<div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ffc107;">';
+    errorHtml += '  <strong style="color: #856404;">⚠️ Aviso:</strong>';
+    errorHtml += '  <p style="margin: 8px 0 0 0; color: #856404; font-size: 13px;">Os dados exibidos podem estar desatualizados. Houve erro ao carregar as fontes de dados:</p>';
+    errorHtml += '</div>';
+
+    sourceErrors.forEach(function (err, idx) {
+        errorHtml += '<div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #dc3545;">';
+        errorHtml += '  <strong style="color: #d63031; font-size: 13px;">' + (idx + 1) + '. ' + err.codigo + '</strong>';
+        errorHtml += '  <pre style="background: #fff; padding: 10px; border-radius: 4px; font-size: 11px; color: #d63031; margin: 8px 0 0 0; overflow-x: auto;">' + err.message + '</pre>';
+        errorHtml += '</div>';
+    });
+
+    errorHtml += '</div>';
+
+    var modalData = {
+        title: 'Erro nas Fontes de Dados',
+        id: 'modal-source-error-' + containerItemStamp,
+        body: errorHtml,
+        footerContent: '<button type="button" class="btn btn-default" data-dismiss="modal">Fechar</button>'
+    };
+
+    // Remove modal anterior se existir
+    $('#' + modalData.id).remove();
+
+    var modalHTML = generateModalHTML(modalData);
+    $('body').append(modalHTML);
+    $('#' + modalData.id).modal('show');
 }
 
 function MdashConfig(data) {
@@ -1327,55 +1624,90 @@ MdashContainerItemObject.prototype.resolveObjectoConfig = function () {
 MdashContainerItemObject.prototype.renderObjectByContainerItem = function (containerSelector, containerItem) {
     var self = this;
 
-    var tipoStr = '' + (self.tipo || '');
+    try {
+        var tipoStr = '' + (self.tipo || '');
 
-    var entry = getMdashObjectTypeEntry(tipoStr);
+        var entry = getMdashObjectTypeEntry(tipoStr);
 
 
-    if (entry && typeof entry.renderObject === 'function') {
-        var processaFonte = (entry.processaFonte !== undefined) ? entry.processaFonte : self.processaFonte;
-        // Resolver dados através da função central (transform ? fonte ? containerItem.records)
-        var resolved = mdashResolveObjectData(self, containerItem.records);
-        var podeRenderizar = processaFonte === false || resolved.data.length > 0;
-        // console.log('  processaFonte =', processaFonte, '| podeRenderizar =', podeRenderizar, '| data.length =', resolved.data.length);
-        if (podeRenderizar) {
+        if (entry && typeof entry.renderObject === 'function') {
+            var processaFonte = (entry.processaFonte !== undefined) ? entry.processaFonte : self.processaFonte;
+            // Resolver dados através da função central (transform ? fonte ? containerItem.records)
+            var resolved = mdashResolveObjectData(self, containerItem.records);
 
-            console.groupEnd();
-            entry.renderObject({
-                containerSelector: containerSelector,
-                itemObject: self,
-                queryConfig: self.queryConfig,
-                config: self.config,
-                transformConfig: self.transformConfig,
-                containerItem: containerItem,
-                data: resolved.data,
-                isSample: resolved.isSample
-            });
-        } else if (typeof entry.getSampleData === 'function') {
-            // Sem dados reais ainda — renderizar com dados de amostra
+            // Verifica se há erros críticos nas dependências
+            var hasCriticalErrors = resolved.analyzer && resolved.analyzer.getCriticalIssues().length > 0;
 
-            entry.renderObject({
-                containerSelector: containerSelector,
-                itemObject: self,
-                queryConfig: self.queryConfig,
-                config: self.config,
-                transformConfig: self.transformConfig,
-                containerItem: containerItem,
-                data: entry.getSampleData(),
-                isSample: true
-            });
+            if (hasCriticalErrors) {
+                // Bloqueia renderização se há erros críticos nas fontes
+                var criticalIssues = resolved.analyzer.getCriticalIssues();
+                console.error('[RenderObjectByContainerItem] BLOQUEADO - Erros críticos nas dependências:', criticalIssues);
+                console.error('[RenderObjectByContainerItem] ContainerItem Stamp:', containerItem.mdashcontaineritemstamp);
+                console.error('[RenderObjectByContainerItem] Seletor DOM:', ".mdash-canvas-item[data-stamp='" + containerItem.mdashcontaineritemstamp + "'] .mdash-canvas-item-body");
+                console.groupEnd();
+
+                // Usa função universal que funciona em qualquer contexto
+                renderUniversalSourceError(containerSelector, criticalIssues);
+                return;
+            }
+
+            var podeRenderizar = processaFonte === false || resolved.data.length > 0;
+            // console.log('  processaFonte =', processaFonte, '| podeRenderizar =', podeRenderizar, '| data.length =', resolved.data.length);
+            if (podeRenderizar) {
+
+                console.groupEnd();
+                try {
+                    entry.renderObject({
+                        containerSelector: containerSelector,
+                        itemObject: self,
+                        queryConfig: self.queryConfig,
+                        config: self.config,
+                        transformConfig: self.transformConfig,
+                        containerItem: containerItem,
+                        data: resolved.data,
+                        isSample: resolved.isSample
+                    });
+                } catch (renderError) {
+                    console.error('[RenderObject] Erro ao renderizar objeto:', renderError);
+                    var containerItemStamp = self.mdashcontaineritemobjectstamp;
+                    showContainerItemError(containerItemStamp, renderError.message, renderError);
+                }
+            } else if (typeof entry.getSampleData === 'function') {
+                // Sem dados reais ainda — renderizar com dados de amostra
+
+                try {
+                    entry.renderObject({
+                        containerSelector: containerSelector,
+                        itemObject: self,
+                        queryConfig: self.queryConfig,
+                        config: self.config,
+                        transformConfig: self.transformConfig,
+                        containerItem: containerItem,
+                        data: entry.getSampleData(),
+                        isSample: true
+                    });
+                } catch (renderError) {
+                    console.error('[RenderObject] Erro ao renderizar objeto com dados de amostra:', renderError);
+                    var containerItemStamp = self.mdashcontaineritemobjectstamp;
+                    showContainerItemError(containerItemStamp, renderError.message, renderError);
+                }
+            } else {
+
+                $(containerSelector).html(
+                    '<div class="mdash-slot-zone-render-placeholder"><i class="' + (getObjectTypeIcon(tipoStr) || 'glyphicon glyphicon-stop') + '"></i> ' + (tipoStr || 'Objecto') + '</div>'
+                );
+            }
         } else {
-
+            console.error('  ? WARNING ICON — entry null ou sem renderObject');
+            console.groupEnd();
             $(containerSelector).html(
-                '<div class="mdash-slot-zone-render-placeholder"><i class="' + (getObjectTypeIcon(tipoStr) || 'glyphicon glyphicon-stop') + '"></i> ' + (tipoStr || 'Objecto') + '</div>'
-            );
-        }
-    } else {
-        console.error('  ? WARNING ICON — entry null ou sem renderObject');
-        console.groupEnd();
-        $(containerSelector).html(
             '<div class="mdash-slot-zone-render-placeholder" style="color:#c0392b;"><i class="glyphicon glyphicon-warning-sign"></i> ' + (tipoStr || '?') + '</div>'
         );
+    }
+
+    } catch (outerError) {
+        console.error('[renderObjectByContainerItem] Erro geral ao renderizar:', outerError);
+        showContainerItemError(self.mdashcontaineritemobjectstamp, outerError.message, outerError);
     }
 
     if (self.expressaoobjecto) {
@@ -1388,6 +1720,143 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
 }
 
 // ============================================================================
+// ============================================================================
+// DEPENDENCY RESOLUTION SYSTEM - Sistema Centralizado de Gerenciamento de Dependências
+//
+// Responsável por:
+//   1. Analisar todas as fontes que um objeto depende
+//   2. Verificar status de cada fonte (loaded, error, pending)
+//   3. Determinar se objeto pode ser renderizado
+//   4. Fornecer informações detalhadas sobre erros
+//
+// Extensível para: gráficos, tabelas, textos, imagens e futuros tipos
+// ============================================================================
+
+function MdashObjectDependencyAnalyzer(obj) {
+    this.object = obj;
+    this.dependencies = {
+        primary: null,           // fontestamp principal
+        transform: null,         // sourceTable da transformação
+        secondary: [],           // fontesstamps adicionais
+    };
+    this.issues = [];            // Erros e avisos
+    this.canRender = true;       // Flag se pode ser renderizado
+    this.initialize();
+}
+
+MdashObjectDependencyAnalyzer.prototype.initialize = function () {
+    var self = this;
+    var allFontes = (window.appState && window.appState.fontes) || GMDashFontes || [];
+
+    // Analisa fonte primária
+    if (self.object && self.object.fontestamp) {
+        var primaryFonte = allFontes.find(function (f) {
+            return f.mdashfontestamp === self.object.fontestamp;
+        });
+        self.dependencies.primary = {
+            stamp: self.object.fontestamp,
+            codigo: primaryFonte ? primaryFonte.codigo : 'DESCONHECIDA',
+            fonte: primaryFonte,
+            status: primaryFonte ? primaryFonte.status : 'missing'
+        };
+    }
+
+    // Analisa transformação (sourceTable)
+    if (self.object && self.object.transformConfig && self.object.transformConfig.sourceTable) {
+        self.dependencies.transform = {
+            sourceTable: self.object.transformConfig.sourceTable,
+            status: 'pending' // Será validada ao executar
+        };
+    }
+
+    // Analisa fontes secundárias
+    if (self.object && Array.isArray(self.object.fontesstamps)) {
+        self.object.fontesstamps.forEach(function (stamp) {
+            var fonte = allFontes.find(function (f) {
+                return f.mdashfontestamp === stamp;
+            });
+            self.dependencies.secondary.push({
+                stamp: stamp,
+                codigo: fonte ? fonte.codigo : 'DESCONHECIDA',
+                fonte: fonte,
+                status: fonte ? fonte.status : 'missing'
+            });
+        });
+    }
+
+    // Valida dependências
+    self.validate();
+};
+
+MdashObjectDependencyAnalyzer.prototype.validate = function () {
+    var self = this;
+
+    // Verifica fonte primária
+    if (self.dependencies.primary) {
+        var primary = self.dependencies.primary;
+        if (primary.status === 'error') {
+            self.issues.push({
+                severity: 'critical',
+                type: 'source_error',
+                source: primary.codigo,
+                message: primary.fonte ? primary.fonte.errorMessage : 'Erro ao carregar fonte'
+            });
+            self.canRender = false;
+        } else if (primary.status === 'missing') {
+            self.issues.push({
+                severity: 'critical',
+                type: 'source_missing',
+                source: primary.codigo,
+                message: 'Fonte primária não encontrada'
+            });
+            self.canRender = false;
+        } else if (primary.status === 'pending') {
+            self.issues.push({
+                severity: 'warning',
+                type: 'source_loading',
+                source: primary.codigo,
+                message: 'Fonte ainda está carregando'
+            });
+        }
+    }
+
+    // Verifica fontes secundárias
+    self.dependencies.secondary.forEach(function (sec) {
+        if (sec.status === 'error') {
+            self.issues.push({
+                severity: 'critical',
+                type: 'source_error',
+                source: sec.codigo,
+                message: sec.fonte ? sec.fonte.errorMessage : 'Erro ao carregar fonte'
+            });
+            self.canRender = false;
+        } else if (sec.status === 'missing') {
+            self.issues.push({
+                severity: 'warning',
+                type: 'source_missing',
+                source: sec.codigo,
+                message: 'Fonte secundária não encontrada'
+            });
+        }
+    });
+};
+
+MdashObjectDependencyAnalyzer.prototype.getIssues = function (severity) {
+    if (!severity) return this.issues;
+    return this.issues.filter(function (issue) {
+        return issue.severity === severity;
+    });
+};
+
+MdashObjectDependencyAnalyzer.prototype.getCriticalIssues = function () {
+    return this.getIssues('critical');
+};
+
+MdashObjectDependencyAnalyzer.prototype.getWarnings = function () {
+    return this.getIssues('warning');
+};
+
+// ============================================================================
 // mdashResolveObjectData
 // Função central de resolução de dados para qualquer MdashContainerItemObject.
 // Hierarquia:
@@ -1395,7 +1864,7 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
 //      (garante tabelas adicionais de fontesstamps em SQLite antes de correr)
 //   2. obj.fontestamp                     ? fonte.lastResults (dados em memória)
 //   3. fallbackData                       ? containerItem.records (legado)
-// Retorna: { data: Array, isSample: Boolean }
+// Retorna: { data: Array, isSample: Boolean, analyzer: MdashObjectDependencyAnalyzer }
 // ============================================================================
 function mdashResolveObjectData(obj, fallbackData) {
     var allFontes = (window.appState && window.appState.fontes) || GMDashFontes || [];
@@ -1428,17 +1897,20 @@ function mdashResolveObjectData(obj, fallbackData) {
         }
     }
 
+    // Cria analisador de dependências
+    var analyzer = new MdashObjectDependencyAnalyzer(obj);
+
     // -- 3. Fonte primária ? lastResults em memória --
     if (obj && obj.fontestamp) {
         var fonte = allFontes.filter(function (f) { return f.mdashfontestamp === obj.fontestamp; })[0];
         if (fonte && fonte.lastResults && fonte.lastResults.length > 0) {
-            return { data: fonte.lastResults, isSample: false };
+            return { data: fonte.lastResults, isSample: false, analyzer: analyzer, hasErrors: !analyzer.canRender };
         }
     }
 
     // -- 4. Fallback legado (containerItem.records) --
     var fd = fallbackData || [];
-    return { data: fd, isSample: false };
+    return { data: fd, isSample: false, analyzer: analyzer, hasErrors: !analyzer.canRender };
 }
 
 // ============================================================================
@@ -2201,6 +2673,61 @@ function exportarConfiguracaoMDashboard() {
     }
 }
 
+function addExportImportButtons(selector) {
+    var container = $(selector);
+    if (!container.length) return;
+
+    var buttonsHtml = '';
+    buttonsHtml += '<button type="button" onclick="document.getElementById(\'importDashboardConfigFileInput\').click()" class="btn btn-default btn-sm" title="Importar configuração"><i class="glyphicon glyphicon-upload"></i> Importar</button>';
+    buttonsHtml += '<button type="button" onclick="exportarConfiguracaoMDashboard()" class="btn btn-default btn-sm" title="Exportar configuração"><i class="glyphicon glyphicon-download-alt"></i> Exportar</button>';
+    buttonsHtml += '<input type="file" id="importDashboardConfigFileInput" accept=".json" style="display: none;" onchange="importarConfiguracaoDashboard()" />';
+
+    container.append(buttonsHtml);
+}
+
+function importarConfiguracaoDashboard() {
+    var fileInput = document.getElementById('importDashboardConfigFileInput');
+    var file = fileInput.files[0];
+    if (!file) {
+        alertify.error("Por favor, selecione um ficheiro para importar.", 5000);
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            var content = e.target.result;
+            var json = JSON.parse(content);
+            json.recordsToDelete = [];
+            $.ajax({
+                type: "POST",
+                url: "../programs/gensel.aspx?cscript=actualizaconfiguracaomrelatorio",
+                async: false,
+                data: {
+                    '__EVENTARGUMENT': JSON.stringify([json]),
+                },
+                success: function (response) {
+                    var errorMessage = "ao importar resultados ";
+                    try {
+                        console.log(response);
+                        if (response.cod != "0000") {
+                            console.log("Erro " + errorMessage, response);
+                            alertify.error("Erro ao importar configuração", 9000);
+                            return false;
+                        }
+                        alertify.success("Dados importados com sucesso", 9000);
+                        window.location.reload();
+                    } catch (error) {
+                        console.log("Erro interno " + errorMessage, response, error);
+                    }
+                }
+            });
+        } catch (error) {
+            alertify.error("Erro ao importar configuração: " + error.message, 5000);
+        }
+    };
+    reader.readAsText(file);
+}
+
 function actualizarConfiguracaoMDashboard() {
     // Usar sempre o array reactivo que tem os valores mais recentes (escritas via proxy PetiteVue)
     var fontesParaGravar = (window.appState && window.appState.fontes) ? window.appState.fontes : GMDashFontes;
@@ -2337,9 +2864,12 @@ function realTimeComponentSync(recordData, table, idfield) {
  * - Adicionar ContainerItemObjects ao ContainerItem (objetos visuais)
  */
 
+var GMDashboardConfig = null;
+
 function initConfiguracaoDashboard(config) {
     console.log("Inicializando MDash 2.0 REFATORADO com configuração:", config);
     GMDashStamp = config.u_mdashstamp;
+    GMDashboardConfig = config;
 
     // Cria o container principal no DOM (fallback para body se #campos não existir)
     var mainContainerHtml = "<div id='m-dash-main-container' class='m-dash-main-container'></div>";
@@ -2356,11 +2886,20 @@ function initConfiguracaoDashboard(config) {
     // Runtime reutilizável para gestão/render de tabs
     GMDashTabsRuntime = new MdashTabsManager();
 
-    // Cria a interface moderna
-    createModernDashboardUI();
+    // Cria a interface moderna apenas quando o editor deve ser renderizado
+    if (config.renderEditor !== false) {
+        createModernDashboardUI();
+    } else {
+        console.log("MDash editor render skipped because config.renderEditor is false");
+    }
 
     // Carrega estilos
     loadModernStyles();
+
+    // Adiciona botões de importação/exportação no local especificado pela config
+    if (config.exportBtnSelector && $(config.exportBtnSelector).length > 0) {
+        addExportImportButtons(config.exportBtnSelector);
+    }
 }
 
 /**
@@ -2478,7 +3017,9 @@ MdashTabsManager.prototype.getDashboardSettings = function () {
         ? window.appState.dashboardConfig
         : (GMDashConfig[0] || new MdashConfig({ u_mdashstamp: GMDashStamp }));
     if (!GMDashConfig.length) GMDashConfig = [dash];
-    return (typeof dash.getConfig === 'function') ? dash.getConfig() : {};
+    if (typeof dash.getConfig === 'function') return dash.getConfig();
+    if (dash.settings && typeof dash.settings === 'object') return dash.settings;
+    try { return JSON.parse(dash.configjson || '{}') || {}; } catch (e) { return {}; }
 };
 
 MdashTabsManager.prototype.setDashboardSettings = function (settings, syncRealtime) {
@@ -2486,7 +3027,12 @@ MdashTabsManager.prototype.setDashboardSettings = function (settings, syncRealti
         ? window.appState.dashboardConfig
         : (GMDashConfig[0] || new MdashConfig({ u_mdashstamp: GMDashStamp }));
     if (!GMDashConfig.length) GMDashConfig = [dash];
-    if (typeof dash.setConfig === 'function') dash.setConfig(settings || {});
+    if (typeof dash.setConfig === 'function') {
+        dash.setConfig(settings || {});
+    } else {
+        dash.settings = settings || {};
+        dash.configjson = JSON.stringify(settings || {});
+    }
     if (window.appState) window.appState.dashboardSettings = settings || {};
     if (syncRealtime && typeof realTimeComponentSync === 'function') {
         realTimeComponentSync(dash, dash.table, dash.idfield);
@@ -2496,6 +3042,52 @@ MdashTabsManager.prototype.setDashboardSettings = function (settings, syncRealti
 MdashTabsManager.prototype.isEnabled = function () {
     var s = this.getDashboardSettings();
     return !!s.activarMultiSeparadores;
+};
+
+MdashTabsManager.prototype.getTabOverflowMode = function () {
+    var s = this.getDashboardSettings();
+    return s.tabOverflowMode === 'wrap' ? 'wrap' : 'squeeze';
+};
+
+MdashTabsManager.prototype.getTabWrapAfterCount = function () {
+    var s = this.getDashboardSettings();
+    var count = parseInt(s.tabWrapAfterCount, 10);
+    if (isNaN(count)) count = 5;
+    if (count < 1) count = 1;
+    if (count > 20) count = 20;
+    return count;
+};
+
+MdashTabsManager.prototype.shouldWrapTabs = function (tabCount) {
+    var count = typeof tabCount === 'number' ? tabCount : this.getSortedTabs().length;
+    return this.getTabOverflowMode() === 'wrap' && count > this.getTabWrapAfterCount();
+};
+
+MdashTabsManager.prototype.getTabsLayoutClass = function (tabCount) {
+    var shouldWrap = this.shouldWrapTabs(tabCount);
+    return {
+        'is-wrap-mode': shouldWrap,
+        'is-squeeze-mode': !shouldWrap
+    };
+};
+
+MdashTabsManager.prototype.getTabsLayoutStyle = function (tabCount) {
+    var mode = this.getTabOverflowMode();
+    var shouldWrap = this.shouldWrapTabs(tabCount);
+    var basis = shouldWrap ? '92px' : '78px';
+    var min = shouldWrap ? '82px' : '56px';
+    var max = shouldWrap ? '116px' : '96px';
+
+    if (mode === 'wrap' && !shouldWrap) {
+        basis = '86px';
+        min = '62px';
+        max = '102px';
+    }
+
+    var layoutStyle = shouldWrap
+        ? 'flex-wrap:wrap;overflow:visible;'
+        : 'flex-wrap:nowrap;overflow-x:auto;overflow-y:visible;';
+    return layoutStyle + '--md-tab-basis:' + basis + ';--md-tab-min:' + min + ';--md-tab-max:' + max + ';';
 };
 
 MdashTabsManager.prototype.getSortedTabs = function () {
@@ -2575,6 +3167,13 @@ MdashTabsManager.prototype.getTabTextColorType = function (tab) {
 MdashTabsManager.prototype.getTabFontFamily = function (tab) {
     var cfg = this._readTabConfig(tab);
     return cfg.fontFamily || '';
+};
+
+MdashTabsManager.prototype.getTabTooltipTitle = function (tab) {
+    var cfg = this._readTabConfig(tab);
+    var tooltipTitle = (cfg.tooltipTitle || '').trim();
+    if (tooltipTitle) return tooltipTitle;
+    return (tab && tab.titulo ? String(tab.titulo).trim() : '') || 'Sem nome';
 };
 
 MdashTabsManager.prototype.getTabStyle = function (tab) {
@@ -2854,6 +3453,24 @@ function scopeLayoutCSS(css, scopeAttrValue) {
  * @param {Object} cardData - Dados do card (title, id, tipo, bodyContent, icon, etc.)
  * @returns {string} HTML final renderizado com CSS scoped
  */
+// Fallback (sem jQuery): preenche slots via regex. NÃO suporta slots aninhados
+// — usado apenas quando `$` não está disponível. O caminho normal usa DOM.
+function _fillSlotsViaRegex(html, slotContent) {
+    return html.replace(/<([a-z][a-z0-9]*)\b([^>]*data-mdash-slot="([^"]+)"[^>]*)>([\s\S]*?)(<\/\1>)/gi, function (fullMatch, tag, attrs, slotName, innerContent, closeTag) {
+        var content = slotContent[slotName];
+        if (content === undefined || content === '') return fullMatch;
+        if (/data-mdash-slot-mode="class"/.test(attrs)) {
+            if (/\bclass="[^"]*"/.test(attrs)) {
+                attrs = attrs.replace(/\bclass="[^"]*"/, 'class="' + content + '"');
+            } else {
+                attrs += ' class="' + content + '"';
+            }
+            return '<' + tag + attrs + '>' + innerContent + closeTag;
+        }
+        return '<' + tag + attrs + '>' + content + closeTag;
+    });
+}
+
 function renderUnifiedLayout(layout, cardData) {
     var html = layout.htmltemplate || '';
     var css = layout.csstemplate || '';
@@ -2891,26 +3508,42 @@ function renderUnifiedLayout(layout, cardData) {
         'status-badge': (cardData.extraData && cardData.extraData.status) || ''
     };
 
-    // Fill data-mdash-slot elements via pure string regex (no jQuery DOM creation)
-    // Pattern: match an opening tag with data-mdash-slot="slotName", capture up to the closing tag
-    html = html.replace(/<([a-z][a-z0-9]*)\b([^>]*data-mdash-slot="([^"]+)"[^>]*)>([\s\S]*?)(<\/\1>)/gi, function (fullMatch, tag, attrs, slotName, innerContent, closeTag) {
-        var content = slotContent[slotName];
-        if (content === undefined || content === '') return fullMatch;
+    // Fill data-mdash-slot elements.
+    // Usa DOM (jQuery) em vez de regex: um regex com backreference NÃO consegue
+    // casar elementos aninhados do mesmo tag de forma balanceada — em layouts
+    // com slots aninhados (ex.: body > slotv, labelslt) casava até ao primeiro
+    // </div> interno e CORROMPIA a estrutura, fazendo os slots internos
+    // desaparecerem (e os objetos não renderizavam). O DOM lida com aninhamento.
+    if (typeof $ === 'function') {
+        try {
+            var $frag = $('<div></div>').html(html);
+            $frag.find('[data-mdash-slot]').each(function () {
+                var $el = $(this);
 
-        // Check for class-mode (icons)
-        if (/data-mdash-slot-mode="class"/.test(attrs)) {
-            // Replace the class attribute entirely, or add class if none
-            if (/\bclass="[^"]*"/.test(attrs)) {
-                attrs = attrs.replace(/\bclass="[^"]*"/, 'class="' + content + '"');
-            } else {
-                attrs += ' class="' + content + '"';
-            }
-            return '<' + tag + attrs + '>' + innerContent + closeTag;
+                // Slots que CONTÊM outros slots são contentores estruturais:
+                // não preencher (senão apagam-se os slots internos). O sistema
+                // de slots preenche cada slot folha / monta os objetos depois.
+                if ($el.find('[data-mdash-slot]').length > 0) return;
+
+                var slotName = $el.attr('data-mdash-slot');
+                var content = slotContent[slotName];
+                if (content === undefined || content === '') return;
+
+                // Modo "class" (ícones): substitui a classe em vez do conteúdo
+                if ($el.attr('data-mdash-slot-mode') === 'class') {
+                    $el.attr('class', content);
+                } else {
+                    $el.html(content);
+                }
+            });
+            html = $frag.html();
+        } catch (domErr) {
+            console.warn('[MDash] renderUnifiedLayout: fill via DOM falhou, fallback regex —', domErr);
+            html = _fillSlotsViaRegex(html, slotContent);
         }
-
-        // Default: replace innerHTML
-        return '<' + tag + attrs + '>' + content + closeTag;
-    });
+    } else {
+        html = _fillSlotsViaRegex(html, slotContent);
+    }
 
     // Gera scope ID único: layout codigo + card id (garante isolamento por instância)
     var scopeId = (layout.codigo || 'layout') + '_' + (cardData.id || Math.random().toString(36).substr(2, 6));
@@ -2955,6 +3588,13 @@ function injectSlotDropOverlays(itemStamp, template) {
     $body.find('[data-mdash-slot]').each(function () {
         var $el = $(this);
         var slotId = $el.attr('data-mdash-slot');
+
+        // Slots-contentor (que contêm slots aninhados, ex.: body > slotv/labelslt)
+        // NÃO recebem dropzone — senão o $el.empty() abaixo apagaria os slots
+        // internos antes de serem processados (não apareceriam no editor).
+        // Apenas os slots-folha são drop targets.
+        if ($el.find('[data-mdash-slot]').length > 0) return;
+
         var slotDef = contentSlotIds[slotId];
 
         // Custom layouts: slot no HTML sem definição ? trata como content
@@ -3279,12 +3919,27 @@ function getTemplateLayoutOptions() {
         ];
     }
 
-    // Integração híbrida: adicionar layouts customizados do Layout Builder
-    if (typeof getCustomLayoutTemplateOptions === "function") {
-        var customLayouts = getCustomLayoutTemplateOptions();
-        if (customLayouts.length > 0) {
-            templates = templates.concat(customLayouts);
+    // Integração híbrida: adicionar layouts customizados do Layout Builder.
+    // Lê GMDashContainerItemLayouts directamente (toTemplateOption está nesta
+    // lib) para NÃO depender de getCustomLayoutTemplateOptions (que vive no
+    // Mdash Layout Builder.js e pode não estar carregado no viewer). Assim os
+    // layouts custom também funcionam na pré-visualização do dashboard.
+    try {
+        if (Array.isArray(GMDashContainerItemLayouts) && GMDashContainerItemLayouts.length) {
+            var customLayouts = GMDashContainerItemLayouts
+                .filter(function (l) { return l && !l.inactivo && l.ispublic; })
+                .map(function (l) {
+                    return (typeof l.toTemplateOption === 'function')
+                        ? l.toTemplateOption()
+                        : null;
+                })
+                .filter(function (o) { return !!o; });
+            if (customLayouts.length > 0) {
+                templates = templates.concat(customLayouts);
+            }
         }
+    } catch (e) {
+        try { console.warn('[MDash] merge de layouts custom falhou:', e); } catch (ignore) { }
     }
 
     return templates;
@@ -3389,7 +4044,6 @@ function initModernDashboardUI() {
     mainHtml += '  <div class="mdash-top-toolbar-brand"><i class="glyphicon glyphicon-th"></i> MDash 2.0</div>';
     mainHtml += '  <div class="mdash-top-toolbar-actions">';
     mainHtml += '    <button type="button" onclick="actualizarConfiguracaoMDashboard()" class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-floppy-disk"></i> Guardar</button>';
-    mainHtml += '    <button type="button" onclick="exportarConfiguracaoMDashboard()" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-download-alt"></i> Exportar</button>';
     mainHtml += '    <button type="button" onclick="openDashboardPreview()" class="btn btn-success btn-sm mdash-preview-btn"><i class="glyphicon glyphicon-eye-open"></i> Pré-visualizar</button>';
     mainHtml += '  </div>';
     mainHtml += '</div>';
@@ -3612,19 +4266,32 @@ function initModernDashboardUI() {
     mainHtml += '            <input type="checkbox" :checked="$computed.isMultiTabsEnabled()" @change="toggleMultiTabs($event)" />';
     mainHtml += '            <span>Multi separadores</span>';
     mainHtml += '          </label>';
+    mainHtml += '          <div v-if="$computed.isMultiTabsEnabled()" class="mdash-tabs-layout-controls">';
+    mainHtml += '            <label class="mdash-tabs-layout-field" title="Comportamento quando houver muitas tabs">';
+    mainHtml += '              <span>Tabs</span>';
+    mainHtml += '              <select class="mdash-tabs-layout-select" :value="getDashboardTabOverflowMode()" @change="setDashboardTabOverflowMode($event)">';
+    mainHtml += '                <option value="squeeze">Apertar</option>';
+    mainHtml += '                <option value="wrap">Quebrar linha</option>';
+    mainHtml += '              </select>';
+    mainHtml += '            </label>';
+    mainHtml += '            <label v-if="getDashboardTabOverflowMode() === \'wrap\'" class="mdash-tabs-layout-field mdash-tabs-layout-field-count" title="Quebrar linha quando ultrapassar este nÃºmero de tabs">';
+    mainHtml += '              <span>ApÃ³s</span>';
+    mainHtml += '              <input type="number" min="1" max="20" class="mdash-tabs-layout-input" :value="getDashboardTabWrapAfterCount()" @change="setDashboardTabWrapAfterCount($event)" />';
+    mainHtml += '            </label>';
+    mainHtml += '          </div>';
     //  mainHtml += '          <button type="button"  class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-eye-open"></i> Pré visualizar</button>';
     /* mainHtml += '          <button type="button" @click="addNewFilter" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-filter"></i> Novo Filtro</button>';
      mainHtml += '          <button type="button" @click="addNewFonte" class="btn btn-default btn-sm"><i class="glyphicon glyphicon-oil"></i> Nova Fonte</button>';*/
     mainHtml += '        </div>';
     mainHtml += '      </div>';
     mainHtml += '      <div v-if="$computed.isMultiTabsEnabled()" class="mdash-dashboard-tabs-wrap">';
-    mainHtml += '        <div class="mdash-dashboard-tabs" id="mdash-dashboard-tabs">';
-    mainHtml += '          <div v-for="tab in $computed.sortedTabs()" :key="tab.mdashtabstamp" class="mdash-dashboard-tab" :class="{\'is-active\': activeTabStamp === tab.mdashtabstamp}" :style="getTabInlineStyle(tab)" :data-stamp="tab.mdashtabstamp" @click="selectDashboardTab(tab.mdashtabstamp)">';
+    mainHtml += '        <div class="mdash-dashboard-tabs" :class="getDashboardTabsClass()" :style="getDashboardTabsStyle()" id="mdash-dashboard-tabs">';
+    mainHtml += '          <div v-for="tab in $computed.sortedTabs()" :key="tab.mdashtabstamp" class="mdash-dashboard-tab" :class="{\'is-active\': activeTabStamp === tab.mdashtabstamp}" :style="getTabInlineStyle(tab)" :data-stamp="tab.mdashtabstamp" :title="getTabTooltipTitle(tab)" @click="selectDashboardTab(tab.mdashtabstamp)">';
     mainHtml += '            <span class="mdash-dashboard-tab-accent"></span>';
     mainHtml += '            <span class="mdash-dashboard-tab-curve mdash-dashboard-tab-curve-l" aria-hidden="true"></span>';
     mainHtml += '            <span class="mdash-dashboard-tab-curve mdash-dashboard-tab-curve-r" aria-hidden="true"></span>';
     mainHtml += '            <button type="button" class="mdash-dashboard-tab-iconbtn" @click.stop="toggleTabEditor(tab.mdashtabstamp)" title="Alterar ícone / cor"><i :class="tab.icone || \'glyphicon glyphicon-list-alt\'"></i></button>';
-    mainHtml += '            <input type="text" :value="tab.titulo" @click.stop="selectDashboardTab(tab.mdashtabstamp)" @change.stop="updateDashboardTabTitle(tab, $event)" class="mdash-dashboard-tab-title" placeholder="Sem nome" />';
+    mainHtml += '            <input type="text" :value="tab.titulo" @click.stop="selectDashboardTab(tab.mdashtabstamp)" @change.stop="updateDashboardTabTitle(tab, $event)" class="mdash-dashboard-tab-title" placeholder="Sem nome" :title="getTabTooltipTitle(tab)" />';
     mainHtml += '            <span class="mdash-dashboard-tab-duplicate" @click.stop="duplicateDashboardTab(tab.mdashtabstamp)" title="Duplicar separador"><i class="glyphicon glyphicon-duplicate"></i></span>';
     mainHtml += '            <span class="mdash-dashboard-tab-close" @click.stop="deleteDashboardTab(tab.mdashtabstamp)" title="Remover separador"><i class="glyphicon glyphicon-remove"></i></span>';
     mainHtml += '            <div v-if="tabEditorOpenFor === tab.mdashtabstamp" class="mdash-tab-editor-popover" @click.stop>';
@@ -3661,6 +4328,9 @@ function initModernDashboardUI() {
     mainHtml += '                  <option value="">(Padrão)</option>';
     mainHtml += '                  <option v-for="f in getTabFontOptions()" :key="f.value" :value="f.value" :style="\'font-family:\' + f.value">{{ f.label }}</option>';
     mainHtml += '                </select>';
+    mainHtml += '              </div>';
+    mainHtml += '              <div class="mdash-tab-editor-section"><div class="mdash-tab-editor-title">Tooltip</div>';
+    mainHtml += '                <input type="text" class="mdash-tab-editor-font" :value="getTabTooltipInputValue(tab)" @change.stop="setTabTooltipTitle(tab, $event)" placeholder="Usar o tÃ­tulo do separador" />';
     mainHtml += '              </div>';
     mainHtml += '              <div class="mdash-tab-editor-section"><div class="mdash-tab-editor-title">Ícone</div>';
     mainHtml += '                <div class="mdash-tab-editor-icons">';
@@ -3796,6 +4466,10 @@ function initModernDashboardUI() {
     var _dashSettings = (typeof _dashCfg.getConfig === 'function') ? _dashCfg.getConfig() : {};
     // Normaliza settings vindos da BD (legacy: 1/0, chaves antigas como primeiroTabStamp)
     _dashSettings.activarMultiSeparadores = !!_dashSettings.activarMultiSeparadores;
+    _dashSettings.tabOverflowMode = _dashSettings.tabOverflowMode === 'wrap' ? 'wrap' : 'squeeze';
+    var _tabWrapAfterCount = parseInt(_dashSettings.tabWrapAfterCount, 10);
+    if (isNaN(_tabWrapAfterCount)) _tabWrapAfterCount = 5;
+    _dashSettings.tabWrapAfterCount = Math.max(1, Math.min(20, _tabWrapAfterCount));
     if (!_dashSettings.activeTabStamp && _dashSettings.primeiroTabStamp) {
         _dashSettings.activeTabStamp = _dashSettings.primeiroTabStamp;
     }
@@ -3945,6 +4619,62 @@ function initModernDashboardUI() {
 
         getTabInlineStyle: function (tab) {
             return GMDashTabsRuntime ? GMDashTabsRuntime.getTabStyle(tab) : '';
+        },
+
+        getDashboardTabOverflowMode: function () {
+            if (GMDashTabsRuntime) return GMDashTabsRuntime.getTabOverflowMode();
+            var settings = window.appState.dashboardSettings || {};
+            return settings.tabOverflowMode === 'wrap' ? 'wrap' : 'squeeze';
+        },
+
+        getDashboardTabWrapAfterCount: function () {
+            if (GMDashTabsRuntime) return GMDashTabsRuntime.getTabWrapAfterCount();
+            var settings = window.appState.dashboardSettings || {};
+            var count = parseInt(settings.tabWrapAfterCount, 10);
+            if (isNaN(count)) count = 5;
+            return Math.max(1, Math.min(20, count));
+        },
+
+        getDashboardTabsClass: function () {
+            var count = this.$computed.sortedTabs().length;
+            if (GMDashTabsRuntime && typeof GMDashTabsRuntime.getTabsLayoutClass === 'function') {
+                return GMDashTabsRuntime.getTabsLayoutClass(count);
+            }
+            var shouldWrap = this.shouldWrapDashboardTabs();
+            return { 'is-wrap-mode': shouldWrap, 'is-squeeze-mode': !shouldWrap };
+        },
+
+        getDashboardTabsStyle: function () {
+            var count = this.$computed.sortedTabs().length;
+            if (GMDashTabsRuntime && typeof GMDashTabsRuntime.getTabsLayoutStyle === 'function') {
+                return GMDashTabsRuntime.getTabsLayoutStyle(count);
+            }
+            var shouldWrap = this.shouldWrapDashboardTabs();
+            return (shouldWrap ? 'flex-wrap:wrap;overflow:visible;' : 'flex-wrap:nowrap;overflow-x:auto;overflow-y:visible;')
+                + '--md-tab-basis:78px;--md-tab-min:56px;--md-tab-max:96px;';
+        },
+
+        shouldWrapDashboardTabs: function () {
+            var count = this.$computed.sortedTabs().length;
+            return this.getDashboardTabOverflowMode() === 'wrap' && count > this.getDashboardTabWrapAfterCount();
+        },
+
+        setDashboardTabOverflowMode: function (ev) {
+            var val = ev && ev.target ? ev.target.value : 'squeeze';
+            var settings = window.appState.dashboardSettings || {};
+            settings.tabOverflowMode = val === 'wrap' ? 'wrap' : 'squeeze';
+            window.appState.dashboardSettings = settings;
+            mdashSyncDashboardConfigRealtime();
+        },
+
+        setDashboardTabWrapAfterCount: function (ev) {
+            var val = ev && ev.target ? parseInt(ev.target.value, 10) : 5;
+            if (isNaN(val)) val = 5;
+            val = Math.max(1, Math.min(20, val));
+            var settings = window.appState.dashboardSettings || {};
+            settings.tabWrapAfterCount = val;
+            window.appState.dashboardSettings = settings;
+            mdashSyncDashboardConfigRealtime();
         },
 
         getTabColor: function (tab) {
@@ -4103,6 +4833,24 @@ function initModernDashboardUI() {
             var cfg = {};
             try { cfg = JSON.parse(tab.configjson || '{}') || {}; } catch (e) { }
             cfg.fontFamily = val || '';
+            tab.configjson = JSON.stringify(cfg);
+            if (typeof realTimeComponentSync === 'function') {
+                realTimeComponentSync(tab, tab.table, tab.idfield);
+            }
+        },
+        getTabTooltipInputValue: function (tab) {
+            var cfg = {};
+            try { cfg = JSON.parse(tab.configjson || '{}') || {}; } catch (e) { }
+            return cfg.tooltipTitle || '';
+        },
+        getTabTooltipTitle: function (tab) {
+            return GMDashTabsRuntime ? GMDashTabsRuntime.getTabTooltipTitle(tab) : (((tab && tab.titulo) || '').trim() || 'Sem nome');
+        },
+        setTabTooltipTitle: function (tab, ev) {
+            var val = ev && ev.target ? ev.target.value : '';
+            var cfg = {};
+            try { cfg = JSON.parse(tab.configjson || '{}') || {}; } catch (e) { }
+            cfg.tooltipTitle = (val || '').trim();
             tab.configjson = JSON.stringify(cfg);
             if (typeof realTimeComponentSync === 'function') {
                 realTimeComponentSync(tab, tab.table, tab.idfield);
@@ -9075,12 +9823,20 @@ function loadModernDashboardStyles() {
     // ===== DASHBOARD TABS (Browser-like, enterprise) =====
     styles += ".mdash-tabs-toggle { display:inline-flex; align-items:center; gap:7px; margin-right:8px; font-size:11px; font-weight:700; color:#475569; background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:999px; padding:4px 10px; }";
     styles += ".mdash-tabs-toggle input[type='checkbox'] { accent-color: var(--md-primary); margin:0; }";
+    styles += ".mdash-tabs-layout-controls { display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; }";
+    styles += ".mdash-tabs-layout-field { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:#475569; background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:999px; padding:4px 8px; }";
+    styles += ".mdash-tabs-layout-field span { white-space:nowrap; }";
+    styles += ".mdash-tabs-layout-select, .mdash-tabs-layout-input { height:24px; border:1px solid rgba(15,23,42,0.12); background:#fff; color:#0f172a; border-radius:999px; padding:0 8px; font-size:11px; outline:none; }";
+    styles += ".mdash-tabs-layout-select { min-width:112px; }";
+    styles += ".mdash-tabs-layout-input { width:58px; text-align:center; }";
     // -- Dashboard tabs bar (Chrome-style, bg-filled) ---------------------
     styles += ".mdash-dashboard-tabs-wrap { --mdash-tabs-canvas: #ffffff; margin: 14px 0 -1px; overflow: visible; padding: 8px 4px 0; position:relative; }";
     styles += ".mdash-dashboard-tabs-wrap::after { content:''; position:absolute; left:0; right:0; bottom:0; height:1px; background:rgba(15,23,42,0.08); }";
-    styles += ".mdash-dashboard-tabs { display:flex; align-items:flex-end; gap:2px; min-width:max-content; position:relative; z-index:1; padding-bottom:0; }";
+    styles += ".mdash-dashboard-tabs { --md-tab-basis:78px; --md-tab-min:56px; --md-tab-max:96px; display:flex; align-items:flex-end; align-content:flex-end; flex-wrap:nowrap; gap:3px; min-width:0; width:100%; position:relative; z-index:1; padding-bottom:0; overflow-x:auto; overflow-y:visible; }";
+    styles += ".mdash-dashboard-tabs.is-wrap-mode { flex-wrap:wrap !important; gap:4px 3px; overflow:visible !important; min-width:0 !important; }";
+    styles += ".mdash-dashboard-tabs.is-squeeze-mode { flex-wrap:nowrap !important; overflow-x:auto; }";
     // Inactive: faded bg using tab accent at low alpha via mix; Active: full accent bg.
-    styles += ".mdash-dashboard-tab { --mdash-tab-accent: var(--md-primary); --mdash-tab-icon: var(--md-primary); --mdash-tab-text: #475569; --mdash-tab-font: inherit; position:relative; min-width:188px; max-width:280px; height:40px; padding:0 56px 0 12px; display:inline-flex; align-items:center; gap:8px; cursor:grab; background:color-mix(in srgb, var(--mdash-tab-accent) 14%, #edf1f7); color:var(--mdash-tab-text); font-family:var(--mdash-tab-font); border-radius:10px 10px 0 0; transition:background .18s ease, color .18s ease, box-shadow .18s ease, transform .15s ease, filter .18s ease; margin-bottom:0; }";
+    styles += ".mdash-dashboard-tab { --mdash-tab-accent: var(--md-primary); --mdash-tab-icon: var(--md-primary); --mdash-tab-text: #475569; --mdash-tab-font: inherit; position:relative; flex:1 1 var(--md-tab-basis); min-width:var(--md-tab-min); max-width:var(--md-tab-max); height:32px; padding:0 34px 0 6px; display:inline-flex; align-items:center; gap:4px; cursor:grab; background:color-mix(in srgb, var(--mdash-tab-accent) 14%, #edf1f7); color:var(--mdash-tab-text); font-family:var(--mdash-tab-font); border-radius:8px 8px 0 0; transition:background .18s ease, color .18s ease, box-shadow .18s ease, transform .15s ease, filter .18s ease; margin-bottom:0; overflow:hidden; }";
     styles += ".mdash-dashboard-tab:active { cursor:grabbing; }";
     styles += ".mdash-dashboard-tab:hover { background:color-mix(in srgb, var(--mdash-tab-accent) 22%, #edf1f7); filter:brightness(1.02); }";
     styles += ".mdash-dashboard-tab.is-active { background:var(--mdash-tab-accent); color:var(--mdash-tab-text); box-shadow:0 -2px 10px rgba(15,23,42,0.08); z-index:3; }";
@@ -9089,27 +9845,27 @@ function loadModernDashboardStyles() {
     styles += ".mdash-dashboard-tab.is-active > .mdash-dashboard-tab-accent { opacity:0; }"; // not needed when bg is already accent
     styles += ".mdash-dashboard-tab-curve { display:none !important; }";
     // Icon colour is independent
-    styles += ".mdash-dashboard-tab i { font-size:12px; flex-shrink:0; color:var(--mdash-tab-icon); }";
+    styles += ".mdash-dashboard-tab i { font-size:9px; flex-shrink:0; color:var(--mdash-tab-icon); }";
     styles += ".mdash-dashboard-tab-iconbtn i { color:var(--mdash-tab-icon); }";
     // Title inherits text color and font
-    styles += ".mdash-dashboard-tab-title { border:none !important; background:transparent !important; color:inherit; font-family:inherit; width:100%; min-width:0; font-size:12px; font-weight:600; line-height:1; letter-spacing:.01em; outline:none !important; padding:0; cursor:text; box-shadow:none !important; -webkit-appearance:none; appearance:none; text-overflow:ellipsis; }";
+    styles += ".mdash-dashboard-tab-title { border:none !important; background:transparent !important; color:inherit; font-family:inherit; width:100%; min-width:0; font-size:10px; font-weight:600; line-height:1; letter-spacing:.01em; outline:none !important; padding:0; cursor:text; box-shadow:none !important; -webkit-appearance:none; appearance:none; text-overflow:ellipsis; white-space:nowrap; overflow:hidden; }";
     styles += ".mdash-dashboard-tab-title:focus, .mdash-dashboard-tab-title:active, .mdash-dashboard-tab-title:hover { outline:none !important; box-shadow:none !important; background:transparent !important; border:none !important; }";
     styles += ".mdash-dashboard-tab-title::placeholder { color:currentColor; opacity:.5; font-weight:500; }";
     // Close button — adapts to current text color
-    styles += ".mdash-dashboard-tab-close { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:18px; height:18px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:9px; color:currentColor; opacity:0; transition:opacity .15s, background .15s, color .15s, transform .15s; cursor:pointer; }";
+    styles += ".mdash-dashboard-tab-close { position:absolute; right:5px; top:50%; transform:translateY(-50%); width:12px; height:12px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:7px; color:currentColor; opacity:0; transition:opacity .15s, background .15s, color .15s, transform .15s; cursor:pointer; }";
     styles += ".mdash-dashboard-tab:hover .mdash-dashboard-tab-close, .mdash-dashboard-tab.is-active .mdash-dashboard-tab-close { opacity:.7; }";
     styles += ".mdash-dashboard-tab-close:hover { opacity:1 !important; background:rgba(220,38,38,.18); color:#fff; transform:translateY(-50%) scale(1.1); }";
     // Duplicate button — same position pattern as close, but to the left of it
-    styles += ".mdash-dashboard-tab-duplicate { position:absolute; right:30px; top:50%; transform:translateY(-50%); width:18px; height:18px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:9px; color:currentColor; opacity:0; transition:opacity .15s, background .15s, color .15s, transform .15s; cursor:pointer; }";
+    styles += ".mdash-dashboard-tab-duplicate { position:absolute; right:18px; top:50%; transform:translateY(-50%); width:12px; height:12px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:7px; color:currentColor; opacity:0; transition:opacity .15s, background .15s, color .15s, transform .15s; cursor:pointer; }";
     styles += ".mdash-dashboard-tab:hover .mdash-dashboard-tab-duplicate, .mdash-dashboard-tab.is-active .mdash-dashboard-tab-duplicate { opacity:.7; }";
     styles += ".mdash-dashboard-tab-duplicate:hover { opacity:1 !important; background:rgba(37,99,235,.22); color:#fff; transform:translateY(-50%) scale(1.1); }";
     // + add tab
-    styles += ".mdash-dashboard-tab-add { min-width:32px; width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; margin-left:6px; margin-bottom:2px; background:transparent; color:#94a3b8; border:none; border-radius:50%; cursor:pointer; transition:background .15s, color .15s, transform .15s; align-self:flex-end; }";
+    styles += ".mdash-dashboard-tab-add { flex:0 0 auto; min-width:24px; width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; margin-left:3px; margin-bottom:2px; background:transparent; color:#94a3b8; border:none; border-radius:50%; cursor:pointer; transition:background .15s, color .15s, transform .15s; align-self:flex-end; }";
     styles += ".mdash-dashboard-tab-add:hover { background:rgba(var(--md-primary-rgb),.1); color:var(--md-primary); transform:scale(1.08); }";
-    styles += ".mdash-dashboard-tab-add i { font-size:13px; }";
+    styles += ".mdash-dashboard-tab-add i { font-size:10px; }";
     // Sortable states
     styles += ".mdash-dashboard-tab.is-dragging, .mdash-dashboard-tab.ui-sortable-helper { opacity:.92; cursor:grabbing; box-shadow:0 12px 28px rgba(15,23,42,.18); transform:translateY(-2px) rotate(-1deg); z-index:10; }";
-    styles += ".mdash-dashboard-tab-placeholder { min-width:168px; height:40px; background:rgba(var(--md-primary-rgb),.08); border:1px dashed rgba(var(--md-primary-rgb),.35); border-bottom:none; border-radius:10px 10px 0 0; box-sizing:border-box; visibility:visible !important; margin-bottom:0; }";
+    styles += ".mdash-dashboard-tab-placeholder { flex:1 1 var(--md-tab-basis); min-width:var(--md-tab-min); max-width:var(--md-tab-max); height:32px; background:rgba(var(--md-primary-rgb),.08); border:1px dashed rgba(var(--md-primary-rgb),.35); border-bottom:none; border-radius:8px 8px 0 0; box-sizing:border-box; visibility:visible !important; margin-bottom:0; }";
     // Auto-contrast swatch (checker pattern)
     styles += ".mdash-phc-color-auto { background:linear-gradient(135deg, #fff 50%, #0f172a 50%) !important; display:inline-flex; align-items:center; justify-content:center; color:transparent; }";
     styles += ".mdash-phc-color-auto i { color:rgba(15,23,42,.65); font-size:10px; mix-blend-mode:difference; }";
@@ -9118,9 +9874,9 @@ function loadModernDashboardStyles() {
     styles += ".mdash-tab-editor-font:focus { border-color:var(--md-primary); box-shadow:0 0 0 2px rgba(var(--md-primary-rgb),.15); }";
 
     // Icon button on tab
-    styles += ".mdash-dashboard-tab-iconbtn { flex-shrink:0; width:22px; height:22px; padding:0; border:none; background:transparent; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; border-radius:4px; color:var(--mdash-tab-accent); transition:background 0.15s; }";
+    styles += ".mdash-dashboard-tab-iconbtn { flex-shrink:0; width:15px; height:15px; padding:0; border:none; background:transparent; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; border-radius:4px; color:var(--mdash-tab-accent); transition:background 0.15s; }";
     styles += ".mdash-dashboard-tab-iconbtn:hover { background:rgba(var(--md-primary-rgb),0.12); }";
-    styles += ".mdash-dashboard-tab-iconbtn i { font-size:13px; }";
+    styles += ".mdash-dashboard-tab-iconbtn i { font-size:9px; }";
 
     // Tab editor popover (icon + color)
     styles += ".mdash-tab-editor-popover { position:absolute; top:calc(100% + 4px); left:0; z-index:1050; background:#fff; border:1px solid rgba(15,23,42,0.12); border-radius:10px; box-shadow:0 12px 32px rgba(15,23,42,0.18); padding:10px 12px; min-width:220px; }";
@@ -9154,6 +9910,42 @@ function loadModernDashboardStyles() {
     styles += ".mdash-phc-color-option:hover { transform:scale(1.15); }";
     styles += ".mdash-phc-color-option.is-active { box-shadow:0 0 0 2px var(--md-primary), 0 2px 6px rgba(0,0,0,0.25); }";
     styles += ".mdash-filter-scope-badge { margin-left:8px; padding:1px 6px; border-radius:999px; font-size:9px; font-weight:700; background:rgba(var(--md-primary-rgb),0.12); color:var(--md-primary); }";
+
+    // ===== ERROR DISPLAY =====
+    styles += ".mdash-error-container { padding: 20px; background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%); border: 2px solid #f56565; border-radius: 8px; text-align: center; box-shadow: 0 4px 12px rgba(245, 101, 101, 0.15); }";
+    styles += ".mdash-error-container i { color: #f56565; font-size: 32px; margin-bottom: 12px; }";
+    styles += ".mdash-error-container h4 { color: #c53030; margin: 10px 0; font-weight: 600; font-size: 15px; }";
+    styles += ".mdash-error-container p { color: #742a2a; margin: 10px 0; font-size: 13px; line-height: 1.4; }";
+    styles += ".mdash-error-container .btn-danger { background: #f56565 !important; border-color: #e53e3e !important; color: #fff !important; margin-top: 10px; }";
+    styles += ".mdash-error-container .btn-danger:hover { background: #e53e3e !important; border-color: #c53030 !important; }";
+
+    // ===== SLOT ERROR STATE - ENTERPRISE (preenche o slot, nunca sobrepõe) =====
+    styles += ".mdash-slot-error-state { box-sizing: border-box; width: 100%; height: 100%; min-height: 90px; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 14px; padding: 16px 20px; cursor: pointer; background: linear-gradient(135deg, #fdf3f3 0%, #fbeaea 100%); border: 1px solid #f1c6c6; border-radius: 8px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; -webkit-user-select: none; text-align: left; }";
+    styles += ".mdash-slot-error-state:hover { border-color: #e09a9a; box-shadow: 0 4px 16px rgba(220, 53, 69, 0.12); transform: translateY(-1px); }";
+    styles += ".mdash-slot-error-state:active { transform: translateY(0); }";
+
+    styles += ".mdash-slot-error-icon { position: relative; flex: 0 0 auto; width: 44px; height: 44px; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(220, 53, 69, 0.28); }";
+    styles += ".mdash-slot-error-icon > i { color: #fff; font-size: 20px; line-height: 1; }";
+    styles += ".mdash-slot-error-count { position: absolute; top: -7px; right: -7px; min-width: 22px; height: 22px; padding: 0 5px; box-sizing: border-box; background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); color: #1a1a1a; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; border: 2.5px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); font-family: 'Courier New', monospace; }";
+
+    styles += ".mdash-slot-error-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }";
+    styles += ".mdash-slot-error-title { color: #b02a37; font-size: 14px; font-weight: 700; line-height: 1.2; }";
+    styles += ".mdash-slot-error-sub { color: #8a5a5a; font-size: 12px; font-weight: 500; line-height: 1.2; }";
+
+    // ===== TECHNICAL ERROR MODAL (Developers Only) =====
+    styles += ".mdash-modal-technical-errors { }";
+    styles += ".mdash-tech-error-item { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; margin-bottom: 10px; font-family: 'Courier New', monospace; font-size: 12px; }";
+    styles += ".mdash-tech-error-type { background: #dc3545; color: #fff; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; display: inline-block; margin-bottom: 6px; }";
+    styles += ".mdash-tech-error-content { }";
+    styles += ".mdash-tech-error-content strong { display: block; color: #212529; margin-bottom: 4px; font-size: 13px; }";
+    styles += ".mdash-tech-error-message { background: #fff; border: 1px solid #dee2e6; padding: 8px; border-radius: 3px; margin: 0; color: #dc3545; overflow-x: auto; max-height: 200px; font-size: 11px; line-height: 1.4; }";
+
+    // ===== SOURCE ERROR BADGE =====
+    styles += ".mdash-source-error-badge { position: absolute; top: 12px; right: 12px; background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; box-shadow: 0 3px 8px rgba(255, 152, 0, 0.25); transition: all 0.2s ease; z-index: 10; }";
+    styles += ".mdash-source-error-badge:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(255, 152, 0, 0.35); background: linear-gradient(135deg, #ffb300 0%, #ff8c00 100%); }";
+    styles += ".mdash-source-error-badge i { font-size: 14px; }";
+    styles += ".mdash-source-error-badge .badge-text { display: none; }";
+    styles += "@media (min-width: 768px) { .mdash-source-error-badge .badge-text { display: inline; } }";
 
     $('<style id="mdash-modern-styles" data-mdash-style-version="' + styleVersion + '">').text(styles).appendTo('head');
 

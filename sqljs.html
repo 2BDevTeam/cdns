@@ -1,38 +1,1993 @@
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-  <meta charset="UTF-8">
-  <title>AlaSQL Example</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet" /><script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" /><script src="https://cdn.jsdelivr.net/npm/flatpickr"></script><!-- Flatpickr Portuguese localization --><script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script><!-- ============================================================== --><!-- MDASH 2.0 — CDNs alinhados com Eventos/INSERIR SCRIPTS.vb       --><!-- ============================================================== --><script src="https://raw.githack.com/2BDevTeam/cdns/master/2BGLOBALSTYLES.JS"></script><script src="https://raw.githack.com/2BDevTeam/cdns/master/CUSTOMFORM.JS"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script><script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script><script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script><script src="https://bossanova.uk/jspreadsheet/v5/jspreadsheet.js"></script>
+<link href="https://bossanova.uk/jspreadsheet/v5/jspreadsheet.css" rel="stylesheet" /><script src="https://jsuites.net/v5/jsuites.js"></script>
+<link href="https://jsuites.net/v5/jsuites.css" rel="stylesheet" /><script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script><script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script><script src="https://cdn.jsdelivr.net/npm/handlebars@4.7.8/dist/handlebars.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/0.3.2/js/sql.js"></script><script src="https://cdn.jsdelivr.net/gh/2BDevTeam/cdns@master/GLOBAL.js"></script>
+<style type="text/css">body {
+    background-color: #f3f7fe !important;
+    background-size: cover !important;
+    font-family: Nunito, sans-serif !important;
+    color: #002c52 !important;
+  }
 
-  <!-- CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/alasql/4.6.6/alasql.min.js"></script>
-</head>
-<body>
+  body form>.container {
+    background-color: #f3f7fe !important;
+  }
 
-<h2>Resultado:</h2>
-<pre id="output"></pre>
+  #master-content {
+    background-color: #f3f7fe !important;
+  }
 
-<script>
-  // 📦 Array de dados (4 registos)
-  const pessoas = [
-    { id: 1, nome: "Denilson", pais: "Moçambique" },
-    { id: 2, nome: "Maria", pais: "Portugal" },
-    { id: 3, nome: "João", pais: "Brasil" },
-    { id: 4, nome: "Ana", pais: "Angola" }
-  ];
+  #maincontent {
+    background-color: #f3f7fe !important;
+  }
 
-  // 🔥 Query SQL sobre o array
-  const resultado = alasql(
-    "SELECT id, nome, pais FROM ? WHERE id >= 2",
-    [pessoas]
-  );
 
-  // mostrar no ecrã
-  document.getElementById("output").textContent =
-    JSON.stringify(resultado, null, 2);
 
-  console.log(resultado);
-</script>
+  .select2-selection__rendered {
+    overflow-x: scroll !important;
+  }
 
-</body>
-</html>
+  .select2-selection__choice {
+    position: relative !important;
+    padding-right: 25px !important;
+    /* Espaço garantido para o botão */
+  }
+
+  .select2-selection__choice__remove {
+    position: absolute !important;
+    right: 4px !important;
+    top: 4px !important;
+    /* Alinhamento mais preciso no topo */
+    transform: none !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+  }
+
+  /* CONTAINER RESPONSIVO */
+  .gr-container {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Limites máximos do container como no Bootstrap */
+  @media (min-width: 576px) {
+    .gr-container {
+      max-width: 540px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .gr-container {
+      max-width: 720px;
+    }
+  }
+
+  @media (min-width: 992px) {
+    .gr-container {
+      max-width: 960px;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .gr-container {
+      max-width: 1140px;
+    }
+  }
+
+  @media (min-width: 1400px) {
+    .gr-container {
+      max-width: 1320px;
+    }
+  }
+
+  /* ROW */
+  /* minmax(0, 1fr) alinhado com o editor (.mdash-container-items-row da lib):
+     impede que o conteúdo de um card estique a coluna além de 1fr e empurre
+     os restantes (causava o último card a deslocar-se no layout manual). */
+  .gr-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1rem;
+    grid-auto-rows: 1fr;
+    margin-bottom: 2rem;
+  }
+
+  /* ROW com layout automático — mais flexível */
+  .gr-row.mdash-layout-auto {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  }
+
+  /* COLUNAS base */
+  [class*="gr-col-"] {
+    grid-column: span 12;
+  }
+
+  /* Breakpoints (xs até xl) — igual antes */
+  .gr-col-xs-1 {
+    grid-column: span 1;
+  }
+
+  .gr-col-xs-2 {
+    grid-column: span 2;
+  }
+
+  .gr-col-xs-3 {
+    grid-column: span 3;
+  }
+
+  .gr-col-xs-4 {
+    grid-column: span 4;
+  }
+
+  .gr-col-xs-5 {
+    grid-column: span 5;
+  }
+
+  .gr-col-xs-6 {
+    grid-column: span 6;
+  }
+
+  .gr-col-xs-7 {
+    grid-column: span 7;
+  }
+
+  .gr-col-xs-8 {
+    grid-column: span 8;
+  }
+
+  .gr-col-xs-9 {
+    grid-column: span 9;
+  }
+
+  .gr-col-xs-10 {
+    grid-column: span 10;
+  }
+
+  .gr-col-xs-11 {
+    grid-column: span 11;
+  }
+
+  .gr-col-xs-12 {
+    grid-column: span 12;
+  }
+
+  @media (min-width: 576px) {
+    .gr-col-sm-1 {
+      grid-column: span 1;
+    }
+
+    .gr-col-sm-2 {
+      grid-column: span 2;
+    }
+
+    .gr-col-sm-3 {
+      grid-column: span 3;
+    }
+
+    .gr-col-sm-4 {
+      grid-column: span 4;
+    }
+
+    .gr-col-sm-5 {
+      grid-column: span 5;
+    }
+
+    .gr-col-sm-6 {
+      grid-column: span 6;
+    }
+
+    .gr-col-sm-7 {
+      grid-column: span 7;
+    }
+
+    .gr-col-sm-8 {
+      grid-column: span 8;
+    }
+
+    .gr-col-sm-9 {
+      grid-column: span 9;
+    }
+
+    .gr-col-sm-10 {
+      grid-column: span 10;
+    }
+
+    .gr-col-sm-11 {
+      grid-column: span 11;
+    }
+
+    .gr-col-sm-12 {
+      grid-column: span 12;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .gr-col-md-1 {
+      grid-column: span 1;
+    }
+
+    .gr-col-md-2 {
+      grid-column: span 2;
+    }
+
+    .gr-col-md-3 {
+      grid-column: span 3;
+    }
+
+    .gr-col-md-4 {
+      grid-column: span 4;
+    }
+
+    .gr-col-md-5 {
+      grid-column: span 5;
+    }
+
+    .gr-col-md-6 {
+      grid-column: span 6;
+    }
+
+    .gr-col-md-7 {
+      grid-column: span 7;
+    }
+
+    .gr-col-md-8 {
+      grid-column: span 8;
+    }
+
+    .gr-col-md-9 {
+      grid-column: span 9;
+    }
+
+    .gr-col-md-10 {
+      grid-column: span 10;
+    }
+
+    .gr-col-md-11 {
+      grid-column: span 11;
+    }
+
+    .gr-col-md-12 {
+      grid-column: span 12;
+    }
+  }
+
+  @media (min-width: 992px) {
+    .gr-col-lg-1 {
+      grid-column: span 1;
+    }
+
+    .gr-col-lg-2 {
+      grid-column: span 2;
+    }
+
+    .gr-col-lg-3 {
+      grid-column: span 3;
+    }
+
+    .gr-col-lg-4 {
+      grid-column: span 4;
+    }
+
+    .gr-col-lg-5 {
+      grid-column: span 5;
+    }
+
+    .gr-col-lg-6 {
+      grid-column: span 6;
+    }
+
+    .gr-col-lg-7 {
+      grid-column: span 7;
+    }
+
+    .gr-col-lg-8 {
+      grid-column: span 8;
+    }
+
+    .gr-col-lg-9 {
+      grid-column: span 9;
+    }
+
+    .gr-col-lg-10 {
+      grid-column: span 10;
+    }
+
+    .gr-col-lg-11 {
+      grid-column: span 11;
+    }
+
+    .gr-col-lg-12 {
+      grid-column: span 12;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .gr-col-xl-1 {
+      grid-column: span 1;
+    }
+
+    .gr-col-xl-2 {
+      grid-column: span 2;
+    }
+
+    .gr-col-xl-3 {
+      grid-column: span 3;
+    }
+
+    .gr-col-xl-4 {
+      grid-column: span 4;
+    }
+
+    .gr-col-xl-5 {
+      grid-column: span 5;
+    }
+
+    .gr-col-xl-6 {
+      grid-column: span 6;
+    }
+
+    .gr-col-xl-7 {
+      grid-column: span 7;
+    }
+
+    .gr-col-xl-8 {
+      grid-column: span 8;
+    }
+
+    .gr-col-xl-9 {
+      grid-column: span 9;
+    }
+
+    .gr-col-xl-10 {
+      grid-column: span 10;
+    }
+
+    .gr-col-xl-11 {
+      grid-column: span 11;
+    }
+
+    .gr-col-xl-12 {
+      grid-column: span 12;
+    }
+  }
+
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — SKELETON SYSTEM (professional + stable heights)              */
+  /* ======================================================================== */
+
+  .mdash-skel-shell {
+    --md-skel-min-h: 0px;
+    min-height: var(--md-skel-min-h);
+    max-height: 280px;
+    height: auto;
+    width: 100%;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #eef2f7;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .mdash-skel-shell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.75) 46%,
+        rgba(255, 255, 255, 0) 100%);
+    animation: mdash-skel-shimmer 1.35s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .mdash-skel-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mdash-skel-dot,
+  .mdash-skel-line,
+  .mdash-skel-block,
+  .mdash-skel-chip {
+    background: linear-gradient(180deg, #e6edf6 0%, #dbe5f1 100%);
+    border-radius: 10px;
+    flex: 0 0 auto;
+  }
+
+  .mdash-skel-dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+  }
+
+  .mdash-skel-line {
+    height: 12px;
+  }
+
+  .mdash-skel-line.w-20 {
+    width: 20%;
+  }
+
+  .mdash-skel-line.w-35 {
+    width: 35%;
+  }
+
+  .mdash-skel-line.w-45 {
+    width: 45%;
+  }
+
+  .mdash-skel-line.w-55 {
+    width: 55%;
+  }
+
+  .mdash-skel-line.w-70 {
+    width: 70%;
+  }
+
+  .mdash-skel-line.w-100 {
+    width: 100%;
+  }
+
+  .mdash-skel-chip {
+    width: 88px;
+    height: 22px;
+    border-radius: 999px;
+  }
+
+  .mdash-skel-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .mdash-skel-block {
+    height: 54px;
+    border-radius: 12px;
+  }
+
+  .mdash-skel-table {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .mdash-skel-table .mdash-skel-line {
+    height: 8px;
+  }
+
+  /* Compact per-card skeleton (DashboardPack-like rhythm) */
+  .mdash-skel-shell--compact {
+    min-height: 132px;
+    max-height: 210px;
+  }
+
+  @keyframes mdash-skel-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .snapshot:hover,
+  .celula:hover {
+    cursor: pointer;
+  }
+
+  .celula:hover {
+    text-decoration: underline;
+  }
+
+  form[action*="./ewpview.aspx?codigo=mdash"] #fieldsAndOptionsZone,
+  form[action*="./ewpview.aspx?codigo=catalogo-"] #fieldsAndOptionsZone {
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  form[action*="./ewpview.aspx?codigo=mdash"] #optionsFields,
+  form[action*="./ewpview.aspx?codigo=mdash"] .headerZone,
+  form[action*="./ewpview.aspx?codigo=catalogo-"] #optionsFields,
+  form[action*="./ewpview.aspx?codigo=catalogo-"] .headerZone {
+    display: none;
+  }
+
+  /* Dashboard top header — unified 2B card */
+  .m-dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    margin: 0 0 5px 0;
+    /* padding: 24px; */
+    margin: 0 0 0.3em 0;
+    padding: 0.3em 0.3em 0px 0.3em;
+  }
+
+  .m-dash-header .mdash-dashboard-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    /* color: #1f2429 !important; */
+    color: #3f5670 !important;
+    letter-spacing: -.01em;
+    line-height: 1.2;
+    flex: 1 1 auto;
+    text-align: left;
+  }
+
+  .m-dash-header .btn {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid #dfe3e8;
+    background: #ffffff;
+    color: #637381;
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .m-dash-horizonta-filter-container {
+    margin-bottom: 22px;
+    background: #fff;
+    padding: 0;
+    border-radius: 12px;
+  }
+
+  .m-dash-body {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-items: flex-start;
+    --md-sidebar-sync-h: auto;
+  }
+
+  .m-dash-filter {
+    background: #ffffff;
+    border: 1px solid rgba(145, 158, 171, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12);
+    padding: 24px;
+  }
+
+  .m-dash-filter-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .m-dash-btn-filter {
+    display: flex;
+    justify-content: space-between;
+    gap: 5px;
+  }
+
+  .m-dash-data-headers {
+    background: #ffffff;
+    border: 1px solid rgba(145, 158, 171, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 0.9em;
+  }
+
+  .m-dash-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex-grow: 1;
+  }
+
+  .m-dash-filter-item {
+    margin-bottom: 0.4em;
+  }
+
+  .stats-card-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .stats-card {
+    background-color: #efefef;
+    padding: 15px;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .stats-card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .stats-card-chart {
+    height: 300px;
+  }
+
+  .stats-card-value-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stats-card-value {
+    color: #999999;
+  }
+
+  .stats-card-label {
+    font-size: 0.9em;
+    font-weight: bold;
+  }
+
+  .m-dash-item {
+    background: #ffffff;
+    border: 1px solid rgba(145, 158, 171, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12);
+    padding: 24px;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .m-dash-item.snapshot {
+    padding: 20px;
+  }
+
+  .m-dash-item h1 {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 15px;
+  }
+
+  .m-dash-charts {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: space-between;
+  }
+
+  .m-dash-table {
+    font-size: 0.9em;
+    overflow-x: auto;
+    max-height: 400px;
+  }
+
+  .m-dash-table table {
+    width: 100%;
+  }
+
+  .m-dash-item-text {
+    color: #626e78;
+  }
+
+  .m-dash-filter-item {
+    color: #626e78;
+  }
+
+  .m-dash-render-area {
+    height: 100% !important;
+    min-height: var(--md-item-min-h, 0px);
+  }
+
+  @media screen and (min-width: 768px) {
+    .stats-card-container {
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .stats-card-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media screen and (min-width: 1024px) {
+    .m-dash-body {
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    .m-dash-data-headers {
+      flex-direction: row;
+    }
+
+    .m-dash-filter,
+    .mdash-filter-card--vertical {
+      min-width: 275px;
+      max-width: 340px;
+    }
+
+    .m-dash-charts {
+      flex-direction: row;
+    }
+
+    .stats-card-container {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 30px;
+    }
+  }
+
+  .tabulator-row.tabulator-tree-level-1 {
+    background-color: #f8f9fa !important;
+  }
+
+  .tabulator-row.tabulator-tree-level-2 {
+    background-color: #e9ecef !important;
+  }
+
+  .tabulator-row.tabulator-tree-level-3 {
+    background-color: #dee2e6 !important;
+  }
+
+  .tabulator-row.tabulator-tree-level-4 {
+    background-color: #ced4da !important;
+  }
+
+  .tabulator-row.tabulator-tree-level-5 {
+    background-color: #adb5bd !important;
+  }
+
+  .tabulator {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: none;
+  }
+
+  .tabulator .tabulator-header {
+    background-color: #0765b7;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .tabulator .tabulator-header .tabulator-col {
+    background-color: #0765b7;
+    color: white;
+    border-right: none;
+    padding: 12px 15px;
+    font-weight: 500;
+  }
+
+  .tabulator .tabulator-header .tabulator-col:first-child {
+    border-top-left-radius: 10px;
+  }
+
+  .tabulator .tabulator-header .tabulator-col:last-child {
+    border-top-right-radius: 10px;
+  }
+
+  .tabulator-row {
+    border-bottom: 1px solid #e0e6ed;
+    transition: background-color 0.2s ease;
+  }
+
+  .tabulator-row.tabulator-row-even {
+    background-color: #fcfdfe;
+  }
+
+  .tabulator-row:hover {
+    background-color: #f5f9ff !important;
+  }
+
+  .tabulator-cell {
+    padding: 12px 15px;
+    border-right: none;
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — classes próprias do dashboard (independentes da lib BPM)      */
+  /* ======================================================================== */
+
+  .mdash-panel {
+    /*
+    background: transparent;
+    border-radius: 16px;
+    box-shadow: 0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);*/
+
+  }
+
+  .mdash-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(145, 158, 171, 0.2);
+    background: #ffffff;
+  }
+
+  .mdash-panel-title {
+    margin: 0;
+    flex: 1 1 auto;
+    color: #1c252e;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    line-height: 1.25;
+    text-align: left;
+  }
+
+  .mdash-panel-content {
+    padding: 18px;
+    background: #ffffff;
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — Separadores estilo browser (replicado do builder REFACTOR.js) */
+  /* ======================================================================== */
+
+  .mdash-dashboard-tabs-wrap {
+    --mdash-tabs-canvas: #ffffff;
+    overflow: visible;
+    padding: 8px 4px 0;
+    position: relative;
+    margin: 0 0 -1px;
+  }
+
+  .mdash-dashboard-tabs-wrap::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        rgba(56, 189, 248, 0.22) 0%,
+        rgba(59, 130, 246, 0.16) 45%,
+        rgba(14, 165, 233, 0.14) 100%);
+  }
+
+  .mdash-dashboard-tabs {
+    --md-tab-basis: 78px;
+    --md-tab-min: 56px;
+    --md-tab-max: 96px;
+    display: flex;
+    align-items: flex-end;
+    align-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 3px;
+    min-width: 0;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    padding-bottom: 0;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  .mdash-dashboard-tabs.is-wrap-mode {
+    flex-wrap: wrap;
+    gap: 4px 3px;
+    overflow-x: visible;
+  }
+
+  .mdash-dashboard-tabs.is-squeeze-mode {
+    flex-wrap: nowrap;
+  }
+
+  .mdash-dashboard-tabs::-webkit-scrollbar {
+    height: 5px;
+  }
+
+  .mdash-dashboard-tabs::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 6px;
+  }
+
+  .mdash-dashboard-tab {
+    --mdash-tab-accent: var(--md-primary, #2563eb);
+    --mdash-tab-icon: var(--md-primary, #2563eb);
+    --mdash-tab-text: #475569;
+    --mdash-tab-font: inherit;
+    position: relative;
+    flex: 1 1 var(--md-tab-basis);
+    min-width: var(--md-tab-min);
+    max-width: var(--md-tab-max);
+    height: 32px;
+    padding: 0 10px 0 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    background: color-mix(in srgb, var(--mdash-tab-accent) 14%, #edf1f7);
+    color: var(--mdash-tab-text);
+    font-family: var(--mdash-tab-font);
+    border-radius: 10px 10px 0 0;
+    transition: background .18s ease, color .18s ease, box-shadow .18s ease;
+    user-select: none;
+    border: none;
+    outline: none;
+    overflow: hidden;
+  }
+
+  .mdash-dashboard-tab:hover {
+    background: color-mix(in srgb, var(--mdash-tab-accent) 22%, #edf1f7);
+    filter: brightness(1.02);
+  }
+
+  .mdash-dashboard-tab.is-active {
+    background: var(--mdash-tab-accent);
+    color: var(--mdash-tab-text);
+    box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.08);
+    z-index: 3;
+  }
+
+  .mdash-dashboard-tab>.mdash-dashboard-tab-accent {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--mdash-tab-accent);
+    opacity: 0;
+    transition: opacity .18s ease;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  .mdash-dashboard-tab.is-active>.mdash-dashboard-tab-accent {
+    opacity: 0;
+  }
+
+  .mdash-dashboard-tab i {
+    font-size: 9px;
+    flex-shrink: 0;
+    color: var(--mdash-tab-icon);
+  }
+
+  .mdash-dashboard-tab-label {
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: .01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: inherit;
+  }
+
+  .mdash-tabs-empty {
+    padding: 10px 16px;
+    color: #64748b;
+    font-size: 13px;
+    font-style: italic;
+    background: #ffffff;
+    border: 1px dashed #e5e7eb;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .mdash-tab-content-fade {
+    animation: mdash-tab-fade-in 220ms ease;
+  }
+
+  @keyframes mdash-tab-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .mdash-dashboard-content-area {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — CONTAINER SECTION                                            */
+  /* Padrão: left-border accent strip (Atlassian / Azure / Fluent Design)      */
+  /* Zero card shell — apenas borda esquerda + tipografia                      */
+  /* ======================================================================== */
+
+  .mdash-section {
+    margin: 0 0 4px 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .mdash-section:has(.mdash-section__header) {
+    /* margin-top: 20px; */
+    /* margin-bottom: 6px; */
+    margin-top: 0;
+    margin-bottom: 5px;
+  }
+
+  /* ---------- Header ---------- */
+  .mdash-section__header {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 10px 12px 10px 16px;
+    margin: 0 0 14px 0;
+    background: rgba(37, 99, 235, .04);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    width: 100%;
+    transition: background 150ms ease;
+    position: relative;
+  }
+
+  .mdash-section__header:hover {
+    background: rgba(37, 99, 235, .08);
+  }
+
+  .mdash-section.is-collapsed .mdash-section__header {
+    margin-bottom: 0;
+  }
+
+  .mdash-section.is-collapsed .mdash-section__header:hover {
+    background: rgba(37, 99, 235, .08);
+  }
+
+  /* ---------- Accent: escondido — a borda esquerda substitui ---------- */
+  .mdash-section__accent {
+    display: none;
+  }
+
+  /* ---------- Title ---------- */
+  .mdash-section__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    letter-spacing: -.01em;
+    margin: 0;
+    flex: 1 1 auto;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 150ms ease;
+    padding-left: 2px;
+  }
+
+  .mdash-section__header:hover .mdash-section__title {
+    color: #1e293b;
+  }
+
+  /* ---------- Collapsed hint ---------- */
+  .mdash-section__collapsed-hint {
+    font-size: 11px;
+    font-weight: 400;
+    color: #94a3b8;
+    flex: 0 0 auto;
+    margin-right: 8px;
+    opacity: 0;
+    transition: opacity 180ms ease;
+    pointer-events: none;
+    white-space: nowrap;
+    font-style: italic;
+  }
+
+  .mdash-section.is-collapsed .mdash-section__collapsed-hint {
+    opacity: 1;
+  }
+
+  /* ---------- Chevron ---------- */
+  .mdash-section__chevron {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    font-size: 9px;
+    transition: transform 240ms cubic-bezier(.4, 0, .2, 1), color 150ms ease;
+  }
+
+  .mdash-section__header:hover .mdash-section__chevron {
+    color: #2563eb;
+  }
+
+  .mdash-section.is-collapsed .mdash-section__chevron {
+    transform: rotate(-90deg);
+  }
+
+  /* ---------- Body ---------- */
+  .mdash-section__body {
+    overflow: hidden;
+    padding: 0;
+    background: transparent;
+    transition: max-height 300ms cubic-bezier(.4, 0, .2, 1), opacity 200ms ease;
+  }
+
+  .mdash-section.is-collapsed .mdash-section__body {
+    max-height: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — FILTER BAR (Tailwind-style 2B card — same linguagem)          */
+  /* ======================================================================== */
+  .mdash {
+    --md-primary: #00a76f;
+    --md-primary-rgb: 0, 167, 111;
+    --md-surface: #ffffff;
+    --md-bg: #f3f7fe;
+    --md-text: #1c252e;
+    --md-muted: #637381;
+    --md-border: #dfe3e8;
+    --md-border-soft: rgba(145, 158, 171, 0.2);
+    --md-radius-card: 16px;
+    --md-radius-input: 8px;
+    --md-shadow-card: 0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12);
+    --md-shadow-card-hover: 0 0 2px 0 rgba(145, 158, 171, 0.2), 0 20px 40px -4px rgba(145, 158, 171, 0.16);
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — SIDEBAR RESPONSIVE SYSTEM                                   */
+  /* Mobile-first: full-width block ? tablet side-by-side ? desktop sticky   */
+  /* ======================================================================== */
+
+  /* BASE — default 248px, responsive below */
+  .mdash .mdash-sidebar {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    width: 248px;
+    min-width: 248px;
+    flex-shrink: 0;
+    background: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 14px;
+    box-shadow: 0 16px 32px rgba(2, 6, 23, 0.18);
+    backdrop-filter: blur(8px);
+    transition: width 0.22s ease, min-width 0.22s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .mdash .mdash-sidebar:hover {
+    box-shadow: var(--md-shadow-card-hover);
+  }
+
+  /* ---- Header ---- */
+  .mdash .mdash-sidebar-header {
+    padding: 12px 16px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--md-border-soft);
+    color: var(--md-text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .mdash .mdash-sidebar-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--md-text);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1.3;
+    letter-spacing: -.005em;
+  }
+
+  .mdash .mdash-sidebar-header h4 i {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--md-primary-rgb), .10);
+    color: var(--md-primary);
+    font-size: 13px;
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .mdash .mdash-sidebar-header .mdash-sidebar-action {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid var(--md-border);
+    background: #ffffff;
+    color: var(--md-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+  }
+
+  .mdash .mdash-sidebar-header .mdash-sidebar-action:hover {
+    background: rgba(var(--md-primary-rgb), .08);
+    color: var(--md-primary);
+    border-color: rgba(var(--md-primary-rgb), .25);
+  }
+
+  /* ---- Body ---- */
+  .mdash .mdash-sidebar-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 16px;
+    background: #ffffff;
+    min-height: 0;
+  }
+
+  /* horizontal variant: compact body on all sizes */
+  .mdash-filter-card--horizontal .mdash-sidebar-body {
+    min-height: 0;
+    padding: 14px 16px;
+  }
+
+  /* vertical variant: natural height on mobile */
+  .mdash-filter-card--vertical .mdash-sidebar-body {
+    min-height: 0;
+  }
+
+  /* ======================================================================== */
+  /* XS  (=575px) — full-width, compact padding                               */
+  /* ======================================================================== */
+  @media screen and (max-width: 575px) {
+    .mdash .mdash-sidebar {
+      width: 100% !important;
+      min-width: 0 !important;
+      border-radius: 12px;
+    }
+
+    .mdash .mdash-sidebar-header {
+      padding: 10px 14px;
+    }
+
+    .mdash .mdash-sidebar-body {
+      padding: 12px 14px;
+    }
+  }
+
+  /* ======================================================================== */
+  /* SM  (576px–767px) — full-width, normal padding                            */
+  /* ======================================================================== */
+  @media screen and (min-width: 576px) and (max-width: 767px) {
+    .mdash .mdash-sidebar {
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+  }
+
+  /* ======================================================================== */
+  /* MD  (768px–991px) — 248px beside content                                 */
+  /* ======================================================================== */
+  @media screen and (min-width: 768px) and (max-width: 991px) {
+    .mdash-filter-card--vertical {
+      width: 248px;
+      min-width: 248px;
+      align-self: flex-start;
+    }
+
+    .mdash-filter-card--vertical .mdash-sidebar-body {
+      overflow-y: auto;
+    }
+  }
+
+  /* ======================================================================== */
+  /* LG  (992px–1199px) — 248px, stretches full height                        */
+  /* ======================================================================== */
+  @media screen and (min-width: 992px) and (max-width: 1199px) {
+    .mdash-filter-card--vertical {
+      width: 248px;
+      min-width: 248px;
+      align-self: stretch;
+    }
+  }
+
+  /* ======================================================================== */
+  /* XL  (=1200px) — 248px sticky, body scrolls within viewport              */
+  /* ======================================================================== */
+  @media screen and (min-width: 1200px) {
+    .mdash-filter-card--vertical {
+      width: 248px;
+      min-width: 248px;
+      position: sticky;
+      top: 16px;
+      align-self: flex-start;
+      max-height: calc(100vh - 32px);
+      overflow: hidden;
+    }
+
+    .mdash-filter-card--vertical .mdash-sidebar-body {
+      overflow-y: auto;
+      max-height: calc(100vh - 120px);
+    }
+  }
+
+  /* Strip Bootstrap panel chrome inside the filter card — body-only */
+  .mdash .mdash-sidebar-body .panel {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .mdash .mdash-sidebar-body .panel-heading {
+    display: none;
+  }
+
+  .mdash .mdash-sidebar-body .panel-body {
+    padding: 0;
+    background: transparent;
+  }
+
+  /* Filter inputs */
+  .mdash-filter-card--vertical .m-dash-dynamic-filters {
+    display: block;
+  }
+
+  .mdash-filter-card--horizontal .gr-row {
+    row-gap: 0;
+  }
+
+  .mdash-filter-card .m-dash-filter-item {
+    margin-bottom: 0.4em;
+  }
+
+  .m-dash-filter-item>label,
+  .m-dash-dynamic-filters label {
+    color: #626e78 !important;
+    font-size: inherit;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+    margin-bottom: 0.4em;
+    display: block;
+  }
+
+  .mdash-logic-toggle {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    margin: 0;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .mdash-logic-toggle input.mdash-logic-check {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+  .mdash-toggle-track {
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    background: #cbd5e1;
+    border-radius: 999px;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .mdash-logic-toggle input.mdash-logic-check:checked ~ .mdash-toggle-track {
+    background: var(--md-primary, #3b82f6);
+  }
+  .mdash-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    transition: transform 0.2s;
+  }
+  .mdash-logic-toggle input.mdash-logic-check:checked ~ .mdash-toggle-track .mdash-toggle-thumb {
+    transform: translateX(18px);
+  }
+
+  .mdash-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding-top: 2px;
+  }
+  .mdash-radio-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--md-text, #334155);
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .mdash-radio-item input[type='radio'] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--md-primary, #3b82f6);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+
+
+  .select-mdash-filter {
+    height: 30px;
+  }
+
+  /* Keep jQuery UI datepicker above sticky filter/sidebar cards */
+  #ui-datepicker-div {
+    z-index: 2147483647 !important;
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — ENTERPRISE CARD (default fallback when no template)           */
+  /* ======================================================================== */
+  .mdash-card {
+    --mdash-card-accent: var(--md-primary);
+    background: #ffffff;
+    border-radius: var(--md-radius-card);
+    border: 1px solid var(--md-border-soft);
+    box-shadow: var(--md-shadow-card);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    transition: box-shadow 200ms ease, transform 200ms ease;
+    position: relative;
+  }
+
+  .mdash-card:hover {
+    box-shadow: var(--md-shadow-card-hover);
+  }
+
+  .mdash-card__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--md-border-soft);
+    background: #ffffff;
+  }
+
+  .mdash-card__icon {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--mdash-card-accent) 12%, transparent);
+    color: var(--mdash-card-accent);
+    font-size: 15px;
+  }
+
+  .mdash-card__title {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--md-text);
+    letter-spacing: -.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mdash-card__actions {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mdash-card__action {
+    background: transparent;
+    border: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    color: var(--md-muted);
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mdash-card__action:hover {
+    background: #f4f6f8;
+    color: var(--md-text);
+  }
+
+  .mdash-card__body {
+    flex: 1 1 auto;
+    padding: 18px 20px;
+    overflow: auto;
+    min-height: 80px;
+    position: relative;
+  }
+
+  .mdash-card__footer {
+    padding: 10px 20px;
+    border-top: 1px solid var(--md-border-soft);
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .mdash-card__footer:empty {
+    display: none;
+  }
+
+  /* Slot containers within an item */
+  .mdash-slot {
+    position: relative;
+    display: block;
+    min-height: 40px;
+  }
+
+  .mdash-slot[data-mdash-slot="header"] {
+    padding: 0 0 8px 0;
+  }
+
+  .mdash-slot[data-mdash-slot="footer"] {
+    padding: 8px 0 0 0;
+  }
+
+  .mdash-slot.is-empty {
+    color: #94a3b8;
+    font-size: 12px;
+    font-style: italic;
+    display: none;
+    /* hide empty slots in viewer */
+  }
+
+  .mdash-slot>.cont-item-object-rendered {
+    display: block;
+    width: 100%;
+  }
+
+  .mdash-slot>.cont-item-object-rendered+.cont-item-object-rendered {
+    margin-top: 12px;
+  }
+
+  /* States */
+  .mdash-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #94a3b8;
+    text-align: center;
+    padding: 24px 16px;
+    min-height: 100px;
+  }
+
+  .mdash-state__icon {
+    font-size: 28px;
+    opacity: .6;
+  }
+
+  .mdash-state__text {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .mdash-state--error {
+    color: #b91c1c;
+  }
+
+  .mdash-state--error .mdash-state__icon {
+    color: #ef4444;
+    opacity: .8;
+  }
+
+  /* Detail action footer */
+  .mdash-card__detail-btn {
+    background: var(--md-primary);
+    color: #ffffff;
+    border: 0;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 150ms ease, transform 100ms ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mdash-card__detail-btn:hover {
+    background: color-mix(in srgb, var(--md-primary) 86%, #000);
+    transform: translateY(-1px);
+  }
+
+  /* Item host wraps the card; supports grid placement when layoutmode='manual' */
+  .m-dash-item-host {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* Smooth fade for content swap */
+  .mdash-content-fade-in {
+    animation: mdash-content-fade 240ms ease;
+  }
+
+  @keyframes mdash-content-fade {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — INITIAL LOADER OVERLAY                                       */
+  /* ======================================================================== */
+  #mdash-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0;
+    transition: opacity 380ms ease, visibility 380ms ease;
+    visibility: visible;
+    opacity: 1;
+  }
+
+  #mdash-loader.is-hiding {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* Top progress strip */
+  .mdash-loader__progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    border-radius: 0 3px 3px 0;
+    background: var(--mdash-loader-color, #00a76f);
+    z-index: 100000;
+    animation: mdash-progress-advance 3s cubic-bezier(.1, .4, .3, 1) forwards;
+    transition: width 200ms ease;
+  }
+
+  @keyframes mdash-progress-advance {
+    0% {
+      width: 0%;
+    }
+
+    40% {
+      width: 55%;
+    }
+
+    70% {
+      width: 75%;
+    }
+
+    100% {
+      width: 88%;
+    }
+  }
+
+  .mdash-loader__wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  /* Orbit ring + inner bars */
+  .mdash-loader__orbit {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mdash-loader__ring-svg {
+    position: absolute;
+    inset: 0;
+    width: 90px;
+    height: 90px;
+    animation: mdash-ring-spin 1.1s linear infinite;
+    transform-origin: 45px 45px;
+  }
+
+  @keyframes mdash-ring-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .mdash-loader__ring-track {
+    stroke: #f1f5f9;
+  }
+
+  .mdash-loader__ring-arc {
+    stroke: var(--mdash-loader-color, #00a76f);
+    /* circumference ˜ 2p×38 ˜ 238.8 */
+    stroke-dasharray: 140 238.8;
+    stroke-linecap: round;
+  }
+
+  /* Animated bar chart inside the ring */
+  .mdash-loader__bars {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 5px;
+    width: 48px;
+    height: 38px;
+    z-index: 1;
+  }
+
+  .mdash-loader__bar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    background: var(--mdash-loader-color, #00a76f);
+    animation: mdash-bar-wave 1.1s ease-in-out infinite;
+    animation-delay: var(--bar-d, 0s);
+    transform-origin: bottom;
+  }
+
+  .mdash-loader__bar:nth-child(1) {
+    height: 60%;
+    --bar-d: 0s;
+  }
+
+  .mdash-loader__bar:nth-child(2) {
+    height: 85%;
+    --bar-d: .16s;
+  }
+
+  .mdash-loader__bar:nth-child(3) {
+    height: 100%;
+    --bar-d: .32s;
+  }
+
+  .mdash-loader__bar:nth-child(4) {
+    height: 70%;
+    --bar-d: .48s;
+  }
+
+  @keyframes mdash-bar-wave {
+
+    0%,
+    100% {
+      transform: scaleY(0.45);
+      opacity: 0.45;
+    }
+
+    50% {
+      transform: scaleY(1);
+      opacity: 1;
+    }
+  }
+
+  /* Pulsing dot accent below the ring */
+  .mdash-loader__dot-row {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+  }
+
+  .mdash-loader__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--mdash-loader-color, #00a76f);
+    animation: mdash-dot-bounce 1.1s ease-in-out infinite;
+    animation-delay: var(--dot-d, 0s);
+    opacity: 0.3;
+  }
+
+  .mdash-loader__dot:nth-child(1) {
+    --dot-d: 0s;
+  }
+
+  .mdash-loader__dot:nth-child(2) {
+    --dot-d: .18s;
+  }
+
+  .mdash-loader__dot:nth-child(3) {
+    --dot-d: .36s;
+  }
+
+  @keyframes mdash-dot-bounce {
+
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.3;
+    }
+
+    50% {
+      transform: translateY(-5px);
+      opacity: 1;
+    }
+  }
+
+  .mdash-loader__label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #94a3b8;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+</style>
+<script src="https://unpkg.com/vue-multiselect"></script>
+<link href="https://unpkg.com/vue-multiselect/dist/vue-multiselect.min.css" rel="stylesheet" />
+<div aria-label="A carregar dashboard" id="mdash-loader" role="status">
+<div class="mdash-loader__progress" id="mdash-loader-progress">&nbsp;</div>
+
+<div class="mdash-loader__wrap">
+<div class="mdash-loader__orbit"><svg class="mdash-loader__ring-svg" fill="none" viewbox="0 0 90 90" xmlns="http://www.w3.org/2000/svg"> <circle class="mdash-loader__ring-track" cx="45" cy="45" r="38" stroke-width="3"></circle> <circle class="mdash-loader__ring-arc" cx="45" cy="45" r="38" stroke-width="3"></circle> </svg>
+
+<div class="mdash-loader__bars">
+<div class="mdash-loader__bar">&nbsp;</div>
+
+<div class="mdash-loader__bar">&nbsp;</div>
+
+<div class="mdash-loader__bar">&nbsp;</div>
+
+<div class="mdash-loader__bar">&nbsp;</div>
+</div>
+</div>
+
+<div class="mdash-loader__dot-row">
+<div class="mdash-loader__dot">&nbsp;</div>
+
+<div class="mdash-loader__dot">&nbsp;</div>
+
+<div class="mdash-loader__dot">&nbsp;</div>
+</div>
+<span class="mdash-loader__label">A carregar&hellip;</span></div>
+</div>
+
+<div class="mdash" id="mdash">
+<div class="m-dash-header mdash-panel">
+<h1 class="mdash-dashboard-title">{{ mdash.dashboardconfig.descricao }}</h1>
+<button style="font-size: 12px;" v-if="mdash.dashboardconfig.temfiltro==false"></button></div>
+
+<div class="mdash-sidebar mdash-panel mdash-filter-card mdash-filter-card--horizontal" style="width: 100%; min-width: 0; margin-bottom: 18px;" v-if="mdash.dashboardconfig.filtrohorizont &amp;&amp; mdash.dashboardconfig.temfiltro==true">{{initDomObjects()}}
+<div class="mdash-sidebar-header mdash-panel-header">
+<h4 class="mdash-panel-title"><i class="glyphicon glyphicon-filter"></i> Filtros</h4>
+<button><i class="glyphicon glyphicon-refresh"></i></button></div>
+
+<div class="mdash-sidebar-body mdash-panel-content">
+<div class="panel panel-default">
+<div class="panel-body">
+<div class="gr-row">
+<div :class="[`gr-col-md-${filter.tamanho}`, `gr-col-sm-${filter.tamanho}`, `gr-col-lg-${filter.tamanho}`]" :key="filter.mdashfilterstamp" v-for="filter in getVisibleFilters()">
+<div class="m-dash-dynamic-filters"><label :for="filter.codigo" class="m-dash-filter-item">{{ filter.descricao }} </label>
+
+<div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'"><label :for="filter.codigo" class="m-dash-filter-item"><button class="btn btn-xs btn-primary" style="margin-left: 0.4em;border-radius: 4px;" type="button">Todas op&ccedil;&otilde;es</button><button class="btn btn-xs btn-default" style="margin-left: 0.4em;border-radius: 4px;" type="button">Desmarcar</button> </label></div>
+<label :for="filter.codigo" class="m-dash-filter-item"> </label> <!-- text --> <input /> <!-- digit --> <input /> <input data-language="pt" /> <!-- list -->
+<div v-else-if="filter.tipo === 'list'"><select><option value="">-- Selecione --</option><option :value="opt[filter.campovalor]" v-for="opt in getOptions(filter)">{{ opt[filter.campooption] }}</option> </select></div>
+
+<div v-else-if="filter.tipo === 'multiselect'"><select><option :value="opt[filter.campovalor]" v-for="opt in getOptions(filter)">{{ opt[filter.campooption] }}</option> </select></div>
+<!-- radio -->
+
+<div class="mdash-radio-group" v-else-if="filter.tipo === 'radio'"><label :key="opt[filter.campovalor]" class="mdash-radio-item" v-for="opt in getOptions(filter)"> <input :name="filter.codigo" :value="opt[filter.campovalor]" type="radio" v-model="mdash.filterValues[filter.codigo]" /> <span>{{ opt[filter.campooption] }}</span> </label></div>
+<!-- logic --> <label class="mdash-logic-toggle" v-else-if="filter.tipo === 'logic'"> <input /> <span class="mdash-toggle-track"><span class="mdash-toggle-thumb"></span></span> </label> <!-- fallback --> <input data-else="elseinput" /></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="m-dash-body">
+<div class="mdash-sidebar mdash-panel mdash-filter-card mdash-filter-card--vertical" v-if="mdash.dashboardconfig.temfiltro &amp;&amp; mdash.dashboardconfig.filtrohorizont==false">
+<div class="mdash-sidebar-header mdash-panel-header">
+<h4 class="mdash-panel-title"><i class="glyphicon glyphicon-filter"></i> Filtros</h4>
+<button><i class="glyphicon glyphicon-refresh"></i></button></div>
+
+<div class="mdash-sidebar-body mdash-panel-content">
+<div class="panel panel-default">
+<div class="panel-body">
+<div class="m-dash-dynamic-filters">
+<div :key="filter.mdashfilterstamp" class="m-dash-filter-item" v-for="filter in getVisibleFilters()"><label :for="filter.codigo" class="m-dash-filter-item">{{ filter.descricao }} </label>
+
+<div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'"><label :for="filter.codigo" class="m-dash-filter-item"><button class="btn btn-xs btn-primary" style="margin-left: 0.4em;border-radius: 4px;" type="button">Todas op&ccedil;&otilde;es</button><button class="btn btn-xs btn-default" style="margin-left: 0.4em;border-radius: 4px;" type="button">Desmarcar todas</button> </label></div>
+<label :for="filter.codigo" class="m-dash-filter-item"> </label> <!-- text --> <input /> <!-- digit --> <input /> <input data-language="pt" /> <!-- list -->
+<div v-else-if="filter.tipo === 'list'"><select><option value="">-- Selecione --</option><option :value="opt[filter.campovalor]" v-for="opt in getOptions(filter)">{{ opt[filter.campooption] }}</option> </select></div>
+
+<div v-else-if="filter.tipo === 'multiselect'"><select><option :value="opt[filter.campovalor]" v-for="opt in getOptions(filter)">{{ opt[filter.campooption] }}</option> </select></div>
+<!-- radio -->
+
+<div class="mdash-radio-group" v-else-if="filter.tipo === 'radio'"><label :key="opt[filter.campovalor]" class="mdash-radio-item" v-for="opt in getOptions(filter)"> <input :name="filter.codigo" :value="opt[filter.campovalor]" type="radio" v-model="mdash.filterValues[filter.codigo]" /> <span>{{ opt[filter.campooption] }}</span> </label></div>
+<!-- logic --> <label class="mdash-logic-toggle" v-else-if="filter.tipo === 'logic'"> <input /> <span class="mdash-toggle-track"><span class="mdash-toggle-thumb"></span></span> </label> <!-- fallback --> <input /></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="m-dash-main mdash-dashboard-content-area"><!-- ============================================================ --><!-- MDASH 2.0 — SEPARADORES estilo browser                       --><!-- ============================================================ -->
+<div class="mdash-dashboard-tabs-wrap" v-if="tabsEnabled()">
+<div class="mdash-tabs-empty" v-if="getSortedTabs().length === 0"><i class="glyphicon glyphicon-info-sign"></i> Nenhum separador configurado.</div>
+
+<div :class="getDashboardTabsClass()" :style="getDashboardTabsStyle()" class="mdash-dashboard-tabs" role="tablist" v-else="">
+<div :aria-selected="isTabActive(tab) ? 'true' : 'false'" :class="['mdash-dashboard-tab', { 'is-active': isTabActive(tab) }]" :key="tab.mdashtabstamp" :style="getTabStyle(tab)" :title="getTabTooltipTitle(tab)" role="tab" v-for="tab in getSortedTabs()"><span class="mdash-dashboard-tab-accent"></span> <i :class="tab.icone || 'glyphicon glyphicon-list-alt'"></i> <span :title="getTabTooltipTitle(tab)" class="mdash-dashboard-tab-label">{{ tab.titulo || &#39;Separador&#39; }}</span></div>
+</div>
+</div>
+<!-- grid de containers (animated on tab change) -->
+
+<div :class="{ 'mdash-tab-content-fade': tabsEnabled() }" :key="'tab-content-' + (activeTabStamp || 'all')">
+<div :class="[`gr-col-md-${container.tamanho}`, `gr-col-sm-${container.tamanho}`, `gr-col-lg-${container.tamanho}`]" :key="container.mdashcontainerstamp" v-for="container in getVisibleContainers()">
+<section :class="['mdash-section', { 'is-collapsed': isContainerCollapsed(container) }]">
+<header :aria-expanded="!isContainerCollapsed(container)" class="mdash-section__header" role="button" tabindex="0" v-if="container.titulo &amp;&amp; container.titulo.length &gt; 0"><span aria-hidden="true" class="mdash-section__accent"></span>
+
+<h2 class="mdash-section__title">{{ container.titulo }}</h2>
+<span aria-hidden="true" class="mdash-section__collapsed-hint">recolhido</span> <span aria-hidden="true" class="mdash-section__chevron"> <i class="glyphicon glyphicon-chevron-down"></i> </span></header>
+
+<div class="mdash-section__body">{{initUI()}}
+<div :class="['gr-row', 'm-dash-container-item-row', getRowLayoutClass(rowGroup)]" :key="'row-' + rowIndex" style="margin-top: 0.6em;margin-bottom:1.6em" v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)">
+<div :class="getItemClasses(item)" :id="item.mdashcontaineritemstamp" :key="item.mdashcontaineritemstamp" :style="getItemGridStyle(item)" v-for="item in rowGroup.items">&nbsp;</div>
+</div>
+</div>
+</section>
+<!-- Aqui usamos os grupos de rows --></div>
+</div>
+<!-- fim grid containers --></div>
+<!-- fim mdash-dashboard-content-area --></div>
+</div>

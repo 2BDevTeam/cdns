@@ -1362,7 +1362,7 @@ function resolveRelatorioStamp() {
     var stampField = GRelatorioTableKey || "u_mrendrelstamp";
     var domStamp = "";
     try {
-        domStamp = ($("#ctl00_conteudo_u_mrendrelstamp").text() || "").trim();
+        domStamp = ($("#ctl00_conteudo_u_mrendrelstamp_mLabel1").text()|| "").trim();
     } catch (e) { /* sem DOM */ }
     if (domStamp) return domStamp;
     return (typeof generateUUID === "function") ? generateUUID() : "";
@@ -1988,10 +1988,12 @@ function renderConfigMrender(config) {
     setColunaGrupoReactive();
     initJSONEditorMrendConfig(config.relatorio || {});
 
-    // Comentado: Tabulator usa movableColumns nativo (não precisa de jQuery UI Sortable)
-    // if (typeof makeColunasSortable === 'function') {
-    //     setTimeout(makeColunasSortable, 200);
-    // }
+    // Reinicializar drag-and-drop de colunas apos render (mesmo padrao das linhas)
+    setTimeout(function () {
+        if (typeof makeColunasSortable === 'function') {
+            makeColunasSortable();
+        }
+    }, 200);
 
 
 
@@ -2211,10 +2213,12 @@ function addColunaMrenderConfig(coluna, colunaUIObjectFormConfigResult) {
 
     handleTableReactive();
 
-    // Comentado: Tabulator usa movableColumns nativo (não precisa de jQuery UI Sortable)
-    // if (typeof makeColunasSortable === 'function') {
-    //     setTimeout(makeColunasSortable, 100);
-    // }
+    // Reinicializar drag-and-drop de colunas apos adicionar/render coluna (mesmo padrao das linhas)
+    setTimeout(function () {
+        if (typeof makeColunasSortable === 'function') {
+            makeColunasSortable();
+        }
+    }, 100);
 }
 
 

@@ -2,10 +2,15 @@ Dim querySanitized=Function(Byval sqlExpression as String )
 
     Dim writeKeywords As String() = {"DROP", "DELETE", "UPDATE", "INSERT", "ALTER","CREATE"}
 
+    Dim texto As String = If(sqlExpression, "")
+
     Dim containsKeyword As Boolean = False
 
     For Each keyword As String In writeKeywords
-        If sqlExpression.ToUpper().Contains(keyword) Then
+        ' Match apenas a palavra-chave ISOLADA (word boundary \b), em vez de substring.
+        ' Sem isto, valores legitimos como "Alterar" (contem ALTER), "Created" (CREATE)
+        ' ou "Update mensal" disparavam falso positivo e bloqueavam a gravacao.
+        If System.Text.RegularExpressions.Regex.IsMatch(texto, "\b" & keyword & "\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase) Then
             containsKeyword = True
             Exit For ' Exit the loop once a keyword is found
         End If

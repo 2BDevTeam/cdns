@@ -7419,24 +7419,44 @@ function renderObjectTexto(dados) {
         isSample = true;
     }
 
-    var content = '';
+    var df = cfg.dataFormat || {};
+    var htmlEnabled = !!(cfg.content && cfg.content.htmlEnabled);
+
+    // Quando htmlEnabled, prefixo/sufixo/valor são tratados como HTML cru;
+    // caso contrário são escapados. Mantém paridade com o comportamento antigo.
+    function out(s) { return htmlEnabled ? (s == null ? '' : String(s)) : _txtEsc(s); }
+
+    // Constrói o grupo de spans (prefixo + valor + sufixo) para UM valor.
+    // O span do valor guarda o valor BRUTO em data-raw-value para acesso
+    // programático (ex.: ler -6.01 em vez de "-6.01% MT").
+    function spanGroup(rawValue, formattedNoAffix) {
+        var h = '';
+        if (df.prefix) h += '<span class="m-dash-text-prefix">' + out(df.prefix) + '</span>';
+        var rawAttr = (rawValue === null || rawValue === undefined)
+            ? '' : ' data-raw-value="' + _txtEsc(rawValue) + '"';
+        h += '<span class="m-dash-text-value"' + rawAttr + '>' + out(formattedNoAffix) + '</span>';
+        if (df.suffix) h += '<span class="m-dash-text-suffix">' + out(df.suffix) + '</span>';
+        return h;
+    }
+
+    var inner = '';
     if (cfg.dataField && rows.length > 0) {
         if (cfg.content && cfg.content.multipleValues) {
-            var values = rows.map(function (item) {
-                return formatDataValue(item[cfg.dataField], cfg.dataFormat);
-            });
-            content = values.join(_txtGetSeparator(cfg));
+            var sep = _txtGetSeparator(cfg);
+            inner = rows.map(function (item) {
+                var raw = item[cfg.dataField];
+                return '<span class="m-dash-text-item">'
+                    + spanGroup(raw, _txtFormatNoAffix(raw, df))
+                    + '</span>';
+            }).join('<span class="m-dash-text-sep">' + out(sep) + '</span>');
         } else {
-            content = formatDataValue(rows[0][cfg.dataField], cfg.dataFormat);
+            var raw = rows[0][cfg.dataField];
+            inner = spanGroup(raw, _txtFormatNoAffix(raw, df));
         }
     } else if (cfg.staticText) {
-        content = cfg.staticText;
-        // Aplicar prefix/suffix também em texto estático
-        var dfStatic = cfg.dataFormat || {};
-        if (dfStatic.prefix) content = dfStatic.prefix + content;
-        if (dfStatic.suffix) content = content + dfStatic.suffix;
+        inner = spanGroup(cfg.staticText, cfg.staticText);
     } else {
-        content = 'Texto personalizado aqui...';
+        inner = spanGroup(null, 'Texto personalizado aqui...');
     }
 
     var styles = _txtBuildStyles(cfg);
@@ -7445,14 +7465,36 @@ function renderObjectTexto(dados) {
         : '';
     var textId = 'mtext_' + stamp;
 
-    var html = badgeHtml + '<div id="' + textId + '" class="m-dash-text-element" style="' + styles + '">';
-    if (cfg.content && cfg.content.htmlEnabled) {
-        html += content;
-    } else {
-        html += $('<div>').text(content).html();
-    }
-    html += '</div>';
+    var html = badgeHtml
+        + '<div id="' + textId + '" class="m-dash-text-element" style="' + styles + '">'
+        + inner
+        + '</div>';
     $(dados.containerSelector).html(html);
+}
+
+// Escapa texto para HTML seguro.
+function _txtEsc(s) {
+    return $('<div>').text(s === null || s === undefined ? '' : String(s)).html();
+}
+
+// Formata um valor SEM aplicar prefixo/sufixo (estes passam a spans próprios).
+function _txtFormatNoAffix(rawValue, df) {
+    if (!df) return rawValue == null ? '' : String(rawValue);
+    var clone = {};
+    for (var k in df) { if (Object.prototype.hasOwnProperty.call(df, k)) clone[k] = df[k]; }
+    clone.prefix = '';
+    clone.suffix = '';
+    return formatDataValue(rawValue, clone);
+}
+
+// Mapeia text-align → justify-content para o layout flex do elemento de texto.
+function _txtAlignToJustify(a) {
+    switch (a) {
+        case 'center': return 'center';
+        case 'right': return 'flex-end';
+        case 'justify': return 'space-between';
+        default: return 'flex-start';
+    }
 }
 
 function _txtBuildStyles(cfg) {
@@ -7462,8 +7504,13 @@ function _txtBuildStyles(cfg) {
     s += 'font-weight:' + (tf.fontWeight || 'bold') + ';';
     s += 'font-style:' + (tf.fontStyle || 'normal') + ';';
     s += 'font-family:' + (tf.fontFamily || 'Nunito, sans-serif') + ';';
-    s += 'text-align:' + (tf.textAlign || 'left') + ';';
+    var align = tf.textAlign || 'left';
+    s += 'text-align:' + align + ';';
     s += 'line-height:' + (tf.lineHeight || 1.5) + ';';
+    // Layout flex: prefixo / valor / sufixo são spans alinhados na baseline,
+    // com wrap para múltiplos valores. justify-content reflete o alinhamento.
+    s += 'display:flex;flex-wrap:wrap;align-items:baseline;column-gap:2px;';
+    s += 'justify-content:' + _txtAlignToJustify(align) + ';';
     var cl = cfg.colors || {};
     s += 'color:' + (cl.textColor || '#6d7c91') + ';';
     if (cl.backgroundColor && cl.backgroundColor !== 'transparent') s += 'background-color:' + cl.backgroundColor + ';';
