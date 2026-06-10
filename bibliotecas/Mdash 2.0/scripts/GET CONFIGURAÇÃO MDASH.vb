@@ -33,6 +33,10 @@ Try
     Dim sqlParametersFilter as new List(Of System.Data.SqlClient.SqlParameter)
     sqlParametersFilter.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
     Dim queryResultFilter as DataTable= ExecuteQuery(queryMdashFilter,sqlParametersFilter)
+    Dim queryMdashAccess="select MdashAccess.* from MdashAccess join u_mdash on u_mdash.u_mdashstamp=MdashAccess.dashboardstamp where u_mdash.codigo=@codigo order by MdashAccess.ordem asc"
+    Dim sqlParametersAccess as new List(Of System.Data.SqlClient.SqlParameter)
+    sqlParametersAccess.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
+    Dim queryResultAccess as DataTable= ExecuteQuery(queryMdashAccess,sqlParametersAccess)
     Dim queryMdashContainerItemObject="select MdashContainerItemObject.* from MdashContainerItemObject join u_mdash on u_mdash.u_mdashstamp=MdashContainerItemObject.dashboardstamp where u_mdash.codigo=@codigo order by MdashContainerItemObject.ordem asc"
     Dim sqlParametersContainerItemObject as new List(Of System.Data.SqlClient.SqlParameter)
     sqlParametersContainerItemObject.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
@@ -54,6 +58,7 @@ Try
         .containers = queryResultContainer,
         .containerItems = queryResultContainerItem,
         .containerItemObjects = queryResultContainerItemObject,
+        .accesses = queryResultAccess,
         .filters = queryResultFilter,
         .containerItemLayouts = queryResultContainerItemLayout,
         .fontes = queryResultFonte,

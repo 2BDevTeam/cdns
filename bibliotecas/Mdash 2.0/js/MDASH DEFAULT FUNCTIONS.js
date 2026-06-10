@@ -4,7 +4,7 @@
 /**
  * Devolve o stamp encriptado (XcFox.u_scrypt) chamando o backend
  * MDASH DEFAULT BACKEND FUNCIONS.vb com operacao=GET_ENCRYPTED_STAMP.
- *
+ * 
  * AJAX síncrono (async:false) — devolve directamente a string encriptada
  * para poder ser usada em expressões inline tipo: row.nome + getStampEncriptado(stamp).
  *

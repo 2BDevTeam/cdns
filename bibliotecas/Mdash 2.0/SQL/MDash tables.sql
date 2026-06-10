@@ -131,6 +131,21 @@ CREATE TABLE MdashFilter(
     mdashtabstamp VARCHAR(25) NOT NULL DEFAULT ''   -- FK → MdashTab; só relevante quando escopo = 'tab'
 );
 
+CREATE TABLE MdashAccess(
+
+    mdashaccessstamp VARCHAR(25) PRIMARY KEY,
+    dashboardstamp VARCHAR(25) DEFAULT '',
+    inactivo BIT DEFAULT 0,
+    codigo VARCHAR(250) DEFAULT '',
+    nome VARCHAR(250) DEFAULT '',
+    descricao VARCHAR(250) DEFAULT '',
+    origem VARCHAR(20) NOT NULL DEFAULT 'phc',
+    escopo VARCHAR(20) NOT NULL DEFAULT 'global',
+    mdashtabstamp VARCHAR(25) NOT NULL DEFAULT '',
+    pfstamp VARCHAR(25) DEFAULT '',
+    ordem INT DEFAULT 0
+);
+
 CREATE TABLE MDashFonte(
     
     mdashfontestamp VARCHAR(25) PRIMARY KEY,

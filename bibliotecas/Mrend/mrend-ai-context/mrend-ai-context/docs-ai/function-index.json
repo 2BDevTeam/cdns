@@ -1,0 +1,8204 @@
+{
+  "Report/js/MRendReport copy.js": [
+    {
+      "name": "Mrend",
+      "line": 1
+    },
+    {
+      "name": "setTableEditable",
+      "line": 47
+    },
+    {
+      "name": "addLinhaComRegistos",
+      "line": 57
+    },
+    {
+      "name": "refreshReactiveData",
+      "line": 75
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 97
+    },
+    {
+      "name": "getTotalCelulaByCodigoColuna",
+      "line": 106
+    },
+    {
+      "name": "RemoteFetchData",
+      "line": 117
+    },
+    {
+      "name": "MrendSchema",
+      "line": 125
+    },
+    {
+      "name": "DbTableToMrendObject",
+      "line": 132
+    },
+    {
+      "name": "DbTableExtras",
+      "line": 143
+    },
+    {
+      "name": "ReportConfigWrapper",
+      "line": 158
+    },
+    {
+      "name": "MrendConfigData",
+      "line": 163
+    },
+    {
+      "name": "MrendObject",
+      "line": 187
+    },
+    {
+      "name": "BindData",
+      "line": 216
+    },
+    {
+      "name": "ExtraBindData",
+      "line": 224
+    },
+    {
+      "name": "Linha",
+      "line": 232
+    },
+    {
+      "name": "Coluna",
+      "line": 280
+    },
+    {
+      "name": "buildColRefs",
+      "line": 340
+    },
+    {
+      "name": "FXData",
+      "line": 358
+    },
+    {
+      "name": "setFxData",
+      "line": 364
+    },
+    {
+      "name": "Celula",
+      "line": 384
+    },
+    {
+      "name": "getTotalColuna",
+      "line": 409
+    },
+    {
+      "name": "isExpression",
+      "line": 416
+    },
+    {
+      "name": "evaluateExpression",
+      "line": 427
+    },
+    {
+      "name": "CellObjectConfig",
+      "line": 446
+    },
+    {
+      "name": "funcaolistagem",
+      "line": 472
+    },
+    {
+      "name": "get",
+      "line": 488
+    },
+    {
+      "name": "set",
+      "line": 491
+    },
+    {
+      "name": "syncChangesToDB",
+      "line": 548
+    },
+    {
+      "name": "getCellHtmlComponent",
+      "line": 572
+    },
+    {
+      "name": "setSelectedValue",
+      "line": 578
+    },
+    {
+      "name": "findLocalColData",
+      "line": 594
+    },
+    {
+      "name": "getHtmlValueOrText",
+      "line": 628
+    },
+    {
+      "name": "fillTableData",
+      "line": 653
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 687
+    },
+    {
+      "name": "getCelulaConfig",
+      "line": 698
+    },
+    {
+      "name": "getColsRefered",
+      "line": 712
+    },
+    {
+      "name": "getCelsRefered",
+      "line": 729
+    },
+    {
+      "name": "handleFx",
+      "line": 741
+    },
+    {
+      "name": "handleDefaultValue",
+      "line": 777
+    },
+    {
+      "name": "getValueOrDefault",
+      "line": 792
+    },
+    {
+      "name": "handleFormatInput",
+      "line": 799
+    },
+    {
+      "name": "setValue",
+      "line": 813
+    },
+    {
+      "name": "calcularSubtotais",
+      "line": 826
+    },
+    {
+      "name": "syncReactive",
+      "line": 845
+    },
+    {
+      "name": "updateOnDB",
+      "line": 864
+    },
+    {
+      "name": "updateOnDBPassingVal",
+      "line": 872
+    },
+    {
+      "name": "executeChangeEvents",
+      "line": 880
+    },
+    {
+      "name": "calcularTotalLinha",
+      "line": 892
+    },
+    {
+      "name": "getHtmlComponent",
+      "line": 905
+    },
+    {
+      "name": "toJsonString",
+      "line": 916
+    },
+    {
+      "name": "toJsonString",
+      "line": 923
+    },
+    {
+      "name": "toJsonString",
+      "line": 932
+    },
+    {
+      "name": "setDefaultValue",
+      "line": 939
+    },
+    {
+      "name": "setEvents",
+      "line": 955
+    },
+    {
+      "name": "updateCellOnDB",
+      "line": 1004
+    },
+    {
+      "name": "validateCellObjectConfig",
+      "line": 1021
+    },
+    {
+      "name": "showMeAll",
+      "line": 1053
+    },
+    {
+      "name": "addToLocalCellList",
+      "line": 1059
+    },
+    {
+      "name": "UpdateData",
+      "line": 1069
+    },
+    {
+      "name": "generateLinhaOrdem",
+      "line": 1074
+    },
+    {
+      "name": "RenderedLinha",
+      "line": 1089
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 1110
+    },
+    {
+      "name": "deleteRow",
+      "line": 1134
+    },
+    {
+      "name": "getParent",
+      "line": 1168
+    },
+    {
+      "name": "getChildren",
+      "line": 1178
+    },
+    {
+      "name": "addToLocalRenderedLinhasList",
+      "line": 1193
+    },
+    {
+      "name": "getLinhaById",
+      "line": 1252
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 1262
+    },
+    {
+      "name": "getLinhaSubtotal",
+      "line": 1271
+    },
+    {
+      "name": "actualizarTotaisColunasLinha",
+      "line": 1281
+    },
+    {
+      "name": "getLinhaCellObjects",
+      "line": 1322
+    },
+    {
+      "name": "getCelulaLinha",
+      "line": 1335
+    },
+    {
+      "name": "findCelulaTotal",
+      "line": 1353
+    },
+    {
+      "name": "getTotalLinha",
+      "line": 1365
+    },
+    {
+      "name": "actualizarTotalLinha",
+      "line": 1371
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 1385
+    },
+    {
+      "name": "getCelulasByFiltro",
+      "line": 1400
+    },
+    {
+      "name": "setValueOnCell",
+      "line": 1415
+    },
+    {
+      "name": "setNewRenderedColuna",
+      "line": 1439
+    },
+    {
+      "name": "GrupoColuna",
+      "line": 1447
+    },
+    {
+      "name": "GrupoColunaItem",
+      "line": 1459
+    },
+    {
+      "name": "RenderedColuna",
+      "line": 1470
+    },
+    {
+      "name": "fillTableData",
+      "line": 1494
+    },
+    {
+      "name": "preGenHtml",
+      "line": 1530
+    },
+    {
+      "name": "getTotalRenderedColuna",
+      "line": 1548
+    },
+    {
+      "name": "setFXExpression",
+      "line": 1554
+    },
+    {
+      "name": "Relatorio",
+      "line": 1577
+    },
+    {
+      "name": "ReportConfig",
+      "line": 1592
+    },
+    {
+      "name": "mapGrupoColuna",
+      "line": 1601
+    },
+    {
+      "name": "mapGrupoColunaItem",
+      "line": 1605
+    },
+    {
+      "name": "mapLinha",
+      "line": 1609
+    },
+    {
+      "name": "mapExtra",
+      "line": 1613
+    },
+    {
+      "name": "mapColuna",
+      "line": 1617
+    },
+    {
+      "name": "mapCelula",
+      "line": 1621
+    },
+    {
+      "name": "mapFields",
+      "line": 1625
+    },
+    {
+      "name": "mapReducer",
+      "line": 1626
+    },
+    {
+      "name": "mapConfigComponentByDestiny",
+      "line": 1634
+    },
+    {
+      "name": "getMapConfigByComponent",
+      "line": 1688
+    },
+    {
+      "name": "getMappingByKey",
+      "line": 1697
+    },
+    {
+      "name": "setLinhaRender",
+      "line": 1703
+    },
+    {
+      "name": "setColunasRender",
+      "line": 1731
+    },
+    {
+      "name": "handleDefaultValueByDataType",
+      "line": 1815
+    },
+    {
+      "name": "getDistinctWithKeys",
+      "line": 1836
+    },
+    {
+      "name": "generateUUID",
+      "line": 1840
+    },
+    {
+      "name": "freezyColunas",
+      "line": 1850
+    },
+    {
+      "name": "modoEcraHandler",
+      "line": 1858
+    },
+    {
+      "name": "initSelect",
+      "line": 1872
+    },
+    {
+      "name": "sourcedTableStyle",
+      "line": 1890
+    },
+    {
+      "name": "formatInputValue",
+      "line": 1901
+    },
+    {
+      "name": "handleUIValue",
+      "line": 1922
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 1939
+    },
+    {
+      "name": "formatAllTablesDigitInputs",
+      "line": 1955
+    },
+    {
+      "name": "onSelect",
+      "line": 1996
+    },
+    {
+      "name": "generateToolTipsForSourcedTable",
+      "line": 2014
+    },
+    {
+      "name": "formatAllTablesDigitInputsMrend",
+      "line": 2032
+    },
+    {
+      "name": "onSelect",
+      "line": 2113
+    },
+    {
+      "name": "addFreezingEvent",
+      "line": 2131
+    },
+    {
+      "name": "addFreezyColumnByHeader",
+      "line": 2158
+    },
+    {
+      "name": "ConvertMrendObjectToTable",
+      "line": 2175
+    },
+    {
+      "name": "setIfSourceFieldExists",
+      "line": 2309
+    },
+    {
+      "name": "mapRecordToMrendObject",
+      "line": 2315
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2348
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2486
+    },
+    {
+      "name": "applyExtraField",
+      "line": 2625
+    },
+    {
+      "name": "initTableDataAndContainer",
+      "line": 2634
+    },
+    {
+      "name": "buildAlert",
+      "line": 2647
+    },
+    {
+      "name": "dbExists",
+      "line": 2655
+    },
+    {
+      "name": "buildAlert",
+      "line": 2659
+    },
+    {
+      "name": "relatorioErrorMessageHandler",
+      "line": 2669
+    },
+    {
+      "name": "ExecuteRenderAfterWebWorker",
+      "line": 2678
+    },
+    {
+      "name": "appendParts",
+      "line": 2691
+    },
+    {
+      "name": "setStyle",
+      "line": 2709
+    },
+    {
+      "name": "styleFunction",
+      "line": 2713
+    },
+    {
+      "name": "colorHandler",
+      "line": 2732
+    },
+    {
+      "name": "inputToNumber",
+      "line": 2751
+    },
+    {
+      "name": "inputToNumberDB",
+      "line": 2761
+    },
+    {
+      "name": "handleCustomDataForCellObject",
+      "line": 2771
+    },
+    {
+      "name": "handleReactiveClasses",
+      "line": 2793
+    },
+    {
+      "name": "generateHtmlObject",
+      "line": 2803
+    },
+    {
+      "name": "getDefaultColunaHtmlObject",
+      "line": 2918
+    },
+    {
+      "name": "evalOrDefault",
+      "line": 2939
+    },
+    {
+      "name": "getFilteredRecord",
+      "line": 2949
+    },
+    {
+      "name": "setLinhaGrupoAndSubgrupo",
+      "line": 2958
+    },
+    {
+      "name": "setLinhaToRender",
+      "line": 3087
+    },
+    {
+      "name": "setLinhaTotal",
+      "line": 3133
+    },
+    {
+      "name": "setLinha",
+      "line": 3194
+    },
+    {
+      "name": "setLinhaRenderTotal",
+      "line": 3203
+    },
+    {
+      "name": "buildCelulaDefCol",
+      "line": 3218
+    },
+    {
+      "name": "buildDefaultCelula",
+      "line": 3263
+    },
+    {
+      "name": "InitDB",
+      "line": 3366
+    },
+    {
+      "name": "executeScriptOnPHC",
+      "line": 3381
+    },
+    {
+      "name": "getState",
+      "line": 3395
+    },
+    {
+      "name": "storeStampRegisto",
+      "line": 3399
+    },
+    {
+      "name": "storeDataSourceStamp",
+      "line": 3402
+    },
+    {
+      "name": "clearStamps",
+      "line": 3408
+    },
+    {
+      "name": "getSourceStamp",
+      "line": 3413
+    },
+    {
+      "name": "deleteAllRecords",
+      "line": 3420
+    },
+    {
+      "name": "addData",
+      "line": 3445
+    },
+    {
+      "name": "deleteData",
+      "line": 3455
+    },
+    {
+      "name": "addBulkData",
+      "line": 3459
+    },
+    {
+      "name": "getDataFromRemote",
+      "line": 3471
+    },
+    {
+      "name": "success",
+      "line": 3478
+    },
+    {
+      "name": "error",
+      "line": 3482
+    },
+    {
+      "name": "configureDataBase",
+      "line": 3489
+    },
+    {
+      "name": "tablesHasRecords",
+      "line": 3514
+    },
+    {
+      "name": "databaseAndTableHasRecords",
+      "line": 3520
+    },
+    {
+      "name": "isTableExist",
+      "line": 3557
+    },
+    {
+      "name": "buildCelulaSemImputacao",
+      "line": 3562
+    },
+    {
+      "name": "buildTotalCelula",
+      "line": 3608
+    },
+    {
+      "name": "setCelula",
+      "line": 3657
+    },
+    {
+      "name": "addNewRecords",
+      "line": 3680
+    },
+    {
+      "name": "marcarOptionSelecionado",
+      "line": 3697
+    },
+    {
+      "name": "formatNumber",
+      "line": 3724
+    },
+    {
+      "name": "numberFormatCustomEditor",
+      "line": 3741
+    },
+    {
+      "name": "jqueryDateEditor",
+      "line": 3781
+    },
+    {
+      "name": "onSelect",
+      "line": 3793
+    },
+    {
+      "name": "onClose",
+      "line": 3796
+    },
+    {
+      "name": "getRenderedLinhaFromTabulator",
+      "line": 3808
+    },
+    {
+      "name": "getCelulaConfigFromTabulator",
+      "line": 3823
+    },
+    {
+      "name": "generateMrendCellContainer",
+      "line": 3855
+    },
+    {
+      "name": "isInactivo",
+      "line": 3873
+    },
+    {
+      "name": "handleColFormatter",
+      "line": 3910
+    },
+    {
+      "name": "ensureMinContent",
+      "line": 3933
+    },
+    {
+      "name": "checkboxCustomEditor",
+      "line": 4038
+    },
+    {
+      "name": "handleEditor",
+      "line": 4063
+    },
+    {
+      "name": "editor",
+      "line": 4092
+    },
+    {
+      "name": "valuesLookup",
+      "line": 4137
+    },
+    {
+      "name": "listItemFormatter",
+      "line": 4162
+    },
+    {
+      "name": "customMutator",
+      "line": 4174
+    },
+    {
+      "name": "extractCellValue",
+      "line": 4179
+    },
+    {
+      "name": "handleMutator",
+      "line": 4205
+    },
+    {
+      "name": "mutator",
+      "line": 4212
+    },
+    {
+      "name": "updateCellObjectConfig",
+      "line": 4335
+    },
+    {
+      "name": "deleteRowById",
+      "line": 4348
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 4365
+    },
+    {
+      "name": "deleteRowAndChildren",
+      "line": 4385
+    },
+    {
+      "name": "addTabulatorColumns",
+      "line": 4395
+    },
+    {
+      "name": "headerTooltip",
+      "line": 4406
+    },
+    {
+      "name": "formatter",
+      "line": 4418
+    }
+  ],
+  "Report/js/MRendReport.js": [
+    {
+      "name": "Mrend",
+      "line": 1
+    },
+    {
+      "name": "setTableEditable",
+      "line": 47
+    },
+    {
+      "name": "addLinhaComRegistos",
+      "line": 57
+    },
+    {
+      "name": "refreshReactiveData",
+      "line": 75
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 97
+    },
+    {
+      "name": "getTotalCelulaByCodigoColuna",
+      "line": 106
+    },
+    {
+      "name": "RemoteFetchData",
+      "line": 117
+    },
+    {
+      "name": "DbTableToMrendObject",
+      "line": 127
+    },
+    {
+      "name": "DbTableExtras",
+      "line": 138
+    },
+    {
+      "name": "ReportConfigWrapper",
+      "line": 153
+    },
+    {
+      "name": "MrendConfigData",
+      "line": 158
+    },
+    {
+      "name": "MrendObject",
+      "line": 182
+    },
+    {
+      "name": "BindData",
+      "line": 211
+    },
+    {
+      "name": "ExtraBindData",
+      "line": 219
+    },
+    {
+      "name": "Linha",
+      "line": 227
+    },
+    {
+      "name": "Coluna",
+      "line": 275
+    },
+    {
+      "name": "buildColRefs",
+      "line": 335
+    },
+    {
+      "name": "FXData",
+      "line": 353
+    },
+    {
+      "name": "setFxData",
+      "line": 359
+    },
+    {
+      "name": "Celula",
+      "line": 379
+    },
+    {
+      "name": "getTotalColuna",
+      "line": 404
+    },
+    {
+      "name": "isExpression",
+      "line": 411
+    },
+    {
+      "name": "evaluateExpression",
+      "line": 422
+    },
+    {
+      "name": "CellObjectConfig",
+      "line": 441
+    },
+    {
+      "name": "funcaolistagem",
+      "line": 467
+    },
+    {
+      "name": "get",
+      "line": 483
+    },
+    {
+      "name": "set",
+      "line": 486
+    },
+    {
+      "name": "syncChangesToDB",
+      "line": 543
+    },
+    {
+      "name": "getCellHtmlComponent",
+      "line": 567
+    },
+    {
+      "name": "setSelectedValue",
+      "line": 573
+    },
+    {
+      "name": "findLocalColData",
+      "line": 589
+    },
+    {
+      "name": "getHtmlValueOrText",
+      "line": 623
+    },
+    {
+      "name": "fillTableData",
+      "line": 648
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 682
+    },
+    {
+      "name": "getCelulaConfig",
+      "line": 693
+    },
+    {
+      "name": "getColsRefered",
+      "line": 707
+    },
+    {
+      "name": "getCelsRefered",
+      "line": 724
+    },
+    {
+      "name": "handleFx",
+      "line": 736
+    },
+    {
+      "name": "handleDefaultValue",
+      "line": 772
+    },
+    {
+      "name": "getValueOrDefault",
+      "line": 787
+    },
+    {
+      "name": "handleFormatInput",
+      "line": 794
+    },
+    {
+      "name": "setValue",
+      "line": 808
+    },
+    {
+      "name": "calcularSubtotais",
+      "line": 821
+    },
+    {
+      "name": "syncReactive",
+      "line": 840
+    },
+    {
+      "name": "updateOnDB",
+      "line": 859
+    },
+    {
+      "name": "updateOnDBPassingVal",
+      "line": 867
+    },
+    {
+      "name": "executeChangeEvents",
+      "line": 875
+    },
+    {
+      "name": "calcularTotalLinha",
+      "line": 887
+    },
+    {
+      "name": "getHtmlComponent",
+      "line": 900
+    },
+    {
+      "name": "toJsonString",
+      "line": 911
+    },
+    {
+      "name": "toJsonString",
+      "line": 918
+    },
+    {
+      "name": "toJsonString",
+      "line": 927
+    },
+    {
+      "name": "setDefaultValue",
+      "line": 934
+    },
+    {
+      "name": "setEvents",
+      "line": 950
+    },
+    {
+      "name": "updateCellOnDB",
+      "line": 999
+    },
+    {
+      "name": "validateCellObjectConfig",
+      "line": 1016
+    },
+    {
+      "name": "showMeAll",
+      "line": 1048
+    },
+    {
+      "name": "addToLocalCellList",
+      "line": 1054
+    },
+    {
+      "name": "UpdateData",
+      "line": 1064
+    },
+    {
+      "name": "generateLinhaOrdem",
+      "line": 1069
+    },
+    {
+      "name": "RenderedLinha",
+      "line": 1084
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 1105
+    },
+    {
+      "name": "deleteRow",
+      "line": 1129
+    },
+    {
+      "name": "getParent",
+      "line": 1163
+    },
+    {
+      "name": "getChildren",
+      "line": 1173
+    },
+    {
+      "name": "addToLocalRenderedLinhasList",
+      "line": 1188
+    },
+    {
+      "name": "getLinhaById",
+      "line": 1247
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 1257
+    },
+    {
+      "name": "getLinhaSubtotal",
+      "line": 1266
+    },
+    {
+      "name": "actualizarTotaisColunasLinha",
+      "line": 1276
+    },
+    {
+      "name": "getLinhaCellObjects",
+      "line": 1317
+    },
+    {
+      "name": "getCelulaLinha",
+      "line": 1330
+    },
+    {
+      "name": "findCelulaTotal",
+      "line": 1348
+    },
+    {
+      "name": "getTotalLinha",
+      "line": 1360
+    },
+    {
+      "name": "actualizarTotalLinha",
+      "line": 1366
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 1380
+    },
+    {
+      "name": "getCelulasByFiltro",
+      "line": 1395
+    },
+    {
+      "name": "setValueOnCell",
+      "line": 1410
+    },
+    {
+      "name": "setNewRenderedColuna",
+      "line": 1434
+    },
+    {
+      "name": "GrupoColuna",
+      "line": 1442
+    },
+    {
+      "name": "GrupoColunaItem",
+      "line": 1454
+    },
+    {
+      "name": "RenderedColuna",
+      "line": 1465
+    },
+    {
+      "name": "fillTableData",
+      "line": 1489
+    },
+    {
+      "name": "preGenHtml",
+      "line": 1525
+    },
+    {
+      "name": "getTotalRenderedColuna",
+      "line": 1543
+    },
+    {
+      "name": "setFXExpression",
+      "line": 1549
+    },
+    {
+      "name": "Relatorio",
+      "line": 1572
+    },
+    {
+      "name": "ReportConfig",
+      "line": 1587
+    },
+    {
+      "name": "mapGrupoColuna",
+      "line": 1596
+    },
+    {
+      "name": "mapGrupoColunaItem",
+      "line": 1600
+    },
+    {
+      "name": "mapLinha",
+      "line": 1604
+    },
+    {
+      "name": "mapExtra",
+      "line": 1608
+    },
+    {
+      "name": "mapColuna",
+      "line": 1612
+    },
+    {
+      "name": "mapCelula",
+      "line": 1616
+    },
+    {
+      "name": "mapFields",
+      "line": 1620
+    },
+    {
+      "name": "mapReducer",
+      "line": 1621
+    },
+    {
+      "name": "mapConfigComponentByDestiny",
+      "line": 1629
+    },
+    {
+      "name": "getMapConfigByComponent",
+      "line": 1683
+    },
+    {
+      "name": "getMappingByKey",
+      "line": 1692
+    },
+    {
+      "name": "setLinhaRender",
+      "line": 1698
+    },
+    {
+      "name": "setColunasRender",
+      "line": 1726
+    },
+    {
+      "name": "handleDefaultValueByDataType",
+      "line": 1810
+    },
+    {
+      "name": "getDistinctWithKeys",
+      "line": 1831
+    },
+    {
+      "name": "generateUUID",
+      "line": 1835
+    },
+    {
+      "name": "freezyColunas",
+      "line": 1845
+    },
+    {
+      "name": "modoEcraHandler",
+      "line": 1853
+    },
+    {
+      "name": "initSelect",
+      "line": 1867
+    },
+    {
+      "name": "sourcedTableStyle",
+      "line": 1885
+    },
+    {
+      "name": "formatInputValue",
+      "line": 1896
+    },
+    {
+      "name": "handleUIValue",
+      "line": 1917
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 1934
+    },
+    {
+      "name": "formatAllTablesDigitInputs",
+      "line": 1950
+    },
+    {
+      "name": "onSelect",
+      "line": 1991
+    },
+    {
+      "name": "generateToolTipsForSourcedTable",
+      "line": 2009
+    },
+    {
+      "name": "formatAllTablesDigitInputsMrend",
+      "line": 2027
+    },
+    {
+      "name": "onSelect",
+      "line": 2108
+    },
+    {
+      "name": "addFreezingEvent",
+      "line": 2126
+    },
+    {
+      "name": "addFreezyColumnByHeader",
+      "line": 2153
+    },
+    {
+      "name": "ConvertMrendObjectToTable",
+      "line": 2170
+    },
+    {
+      "name": "setIfSourceFieldExists",
+      "line": 2304
+    },
+    {
+      "name": "mapRecordToMrendObject",
+      "line": 2310
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2343
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2481
+    },
+    {
+      "name": "applyExtraField",
+      "line": 2620
+    },
+    {
+      "name": "initTableDataAndContainer",
+      "line": 2629
+    },
+    {
+      "name": "buildAlert",
+      "line": 2642
+    },
+    {
+      "name": "dbExists",
+      "line": 2650
+    },
+    {
+      "name": "buildAlert",
+      "line": 2654
+    },
+    {
+      "name": "relatorioErrorMessageHandler",
+      "line": 2664
+    },
+    {
+      "name": "ExecuteRenderAfterWebWorker",
+      "line": 2673
+    },
+    {
+      "name": "appendParts",
+      "line": 2686
+    },
+    {
+      "name": "setStyle",
+      "line": 2704
+    },
+    {
+      "name": "styleFunction",
+      "line": 2708
+    },
+    {
+      "name": "colorHandler",
+      "line": 2727
+    },
+    {
+      "name": "inputToNumber",
+      "line": 2746
+    },
+    {
+      "name": "inputToNumberDB",
+      "line": 2756
+    },
+    {
+      "name": "handleCustomDataForCellObject",
+      "line": 2766
+    },
+    {
+      "name": "handleReactiveClasses",
+      "line": 2788
+    },
+    {
+      "name": "generateHtmlObject",
+      "line": 2798
+    },
+    {
+      "name": "getDefaultColunaHtmlObject",
+      "line": 2913
+    },
+    {
+      "name": "evalOrDefault",
+      "line": 2934
+    },
+    {
+      "name": "getFilteredRecord",
+      "line": 2944
+    },
+    {
+      "name": "setLinhaGrupoAndSubgrupo",
+      "line": 2953
+    },
+    {
+      "name": "setLinhaToRender",
+      "line": 3082
+    },
+    {
+      "name": "setLinhaTotal",
+      "line": 3128
+    },
+    {
+      "name": "setLinha",
+      "line": 3189
+    },
+    {
+      "name": "setLinhaRenderTotal",
+      "line": 3198
+    },
+    {
+      "name": "buildCelulaDefCol",
+      "line": 3213
+    },
+    {
+      "name": "buildDefaultCelula",
+      "line": 3258
+    },
+    {
+      "name": "InitDB",
+      "line": 3363
+    },
+    {
+      "name": "executeScriptOnPHC",
+      "line": 3388
+    },
+    {
+      "name": "getState",
+      "line": 3402
+    },
+    {
+      "name": "storeStampRegisto",
+      "line": 3406
+    },
+    {
+      "name": "storeDataSourceStamp",
+      "line": 3409
+    },
+    {
+      "name": "clearStamps",
+      "line": 3415
+    },
+    {
+      "name": "getSourceStamp",
+      "line": 3420
+    },
+    {
+      "name": "deleteAllRecords",
+      "line": 3427
+    },
+    {
+      "name": "addData",
+      "line": 3452
+    },
+    {
+      "name": "deleteData",
+      "line": 3462
+    },
+    {
+      "name": "addBulkData",
+      "line": 3466
+    },
+    {
+      "name": "getDataFromRemote",
+      "line": 3478
+    },
+    {
+      "name": "success",
+      "line": 3485
+    },
+    {
+      "name": "error",
+      "line": 3489
+    },
+    {
+      "name": "configureDataBase",
+      "line": 3496
+    },
+    {
+      "name": "tablesHasRecords",
+      "line": 3521
+    },
+    {
+      "name": "databaseAndTableHasRecords",
+      "line": 3527
+    },
+    {
+      "name": "isTableExist",
+      "line": 3564
+    },
+    {
+      "name": "buildCelulaSemImputacao",
+      "line": 3569
+    },
+    {
+      "name": "buildTotalCelula",
+      "line": 3615
+    },
+    {
+      "name": "setCelula",
+      "line": 3664
+    },
+    {
+      "name": "addNewRecords",
+      "line": 3687
+    },
+    {
+      "name": "marcarOptionSelecionado",
+      "line": 3704
+    },
+    {
+      "name": "formatNumber",
+      "line": 3731
+    },
+    {
+      "name": "numberFormatCustomEditor",
+      "line": 3748
+    },
+    {
+      "name": "jqueryDateEditor",
+      "line": 3788
+    },
+    {
+      "name": "onSelect",
+      "line": 3800
+    },
+    {
+      "name": "onClose",
+      "line": 3803
+    },
+    {
+      "name": "getRenderedLinhaFromTabulator",
+      "line": 3815
+    },
+    {
+      "name": "getCelulaConfigFromTabulator",
+      "line": 3830
+    },
+    {
+      "name": "generateMrendCellContainer",
+      "line": 3862
+    },
+    {
+      "name": "isInactivo",
+      "line": 3880
+    },
+    {
+      "name": "handleColFormatter",
+      "line": 3917
+    },
+    {
+      "name": "ensureMinContent",
+      "line": 3939
+    },
+    {
+      "name": "checkboxCustomEditor",
+      "line": 4044
+    },
+    {
+      "name": "handleEditor",
+      "line": 4069
+    },
+    {
+      "name": "editor",
+      "line": 4098
+    },
+    {
+      "name": "valuesLookup",
+      "line": 4143
+    },
+    {
+      "name": "listItemFormatter",
+      "line": 4168
+    },
+    {
+      "name": "customMutator",
+      "line": 4180
+    },
+    {
+      "name": "extractCellValue",
+      "line": 4185
+    },
+    {
+      "name": "handleMutator",
+      "line": 4211
+    },
+    {
+      "name": "mutator",
+      "line": 4218
+    },
+    {
+      "name": "updateCellObjectConfig",
+      "line": 4341
+    },
+    {
+      "name": "deleteRowById",
+      "line": 4369
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 4386
+    },
+    {
+      "name": "deleteRowAndChildren",
+      "line": 4406
+    },
+    {
+      "name": "addTabulatorColumns",
+      "line": 4416
+    },
+    {
+      "name": "headerTooltip",
+      "line": 4427
+    },
+    {
+      "name": "formatter",
+      "line": 4443
+    },
+    {
+      "name": "cellClick",
+      "line": 4458
+    }
+  ],
+  "Report/js/MRENDREPORTCONFIG LIB.js": [
+    {
+      "name": "LinhaMrenderConfig",
+      "line": 1
+    },
+    {
+      "name": "getLinhaUIObjectFormConfigAndSourceValues",
+      "line": 54
+    },
+    {
+      "name": "ColunaMrenderConfig",
+      "line": 115
+    },
+    {
+      "name": "handleDefaultValue",
+      "line": 181
+    },
+    {
+      "name": "handleRelationDataByComponente",
+      "line": 197
+    },
+    {
+      "name": "MrendGrupoColuna",
+      "line": 283
+    },
+    {
+      "name": "getMrendGrupoColunaUIObjectFormConfigAndSourceValues",
+      "line": 304
+    },
+    {
+      "name": "MrendGrupoColunaItem",
+      "line": 351
+    },
+    {
+      "name": "getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues",
+      "line": 370
+    },
+    {
+      "name": "Mrendconfigligacao",
+      "line": 422
+    },
+    {
+      "name": "UIObjectFormConfig",
+      "line": 438
+    },
+    {
+      "name": "getColunaUIObjectFormConfigAndSourceValues",
+      "line": 458
+    },
+    {
+      "name": "CelulaMrenderConfig",
+      "line": 569
+    },
+    {
+      "name": "getCelulaUIObjectFormConfigAndSourceValues",
+      "line": 604
+    },
+    {
+      "name": "BindData",
+      "line": 629
+    },
+    {
+      "name": "ExtraBindData",
+      "line": 636
+    },
+    {
+      "name": "FXData",
+      "line": 643
+    },
+    {
+      "name": "organizarEcraMrender",
+      "line": 731
+    },
+    {
+      "name": "initTabelaConfiguracaoMrender",
+      "line": 737
+    },
+    {
+      "name": "setColunaGrupoReactive",
+      "line": 826
+    },
+    {
+      "name": "addGrupoColuna",
+      "line": 1025
+    },
+    {
+      "name": "removeGrupoColuna",
+      "line": 1034
+    },
+    {
+      "name": "addGrupoColunaItem",
+      "line": 1042
+    },
+    {
+      "name": "removeGrupoColunaItem",
+      "line": 1049
+    },
+    {
+      "name": "fetchConfigMrender",
+      "line": 1063
+    },
+    {
+      "name": "success",
+      "line": 1072
+    },
+    {
+      "name": "success",
+      "line": 1100
+    },
+    {
+      "name": "renderConfigMrender",
+      "line": 1156
+    },
+    {
+      "name": "setLinhasConfigMrender",
+      "line": 1247
+    },
+    {
+      "name": "handleTableReactive",
+      "line": 1312
+    },
+    {
+      "name": "getDescricaoByLinhaStamp",
+      "line": 1319
+    },
+    {
+      "name": "syncByColunaStamp",
+      "line": 1329
+    },
+    {
+      "name": "addColunaMrenderConfig",
+      "line": 1354
+    },
+    {
+      "name": "removerColunaMrenderConfig",
+      "line": 1440
+    },
+    {
+      "name": "getLocalSource",
+      "line": 1476
+    },
+    {
+      "name": "registerListenersMrender",
+      "line": 1482
+    },
+    {
+      "name": "setNovaLinha",
+      "line": 1716
+    },
+    {
+      "name": "addLinhaMrenderConfig",
+      "line": 1801
+    },
+    {
+      "name": "removerFilhosRecursivo",
+      "line": 1902
+    },
+    {
+      "name": "groupRecordsBySource",
+      "line": 1945
+    },
+    {
+      "name": "actualizarConfiguracaoMrender",
+      "line": 1974
+    },
+    {
+      "name": "success",
+      "line": 2027
+    }
+  ],
+  "Input/Eventos/MREND 24 ABR 2026 copy 2.js": [
+    {
+      "name": "Mrend",
+      "line": 1
+    },
+    {
+      "name": "setTableEditable",
+      "line": 47
+    },
+    {
+      "name": "addLinhaComRegistos",
+      "line": 57
+    },
+    {
+      "name": "doAddRow",
+      "line": 61
+    },
+    {
+      "name": "addLinhaComCelulas",
+      "line": 85
+    },
+    {
+      "name": "doAddCelulasRow",
+      "line": 154
+    },
+    {
+      "name": "refreshReactiveData",
+      "line": 172
+    },
+    {
+      "name": "whenReady",
+      "line": 179
+    },
+    {
+      "name": "getTotalRows",
+      "line": 186
+    },
+    {
+      "name": "hasRows",
+      "line": 192
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 198
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 224
+    },
+    {
+      "name": "getTotalCelulaByCodigoColuna",
+      "line": 233
+    },
+    {
+      "name": "RemoteFetchData",
+      "line": 244
+    },
+    {
+      "name": "MrendSchema",
+      "line": 252
+    },
+    {
+      "name": "DbTableToMrendObject",
+      "line": 259
+    },
+    {
+      "name": "DbTableExtras",
+      "line": 270
+    },
+    {
+      "name": "ReportConfigWrapper",
+      "line": 285
+    },
+    {
+      "name": "MrendConfigData",
+      "line": 290
+    },
+    {
+      "name": "MrendObject",
+      "line": 314
+    },
+    {
+      "name": "BindData",
+      "line": 347
+    },
+    {
+      "name": "ExtraBindData",
+      "line": 355
+    },
+    {
+      "name": "Linha",
+      "line": 363
+    },
+    {
+      "name": "Coluna",
+      "line": 427
+    },
+    {
+      "name": "buildColRefs",
+      "line": 489
+    },
+    {
+      "name": "FXData",
+      "line": 507
+    },
+    {
+      "name": "setFxData",
+      "line": 513
+    },
+    {
+      "name": "Celula",
+      "line": 533
+    },
+    {
+      "name": "getTotalColuna",
+      "line": 558
+    },
+    {
+      "name": "isExpression",
+      "line": 565
+    },
+    {
+      "name": "evaluateExpression",
+      "line": 576
+    },
+    {
+      "name": "CellObjectConfig",
+      "line": 595
+    },
+    {
+      "name": "funcaolistagem",
+      "line": 621
+    },
+    {
+      "name": "get",
+      "line": 637
+    },
+    {
+      "name": "set",
+      "line": 640
+    },
+    {
+      "name": "syncChangesToDB",
+      "line": 697
+    },
+    {
+      "name": "getCellHtmlComponent",
+      "line": 721
+    },
+    {
+      "name": "setSelectedValue",
+      "line": 727
+    },
+    {
+      "name": "findLocalColData",
+      "line": 743
+    },
+    {
+      "name": "getHtmlValueOrText",
+      "line": 777
+    },
+    {
+      "name": "fillTableData",
+      "line": 802
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 836
+    },
+    {
+      "name": "getCelulaConfig",
+      "line": 847
+    },
+    {
+      "name": "getColsRefered",
+      "line": 861
+    },
+    {
+      "name": "getCelsRefered",
+      "line": 878
+    },
+    {
+      "name": "handleFx",
+      "line": 890
+    },
+    {
+      "name": "handleDefaultValue",
+      "line": 926
+    },
+    {
+      "name": "getValueOrDefault",
+      "line": 941
+    },
+    {
+      "name": "handleFormatInput",
+      "line": 948
+    },
+    {
+      "name": "setValue",
+      "line": 962
+    },
+    {
+      "name": "calcularSubtotais",
+      "line": 975
+    },
+    {
+      "name": "syncReactive",
+      "line": 994
+    },
+    {
+      "name": "updateOnDB",
+      "line": 1013
+    },
+    {
+      "name": "updateOnDBPassingVal",
+      "line": 1021
+    },
+    {
+      "name": "executeChangeEvents",
+      "line": 1029
+    },
+    {
+      "name": "calcularTotalLinha",
+      "line": 1041
+    },
+    {
+      "name": "getHtmlComponent",
+      "line": 1054
+    },
+    {
+      "name": "toJsonString",
+      "line": 1065
+    },
+    {
+      "name": "toJsonString",
+      "line": 1072
+    },
+    {
+      "name": "toJsonString",
+      "line": 1081
+    },
+    {
+      "name": "setDefaultValue",
+      "line": 1088
+    },
+    {
+      "name": "setEvents",
+      "line": 1104
+    },
+    {
+      "name": "updateCellOnDB",
+      "line": 1153
+    },
+    {
+      "name": "validateCellObjectConfig",
+      "line": 1170
+    },
+    {
+      "name": "showMeAll",
+      "line": 1202
+    },
+    {
+      "name": "addToLocalCellList",
+      "line": 1208
+    },
+    {
+      "name": "UpdateData",
+      "line": 1218
+    },
+    {
+      "name": "generateLinhaOrdem",
+      "line": 1223
+    },
+    {
+      "name": "RenderedLinha",
+      "line": 1238
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 1259
+    },
+    {
+      "name": "deleteRow",
+      "line": 1301
+    },
+    {
+      "name": "getParent",
+      "line": 1335
+    },
+    {
+      "name": "getChildren",
+      "line": 1345
+    },
+    {
+      "name": "addToLocalRenderedLinhasList",
+      "line": 1360
+    },
+    {
+      "name": "getLinhaById",
+      "line": 1419
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 1429
+    },
+    {
+      "name": "getLinhaSubtotal",
+      "line": 1438
+    },
+    {
+      "name": "actualizarTotaisColunasLinha",
+      "line": 1448
+    },
+    {
+      "name": "getLinhaCellObjects",
+      "line": 1489
+    },
+    {
+      "name": "getCelulaLinha",
+      "line": 1502
+    },
+    {
+      "name": "findCelulaTotal",
+      "line": 1520
+    },
+    {
+      "name": "getTotalLinha",
+      "line": 1532
+    },
+    {
+      "name": "actualizarTotalLinha",
+      "line": 1538
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 1552
+    },
+    {
+      "name": "getCelulasByFiltro",
+      "line": 1567
+    },
+    {
+      "name": "setValueOnCell",
+      "line": 1582
+    },
+    {
+      "name": "setNewRenderedColuna",
+      "line": 1606
+    },
+    {
+      "name": "GrupoColuna",
+      "line": 1614
+    },
+    {
+      "name": "GrupoColunaItem",
+      "line": 1626
+    },
+    {
+      "name": "RenderedColuna",
+      "line": 1637
+    },
+    {
+      "name": "fillTableData",
+      "line": 1661
+    },
+    {
+      "name": "preGenHtml",
+      "line": 1697
+    },
+    {
+      "name": "getTotalRenderedColuna",
+      "line": 1715
+    },
+    {
+      "name": "setFXExpression",
+      "line": 1721
+    },
+    {
+      "name": "Relatorio",
+      "line": 1744
+    },
+    {
+      "name": "ReportConfig",
+      "line": 1759
+    },
+    {
+      "name": "mapGrupoColuna",
+      "line": 1768
+    },
+    {
+      "name": "mapGrupoColunaItem",
+      "line": 1772
+    },
+    {
+      "name": "mapLinha",
+      "line": 1776
+    },
+    {
+      "name": "mapExtra",
+      "line": 1780
+    },
+    {
+      "name": "mapColuna",
+      "line": 1784
+    },
+    {
+      "name": "mapCelula",
+      "line": 1788
+    },
+    {
+      "name": "mapFields",
+      "line": 1792
+    },
+    {
+      "name": "mapReducer",
+      "line": 1793
+    },
+    {
+      "name": "mapConfigComponentByDestiny",
+      "line": 1801
+    },
+    {
+      "name": "getMapConfigByComponent",
+      "line": 1855
+    },
+    {
+      "name": "getMappingByKey",
+      "line": 1864
+    },
+    {
+      "name": "setLinhaRender",
+      "line": 1870
+    },
+    {
+      "name": "setColunasRender",
+      "line": 1898
+    },
+    {
+      "name": "handleDefaultValueByDataType",
+      "line": 1982
+    },
+    {
+      "name": "getDistinctWithKeys",
+      "line": 2007
+    },
+    {
+      "name": "generateUUID",
+      "line": 2011
+    },
+    {
+      "name": "freezyColunas",
+      "line": 2021
+    },
+    {
+      "name": "modoEcraHandler",
+      "line": 2029
+    },
+    {
+      "name": "initSelect",
+      "line": 2043
+    },
+    {
+      "name": "sourcedTableStyle",
+      "line": 2061
+    },
+    {
+      "name": "formatInputValue",
+      "line": 2072
+    },
+    {
+      "name": "handleUIValue",
+      "line": 2093
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 2110
+    },
+    {
+      "name": "formatAllTablesDigitInputs",
+      "line": 2126
+    },
+    {
+      "name": "onSelect",
+      "line": 2167
+    },
+    {
+      "name": "generateToolTipsForSourcedTable",
+      "line": 2185
+    },
+    {
+      "name": "formatAllTablesDigitInputsMrend",
+      "line": 2203
+    },
+    {
+      "name": "onSelect",
+      "line": 2284
+    },
+    {
+      "name": "addFreezingEvent",
+      "line": 2302
+    },
+    {
+      "name": "addFreezyColumnByHeader",
+      "line": 2329
+    },
+    {
+      "name": "ConvertMrendObjectToTable",
+      "line": 2346
+    },
+    {
+      "name": "setIfSourceFieldExists",
+      "line": 2485
+    },
+    {
+      "name": "mapRecordToMrendObject",
+      "line": 2491
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2528
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2666
+    },
+    {
+      "name": "applyExtraField",
+      "line": 2805
+    },
+    {
+      "name": "initTableDataAndContainer",
+      "line": 2814
+    },
+    {
+      "name": "buildAlert",
+      "line": 2827
+    },
+    {
+      "name": "dbExists",
+      "line": 2835
+    },
+    {
+      "name": "buildAlert",
+      "line": 2839
+    },
+    {
+      "name": "relatorioErrorMessageHandler",
+      "line": 2849
+    },
+    {
+      "name": "ExecuteRenderAfterWebWorker",
+      "line": 2858
+    },
+    {
+      "name": "appendParts",
+      "line": 2871
+    },
+    {
+      "name": "setStyle",
+      "line": 2889
+    },
+    {
+      "name": "styleFunction",
+      "line": 2893
+    },
+    {
+      "name": "colorHandler",
+      "line": 2912
+    },
+    {
+      "name": "inputToNumber",
+      "line": 2931
+    },
+    {
+      "name": "inputToNumberDB",
+      "line": 2941
+    },
+    {
+      "name": "handleCustomDataForCellObject",
+      "line": 2951
+    },
+    {
+      "name": "handleReactiveClasses",
+      "line": 2973
+    },
+    {
+      "name": "generateHtmlObject",
+      "line": 2983
+    },
+    {
+      "name": "getDefaultColunaHtmlObject",
+      "line": 3098
+    },
+    {
+      "name": "evalOrDefault",
+      "line": 3119
+    },
+    {
+      "name": "getFilteredRecord",
+      "line": 3129
+    },
+    {
+      "name": "parseBlacklist",
+      "line": 3142
+    },
+    {
+      "name": "applyBlacklistToConfig",
+      "line": 3179
+    },
+    {
+      "name": "resolveFilhaConfig",
+      "line": 3203
+    },
+    {
+      "name": "isColunaTituloGrupo",
+      "line": 3249
+    },
+    {
+      "name": "setLinhaGrupoAndSubgrupo",
+      "line": 3266
+    },
+    {
+      "name": "setLinhaToRender",
+      "line": 3409
+    },
+    {
+      "name": "setLinhaTotal",
+      "line": 3455
+    },
+    {
+      "name": "setLinha",
+      "line": 3516
+    },
+    {
+      "name": "setLinhaRenderTotal",
+      "line": 3525
+    },
+    {
+      "name": "buildCelulaDefCol",
+      "line": 3534
+    },
+    {
+      "name": "buildDefaultCelula",
+      "line": 3579
+    },
+    {
+      "name": "InitDB",
+      "line": 3717
+    },
+    {
+      "name": "executeScriptOnPHC",
+      "line": 3739
+    },
+    {
+      "name": "getState",
+      "line": 3753
+    },
+    {
+      "name": "storeStampRegisto",
+      "line": 3757
+    },
+    {
+      "name": "storeDataSourceStamp",
+      "line": 3760
+    },
+    {
+      "name": "clearStamps",
+      "line": 3764
+    },
+    {
+      "name": "getSourceStamp",
+      "line": 3769
+    },
+    {
+      "name": "deleteAllRecords",
+      "line": 3776
+    },
+    {
+      "name": "addData",
+      "line": 3801
+    },
+    {
+      "name": "deleteData",
+      "line": 3811
+    },
+    {
+      "name": "addBulkData",
+      "line": 3815
+    },
+    {
+      "name": "getDataFromRemote",
+      "line": 3828
+    },
+    {
+      "name": "success",
+      "line": 3835
+    },
+    {
+      "name": "error",
+      "line": 3839
+    },
+    {
+      "name": "configureDataBase",
+      "line": 3846
+    },
+    {
+      "name": "tablesHasRecords",
+      "line": 3871
+    },
+    {
+      "name": "databaseAndTableHasRecords",
+      "line": 3877
+    },
+    {
+      "name": "isTableExist",
+      "line": 3914
+    },
+    {
+      "name": "buildCelulaSemImputacao",
+      "line": 3919
+    },
+    {
+      "name": "buildTotalCelula",
+      "line": 3965
+    },
+    {
+      "name": "setCelula",
+      "line": 4014
+    },
+    {
+      "name": "addNewRecords",
+      "line": 4037
+    },
+    {
+      "name": "marcarOptionSelecionado",
+      "line": 4054
+    },
+    {
+      "name": "formatNumber",
+      "line": 4081
+    },
+    {
+      "name": "numberFormatCustomEditor",
+      "line": 4098
+    },
+    {
+      "name": "jqueryDateEditor",
+      "line": 4138
+    },
+    {
+      "name": "onSelect",
+      "line": 4150
+    },
+    {
+      "name": "onClose",
+      "line": 4153
+    },
+    {
+      "name": "getRenderedLinhaFromTabulator",
+      "line": 4165
+    },
+    {
+      "name": "getCelulaConfigFromTabulator",
+      "line": 4189
+    },
+    {
+      "name": "generateMrendCellContainer",
+      "line": 4231
+    },
+    {
+      "name": "isInactivo",
+      "line": 4249
+    },
+    {
+      "name": "handleColFormatter",
+      "line": 4291
+    },
+    {
+      "name": "ensureMinContent",
+      "line": 4361
+    },
+    {
+      "name": "checkboxCustomEditor",
+      "line": 4466
+    },
+    {
+      "name": "handleEditor",
+      "line": 4491
+    },
+    {
+      "name": "editor",
+      "line": 4520
+    },
+    {
+      "name": "valuesLookup",
+      "line": 4567
+    },
+    {
+      "name": "listItemFormatter",
+      "line": 4592
+    }
+  ],
+  "Input/js/BO-GRELHA AVALIAÇÃO COTAÇÕES.backup.js": [
+    {
+      "name": "addLinhaPreservandoDinamicas",
+      "line": 12
+    },
+    {
+      "name": "registarPersistenciaCelulas",
+      "line": 32
+    },
+    {
+      "name": "getRecordStamp",
+      "line": 60
+    },
+    {
+      "name": "initGrelhaAvaliacaoCotacoes",
+      "line": 65
+    },
+    {
+      "name": "onSuccess",
+      "line": 83
+    },
+    {
+      "name": "handleColunasCriteriosFromList",
+      "line": 130
+    },
+    {
+      "name": "getRequisicoesByCotacao",
+      "line": 185
+    },
+    {
+      "name": "success",
+      "line": 194
+    },
+    {
+      "name": "getFornecedoresRequisicoes",
+      "line": 215
+    },
+    {
+      "name": "handleColunasCriterios",
+      "line": 229
+    },
+    {
+      "name": "handleColunasFornecedores",
+      "line": 286
+    },
+    {
+      "name": "handleLinhasCotacoes",
+      "line": 371
+    },
+    {
+      "name": "atualizarCellObject",
+      "line": 390
+    },
+    {
+      "name": "aplicarDadosLinha",
+      "line": 400
+    },
+    {
+      "name": "addLinhaPersistente",
+      "line": 440
+    },
+    {
+      "name": "construirUIObject",
+      "line": 444
+    },
+    {
+      "name": "hidratarLinhas",
+      "line": 525
+    },
+    {
+      "name": "clearMrendState",
+      "line": 555
+    },
+    {
+      "name": "persistDynamicCellsToIndexedDB",
+      "line": 593
+    },
+    {
+      "name": "getAvaliacaoCotacoes",
+      "line": 663
+    },
+    {
+      "name": "success",
+      "line": 672
+    },
+    {
+      "name": "renderAvaliacaoConsulta",
+      "line": 688
+    },
+    {
+      "name": "renderAvaliacaoEdicao",
+      "line": 829
+    },
+    {
+      "name": "toNumberOrZero",
+      "line": 837
+    },
+    {
+      "name": "getStatusValue",
+      "line": 851
+    },
+    {
+      "name": "registerClickGravarRelatorio",
+      "line": 1019
+    },
+    {
+      "name": "toNumberOrZero",
+      "line": 1026
+    },
+    {
+      "name": "persistRecord",
+      "line": 1194
+    },
+    {
+      "name": "inicializarMrendBycodigo",
+      "line": 1201
+    },
+    {
+      "name": "success",
+      "line": 1230
+    },
+    {
+      "name": "error",
+      "line": 1308
+    }
+  ],
+  "Input/js/BO-GRELHA AVALIAÇÃO COTAÇÕES.js": [
+    {
+      "name": "getRecordStamp",
+      "line": 12
+    },
+    {
+      "name": "toNum",
+      "line": 16
+    },
+    {
+      "name": "isEmptyValue",
+      "line": 23
+    },
+    {
+      "name": "normalizeTextForCompare",
+      "line": 27
+    },
+    {
+      "name": "isCriterioPreco",
+      "line": 38
+    },
+    {
+      "name": "getFornecedorMaisBaratoNome",
+      "line": 44
+    },
+    {
+      "name": "getAutoPrecoCriterioUpdates",
+      "line": 83
+    },
+    {
+      "name": "mergeNonDynamicFields",
+      "line": 106
+    },
+    {
+      "name": "normalizeUiByColumnFieldMap",
+      "line": 126
+    },
+    {
+      "name": "getFornecedorStampBase",
+      "line": 146
+    },
+    {
+      "name": "getFornecedorGroupStamp",
+      "line": 150
+    },
+    {
+      "name": "getFornecedorNomeByNo",
+      "line": 154
+    },
+    {
+      "name": "rememberFornecedoresNomes",
+      "line": 194
+    },
+    {
+      "name": "ensureFornecedorGroupConfig",
+      "line": 204
+    },
+    {
+      "name": "getFieldsFromColumnDef",
+      "line": 253
+    },
+    {
+      "name": "getLeafColumnDefs",
+      "line": 263
+    },
+    {
+      "name": "reorderFornecedorGroupsBeforeCriterios",
+      "line": 275
+    },
+    {
+      "name": "getCriteriosFromControl",
+      "line": 345
+    },
+    {
+      "name": "collectCriteriosAtuais",
+      "line": 363
+    },
+    {
+      "name": "ensureCriteriosColumnsAndCells",
+      "line": 389
+    },
+    {
+      "name": "initGrelhaAvaliacaoCotacoes",
+      "line": 472
+    },
+    {
+      "name": "onSuccess",
+      "line": 495
+    },
+    {
+      "name": "registarPersistenciaCelulas",
+      "line": 535
+    },
+    {
+      "name": "buildAndRenderAvaliacao",
+      "line": 560
+    },
+    {
+      "name": "fetchAvaliacaoData",
+      "line": 598
+    },
+    {
+      "name": "addLinhaPreservandoDinamicas",
+      "line": 743
+    },
+    {
+      "name": "addColunasFornecedores",
+      "line": 756
+    },
+    {
+      "name": "addColunasCriterios",
+      "line": 793
+    },
+    {
+      "name": "findColunaConfig",
+      "line": 813
+    },
+    {
+      "name": "getMaxOrdemColuna",
+      "line": 819
+    },
+    {
+      "name": "criarColunaSemDuplicar",
+      "line": 825
+    },
+    {
+      "name": "persistCellsToIndexedDB",
+      "line": 841
+    },
+    {
+      "name": "getRequisicoesByCotacao",
+      "line": 896
+    },
+    {
+      "name": "success",
+      "line": 902
+    },
+    {
+      "name": "getAvaliacaoCotacoes",
+      "line": 912
+    },
+    {
+      "name": "success",
+      "line": 918
+    },
+    {
+      "name": "getFornecedoresRequisicoes",
+      "line": 928
+    },
+    {
+      "name": "registerClickGravarRelatorio",
+      "line": 946
+    },
+    {
+      "name": "persistRecord",
+      "line": 1036
+    },
+    {
+      "name": "inicializarMrendBycodigo",
+      "line": 1043
+    },
+    {
+      "name": "success",
+      "line": 1072
+    },
+    {
+      "name": "error",
+      "line": 1150
+    }
+  ],
+  "Input/js/MREND 24 ABR 2026 copy.js": [
+    {
+      "name": "Mrend",
+      "line": 1
+    },
+    {
+      "name": "setTableEditable",
+      "line": 47
+    },
+    {
+      "name": "addLinhaComRegistos",
+      "line": 57
+    },
+    {
+      "name": "doAddRow",
+      "line": 61
+    },
+    {
+      "name": "addLinhaComCelulas",
+      "line": 85
+    },
+    {
+      "name": "doAddCelulasRow",
+      "line": 154
+    },
+    {
+      "name": "refreshReactiveData",
+      "line": 172
+    },
+    {
+      "name": "whenReady",
+      "line": 179
+    },
+    {
+      "name": "getTotalRows",
+      "line": 186
+    },
+    {
+      "name": "hasRows",
+      "line": 192
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 198
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 224
+    },
+    {
+      "name": "getTotalCelulaByCodigoColuna",
+      "line": 233
+    },
+    {
+      "name": "RemoteFetchData",
+      "line": 244
+    },
+    {
+      "name": "MrendSchema",
+      "line": 252
+    },
+    {
+      "name": "DbTableToMrendObject",
+      "line": 259
+    },
+    {
+      "name": "DbTableExtras",
+      "line": 270
+    },
+    {
+      "name": "ReportConfigWrapper",
+      "line": 285
+    },
+    {
+      "name": "MrendConfigData",
+      "line": 290
+    },
+    {
+      "name": "MrendObject",
+      "line": 314
+    },
+    {
+      "name": "BindData",
+      "line": 343
+    },
+    {
+      "name": "ExtraBindData",
+      "line": 351
+    },
+    {
+      "name": "Linha",
+      "line": 359
+    },
+    {
+      "name": "Coluna",
+      "line": 418
+    },
+    {
+      "name": "buildColRefs",
+      "line": 480
+    },
+    {
+      "name": "FXData",
+      "line": 498
+    },
+    {
+      "name": "setFxData",
+      "line": 504
+    },
+    {
+      "name": "Celula",
+      "line": 524
+    },
+    {
+      "name": "getTotalColuna",
+      "line": 549
+    },
+    {
+      "name": "isExpression",
+      "line": 556
+    },
+    {
+      "name": "evaluateExpression",
+      "line": 567
+    },
+    {
+      "name": "CellObjectConfig",
+      "line": 586
+    },
+    {
+      "name": "funcaolistagem",
+      "line": 612
+    },
+    {
+      "name": "get",
+      "line": 628
+    },
+    {
+      "name": "set",
+      "line": 631
+    },
+    {
+      "name": "syncChangesToDB",
+      "line": 688
+    },
+    {
+      "name": "getCellHtmlComponent",
+      "line": 712
+    },
+    {
+      "name": "setSelectedValue",
+      "line": 718
+    },
+    {
+      "name": "findLocalColData",
+      "line": 734
+    },
+    {
+      "name": "getHtmlValueOrText",
+      "line": 768
+    },
+    {
+      "name": "fillTableData",
+      "line": 793
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 827
+    },
+    {
+      "name": "getCelulaConfig",
+      "line": 838
+    },
+    {
+      "name": "getColsRefered",
+      "line": 852
+    },
+    {
+      "name": "getCelsRefered",
+      "line": 869
+    },
+    {
+      "name": "handleFx",
+      "line": 881
+    },
+    {
+      "name": "handleDefaultValue",
+      "line": 917
+    },
+    {
+      "name": "getValueOrDefault",
+      "line": 932
+    },
+    {
+      "name": "handleFormatInput",
+      "line": 939
+    },
+    {
+      "name": "setValue",
+      "line": 953
+    },
+    {
+      "name": "calcularSubtotais",
+      "line": 966
+    },
+    {
+      "name": "syncReactive",
+      "line": 985
+    },
+    {
+      "name": "updateOnDB",
+      "line": 1004
+    },
+    {
+      "name": "updateOnDBPassingVal",
+      "line": 1012
+    },
+    {
+      "name": "executeChangeEvents",
+      "line": 1020
+    },
+    {
+      "name": "calcularTotalLinha",
+      "line": 1032
+    },
+    {
+      "name": "getHtmlComponent",
+      "line": 1045
+    },
+    {
+      "name": "toJsonString",
+      "line": 1056
+    },
+    {
+      "name": "toJsonString",
+      "line": 1063
+    },
+    {
+      "name": "toJsonString",
+      "line": 1072
+    },
+    {
+      "name": "setDefaultValue",
+      "line": 1079
+    },
+    {
+      "name": "setEvents",
+      "line": 1095
+    },
+    {
+      "name": "updateCellOnDB",
+      "line": 1144
+    },
+    {
+      "name": "validateCellObjectConfig",
+      "line": 1161
+    },
+    {
+      "name": "showMeAll",
+      "line": 1193
+    },
+    {
+      "name": "addToLocalCellList",
+      "line": 1199
+    },
+    {
+      "name": "UpdateData",
+      "line": 1209
+    },
+    {
+      "name": "generateLinhaOrdem",
+      "line": 1214
+    },
+    {
+      "name": "RenderedLinha",
+      "line": 1229
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 1250
+    },
+    {
+      "name": "deleteRow",
+      "line": 1283
+    },
+    {
+      "name": "getParent",
+      "line": 1317
+    },
+    {
+      "name": "getChildren",
+      "line": 1327
+    },
+    {
+      "name": "addToLocalRenderedLinhasList",
+      "line": 1342
+    },
+    {
+      "name": "getLinhaById",
+      "line": 1401
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 1411
+    },
+    {
+      "name": "getLinhaSubtotal",
+      "line": 1420
+    },
+    {
+      "name": "actualizarTotaisColunasLinha",
+      "line": 1430
+    },
+    {
+      "name": "getLinhaCellObjects",
+      "line": 1471
+    },
+    {
+      "name": "getCelulaLinha",
+      "line": 1484
+    },
+    {
+      "name": "findCelulaTotal",
+      "line": 1502
+    },
+    {
+      "name": "getTotalLinha",
+      "line": 1514
+    },
+    {
+      "name": "actualizarTotalLinha",
+      "line": 1520
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 1534
+    },
+    {
+      "name": "getCelulasByFiltro",
+      "line": 1549
+    },
+    {
+      "name": "setValueOnCell",
+      "line": 1564
+    },
+    {
+      "name": "setNewRenderedColuna",
+      "line": 1588
+    },
+    {
+      "name": "GrupoColuna",
+      "line": 1596
+    },
+    {
+      "name": "GrupoColunaItem",
+      "line": 1608
+    },
+    {
+      "name": "RenderedColuna",
+      "line": 1619
+    },
+    {
+      "name": "fillTableData",
+      "line": 1643
+    },
+    {
+      "name": "preGenHtml",
+      "line": 1679
+    },
+    {
+      "name": "getTotalRenderedColuna",
+      "line": 1697
+    },
+    {
+      "name": "setFXExpression",
+      "line": 1703
+    },
+    {
+      "name": "Relatorio",
+      "line": 1726
+    },
+    {
+      "name": "ReportConfig",
+      "line": 1741
+    },
+    {
+      "name": "mapGrupoColuna",
+      "line": 1750
+    },
+    {
+      "name": "mapGrupoColunaItem",
+      "line": 1754
+    },
+    {
+      "name": "mapLinha",
+      "line": 1758
+    },
+    {
+      "name": "mapExtra",
+      "line": 1762
+    },
+    {
+      "name": "mapColuna",
+      "line": 1766
+    },
+    {
+      "name": "mapCelula",
+      "line": 1770
+    },
+    {
+      "name": "mapFields",
+      "line": 1774
+    },
+    {
+      "name": "mapReducer",
+      "line": 1775
+    },
+    {
+      "name": "mapConfigComponentByDestiny",
+      "line": 1783
+    },
+    {
+      "name": "getMapConfigByComponent",
+      "line": 1837
+    },
+    {
+      "name": "getMappingByKey",
+      "line": 1846
+    },
+    {
+      "name": "setLinhaRender",
+      "line": 1852
+    },
+    {
+      "name": "setColunasRender",
+      "line": 1880
+    },
+    {
+      "name": "handleDefaultValueByDataType",
+      "line": 1964
+    },
+    {
+      "name": "getDistinctWithKeys",
+      "line": 1989
+    },
+    {
+      "name": "generateUUID",
+      "line": 1993
+    },
+    {
+      "name": "freezyColunas",
+      "line": 2003
+    },
+    {
+      "name": "modoEcraHandler",
+      "line": 2011
+    },
+    {
+      "name": "initSelect",
+      "line": 2025
+    },
+    {
+      "name": "sourcedTableStyle",
+      "line": 2043
+    },
+    {
+      "name": "formatInputValue",
+      "line": 2054
+    },
+    {
+      "name": "handleUIValue",
+      "line": 2075
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 2092
+    },
+    {
+      "name": "formatAllTablesDigitInputs",
+      "line": 2108
+    },
+    {
+      "name": "onSelect",
+      "line": 2149
+    },
+    {
+      "name": "generateToolTipsForSourcedTable",
+      "line": 2167
+    },
+    {
+      "name": "formatAllTablesDigitInputsMrend",
+      "line": 2185
+    },
+    {
+      "name": "onSelect",
+      "line": 2266
+    },
+    {
+      "name": "addFreezingEvent",
+      "line": 2284
+    },
+    {
+      "name": "addFreezyColumnByHeader",
+      "line": 2311
+    },
+    {
+      "name": "ConvertMrendObjectToTable",
+      "line": 2328
+    },
+    {
+      "name": "setIfSourceFieldExists",
+      "line": 2467
+    },
+    {
+      "name": "mapRecordToMrendObject",
+      "line": 2473
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2506
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2644
+    },
+    {
+      "name": "applyExtraField",
+      "line": 2783
+    },
+    {
+      "name": "initTableDataAndContainer",
+      "line": 2792
+    },
+    {
+      "name": "buildAlert",
+      "line": 2805
+    },
+    {
+      "name": "dbExists",
+      "line": 2813
+    },
+    {
+      "name": "buildAlert",
+      "line": 2817
+    },
+    {
+      "name": "relatorioErrorMessageHandler",
+      "line": 2827
+    },
+    {
+      "name": "ExecuteRenderAfterWebWorker",
+      "line": 2836
+    },
+    {
+      "name": "appendParts",
+      "line": 2849
+    },
+    {
+      "name": "setStyle",
+      "line": 2867
+    },
+    {
+      "name": "styleFunction",
+      "line": 2871
+    },
+    {
+      "name": "colorHandler",
+      "line": 2890
+    },
+    {
+      "name": "inputToNumber",
+      "line": 2909
+    },
+    {
+      "name": "inputToNumberDB",
+      "line": 2919
+    },
+    {
+      "name": "handleCustomDataForCellObject",
+      "line": 2929
+    },
+    {
+      "name": "handleReactiveClasses",
+      "line": 2951
+    },
+    {
+      "name": "generateHtmlObject",
+      "line": 2961
+    },
+    {
+      "name": "getDefaultColunaHtmlObject",
+      "line": 3076
+    },
+    {
+      "name": "evalOrDefault",
+      "line": 3097
+    },
+    {
+      "name": "getFilteredRecord",
+      "line": 3107
+    },
+    {
+      "name": "setLinhaGrupoAndSubgrupo",
+      "line": 3116
+    },
+    {
+      "name": "setLinhaToRender",
+      "line": 3259
+    },
+    {
+      "name": "setLinhaTotal",
+      "line": 3305
+    },
+    {
+      "name": "setLinha",
+      "line": 3366
+    },
+    {
+      "name": "setLinhaRenderTotal",
+      "line": 3375
+    },
+    {
+      "name": "buildCelulaDefCol",
+      "line": 3384
+    },
+    {
+      "name": "buildDefaultCelula",
+      "line": 3429
+    },
+    {
+      "name": "InitDB",
+      "line": 3542
+    },
+    {
+      "name": "executeScriptOnPHC",
+      "line": 3564
+    },
+    {
+      "name": "getState",
+      "line": 3578
+    },
+    {
+      "name": "storeStampRegisto",
+      "line": 3582
+    },
+    {
+      "name": "storeDataSourceStamp",
+      "line": 3585
+    },
+    {
+      "name": "clearStamps",
+      "line": 3589
+    },
+    {
+      "name": "getSourceStamp",
+      "line": 3594
+    },
+    {
+      "name": "deleteAllRecords",
+      "line": 3601
+    },
+    {
+      "name": "addData",
+      "line": 3626
+    },
+    {
+      "name": "deleteData",
+      "line": 3636
+    },
+    {
+      "name": "addBulkData",
+      "line": 3640
+    },
+    {
+      "name": "getDataFromRemote",
+      "line": 3653
+    },
+    {
+      "name": "success",
+      "line": 3660
+    },
+    {
+      "name": "error",
+      "line": 3664
+    },
+    {
+      "name": "configureDataBase",
+      "line": 3671
+    },
+    {
+      "name": "tablesHasRecords",
+      "line": 3696
+    },
+    {
+      "name": "databaseAndTableHasRecords",
+      "line": 3702
+    },
+    {
+      "name": "isTableExist",
+      "line": 3739
+    },
+    {
+      "name": "buildCelulaSemImputacao",
+      "line": 3744
+    },
+    {
+      "name": "buildTotalCelula",
+      "line": 3790
+    },
+    {
+      "name": "setCelula",
+      "line": 3839
+    },
+    {
+      "name": "addNewRecords",
+      "line": 3862
+    },
+    {
+      "name": "marcarOptionSelecionado",
+      "line": 3879
+    },
+    {
+      "name": "formatNumber",
+      "line": 3906
+    },
+    {
+      "name": "numberFormatCustomEditor",
+      "line": 3923
+    },
+    {
+      "name": "jqueryDateEditor",
+      "line": 3963
+    },
+    {
+      "name": "onSelect",
+      "line": 3975
+    },
+    {
+      "name": "onClose",
+      "line": 3978
+    },
+    {
+      "name": "getRenderedLinhaFromTabulator",
+      "line": 3990
+    },
+    {
+      "name": "getCelulaConfigFromTabulator",
+      "line": 4014
+    },
+    {
+      "name": "generateMrendCellContainer",
+      "line": 4056
+    },
+    {
+      "name": "isInactivo",
+      "line": 4074
+    },
+    {
+      "name": "handleColFormatter",
+      "line": 4116
+    },
+    {
+      "name": "ensureMinContent",
+      "line": 4186
+    },
+    {
+      "name": "checkboxCustomEditor",
+      "line": 4291
+    },
+    {
+      "name": "handleEditor",
+      "line": 4316
+    },
+    {
+      "name": "editor",
+      "line": 4345
+    },
+    {
+      "name": "valuesLookup",
+      "line": 4392
+    },
+    {
+      "name": "listItemFormatter",
+      "line": 4417
+    },
+    {
+      "name": "customMutator",
+      "line": 4429
+    },
+    {
+      "name": "extractCellValue",
+      "line": 4434
+    },
+    {
+      "name": "handleMutator",
+      "line": 4460
+    },
+    {
+      "name": "mutator",
+      "line": 4467
+    }
+  ],
+  "Input/js/MREND 24 ABR 2026.js": [
+    {
+      "name": "Mrend",
+      "line": 1
+    },
+    {
+      "name": "setTableEditable",
+      "line": 47
+    },
+    {
+      "name": "addLinhaComRegistos",
+      "line": 57
+    },
+    {
+      "name": "doAddRow",
+      "line": 61
+    },
+    {
+      "name": "addLinhaComCelulas",
+      "line": 85
+    },
+    {
+      "name": "doAddCelulasRow",
+      "line": 154
+    },
+    {
+      "name": "refreshReactiveData",
+      "line": 172
+    },
+    {
+      "name": "whenReady",
+      "line": 179
+    },
+    {
+      "name": "getTotalRows",
+      "line": 186
+    },
+    {
+      "name": "hasRows",
+      "line": 192
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 198
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 224
+    },
+    {
+      "name": "getTotalCelulaByCodigoColuna",
+      "line": 233
+    },
+    {
+      "name": "RemoteFetchData",
+      "line": 244
+    },
+    {
+      "name": "MrendSchema",
+      "line": 252
+    },
+    {
+      "name": "DbTableToMrendObject",
+      "line": 259
+    },
+    {
+      "name": "DbTableExtras",
+      "line": 270
+    },
+    {
+      "name": "ReportConfigWrapper",
+      "line": 285
+    },
+    {
+      "name": "MrendConfigData",
+      "line": 290
+    },
+    {
+      "name": "MrendObject",
+      "line": 314
+    },
+    {
+      "name": "BindData",
+      "line": 347
+    },
+    {
+      "name": "ExtraBindData",
+      "line": 355
+    },
+    {
+      "name": "Linha",
+      "line": 363
+    },
+    {
+      "name": "Coluna",
+      "line": 427
+    },
+    {
+      "name": "buildColRefs",
+      "line": 489
+    },
+    {
+      "name": "FXData",
+      "line": 507
+    },
+    {
+      "name": "setFxData",
+      "line": 513
+    },
+    {
+      "name": "Celula",
+      "line": 533
+    },
+    {
+      "name": "getTotalColuna",
+      "line": 558
+    },
+    {
+      "name": "isExpression",
+      "line": 565
+    },
+    {
+      "name": "evaluateExpression",
+      "line": 576
+    },
+    {
+      "name": "CellObjectConfig",
+      "line": 595
+    },
+    {
+      "name": "funcaolistagem",
+      "line": 621
+    },
+    {
+      "name": "get",
+      "line": 637
+    },
+    {
+      "name": "set",
+      "line": 640
+    },
+    {
+      "name": "syncChangesToDB",
+      "line": 697
+    },
+    {
+      "name": "getCellHtmlComponent",
+      "line": 721
+    },
+    {
+      "name": "setSelectedValue",
+      "line": 727
+    },
+    {
+      "name": "findLocalColData",
+      "line": 743
+    },
+    {
+      "name": "getHtmlValueOrText",
+      "line": 777
+    },
+    {
+      "name": "fillTableData",
+      "line": 802
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 836
+    },
+    {
+      "name": "getCelulaConfig",
+      "line": 847
+    },
+    {
+      "name": "getColsRefered",
+      "line": 861
+    },
+    {
+      "name": "getCelsRefered",
+      "line": 878
+    },
+    {
+      "name": "handleFx",
+      "line": 890
+    },
+    {
+      "name": "handleDefaultValue",
+      "line": 926
+    },
+    {
+      "name": "getValueOrDefault",
+      "line": 941
+    },
+    {
+      "name": "handleFormatInput",
+      "line": 948
+    },
+    {
+      "name": "setValue",
+      "line": 962
+    },
+    {
+      "name": "calcularSubtotais",
+      "line": 975
+    },
+    {
+      "name": "syncReactive",
+      "line": 994
+    },
+    {
+      "name": "updateOnDB",
+      "line": 1013
+    },
+    {
+      "name": "updateOnDBPassingVal",
+      "line": 1021
+    },
+    {
+      "name": "executeChangeEvents",
+      "line": 1029
+    },
+    {
+      "name": "calcularTotalLinha",
+      "line": 1041
+    },
+    {
+      "name": "getHtmlComponent",
+      "line": 1054
+    },
+    {
+      "name": "toJsonString",
+      "line": 1065
+    },
+    {
+      "name": "toJsonString",
+      "line": 1072
+    },
+    {
+      "name": "toJsonString",
+      "line": 1081
+    },
+    {
+      "name": "setDefaultValue",
+      "line": 1088
+    },
+    {
+      "name": "setEvents",
+      "line": 1104
+    },
+    {
+      "name": "updateCellOnDB",
+      "line": 1153
+    },
+    {
+      "name": "validateCellObjectConfig",
+      "line": 1170
+    },
+    {
+      "name": "showMeAll",
+      "line": 1202
+    },
+    {
+      "name": "addToLocalCellList",
+      "line": 1208
+    },
+    {
+      "name": "UpdateData",
+      "line": 1218
+    },
+    {
+      "name": "generateLinhaOrdem",
+      "line": 1223
+    },
+    {
+      "name": "RenderedLinha",
+      "line": 1238
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 1259
+    },
+    {
+      "name": "deleteRow",
+      "line": 1301
+    },
+    {
+      "name": "getParent",
+      "line": 1335
+    },
+    {
+      "name": "getChildren",
+      "line": 1345
+    },
+    {
+      "name": "addToLocalRenderedLinhasList",
+      "line": 1360
+    },
+    {
+      "name": "getLinhaById",
+      "line": 1419
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 1429
+    },
+    {
+      "name": "getLinhaSubtotal",
+      "line": 1438
+    },
+    {
+      "name": "actualizarTotaisColunasLinha",
+      "line": 1448
+    },
+    {
+      "name": "getLinhaCellObjects",
+      "line": 1489
+    },
+    {
+      "name": "getCelulaLinha",
+      "line": 1502
+    },
+    {
+      "name": "findCelulaTotal",
+      "line": 1520
+    },
+    {
+      "name": "getTotalLinha",
+      "line": 1532
+    },
+    {
+      "name": "actualizarTotalLinha",
+      "line": 1538
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 1552
+    },
+    {
+      "name": "getCelulasByFiltro",
+      "line": 1567
+    },
+    {
+      "name": "setValueOnCell",
+      "line": 1582
+    },
+    {
+      "name": "setNewRenderedColuna",
+      "line": 1606
+    },
+    {
+      "name": "GrupoColuna",
+      "line": 1614
+    },
+    {
+      "name": "GrupoColunaItem",
+      "line": 1626
+    },
+    {
+      "name": "RenderedColuna",
+      "line": 1637
+    },
+    {
+      "name": "fillTableData",
+      "line": 1661
+    },
+    {
+      "name": "preGenHtml",
+      "line": 1697
+    },
+    {
+      "name": "getTotalRenderedColuna",
+      "line": 1715
+    },
+    {
+      "name": "setFXExpression",
+      "line": 1721
+    },
+    {
+      "name": "Relatorio",
+      "line": 1744
+    },
+    {
+      "name": "ReportConfig",
+      "line": 1759
+    },
+    {
+      "name": "mapGrupoColuna",
+      "line": 1768
+    },
+    {
+      "name": "mapGrupoColunaItem",
+      "line": 1772
+    },
+    {
+      "name": "mapLinha",
+      "line": 1776
+    },
+    {
+      "name": "mapExtra",
+      "line": 1780
+    },
+    {
+      "name": "mapColuna",
+      "line": 1784
+    },
+    {
+      "name": "mapCelula",
+      "line": 1788
+    },
+    {
+      "name": "mapFields",
+      "line": 1792
+    },
+    {
+      "name": "mapReducer",
+      "line": 1793
+    },
+    {
+      "name": "mapConfigComponentByDestiny",
+      "line": 1801
+    },
+    {
+      "name": "getMapConfigByComponent",
+      "line": 1855
+    },
+    {
+      "name": "getMappingByKey",
+      "line": 1864
+    },
+    {
+      "name": "setLinhaRender",
+      "line": 1870
+    },
+    {
+      "name": "setColunasRender",
+      "line": 1898
+    },
+    {
+      "name": "handleDefaultValueByDataType",
+      "line": 1982
+    },
+    {
+      "name": "getDistinctWithKeys",
+      "line": 2007
+    },
+    {
+      "name": "generateUUID",
+      "line": 2011
+    },
+    {
+      "name": "freezyColunas",
+      "line": 2021
+    },
+    {
+      "name": "modoEcraHandler",
+      "line": 2029
+    },
+    {
+      "name": "initSelect",
+      "line": 2043
+    },
+    {
+      "name": "sourcedTableStyle",
+      "line": 2061
+    },
+    {
+      "name": "formatInputValue",
+      "line": 2072
+    },
+    {
+      "name": "handleUIValue",
+      "line": 2093
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 2110
+    },
+    {
+      "name": "formatAllTablesDigitInputs",
+      "line": 2126
+    },
+    {
+      "name": "onSelect",
+      "line": 2167
+    },
+    {
+      "name": "generateToolTipsForSourcedTable",
+      "line": 2185
+    },
+    {
+      "name": "formatAllTablesDigitInputsMrend",
+      "line": 2203
+    },
+    {
+      "name": "onSelect",
+      "line": 2284
+    },
+    {
+      "name": "addFreezingEvent",
+      "line": 2302
+    },
+    {
+      "name": "addFreezyColumnByHeader",
+      "line": 2329
+    },
+    {
+      "name": "ConvertMrendObjectToTable",
+      "line": 2346
+    },
+    {
+      "name": "setIfSourceFieldExists",
+      "line": 2485
+    },
+    {
+      "name": "mapRecordToMrendObject",
+      "line": 2491
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2528
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2666
+    },
+    {
+      "name": "applyExtraField",
+      "line": 2805
+    },
+    {
+      "name": "initTableDataAndContainer",
+      "line": 2814
+    },
+    {
+      "name": "buildAlert",
+      "line": 2827
+    },
+    {
+      "name": "dbExists",
+      "line": 2835
+    },
+    {
+      "name": "buildAlert",
+      "line": 2839
+    },
+    {
+      "name": "relatorioErrorMessageHandler",
+      "line": 2849
+    },
+    {
+      "name": "ExecuteRenderAfterWebWorker",
+      "line": 2858
+    },
+    {
+      "name": "appendParts",
+      "line": 2871
+    },
+    {
+      "name": "setStyle",
+      "line": 2889
+    },
+    {
+      "name": "styleFunction",
+      "line": 2893
+    },
+    {
+      "name": "colorHandler",
+      "line": 2912
+    },
+    {
+      "name": "inputToNumber",
+      "line": 2931
+    },
+    {
+      "name": "inputToNumberDB",
+      "line": 2941
+    },
+    {
+      "name": "handleCustomDataForCellObject",
+      "line": 2951
+    },
+    {
+      "name": "handleReactiveClasses",
+      "line": 2973
+    },
+    {
+      "name": "generateHtmlObject",
+      "line": 2983
+    },
+    {
+      "name": "getDefaultColunaHtmlObject",
+      "line": 3098
+    },
+    {
+      "name": "evalOrDefault",
+      "line": 3119
+    },
+    {
+      "name": "getFilteredRecord",
+      "line": 3129
+    },
+    {
+      "name": "parseBlacklist",
+      "line": 3142
+    },
+    {
+      "name": "applyBlacklistToConfig",
+      "line": 3179
+    },
+    {
+      "name": "resolveFilhaConfig",
+      "line": 3203
+    },
+    {
+      "name": "isColunaTituloGrupo",
+      "line": 3249
+    },
+    {
+      "name": "setLinhaGrupoAndSubgrupo",
+      "line": 3266
+    },
+    {
+      "name": "setLinhaToRender",
+      "line": 3409
+    },
+    {
+      "name": "setLinhaTotal",
+      "line": 3455
+    },
+    {
+      "name": "setLinha",
+      "line": 3516
+    },
+    {
+      "name": "setLinhaRenderTotal",
+      "line": 3525
+    },
+    {
+      "name": "buildCelulaDefCol",
+      "line": 3534
+    },
+    {
+      "name": "buildDefaultCelula",
+      "line": 3579
+    },
+    {
+      "name": "InitDB",
+      "line": 3717
+    },
+    {
+      "name": "executeScriptOnPHC",
+      "line": 3739
+    },
+    {
+      "name": "getState",
+      "line": 3753
+    },
+    {
+      "name": "storeStampRegisto",
+      "line": 3757
+    },
+    {
+      "name": "storeDataSourceStamp",
+      "line": 3760
+    },
+    {
+      "name": "clearStamps",
+      "line": 3764
+    },
+    {
+      "name": "getSourceStamp",
+      "line": 3769
+    },
+    {
+      "name": "deleteAllRecords",
+      "line": 3776
+    },
+    {
+      "name": "addData",
+      "line": 3801
+    },
+    {
+      "name": "deleteData",
+      "line": 3811
+    },
+    {
+      "name": "addBulkData",
+      "line": 3815
+    },
+    {
+      "name": "getDataFromRemote",
+      "line": 3828
+    },
+    {
+      "name": "success",
+      "line": 3835
+    },
+    {
+      "name": "error",
+      "line": 3839
+    },
+    {
+      "name": "configureDataBase",
+      "line": 3846
+    },
+    {
+      "name": "tablesHasRecords",
+      "line": 3871
+    },
+    {
+      "name": "databaseAndTableHasRecords",
+      "line": 3877
+    },
+    {
+      "name": "isTableExist",
+      "line": 3914
+    },
+    {
+      "name": "buildCelulaSemImputacao",
+      "line": 3919
+    },
+    {
+      "name": "buildTotalCelula",
+      "line": 3965
+    },
+    {
+      "name": "setCelula",
+      "line": 4014
+    },
+    {
+      "name": "addNewRecords",
+      "line": 4037
+    },
+    {
+      "name": "marcarOptionSelecionado",
+      "line": 4054
+    },
+    {
+      "name": "formatNumber",
+      "line": 4081
+    },
+    {
+      "name": "numberFormatCustomEditor",
+      "line": 4098
+    },
+    {
+      "name": "jqueryDateEditor",
+      "line": 4138
+    },
+    {
+      "name": "onSelect",
+      "line": 4150
+    },
+    {
+      "name": "onClose",
+      "line": 4153
+    },
+    {
+      "name": "getRenderedLinhaFromTabulator",
+      "line": 4165
+    },
+    {
+      "name": "getCelulaConfigFromTabulator",
+      "line": 4189
+    },
+    {
+      "name": "generateMrendCellContainer",
+      "line": 4231
+    },
+    {
+      "name": "isInactivo",
+      "line": 4249
+    },
+    {
+      "name": "handleColFormatter",
+      "line": 4291
+    },
+    {
+      "name": "ensureMinContent",
+      "line": 4361
+    },
+    {
+      "name": "checkboxCustomEditor",
+      "line": 4466
+    },
+    {
+      "name": "handleEditor",
+      "line": 4491
+    },
+    {
+      "name": "editor",
+      "line": 4520
+    },
+    {
+      "name": "valuesLookup",
+      "line": 4567
+    },
+    {
+      "name": "listItemFormatter",
+      "line": 4592
+    }
+  ],
+  "Input/js/MRend backup 08MAR2026.js": [
+    {
+      "name": "Mrend",
+      "line": 3
+    },
+    {
+      "name": "setTableEditable",
+      "line": 49
+    },
+    {
+      "name": "addLinhaComRegistos",
+      "line": 59
+    },
+    {
+      "name": "refreshReactiveData",
+      "line": 77
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 99
+    },
+    {
+      "name": "getTotalCelulaByCodigoColuna",
+      "line": 108
+    },
+    {
+      "name": "RemoteFetchData",
+      "line": 119
+    },
+    {
+      "name": "MrendSchema",
+      "line": 127
+    },
+    {
+      "name": "DbTableToMrendObject",
+      "line": 134
+    },
+    {
+      "name": "DbTableExtras",
+      "line": 145
+    },
+    {
+      "name": "ReportConfigWrapper",
+      "line": 160
+    },
+    {
+      "name": "MrendConfigData",
+      "line": 165
+    },
+    {
+      "name": "MrendObject",
+      "line": 189
+    },
+    {
+      "name": "BindData",
+      "line": 218
+    },
+    {
+      "name": "ExtraBindData",
+      "line": 226
+    },
+    {
+      "name": "Linha",
+      "line": 234
+    },
+    {
+      "name": "Coluna",
+      "line": 282
+    },
+    {
+      "name": "buildColRefs",
+      "line": 341
+    },
+    {
+      "name": "FXData",
+      "line": 359
+    },
+    {
+      "name": "setFxData",
+      "line": 365
+    },
+    {
+      "name": "Celula",
+      "line": 385
+    },
+    {
+      "name": "getTotalColuna",
+      "line": 410
+    },
+    {
+      "name": "isExpression",
+      "line": 417
+    },
+    {
+      "name": "evaluateExpression",
+      "line": 428
+    },
+    {
+      "name": "CellObjectConfig",
+      "line": 447
+    },
+    {
+      "name": "funcaolistagem",
+      "line": 473
+    },
+    {
+      "name": "get",
+      "line": 489
+    },
+    {
+      "name": "set",
+      "line": 492
+    },
+    {
+      "name": "syncChangesToDB",
+      "line": 549
+    },
+    {
+      "name": "getCellHtmlComponent",
+      "line": 573
+    },
+    {
+      "name": "setSelectedValue",
+      "line": 579
+    },
+    {
+      "name": "findLocalColData",
+      "line": 595
+    },
+    {
+      "name": "getHtmlValueOrText",
+      "line": 629
+    },
+    {
+      "name": "fillTableData",
+      "line": 654
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 688
+    },
+    {
+      "name": "getCelulaConfig",
+      "line": 699
+    },
+    {
+      "name": "getColsRefered",
+      "line": 713
+    },
+    {
+      "name": "getCelsRefered",
+      "line": 730
+    },
+    {
+      "name": "handleFx",
+      "line": 742
+    },
+    {
+      "name": "handleDefaultValue",
+      "line": 778
+    },
+    {
+      "name": "getValueOrDefault",
+      "line": 793
+    },
+    {
+      "name": "handleFormatInput",
+      "line": 800
+    },
+    {
+      "name": "setValue",
+      "line": 814
+    },
+    {
+      "name": "calcularSubtotais",
+      "line": 827
+    },
+    {
+      "name": "syncReactive",
+      "line": 846
+    },
+    {
+      "name": "updateOnDB",
+      "line": 865
+    },
+    {
+      "name": "updateOnDBPassingVal",
+      "line": 873
+    },
+    {
+      "name": "executeChangeEvents",
+      "line": 881
+    },
+    {
+      "name": "calcularTotalLinha",
+      "line": 893
+    },
+    {
+      "name": "getHtmlComponent",
+      "line": 906
+    },
+    {
+      "name": "toJsonString",
+      "line": 917
+    },
+    {
+      "name": "toJsonString",
+      "line": 924
+    },
+    {
+      "name": "toJsonString",
+      "line": 933
+    },
+    {
+      "name": "setDefaultValue",
+      "line": 940
+    },
+    {
+      "name": "setEvents",
+      "line": 956
+    },
+    {
+      "name": "updateCellOnDB",
+      "line": 1005
+    },
+    {
+      "name": "validateCellObjectConfig",
+      "line": 1022
+    },
+    {
+      "name": "showMeAll",
+      "line": 1054
+    },
+    {
+      "name": "addToLocalCellList",
+      "line": 1060
+    },
+    {
+      "name": "UpdateData",
+      "line": 1070
+    },
+    {
+      "name": "generateLinhaOrdem",
+      "line": 1075
+    },
+    {
+      "name": "RenderedLinha",
+      "line": 1090
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 1111
+    },
+    {
+      "name": "deleteRow",
+      "line": 1135
+    },
+    {
+      "name": "getParent",
+      "line": 1169
+    },
+    {
+      "name": "getChildren",
+      "line": 1179
+    },
+    {
+      "name": "addToLocalRenderedLinhasList",
+      "line": 1194
+    },
+    {
+      "name": "getLinhaById",
+      "line": 1253
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 1263
+    },
+    {
+      "name": "getLinhaSubtotal",
+      "line": 1272
+    },
+    {
+      "name": "actualizarTotaisColunasLinha",
+      "line": 1282
+    },
+    {
+      "name": "getLinhaCellObjects",
+      "line": 1323
+    },
+    {
+      "name": "getCelulaLinha",
+      "line": 1336
+    },
+    {
+      "name": "findCelulaTotal",
+      "line": 1354
+    },
+    {
+      "name": "getTotalLinha",
+      "line": 1366
+    },
+    {
+      "name": "actualizarTotalLinha",
+      "line": 1372
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 1386
+    },
+    {
+      "name": "getCelulasByFiltro",
+      "line": 1401
+    },
+    {
+      "name": "setValueOnCell",
+      "line": 1416
+    },
+    {
+      "name": "setNewRenderedColuna",
+      "line": 1440
+    },
+    {
+      "name": "GrupoColuna",
+      "line": 1448
+    },
+    {
+      "name": "GrupoColunaItem",
+      "line": 1460
+    },
+    {
+      "name": "RenderedColuna",
+      "line": 1471
+    },
+    {
+      "name": "fillTableData",
+      "line": 1495
+    },
+    {
+      "name": "preGenHtml",
+      "line": 1531
+    },
+    {
+      "name": "getTotalRenderedColuna",
+      "line": 1549
+    },
+    {
+      "name": "setFXExpression",
+      "line": 1555
+    },
+    {
+      "name": "Relatorio",
+      "line": 1578
+    },
+    {
+      "name": "ReportConfig",
+      "line": 1593
+    },
+    {
+      "name": "mapGrupoColuna",
+      "line": 1602
+    },
+    {
+      "name": "mapGrupoColunaItem",
+      "line": 1606
+    },
+    {
+      "name": "mapLinha",
+      "line": 1610
+    },
+    {
+      "name": "mapExtra",
+      "line": 1614
+    },
+    {
+      "name": "mapColuna",
+      "line": 1618
+    },
+    {
+      "name": "mapCelula",
+      "line": 1622
+    },
+    {
+      "name": "mapFields",
+      "line": 1626
+    },
+    {
+      "name": "mapReducer",
+      "line": 1627
+    },
+    {
+      "name": "mapConfigComponentByDestiny",
+      "line": 1635
+    },
+    {
+      "name": "getMapConfigByComponent",
+      "line": 1689
+    },
+    {
+      "name": "getMappingByKey",
+      "line": 1698
+    },
+    {
+      "name": "setLinhaRender",
+      "line": 1704
+    },
+    {
+      "name": "setColunasRender",
+      "line": 1732
+    },
+    {
+      "name": "handleDefaultValueByDataType",
+      "line": 1816
+    },
+    {
+      "name": "getDistinctWithKeys",
+      "line": 1837
+    },
+    {
+      "name": "generateUUID",
+      "line": 1841
+    },
+    {
+      "name": "freezyColunas",
+      "line": 1851
+    },
+    {
+      "name": "modoEcraHandler",
+      "line": 1859
+    },
+    {
+      "name": "initSelect",
+      "line": 1873
+    },
+    {
+      "name": "sourcedTableStyle",
+      "line": 1891
+    },
+    {
+      "name": "formatInputValue",
+      "line": 1902
+    },
+    {
+      "name": "handleUIValue",
+      "line": 1923
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 1940
+    },
+    {
+      "name": "formatAllTablesDigitInputs",
+      "line": 1956
+    },
+    {
+      "name": "onSelect",
+      "line": 1997
+    },
+    {
+      "name": "generateToolTipsForSourcedTable",
+      "line": 2015
+    },
+    {
+      "name": "formatAllTablesDigitInputsMrend",
+      "line": 2033
+    },
+    {
+      "name": "onSelect",
+      "line": 2114
+    },
+    {
+      "name": "addFreezingEvent",
+      "line": 2132
+    },
+    {
+      "name": "addFreezyColumnByHeader",
+      "line": 2159
+    },
+    {
+      "name": "ConvertMrendObjectToTable",
+      "line": 2176
+    },
+    {
+      "name": "setIfSourceFieldExists",
+      "line": 2310
+    },
+    {
+      "name": "mapRecordToMrendObject",
+      "line": 2316
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2349
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2487
+    },
+    {
+      "name": "applyExtraField",
+      "line": 2626
+    },
+    {
+      "name": "initTableDataAndContainer",
+      "line": 2635
+    },
+    {
+      "name": "buildAlert",
+      "line": 2648
+    },
+    {
+      "name": "dbExists",
+      "line": 2656
+    },
+    {
+      "name": "buildAlert",
+      "line": 2660
+    },
+    {
+      "name": "relatorioErrorMessageHandler",
+      "line": 2670
+    },
+    {
+      "name": "ExecuteRenderAfterWebWorker",
+      "line": 2679
+    },
+    {
+      "name": "appendParts",
+      "line": 2692
+    },
+    {
+      "name": "setStyle",
+      "line": 2710
+    },
+    {
+      "name": "styleFunction",
+      "line": 2714
+    },
+    {
+      "name": "colorHandler",
+      "line": 2733
+    },
+    {
+      "name": "inputToNumber",
+      "line": 2752
+    },
+    {
+      "name": "inputToNumberDB",
+      "line": 2762
+    },
+    {
+      "name": "handleCustomDataForCellObject",
+      "line": 2772
+    },
+    {
+      "name": "handleReactiveClasses",
+      "line": 2794
+    },
+    {
+      "name": "generateHtmlObject",
+      "line": 2804
+    },
+    {
+      "name": "getDefaultColunaHtmlObject",
+      "line": 2919
+    },
+    {
+      "name": "evalOrDefault",
+      "line": 2940
+    },
+    {
+      "name": "getFilteredRecord",
+      "line": 2950
+    },
+    {
+      "name": "setLinhaGrupoAndSubgrupo",
+      "line": 2959
+    },
+    {
+      "name": "setLinhaToRender",
+      "line": 3088
+    },
+    {
+      "name": "setLinhaTotal",
+      "line": 3134
+    },
+    {
+      "name": "setLinha",
+      "line": 3195
+    },
+    {
+      "name": "setLinhaRenderTotal",
+      "line": 3204
+    },
+    {
+      "name": "buildCelulaDefCol",
+      "line": 3219
+    },
+    {
+      "name": "buildDefaultCelula",
+      "line": 3264
+    },
+    {
+      "name": "InitDB",
+      "line": 3368
+    },
+    {
+      "name": "executeScriptOnPHC",
+      "line": 3391
+    },
+    {
+      "name": "getState",
+      "line": 3405
+    },
+    {
+      "name": "storeStampRegisto",
+      "line": 3409
+    },
+    {
+      "name": "storeDataSourceStamp",
+      "line": 3412
+    },
+    {
+      "name": "clearStamps",
+      "line": 3418
+    },
+    {
+      "name": "getSourceStamp",
+      "line": 3423
+    },
+    {
+      "name": "deleteAllRecords",
+      "line": 3430
+    },
+    {
+      "name": "addData",
+      "line": 3455
+    },
+    {
+      "name": "deleteData",
+      "line": 3465
+    },
+    {
+      "name": "addBulkData",
+      "line": 3469
+    },
+    {
+      "name": "getDataFromRemote",
+      "line": 3482
+    },
+    {
+      "name": "success",
+      "line": 3489
+    },
+    {
+      "name": "error",
+      "line": 3493
+    },
+    {
+      "name": "configureDataBase",
+      "line": 3500
+    },
+    {
+      "name": "tablesHasRecords",
+      "line": 3525
+    },
+    {
+      "name": "databaseAndTableHasRecords",
+      "line": 3531
+    },
+    {
+      "name": "isTableExist",
+      "line": 3568
+    },
+    {
+      "name": "buildCelulaSemImputacao",
+      "line": 3573
+    },
+    {
+      "name": "buildTotalCelula",
+      "line": 3619
+    },
+    {
+      "name": "setCelula",
+      "line": 3668
+    },
+    {
+      "name": "addNewRecords",
+      "line": 3691
+    },
+    {
+      "name": "marcarOptionSelecionado",
+      "line": 3708
+    },
+    {
+      "name": "formatNumber",
+      "line": 3735
+    },
+    {
+      "name": "numberFormatCustomEditor",
+      "line": 3752
+    },
+    {
+      "name": "jqueryDateEditor",
+      "line": 3792
+    },
+    {
+      "name": "onSelect",
+      "line": 3804
+    },
+    {
+      "name": "onClose",
+      "line": 3807
+    },
+    {
+      "name": "getRenderedLinhaFromTabulator",
+      "line": 3819
+    },
+    {
+      "name": "getCelulaConfigFromTabulator",
+      "line": 3834
+    },
+    {
+      "name": "generateMrendCellContainer",
+      "line": 3866
+    },
+    {
+      "name": "isInactivo",
+      "line": 3884
+    },
+    {
+      "name": "handleColFormatter",
+      "line": 3921
+    },
+    {
+      "name": "ensureMinContent",
+      "line": 3943
+    },
+    {
+      "name": "checkboxCustomEditor",
+      "line": 4048
+    },
+    {
+      "name": "handleEditor",
+      "line": 4073
+    },
+    {
+      "name": "editor",
+      "line": 4102
+    },
+    {
+      "name": "valuesLookup",
+      "line": 4147
+    },
+    {
+      "name": "listItemFormatter",
+      "line": 4172
+    },
+    {
+      "name": "customMutator",
+      "line": 4184
+    },
+    {
+      "name": "extractCellValue",
+      "line": 4189
+    },
+    {
+      "name": "handleMutator",
+      "line": 4215
+    },
+    {
+      "name": "mutator",
+      "line": 4222
+    },
+    {
+      "name": "updateCellObjectConfig",
+      "line": 4345
+    },
+    {
+      "name": "deleteRowById",
+      "line": 4358
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 4375
+    },
+    {
+      "name": "deleteRowAndChildren",
+      "line": 4395
+    },
+    {
+      "name": "addTabulatorColumns",
+      "line": 4405
+    },
+    {
+      "name": "headerTooltip",
+      "line": 4415
+    },
+    {
+      "name": "formatter",
+      "line": 4431
+    }
+  ],
+  "Input/js/Mrend backup 09MAR2026.js": [
+    {
+      "name": "Mrend",
+      "line": 3
+    },
+    {
+      "name": "setTableEditable",
+      "line": 49
+    },
+    {
+      "name": "addLinhaComRegistos",
+      "line": 59
+    },
+    {
+      "name": "refreshReactiveData",
+      "line": 77
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 99
+    },
+    {
+      "name": "getTotalCelulaByCodigoColuna",
+      "line": 108
+    },
+    {
+      "name": "RemoteFetchData",
+      "line": 119
+    },
+    {
+      "name": "MrendSchema",
+      "line": 127
+    },
+    {
+      "name": "DbTableToMrendObject",
+      "line": 134
+    },
+    {
+      "name": "DbTableExtras",
+      "line": 145
+    },
+    {
+      "name": "ReportConfigWrapper",
+      "line": 160
+    },
+    {
+      "name": "MrendConfigData",
+      "line": 165
+    },
+    {
+      "name": "MrendObject",
+      "line": 189
+    },
+    {
+      "name": "BindData",
+      "line": 218
+    },
+    {
+      "name": "ExtraBindData",
+      "line": 226
+    },
+    {
+      "name": "Linha",
+      "line": 234
+    },
+    {
+      "name": "Coluna",
+      "line": 282
+    },
+    {
+      "name": "buildColRefs",
+      "line": 341
+    },
+    {
+      "name": "FXData",
+      "line": 359
+    },
+    {
+      "name": "setFxData",
+      "line": 365
+    },
+    {
+      "name": "Celula",
+      "line": 385
+    },
+    {
+      "name": "getTotalColuna",
+      "line": 410
+    },
+    {
+      "name": "isExpression",
+      "line": 417
+    },
+    {
+      "name": "evaluateExpression",
+      "line": 428
+    },
+    {
+      "name": "CellObjectConfig",
+      "line": 447
+    },
+    {
+      "name": "funcaolistagem",
+      "line": 473
+    },
+    {
+      "name": "get",
+      "line": 489
+    },
+    {
+      "name": "set",
+      "line": 492
+    },
+    {
+      "name": "syncChangesToDB",
+      "line": 549
+    },
+    {
+      "name": "getCellHtmlComponent",
+      "line": 573
+    },
+    {
+      "name": "setSelectedValue",
+      "line": 579
+    },
+    {
+      "name": "findLocalColData",
+      "line": 595
+    },
+    {
+      "name": "getHtmlValueOrText",
+      "line": 629
+    },
+    {
+      "name": "fillTableData",
+      "line": 654
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 688
+    },
+    {
+      "name": "getCelulaConfig",
+      "line": 699
+    },
+    {
+      "name": "getColsRefered",
+      "line": 713
+    },
+    {
+      "name": "getCelsRefered",
+      "line": 730
+    },
+    {
+      "name": "handleFx",
+      "line": 742
+    },
+    {
+      "name": "handleDefaultValue",
+      "line": 778
+    },
+    {
+      "name": "getValueOrDefault",
+      "line": 793
+    },
+    {
+      "name": "handleFormatInput",
+      "line": 800
+    },
+    {
+      "name": "setValue",
+      "line": 814
+    },
+    {
+      "name": "calcularSubtotais",
+      "line": 827
+    },
+    {
+      "name": "syncReactive",
+      "line": 846
+    },
+    {
+      "name": "updateOnDB",
+      "line": 865
+    },
+    {
+      "name": "updateOnDBPassingVal",
+      "line": 873
+    },
+    {
+      "name": "executeChangeEvents",
+      "line": 881
+    },
+    {
+      "name": "calcularTotalLinha",
+      "line": 893
+    },
+    {
+      "name": "getHtmlComponent",
+      "line": 906
+    },
+    {
+      "name": "toJsonString",
+      "line": 917
+    },
+    {
+      "name": "toJsonString",
+      "line": 924
+    },
+    {
+      "name": "toJsonString",
+      "line": 933
+    },
+    {
+      "name": "setDefaultValue",
+      "line": 940
+    },
+    {
+      "name": "setEvents",
+      "line": 956
+    },
+    {
+      "name": "updateCellOnDB",
+      "line": 1005
+    },
+    {
+      "name": "validateCellObjectConfig",
+      "line": 1022
+    },
+    {
+      "name": "showMeAll",
+      "line": 1054
+    },
+    {
+      "name": "addToLocalCellList",
+      "line": 1060
+    },
+    {
+      "name": "UpdateData",
+      "line": 1070
+    },
+    {
+      "name": "generateLinhaOrdem",
+      "line": 1075
+    },
+    {
+      "name": "RenderedLinha",
+      "line": 1090
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 1111
+    },
+    {
+      "name": "deleteRow",
+      "line": 1135
+    },
+    {
+      "name": "getParent",
+      "line": 1169
+    },
+    {
+      "name": "getChildren",
+      "line": 1179
+    },
+    {
+      "name": "addToLocalRenderedLinhasList",
+      "line": 1194
+    },
+    {
+      "name": "getLinhaById",
+      "line": 1253
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 1263
+    },
+    {
+      "name": "getLinhaSubtotal",
+      "line": 1272
+    },
+    {
+      "name": "actualizarTotaisColunasLinha",
+      "line": 1282
+    },
+    {
+      "name": "getLinhaCellObjects",
+      "line": 1323
+    },
+    {
+      "name": "getCelulaLinha",
+      "line": 1336
+    },
+    {
+      "name": "findCelulaTotal",
+      "line": 1354
+    },
+    {
+      "name": "getTotalLinha",
+      "line": 1366
+    },
+    {
+      "name": "actualizarTotalLinha",
+      "line": 1372
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 1386
+    },
+    {
+      "name": "getCelulasByFiltro",
+      "line": 1401
+    },
+    {
+      "name": "setValueOnCell",
+      "line": 1416
+    },
+    {
+      "name": "setNewRenderedColuna",
+      "line": 1440
+    },
+    {
+      "name": "GrupoColuna",
+      "line": 1448
+    },
+    {
+      "name": "GrupoColunaItem",
+      "line": 1460
+    },
+    {
+      "name": "RenderedColuna",
+      "line": 1471
+    },
+    {
+      "name": "fillTableData",
+      "line": 1495
+    },
+    {
+      "name": "preGenHtml",
+      "line": 1531
+    },
+    {
+      "name": "getTotalRenderedColuna",
+      "line": 1549
+    },
+    {
+      "name": "setFXExpression",
+      "line": 1555
+    },
+    {
+      "name": "Relatorio",
+      "line": 1578
+    },
+    {
+      "name": "ReportConfig",
+      "line": 1593
+    },
+    {
+      "name": "mapGrupoColuna",
+      "line": 1602
+    },
+    {
+      "name": "mapGrupoColunaItem",
+      "line": 1606
+    },
+    {
+      "name": "mapLinha",
+      "line": 1610
+    },
+    {
+      "name": "mapExtra",
+      "line": 1614
+    },
+    {
+      "name": "mapColuna",
+      "line": 1618
+    },
+    {
+      "name": "mapCelula",
+      "line": 1622
+    },
+    {
+      "name": "mapFields",
+      "line": 1626
+    },
+    {
+      "name": "mapReducer",
+      "line": 1627
+    },
+    {
+      "name": "mapConfigComponentByDestiny",
+      "line": 1635
+    },
+    {
+      "name": "getMapConfigByComponent",
+      "line": 1689
+    },
+    {
+      "name": "getMappingByKey",
+      "line": 1698
+    },
+    {
+      "name": "setLinhaRender",
+      "line": 1704
+    },
+    {
+      "name": "setColunasRender",
+      "line": 1732
+    },
+    {
+      "name": "handleDefaultValueByDataType",
+      "line": 1816
+    },
+    {
+      "name": "getDistinctWithKeys",
+      "line": 1837
+    },
+    {
+      "name": "generateUUID",
+      "line": 1841
+    },
+    {
+      "name": "freezyColunas",
+      "line": 1851
+    },
+    {
+      "name": "modoEcraHandler",
+      "line": 1859
+    },
+    {
+      "name": "initSelect",
+      "line": 1873
+    },
+    {
+      "name": "sourcedTableStyle",
+      "line": 1891
+    },
+    {
+      "name": "formatInputValue",
+      "line": 1902
+    },
+    {
+      "name": "handleUIValue",
+      "line": 1923
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 1940
+    },
+    {
+      "name": "formatAllTablesDigitInputs",
+      "line": 1956
+    },
+    {
+      "name": "onSelect",
+      "line": 1997
+    },
+    {
+      "name": "generateToolTipsForSourcedTable",
+      "line": 2015
+    },
+    {
+      "name": "formatAllTablesDigitInputsMrend",
+      "line": 2033
+    },
+    {
+      "name": "onSelect",
+      "line": 2114
+    },
+    {
+      "name": "addFreezingEvent",
+      "line": 2132
+    },
+    {
+      "name": "addFreezyColumnByHeader",
+      "line": 2159
+    },
+    {
+      "name": "ConvertMrendObjectToTable",
+      "line": 2176
+    },
+    {
+      "name": "setIfSourceFieldExists",
+      "line": 2310
+    },
+    {
+      "name": "mapRecordToMrendObject",
+      "line": 2316
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2349
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2487
+    },
+    {
+      "name": "applyExtraField",
+      "line": 2626
+    },
+    {
+      "name": "initTableDataAndContainer",
+      "line": 2635
+    },
+    {
+      "name": "buildAlert",
+      "line": 2648
+    },
+    {
+      "name": "dbExists",
+      "line": 2656
+    },
+    {
+      "name": "buildAlert",
+      "line": 2660
+    },
+    {
+      "name": "relatorioErrorMessageHandler",
+      "line": 2670
+    },
+    {
+      "name": "ExecuteRenderAfterWebWorker",
+      "line": 2679
+    },
+    {
+      "name": "appendParts",
+      "line": 2692
+    },
+    {
+      "name": "setStyle",
+      "line": 2710
+    },
+    {
+      "name": "styleFunction",
+      "line": 2714
+    },
+    {
+      "name": "colorHandler",
+      "line": 2733
+    },
+    {
+      "name": "inputToNumber",
+      "line": 2752
+    },
+    {
+      "name": "inputToNumberDB",
+      "line": 2762
+    },
+    {
+      "name": "handleCustomDataForCellObject",
+      "line": 2772
+    },
+    {
+      "name": "handleReactiveClasses",
+      "line": 2794
+    },
+    {
+      "name": "generateHtmlObject",
+      "line": 2804
+    },
+    {
+      "name": "getDefaultColunaHtmlObject",
+      "line": 2919
+    },
+    {
+      "name": "evalOrDefault",
+      "line": 2940
+    },
+    {
+      "name": "getFilteredRecord",
+      "line": 2950
+    },
+    {
+      "name": "setLinhaGrupoAndSubgrupo",
+      "line": 2959
+    },
+    {
+      "name": "setLinhaToRender",
+      "line": 3088
+    },
+    {
+      "name": "setLinhaTotal",
+      "line": 3134
+    },
+    {
+      "name": "setLinha",
+      "line": 3195
+    },
+    {
+      "name": "setLinhaRenderTotal",
+      "line": 3204
+    },
+    {
+      "name": "buildCelulaDefCol",
+      "line": 3219
+    },
+    {
+      "name": "buildDefaultCelula",
+      "line": 3264
+    },
+    {
+      "name": "InitDB",
+      "line": 3368
+    },
+    {
+      "name": "executeScriptOnPHC",
+      "line": 3391
+    },
+    {
+      "name": "getState",
+      "line": 3405
+    },
+    {
+      "name": "storeStampRegisto",
+      "line": 3409
+    },
+    {
+      "name": "storeDataSourceStamp",
+      "line": 3412
+    },
+    {
+      "name": "clearStamps",
+      "line": 3418
+    },
+    {
+      "name": "getSourceStamp",
+      "line": 3423
+    },
+    {
+      "name": "deleteAllRecords",
+      "line": 3430
+    },
+    {
+      "name": "addData",
+      "line": 3455
+    },
+    {
+      "name": "deleteData",
+      "line": 3465
+    },
+    {
+      "name": "addBulkData",
+      "line": 3469
+    },
+    {
+      "name": "getDataFromRemote",
+      "line": 3482
+    },
+    {
+      "name": "success",
+      "line": 3489
+    },
+    {
+      "name": "error",
+      "line": 3493
+    },
+    {
+      "name": "configureDataBase",
+      "line": 3500
+    },
+    {
+      "name": "tablesHasRecords",
+      "line": 3525
+    },
+    {
+      "name": "databaseAndTableHasRecords",
+      "line": 3531
+    },
+    {
+      "name": "isTableExist",
+      "line": 3568
+    },
+    {
+      "name": "buildCelulaSemImputacao",
+      "line": 3573
+    },
+    {
+      "name": "buildTotalCelula",
+      "line": 3619
+    },
+    {
+      "name": "setCelula",
+      "line": 3668
+    },
+    {
+      "name": "addNewRecords",
+      "line": 3691
+    },
+    {
+      "name": "marcarOptionSelecionado",
+      "line": 3708
+    },
+    {
+      "name": "formatNumber",
+      "line": 3735
+    },
+    {
+      "name": "numberFormatCustomEditor",
+      "line": 3752
+    },
+    {
+      "name": "jqueryDateEditor",
+      "line": 3792
+    },
+    {
+      "name": "onSelect",
+      "line": 3804
+    },
+    {
+      "name": "onClose",
+      "line": 3807
+    },
+    {
+      "name": "getRenderedLinhaFromTabulator",
+      "line": 3819
+    },
+    {
+      "name": "getCelulaConfigFromTabulator",
+      "line": 3834
+    },
+    {
+      "name": "generateMrendCellContainer",
+      "line": 3866
+    },
+    {
+      "name": "isInactivo",
+      "line": 3884
+    },
+    {
+      "name": "handleColFormatter",
+      "line": 3921
+    },
+    {
+      "name": "ensureMinContent",
+      "line": 3943
+    },
+    {
+      "name": "checkboxCustomEditor",
+      "line": 4048
+    },
+    {
+      "name": "handleEditor",
+      "line": 4073
+    },
+    {
+      "name": "editor",
+      "line": 4102
+    },
+    {
+      "name": "valuesLookup",
+      "line": 4147
+    },
+    {
+      "name": "listItemFormatter",
+      "line": 4172
+    },
+    {
+      "name": "customMutator",
+      "line": 4184
+    },
+    {
+      "name": "extractCellValue",
+      "line": 4189
+    },
+    {
+      "name": "handleMutator",
+      "line": 4215
+    },
+    {
+      "name": "mutator",
+      "line": 4222
+    },
+    {
+      "name": "updateCellObjectConfig",
+      "line": 4345
+    },
+    {
+      "name": "deleteRowById",
+      "line": 4358
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 4375
+    },
+    {
+      "name": "deleteRowAndChildren",
+      "line": 4395
+    },
+    {
+      "name": "addTabulatorColumns",
+      "line": 4405
+    },
+    {
+      "name": "headerTooltip",
+      "line": 4415
+    },
+    {
+      "name": "formatter",
+      "line": 4431
+    }
+  ],
+  "Input/js/MRend copy.js": [
+    {
+      "name": "Mrend",
+      "line": 1
+    },
+    {
+      "name": "setTableEditable",
+      "line": 47
+    },
+    {
+      "name": "addLinhaComRegistos",
+      "line": 57
+    },
+    {
+      "name": "refreshReactiveData",
+      "line": 75
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 97
+    },
+    {
+      "name": "getTotalCelulaByCodigoColuna",
+      "line": 106
+    },
+    {
+      "name": "RemoteFetchData",
+      "line": 117
+    },
+    {
+      "name": "MrendSchema",
+      "line": 125
+    },
+    {
+      "name": "DbTableToMrendObject",
+      "line": 132
+    },
+    {
+      "name": "DbTableExtras",
+      "line": 143
+    },
+    {
+      "name": "ReportConfigWrapper",
+      "line": 158
+    },
+    {
+      "name": "MrendConfigData",
+      "line": 163
+    },
+    {
+      "name": "MrendObject",
+      "line": 187
+    },
+    {
+      "name": "BindData",
+      "line": 216
+    },
+    {
+      "name": "ExtraBindData",
+      "line": 224
+    },
+    {
+      "name": "Linha",
+      "line": 232
+    },
+    {
+      "name": "Coluna",
+      "line": 280
+    },
+    {
+      "name": "buildColRefs",
+      "line": 340
+    },
+    {
+      "name": "FXData",
+      "line": 358
+    },
+    {
+      "name": "setFxData",
+      "line": 364
+    },
+    {
+      "name": "Celula",
+      "line": 384
+    },
+    {
+      "name": "getTotalColuna",
+      "line": 409
+    },
+    {
+      "name": "isExpression",
+      "line": 416
+    },
+    {
+      "name": "evaluateExpression",
+      "line": 427
+    },
+    {
+      "name": "CellObjectConfig",
+      "line": 446
+    },
+    {
+      "name": "funcaolistagem",
+      "line": 472
+    },
+    {
+      "name": "get",
+      "line": 488
+    },
+    {
+      "name": "set",
+      "line": 491
+    },
+    {
+      "name": "syncChangesToDB",
+      "line": 548
+    },
+    {
+      "name": "getCellHtmlComponent",
+      "line": 572
+    },
+    {
+      "name": "setSelectedValue",
+      "line": 578
+    },
+    {
+      "name": "findLocalColData",
+      "line": 594
+    },
+    {
+      "name": "getHtmlValueOrText",
+      "line": 628
+    },
+    {
+      "name": "fillTableData",
+      "line": 653
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 687
+    },
+    {
+      "name": "getCelulaConfig",
+      "line": 698
+    },
+    {
+      "name": "getColsRefered",
+      "line": 712
+    },
+    {
+      "name": "getCelsRefered",
+      "line": 729
+    },
+    {
+      "name": "handleFx",
+      "line": 741
+    },
+    {
+      "name": "handleDefaultValue",
+      "line": 777
+    },
+    {
+      "name": "getValueOrDefault",
+      "line": 792
+    },
+    {
+      "name": "handleFormatInput",
+      "line": 799
+    },
+    {
+      "name": "setValue",
+      "line": 813
+    },
+    {
+      "name": "calcularSubtotais",
+      "line": 826
+    },
+    {
+      "name": "syncReactive",
+      "line": 845
+    },
+    {
+      "name": "updateOnDB",
+      "line": 864
+    },
+    {
+      "name": "updateOnDBPassingVal",
+      "line": 872
+    },
+    {
+      "name": "executeChangeEvents",
+      "line": 880
+    },
+    {
+      "name": "calcularTotalLinha",
+      "line": 892
+    },
+    {
+      "name": "getHtmlComponent",
+      "line": 905
+    },
+    {
+      "name": "toJsonString",
+      "line": 916
+    },
+    {
+      "name": "toJsonString",
+      "line": 923
+    },
+    {
+      "name": "toJsonString",
+      "line": 932
+    },
+    {
+      "name": "setDefaultValue",
+      "line": 939
+    },
+    {
+      "name": "setEvents",
+      "line": 955
+    },
+    {
+      "name": "updateCellOnDB",
+      "line": 1004
+    },
+    {
+      "name": "validateCellObjectConfig",
+      "line": 1021
+    },
+    {
+      "name": "showMeAll",
+      "line": 1053
+    },
+    {
+      "name": "addToLocalCellList",
+      "line": 1059
+    },
+    {
+      "name": "UpdateData",
+      "line": 1069
+    },
+    {
+      "name": "generateLinhaOrdem",
+      "line": 1074
+    },
+    {
+      "name": "RenderedLinha",
+      "line": 1089
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 1110
+    },
+    {
+      "name": "deleteRow",
+      "line": 1134
+    },
+    {
+      "name": "getParent",
+      "line": 1168
+    },
+    {
+      "name": "getChildren",
+      "line": 1178
+    },
+    {
+      "name": "addToLocalRenderedLinhasList",
+      "line": 1193
+    },
+    {
+      "name": "getLinhaById",
+      "line": 1252
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 1262
+    },
+    {
+      "name": "getLinhaSubtotal",
+      "line": 1271
+    },
+    {
+      "name": "actualizarTotaisColunasLinha",
+      "line": 1281
+    },
+    {
+      "name": "getLinhaCellObjects",
+      "line": 1322
+    },
+    {
+      "name": "getCelulaLinha",
+      "line": 1335
+    },
+    {
+      "name": "findCelulaTotal",
+      "line": 1353
+    },
+    {
+      "name": "getTotalLinha",
+      "line": 1365
+    },
+    {
+      "name": "actualizarTotalLinha",
+      "line": 1371
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 1385
+    },
+    {
+      "name": "getCelulasByFiltro",
+      "line": 1400
+    },
+    {
+      "name": "setValueOnCell",
+      "line": 1415
+    },
+    {
+      "name": "setNewRenderedColuna",
+      "line": 1439
+    },
+    {
+      "name": "GrupoColuna",
+      "line": 1447
+    },
+    {
+      "name": "GrupoColunaItem",
+      "line": 1459
+    },
+    {
+      "name": "RenderedColuna",
+      "line": 1470
+    },
+    {
+      "name": "fillTableData",
+      "line": 1494
+    },
+    {
+      "name": "preGenHtml",
+      "line": 1530
+    },
+    {
+      "name": "getTotalRenderedColuna",
+      "line": 1548
+    },
+    {
+      "name": "setFXExpression",
+      "line": 1554
+    },
+    {
+      "name": "Relatorio",
+      "line": 1577
+    },
+    {
+      "name": "ReportConfig",
+      "line": 1592
+    },
+    {
+      "name": "mapGrupoColuna",
+      "line": 1601
+    },
+    {
+      "name": "mapGrupoColunaItem",
+      "line": 1605
+    },
+    {
+      "name": "mapLinha",
+      "line": 1609
+    },
+    {
+      "name": "mapExtra",
+      "line": 1613
+    },
+    {
+      "name": "mapColuna",
+      "line": 1617
+    },
+    {
+      "name": "mapCelula",
+      "line": 1621
+    },
+    {
+      "name": "mapFields",
+      "line": 1625
+    },
+    {
+      "name": "mapReducer",
+      "line": 1626
+    },
+    {
+      "name": "mapConfigComponentByDestiny",
+      "line": 1634
+    },
+    {
+      "name": "getMapConfigByComponent",
+      "line": 1688
+    },
+    {
+      "name": "getMappingByKey",
+      "line": 1697
+    },
+    {
+      "name": "setLinhaRender",
+      "line": 1703
+    },
+    {
+      "name": "setColunasRender",
+      "line": 1731
+    },
+    {
+      "name": "handleDefaultValueByDataType",
+      "line": 1815
+    },
+    {
+      "name": "getDistinctWithKeys",
+      "line": 1836
+    },
+    {
+      "name": "generateUUID",
+      "line": 1840
+    },
+    {
+      "name": "freezyColunas",
+      "line": 1850
+    },
+    {
+      "name": "modoEcraHandler",
+      "line": 1858
+    },
+    {
+      "name": "initSelect",
+      "line": 1872
+    },
+    {
+      "name": "sourcedTableStyle",
+      "line": 1890
+    },
+    {
+      "name": "formatInputValue",
+      "line": 1901
+    },
+    {
+      "name": "handleUIValue",
+      "line": 1922
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 1939
+    },
+    {
+      "name": "formatAllTablesDigitInputs",
+      "line": 1955
+    },
+    {
+      "name": "onSelect",
+      "line": 1996
+    },
+    {
+      "name": "generateToolTipsForSourcedTable",
+      "line": 2014
+    },
+    {
+      "name": "formatAllTablesDigitInputsMrend",
+      "line": 2032
+    },
+    {
+      "name": "onSelect",
+      "line": 2113
+    },
+    {
+      "name": "addFreezingEvent",
+      "line": 2131
+    },
+    {
+      "name": "addFreezyColumnByHeader",
+      "line": 2158
+    },
+    {
+      "name": "ConvertMrendObjectToTable",
+      "line": 2175
+    },
+    {
+      "name": "setIfSourceFieldExists",
+      "line": 2309
+    },
+    {
+      "name": "mapRecordToMrendObject",
+      "line": 2315
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2348
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2486
+    },
+    {
+      "name": "applyExtraField",
+      "line": 2625
+    },
+    {
+      "name": "initTableDataAndContainer",
+      "line": 2634
+    },
+    {
+      "name": "buildAlert",
+      "line": 2647
+    },
+    {
+      "name": "dbExists",
+      "line": 2655
+    },
+    {
+      "name": "buildAlert",
+      "line": 2659
+    },
+    {
+      "name": "relatorioErrorMessageHandler",
+      "line": 2669
+    },
+    {
+      "name": "ExecuteRenderAfterWebWorker",
+      "line": 2678
+    },
+    {
+      "name": "appendParts",
+      "line": 2691
+    },
+    {
+      "name": "setStyle",
+      "line": 2709
+    },
+    {
+      "name": "styleFunction",
+      "line": 2713
+    },
+    {
+      "name": "colorHandler",
+      "line": 2732
+    },
+    {
+      "name": "inputToNumber",
+      "line": 2751
+    },
+    {
+      "name": "inputToNumberDB",
+      "line": 2761
+    },
+    {
+      "name": "handleCustomDataForCellObject",
+      "line": 2771
+    },
+    {
+      "name": "handleReactiveClasses",
+      "line": 2793
+    },
+    {
+      "name": "generateHtmlObject",
+      "line": 2803
+    },
+    {
+      "name": "getDefaultColunaHtmlObject",
+      "line": 2918
+    },
+    {
+      "name": "evalOrDefault",
+      "line": 2939
+    },
+    {
+      "name": "getFilteredRecord",
+      "line": 2949
+    },
+    {
+      "name": "setLinhaGrupoAndSubgrupo",
+      "line": 2958
+    },
+    {
+      "name": "setLinhaToRender",
+      "line": 3087
+    },
+    {
+      "name": "setLinhaTotal",
+      "line": 3133
+    },
+    {
+      "name": "setLinha",
+      "line": 3194
+    },
+    {
+      "name": "setLinhaRenderTotal",
+      "line": 3203
+    },
+    {
+      "name": "buildCelulaDefCol",
+      "line": 3218
+    },
+    {
+      "name": "buildDefaultCelula",
+      "line": 3263
+    },
+    {
+      "name": "InitDB",
+      "line": 3366
+    },
+    {
+      "name": "executeScriptOnPHC",
+      "line": 3381
+    },
+    {
+      "name": "getState",
+      "line": 3395
+    },
+    {
+      "name": "storeStampRegisto",
+      "line": 3399
+    },
+    {
+      "name": "storeDataSourceStamp",
+      "line": 3402
+    },
+    {
+      "name": "clearStamps",
+      "line": 3408
+    },
+    {
+      "name": "getSourceStamp",
+      "line": 3413
+    },
+    {
+      "name": "deleteAllRecords",
+      "line": 3420
+    },
+    {
+      "name": "addData",
+      "line": 3445
+    },
+    {
+      "name": "deleteData",
+      "line": 3455
+    },
+    {
+      "name": "addBulkData",
+      "line": 3459
+    },
+    {
+      "name": "getDataFromRemote",
+      "line": 3471
+    },
+    {
+      "name": "success",
+      "line": 3478
+    },
+    {
+      "name": "error",
+      "line": 3482
+    },
+    {
+      "name": "configureDataBase",
+      "line": 3489
+    },
+    {
+      "name": "tablesHasRecords",
+      "line": 3514
+    },
+    {
+      "name": "databaseAndTableHasRecords",
+      "line": 3520
+    },
+    {
+      "name": "isTableExist",
+      "line": 3557
+    },
+    {
+      "name": "buildCelulaSemImputacao",
+      "line": 3562
+    },
+    {
+      "name": "buildTotalCelula",
+      "line": 3608
+    },
+    {
+      "name": "setCelula",
+      "line": 3657
+    },
+    {
+      "name": "addNewRecords",
+      "line": 3680
+    },
+    {
+      "name": "marcarOptionSelecionado",
+      "line": 3697
+    },
+    {
+      "name": "formatNumber",
+      "line": 3724
+    },
+    {
+      "name": "numberFormatCustomEditor",
+      "line": 3741
+    },
+    {
+      "name": "jqueryDateEditor",
+      "line": 3781
+    },
+    {
+      "name": "onSelect",
+      "line": 3793
+    },
+    {
+      "name": "onClose",
+      "line": 3796
+    },
+    {
+      "name": "getRenderedLinhaFromTabulator",
+      "line": 3808
+    },
+    {
+      "name": "getCelulaConfigFromTabulator",
+      "line": 3823
+    },
+    {
+      "name": "generateMrendCellContainer",
+      "line": 3855
+    },
+    {
+      "name": "isInactivo",
+      "line": 3873
+    },
+    {
+      "name": "handleColFormatter",
+      "line": 3910
+    },
+    {
+      "name": "ensureMinContent",
+      "line": 3932
+    },
+    {
+      "name": "checkboxCustomEditor",
+      "line": 4037
+    },
+    {
+      "name": "handleEditor",
+      "line": 4062
+    },
+    {
+      "name": "editor",
+      "line": 4091
+    },
+    {
+      "name": "valuesLookup",
+      "line": 4136
+    },
+    {
+      "name": "listItemFormatter",
+      "line": 4161
+    },
+    {
+      "name": "customMutator",
+      "line": 4173
+    },
+    {
+      "name": "extractCellValue",
+      "line": 4178
+    },
+    {
+      "name": "handleMutator",
+      "line": 4204
+    },
+    {
+      "name": "mutator",
+      "line": 4211
+    },
+    {
+      "name": "updateCellObjectConfig",
+      "line": 4334
+    },
+    {
+      "name": "deleteRowById",
+      "line": 4362
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 4379
+    },
+    {
+      "name": "deleteRowAndChildren",
+      "line": 4399
+    },
+    {
+      "name": "addTabulatorColumns",
+      "line": 4409
+    },
+    {
+      "name": "headerTooltip",
+      "line": 4420
+    },
+    {
+      "name": "formatter",
+      "line": 4436
+    }
+  ],
+  "Input/js/MRend Main.js": [
+    {
+      "name": "pageLoad",
+      "line": 1
+    },
+    {
+      "name": "organizarEcra",
+      "line": 5
+    },
+    {
+      "name": "registerListeners",
+      "line": 97
+    }
+  ],
+  "Input/js/MRend.js": [
+    {
+      "name": "Mrend",
+      "line": 3
+    },
+    {
+      "name": "setTableEditable",
+      "line": 49
+    },
+    {
+      "name": "addLinhaComRegistos",
+      "line": 59
+    },
+    {
+      "name": "doAddRow",
+      "line": 63
+    },
+    {
+      "name": "addLinhaComCelulas",
+      "line": 87
+    },
+    {
+      "name": "doAddCelulasRow",
+      "line": 156
+    },
+    {
+      "name": "refreshReactiveData",
+      "line": 174
+    },
+    {
+      "name": "whenReady",
+      "line": 181
+    },
+    {
+      "name": "getTotalRows",
+      "line": 188
+    },
+    {
+      "name": "hasRows",
+      "line": 194
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 200
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 226
+    },
+    {
+      "name": "getTotalCelulaByCodigoColuna",
+      "line": 235
+    },
+    {
+      "name": "RemoteFetchData",
+      "line": 246
+    },
+    {
+      "name": "MrendSchema",
+      "line": 254
+    },
+    {
+      "name": "DbTableToMrendObject",
+      "line": 261
+    },
+    {
+      "name": "DbTableExtras",
+      "line": 272
+    },
+    {
+      "name": "ReportConfigWrapper",
+      "line": 289
+    },
+    {
+      "name": "MrendConfigData",
+      "line": 294
+    },
+    {
+      "name": "MrendObject",
+      "line": 318
+    },
+    {
+      "name": "BindData",
+      "line": 353
+    },
+    {
+      "name": "ExtraBindData",
+      "line": 361
+    },
+    {
+      "name": "parseBlacklist",
+      "line": 377
+    },
+    {
+      "name": "applyBlacklistToConfig",
+      "line": 425
+    },
+    {
+      "name": "resolveFilhaConfig",
+      "line": 454
+    },
+    {
+      "name": "createUIObjectWithColumns",
+      "line": 486
+    },
+    {
+      "name": "Linha",
+      "line": 511
+    },
+    {
+      "name": "Coluna",
+      "line": 575
+    },
+    {
+      "name": "buildColRefs",
+      "line": 637
+    },
+    {
+      "name": "FXData",
+      "line": 655
+    },
+    {
+      "name": "setFxData",
+      "line": 661
+    },
+    {
+      "name": "Celula",
+      "line": 681
+    },
+    {
+      "name": "getTotalColuna",
+      "line": 706
+    },
+    {
+      "name": "isExpression",
+      "line": 713
+    },
+    {
+      "name": "evaluateExpression",
+      "line": 724
+    },
+    {
+      "name": "CellObjectConfig",
+      "line": 743
+    },
+    {
+      "name": "funcaolistagem",
+      "line": 769
+    },
+    {
+      "name": "get",
+      "line": 785
+    },
+    {
+      "name": "set",
+      "line": 788
+    },
+    {
+      "name": "_pendingEditsKey",
+      "line": 846
+    },
+    {
+      "name": "_savePendingEdit",
+      "line": 849
+    },
+    {
+      "name": "_applyPendingEdits",
+      "line": 859
+    },
+    {
+      "name": "_clearPendingEdits",
+      "line": 876
+    },
+    {
+      "name": "syncChangesToDB",
+      "line": 881
+    },
+    {
+      "name": "getCellHtmlComponent",
+      "line": 911
+    },
+    {
+      "name": "setSelectedValue",
+      "line": 917
+    },
+    {
+      "name": "findLocalColData",
+      "line": 933
+    },
+    {
+      "name": "getHtmlValueOrText",
+      "line": 967
+    },
+    {
+      "name": "fillTableData",
+      "line": 992
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 1026
+    },
+    {
+      "name": "getCelulaConfig",
+      "line": 1037
+    },
+    {
+      "name": "getColsRefered",
+      "line": 1051
+    },
+    {
+      "name": "getCelsRefered",
+      "line": 1068
+    },
+    {
+      "name": "handleFx",
+      "line": 1080
+    },
+    {
+      "name": "handleDefaultValue",
+      "line": 1116
+    },
+    {
+      "name": "getValueOrDefault",
+      "line": 1131
+    },
+    {
+      "name": "handleFormatInput",
+      "line": 1138
+    },
+    {
+      "name": "setValue",
+      "line": 1152
+    },
+    {
+      "name": "calcularSubtotais",
+      "line": 1165
+    },
+    {
+      "name": "syncReactive",
+      "line": 1184
+    },
+    {
+      "name": "updateOnDB",
+      "line": 1203
+    },
+    {
+      "name": "updateOnDBPassingVal",
+      "line": 1211
+    },
+    {
+      "name": "executeChangeEvents",
+      "line": 1219
+    },
+    {
+      "name": "calcularTotalLinha",
+      "line": 1231
+    },
+    {
+      "name": "getHtmlComponent",
+      "line": 1244
+    },
+    {
+      "name": "toJsonString",
+      "line": 1255
+    },
+    {
+      "name": "toJsonString",
+      "line": 1262
+    },
+    {
+      "name": "toJsonString",
+      "line": 1271
+    },
+    {
+      "name": "setDefaultValue",
+      "line": 1278
+    },
+    {
+      "name": "setEvents",
+      "line": 1294
+    },
+    {
+      "name": "updateCellOnDB",
+      "line": 1343
+    },
+    {
+      "name": "validateCellObjectConfig",
+      "line": 1360
+    },
+    {
+      "name": "showMeAll",
+      "line": 1392
+    },
+    {
+      "name": "addToLocalCellList",
+      "line": 1398
+    },
+    {
+      "name": "UpdateData",
+      "line": 1408
+    },
+    {
+      "name": "generateLinhaOrdem",
+      "line": 1413
+    },
+    {
+      "name": "RenderedLinha",
+      "line": 1428
+    },
+    {
+      "name": "addLinhaFilha",
+      "line": 1449
+    },
+    {
+      "name": "deleteRow",
+      "line": 1478
+    },
+    {
+      "name": "getParent",
+      "line": 1512
+    },
+    {
+      "name": "getChildren",
+      "line": 1522
+    },
+    {
+      "name": "addToLocalRenderedLinhasList",
+      "line": 1537
+    },
+    {
+      "name": "getLinhaById",
+      "line": 1594
+    },
+    {
+      "name": "getColunaByCodigo",
+      "line": 1604
+    },
+    {
+      "name": "getLinhaSubtotal",
+      "line": 1613
+    },
+    {
+      "name": "actualizarTotaisColunasLinha",
+      "line": 1623
+    },
+    {
+      "name": "getLinhaCellObjects",
+      "line": 1664
+    },
+    {
+      "name": "getCelulaLinha",
+      "line": 1677
+    },
+    {
+      "name": "findCelulaTotal",
+      "line": 1695
+    },
+    {
+      "name": "getTotalLinha",
+      "line": 1707
+    },
+    {
+      "name": "actualizarTotalLinha",
+      "line": 1713
+    },
+    {
+      "name": "getTotalCelulasByFiltro",
+      "line": 1727
+    },
+    {
+      "name": "getCelulasByFiltro",
+      "line": 1742
+    },
+    {
+      "name": "setValueOnCell",
+      "line": 1757
+    },
+    {
+      "name": "setNewRenderedColuna",
+      "line": 1781
+    },
+    {
+      "name": "GrupoColuna",
+      "line": 1789
+    },
+    {
+      "name": "GrupoColunaItem",
+      "line": 1801
+    },
+    {
+      "name": "RenderedColuna",
+      "line": 1812
+    },
+    {
+      "name": "fillTableData",
+      "line": 1836
+    },
+    {
+      "name": "preGenHtml",
+      "line": 1872
+    },
+    {
+      "name": "getTotalRenderedColuna",
+      "line": 1890
+    },
+    {
+      "name": "setFXExpression",
+      "line": 1896
+    },
+    {
+      "name": "Relatorio",
+      "line": 1919
+    },
+    {
+      "name": "ReportConfig",
+      "line": 1934
+    },
+    {
+      "name": "mapGrupoColuna",
+      "line": 1943
+    },
+    {
+      "name": "mapGrupoColunaItem",
+      "line": 1947
+    },
+    {
+      "name": "mapLinha",
+      "line": 1951
+    },
+    {
+      "name": "mapExtra",
+      "line": 1955
+    },
+    {
+      "name": "mapColuna",
+      "line": 1959
+    },
+    {
+      "name": "mapCelula",
+      "line": 1963
+    },
+    {
+      "name": "mapFields",
+      "line": 1967
+    },
+    {
+      "name": "mapReducer",
+      "line": 1968
+    },
+    {
+      "name": "mapConfigComponentByDestiny",
+      "line": 1976
+    },
+    {
+      "name": "getMapConfigByComponent",
+      "line": 2030
+    },
+    {
+      "name": "getMappingByKey",
+      "line": 2039
+    },
+    {
+      "name": "setLinhaRender",
+      "line": 2045
+    },
+    {
+      "name": "setColunasRender",
+      "line": 2073
+    },
+    {
+      "name": "handleDefaultValueByDataType",
+      "line": 2174
+    },
+    {
+      "name": "getDistinctWithKeys",
+      "line": 2199
+    },
+    {
+      "name": "generateUUID",
+      "line": 2203
+    },
+    {
+      "name": "freezyColunas",
+      "line": 2213
+    },
+    {
+      "name": "modoEcraHandler",
+      "line": 2221
+    },
+    {
+      "name": "initSelect",
+      "line": 2235
+    },
+    {
+      "name": "sourcedTableStyle",
+      "line": 2253
+    },
+    {
+      "name": "formatInputValue",
+      "line": 2264
+    },
+    {
+      "name": "handleUIValue",
+      "line": 2285
+    },
+    {
+      "name": "getColunaConfig",
+      "line": 2302
+    },
+    {
+      "name": "formatAllTablesDigitInputs",
+      "line": 2318
+    },
+    {
+      "name": "onSelect",
+      "line": 2359
+    },
+    {
+      "name": "generateToolTipsForSourcedTable",
+      "line": 2377
+    },
+    {
+      "name": "formatAllTablesDigitInputsMrend",
+      "line": 2395
+    },
+    {
+      "name": "onSelect",
+      "line": 2476
+    },
+    {
+      "name": "addFreezingEvent",
+      "line": 2494
+    },
+    {
+      "name": "addFreezyColumnByHeader",
+      "line": 2521
+    },
+    {
+      "name": "ConvertMrendObjectToTable",
+      "line": 2538
+    },
+    {
+      "name": "setIfSourceFieldExists",
+      "line": 2681
+    },
+    {
+      "name": "mapRecordToMrendObject",
+      "line": 2687
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2739
+    },
+    {
+      "name": "ConvertDbTableToMrendObject",
+      "line": 2877
+    },
+    {
+      "name": "applyExtraField",
+      "line": 3016
+    },
+    {
+      "name": "initTableDataAndContainer",
+      "line": 3025
+    },
+    {
+      "name": "buildAlert",
+      "line": 3038
+    },
+    {
+      "name": "dbExists",
+      "line": 3046
+    },
+    {
+      "name": "buildAlert",
+      "line": 3050
+    },
+    {
+      "name": "relatorioErrorMessageHandler",
+      "line": 3060
+    },
+    {
+      "name": "ExecuteRenderAfterWebWorker",
+      "line": 3069
+    },
+    {
+      "name": "appendParts",
+      "line": 3082
+    },
+    {
+      "name": "setStyle",
+      "line": 3100
+    },
+    {
+      "name": "styleFunction",
+      "line": 3104
+    },
+    {
+      "name": "colorHandler",
+      "line": 3123
+    },
+    {
+      "name": "inputToNumber",
+      "line": 3142
+    },
+    {
+      "name": "inputToNumberDB",
+      "line": 3152
+    },
+    {
+      "name": "handleCustomDataForCellObject",
+      "line": 3162
+    },
+    {
+      "name": "handleReactiveClasses",
+      "line": 3184
+    },
+    {
+      "name": "generateHtmlObject",
+      "line": 3194
+    },
+    {
+      "name": "getDefaultColunaHtmlObject",
+      "line": 3309
+    },
+    {
+      "name": "evalOrDefault",
+      "line": 3330
+    },
+    {
+      "name": "getFilteredRecord",
+      "line": 3340
+    },
+    {
+      "name": "isColunaTituloGrupo",
+      "line": 3356
+    },
+    {
+      "name": "setLinhaGrupoAndSubgrupo",
+      "line": 3373
+    },
+    {
+      "name": "setLinhaToRender",
+      "line": 3515
+    },
+    {
+      "name": "setLinhaTotal",
+      "line": 3561
+    },
+    {
+      "name": "setLinha",
+      "line": 3622
+    },
+    {
+      "name": "setLinhaRenderTotal",
+      "line": 3631
+    },
+    {
+      "name": "buildCelulaDefCol",
+      "line": 3640
+    },
+    {
+      "name": "buildDefaultCelula",
+      "line": 3685
+    },
+    {
+      "name": "InitDB",
+      "line": 3869
+    },
+    {
+      "name": "executeScriptOnPHC",
+      "line": 3891
+    },
+    {
+      "name": "getState",
+      "line": 3905
+    },
+    {
+      "name": "storeStampRegisto",
+      "line": 3909
+    },
+    {
+      "name": "storeDataSourceStamp",
+      "line": 3912
+    },
+    {
+      "name": "clearStamps",
+      "line": 3916
+    },
+    {
+      "name": "getSourceStamp",
+      "line": 3921
+    },
+    {
+      "name": "deleteAllRecords",
+      "line": 3928
+    },
+    {
+      "name": "addData",
+      "line": 3953
+    },
+    {
+      "name": "deleteData",
+      "line": 3963
+    },
+    {
+      "name": "addBulkData",
+      "line": 3967
+    },
+    {
+      "name": "getDataFromRemote",
+      "line": 3980
+    },
+    {
+      "name": "success",
+      "line": 3987
+    },
+    {
+      "name": "error",
+      "line": 3991
+    },
+    {
+      "name": "configureDataBase",
+      "line": 3998
+    },
+    {
+      "name": "tablesHasRecords",
+      "line": 4023
+    },
+    {
+      "name": "databaseAndTableHasRecords",
+      "line": 4029
+    },
+    {
+      "name": "isTableExist",
+      "line": 4066
+    },
+    {
+      "name": "buildCelulaSemImputacao",
+      "line": 4071
+    },
+    {
+      "name": "buildTotalCelula",
+      "line": 4117
+    },
+    {
+      "name": "setCelula",
+      "line": 4166
+    },
+    {
+      "name": "addNewRecords",
+      "line": 4189
+    },
+    {
+      "name": "getLogicalCellKey",
+      "line": 4251
+    },
+    {
+      "name": "reconcileEavRecords",
+      "line": 4260
+    },
+    {
+      "name": "getEavRecordScore",
+      "line": 4308
+    },
+    {
+      "name": "marcarOptionSelecionado",
+      "line": 4320
+    },
+    {
+      "name": "formatNumber",
+      "line": 4347
+    },
+    {
+      "name": "numberFormatCustomEditor",
+      "line": 4364
+    },
+    {
+      "name": "jqueryDateEditor",
+      "line": 4404
+    },
+    {
+      "name": "onSelect",
+      "line": 4416
+    },
+    {
+      "name": "onClose",
+      "line": 4419
+    },
+    {
+      "name": "getRenderedLinhaFromTabulator",
+      "line": 4431
+    },
+    {
+      "name": "getCelulaConfigFromTabulator",
+      "line": 4455
+    },
+    {
+      "name": "generateMrendCellContainer",
+      "line": 4497
+    }
+  ],
+  "Input/js/MRENDCONFIG LIB.js": [
+    {
+      "name": "LinhaMrenderConfig",
+      "line": 2
+    },
+    {
+      "name": "initMultipleSelects",
+      "line": 73
+    },
+    {
+      "name": "initMrendMultiSelects",
+      "line": 173
+    },
+    {
+      "name": "getLinhaUIObjectFormConfigAndSourceValues",
+      "line": 222
+    },
+    {
+      "name": "ColunaMrenderConfig",
+      "line": 381
+    },
+    {
+      "name": "handleDefaultValue",
+      "line": 447
+    },
+    {
+      "name": "handleRelationDataByComponente",
+      "line": 463
+    },
+    {
+      "name": "MrendGrupoColuna",
+      "line": 549
+    },
+    {
+      "name": "getMrendGrupoColunaUIObjectFormConfigAndSourceValues",
+      "line": 570
+    },
+    {
+      "name": "MrendGrupoColunaItem",
+      "line": 617
+    },
+    {
+      "name": "getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues",
+      "line": 636
+    },
+    {
+      "name": "Mrendconfigligacao",
+      "line": 688
+    },
+    {
+      "name": "UIObjectFormConfig",
+      "line": 704
+    },
+    {
+      "name": "getColunaUIObjectFormConfigAndSourceValues",
+      "line": 725
+    },
+    {
+      "name": "CelulaMrenderConfig",
+      "line": 854
+    },
+    {
+      "name": "getCelulaUIObjectFormConfigAndSourceValues",
+      "line": 889
+    },
+    {
+      "name": "BindData",
+      "line": 914
+    },
+    {
+      "name": "ExtraBindData",
+      "line": 921
+    },
+    {
+      "name": "FXData",
+      "line": 928
+    },
+    {
+      "name": "atualizarEstiloLinhaComFilhos",
+      "line": 943
+    },
+    {
+      "name": "initMrendConfigTreeTable",
+      "line": 993
+    },
+    {
+      "name": "MrendInitConfig",
+      "line": 1104
+    },
+    {
+      "name": "createDynamicSchema",
+      "line": 1149
+    },
+    {
+      "name": "initJSONEditorMrendConfig",
+      "line": 1226
+    },
+    {
+      "name": "organizarEcraMrender",
+      "line": 1346
+    },
+    {
+      "name": "resolveRelatorioStamp",
+      "line": 1361
+    },
+    {
+      "name": "readRelatorioFromDOM",
+      "line": 1388
+    },
+    {
+      "name": "readLabel",
+      "line": 1389
+    },
+    {
+      "name": "writeRelatorioToDOM",
+      "line": 1418
+    },
+    {
+      "name": "initTabelaConfiguracaoMrender",
+      "line": 1448
+    },
+    {
+      "name": "setColunaGrupoReactive",
+      "line": 1547
+    },
+    {
+      "name": "getItemsForGrupo",
+      "line": 1748
+    },
+    {
+      "name": "addGrupoColuna",
+      "line": 1753
+    },
+    {
+      "name": "removeGrupoColuna",
+      "line": 1765
+    },
+    {
+      "name": "addGrupoColunaItem",
+      "line": 1778
+    },
+    {
+      "name": "removeGrupoColunaItem",
+      "line": 1788
+    },
+    {
+      "name": "fetchConfigMrender",
+      "line": 1809
+    },
+    {
+      "name": "success",
+      "line": 1820
+    },
+    {
+      "name": "success",
+      "line": 1848
+    },
+    {
+      "name": "renderConfigMrender",
+      "line": 1904
+    },
+    {
+      "name": "processLinhaHierarchy",
+      "line": 1965
+    },
+    {
+      "name": "setLinhasConfigMrender",
+      "line": 2003
+    },
+    {
+      "name": "handleTableReactive",
+      "line": 2068
+    },
+    {
+      "name": "getDescricaoByLinhaStamp",
+      "line": 2075
+    },
+    {
+      "name": "syncByColunaStamp",
+      "line": 2085
+    },
+    {
+      "name": "addColunaMrenderConfig",
+      "line": 2132
+    },
+    {
+      "name": "removerColunaMrenderConfig",
+      "line": 2225
+    },
+    {
+      "name": "getLocalSource",
+      "line": 2279
+    },
+    {
+      "name": "registerListenersMrender",
+      "line": 2285
+    },
+    {
+      "name": "setNovaLinha",
+      "line": 2558
+    },
+    {
+      "name": "addLinhaMrenderConfig",
+      "line": 2656
+    },
+    {
+      "name": "insertAfter",
+      "line": 2765
+    },
+    {
+      "name": "removerFilhosRecursivo",
+      "line": 2813
+    },
+    {
+      "name": "groupRecordsBySource",
+      "line": 2894
+    },
+    {
+      "name": "buildMrendConfigData",
+      "line": 2927
+    },
+    {
+      "name": "exportarConfiguracaoMrender",
+      "line": 2972
+    },
+    {
+      "name": "importarConfiguracaoMrender",
+      "line": 3041
+    },
+    {
+      "name": "onchange",
+      "line": 3048
+    },
+    {
+      "name": "onload",
+      "line": 3056
+    },
+    {
+      "name": "pedirOpcaoImportMrend",
+      "line": 3070
+    },
+    {
+      "name": "importarOverwriteRelatorioActual",
+      "line": 3097
+    },
+    {
+      "name": "pushDeletes",
+      "line": 3169
+    },
+    {
+      "name": "success",
+      "line": 3195
+    },
+    {
+      "name": "error",
+      "line": 3209
+    },
+    {
+      "name": "abrirModalImportMrend",
+      "line": 3216
+    },
+    {
+      "name": "pick",
+      "line": 3227
+    },
+    {
+      "name": "esc",
+      "line": 3248
+    },
+    {
+      "name": "regenerateMrendStamps",
+      "line": 3329
+    },
+    {
+      "name": "aplicarImportMrendConfig",
+      "line": 3377
+    },
+    {
+      "name": "ov",
+      "line": 3397
+    },
+    {
+      "name": "getRecords",
+      "line": 3416
+    },
+    {
+      "name": "persistImportMrendConfig",
+      "line": 3489
+    },
+    {
+      "name": "success",
+      "line": 3500
+    },
+    {
+      "name": "error",
+      "line": 3532
+    },
+    {
+      "name": "actualizarConfiguracaoMrender",
+      "line": 3539
+    },
+    {
+      "name": "success",
+      "line": 3551
+    },
+    {
+      "name": "loadMrendSortableStyles",
+      "line": 3588
+    },
+    {
+      "name": "makeColunasSortable",
+      "line": 3704
+    },
+    {
+      "name": "start",
+      "line": 3756
+    },
+    {
+      "name": "stop",
+      "line": 3762
+    },
+    {
+      "name": "change",
+      "line": 3770
+    },
+    {
+      "name": "updateColunasOrdemFromDOM",
+      "line": 3784
+    },
+    {
+      "name": "updateTbodyCellsOrder",
+      "line": 3825
+    },
+    {
+      "name": "getLinhaSubtree",
+      "line": 3892
+    },
+    {
+      "name": "makeLinhasSortable",
+      "line": 3912
+    },
+    {
+      "name": "start",
+      "line": 3956
+    },
+    {
+      "name": "stop",
+      "line": 3970
+    },
+    {
+      "name": "change",
+      "line": 4007
+    },
+    {
+      "name": "updateLinhasOrdemFromDOM",
+      "line": 4020
+    }
+  ],
+  "Input/js/RELATORIO-MAIN.js": [
+    {
+      "name": "pageLoad",
+      "line": 19
+    },
+    {
+      "name": "getSyncstamp",
+      "line": 29
+    },
+    {
+      "name": "organizarEcra",
+      "line": 33
+    },
+    {
+      "name": "actualizarColuna",
+      "line": 40
+    },
+    {
+      "name": "success",
+      "line": 161
+    },
+    {
+      "name": "adicionarValorDinamico",
+      "line": 191
+    },
+    {
+      "name": "preencherValoresDinamicos",
+      "line": 205
+    },
+    {
+      "name": "registerListeners",
+      "line": 225
+    },
+    {
+      "name": "actualizarDadosGrupo",
+      "line": 461
+    },
+    {
+      "name": "actualizarDadosColuna",
+      "line": 484
+    },
+    {
+      "name": "initModalColuna",
+      "line": 495
+    },
+    {
+      "name": "initModalCelula",
+      "line": 522
+    },
+    {
+      "name": "initmodalGrupo",
+      "line": 587
+    },
+    {
+      "name": "actualizarDadosCelula",
+      "line": 634
+    },
+    {
+      "name": "removeGrupo",
+      "line": 662
+    },
+    {
+      "name": "adicionarGrupo",
+      "line": 669
+    },
+    {
+      "name": "adicionarSubgrupo",
+      "line": 722
+    },
+    {
+      "name": "adicionarLinha",
+      "line": 770
+    },
+    {
+      "name": "adicionarLinhaGrupo",
+      "line": 821
+    },
+    {
+      "name": "adicionarColuna",
+      "line": 870
+    },
+    {
+      "name": "adicionarFonteDados",
+      "line": 909
+    },
+    {
+      "name": "getFonteDados",
+      "line": 939
+    },
+    {
+      "name": "success",
+      "line": 979
+    },
+    {
+      "name": "modoHandler",
+      "line": 1061
+    },
+    {
+      "name": "opcoesTabelaHandler",
+      "line": 1070
+    },
+    {
+      "name": "listagemHandler",
+      "line": 1083
+    },
+    {
+      "name": "getListagemFixa",
+      "line": 1099
+    },
+    {
+      "name": "success",
+      "line": 1147
+    },
+    {
+      "name": "inicializeGrupoTreeTable",
+      "line": 1246
+    },
+    {
+      "name": "getGrupoElements",
+      "line": 1264
+    },
+    {
+      "name": "getListagemGrupoFixa",
+      "line": 1349
+    },
+    {
+      "name": "success",
+      "line": 1398
+    },
+    {
+      "name": "getListagemDinamica",
+      "line": 1506
+    },
+    {
+      "name": "success",
+      "line": 1550
+    },
+    {
+      "name": "gravarFonteDados",
+      "line": 1647
+    },
+    {
+      "name": "success",
+      "line": 1685
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+IF NOT EXISTS (
+    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = 'MrendLinha' AND COLUMN_NAME = 'cortextototallinha'
+)
+BEGIN
+    ALTER TABLE MrendLinha ADD cortextototallinha VARCHAR(50) DEFAULT '';
+END

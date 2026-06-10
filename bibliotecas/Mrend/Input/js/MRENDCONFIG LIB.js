@@ -13,8 +13,6 @@ function LinhaMrenderConfig(data) {
     this.expressao = data.expressao || "";
     this.campovalid = data.campovalid || "";
     this.sinalnegativo = data.sinalnegativo || false;
-    this.temtotais = data.temtotais || false;
-    this.totkey = data.totkey || "";
     this.modelo = data.modelo || false;
     this.descbtnModelo = data.descbtnModelo || "Adicionar linha";
     this.addfilho = data.addfilho || false;
@@ -22,7 +20,6 @@ function LinhaMrenderConfig(data) {
     this.eventoaddexpr = data.eventoaddexpr || "";
     this.eventodelete = data.eventodelete || false;
     this.eventodeleteexpr = data.eventodeleteexpr || "";
-    this.totfield = data.totfield || "";
     this.leitura = data.leitura || false;
     this.condicaovalidacao = data.condicaovalidacao || "";
     this.categoria = data.categoria || "";
@@ -47,13 +44,17 @@ function LinhaMrenderConfig(data) {
     this.corcomportgrupo = data.corcomportgrupo || "";
     this.colunatitulo = data.colunatitulo || "";
     this.levadesclinha = data.levadesclinha || false;
-    this.linhatemtotal = data.linhatemtotal || false;
-    this.tituloparatotal = data.tituloparatotal || "";
-    this.colunastotais = data.colunastotais || "";
+    var legacyTotais = data.temtotais === true || data.temtotais === 1 || data.temtotais === "true";
+    var linhatemtotalFlag = data.linhatemtotal === true || data.linhatemtotal === 1 || data.linhatemtotal === "true";
+    this.linhatemtotal = linhatemtotalFlag || legacyTotais;
+    this.tituloparatotal = data.tituloparatotal || (legacyTotais ? "Total" : "");
+    this.colunastotais = data.colunastotais || data.totkey || "";
     this.temexpressaototal = data.temexpressaototal || false;
     this.expressaototal = data.expressaototal || "";
+    this.cortotallinha = data.cortotallinha || "";
+    this.cortextototallinha = data.cortextototallinha || "";
     // Convert blacklistheranca from CSV string to array for Vue multiselect
-    var defaultBlacklist = "comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,temtotais,modelo";
+    var defaultBlacklist = "comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,linhatemtotal,colunastotais,tituloparatotal,cortotallinha,cortextototallinha,modelo";
     if (data.blacklistheranca) {
         this.blacklistheranca = typeof data.blacklistheranca === "string"
             ? data.blacklistheranca.split(',').map(function (s) { return s.trim(); })
@@ -273,14 +274,13 @@ function getLinhaUIObjectFormConfigAndSourceValues() {
                 { option: "Coluna Título", value: "colunatitulo" },
                 { option: "Leva Descrição da Linha", value: "levadesclinha" },
                 // Totais
-                { option: "Tem Totais", value: "temtotais" },
-                { option: "Total Key", value: "totkey" },
-                { option: "Total Field", value: "totfield" },
                 { option: "Linha Tem Total", value: "linhatemtotal" },
                 { option: "Título para Total", value: "tituloparatotal" },
                 { option: "Colunas Totais", value: "colunastotais" },
                 { option: "Tem Expressão Total", value: "temexpressaototal" },
                 { option: "Expressão Total", value: "expressaototal" },
+                { option: "Cor Linha Total", value: "cortotallinha" },
+                { option: "Cor Texto Linha Total", value: "cortextototallinha" },
                 // Modelo
                 { option: "É Modelo", value: "modelo" },
                 { option: "Descrição Botão Modelo", value: "descbtnModelo" },
@@ -330,17 +330,14 @@ function getLinhaUIObjectFormConfigAndSourceValues() {
         new UIObjectFormConfig({ colSize: 4, campo: "condicaovalidacao", tipo: "text", titulo: "Condição Validação", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ colSize: 4, campo: "sinalnegativo", tipo: "checkbox", titulo: "Sinal Negativo", classes: "input-source-form" }),
 
-        // ── Totais ─────────────────────────────────────────────────────
-        new UIObjectFormConfig({ colSize: 4, campo: "temtotais", tipo: "checkbox", titulo: "Tem Totais", classes: "input-source-form" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "totkey", tipo: "text", titulo: "Total Key", classes: "form-control input-source-form  input-sm" }),
-        new UIObjectFormConfig({ colSize: 4, campo: "totfield", tipo: "text", titulo: "Total Field", classes: "form-control input-source-form  input-sm" }),
-
-        // ── Totais por Linha ───────────────────────────────────────────
-        new UIObjectFormConfig({ colSize: 3, campo: "linhatemtotal", tipo: "checkbox", titulo: "Linha Tem Total", classes: "input-source-form" }),
-        new UIObjectFormConfig({ colSize: 9, campo: "tituloparatotal", tipo: "text", titulo: "Título para Total (use {thisRow})", classes: "form-control input-source-form  input-sm" }),
-        new UIObjectFormConfig({ colSize: 12, campo: "colunastotais", tipo: "text", titulo: "Colunas Totais (separadas por vírgula, ex: coluna1,coluna2)", classes: "form-control input-source-form  input-sm" }),
+        // ── Totais por linha (Tabulator) ───────────────────────────────
+        new UIObjectFormConfig({ colSize: 3, campo: "linhatemtotal", tipo: "checkbox", titulo: "Mostrar linha de total", classes: "input-source-form" }),
+        new UIObjectFormConfig({ colSize: 9, campo: "tituloparatotal", tipo: "text", titulo: "Título da linha de total (use {thisRow})", classes: "form-control input-source-form  input-sm" }),
+        new UIObjectFormConfig({ colSize: 12, campo: "colunastotais", tipo: "text", titulo: "Colunas a totalizar (código base, ex: valorperiodo; vírgulas; vazio = todas as numéricas)", classes: "form-control input-source-form  input-sm" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "cortotallinha", tipo: "text", titulo: "Cor de fundo da linha de total (ex: #d4e4f7)", classes: "form-control input-source-form  input-sm" }),
+        new UIObjectFormConfig({ colSize: 4, campo: "cortextototallinha", tipo: "text", titulo: "Cor do texto da linha de total (ex: #1a3a5c)", classes: "form-control input-source-form  input-sm" }),
         new UIObjectFormConfig({ colSize: 4, campo: "temexpressaototal", tipo: "checkbox", titulo: "Tem Expressão Total", classes: "input-source-form" }),
-        new UIObjectFormConfig({ colSize: 8, campo: "expressaototal", tipo: "textarea", titulo: "Expressão Total", classes: "form-control input-source-form  input-sm" }),
+        new UIObjectFormConfig({ colSize: 8, campo: "expressaototal", tipo: "textarea", titulo: "Expressão Total (soma, codigocoluna, <outracoluna>)", classes: "form-control input-source-form  input-sm" }),
 
         // ── Classificação ──────────────────────────────────────────────
         new UIObjectFormConfig({ colSize: 6, campo: "categoria", tipo: "text", titulo: "Categoria", classes: "form-control input-source-form  input-sm" }),
@@ -719,7 +716,55 @@ function UIObjectFormConfig(data) {
     this.multiSelect = data.multiSelect || false;
 }
 
+/**
+ * Devolve a definição actual do formulário de configuração por localsource.
+ * A modal deve usar isto em vez de objectsUIFormConfig em cache no item.
+ */
+function getObjectsUIFormConfigByLocalSource(localsource) {
+    if (localsource === "GMrendConfigLinhas") {
+        return getLinhaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    }
+    if (localsource === "GMrendConfigColunas") {
+        return getColunaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    }
+    if (localsource === "GMrendConfigCelulas") {
+        return getCelulaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    }
+    if (localsource === "GMrendGrupoColunas") {
+        return getMrendGrupoColunaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    }
+    if (localsource === "GMrendGrupoColunaItems") {
+        return getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    }
+    return null;
+}
 
+function resolveObjectsUIFormConfig(mrendConfigItem, localsource) {
+    var fresh = getObjectsUIFormConfigByLocalSource(localsource);
+    if (fresh && fresh.length) {
+        mrendConfigItem.objectsUIFormConfig = fresh;
+        return fresh;
+    }
+    return (mrendConfigItem && mrendConfigItem.objectsUIFormConfig) ? mrendConfigItem.objectsUIFormConfig : [];
+}
+
+function refreshAllMrendObjectsUIFormConfig() {
+    GMrendConfigLinhas.forEach(function (item) {
+        item.objectsUIFormConfig = getLinhaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    });
+    GMrendConfigColunas.forEach(function (item) {
+        item.objectsUIFormConfig = getColunaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    });
+    GMrendConfigCelulas.forEach(function (item) {
+        item.objectsUIFormConfig = getCelulaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    });
+    GMrendGrupoColunas.forEach(function (item) {
+        item.objectsUIFormConfig = getMrendGrupoColunaUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    });
+    GMrendGrupoColunaItems.forEach(function (item) {
+        item.objectsUIFormConfig = getMrendGrupoColunaItemUIObjectFormConfigAndSourceValues().objectsUIFormConfig;
+    });
+}
 
 
 function getColunaUIObjectFormConfigAndSourceValues() {
@@ -1984,6 +2029,8 @@ function renderConfigMrender(config) {
         processLinhaHierarchy(linha, linhas, celulas);
     });
 
+    refreshAllMrendObjectsUIFormConfig();
+
     handleTableReactive();
     setColunaGrupoReactive();
     initJSONEditorMrendConfig(config.relatorio || {});
@@ -2365,7 +2412,7 @@ function registerListenersMrender() {
         var objectsUIFormConfig = [new UIObjectFormConfig({})]
         if (mrendConfigItem) {
 
-            objectsUIFormConfig = mrendConfigItem.objectsUIFormConfig;
+            objectsUIFormConfig = resolveObjectsUIFormConfig(mrendConfigItem, localsource);
 
             var sufixoForm = localsource;
             var containerId = "Container" + localsource;
@@ -2602,9 +2649,13 @@ function setNovaLinha(tipo, parentLinha) {
         expressao: "",
         campovalid: "",
         sinalnegativo: false,
-        temtotais: false,
-        totkey: "",
-        totfield: "",
+        linhatemtotal: false,
+        tituloparatotal: "Total",
+        colunastotais: "",
+        cortotallinha: "",
+        cortextototallinha: "",
+        temexpressaototal: false,
+        expressaototal: "",
         condicaovalidacao: "",
         categoria: "default",
         codcategoria: "",

@@ -1,0 +1,227 @@
+[
+  {
+    "path": "Docs/COMPORTAMENTOGRUPO-MREND-24ABR-2026.md",
+    "size": 9287,
+    "ext": ".md"
+  },
+  {
+    "path": "Docs/CONTEXTO-SESSAO-2026-05-29.md",
+    "size": 15057,
+    "ext": ".md"
+  },
+  {
+    "path": "Docs/FIXES-2026-05-29.md",
+    "size": 4630,
+    "ext": ".md"
+  },
+  {
+    "path": "Input/grelhaScreen.png",
+    "size": 17877,
+    "ext": ".png"
+  },
+  {
+    "path": "Input/maturity.png",
+    "size": 24793,
+    "ext": ".png"
+  },
+  {
+    "path": "prompts/01-ARCHITECTURE.md",
+    "size": 17515,
+    "ext": ".md"
+  },
+  {
+    "path": "prompts/02-KBS-CONFIG-AI-PROMPT.md",
+    "size": 17919,
+    "ext": ".md"
+  },
+  {
+    "path": "prompts/03-INSERT-SCRIPTS-EXAMPLE.sql",
+    "size": 33758,
+    "ext": ".sql"
+  },
+  {
+    "path": "prompts/05-INSERT-MAPASINVESTIMENTO.sql",
+    "size": 27968,
+    "ext": ".sql"
+  },
+  {
+    "path": "prompts/06-INSERT-PLANONEGOCIOS2.sql",
+    "size": 28439,
+    "ext": ".sql"
+  },
+  {
+    "path": "prompts/07-ALTER-COMPORTAMENTOGRUPO.sql",
+    "size": 4037,
+    "ext": ".sql"
+  },
+  {
+    "path": "prompts/08-ALTER-COLUNATITULO.sql",
+    "size": 1857,
+    "ext": ".sql"
+  },
+  {
+    "path": "Report/js/MRendReport copy.js",
+    "size": 223416,
+    "ext": ".js"
+  },
+  {
+    "path": "Report/js/MRendReport.js",
+    "size": 225203,
+    "ext": ".js"
+  },
+  {
+    "path": "Report/js/MRENDREPORTCONFIG LIB.js",
+    "size": 84047,
+    "ext": ".js"
+  },
+  {
+    "path": "Report/scripts/ACTUALIZAR CONFIGURAÇÃO.vb",
+    "size": 10457,
+    "ext": ".vb"
+  },
+  {
+    "path": "Report/scripts/GET CONFIGURAÇÃO RELATÓRIO.vb",
+    "size": 6504,
+    "ext": ".vb"
+  },
+  {
+    "path": "Report/scripts/GET REGISTO MREND.vb",
+    "size": 2804,
+    "ext": ".vb"
+  },
+  {
+    "path": "Report/SQL/MRender tables.sql",
+    "size": 7012,
+    "ext": ".sql"
+  },
+  {
+    "path": "Report/SQL/SP GET REPORT WITH TABLE STRUCTURE.sql",
+    "size": 1705,
+    "ext": ".sql"
+  },
+  {
+    "path": "Input/Eventos/INSERIR SCRIPTS.vb",
+    "size": 5656,
+    "ext": ".vb"
+  },
+  {
+    "path": "Input/Eventos/MREND 24 ABR 2026 copy 2.js",
+    "size": 266455,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/ANTES LOGO AO ABRIR.png",
+    "size": 59138,
+    "ext": ".png"
+  },
+  {
+    "path": "Input/js/BO-GRELHA AVALIAÇÃO COTAÇÕES.backup.js",
+    "size": 50623,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/BO-GRELHA AVALIAÇÃO COTAÇÕES.js",
+    "size": 44542,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/CELULA ERRO.png",
+    "size": 61005,
+    "ext": ".png"
+  },
+  {
+    "path": "Input/js/GET AVALIACAO COTACOES.vb",
+    "size": 2795,
+    "ext": ".vb"
+  },
+  {
+    "path": "Input/js/GET DOSSIER COTAÇÕES.vb",
+    "size": 2231,
+    "ext": ".vb"
+  },
+  {
+    "path": "Input/js/GRAVAR REGISTO.vb",
+    "size": 6881,
+    "ext": ".vb"
+  },
+  {
+    "path": "Input/js/IMAGEM CELULA ERRO.png",
+    "size": 37121,
+    "ext": ".png"
+  },
+  {
+    "path": "Input/js/MREND 24 ABR 2026 copy.js",
+    "size": 258196,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/MREND 24 ABR 2026.js",
+    "size": 266455,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/MRend backup 08MAR2026.js",
+    "size": 224405,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/Mrend backup 09MAR2026.js",
+    "size": 231279,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/MRend copy.js",
+    "size": 225321,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/MRend Main.js",
+    "size": 3786,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/MRend.js",
+    "size": 301704,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/MRENDCONFIG LIB.js",
+    "size": 180697,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/RELATORIO-MAIN.js",
+    "size": 70476,
+    "ext": ".js"
+  },
+  {
+    "path": "Input/js/TRIPLICADO.png",
+    "size": 99641,
+    "ext": ".png"
+  },
+  {
+    "path": "Input/scripts/ACTUALIZAR CONFIGURAÇÃO.vb",
+    "size": 12450,
+    "ext": ".vb"
+  },
+  {
+    "path": "Input/scripts/GET CONFIGURAÇÃO RELATÓRIO.vb",
+    "size": 6573,
+    "ext": ".vb"
+  },
+  {
+    "path": "Input/scripts/GET REGISTO MREND.vb",
+    "size": 2804,
+    "ext": ".vb"
+  },
+  {
+    "path": "Input/SQL/MRender tables.sql",
+    "size": 7680,
+    "ext": ".sql"
+  },
+  {
+    "path": "Input/SQL/SP GET REPORT WITH TABLE STRUCTURE.sql",
+    "size": 1705,
+    "ext": ".sql"
+  }
+]

@@ -507,6 +507,485 @@ function Mrend(options) {
         return UIObject;
     }
 
+    // ── Totais por linha (Tabulator dataTree) ────────────────────────────────
+    function parseColunasTotais(colunastotais) {
+        if (!colunastotais || !colunastotais.toString().trim()) {
+            return [];
+        }
+        return colunastotais.toString().split(",").map(function (c) {
+            return c.trim();
+        }).filter(Boolean);
+    }
+
+    function getColunaBaseCodigo(codigocoluna) {
+        if (!codigocoluna) {
+            return "";
+        }
+        var marker = "___";
+        var idx = codigocoluna.indexOf(marker);
+        return idx > -1 ? codigocoluna.substring(0, idx) : codigocoluna;
+    }
+
+    /**
+     * colunastotais pode referir o código base (ex: valorperiodo) ou instâncias
+     * (ex: valorperiodo___2037). Colunas modelo só existem como instâncias no Tabulator.
+     */
+    function shouldTotalizeColumn(codigocoluna, colunasParaTotalizar) {
+        if (colunasParaTotalizar.length === 0) {
+            return true;
+        }
+        if (colunasParaTotalizar.indexOf(codigocoluna) !== -1) {
+            return true;
+        }
+        var baseCodigo = getColunaBaseCodigo(codigocoluna);
+        return baseCodigo !== codigocoluna && colunasParaTotalizar.indexOf(baseCodigo) !== -1;
+    }
+
+    function getDigitColunasParaTotalizar(colunasParaTotalizar) {
+        return (mrendThis.GRenderedColunas || []).filter(function (coluna) {
+            return coluna.config.tipo === "digit" &&
+                shouldTotalizeColumn(coluna.codigocoluna, colunasParaTotalizar);
+        });
+    }
+
+    function resolveTituloColunaLinha(linhaConfig) {
+        if (linhaConfig && linhaConfig.colunatitulo) {
+            return linhaConfig.colunatitulo.trim();
+        }
+        var colunas = Array.isArray(mrendThis.GRenderedColunas) ? mrendThis.GRenderedColunas : [];
+        var fixa = colunas.find(function (c) {
+            return c.config && c.config.fixacoluna;
+        });
+        return fixa ? fixa.codigocoluna : (colunas[0] ? colunas[0].codigocoluna : "");
+    }
+
+    function migrateLegacyLineTotalConfig(data) {
+        var legacyTotais = data.temtotais === true || data.temtotais === 1 || data.temtotais === "true";
+        var linhatemtotal = data.linhatemtotal === true || data.linhatemtotal === 1 || data.linhatemtotal === "true";
+        var colunastotais = data.colunastotais || data.totkey || "";
+        return {
+            linhatemtotal: linhatemtotal || legacyTotais,
+            colunastotais: colunastotais,
+            tituloparatotal: data.tituloparatotal || (legacyTotais ? "Total" : "")
+        };
+    }
+
+    function getLinhaNumericValueForTotal(linha, codigocoluna) {
+        if (!linha) {
+            return 0;
+        }
+        var valor = null;
+        var celula = mrendThis.GCellObjectsConfig.find(function (c) {
+            return c.rowid === linha.rowid && c.codigocoluna === codigocoluna;
+        });
+        if (celula) {
+            valor = celula.valor;
+        } else if (linha.UIObject && linha.UIObject[codigocoluna] !== undefined && linha.UIObject[codigocoluna] !== null) {
+            valor = linha.UIObject[codigocoluna];
+        }
+        if (valor !== null && valor !== "") {
+            return parseFloat(valor) || 0;
+        }
+        return 0;
+    }
+
+    function getDirectChildRenderedLinhas(parentRowId) {
+        return (mrendThis.GRenderedLinhas || []).filter(function (linha) {
+            return linha &&
+                linha.rowid &&
+                linha.rowid.indexOf("ROWTOTAL_") !== 0 &&
+                linha.linkid === parentRowId;
+        });
+    }
+
+    function hasTotalRowChild(linha) {
+        return !!(linha &&
+            linha.UIObject &&
+            linha.UIObject._children &&
+            linha.UIObject._children.some(function (child) {
+                return child._isTotalRow;
+            }));
+    }
+
+    function getLineTotalRowStoredValue(parentRowId, codigocoluna) {
+        var parentLinha = mrendThis.GRenderedLinhas.find(function (l) {
+            return l.rowid === parentRowId;
+        });
+        if (!parentLinha || !parentLinha.UIObject || !parentLinha.UIObject._children) {
+            return 0;
+        }
+        var totalChild = parentLinha.UIObject._children.find(function (child) {
+            return child._isTotalRow;
+        });
+        if (!totalChild) {
+            return 0;
+        }
+        return getLinhaNumericValueForTotal({ rowid: totalChild.rowid, UIObject: totalChild }, codigocoluna);
+    }
+
+    function getLinhaDepth(linha) {
+        var depth = 0;
+        var current = linha;
+        while (current && current.linkid) {
+            depth++;
+            current = mrendThis.GRenderedLinhas.find(function (l) {
+                return l.rowid === current.linkid;
+            });
+        }
+        return depth;
+    }
+
+    /**
+     * Agrega valores numéricos de toda a sub-árvore (n níveis).
+     * Se um filho tem linhatemtotal e a linha de total já existe, usa esse valor.
+     */
+    function sumSubtreeColumnForLineTotal(rowId, codigocoluna) {
+        var linha = mrendThis.GRenderedLinhas.find(function (l) {
+            return l.rowid === rowId;
+        });
+        var directChildren = getDirectChildRenderedLinhas(rowId);
+        if (!directChildren.length) {
+            return getLinhaNumericValueForTotal(linha, codigocoluna);
+        }
+
+        var soma = getLinhaNumericValueForTotal(linha, codigocoluna);
+        directChildren.forEach(function (child) {
+            if (child.config.linhatemtotal && hasTotalRowChild(child)) {
+                soma += getLineTotalRowStoredValue(child.rowid, codigocoluna);
+            } else {
+                soma += sumSubtreeColumnForLineTotal(child.rowid, codigocoluna);
+            }
+        });
+        return soma;
+    }
+
+    function sumColumnForLineTotal(parentRowId, codigocoluna) {
+        return sumSubtreeColumnForLineTotal(parentRowId, codigocoluna);
+    }
+
+    function getParentLinhaConfigForTotalRow(rowData) {
+        if (!rowData || !rowData._isTotalRow || !rowData._parentRowId) {
+            return null;
+        }
+        var parentLinha = mrendThis.GRenderedLinhas.find(function (linha) {
+            return linha.rowid === rowData._parentRowId;
+        });
+        return parentLinha ? parentLinha.config : null;
+    }
+
+    function getTotalRowColor(linhaConfig) {
+        if (linhaConfig && linhaConfig.cortotallinha && linhaConfig.cortotallinha.toString().trim()) {
+            return linhaConfig.cortotallinha.toString().trim();
+        }
+        return "#e8edf2";
+    }
+
+    function getTotalRowTextColor(linhaConfig) {
+        if (linhaConfig && linhaConfig.cortextototallinha && linhaConfig.cortextototallinha.toString().trim()) {
+            return linhaConfig.cortextototallinha.toString().trim();
+        }
+        return "";
+    }
+
+    function getTotalRowTextColorCss(linhaConfig) {
+        var cor = getTotalRowTextColor(linhaConfig);
+        return cor ? "color:" + cor + ";" : "";
+    }
+
+    /**
+     * Avalia expressaototal com contexto por coluna.
+     * Variáveis: soma (desta coluna), codigocoluna.
+     * Referências: <codigocoluna> substituídas pela soma dessa coluna.
+     */
+    function evalExpressaoTotal(expressaototal, parentRowId, codigocoluna) {
+        var soma = sumColumnForLineTotal(parentRowId, codigocoluna);
+        var expr = expressaototal;
+        var regex = /<([^>]+)>/g;
+        var match;
+
+        while ((match = regex.exec(expressaototal)) !== null) {
+            var refCol = match[1];
+            var refVal = sumColumnForLineTotal(parentRowId, refCol);
+            expr = expr.split("<" + refCol + ">").join(String(refVal));
+        }
+
+        return (function (somaColuna, codigoColunaAtual) {
+            return eval(expr);
+        })(soma, codigocoluna);
+    }
+
+    /**
+     * Fonte única do valor de uma célula de total — cálculo explícito (build/refresh).
+     * Não recalcula no mutator Tabulator (performance).
+     */
+    function computeLineTotalCellValue(parentRowId, codigocoluna, linhaConfig) {
+        if (!linhaConfig || !shouldTotalizeColumn(codigocoluna, parseColunasTotais(linhaConfig.colunastotais))) {
+            return null;
+        }
+
+        if (linhaConfig.temexpressaototal && linhaConfig.expressaototal && linhaConfig.expressaototal.toString().trim()) {
+            try {
+                var result = evalExpressaoTotal(linhaConfig.expressaototal, parentRowId, codigocoluna);
+                return isNaN(result) ? 0 : Number(result);
+            } catch (e) {
+                console.warn("[MRend] expressaototal inválida para linha", parentRowId, "coluna", codigocoluna, e);
+            }
+        }
+
+        return sumColumnForLineTotal(parentRowId, codigocoluna);
+    }
+
+    function syncTotalRowChildPatch(parentLinha, patch) {
+        if (!parentLinha || !parentLinha.UIObject || !parentLinha.UIObject._children || !patch) {
+            return;
+        }
+        var totalChild = parentLinha.UIObject._children.find(function (child) {
+            return child._isTotalRow;
+        });
+        if (totalChild) {
+            Object.keys(patch).forEach(function (key) {
+                totalChild[key] = patch[key];
+            });
+        }
+    }
+
+    function getParentLinhasAfetadasPorEdicao(editedRowId) {
+        var parents = [];
+        if (!editedRowId || editedRowId.indexOf("ROWTOTAL_") === 0) {
+            return parents;
+        }
+
+        var current = mrendThis.GRenderedLinhas.find(function (linha) {
+            return linha.rowid === editedRowId;
+        });
+        if (!current) {
+            return parents;
+        }
+
+        if (current.config.linhatemtotal) {
+            parents.push(current);
+        }
+
+        while (current && current.linkid) {
+            var parent = mrendThis.GRenderedLinhas.find(function (linha) {
+                return linha.rowid === current.linkid;
+            });
+            if (!parent) {
+                break;
+            }
+            if (parent.config.linhatemtotal) {
+                parents.push(parent);
+            }
+            current = parent;
+        }
+
+        parents.sort(function (a, b) {
+            return getLinhaDepth(b) - getLinhaDepth(a);
+        });
+
+        return parents;
+    }
+
+    /**
+     * Actualiza só as colunas de total indicadas (incremental).
+     * Calcula explicitamente e faz patch na linha de total — sem mutator.
+     */
+    function refreshLineTotalColumns(parentLinha, columnFields) {
+        if (!parentLinha || !parentLinha.config.linhatemtotal || !mrendThis.GTable) {
+            return;
+        }
+
+        var fields = Array.isArray(columnFields) ? columnFields : [columnFields];
+        if (!fields.length) {
+            return;
+        }
+
+        var colunasParaTotalizar = parseColunasTotais(parentLinha.config.colunastotais);
+        var totalRow = findTabulatorRowByRowId("ROWTOTAL_" + parentLinha.rowid);
+        if (!totalRow) {
+            return;
+        }
+
+        var patch = {};
+        fields.forEach(function (field) {
+            if (!field || !shouldTotalizeColumn(field, colunasParaTotalizar)) {
+                return;
+            }
+            var renderedColuna = mrendThis.GRenderedColunas.find(function (coluna) {
+                return coluna.codigocoluna === field;
+            });
+            if (!renderedColuna || renderedColuna.config.tipo !== "digit") {
+                return;
+            }
+            patch[field] = computeLineTotalCellValue(parentLinha.rowid, field, parentLinha.config);
+        });
+
+        if (!Object.keys(patch).length) {
+            return;
+        }
+
+        totalRow.update(patch);
+        syncTotalRowChildPatch(parentLinha, patch);
+    }
+
+    function refreshLineTotalColumnsForEdit(editedRowId, columnFields) {
+        var parents = getParentLinhasAfetadasPorEdicao(editedRowId);
+        parents.forEach(function (parentLinha) {
+            refreshLineTotalColumns(parentLinha, columnFields);
+        });
+    }
+
+    function refreshAllLineTotalColumns(parentLinha) {
+        if (!parentLinha || !parentLinha.config.linhatemtotal) {
+            return;
+        }
+        var colunasParaTotalizar = parseColunasTotais(parentLinha.config.colunastotais);
+        var fields = getDigitColunasParaTotalizar(colunasParaTotalizar).map(function (coluna) {
+            return coluna.codigocoluna;
+        });
+        refreshLineTotalColumns(parentLinha, fields);
+    }
+
+    function buildLineTotalRowData(parentLinha) {
+        var config = parentLinha.config;
+        var totalRowId = "ROWTOTAL_" + parentLinha.rowid;
+        var titulo = (config.tituloparatotal || "Total").replace(/{thisRow}/g, config.descricao || "");
+        var colunasParaTotalizar = parseColunasTotais(config.colunastotais);
+        var totalData = createUIObjectWithColumns(totalRowId);
+
+        totalData.rowid = totalRowId;
+        totalData.id = totalRowId;
+        totalData._isTotalRow = true;
+        totalData._parentRowId = parentLinha.rowid;
+        totalData._totalTitle = titulo;
+
+        var tituloCol = resolveTituloColunaLinha(config);
+        if (tituloCol) {
+            totalData[tituloCol] = titulo;
+        }
+
+        // Valores numéricos: cálculo explícito (refresh incremental em edição)
+        getDigitColunasParaTotalizar(colunasParaTotalizar).forEach(function (coluna) {
+            totalData[coluna.codigocoluna] = computeLineTotalCellValue(
+                parentLinha.rowid,
+                coluna.codigocoluna,
+                config
+            );
+        });
+
+        return totalData;
+    }
+
+    function attachLineTotalRows() {
+        var linhasComTotal = mrendThis.GRenderedLinhas.filter(function (linha) {
+            return linha.config.linhatemtotal && linha.UIObject;
+        });
+
+        // Filhos antes dos pais: totais de subgrupos disponíveis para o grupo raiz
+        linhasComTotal.sort(function (a, b) {
+            return getLinhaDepth(b) - getLinhaDepth(a);
+        });
+
+        linhasComTotal.forEach(function (linha) {
+            linha.UIObject._children = linha.UIObject._children || [];
+            linha.UIObject._children = linha.UIObject._children.filter(function (child) {
+                return !child._isTotalRow;
+            });
+
+            linha.UIObject._children.push(buildLineTotalRowData(linha));
+            linha.UIObject._children.sort(function (a, b) {
+                if (a._isTotalRow) return 1;
+                if (b._isTotalRow) return -1;
+                var linhaA = mrendThis.GRenderedLinhas.find(function (l) { return l.rowid === a.rowid; });
+                var linhaB = mrendThis.GRenderedLinhas.find(function (l) { return l.rowid === b.rowid; });
+                return (linhaA ? linhaA.ordem || 0 : 0) - (linhaB ? linhaB.ordem || 0 : 0);
+            });
+        });
+    }
+
+    function findTabulatorRowByRowId(rowid) {
+        if (!mrendThis.GTable || !rowid) {
+            return null;
+        }
+
+        try {
+            var byIndex = mrendThis.GTable.getRow(rowid);
+            if (byIndex && byIndex.getData && byIndex.getData().rowid === rowid) {
+                return byIndex;
+            }
+        } catch (e) { /* fallback abaixo */ }
+
+        function walkRows(rows) {
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                if (row.getData().rowid === rowid) {
+                    return row;
+                }
+                if (row.getTreeChildren) {
+                    var nested = walkRows(row.getTreeChildren());
+                    if (nested) {
+                        return nested;
+                    }
+                }
+            }
+            return null;
+        }
+
+        return walkRows(mrendThis.GTable.getRows());
+    }
+
+    function syncCellValueFromEdit(rowid, coluna, valor) {
+        if (!rowid || rowid.indexOf("ROWTOTAL_") === 0) {
+            return;
+        }
+
+        var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
+            return linha.rowid === rowid;
+        });
+        if (renderedLinha && renderedLinha.UIObject) {
+            renderedLinha.UIObject[coluna] = valor;
+        }
+
+        var cellObjectConfig = mrendThis.GCellObjectsConfig.find(function (obj) {
+            return obj.codigocoluna == coluna && obj.rowid == rowid;
+        });
+        if (cellObjectConfig) {
+            cellObjectConfig.valor = valor;
+        }
+    }
+
+    function refreshLineTotalRowInTabulator(parentLinha) {
+        if (!mrendThis.GTable || !parentLinha || !parentLinha.config.linhatemtotal) {
+            return;
+        }
+
+        try {
+            var totalData = buildLineTotalRowData(parentLinha);
+            var parentRow = findTabulatorRowByRowId(parentLinha.rowid);
+            if (!parentRow) {
+                return;
+            }
+
+            var totalRow = findTabulatorRowByRowId(totalData.rowid);
+            if (totalRow) {
+                refreshAllLineTotalColumns(parentLinha);
+            } else {
+                parentRow.addTreeChild(totalData);
+                parentRow.treeExpand();
+            }
+
+            if (parentLinha.UIObject) {
+                parentLinha.UIObject._children = parentLinha.UIObject._children || [];
+                parentLinha.UIObject._children = parentLinha.UIObject._children.filter(function (child) {
+                    return !child._isTotalRow;
+                });
+                parentLinha.UIObject._children.push(totalData);
+            }
+        } catch (e) {
+            console.warn("[MRend] refreshLineTotalRow:", e);
+        }
+    }
+
 
     function Linha(data) {
 
@@ -527,9 +1006,6 @@ function Mrend(options) {
         this.eventodelete = data.eventodelete || false;
         this.campovalid = data.campovalid || "";
         this.sinalnegativo = data.sinalnegativo || false;
-        this.temtotais = data.temtotais || false;
-        this.totkey = data.totkey || "";
-        this.totfield = data.totfield || "";
         this.condicaovalidacao = data.condicaovalidacao || "";
         this.categoria = data.categoria || "";
         this.codcategoria = data.codcategoria || "";
@@ -558,14 +1034,17 @@ function Mrend(options) {
         this.colunatitulo = data.colunatitulo || "";
         // Se true, a coluna título leva a descrição da linha (readonly)
         this.levadesclinha = data.levadesclinha || false;
-        // Configuração de totais por linha
-        this.linhatemtotal = data.linhatemtotal || false;
-        this.tituloparatotal = data.tituloparatotal || "";
-        this.colunastotais = data.colunastotais || "";
+        // Totais por linha (Tabulator) — migra temtotais/totkey legado se existir
+        var migratedTotalConfig = migrateLegacyLineTotalConfig(data);
+        this.linhatemtotal = migratedTotalConfig.linhatemtotal;
+        this.tituloparatotal = migratedTotalConfig.tituloparatotal;
+        this.colunastotais = migratedTotalConfig.colunastotais;
         this.temexpressaototal = data.temexpressaototal || false;
         this.expressaototal = data.expressaototal || "";
+        this.cortotallinha = data.cortotallinha || "";
+        this.cortextototallinha = data.cortextototallinha || "";
         // Blacklist: properties not inherited by child lines
-        var defaultBlacklist = "comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,temtotais,modelo";
+        var defaultBlacklist = "comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,linhatemtotal,colunastotais,tituloparatotal,cortotallinha,cortextototallinha,modelo";
         this.blacklistheranca = data.blacklistheranca || defaultBlacklist;
 
     }
@@ -1162,25 +1641,6 @@ function Mrend(options) {
 
 
 
-    function calcularSubtotais() {
-
-        var linhasComTotais = mrendThis.GRenderedLinhas.filter(function (linha) {
-
-            return linha.config.temtotais == true
-
-        });
-
-
-        linhasComTotais.forEach(function (linhaComTotal) {
-
-            linhaComTotal.actualizarTotaisColunasLinha();
-
-        })
-
-
-    }
-
-
     CellObjectConfig.prototype.syncReactive = function (htmlComponent) {
 
         var thisCellObjectConfig = this;
@@ -1227,19 +1687,6 @@ function Mrend(options) {
 
 
     }
-
-    CellObjectConfig.prototype.calcularTotalLinha = function () {
-
-        if (this.dataType != "digit" && mrendThis.reportConfig.config.relatorio.totalcoluna) {
-
-            return;
-        }
-
-        this.renderelinha.actualizarTotalLinha();
-
-
-    }
-
 
     CellObjectConfig.prototype.getHtmlComponent = function () {
 
@@ -1610,57 +2057,6 @@ function Mrend(options) {
     }
 
 
-    RenderedLinha.prototype.getLinhaSubtotal = function () {
-
-        var linhaRendered = this
-
-        return mrendThis.GRenderedLinhas.find(function (linhaSubtotal) {
-
-            return linhaSubtotal.linkid == linhaRendered.rowid && linhaSubtotal.config.codigo == "SUBTOTALINHA"
-        })
-
-    }
-    RenderedLinha.prototype.actualizarTotaisColunasLinha = function () {
-
-
-        var linhaSubtotal = this.getLinhaSubtotal();
-        var renderedLinha = this
-
-
-
-        if (linhaSubtotal) {
-
-            var celulasLinha = linhaSubtotal.getLinhaCellObjects();
-
-
-            mrendThis.GRenderedColunas.map(function (renderedColuna) {
-
-                if (renderedColuna.config.tipo == "digit") {
-                    totalColuna = renderedColuna.getTotalRenderedColuna("cellObject.linkid=='" + renderedLinha.rowid + "' && cellObject.unionkey.includes('SUBTOTAL')==false ");
-
-                    var celulaSubtotal = celulasLinha.find(function (celula) {
-                        return celula.codigocoluna == renderedColuna.codigocoluna && celula.categoria == "total"
-                    });
-
-
-                    if (celulaSubtotal) {
-
-                        celulaSubtotal.setValue(totalColuna, false)
-                    }
-                }
-
-
-
-            });
-
-        }
-
-
-
-
-
-    }
-
     RenderedLinha.prototype.getLinhaCellObjects = function () {
 
 
@@ -1689,38 +2085,6 @@ function Mrend(options) {
     }
 
 
-
-
-
-    RenderedLinha.prototype.findCelulaTotal = function () {
-
-        var renderedLinha = this;
-
-        return mrendThis.GCellObjectsConfig.find(function (cellObject) {
-
-            return cellObject.rowid == renderedLinha.rowid && cellObject.categoria == "total"
-        })
-
-
-    }
-
-    RenderedLinha.prototype.getTotalLinha = function () {
-
-
-        return getTotalCelulasByFiltro("cellObject.rowid == '" + this.rowid + "' & cellObject.dataType == 'digit' && cellObject.categoria!='total'");
-    }
-
-    RenderedLinha.prototype.actualizarTotalLinha = function () {
-
-        var celulaTotal = this.findCelulaTotal();
-        var totLinha = this.getTotalLinha();
-        if (celulaTotal) {
-
-            celulaTotal.setValue(totLinha, true);
-        }
-
-
-    }
 
 
 
@@ -3370,148 +3734,6 @@ function Mrend(options) {
     }
 
 
-    function setLinhaGrupoAndSubgrupo(linh, parentid, records) {
-
-        var linha = new RenderedLinha(linh);
-        linha.parentid = parentid;
-
-        var linhaId = linha.rowid;
-
-
-
-        var customStyles = ""
-        if (linha.config.comportamentogrupo && linha.config.corcomportgrupo) {
-            customStyles = "background:" + linha.config.corcomportgrupo + "!important"
-        } else if (linha.config.cor) {
-            customStyles = "background:" + setStyle("Color", linha.config.tipo, linha.config.cor) + "!important"
-        }
-        var linhaHtml = {
-            rowId: linhaId,
-            style: customStyles,
-            classes: "" + linha.config.tipo + "-row" + (linha.config.comportamentogrupo ? " grupo-comportamento-row" : ""),
-            customData: "",
-            cols: []
-        }
-
-        var cellActionZoneObjectConfig = new CellObjectConfig(
-            {
-                bindData: {},
-                tipolistagem: "",
-                component: "Celula",
-                componentcategoria: linha.config.tipo,
-                novoregisto: linha.novoregisto,
-                expressao: "Celula",
-                categoria: "action",
-                dataType: "",
-                valor: "",
-                campovalor: "",
-                campooption: "",
-                changedb: false,
-                linkid: linha.linkid,
-                cellid: "ACTIONDEFCOL" + linhaId,
-                codigocoluna: "ACTIONDEFCOL",
-                rowid: linha.rowid
-            });
-
-        cellActionZoneObjectConfig.setDefaultValue();
-
-        linhaHtml.cols.push({
-            style: "",
-            colId: "",
-            classes: "action-zone",
-            content: "<button type='button' style='color:white!important;margin-right:0.3em' class='btn  btn-sm btn-primary groupRowAddBtn'><span  class='glyphicon glyphicon glyphicon-plus'></span></button>",
-            customData: "",
-        })
-
-
-        if (linha.config.temcolunas) {
-
-            var mapping = getMappingByKey("renderConfig");
-            var colunaMap = mapping.find(function (smap) {
-                return smap.component == "Coluna"
-            });
-
-            mrendThis.GRenderedColunas.map(function (coluna) {
-
-                var recFlt = records.filter(function (record) {
-                    return record[colunaMap.mapData.colunaid] == coluna.codigocoluna
-                });
-
-                // comportamentogrupo: coluna título fica editável, restantes sem imputação
-                if (linha.config.comportamentogrupo) {
-                    var isTitulo = isColunaTituloGrupo(linha.config, coluna.codigocoluna, coluna.config);
-
-                    if (isTitulo) {
-                        setCelula(linhaHtml, linha, coluna, recFlt, coluna.config.categoria, "", {});
-                    } else {
-                        var corGrupo = linha.config.corcomportgrupo || "#e8edf2";
-                        buildCelulaSemImputacao(linhaHtml, linha, coluna, { customStyles: "background:" + corGrupo + "!important;" });
-                    }
-                } else {
-                    setCelula(linhaHtml, linha, coluna, recFlt, coluna.config.categoria, "", {});
-                }
-
-                return coluna;
-            });
-
-        }
-
-
-
-        // }
-
-
-
-        if (linha.config.temcolunas == false) {
-
-            linhaHtml.cols.push({
-                style: "",
-                colId: "",
-                classes: "",
-                content: "",
-                customData: "colspan=" + (mrendThis.GRenderedColunas.length).toString() + "",
-            })
-
-
-        }
-
-
-        GTableData.body.rows.push(linhaHtml);
-
-
-        var subLinhas = mrendThis.GRenderedLinhas.filter(function (linhaObj) {
-
-            return linhaObj.linkid == linha.rowid && linhaObj.linkid != ""
-        });
-
-
-        subLinhas.sort(function (a, b) {
-            return a.config.ordem - b.config.ordem;
-        });
-
-        subLinhas.forEach(function (subLinha) {
-
-            setLinha(subLinha, "", records);
-
-
-        });
-
-        if (linha.config.temtotais) {
-
-            var renderedLinhaTotalRelatorio = setLinhaRenderTotal({ codigo: "SUBTOTALINHA", descricao: "Total", cor: "#417ad3", linkid: linha.rowid, rowid: "SUBTOTAL" + linha.rowid });
-            renderedLinhaTotalRelatorio.addToLocalRenderedLinhasList([], "", {}, false, true);
-            setLinha(renderedLinhaTotalRelatorio, "", [])
-
-
-        }
-
-
-        return linhaHtml;
-
-    }
-
-
-
     function setLinhaToRender(linh, parentid, records) {
 
         var linha = linh;
@@ -3558,67 +3780,6 @@ function Mrend(options) {
     }
 
 
-    function setLinhaTotal(linh) {
-
-        var linha = new RenderedLinha(linh);
-
-
-        var cellObjectConfig = new CellObjectConfig(
-            {
-                bindData: linha.config.bindData,
-                tipolistagem: linha.config.tipolistagem,
-                component: "Linha",
-                componentcategoria: linha.config.tipo,
-                novoregisto: linha.novoregisto,
-                expressao: linha.config.expressao,
-                dataType: linha.config.objectolist,
-                valor: linha.config.codigo,
-                campovalor: "codigo",
-                campooption: "descricao",
-                linkid: linha.linkid,
-                cellid: "DEFCOLTOTAL" + linha.rowid,
-                codigocoluna: "DEFCOLTOTAL",
-                rowid: linha.rowid
-            });
-
-        cellObjectConfig.setDefaultValue();
-
-        var linhaDefaultColumnHtmlObject = generateHtmlObject(cellObjectConfig);
-
-        var customStyles = ""
-        if (linha.config.cor) {
-            customStyles = "background:" + setStyle("Color", linha.config.tipo, linha.config.cor) + "!important"
-        }
-
-        var linhaHtml = {
-            rowId: linha.rowid,
-            style: customStyles,
-            classes: "" + linha.config.tipo + "-row",
-            customData: "",
-            cols: [{
-                style: "color:white;text-align:left;width:10%;font-weight:bold",
-                colId: "",
-                classes: "action-zone",
-                content: linha.config.descricao,
-                customData: "",
-            }]
-
-        }
-
-        mrendThis.GRenderedColunas.forEach(function (coluna) {
-
-            var extraData = { customClasses: "", customStyles: "background:transparent!important;font-weight:bold!important;color:white!important" }
-            setCelula(linhaHtml, linha, coluna, [], "total", extraData)
-
-        });
-
-        GTableData.body.rows.push(linhaHtml);
-
-        return linhaHtml
-
-
-    }
-
     function setLinha(linh, parentid, records) {
 
         //Colocou-se uma função dentro de outra para que no futuro seja possível adicionar mais tipos de linhas
@@ -3627,16 +3788,6 @@ function Mrend(options) {
 
     }
 
-
-    function setLinhaRenderTotal(data) {
-
-
-        var linha = new Linha({ tipo: "Total", codigo: data.codigo, descricao: data.descricao, cor: data.cor })
-        return new RenderedLinha({ linkid: data.linkid, rowid: data.rowid, config: linha });
-    }
-
-
-    // ── Nova função para linha de total customizada ──
     function buildCelulaDefCol(linhaHtml, linh, colun, records) {
 
         var linha = new RenderedLinha(linh);
@@ -4598,14 +4749,28 @@ function Mrend(options) {
         var renderedColuna = colunaConfig;
         var rowData = cell.getRow().getData();
 
-        // ── Se for linha de total, formato especial ──
+        // ── Linha de total (filha dataTree, não editável) ──
         if (rowData._isTotalRow) {
+            var parentLinha = mrendThis.GRenderedLinhas.find(function (l) {
+                return l.rowid === rowData._parentRowId;
+            });
+            var parentConfig = parentLinha ? parentLinha.config : null;
+            var corTotal = getTotalRowColor(parentConfig);
+            var corTextoCss = getTotalRowTextColorCss(parentConfig);
+            var tituloCol = parentConfig ? resolveTituloColunaLinha(parentConfig) : "";
+            var fieldName = (cell.getField() || "").trim();
+
+            if (tituloCol && fieldName === tituloCol) {
+                var titulo = rowData._totalTitle || rowData[tituloCol] || "Total";
+                return "<div style='background:" + corTotal + ";font-weight:bold;" + corTextoCss + "text-align:left;padding:4px 8px;' class='mrend-input-cell'>" + titulo + "</div>";
+            }
+
             var value = cell.getValue();
             if (colunaConfig.tipo === "digit" && value !== undefined && value !== null && value !== "") {
                 var formattedValue = formatNumber(value, colunaConfig);
-                return "<div style='background:#e8edf2;font-weight:bold;text-align:" + colunaConfig.alinhamento + "' class='mrend-input-cell'>" + formattedValue + "</div>";
+                return "<div style='background:" + corTotal + ";font-weight:bold;" + corTextoCss + "text-align:" + colunaConfig.alinhamento + "' class='mrend-input-cell'>" + formattedValue + "</div>";
             }
-            return "<div style='background:#e8edf2;font-weight:bold;' class='mrend-input-cell'>&nbsp;</div>";
+            return "<div style='background:" + corTotal + ";font-weight:bold;" + corTextoCss + "' class='mrend-input-cell'>&nbsp;</div>";
         }
 
         // ── Se a coluna tem levadesclinha, usa descLinha como valor ──
@@ -4694,9 +4859,9 @@ function Mrend(options) {
                 checkbox.disabled = inactivo
                 // Adiciona o evento diretamente ao checkbox
                 checkbox.addEventListener("change", function () {
-                    var rowData = cell.getRow().getData();
-
-                    var columnField = cell.getField(); // <-- Aqui você pega o nome/campo da coluna editada
+                    var row = cell.getRow();
+                    var rowData = row.getData();
+                    var columnField = cell.getField();
                     var updateData = {};
                     Object.keys(rowData).forEach(function (key) {
                         if (key !== "_children" && key !== "id") {
@@ -4705,9 +4870,9 @@ function Mrend(options) {
                     });
 
                     updateData[columnField] = checkbox.checked;
-                    cell.getRow().update(updateData);
+                    row.update(updateData);
 
-                    updateCellObjectConfig(columnField, rowData);
+                    updateCellObjectConfig(columnField, row.getData(), checkbox.checked);
 
                 });
 
@@ -4956,7 +5121,7 @@ function Mrend(options) {
         return {
             mutator: function (value, rowData, type, params, component) {
 
-                // ── Se for linha de total, retornar valor sem processar ──
+                // ── Linha de total: valor já vem de buildLineTotalRowData / refreshLineTotalColumns ──
                 if (rowData._isTotalRow) {
                     return value;
                 }
@@ -4967,11 +5132,6 @@ function Mrend(options) {
 
                 if (!renderedLinha) {
                     throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
-                }
-
-                // ── Se for linha de total confirmada, retornar valor sem processar ──
-                if (renderedLinha.config.tipo === "TotalLinha") {
-                    return value;
                 }
 
                 var celula = mrendThis.reportConfig.config.celulas.find(function (celula) {
@@ -5085,77 +5245,14 @@ function Mrend(options) {
         return {};
     }
 
-    function updateCellObjectConfig(coluna, rowData) {
-
-        var cellObjectConfig = mrendThis.GCellObjectsConfig.find(function (obj) {
-            return obj.codigocoluna == coluna && obj.rowid == rowData.rowid;
-        });
-
-        if (cellObjectConfig) {
-
-            cellObjectConfig.valor = rowData[coluna];
-
-            // ── Recalcular totais de linha se existirem ──
-            // ── Recalcular totais de linha se existirem ──
-            atualizarTotalLinha(cellObjectConfig.rowid, coluna);
+    function updateCellObjectConfig(coluna, rowData, explicitValue) {
+        if (!rowData || !rowData.rowid || rowData._isTotalRow) {
+            return;
         }
-    }
 
-    // ── Função simples para atualizar total da linha ──
-    function atualizarTotalLinha(rowid, codigocoluna) {
-        var linhaAtual = mrendThis.GRenderedLinhas.find(function (l) {
-            return l.rowid === rowid;
-        });
-
-        if (!linhaAtual || !linhaAtual.config.linhatemtotal) return;
-
-        var totalRowId = "ROWTOTAL_" + rowid;
-
-        try {
-            var totalRow = mrendThis.GTable.getRow(totalRowId);
-            if (!totalRow) return;
-
-            // Calcular totais para todas as colunas digit
-            var totaisAtualizados = {};
-
-            mrendThis.GRenderedColunas.forEach(function (coluna) {
-                if (coluna.config.tipo !== "digit") return;
-
-                // Parsear colunas a totalizar
-                var colunasParaTotalizar = [];
-                if (linhaAtual.config.colunastotais) {
-                    colunasParaTotalizar = linhaAtual.config.colunastotais.split(',').map(function (c) {
-                        return c.trim();
-                    });
-                }
-
-                var deveTotalizar = colunasParaTotalizar.length === 0 ||
-                    colunasParaTotalizar.indexOf(coluna.codigocoluna) !== -1;
-
-                if (!deveTotalizar) return;
-
-                // Calcular soma
-                var soma = 0;
-                var celulasLinha = mrendThis.GCellObjectsConfig.filter(function (c) {
-                    return c.rowid === rowid &&
-                        c.codigocoluna === coluna.codigocoluna &&
-                        c.dataType === "digit";
-                });
-
-                celulasLinha.forEach(function (celula) {
-                    var valor = parseFloat(celula.valor) || 0;
-                    soma += valor;
-                });
-
-                totaisAtualizados[coluna.codigocoluna] = soma;
-            });
-
-            // Atualizar linha no Tabulator
-            totalRow.update(totaisAtualizados);
-
-        } catch (e) {
-            // Linha de total não encontrada
-        }
+        var valor = explicitValue !== undefined ? explicitValue : rowData[coluna];
+        syncCellValueFromEdit(rowData.rowid, coluna, valor);
+        refreshLineTotalColumnsForEdit(rowData.rowid, coluna);
     }
 
 
@@ -5605,6 +5702,9 @@ function Mrend(options) {
                         row.addTreeChild(addFilhaResult.UIObject);
                         row.treeExpand();
                         mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+                        getParentLinhasAfetadasPorEdicao(addFilhaResult.rowid).forEach(function (parentLinha) {
+                            refreshAllLineTotalColumns(parentLinha);
+                        });
                         handleRowEvent(row, "add");
 
 
@@ -5614,8 +5714,13 @@ function Mrend(options) {
                     if (target.classList.contains("remove-row")) {
                         var row = cell.getRow();
                         var children = row.getTreeChildren();
+                        var rowDataToDelete = row.getData();
+                        var renderedToDelete = mrendThis.GRenderedLinhas.find(function (linha) {
+                            return linha.rowid === rowDataToDelete.rowid;
+                        });
+                        var parentLinkId = renderedToDelete ? renderedToDelete.linkid : "";
 
-                        deleteRowById(row.getData().rowid);
+                        deleteRowById(rowDataToDelete.rowid);
                         if (children.length > 0) {
                             if (confirm("Esta linha tem filhos. Deseja remover tudo?")) {
                                 deleteRowAndChildren(row);
@@ -5623,6 +5728,16 @@ function Mrend(options) {
                         } else {
                             row.delete();
                         }
+
+                        if (parentLinkId) {
+                            var parentLinha = mrendThis.GRenderedLinhas.find(function (linha) {
+                                return linha.rowid === parentLinkId;
+                            });
+                            if (parentLinha) {
+                                refreshAllLineTotalColumns(parentLinha);
+                            }
+                        }
+
                         mrendThis.refreshReactiveData();
 
 
@@ -5805,6 +5920,7 @@ function Mrend(options) {
 
         mrendThis.GTable = new Tabulator(mrendThis.containerToRender, {
             data: mrendThis.GGridData,
+            index: "rowid",
             dataTree: true,
             dataTreeStartExpanded: true,
             dataTreeChildIndent: 25,
@@ -5818,8 +5934,13 @@ function Mrend(options) {
 
                 // ── Formatação especial para linhas de total ──
                 if (data._isTotalRow) {
-                    row.getElement().style.backgroundColor = "#e8edf2";
+                    var parentConfigTotal = getParentLinhaConfigForTotalRow(data);
+                    row.getElement().style.backgroundColor = getTotalRowColor(parentConfigTotal);
                     row.getElement().style.fontWeight = "bold";
+                    var corTextoTotal = getTotalRowTextColor(parentConfigTotal);
+                    if (corTextoTotal) {
+                        row.getElement().style.color = corTextoTotal;
+                    }
                     return;
                 }
 
@@ -5891,18 +6012,24 @@ function Mrend(options) {
         });
 
         mrendThis.GTable.on("cellEdited", function (cell) {
-            var rowData = cell.getRow().getData();
+            var row = cell.getRow();
+            var rowData = row.getData();
+            if (rowData._isTotalRow) {
+                return;
+            }
 
-            var columnField = cell.getField(); // <-- Aqui você pega o nome/campo da coluna editada
+            var columnField = cell.getField();
+            syncCellValueFromEdit(rowData.rowid, columnField, cell.getValue());
+
             var updateData = {};
             Object.keys(rowData).forEach(function (key) {
                 if (key !== "_children" && key !== "id") {
                     updateData[key] = rowData[key];
                 }
             });
-            cell.getRow().update(updateData);
+            row.update(updateData);
 
-            updateCellObjectConfig(columnField, rowData);
+            refreshLineTotalColumnsForEdit(rowData.rowid, columnField);
 
         });
 
@@ -5917,71 +6044,6 @@ function Mrend(options) {
             mrendThis.applyTabulatorStylesWithJquery(mrendThis);
         });
 
-
-        // ── Adicionar linhas de total ao Tabulator ──
-        function adicionarLinhasDeTotais() {
-            var linhasComTotal = mrendThis.GRenderedLinhas.filter(function (l) {
-                return l.config.linhatemtotal;
-            });
-
-            linhasComTotal.forEach(function (linhaComTotal) {
-                var totalRowId = "ROWTOTAL_" + linhaComTotal.rowid;
-
-                // Processar título
-                var tituloTotal = linhaComTotal.config.tituloparatotal || "Total";
-                tituloTotal = tituloTotal.replace(/{thisRow}/g, linhaComTotal.config.descricao || "");
-
-                // Criar objeto de dados para a linha de total
-                var totalRowData = {
-                    rowid: totalRowId,
-                    _isTotalRow: true,
-                    _parentRowId: linhaComTotal.rowid
-                };
-
-                // Calcular totais para colunas digit
-                var colunasParaTotalizar = [];
-                if (linhaComTotal.config.colunastotais) {
-                    colunasParaTotalizar = linhaComTotal.config.colunastotais.split(',').map(function (c) {
-                        return c.trim();
-                    });
-                }
-
-                mrendThis.GRenderedColunas.forEach(function (coluna) {
-                    if (coluna.config.tipo === "digit") {
-                        var deveTotalizar = colunasParaTotalizar.length === 0 ||
-                            colunasParaTotalizar.indexOf(coluna.codigocoluna) !== -1;
-
-                        if (deveTotalizar) {
-                            // Calcular soma
-                            var soma = 0;
-                            var celulasLinha = mrendThis.GCellObjectsConfig.filter(function (c) {
-                                return c.rowid === linhaComTotal.rowid &&
-                                    c.codigocoluna === coluna.codigocoluna &&
-                                    c.dataType === "digit";
-                            });
-
-                            celulasLinha.forEach(function (celula) {
-                                var valor = parseFloat(celula.valor) || 0;
-                                soma += valor;
-                            });
-
-                            totalRowData[coluna.codigocoluna] = soma;
-                        } else {
-                            totalRowData[coluna.codigocoluna] = "";
-                        }
-                    } else {
-                        totalRowData[coluna.codigocoluna] = "";
-                    }
-                });
-
-                // Adicionar linha como filha da linha pai
-                try {
-                    mrendThis.GTable.addRow(totalRowData, false, linhaComTotal.rowid);
-                } catch (e) {
-                    console.error("Erro ao adicionar linha de total:", e);
-                }
-            });
-        }
 
         var tableBuiltEvent = function (data) {
 
@@ -6015,9 +6077,6 @@ function Mrend(options) {
             $(mrendThis.containerToRender).attr("data-zoom-scale", currentScale);
 
             mrendThis.applyTabulatorStylesWithJquery(mrendThis);
-
-            // ── Adicionar linhas de totais ──
-            adicionarLinhasDeTotais();
 
             var cells = JSON.parse(JSON.stringify(mrendThis.GCellObjectsConfig));
 
@@ -6128,24 +6187,6 @@ function Mrend(options) {
         })
 
     }
-
-    function handleTotais() {
-        if (mrendThis.reportConfig.config.relatorio.totalcoluna) {
-
-            mrendThis.GRenderedLinhas.forEach(function (linha) {
-
-                linha.actualizarTotalLinha();
-            })
-        }
-
-        calcularSubtotais();
-        if (mrendThis.reportConfig.config.relatorio.totalrelatorio) {
-
-            GTableData.calcularTotalRelatorio();
-
-        }
-    }
-
 
     function getRenderedLinhas(records) {
 
@@ -6283,6 +6324,8 @@ function Mrend(options) {
 
 
 
+
+        attachLineTotalRows();
 
         var tmpGrData = []
         mrendThis.GGridData = mrendThis.GRenderedLinhas.map(function (lin) {
@@ -7268,6 +7311,8 @@ function Mrend(options) {
             });
 
             mrendThis.GTable.setColumns(currentDefinitions);
+
+            attachLineTotalRows();
 
             var refreshedGridData = [];
             mrendThis.GRenderedLinhas.forEach(function (lin) {

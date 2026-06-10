@@ -1347,92 +1347,23 @@ function getIframeLoadingStyle(styles) {
     style += "left:0;";
     style += "width:100%;";
     style += "height:100%;";
-    style += "background:linear-gradient(135deg,#ffffff 0%,#f8f9fa 100%);";
+    style += "background-color:#ffffff;";
     style += "display:flex;";
-    style += "flex-direction:column;";
     style += "justify-content:center;";
     style += "align-items:center;";
-    style += "z-index:9999;";
-    style += "font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;";
+    style += "z-index:999999;";
     style += "}";
-
-    style += ".cform-screen-loading-animation{";
-    style += "width:200px;";
-    style += "height:120px;";
-    style += "position:relative;";
-    style += "margin-bottom:20px;";
+    style += ".cform-iframe-loading-overlay #cform-loader-icon{";
+    style += "width:100px;";
+    style += "height:100px;";
+    style += "animation:cformRotate 1.5s linear infinite;";
     style += "}";
-
-    style += ".cform-loading-line{";
-    style += "position:absolute;";
-    style += "width:2px;";
-    style += "height:100%;";
-    style += "background:linear-gradient(to bottom,transparent 0%,"+getColorByType('primary').background+" 50%,transparent 100%);";
-    style += "animation:cformDataFlow 2s infinite linear;";
+    style += ".cform-iframe-loading-overlay .cform-loader-path{";
+    style += "fill:var(--cform-loader-color,#073e5a);";
     style += "}";
-
-    style += ".cform-loading-line:nth-child(1){left:20%;animation-delay:0s;}";
-    style += ".cform-loading-line:nth-child(2){left:40%;animation-delay:0.3s;}";
-    style += ".cform-loading-line:nth-child(3){left:60%;animation-delay:0.6s;}";
-    style += ".cform-loading-line:nth-child(4){left:80%;animation-delay:0.9s;}";
-
-    style += ".cform-connection-dot{";
-    style += "position:absolute;";
-    style += "width:8px;";
-    style += "height:8px;";
-    style += "background:"+getColorByType('primary').background+";";
-    style += "border-radius:50%;";
-    style += "animation:cformPulse 1.5s infinite ease-in-out;";
-    style += "}";
-
-    style += ".cform-connection-dot:nth-child(5){top:20%;left:30%;animation-delay:0s;}";
-    style += ".cform-connection-dot:nth-child(6){top:60%;left:50%;animation-delay:0.5s;}";
-    style += ".cform-connection-dot:nth-child(7){top:40%;left:70%;animation-delay:1s;}";
-
-    style += ".cform-loading-progress{";
-    style += "width:200px;"
-    style += "height:4px;";
-    style += "background:#e9ecef;";
-    style += "border-radius:2px;";
-    style += "overflow:hidden;";
-    style += "margin-bottom:15px;";
-    style += "}";
-
-    style += ".cform-progress-bar-iframe{";
-    style += "width:0%;";
-    style += "height:100%;";
-    style += "background:linear-gradient(90deg,#007bff,#0056b3);";
-    style += "animation:cformProgressLoad 3s infinite ease-in-out;";
-    style += "}";
-
-    style += ".cform-loading-text{";
-    style += "color:#495057;";
-    style += "font-size:14px;";
-    style += "font-weight:500;";
-    style += "text-align:center;";
-    style += "}";
-
-    style += ".cform-loading-subtext{";
-    style += "color:#6c757d;";
-    style += "font-size:12px;";
-    style += "margin-top:5px;";
-    style += "}";
-
-    style += "@keyframes cformDataFlow{";
-    style += "0%{transform:translateY(-100%);opacity:0;}";
-    style += "50%{opacity:1;}";
-    style += "100%{transform:translateY(100%);opacity:0;}";
-    style += "}";
-
-    style += "@keyframes cformPulse{";
-    style += "0%,100%{transform:scale(1);opacity:0.7;}";
-    style += "50%{transform:scale(1.3);opacity:1;}";
-    style += "}";
-
-    style += "@keyframes cformProgressLoad{";
-    style += "0%{width:0%;}";
-    style += "50%{width:70%;}";
-    style += "100%{width:100%;}";
+    style += "@keyframes cformRotate{";
+    style += "0%{transform:rotate(0deg);}";
+    style += "100%{transform:rotate(360deg);}";
     style += "}";
 
     style += ".cform-iframe-container{";
@@ -1456,22 +1387,26 @@ function generateComponent(componentData) {
         'class': 'cform-iframe-container'
     });
 
-    // Criar overlay de loading
+    // Criar overlay de loading (mesmo design do Mdash.html / LOADER JS.js)
+    var loaderColor = '#073e5a';
+    try {
+        if (typeof getColorByType === 'function') {
+            var loaderColorObj = getColorByType('primary');
+            if (loaderColorObj && loaderColorObj.background) loaderColor = loaderColorObj.background;
+        }
+    } catch (e) { }
+
     var overlayHTML = '';
-    overlayHTML += '<div class="cform-screen-loading-animation">';
-    overlayHTML += '    <div class="cform-loading-line"></div>';
-    overlayHTML += '    <div class="cform-loading-line"></div>';
-    overlayHTML += '    <div class="cform-loading-line"></div>';
-    overlayHTML += '    <div class="cform-loading-line"></div>';
-    overlayHTML += '    <div class="cform-connection-dot"></div>';
-    overlayHTML += '    <div class="cform-connection-dot"></div>';
-    overlayHTML += '    <div class="cform-connection-dot"></div>';
-    overlayHTML += '</div>';
-    overlayHTML += '<div class="cform-loading-text">A carregar conteúdo</div>';
-    overlayHTML += '<div class="cform-loading-subtext">Aguarde um momento...</div>';
+    overlayHTML += '<svg id="cform-loader-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">';
+    overlayHTML += '  <g>';
+    overlayHTML += '    <path class="cform-loader-path" d="M83.3,67.2c-4.6,8.8-12.4,15.4-21.9,18.4c-9.5,3.1-19.7,2.2-28.6-2.4c-8.9-4.6-15.5-12.4-18.5-21.9c-3.7-11.5-1.5-23.5,4.9-32.6c4.6-6.6,11.3-11.8,19.4-14.4c7.1-2.3,14.9-2.3,22-0.3l-4,13.9c-11.5-3.5-23.8,2.5-28.1,13.8C23.9,53.6,29.9,67,41.8,71.5c5.8,2.1,12,2,17.6-0.5c5.6-2.5,9.9-7,12.1-12.8c1.7-4.4,1.9-9.2,0.9-13.7l14.1-3.2C88.6,50.1,87.4,59.2,83.3,67.2z"/>';
+    overlayHTML += '    <path class="cform-loader-path" d="M70.7,39.8c-2.1-4.2-5.3-7.6-9.3-9.9l0,0l7.1-12.6l0,0c6.6,3.7,11.8,9.3,15.2,16.1l0,0L70.7,39.8L70.7,39.8z"/>';
+    overlayHTML += '  </g>';
+    overlayHTML += '</svg>';
 
     var overlay = $("<div>", {
-        'class': 'cform-iframe-loading-overlay'
+        'class': 'cform-iframe-loading-overlay',
+        style: '--cform-loader-color:' + loaderColor
     }).html(overlayHTML);
 
     // Criar iframe

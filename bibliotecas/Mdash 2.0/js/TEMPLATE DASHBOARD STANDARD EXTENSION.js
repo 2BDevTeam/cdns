@@ -602,6 +602,7 @@ function renderCustomCodePropertiesInline(obj, panel) {
 
     // ── fire() — debounce save + re-render ──
     var _timer = null;
+
     function fire() {
         clearTimeout(_timer);
         _timer = setTimeout(function () {
@@ -928,7 +929,7 @@ function crateDynamicSchemaCustomCode(data) {
 var _TABLE_SAMPLE_CONFIG = {
     layout: 'fitColumns',
     height: 'auto',
-    maxHeight: '500px',
+    maxHeight: '420px',
     pagination: { enabled: false, size: 15 },
     headerFilter: false,
     resizableColumns: true,
@@ -937,18 +938,48 @@ var _TABLE_SAMPLE_CONFIG = {
     stripedRows: true,
     hoverHighlight: true,
     responsiveLayout: 'collapse',
-    theme: 'phcPrimary',
+    theme: 'corporate',
     columns: [],
     autoColumns: true,
     dataTree: { enabled: false, parentField: 'id', childField: 'parentId', startExpanded: true },
+    structuredRows: {
+        enabled: false,
+        groupLevels: [
+            { field: '', bg: '#eef4ff', text: '#d40032', accent: '#d40032', bullet: 'circle' },
+            { field: '', bg: '#f8fafc', text: '#334155', accent: '#64748b', bullet: 'diamond' }
+        ],
+        levelStyles: [],
+        typeField: '__rowType',
+        levelField: '__rowLevel',
+        sectionValue: 'section',
+        dataValue: 'data',
+        totalValue: 'total',
+        backgroundField: '__rowBackground',
+        textColorField: '__rowTextColor',
+        accentColorField: '__rowAccentColor',
+        sectionBg: '#eef4ff',
+        sectionText: '#d40032',
+        sectionAccent: '#d40032',
+        sectionBullet: 'circle',
+        subgroupBg: '#f8fafc',
+        subgroupText: '#334155',
+        subgroupAccent: '#64748b',
+        subgroupBullet: 'diamond',
+        totalBg: '#eef4ff',
+        totalText: '#0f172a',
+        totalAccent: '#0f172a',
+        totalBullet: 'bar'
+    },
     exportOptions: { enableExcel: true, enablePDF: false },
     styling: {
-        headerBg: '',
-        headerText: '#ffffff',
-        borderRadius: 10,
-        fontSize: 13,
+        headerBg: '#1a3a6c',
+        headerBackgroundColor: '#1a3a6c',
+        headerText: '#f5e6c8',
+        headerTextColor: '#f5e6c8',
+        borderRadius: 16,
+        fontSize: 11,
         rowHeight: 'normal',
-        accentColor: ''
+        accentColor: '#c8a84b'
     },
     footer: { showRowCount: true, showColumnsInfo: false },
     filters: {
@@ -958,6 +989,132 @@ var _TABLE_SAMPLE_CONFIG = {
         definitions: []
     }
 };
+
+function _tblGetExecutiveSampleRows() {
+    return [
+        { __rowType: 'section', indicador: 'FATURACAO' },
+        { __rowType: 'data', __rowLevel: 1, indicador: 'Faturacao', anoAtualAcumulada: 29765412.09, anoAtualMediaMensal: 11392520.83, anoAtualMensal: 6980370.43, anoAnteriorAcumulada: 17069543.95, anoAnteriorMensal: 6486247.26, variacaoAcumulada: 74.4, variacaoAcumuladaDisplay: '+74,4%' },
+        { __rowType: 'data', __rowLevel: 1, indicador: 'Rentabilidade', anoAtualAcumulada: 22740853.32, anoAtualMediaMensal: 8968486.48, anoAtualMensal: 4803880.35, anoAnteriorAcumulada: 13864607.45, anoAnteriorMensal: 5767487.24, variacaoAcumulada: 64.0, variacaoAcumuladaDisplay: '+64,0%' },
+        { __rowType: 'section', indicador: 'COMPRAS' },
+        { __rowType: 'data', __rowLevel: 1, indicador: 'Compras', anoAtualAcumulada: 9537459.78, anoAtualMediaMensal: 3241919.36, anoAtualMensal: 2984974.05, anoAnteriorAcumulada: 12601929.62, anoAnteriorMensal: 5604214.27, variacaoAcumulada: -24.3, variacaoAcumuladaDisplay: '-24,3%' },
+        { __rowType: 'section', indicador: 'TESOURARIA' },
+        { __rowType: 'data', __rowLevel: 1, indicador: 'Recebimentos', anoAtualAcumulada: 28449748.09, anoAtualMediaMensal: 12144062.32, anoAtualMensal: 4161623.44, anoAnteriorAcumulada: 132366740.95, anoAnteriorMensal: 8110374.13, variacaoAcumulada: -78.5, variacaoAcumuladaDisplay: '-78,5%' },
+        { __rowType: 'data', __rowLevel: 1, indicador: 'Pagamentos', anoAtualAcumulada: 21154446.01, anoAtualMediaMensal: 10202229.73, anoAtualMensal: 749986.55, anoAnteriorAcumulada: 134557910.96, anoAnteriorMensal: 7800576.21, variacaoAcumulada: -84.3, variacaoAcumuladaDisplay: '-84,3%' },
+        { __rowType: 'total', __rowLevel: 1, indicador: 'Saldo', anoAtualAcumulada: 7295302.08, anoAtualMediaMensal: 1941832.59, anoAtualMensal: 3411636.89, anoAnteriorAcumulada: -2191170.01, anoAnteriorMensal: 309797.92, variacaoAcumulada: 9.5, variacaoAcumuladaDisplay: '+9,5 M EUR' }
+    ];
+}
+
+function _tblGetExecutiveSampleColumns() {
+    return [
+        { title: 'Indicador', field: 'indicador', minWidth: 150, semantic: 'indicator', headerSort: false, frozen: true },
+        {
+            title: 'Ano Atual',
+            headerHozAlign: 'center',
+            columns: [
+                { title: 'Acumulada', field: 'anoAtualAcumulada', minWidth: 120, semantic: 'moneyStrong', headerSort: false },
+                { title: 'Media mensal', field: 'anoAtualMediaMensal', minWidth: 110, semantic: 'moneySoft', headerSort: false },
+                { title: 'Mensal', field: 'anoAtualMensal', minWidth: 105, semantic: 'moneySoft', headerSort: false }
+            ]
+        },
+        {
+            title: 'Ano Anterior',
+            headerHozAlign: 'center',
+            columns: [
+                { title: 'Acumulada', field: 'anoAnteriorAcumulada', minWidth: 120, semantic: 'moneyMuted', headerSort: false },
+                { title: 'Mensal', field: 'anoAnteriorMensal', minWidth: 105, semantic: 'moneyMuted', headerSort: false }
+            ]
+        },
+        { title: 'Variacao acum.', field: 'variacaoAcumulada', minWidth: 100, semantic: 'deltaBadge', displayField: 'variacaoAcumuladaDisplay', headerSort: false, hozAlign: 'center' }
+    ];
+}
+
+function _tblGetExecutiveSampleFieldNames() {
+    var sampleRow = _tblGetExecutiveSampleRows().find(function (rowItem) {
+        return rowItem && rowItem.__rowType !== 'section';
+    }) || {};
+    return Object.keys(sampleRow).filter(function (key) {
+        return key.indexOf('__') !== 0;
+    });
+}
+
+function _tblHasColumnGroups(columns) {
+    return Array.isArray(columns) && columns.some(function (column) {
+        return column && Array.isArray(column.columns) && column.columns.length;
+    });
+}
+
+function _tblCountLeafColumns(column) {
+    if (!column) return 0;
+    if (!Array.isArray(column.columns) || !column.columns.length) return 1;
+    return column.columns.reduce(function (total, child) {
+        return total + _tblCountLeafColumns(child);
+    }, 0);
+}
+
+function _tblFlattenColumnDefs(columns) {
+    var flat = [];
+    (columns || []).forEach(function (column) {
+        if (column && Array.isArray(column.columns) && column.columns.length) {
+            flat = flat.concat(_tblFlattenColumnDefs(column.columns));
+        } else if (column) {
+            flat.push(column);
+        }
+    });
+    return flat;
+}
+
+function _tblCompactGroupedColumns(columns) {
+    (columns || []).forEach(function (column) {
+        if (!column) return;
+        if (Array.isArray(column.columns) && column.columns.length) {
+            _tblCompactGroupedColumns(column.columns);
+            return;
+        }
+
+        var maxMinWidth = 108;
+        if (column.semantic === 'indicator' || column.field === 'indicador') maxMinWidth = 150;
+        if (column.semantic === 'deltaBadge') maxMinWidth = 92;
+
+        var currentMinWidth = parseInt(column.minWidth, 10);
+        if (!currentMinWidth || currentMinWidth > maxMinWidth) column.minWidth = maxMinWidth;
+        if (column.width && parseInt(column.width, 10) > maxMinWidth * 1.35) delete column.width;
+    });
+    return columns;
+}
+
+function _tblBuildExecutiveHeader(columns) {
+    if (!_tblHasColumnGroups(columns)) return '';
+    var leafColumns = _tblFlattenColumnDefs(columns);
+    var gridTemplate = leafColumns.map(function (column) {
+        var basis = parseInt(column.width || column.minWidth, 10);
+        return basis > 0 ? 'minmax(' + basis + 'px,1fr)' : 'minmax(110px,1fr)';
+    }).join(' ');
+    var topHtml = '';
+    var childHtml = '';
+    var cursor = 1;
+
+    (columns || []).forEach(function (column) {
+        var span = _tblCountLeafColumns(column);
+        var title = _mciEsc(column.title || column.field || '');
+        if (Array.isArray(column.columns) && column.columns.length) {
+            topHtml += '<div class="mtbl-exec-header__cell is-group" style="grid-column:' + cursor + ' / span ' + span + ';grid-row:1;">' + title + '</div>';
+            column.columns.forEach(function (child, childIndex) {
+                childHtml += '<div class="mtbl-exec-header__cell" style="grid-column:' + (cursor + childIndex) + ';grid-row:2;">'
+                    + _mciEsc(child.title || child.field || '') + '</div>';
+            });
+        } else {
+            topHtml += '<div class="mtbl-exec-header__cell is-rowspan" style="grid-column:' + cursor + ';grid-row:1 / span 2;">' + title + '</div>';
+        }
+        cursor += span;
+    });
+
+    return '<div class="mtbl-exec-header" style="grid-template-columns:' + gridTemplate + ';">'
+        + topHtml + childHtml + '</div>';
+}
+
+var _TABLE_EXECUTIVE_SAMPLE_CONFIG = JSON.parse(JSON.stringify(_TABLE_SAMPLE_CONFIG));
+_TABLE_EXECUTIVE_SAMPLE_CONFIG.autoColumns = false;
+_TABLE_EXECUTIVE_SAMPLE_CONFIG.columns = _tblGetExecutiveSampleColumns();
 
 // ── Temas visuais da tabela ──────────────────────────────────────────────────
 var _TABLE_THEMES = {
@@ -1029,20 +1186,40 @@ function _tblCSS() {
     if (_tblCssInjected) return;
     _tblCssInjected = true;
     var s = '<style id="mdash-table-inline-css">';
-    s += '.mtbl-wrap{position:relative;border-radius:var(--mtbl-radius,10px);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);background:#fff;border:1px solid rgba(0,0,0,.06);}';
-    s += '.mtbl-wrap .tabulator{border:none;background:transparent;font-size:var(--mtbl-fs,13px);font-family:"Inter","Nunito","Segoe UI",Arial,sans-serif;}';
-    s += '.mtbl-wrap .tabulator .tabulator-header{background:var(--mtbl-hdr-bg,#1e293b);border-bottom:none;border-radius:var(--mtbl-radius,10px) var(--mtbl-radius,10px) 0 0;}';
-    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col{background:transparent;color:var(--mtbl-hdr-text,#f8fafc);border-right:1px solid rgba(255,255,255,.08);padding:10px 14px;font-weight:600;font-size:calc(var(--mtbl-fs,13px) - 0.5px);letter-spacing:.2px;text-transform:uppercase;}';
+    s += '.mtbl-wrap{position:relative;border-radius:var(--mtbl-radius,16px);overflow:hidden;box-shadow:0 18px 40px rgba(15,23,42,.08),0 4px 16px rgba(15,23,42,.05);background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:1px solid rgba(148,163,184,.18);}';
+    s += '.mtbl-wrap .tabulator{border:none;background:#ffffff;font-size:var(--mtbl-fs,13px);font-family:"Inter","Nunito","Segoe UI",Arial,sans-serif;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header{background:linear-gradient(180deg,var(--mtbl-hdr-bg,#1e293b) 0%,var(--mtbl-hdr-bg-2,#16263f) 100%);border-bottom:none;border-radius:var(--mtbl-radius,16px) var(--mtbl-radius,16px) 0 0;padding-top:0;box-shadow:inset 0 -1px 0 rgba(255,255,255,.08);}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col{background:var(--mtbl-hdr-bg,#1e293b) !important;color:var(--mtbl-hdr-text,#f8fafc);border-right:1px solid rgba(255,255,255,.08);padding:5px 10px;font-weight:700;font-size:11px;letter-spacing:.03em;text-transform:uppercase;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col:last-child{border-right:none;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-content,'
+       + '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-title-holder,'
+       + '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-title{color:var(--mtbl-hdr-text,#f8fafc) !important;opacity:1 !important;visibility:visible !important;background:inherit !important;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-title{white-space:normal;line-height:1.15;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-content{display:flex;align-items:center;justify-content:center;min-height:28px;padding:0 2px;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-title-holder{display:flex;align-items:center;justify-content:center;width:100%;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group{background:var(--mtbl-hdr-bg-2,#16263f) !important;border-bottom:1px solid rgba(255,255,255,.1);padding-top:0;padding-bottom:0;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group > .tabulator-col-content{padding:0;background:var(--mtbl-hdr-bg-2,#16263f) !important;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-title{font-size:10px;letter-spacing:.1em;opacity:.96;font-weight:800;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-title-holder{background:var(--mtbl-hdr-bg-2,#16263f) !important;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols{border-top:1px solid rgba(255,255,255,.1);margin-top:0;background:var(--mtbl-hdr-bg,#1e293b) !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-sorter{color:var(--mtbl-hdr-text,#f8fafc);}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-arrow{border-bottom-color:var(--mtbl-hdr-text,#f8fafc) !important;border-top-color:var(--mtbl-hdr-text,#f8fafc) !important;opacity:.8 !important;}';
+    s += '.mtbl-exec-header{display:grid;background:var(--mtbl-hdr-bg,#1e293b);color:var(--mtbl-hdr-text,#f8fafc);border-radius:var(--mtbl-radius,16px) var(--mtbl-radius,16px) 0 0;overflow:hidden;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.035em;}';
+    s += '.mtbl-exec-header__cell{display:flex;align-items:center;justify-content:center;min-width:0;padding:3px 5px;border-right:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1);line-height:1.1;background:var(--mtbl-hdr-bg,#1e293b);white-space:normal;text-align:center;}';
+    s += '.mtbl-exec-header__cell.is-group{padding:3px 5px;background:var(--mtbl-hdr-bg-2,#16263f);font-size:9px;letter-spacing:.08em;}';
+    s += '.mtbl-exec-header__cell.is-rowspan{justify-content:flex-start;padding-left:9px;}';
+    s += '.mtbl-exec-header__cell:last-child{border-right:none;}';
+    s += '.mtbl-wrap.has-exec-header .tabulator{border-radius:0 0 var(--mtbl-radius,16px) var(--mtbl-radius,16px);}';
+    s += '.mtbl-wrap.has-exec-header .tabulator .tabulator-header{display:none !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-header-filter input{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:var(--mtbl-hdr-text,#f8fafc);border-radius:5px;padding:3px 8px;font-size:11px;margin-top:4px;transition:border-color .2s;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-header-filter input::placeholder{color:rgba(255,255,255,.4);}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-header-filter input:focus{border-color:var(--mtbl-accent,#2563eb);outline:none;background:rgba(255,255,255,.18);}';
-    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row{border-bottom:1px solid var(--mtbl-border,rgba(0,0,0,.06));transition:background .15s ease;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row{min-height:28px;border-bottom:1px solid var(--mtbl-border,rgba(0,0,0,.06));transition:background .15s ease;}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row:last-child{border-bottom:none;}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-row-even{background:var(--mtbl-row-even,#f8fafc);}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row:hover{background:var(--mtbl-row-hover,rgba(37,99,235,.06)) !important;}';
-    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell{padding:10px 14px;border-right:none;color:#334155;vertical-align:middle;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell{min-height:28px;padding:5px 7px !important;border-right:none;color:#334155;vertical-align:middle;line-height:1.2;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell:first-child{padding-left:10px !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-selected{background:rgba(37,99,235,.08) !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-selected .tabulator-cell{color:var(--mtbl-accent,#2563eb);}';
     s += '.mtbl-wrap .tabulator .tabulator-data-tree-control{width:18px !important;height:18px !important;border-radius:4px;transition:background .15s;}';
@@ -1058,6 +1235,35 @@ function _tblCSS() {
     s += '.mtbl-wrap .tabulator .tabulator-tableholder::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:3px;}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.2);}';
     s += '.mtbl-money{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}';
+    s += '.mtbl-wrap .tabulator-row.mtbl-row-section{background:linear-gradient(90deg,rgba(37,99,235,.085) 0%,rgba(37,99,235,.025) 62%,rgba(37,99,235,0) 100%) !important;border-top:1px solid rgba(37,99,235,.12);border-bottom:1px solid rgba(37,99,235,.08);}';
+    s += '.mtbl-wrap .tabulator-row.mtbl-row-section:hover{background:linear-gradient(90deg,rgba(37,99,235,.09) 0%,rgba(37,99,235,.03) 62%,rgba(37,99,235,0) 100%) !important;}';
+    s += '.mtbl-wrap .tabulator-row.mtbl-row-section .tabulator-cell{min-height:25px;padding-top:5px !important;padding-bottom:5px !important;background:transparent !important;}';
+    s += '.mtbl-wrap .tabulator-row.mtbl-row-total{background:linear-gradient(180deg,rgba(37,99,235,.08) 0%,rgba(37,99,235,.04) 100%) !important;}';
+    s += '.mtbl-wrap .tabulator-row.mtbl-row-total .tabulator-cell{font-weight:700;color:#0f172a;}';
+    s += '.mtbl-wrap .tabulator-row.mtbl-row-data.mtbl-row-level-1 .tabulator-cell:first-child{padding-left:14px !important;}';
+    s += '.mtbl-wrap .tabulator-row.mtbl-row-data.mtbl-row-level-2 .tabulator-cell:first-child{padding-left:21px !important;}';
+    s += '.mtbl-section-label{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--mtbl-accent,#2563eb);}';
+    s += '.mtbl-section-label:before{content:"";width:6px;height:6px;border-radius:999px;background:var(--mtbl-row-accent,var(--mtbl-accent,#2563eb));box-shadow:0 0 0 4px rgba(37,99,235,.12);}';
+    s += '.mtbl-section-label.mtbl-bullet-square:before{border-radius:2px;}';
+    s += '.mtbl-section-label.mtbl-bullet-diamond:before{border-radius:2px;transform:rotate(45deg);}';
+    s += '.mtbl-section-label.mtbl-bullet-bar:before{width:14px;height:4px;border-radius:999px;box-shadow:none;}';
+    s += '.mtbl-section-label.mtbl-bullet-none:before{display:none;width:0;height:0;box-shadow:none;}';
+    s += '.mtbl-inline-bullet{display:inline-flex;align-items:center;gap:7px;}';
+    s += '.mtbl-inline-bullet:before{content:"";width:6px;height:6px;border-radius:999px;background:var(--mtbl-row-accent,var(--mtbl-accent,#2563eb));box-shadow:0 0 0 4px rgba(37,99,235,.10);}';
+    s += '.mtbl-inline-bullet.mtbl-bullet-square:before{border-radius:2px;}';
+    s += '.mtbl-inline-bullet.mtbl-bullet-diamond:before{border-radius:2px;transform:rotate(45deg);}';
+    s += '.mtbl-inline-bullet.mtbl-bullet-bar:before{width:14px;height:4px;border-radius:999px;box-shadow:none;}';
+    s += '.mtbl-inline-bullet.mtbl-bullet-none:before{display:none;width:0;height:0;box-shadow:none;}';
+    s += '.mtbl-indicator-cell{display:flex;align-items:center;gap:7px;min-height:18px;font-weight:600;color:#334155;}';
+    s += '.mtbl-indicator-cell.is-total{font-weight:800;color:#0f172a;}';
+    s += '.mtbl-num{display:inline-block;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";white-space:nowrap;}';
+    s += '.mtbl-num.is-strong{font-weight:800;color:#1f2937;}';
+    s += '.mtbl-num.is-soft{font-weight:600;color:#475569;}';
+    s += '.mtbl-num.is-muted{font-weight:500;color:#64748b;}';
+    s += '.mtbl-delta-badge{display:inline-flex;align-items:center;justify-content:center;padding:3px 7px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.01em;min-width:62px;}';
+    s += '.mtbl-delta-badge.is-positive{background:rgba(34,197,94,.14);color:#15803d;}';
+    s += '.mtbl-delta-badge.is-negative{background:rgba(239,68,68,.14);color:#dc2626;}';
+    s += '.mtbl-delta-badge.is-neutral{background:rgba(148,163,184,.16);color:#475569;}';
     s += '.tabulator .tabulator-cell .tabulator-data-tree-branch{display:none;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col:hover{background:var(--mtbl-hdr-bg) !important;cursor:default;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-sortable:hover{background:var(--mtbl-hdr-bg) !important;}';
@@ -1091,7 +1297,7 @@ function renderObjectTable(dados) {
         }
     }
     if (rows.length === 0) {
-        rows = getMdashSampleData('table');
+        rows = _tblGetExecutiveSampleRows();
         isSample = true;
     }
 
@@ -1103,6 +1309,7 @@ function renderObjectTable(dados) {
     
     var theme = _tblResolveTheme(_TABLE_THEMES[cfg.theme] || _TABLE_THEMES.phcPrimary);
     var stl = cfg.styling || {};
+    var hasConfiguredGroups = _tblHasColumnGroups(cfg.columns);
     var tblId = 'mtbl_' + stamp;
     var wrapId = 'mtbl-wrap_' + stamp;
 
@@ -1115,16 +1322,17 @@ function renderObjectTable(dados) {
     // Renderizar filtros
     var filtersHtml = _tblRenderFilters(cfg.filters, rows);
 
-    var hdrBg = stl.headerBg || theme.headerBg;
+    var hdrBg = stl.headerBg || stl.headerBackgroundColor || theme.headerBg;
     var accentC = stl.accentColor || theme.accent;
     var cssVars = '--mtbl-hdr-bg:' + hdrBg + ';'
-        + '--mtbl-hdr-text:' + (stl.headerText || theme.headerText) + ';'
+        + '--mtbl-hdr-bg-2:' + _mdashDarkenHex(hdrBg, 0.14) + ';'
+        + '--mtbl-hdr-text:' + (stl.headerText || stl.headerTextColor || theme.headerText) + ';'
         + '--mtbl-accent:' + accentC + ';'
         + '--mtbl-row-even:' + (theme.rowEven) + ';'
         + '--mtbl-row-hover:' + (theme.rowHover) + ';'
         + '--mtbl-border:' + (theme.border) + ';'
         + '--mtbl-radius:' + (stl.borderRadius || 10) + 'px;'
-        + '--mtbl-fs:' + (stl.fontSize || 13) + 'px;';
+        + '--mtbl-fs:' + (hasConfiguredGroups ? Math.min(parseInt(stl.fontSize, 10) || 11, 11) : (stl.fontSize || 13)) + 'px;';
 
     var html = badgeHtml
         + '<div id="' + wrapId + '" class="mtbl-wrap" style="' + cssVars + '" data-stamp="' + stamp + '">'
@@ -1139,11 +1347,23 @@ function renderObjectTable(dados) {
         var dom = document.getElementById(tblId);
         if (!dom) return;
 
-        var columns = _tblBuildColumns(cfg, rows);
+        var columns = _tblBuildColumns(cfg, rows, {
+            useExecutivePreset: isSample && (!cfg.columns || !cfg.columns.length)
+        });
+        var hasGroupedColumns = _tblHasColumnGroups(columns);
+        if (hasGroupedColumns) _tblCompactGroupedColumns(columns);
+        var tabulatorColumns = hasGroupedColumns ? _tblFlattenColumnDefs(columns) : columns;
+
+        if (hasGroupedColumns) {
+            $('#' + wrapId)
+                .addClass('has-exec-header')
+                .find('.mtbl-exec-header').remove();
+            $('#' + tblId).before(_tblBuildExecutiveHeader(columns));
+        }
 
         var tblCfg = {
             data: rows,
-            columns: columns,
+            columns: tabulatorColumns,
             layout: cfg.layout || 'fitColumns',
             responsiveLayout: cfg.responsiveLayout || false,
             movableColumns: cfg.movableColumns || false,
@@ -1166,6 +1386,13 @@ function renderObjectTable(dados) {
             }
         };
 
+        rows = _tblNormalizeStructuredRows(rows, cfg.structuredRows, tabulatorColumns);
+        tblCfg.data = rows;
+
+        if (_tblHasStructuredRows(rows)) {
+            tblCfg.rowFormatter = _tblBuildStructuredRowFormatter(tabulatorColumns, cfg.structuredRows);
+        }
+
         if (cfg.height && cfg.height !== 'auto') tblCfg.height = cfg.height;
         if (cfg.maxHeight) tblCfg.maxHeight = cfg.maxHeight;
 
@@ -1181,10 +1408,15 @@ function renderObjectTable(dados) {
             tblCfg.dataTree = true;
             tblCfg.dataTreeChildField = '_children';
             tblCfg.dataTreeStartExpanded = cfg.dataTree.startExpanded !== false;
-            if (columns.length > 0) tblCfg.dataTreeElementColumn = columns[0].field;
+            if (tabulatorColumns.length > 0) tblCfg.dataTreeElementColumn = tabulatorColumns[0].field;
         }
 
         var table = new Tabulator('#' + tblId, tblCfg);
+        if (!hasGroupedColumns) {
+            setTimeout(function () {
+                _tblApplyHeaderPresentation(table, wrapId, cfg, theme);
+            }, 0);
+        }
 
         if (cfg.footer && cfg.footer.showRowCount) {
             table.on('dataFiltered', function (filters, filteredRows) {
@@ -1282,6 +1514,7 @@ function renderObjectTable(dados) {
         table.on('tableBuilt', function () {
             if (dom._mdashTableReady) return;
             dom._mdashTableReady = true;
+            if (!hasGroupedColumns) _tblApplyHeaderPresentation(table, wrapId, cfg, theme);
             
             // Aplicar filtro ativo (se houver) sem trigger para evitar toggle
             if (cfg.filters && cfg.filters.enabled && cfg.filters.activeFilterKey) {
@@ -1295,7 +1528,10 @@ function renderObjectTable(dados) {
             }
             
             if (window.ResizeObserver) {
-                var ro = new ResizeObserver(function () { table.redraw(); });
+                var ro = new ResizeObserver(function () {
+                    if (dom._mdashTableReady) table.redraw();
+                    if (!hasGroupedColumns) _tblApplyHeaderPresentation(table, wrapId, cfg, theme);
+                });
                 ro.observe(dom);
             }
             // ── Inline column rename via click ──
@@ -1364,10 +1600,15 @@ function renderObjectTable(dados) {
 }
 
 // ── Construir colunas Tabulator ──────────────────────────────────────────────
-function _tblBuildColumns(cfg, rows) {
+function _tblBuildColumns(cfg, rows, options) {
     var cols = cfg.columns || [];
+    var buildOptions = options || {};
+    if (buildOptions.useExecutivePreset) {
+        return _tblBuildColumnDefs(_tblGetExecutiveSampleColumns(), cfg, rows);
+    }
     if ((!cols.length || cfg.autoColumns) && cfg.autoColumns !== false && rows.length > 0) {
-        var keys = Object.keys(rows[0]);
+        var firstDataRow = rows.find(function (rowItem) { return rowItem && rowItem.__rowType !== 'section'; }) || rows[0];
+        var keys = Object.keys(firstDataRow || {}).filter(function (key) { return key.indexOf('__') !== 0; });
         return keys.map(function (k) {
             var col = {
                 title: k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '),
@@ -1376,7 +1617,7 @@ function _tblBuildColumns(cfg, rows) {
                 resizable: true,
                 sorter: _tblGuessSorter(rows, k)
             };
-            var sample = rows[0][k];
+            var sample = firstDataRow ? firstDataRow[k] : null;
             if (typeof sample === 'number') {
                 col.hozAlign = 'right';
                 if (k.match(/total|valor|preco|custo|salario|margem|price|amount/i)) {
@@ -1391,19 +1632,53 @@ function _tblBuildColumns(cfg, rows) {
             return col;
         });
     }
-    return cols.filter(function (c) { return c.visible !== false; }).map(function (c) {
-        var col = {
-            title: c.title || c.field,
-            field: c.field,
-            hozAlign: c.hozAlign || 'left',
-            vertAlign: c.vertAlign || 'middle',
-            resizable: c.resizable !== false,
-            frozen: c.frozen || false,
-            sorter: c.sorter || 'string',
-            headerFilter: (cfg.headerFilter === true && c.headerFilter !== false) ? 'input' : false
+    return _tblBuildColumnDefs(cols, cfg, rows);
+}
+
+function _tblBuildColumnDefs(cols, cfg, rows) {
+    return (cols || [])
+        .filter(function (c) { return c && c.visible !== false; })
+        .map(function (c, idx) {
+            if (Array.isArray(c.columns) && c.columns.length) {
+                var groupClasses = ['mtbl-col-group-lvl1', 'mtbl-col-group-idx-' + idx];
+                if (c.cssClass) groupClasses.unshift(c.cssClass);
+                return {
+                    title: c.title || '',
+                    headerHozAlign: c.headerHozAlign || 'center',
+                    cssClass: groupClasses.join(' '),
+                    columns: _tblBuildColumnDefs(c.columns, cfg, rows)
+                };
+            }
+            return _tblBuildLeafColumn(c, cfg, rows);
+        });
+}
+
+function _tblBuildLeafColumn(c, cfg, rows) {
+    var col = {
+        title: c.title || c.field,
+        field: c.field,
+        hozAlign: c.hozAlign || 'left',
+        vertAlign: c.vertAlign || 'middle',
+        resizable: c.resizable !== false,
+        frozen: c.frozen || false,
+        sorter: c.sorter || 'string',
+        headerFilter: (cfg.headerFilter === true && c.headerFilter !== false) ? 'input' : false
+    };
+    if (c.width) col.width = c.width;
+    if (c.minWidth) col.minWidth = c.minWidth;
+    if (c.headerSort === false) col.headerSort = false;
+    if (c.headerHozAlign) col.headerHozAlign = c.headerHozAlign;
+    if (c.cssClass) col.cssClass = c.cssClass;
+    if (c.semantic) {
+        col.formatter = _tblSemanticFormatter;
+        col.formatterParams = {
+            semantic: c.semantic,
+            displayField: c.displayField || '',
+            precision: c.precision
         };
-        if (c.width) col.width = c.width;
-        if (c.minWidth) col.minWidth = c.minWidth;
+        if (!c.sorter || c.semantic === 'deltaBadge') col.sorter = 'number';
+        if (!c.hozAlign && c.semantic !== 'indicator') col.hozAlign = 'right';
+    } else {
         // Aceitar urlExpr/labelExpr/target no topo da coluna (UX) — copiar p/ formatterParams
         if (c.formatter === 'link' || c.formatter === 'linkButton') {
             var fp = (c.formatterParams && typeof c.formatterParams === 'object')
@@ -1418,13 +1693,11 @@ function _tblBuildColumns(cfg, rows) {
         }
         if (c.formatter) {
             if (c.formatter === 'linkButton') {
-                // Custom formatter: renderiza um <button> e navega via JS (resolve URLs relativas)
                 col.formatterParams = _tblPrepareFormatterParams('link', c.formatterParams || {});
                 col.formatter = _tblLinkButtonFormatter;
-                col.cellClick = function () { }; // ignora; o botão trata
+                col.cellClick = function () { };
                 col.hozAlign = c.hozAlign || 'center';
             } else if (c.formatter === 'date') {
-                // Formata apenas a data (dd/mm/aaaa) — descarta a hora
                 col.formatter = function (cell) {
                     var v = cell.getValue();
                     if (v === null || v === undefined || v === '') return '';
@@ -1445,8 +1718,435 @@ function _tblBuildColumns(cfg, rows) {
                 }
             }
         }
-        return col;
+    }
+    return col;
+}
+
+function _tblSafeNumber(value) {
+    if (typeof value === 'number') return value;
+    if (value === null || value === undefined || value === '') return 0;
+    if (typeof value === 'string') {
+        var normalized = value.replace(/\s/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.');
+        var parsed = parseFloat(normalized);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+    var asNumber = Number(value);
+    return isNaN(asNumber) ? 0 : asNumber;
+}
+
+function _tblFormatCurrency(value, precision) {
+    var amount = _tblSafeNumber(value);
+    try {
+        return new Intl.NumberFormat('pt-PT', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: precision === undefined ? 2 : precision,
+            maximumFractionDigits: precision === undefined ? 2 : precision
+        }).format(amount);
+    } catch (e) {
+        return amount.toFixed(precision === undefined ? 2 : precision) + ' EUR';
+    }
+}
+
+function _tblSemanticFormatter(cell, formatterParams) {
+    var rowData = cell.getData() || {};
+    if (rowData.__rowType === 'section') return '';
+    var semantic = (formatterParams && formatterParams.semantic) || '';
+    var value = cell.getValue();
+    if (semantic === 'indicator') {
+        var indicatorClasses = 'mtbl-indicator-cell' + (rowData.__rowType === 'total' ? ' is-total' : '');
+        if (rowData.__rowType === 'total' && rowData.__rowBulletStyle) {
+            return '<div class="' + indicatorClasses + '"><span class="mtbl-inline-bullet mtbl-bullet-' + _mciEsc(rowData.__rowBulletStyle) + '">' + _mciEsc(value) + '</span></div>';
+        }
+        return '<div class="' + indicatorClasses + '">' + _mciEsc(value) + '</div>';
+    }
+    if (semantic === 'moneyStrong') {
+        return '<span class="mtbl-num is-strong">' + _mciEsc(_tblFormatCurrency(value, formatterParams.precision)) + '</span>';
+    }
+    if (semantic === 'moneySoft') {
+        return '<span class="mtbl-num is-soft">' + _mciEsc(_tblFormatCurrency(value, formatterParams.precision)) + '</span>';
+    }
+    if (semantic === 'moneyMuted') {
+        return '<span class="mtbl-num is-muted">' + _mciEsc(_tblFormatCurrency(value, formatterParams.precision)) + '</span>';
+    }
+    if (semantic === 'deltaBadge') {
+        var displayField = formatterParams && formatterParams.displayField;
+        var displayText = displayField && rowData[displayField] ? rowData[displayField] : value;
+        var numericValue = _tblSafeNumber(value);
+        var deltaClass = 'is-neutral';
+        if (numericValue > 0) deltaClass = 'is-positive';
+        if (numericValue < 0) deltaClass = 'is-negative';
+        return '<span class="mtbl-delta-badge ' + deltaClass + '">' + _mciEsc(displayText) + '</span>';
+    }
+    return _mciEsc(value);
+}
+
+function _tblHasStructuredRows(rows) {
+    return Array.isArray(rows) && rows.some(function (rowItem) {
+        return rowItem && (rowItem.__rowType || rowItem.__rowLevel);
     });
+}
+
+function _tblNormalizeStructuredRows(rows, structuredCfg, columns) {
+    var cfg = structuredCfg || {};
+    if (!cfg.enabled) return rows;
+    if (cfg.groupField) return _tblBuildGroupedRowsFromFields(rows, cfg, _tblFindFirstLeafField(columns) || 'indicador');
+    var legacyTypeField = cfg.typeField || '__rowType';
+    var hasLegacyStructuredRows = (rows || []).some(function (sourceRow) {
+        return sourceRow && (sourceRow.__rowType !== undefined || sourceRow[legacyTypeField] !== undefined);
+    });
+    if (!hasLegacyStructuredRows) return rows;
+    var typeField = cfg.typeField || '__rowType';
+    var levelField = cfg.levelField || '__rowLevel';
+    var sectionValue = String(cfg.sectionValue || 'section').toLowerCase();
+    var dataValue = String(cfg.dataValue || 'data').toLowerCase();
+    var totalValue = String(cfg.totalValue || 'total').toLowerCase();
+
+    return (rows || []).map(function (sourceRow) {
+        if (!sourceRow) return sourceRow;
+        var row = Object.assign({}, sourceRow);
+        delete row.__rowType;
+        delete row.__rowLevel;
+        delete row.__rowBackground;
+        delete row.__rowTextColor;
+        delete row.__rowAccentColor;
+        delete row.__rowBulletStyle;
+        var sourceType = String(sourceRow[typeField] === undefined ? '' : sourceRow[typeField]).toLowerCase();
+        if (sourceType === sectionValue) row.__rowType = 'section';
+        else if (sourceType === totalValue) row.__rowType = 'total';
+        else if (sourceType === dataValue || sourceType) row.__rowType = 'data';
+        row.__rowLevel = Math.max(0, Math.min(parseInt(sourceRow[levelField], 10) || 0, 4));
+        if (cfg.backgroundField && sourceRow[cfg.backgroundField]) row.__rowBackground = sourceRow[cfg.backgroundField];
+        if (cfg.textColorField && sourceRow[cfg.textColorField]) row.__rowTextColor = sourceRow[cfg.textColorField];
+        if (cfg.accentColorField && sourceRow[cfg.accentColorField]) row.__rowAccentColor = sourceRow[cfg.accentColorField];
+        if (row.__rowType === 'section') row.__rowBulletStyle = _tblGetLevelStyle(cfg, row.__rowLevel, 'section').bullet;
+        if (row.__rowType === 'total') row.__rowBulletStyle = _tblGetLevelStyle(cfg, row.__rowLevel, 'total').bullet;
+        return row;
+    });
+}
+
+function _tblGetGroupingLevels(cfg) {
+    if (Array.isArray(cfg.groupLevels) && cfg.groupLevels.length) {
+        return cfg.groupLevels.filter(function (level) { return level && level.field; });
+    }
+    var levels = [];
+    if (cfg.groupField) levels.push({ field: cfg.groupField });
+    if (cfg.subgroupField) levels.push({ field: cfg.subgroupField });
+    return levels;
+}
+
+function _tblGetLevelStyle(cfg, rowLevel, rowType) {
+    if (rowType === 'total') {
+        return {
+            bg: cfg.totalBg || '#eef4ff',
+            text: cfg.totalText || '#0f172a',
+            accent: cfg.totalAccent || cfg.totalText || '#0f172a',
+            bullet: cfg.totalBullet || 'bar'
+        };
+    }
+    if (Array.isArray(cfg.levelStyles) && cfg.levelStyles[rowLevel]) {
+        return cfg.levelStyles[rowLevel];
+    }
+    if (rowLevel <= 0) {
+        return {
+            bg: cfg.sectionBg || '#eef4ff',
+            text: cfg.sectionText || '#d40032',
+            accent: cfg.sectionAccent || cfg.sectionText || '#d40032',
+            bullet: cfg.sectionBullet || 'circle'
+        };
+    }
+    return {
+        bg: cfg.subgroupBg || '#f8fafc',
+        text: cfg.subgroupText || '#334155',
+        accent: cfg.subgroupAccent || cfg.subgroupText || '#64748b',
+        bullet: cfg.subgroupBullet || 'diamond'
+    };
+}
+
+function _tblBuildStructuredMarkerRow(labelField, labelValue, rowType, rowLevel, sourceRow, cfg) {
+    var row = {};
+    var levelStyle = _tblGetLevelStyle(cfg, rowLevel, rowType);
+    row[labelField] = labelValue;
+    row.__rowType = rowType;
+    row.__rowLevel = rowLevel;
+    row.__rowBackground = sourceRow && cfg.backgroundField && sourceRow[cfg.backgroundField]
+        ? sourceRow[cfg.backgroundField]
+        : levelStyle.bg;
+    row.__rowTextColor = sourceRow && cfg.textColorField && sourceRow[cfg.textColorField]
+        ? sourceRow[cfg.textColorField]
+        : levelStyle.text;
+    row.__rowAccentColor = sourceRow && cfg.accentColorField && sourceRow[cfg.accentColorField]
+        ? sourceRow[cfg.accentColorField]
+        : levelStyle.accent;
+    row.__rowBulletStyle = levelStyle.bullet;
+    return row;
+}
+
+function _tblBuildGroupedRowsFromFields(rows, cfg, labelField) {
+    var levels = _tblGetGroupingLevels(cfg);
+    if (!levels.length) return rows;
+    var result = [];
+    var lastValues = [];
+
+    (rows || []).forEach(function (sourceRow) {
+        if (!sourceRow) return;
+        // Ignore legacy/sample structural rows when grouping by explicit fields.
+        // Otherwise a sample "section" row becomes an empty data row and the group repeats.
+        if (sourceRow.__rowType === 'section' || sourceRow.__rowType === 'total') return;
+        levels.forEach(function (level, levelIndex) {
+            var rawValue = sourceRow[level.field];
+            var normalizedValue = rawValue === undefined || rawValue === null || rawValue === '' ? '' : String(rawValue);
+            if (!normalizedValue) return;
+            if (normalizedValue !== lastValues[levelIndex]) {
+                result.push(_tblBuildStructuredMarkerRow(labelField, normalizedValue, 'section', levelIndex, sourceRow, cfg));
+                lastValues[levelIndex] = normalizedValue;
+                for (var resetIdx = levelIndex + 1; resetIdx < levels.length; resetIdx++) lastValues[resetIdx] = undefined;
+            }
+        });
+
+        var activeLevels = levels.reduce(function (count, level) {
+            return count + (sourceRow[level.field] !== undefined && sourceRow[level.field] !== null && sourceRow[level.field] !== '' ? 1 : 0);
+        }, 0);
+        var row = Object.assign({}, sourceRow);
+        row.__rowType = 'data';
+        row.__rowLevel = activeLevels > 0 ? activeLevels : 0;
+        if (cfg.backgroundField && sourceRow[cfg.backgroundField]) row.__rowBackground = sourceRow[cfg.backgroundField];
+        if (cfg.textColorField && sourceRow[cfg.textColorField]) row.__rowTextColor = sourceRow[cfg.textColorField];
+        if (cfg.accentColorField && sourceRow[cfg.accentColorField]) row.__rowAccentColor = sourceRow[cfg.accentColorField];
+        result.push(row);
+    });
+
+    return result;
+}
+
+function _tblBuildManualStructuredRows(dataRows, cfg, columns) {
+    var manualRows = Array.isArray(cfg.manualRows) ? cfg.manualRows : [];
+    if (!manualRows.length) return dataRows;
+    var labelField = cfg.labelField || _tblFindFirstLeafField(columns) || 'indicador';
+    var numericFields = {};
+    (dataRows || []).forEach(function (row) {
+        if (!row || row.__rowType === 'section' || row.__rowType === 'total') return;
+        Object.keys(row).forEach(function (key) {
+            if (key.indexOf('__') === 0 || key === labelField) return;
+            if (typeof row[key] === 'number') numericFields[key] = true;
+        });
+    });
+
+    function buildTotalRow(item) {
+        var totalRow = _tblBuildStructuredMarkerRow(labelField, item.label || 'Total', 'total', parseInt(item.level, 10) || 0, null, cfg, false);
+        Object.keys(numericFields).forEach(function (field) {
+            totalRow[field] = (dataRows || []).reduce(function (sum, row) {
+                if (!row || row.__rowType === 'section' || row.__rowType === 'total') return sum;
+                return sum + (typeof row[field] === 'number' ? row[field] : 0);
+            }, 0);
+        });
+        return totalRow;
+    }
+
+    function buildMarker(item) {
+        if (item.kind === 'total') return buildTotalRow(item);
+        return _tblBuildStructuredMarkerRow(
+            labelField,
+            item.label || (item.kind === 'subgroup' ? 'Subgrupo' : 'Grupo'),
+            'section',
+            parseInt(item.level, 10) || (item.kind === 'subgroup' ? 1 : 0),
+            null,
+            cfg,
+            item.kind === 'subgroup'
+        );
+    }
+
+    var beforeData = [];
+    var afterData = [];
+    manualRows.forEach(function (item) {
+        if (!item || !item.kind) return;
+        var row = buildMarker(item);
+        if ((item.position || 'beforeData') === 'afterData') afterData.push(row);
+        else beforeData.push(row);
+    });
+    return beforeData.concat(dataRows || []).concat(afterData);
+}
+
+function _tblFindFirstLeafField(columns) {
+    for (var i = 0; i < (columns || []).length; i++) {
+        var col = columns[i];
+        if (!col) continue;
+        if (Array.isArray(col.columns) && col.columns.length) {
+            var nested = _tblFindFirstLeafField(col.columns);
+            if (nested) return nested;
+        } else if (col.field) {
+            return col.field;
+        }
+    }
+    return '';
+}
+
+function _tblHasLeafField(columns, fieldName) {
+    if (!fieldName) return false;
+    for (var i = 0; i < (columns || []).length; i++) {
+        var col = columns[i];
+        if (!col) continue;
+        if (Array.isArray(col.columns) && col.columns.length) {
+            if (_tblHasLeafField(col.columns, fieldName)) return true;
+        } else if (col.field === fieldName) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function _tblBuildStructuredRowFormatter(columns, structuredCfg) {
+    var firstField = _tblFindFirstLeafField(columns);
+    var cfg = structuredCfg || {};
+    return function (row) {
+        var data = row.getData() || {};
+        var rowEl = row.getElement();
+        var rowType = data.__rowType || 'data';
+        var rowLevel = parseInt(data.__rowLevel, 10) || 0;
+        var resolvedTextColor = data.__rowTextColor || '';
+        rowEl.classList.remove('mtbl-row-section', 'mtbl-row-total', 'mtbl-row-data', 'mtbl-row-level-1', 'mtbl-row-level-2');
+        rowEl.classList.add('mtbl-row-' + rowType);
+        if (rowLevel > 0) rowEl.classList.add('mtbl-row-level-' + Math.min(rowLevel, 2));
+        if (rowType === 'section') {
+            var isSubgroup = rowLevel > 0;
+            rowEl.classList.add('mtbl-row-section');
+            rowEl.style.setProperty('background', data.__rowBackground || (isSubgroup ? cfg.subgroupBg : cfg.sectionBg) || '#eef4ff', 'important');
+            resolvedTextColor = resolvedTextColor || (isSubgroup ? cfg.subgroupText : cfg.sectionText) || '#d40032';
+            rowEl.style.setProperty('color', resolvedTextColor);
+            rowEl.style.setProperty('--mtbl-row-accent', data.__rowAccentColor || (isSubgroup ? cfg.subgroupAccent : cfg.sectionAccent) || '#d40032');
+            row.getCells().forEach(function (cell) {
+                var cellEl = cell.getElement();
+                if (cell.getField() === firstField) {
+                    cellEl.innerHTML = '<span class="mtbl-section-label mtbl-bullet-' + _mciEsc(data.__rowBulletStyle || (isSubgroup ? cfg.subgroupBullet : cfg.sectionBullet) || 'circle') + '">' + _mciEsc(data[firstField] || '') + '</span>';
+                    var labelEl = cellEl.querySelector('.mtbl-section-label');
+                    if (labelEl) {
+                        labelEl.style.color = resolvedTextColor;
+                        if (isSubgroup) labelEl.style.marginLeft = Math.min(rowLevel, 4) * 8 + 'px';
+                    }
+                } else {
+                    cellEl.innerHTML = '';
+                }
+            });
+            return;
+        }
+        if (rowType === 'total') {
+            rowEl.classList.add('mtbl-row-total');
+            rowEl.style.setProperty('background', data.__rowBackground || cfg.totalBg || '#eef4ff', 'important');
+            resolvedTextColor = resolvedTextColor || cfg.totalText || '#0f172a';
+        } else if (rowLevel > 0) {
+            rowEl.style.setProperty('background', data.__rowBackground || cfg.subgroupBg || '#f8fafc', 'important');
+            resolvedTextColor = resolvedTextColor || cfg.subgroupText || '#334155';
+        }
+        row.getCells().forEach(function (cell) {
+            if (resolvedTextColor) cell.getElement().style.color = resolvedTextColor;
+        });
+    };
+}
+
+function _tblApplyHeaderPresentation(table, wrapId, cfg, theme) {
+    try {
+        var wrapEl = document.getElementById(wrapId);
+        if (!wrapEl) return;
+        var headerEl = wrapEl.querySelector('.tabulator .tabulator-header');
+        if (!headerEl) return;
+
+        var stl = cfg && cfg.styling ? cfg.styling : {};
+        var headerBg = stl.headerBg || stl.headerBackgroundColor || theme.headerBg || '#1a3a6c';
+        var headerBg2 = _mdashDarkenHex(headerBg, 0.14);
+        var headerText = stl.headerText || stl.headerTextColor || theme.headerText || '#f8fafc';
+
+        headerEl.style.background = 'linear-gradient(180deg,' + headerBg + ' 0%,' + headerBg2 + ' 100%)';
+        headerEl.style.borderBottom = 'none';
+        headerEl.style.borderRadius = (stl.borderRadius || 16) + 'px ' + (stl.borderRadius || 16) + 'px 0 0';
+        headerEl.style.boxShadow = 'inset 0 -1px 0 rgba(255,255,255,.08)';
+
+        var topLevelDefs = Array.isArray(cfg && cfg.columns) ? cfg.columns.slice() : [];
+        var topLevelGroupDefs = topLevelDefs.filter(function (def) {
+            return def && Array.isArray(def.columns) && def.columns.length;
+        });
+        var groupHeaderEls = headerEl.querySelectorAll('.tabulator-col.tabulator-col-group');
+        var headerCols = headerEl.querySelectorAll('.tabulator-col');
+        Array.prototype.forEach.call(headerCols, function (colEl) {
+            var isGroup = colEl.classList.contains('tabulator-col-group');
+            colEl.style.background = colEl.classList.contains('tabulator-col-group') ? headerBg2 : headerBg;
+            colEl.style.color = headerText;
+            colEl.style.opacity = '1';
+            colEl.style.visibility = 'visible';
+            colEl.style.borderRight = '1px solid rgba(255,255,255,.08)';
+            colEl.style.padding = isGroup ? '2px 8px' : '5px 10px';
+            colEl.style.position = '';
+            colEl.style.display = '';
+            colEl.style.flexDirection = '';
+            colEl.style.overflow = '';
+
+            var contentEl = colEl.querySelector('.tabulator-col-content');
+            if (contentEl) {
+                contentEl.style.color = headerText;
+                contentEl.style.opacity = '1';
+                contentEl.style.visibility = 'visible';
+                contentEl.style.display = 'flex';
+                contentEl.style.alignItems = 'center';
+                contentEl.style.justifyContent = 'center';
+                contentEl.style.position = '';
+                contentEl.style.zIndex = '';
+                contentEl.style.height = '';
+                contentEl.style.minHeight = isGroup ? '18px' : '28px';
+                contentEl.style.flex = '';
+                contentEl.style.padding = isGroup ? '0 2px' : '0 2px';
+                contentEl.style.background = isGroup ? headerBg2 : headerBg;
+            }
+
+            var holderEl = colEl.querySelector('.tabulator-col-title-holder');
+            if (holderEl) {
+                holderEl.style.color = headerText;
+                holderEl.style.opacity = '1';
+                holderEl.style.visibility = 'visible';
+                holderEl.style.display = 'flex';
+                holderEl.style.alignItems = 'center';
+                holderEl.style.justifyContent = 'center';
+                holderEl.style.width = '100%';
+                holderEl.style.height = '';
+                holderEl.style.background = isGroup ? headerBg2 : headerBg;
+            }
+
+            var titleEl = colEl.querySelector('.tabulator-col-title');
+            if (titleEl) {
+                titleEl.style.color = headerText;
+                titleEl.style.opacity = '1';
+                titleEl.style.visibility = 'visible';
+                titleEl.style.display = 'block';
+                titleEl.style.whiteSpace = 'normal';
+                titleEl.style.lineHeight = '1.15';
+                titleEl.style.fontWeight = isGroup ? '800' : '700';
+                titleEl.style.fontSize = isGroup ? '10px' : '11px';
+                titleEl.style.background = isGroup ? headerBg2 : headerBg;
+                if (isGroup) {
+                    var groupIndex = Array.prototype.indexOf.call(groupHeaderEls, colEl);
+                    var groupDef = topLevelGroupDefs[groupIndex];
+                    if (groupDef && groupDef.title) titleEl.textContent = groupDef.title;
+                } else if (!titleEl.textContent || !titleEl.textContent.trim()) {
+                    var field = colEl.getAttribute('tabulator-field');
+                    if (field) {
+                        var foundTitle = _tblFindColumnTitleByField(topLevelDefs, field);
+                        if (foundTitle) titleEl.textContent = foundTitle;
+                    }
+                }
+            }
+
+            var groupColsEl = colEl.querySelector('.tabulator-col-group-cols');
+            if (groupColsEl) {
+                groupColsEl.style.position = '';
+                groupColsEl.style.zIndex = '';
+                groupColsEl.style.display = '';
+                groupColsEl.style.flex = '';
+                groupColsEl.style.borderTop = '1px solid rgba(255,255,255,.1)';
+                groupColsEl.style.marginTop = '0';
+                groupColsEl.style.background = headerBg;
+            }
+        });
+    } catch (err) {
+        console.warn('[MDash] _tblApplyHeaderPresentation error:', err.message);
+    }
 }
 
 // ── Base URL da aplicação (resolve URLs relativas tipo "../intranet/...") ────
@@ -2054,18 +2754,22 @@ function renderTablePropertiesInline(obj, panel) {
         + _mciChk('mtbl-autocols', 'Auto-gerar colunas', cfg.autoColumns !== false)
         + '</div>'
         + '<div class="mtbl-cols-manual" style="' + (cfg.autoColumns !== false ? 'display:none;' : '') + '">'
-        + '<div class="mtbl-col-list" style="max-height:300px;overflow:auto;">';
+        + '<div class="mtbl-column-actions" style="display:flex;flex-direction:column;gap:5px;margin:4px 0 8px;padding-bottom:8px;border-bottom:1px solid rgba(0,0,0,.08);">'
+        + '<button type="button" class="btn btn-xs mtbl-add-group" style="display:block;width:100%;min-height:32px;border:1px solid #d40032;background:#d40032;color:#fff;font-weight:700;"><i class="glyphicon glyphicon-folder-open"></i> Adicionar grupo de colunas</button>'
+        + '<button type="button" class="btn btn-xs btn-default mtbl-add-col" style="display:block;width:100%;min-height:30px;"><i class="glyphicon glyphicon-plus"></i> Adicionar coluna simples</button>'
+        + '</div>'
+        + '<div class="mtbl-col-list" style="max-height:260px;overflow:auto;padding-right:3px;">';
     var manualCols = cfg.columns || [];
     if (manualCols.length) {
         manualCols.forEach(function (c, i) {
-            sColunas += _tblColCard(c, i, fields);
+            sColunas += (c && Array.isArray(c.columns))
+                ? _tblGroupCard(c, i, fields)
+                : _tblColCard(c, i, fields);
         });
     } else {
         sColunas += '<div class="mcbi-info">Desative "Auto-gerar" e adicione colunas manualmente.</div>';
     }
-    sColunas += '</div>'
-        + '<button type="button" class="btn btn-xs btn-default mtbl-add-col" style="margin-top:6px;width:100%;"><i class="glyphicon glyphicon-plus"></i> Adicionar coluna</button>'
-        + '</div>';
+    sColunas += '</div></div>';
 
     // ── Sec\u00e7\u00e3o: Hierarquia ──
     var dt = cfg.dataTree || {};
@@ -2083,6 +2787,41 @@ function renderTablePropertiesInline(obj, panel) {
         + '</div>'
         + '<div class="mcbi-checks">'
         + _mciChk('mtbl-tree-expand', 'Expandir tudo inicialmente', dt.startExpanded !== false)
+        + '</div></div>';
+
+    // ── Secção: Linhas e grupos ──
+    var sr = cfg.structuredRows || {};
+    var srLevels = Array.isArray(sr.groupLevels)
+        ? sr.groupLevels.filter(function (level) { return level && level.field; })
+        : [
+            { field: sr.groupField || '', bg: sr.sectionBg || '#eef4ff', text: sr.sectionText || '#d40032', accent: sr.sectionAccent || '#d40032', bullet: sr.sectionBullet || 'circle' },
+            { field: sr.subgroupField || '', bg: sr.subgroupBg || '#f8fafc', text: sr.subgroupText || '#334155', accent: sr.subgroupAccent || '#64748b', bullet: sr.subgroupBullet || 'diamond' }
+        ].filter(function (level) { return level.field; });
+    var sStructuredRows = '<div class="mcbi-checks">'
+        + _mciChk('mtbl-rows-enable', 'Ativar linhas agrupadas', sr.enabled === true)
+        + '</div>'
+        + '<div class="mtbl-rows-config" style="' + (sr.enabled ? '' : 'display:none;') + '">'
+        + '<div class="mcbi-info" style="margin-bottom:8px;">Adicione os niveis da hierarquia pela ordem: nivel 1, nivel 2, nivel 3. O nome do grupo aparece sempre na primeira coluna visivel.</div>'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0 6px;">'
+        + '<div style="font-size:10px;font-weight:800;color:#475569;text-transform:uppercase;">Niveis</div>'
+        + '<button type="button" class="btn btn-xs btn-default mtbl-add-level"><i class="glyphicon glyphicon-plus"></i> Adicionar nivel</button>'
+        + '</div>'
+        + '<div class="mtbl-levels">';
+    if (srLevels.length) {
+        srLevels.forEach(function (level, idx) {
+            sStructuredRows += _tblGroupLevelRow(level, idx, fields);
+        });
+    } else {
+        sStructuredRows += '<div class="mcbi-info">Nenhum nivel definido. Adicione pelo menos um nivel de agrupamento.</div>';
+    }
+    sStructuredRows += '</div>'
+        + '<div style="font-size:10px;font-weight:800;color:#475569;text-transform:uppercase;margin:10px 0 5px;">Estilo por nível</div>'
+        + _tblRowStyleEditor('Total', 'total', { bg: sr.totalBg || '#eef4ff', text: sr.totalText || '#0f172a', accent: sr.totalAccent || sr.totalText || '#0f172a', bullet: sr.totalBullet || 'bar' })
+        + '<div style="font-size:10px;font-weight:800;color:#475569;text-transform:uppercase;margin:9px 0 5px;">Cores específicas vindas da fonte</div>'
+        + '<div class="mcbi-field"><label>Campo cor de fundo</label><select class="mtbl-row-bg-field form-control input-sm">' + _tblFieldOpts(fields, sr.backgroundField || '__rowBackground') + '</select></div>'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Campo cor texto</label><select class="mtbl-row-text-field form-control input-sm">' + _tblFieldOpts(fields, sr.textColorField || '__rowTextColor') + '</select></div>'
+        + '<div class="mcbi-field"><label>Campo cor destaque</label><select class="mtbl-row-accent-field form-control input-sm">' + _tblFieldOpts(fields, sr.accentColorField || '__rowAccentColor') + '</select></div>'
         + '</div></div>';
 
     // ── Sec\u00e7\u00e3o: Exporta\u00e7\u00e3o ──
@@ -2148,6 +2887,7 @@ function renderTablePropertiesInline(obj, panel) {
         + _mciSection('filtros', 'Filtros Rápidos', 'glyphicon-filter', false, sFiltros)
         + _mciSection('paginacao', 'Paginação', 'glyphicon-forward', false, sPagination)
         + _mciSection('colunas', 'Colunas', 'glyphicon-th-list', false, sColunas)
+        + _mciSection('linhas-grupos', 'Linhas e Grupos', 'glyphicon-align-left', false, sStructuredRows)
         + _mciSection('hierarquia', 'Hierarquia', 'glyphicon-tree-deciduous', false, sTree)
         + _mciSection('exportacao', 'Exportação', 'glyphicon-download-alt', false, sExport)
         + _mciSection('estilo', 'Estilo Avançado', 'glyphicon-tint', false, sEstilo)
@@ -2175,8 +2915,8 @@ function renderTablePropertiesInline(obj, panel) {
             if (!this.checked) {
                 var _af = _mciGetFields(obj);
                 if (!_af.length) {
-                    var _sRows = (typeof getMdashSampleData === 'function') ? getMdashSampleData('table') : [];
-                    if (_sRows && _sRows.length) _af = Object.keys(_sRows[0]);
+                    var _sRows = _tblGetExecutiveSampleRows();
+                    if (_sRows && _sRows.length) _af = _tblGetExecutiveSampleFieldNames();
                 }
                 var $clist = panel.find('.mtbl-col-list');
                 $clist.empty();
@@ -2194,6 +2934,9 @@ function renderTablePropertiesInline(obj, panel) {
         // Tree toggle
         if ($(this).hasClass('mtbl-tree')) {
             panel.find('.mtbl-tree-opts').toggle(this.checked);
+        }
+        if ($(this).hasClass('mtbl-rows-enable')) {
+            panel.find('.mtbl-rows-config').toggle(this.checked);
         }
         fire();
     });
@@ -2282,6 +3025,52 @@ function renderTablePropertiesInline(obj, panel) {
     // Inputs change — apenas no 'change' (blur/Enter), NÃO em 'input'/keyup,
     // para evitar refresh constante da tabela enquanto se digita.
     panel.on('change.tblinline', 'select, input[type="text"], input[type="number"], input[type="color"]', function () {
+        if ($(this).hasClass('mtbl-gl-field')) {
+            var $card = $(this).closest('.mtbl-gl');
+            var idx = $card.parent().find('.mtbl-gl').index($card) + 1;
+            $card.find('.mcbi-sr-title').text($(this).val() || ('Nivel ' + idx));
+        }
+        if ($(this).hasClass('mtbl-gl-accent')) {
+            var $cardAccent = $(this).closest('.mtbl-gl');
+            var color = $(this).val() || '#64748b';
+            $cardAccent.css('border-left-color', color);
+            $cardAccent.find('.mcbi-sr-badge').css('background', color);
+        }
+        fire();
+    });
+
+    panel.on('click.tblinline', '.mtbl-add-level', function () {
+        var newFields = _mciGetFields(obj);
+        if (!newFields.length) newFields = _tblGetExecutiveSampleFieldNames();
+        var $list = panel.find('.mtbl-levels');
+        $list.find('.mcbi-info').remove();
+        var idx = $list.children('.mtbl-gl').length;
+        var defaultStyles = idx === 0
+            ? { field: newFields[0] || '', bg: '#eef4ff', text: '#d40032', accent: '#d40032', bullet: 'circle' }
+            : { field: newFields[idx] || newFields[0] || '', bg: '#f8fafc', text: '#334155', accent: '#64748b', bullet: 'diamond' };
+        $list.append(_tblGroupLevelRow(defaultStyles, idx, newFields));
+        fire();
+    });
+
+    panel.on('click.tblinline', '.mtbl-gl .mcbi-sr-hd, .mtbl-gl .mcbi-sr-tog', function (e) {
+        if ($(e.target).closest('.mtbl-gl-remove').length) return;
+        $(this).closest('.mtbl-gl').toggleClass('is-open');
+    });
+
+    panel.on('click.tblinline', '.mtbl-gl-remove', function (e) {
+        e.stopPropagation();
+        $(this).closest('.mtbl-gl').remove();
+        var $levels = panel.find('.mtbl-levels');
+        if (!$levels.children('.mtbl-gl').length) {
+            $levels.html('<div class="mcbi-info">Nenhum nivel definido. Adicione pelo menos um nivel de agrupamento.</div>');
+        }
+        panel.find('.mtbl-levels .mtbl-gl').each(function (idx) {
+            $(this).attr('data-idx', idx);
+            $(this).find('.mcbi-sr-idx').text('N' + (idx + 1));
+            if (!$(this).find('.mtbl-gl-field').val()) {
+                $(this).find('.mcbi-sr-title').text('Nivel ' + (idx + 1));
+            }
+        });
         fire();
     });
 
@@ -2289,8 +3078,8 @@ function renderTablePropertiesInline(obj, panel) {
     panel.on('click.tblinline', '.mtbl-add-col', function () {
         var newFields = _mciGetFields(obj);
         if (!newFields.length) {
-            var _sr = (typeof getMdashSampleData === 'function') ? getMdashSampleData('table') : [];
-            if (_sr && _sr.length) newFields = Object.keys(_sr[0]);
+            var _sr = _tblGetExecutiveSampleRows();
+            if (_sr && _sr.length) newFields = _tblGetExecutiveSampleFieldNames();
         }
         var usedFields = [];
         panel.find('.mtbl-col-field').each(function () { usedFields.push($(this).val()); });
@@ -2306,9 +3095,48 @@ function renderTablePropertiesInline(obj, panel) {
         fire();
     });
 
+    // Add column group
+    panel.on('click.tblinline', '.mtbl-add-group', function () {
+        var newFields = _mciGetFields(obj);
+        if (!newFields.length) newFields = _tblGetExecutiveSampleFieldNames();
+        var $list = panel.find('.mtbl-col-list');
+        $list.find('.mcbi-info').remove();
+        var idx = $list.children('.mtbl-col-card, .mtbl-col-group-card').length;
+        var firstField = newFields.length ? newFields[0] : '';
+        $list.append(_tblGroupCard({
+            title: 'Novo grupo',
+            columns: [{ field: firstField, title: firstField || 'Coluna', visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }]
+        }, idx, newFields));
+        fire();
+    });
+
+    // Add column inside a group
+    panel.on('click.tblinline', '.mtbl-group-add-col', function () {
+        var newFields = _mciGetFields(obj);
+        if (!newFields.length) newFields = _tblGetExecutiveSampleFieldNames();
+        var usedFields = [];
+        panel.find('.mtbl-col-field').each(function () { usedFields.push($(this).val()); });
+        var nextField = '';
+        for (var _fi = 0; _fi < newFields.length; _fi++) {
+            if (usedFields.indexOf(newFields[_fi]) === -1) { nextField = newFields[_fi]; break; }
+        }
+        if (!nextField && newFields.length) nextField = newFields[0];
+        var $groupList = $(this).closest('.mtbl-col-group-card').find('.mtbl-group-col-list').first();
+        $groupList.find('.mcbi-info').remove();
+        var idx = $groupList.children('.mtbl-col-card').length;
+        $groupList.append(_tblColCard({ field: nextField, title: nextField, visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }, idx, newFields));
+        fire();
+    });
+
     // Remove column
     panel.on('click.tblinline', '.mtbl-col-remove', function () {
         $(this).closest('.mtbl-col-card').remove();
+        fire();
+    });
+
+    // Remove column group
+    panel.on('click.tblinline', '.mtbl-group-remove', function () {
+        $(this).closest('.mtbl-col-group-card').remove();
         fire();
     });
 
@@ -2453,8 +3281,88 @@ function renderTablePropertiesInline(obj, panel) {
 // ── Helpers de UI da tabela ──────────────────────────────────────────────────
 
 function _tblFieldOpts(fields, current) {
+    var available = (fields || []).slice();
+    if (current && available.indexOf(current) === -1) available.unshift(current);
     return '<option value="">-- campo --</option>'
-        + fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (current === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join('');
+        + available.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (current === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join('');
+}
+
+function _tblBulletOpts(current) {
+    return [
+        ['circle', 'Circulo'],
+        ['square', 'Quadrado'],
+        ['diamond', 'Losango'],
+        ['bar', 'Barra'],
+        ['none', 'Sem bullet']
+    ].map(function (o) {
+        return '<option value="' + o[0] + '"' + (current === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+    }).join('');
+}
+
+function _tblRowStyleEditor(label, key, cfg) {
+    return '<div style="margin-bottom:7px;padding:8px 9px;background:#f8fafc;border:1px solid rgba(0,0,0,.06);border-radius:7px;">'
+        + '<div style="font-size:10.5px;font-weight:800;color:#334155;margin-bottom:6px;">' + label + '</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
+        + '<div class="mcbi-field" style="margin:0;"><label style="font-size:10px;">Bullet</label><select class="mtbl-row-' + key + '-bullet form-control input-sm">' + _tblBulletOpts(cfg.bullet) + '</select></div>'
+        + '<div class="mcbi-field" style="margin:0;"><label style="font-size:10px;">Cor destaque</label><input type="color" class="mtbl-row-' + key + '-accent form-control input-sm" value="' + _mciEsc(cfg.accent) + '" style="width:42px;height:28px;padding:2px;"></div>'
+        + '<div class="mcbi-field" style="margin:0;"><label style="font-size:10px;">Fundo</label><input type="color" class="mtbl-row-' + key + '-bg form-control input-sm" value="' + _mciEsc(cfg.bg) + '" style="width:42px;height:28px;padding:2px;"></div>'
+        + '<div class="mcbi-field" style="margin:0;"><label style="font-size:10px;">Texto</label><input type="color" class="mtbl-row-' + key + '-text form-control input-sm" value="' + _mciEsc(cfg.text) + '" style="width:42px;height:28px;padding:2px;"></div>'
+        + '</div></div>';
+}
+
+function _tblGroupLevelRow(level, idx, fields) {
+    var title = 'Nivel ' + (idx + 1);
+    var field = level && level.field ? level.field : '';
+    var badgeColor = level && level.accent ? level.accent : '#64748b';
+    var isOpen = idx === 0;
+    return '<div class="mcbi-sr mtbl-gl' + (isOpen ? ' is-open' : '') + '" data-idx="' + idx + '" style="border-left-color:' + _mciEsc(badgeColor) + ';">'
+        + '<div class="mcbi-sr-hd">'
+        + '<span class="mcbi-sr-badge" style="background:' + _mciEsc(badgeColor) + '"></span>'
+        + '<span class="mcbi-sr-idx">N' + (idx + 1) + '</span>'
+        + '<span class="mcbi-sr-title">' + _mciEsc(field || title) + '</span>'
+        + '<div class="mcbi-sr-acts">'
+        + '<button type="button" class="mcbi-sr-tog" title="Expandir/Colapsar"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,5 8,11 13,5"/></svg></button>'
+        + '<button type="button" class="mtbl-gl-remove" title="Remover nível" style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;color:#94a3b8;border-radius:7px;cursor:pointer;padding:0;transition:all .15s;"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>'
+        + '</div>'
+        + '</div>'
+        + '<div class="mcbi-sr-body">'
+        + '<div class="mcbi-field"><label>Campo</label><select class="mtbl-gl-field form-control input-sm">' + _tblFieldOpts(fields, field) + '</select></div>'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Bullet</label><select class="mtbl-gl-bullet form-control input-sm">' + _tblBulletOpts((level && level.bullet) || 'circle') + '</select></div>'
+        + '<div class="mcbi-field"><label>Cor destaque</label><input type="color" class="mtbl-gl-accent form-control input-sm" value="' + _mciEsc((level && level.accent) || '#64748b') + '" style="width:42px;height:28px;padding:2px;"></div>'
+        + '</div>'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Fundo</label><input type="color" class="mtbl-gl-bg form-control input-sm" value="' + _mciEsc((level && level.bg) || '#f8fafc') + '" style="width:42px;height:28px;padding:2px;"></div>'
+        + '<div class="mcbi-field"><label>Texto</label><input type="color" class="mtbl-gl-text form-control input-sm" value="' + _mciEsc((level && level.text) || '#334155') + '" style="width:42px;height:28px;padding:2px;"></div>'
+        + '</div>'
+        + '</div>'
+        + '</div>';
+}
+
+function _tblManualRowCard(item, idx) {
+    var kind = item.kind || 'group';
+    var level = item.level !== undefined ? item.level : (kind === 'subgroup' ? 1 : 0);
+    var position = item.position || 'beforeData';
+    return '<div class="mtbl-manual-row-card" data-idx="' + idx + '" style="padding:8px;border:1px solid rgba(0,0,0,.08);border-radius:7px;margin-bottom:5px;background:#fff;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'
+        + '<strong style="font-size:11px;color:#334155;">Linha fixa</strong>'
+        + '<button type="button" class="mtbl-manual-row-remove" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:13px;padding:0 2px;" title="Remover"><i class="glyphicon glyphicon-trash"></i></button>'
+        + '</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">'
+        + '<select class="mtbl-manual-row-kind form-control input-sm">'
+        + '<option value="group"' + (kind === 'group' ? ' selected' : '') + '>Grupo</option>'
+        + '<option value="subgroup"' + (kind === 'subgroup' ? ' selected' : '') + '>Subgrupo</option>'
+        + '<option value="total"' + (kind === 'total' ? ' selected' : '') + '>Totalizador</option>'
+        + '</select>'
+        + '<select class="mtbl-manual-row-position form-control input-sm">'
+        + '<option value="beforeData"' + (position === 'beforeData' ? ' selected' : '') + '>Antes dos dados</option>'
+        + '<option value="afterData"' + (position === 'afterData' ? ' selected' : '') + '>Depois dos dados</option>'
+        + '</select>'
+        + '<input type="text" class="mtbl-manual-row-label form-control input-sm" value="' + _mciEsc(item.label || '') + '" placeholder="Nome a mostrar à esquerda">'
+        + '<input type="number" class="mtbl-manual-row-level form-control input-sm" value="' + _mciEsc(level) + '" min="0" max="4" placeholder="Nível">'
+        + '</div>'
+        + '<div style="font-size:9.5px;color:#64748b;margin-top:5px;">Grupos e subgrupos criam uma linha separadora. Totalizador soma automaticamente as colunas numéricas.</div>'
+        + '</div>';
 }
 
 function _tblColCard(col, idx, fields) {
@@ -2522,11 +3430,32 @@ function _tblColCard(col, idx, fields) {
         + '</div></div>';
 }
 
+function _tblGroupCard(group, idx, fields) {
+    var columns = Array.isArray(group.columns) ? group.columns : [];
+    var html = '<div class="mtbl-col-group-card" data-idx="' + idx + '" style="padding:7px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:6px;background:#f1f5f9;">'
+        + '<div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;">'
+        + '<i class="glyphicon glyphicon-folder-open" style="color:#d40032;font-size:11px;"></i>'
+        + '<input type="text" class="mtbl-group-title form-control input-sm" value="' + _mciEsc(group.title || 'Grupo') + '" placeholder="Título do grupo" style="height:27px;font-size:11px;font-weight:700;">'
+        + '<button type="button" class="mtbl-group-remove" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:13px;padding:0 2px;" title="Remover grupo"><i class="glyphicon glyphicon-trash"></i></button>'
+        + '</div>'
+        + '<div class="mtbl-group-col-list" style="padding-left:7px;border-left:2px solid #d40032;">';
+    if (columns.length) {
+        columns.forEach(function (col, colIdx) {
+            html += _tblColCard(col, colIdx, fields);
+        });
+    } else {
+        html += '<div class="mcbi-info" style="margin:2px 0 5px;">Adicione as subcolunas deste grupo.</div>';
+    }
+    html += '</div>'
+        + '<button type="button" class="btn btn-xs btn-default mtbl-group-add-col" style="margin-top:5px;width:100%;"><i class="glyphicon glyphicon-plus"></i> Adicionar coluna ao grupo</button>'
+        + '</div>';
+    return html;
+}
+
 function _tblRefreshFieldSelects(panel, fields) {
-    var opts = _tblFieldOpts(fields, '');
-    panel.find('.mtbl-col-field, .mtbl-tree-parent, .mtbl-tree-child').each(function () {
+    panel.find('.mtbl-col-field, .mtbl-tree-parent, .mtbl-tree-child, .mtbl-row-bg-field, .mtbl-row-text-field, .mtbl-row-accent-field, .mtbl-gl-field').each(function () {
         var cur = $(this).val();
-        $(this).html(fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (cur === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join(''));
+        $(this).html(_tblFieldOpts(fields, cur));
     });
 }
 
@@ -2823,6 +3752,35 @@ function _tblOpenFilterConditionsModal(filterDef, fields, onSave) {
     $modal.modal('show');
 }
 
+function _tblReadColumnCard($card) {
+    var fmt = $card.find('.mtbl-col-formatter').val() || 'plaintext';
+    var colDef = {
+        field: $card.find('.mtbl-col-field').val(),
+        title: $card.find('.mtbl-col-title').val(),
+        hozAlign: $card.find('.mtbl-col-align').val() || 'left',
+        formatter: fmt,
+        visible: $card.find('.mtbl-col-visible').is(':checked'),
+        frozen: $card.find('.mtbl-col-frozen').is(':checked'),
+        headerFilter: $card.find('.mtbl-col-filter').is(':checked'),
+        sorter: 'string'
+    };
+    if (fmt === 'link' || fmt === 'linkButton') {
+        var ue = ($card.find('.mtbl-col-urlexpr').val() || '').trim();
+        var ll = ($card.find('.mtbl-col-linklabel').val() || '').trim();
+        var tg = $card.find('.mtbl-col-target').val() || '_self';
+        if (ue) colDef.urlExpr = ue;
+        if (ll) colDef.linkLabel = ll;
+        colDef.target = tg;
+        if (fmt === 'linkButton') {
+            var colorKey = $card.find('.mtbl-col-color-sel').val() || 'primary';
+            colDef.linkColor = colorKey === 'custom'
+                ? ($card.find('.mtbl-col-color-custom').val() || '#2563eb')
+                : 'phc:' + colorKey;
+        }
+    }
+    return colDef;
+}
+
 // ── Ler config do painel ─────────────────────────────────────────────────────
 function _tblReadConfig(panel, obj) {
     var cfg = obj.config || {};
@@ -2853,36 +3811,21 @@ function _tblReadConfig(panel, obj) {
     cfg.autoColumns = panel.find('.mtbl-autocols').is(':checked');
     if (!cfg.autoColumns) {
         cfg.columns = [];
-        panel.find('.mtbl-col-card').each(function () {
-            var $card = $(this);
-            var fmt = $card.find('.mtbl-col-formatter').val() || 'plaintext';
-            var colDef = {
-                field: $card.find('.mtbl-col-field').val(),
-                title: $card.find('.mtbl-col-title').val(),
-                hozAlign: $card.find('.mtbl-col-align').val() || 'left',
-                formatter: fmt,
-                visible: $card.find('.mtbl-col-visible').is(':checked'),
-                frozen: $card.find('.mtbl-col-frozen').is(':checked'),
-                headerFilter: $card.find('.mtbl-col-filter').is(':checked'),
-                sorter: 'string'
-            };
-            if (fmt === 'link' || fmt === 'linkButton') {
-                var ue = ($card.find('.mtbl-col-urlexpr').val() || '').trim();
-                var ll = ($card.find('.mtbl-col-linklabel').val() || '').trim();
-                var tg = $card.find('.mtbl-col-target').val() || '_self';
-                if (ue) colDef.urlExpr = ue;
-                if (ll) colDef.linkLabel = ll;
-                colDef.target = tg;
-                if (fmt === 'linkButton') {
-                    var colorKey = $card.find('.mtbl-col-color-sel').val() || 'primary';
-                    if (colorKey === 'custom') {
-                        colDef.linkColor = $card.find('.mtbl-col-color-custom').val() || '#2563eb';
-                    } else {
-                        colDef.linkColor = 'phc:' + colorKey;
-                    }
-                }
+        panel.find('.mtbl-col-list').children('.mtbl-col-card, .mtbl-col-group-card').each(function () {
+            var $item = $(this);
+            if ($item.hasClass('mtbl-col-group-card')) {
+                var groupDef = {
+                    title: ($item.find('.mtbl-group-title').first().val() || 'Grupo').trim(),
+                    headerHozAlign: 'center',
+                    columns: []
+                };
+                $item.find('.mtbl-group-col-list').first().children('.mtbl-col-card').each(function () {
+                    groupDef.columns.push(_tblReadColumnCard($(this)));
+                });
+                if (groupDef.columns.length) cfg.columns.push(groupDef);
+            } else {
+                cfg.columns.push(_tblReadColumnCard($item));
             }
-            cfg.columns.push(colDef);
         });
     }
 
@@ -2892,6 +3835,55 @@ function _tblReadConfig(panel, obj) {
         parentField: panel.find('.mtbl-tree-parent').val() || 'id',
         childField: panel.find('.mtbl-tree-child').val() || 'parentId',
         startExpanded: panel.find('.mtbl-tree-expand').is(':checked')
+    };
+
+    // Linhas agrupadas e sublinhas
+    var existingStructuredRows = (cfg.structuredRows && typeof cfg.structuredRows === 'object') ? cfg.structuredRows : {};
+    var collectedLevels = [];
+    panel.find('.mtbl-levels .mtbl-gl').each(function () {
+        var $level = $(this);
+        collectedLevels.push({
+            field: $level.find('.mtbl-gl-field').val() || '',
+            bullet: $level.find('.mtbl-gl-bullet').val() || 'circle',
+            accent: $level.find('.mtbl-gl-accent').val() || '#64748b',
+            bg: $level.find('.mtbl-gl-bg').val() || '#f8fafc',
+            text: $level.find('.mtbl-gl-text').val() || '#334155'
+        });
+    });
+    collectedLevels = collectedLevels.filter(function (level) { return level.field; });
+    cfg.structuredRows = {
+        enabled: panel.find('.mtbl-rows-enable').is(':checked'),
+        groupField: collectedLevels[0] ? collectedLevels[0].field : '',
+        subgroupField: collectedLevels[1] ? collectedLevels[1].field : '',
+        groupLevels: collectedLevels,
+        levelStyles: collectedLevels.map(function (level) {
+            return {
+                bg: level.bg,
+                text: level.text,
+                accent: level.accent,
+                bullet: level.bullet
+            };
+        }),
+        typeField: existingStructuredRows.typeField || '__rowType',
+        levelField: existingStructuredRows.levelField || '__rowLevel',
+        sectionValue: existingStructuredRows.sectionValue || 'section',
+        dataValue: existingStructuredRows.dataValue || 'data',
+        totalValue: existingStructuredRows.totalValue || 'total',
+        backgroundField: panel.find('.mtbl-row-bg-field').val() || '',
+        textColorField: panel.find('.mtbl-row-text-field').val() || '',
+        accentColorField: panel.find('.mtbl-row-accent-field').val() || '',
+        sectionBg: panel.find('.mtbl-row-section-bg').val() || '#eef4ff',
+        sectionText: panel.find('.mtbl-row-section-text').val() || '#d40032',
+        sectionAccent: panel.find('.mtbl-row-section-accent').val() || '#d40032',
+        sectionBullet: panel.find('.mtbl-row-section-bullet').val() || 'circle',
+        subgroupBg: panel.find('.mtbl-row-subgroup-bg').val() || '#f8fafc',
+        subgroupText: panel.find('.mtbl-row-subgroup-text').val() || '#334155',
+        subgroupAccent: panel.find('.mtbl-row-subgroup-accent').val() || '#64748b',
+        subgroupBullet: panel.find('.mtbl-row-subgroup-bullet').val() || 'diamond',
+        totalBg: panel.find('.mtbl-row-total-bg').val() || '#eef4ff',
+        totalText: panel.find('.mtbl-row-total-text').val() || '#0f172a',
+        totalAccent: panel.find('.mtbl-row-total-accent').val() || '#0f172a',
+        totalBullet: panel.find('.mtbl-row-total-bullet').val() || 'bar'
     };
 
     // Exporta\u00e7\u00e3o
@@ -4520,6 +5512,9 @@ function _mciGetFields(obj) {
         }
     }
     // 3. Sample data fields
+    if (obj && obj.tipo === 'table') {
+        return _tblGetExecutiveSampleFieldNames();
+    }
     return Object.keys(MDASH_SAMPLE_DATA[0]);
 }
 
@@ -6232,8 +7227,8 @@ function getTiposObjectoConfig() {
         renderPropertiesInline: renderTablePropertiesInline,
         createDynamicSchema: createDynamicSchemaTable,
         renderObject: renderObjectTable,
-        getSampleData: function () { return getMdashSampleData('table'); },
-        sampleConfig: _TABLE_SAMPLE_CONFIG
+        getSampleData: function () { return _tblGetExecutiveSampleRows(); },
+        sampleConfig: _TABLE_EXECUTIVE_SAMPLE_CONFIG
     },
     {
         tipo: "text",

@@ -89,6 +89,8 @@ CREATE TABLE MrendLinha
     colunastotais TEXT DEFAULT '',
     temexpressaototal BIT DEFAULT 0,
     expressaototal TEXT DEFAULT '',
+    cortotallinha VARCHAR(50) DEFAULT '',
+    cortextototallinha VARCHAR(50) DEFAULT '',
    -- blacklistheranca TEXT DEFAULT 'comportamentogrupo,corcomportgrupo,colunatitulo,levadesclinha,temtotais,modelo'
 );
 
