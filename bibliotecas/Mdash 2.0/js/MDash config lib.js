@@ -3438,6 +3438,47 @@ function getMdashContainerItemMainSlotId(containerItem) {
 }
 window.getMdashContainerItemMainSlotId = getMdashContainerItemMainSlotId;
 
+function mdashIsStructuralSlot($el) {
+    return !!($el && $el.length && $el.find('[data-mdash-slot]').length > 0);
+}
+
+function mdashFindLeafSlotsInRoot($root) {
+    if (!$root || !$root.length) return $();
+    return $root.find('[data-mdash-slot]').filter(function () {
+        return $(this).find('[data-mdash-slot]').length === 0;
+    });
+}
+
+function mdashGetSlotRenderDepth($slot) {
+    if (!$slot || !$slot.length) return -1;
+    return $slot.parents('[data-mdash-slot]').length;
+}
+
+/**
+ * Quando o slot principal é um contentor (ex.: body com slots aninhados),
+ * devolve o slot-folha onde injectar skeleton/conteúdo — alinhado com injectSlotDropOverlays.
+ */
+function resolveMdashContainerItemSlotForContent(containerItem, slotId, hostSelector) {
+    var $slot = resolveMdashContainerItemSlot(containerItem, slotId, hostSelector);
+    if (!$slot || !$slot.length || !mdashIsStructuralSlot($slot)) return $slot;
+
+    var preferredId = slotId || getMdashContainerItemMainSlotId(containerItem);
+    var $leafSlots = mdashFindLeafSlotsInRoot($slot);
+    if (!$leafSlots.length) return $slot;
+
+    var $preferred = $leafSlots.filter('[data-mdash-slot="' + preferredId + '"]');
+    if ($preferred.length) return $preferred.first();
+
+    var mainSlotId = getMdashContainerItemMainSlotId(containerItem);
+    if (mainSlotId && mainSlotId !== preferredId) {
+        $preferred = $leafSlots.filter('[data-mdash-slot="' + mainSlotId + '"]');
+        if ($preferred.length) return $preferred.first();
+    }
+
+    return $leafSlots.first();
+}
+window.resolveMdashContainerItemSlotForContent = resolveMdashContainerItemSlotForContent;
+
 function resolveMdashContainerItemSlot(containerItem, slotId, hostSelector) {
     if (typeof $ !== 'function' || !containerItem) return null;
     var rootSelector = hostSelector || ('#' + containerItem.mdashcontaineritemstamp);
@@ -3446,14 +3487,18 @@ function resolveMdashContainerItemSlot(containerItem, slotId, hostSelector) {
     if ($byAttr.length) return $byAttr.first();
     if (resolvedSlotId !== 'body') {
         $byAttr = $(rootSelector + ' [data-mdash-slot="body"]');
-        if ($byAttr.length) return $byAttr.first();
+        if ($byAttr.length && !mdashIsStructuralSlot($byAttr)) return $byAttr.first();
     }
     if (resolvedSlotId === 'body' && containerItem.dadosTemplate && containerItem.dadosTemplate.containerSelectorToRender) {
         var $legacy = $(rootSelector + ' ' + containerItem.dadosTemplate.containerSelectorToRender);
-        if ($legacy.length) return $legacy.first();
+        if ($legacy.length && !mdashIsStructuralSlot($legacy)) return $legacy.first();
     }
-    var $body = $(rootSelector + ' .mdash-card__body, ' + rootSelector + ' .dashcard-body, ' + rootSelector + ' [data-mdash-slot]');
-    return $body.length ? $body.first() : null;
+    var $body = $(rootSelector + ' .mdash-card__body, ' + rootSelector + ' .dashcard-body');
+    if ($body.length) return $body.first();
+    var $anySlot = $(rootSelector + ' [data-mdash-slot]').filter(function () {
+        return !mdashIsStructuralSlot($(this));
+    });
+    return $anySlot.length ? $anySlot.first() : null;
 }
 window.resolveMdashContainerItemSlot = resolveMdashContainerItemSlot;
 
@@ -3525,9 +3570,24 @@ function renderMdashContainerItemSlots(containerItem, itemObjects, options) {
             slotMap[slotId].push(obj);
         });
 
-    Object.keys(slotMap).forEach(function (slotId) {
+    var sortedSlotIds = Object.keys(slotMap).sort(function (slotA, slotB) {
+        var $slotA = resolveMdashContainerItemSlot(containerItem, slotA, hostSelector);
+        var $slotB = resolveMdashContainerItemSlot(containerItem, slotB, hostSelector);
+        return mdashGetSlotRenderDepth($slotB) - mdashGetSlotRenderDepth($slotA);
+    });
+
+    sortedSlotIds.forEach(function (slotId) {
         var $slot = resolveMdashContainerItemSlot(containerItem, slotId, hostSelector);
         if (!$slot || !$slot.length) {
+            missingSlots.push(slotId);
+            return;
+        }
+
+        if (mdashIsStructuralSlot($slot)) {
+            console.warn(
+                '[MDash] objectos atribuídos ao slot contentor "' + slotId
+                + '" — use slots folha (aninhados). Objectos ignorados no item', itemStamp
+            );
             missingSlots.push(slotId);
             return;
         }
@@ -3647,8 +3707,8 @@ function mdashRenderContainerItemState(containerItem, state, runtimeCtx) {
         + '</div>';
 
     var mainSlotId = getMdashContainerItemMainSlotId(containerItem);
-    var $slot = resolveMdashContainerItemSlot(containerItem, mainSlotId, hostSelector);
-    if ($slot && $slot.length) {
+    var $slot = resolveMdashContainerItemSlotForContent(containerItem, mainSlotId, hostSelector);
+    if ($slot && $slot.length && !mdashIsStructuralSlot($slot)) {
         $slot.empty().append(html);
         return;
     }
@@ -3685,7 +3745,7 @@ function mdashHandleContainerItemLayoutRuntime(containerItem, runtimeCtx) {
         if ($existingCard && $existingCard.length) {
             measuredCardHeight = Math.round($existingCard.get(0).getBoundingClientRect().height || 0);
         }
-        var $existingBody = resolveMdashContainerItemSlot(containerItem, mainSlotId, hostSelector);
+        var $existingBody = resolveMdashContainerItemSlotForContent(containerItem, mainSlotId, hostSelector);
         if ($existingBody && $existingBody.length) {
             measuredBodyHeight = Math.round($existingBody.get(0).getBoundingClientRect().height || 0);
         }
@@ -3718,8 +3778,8 @@ function mdashHandleContainerItemLayoutRuntime(containerItem, runtimeCtx) {
         });
 
     try {
-        var $slotForSkeleton = resolveMdashContainerItemSlot(containerItem, mainSlotId, hostSelector);
-        if ($slotForSkeleton && $slotForSkeleton.length && measuredBodyHeight > 40) {
+        var $slotForSkeleton = resolveMdashContainerItemSlotForContent(containerItem, mainSlotId, hostSelector);
+        if ($slotForSkeleton && $slotForSkeleton.length && !mdashIsStructuralSlot($slotForSkeleton) && measuredBodyHeight > 40) {
             $slotForSkeleton.empty().append(skeletonHTML);
             return true;
         }
@@ -4790,14 +4850,14 @@ function initModernDashboardUI() {
     mainHtml += '      <div class="mdash-widget-section">';
     mainHtml += '        <p class="mdash-section-label">Adicionar</p>';
     mainHtml += '        <div class="mdash-widget-grid">';
+    mainHtml += '          <div class="mdash-widget-tile" @click="addNewFilter" title="Adicionar Filtro">';
+    mainHtml += '            <i class="glyphicon glyphicon-filter"></i><span>Filtro</span>';
+    mainHtml += '          </div>';
     mainHtml += '          <div class="mdash-widget-tile toolbox-container mdash-toolbox-item" data-component="container" @click="addNewContainer" title="Clique para adicionar ou arraste para o canvas">';
     mainHtml += '            <i class="glyphicon glyphicon-th-large"></i><span>Container</span>';
     mainHtml += '          </div>';
     mainHtml += '          <div class="mdash-widget-tile toolbox-container-item mdash-toolbox-item" data-component="containerItem" title="Arraste para um Container">';
     mainHtml += '            <i class="glyphicon glyphicon-list-alt"></i><span>Item</span>';
-    mainHtml += '          </div>';
-    mainHtml += '          <div class="mdash-widget-tile" @click="addNewFilter" title="Adicionar Filtro">';
-    mainHtml += '            <i class="glyphicon glyphicon-filter"></i><span>Filtro</span>';
     mainHtml += '          </div>';
     mainHtml += '          <div class="mdash-widget-tile" @click="addNewFonte" title="Adicionar Fonte">';
     mainHtml += '            <i class="glyphicon glyphicon-hdd"></i><span>Fonte</span>';
@@ -4809,76 +4869,8 @@ function initModernDashboardUI() {
     mainHtml += '      </div>';
     mainHtml += '      <div class="mdash-sidebar-divider"></div>';
 
-    // Accordion com os componentes (mantém filtros, listas)
+    // Accordion com os componentes (objetos e filtros primeiro — uso mais frequente na configuração)
     mainHtml += '      <div class="panel-group" id="mdash-accordion">';
-
-    // Acessos
-    mainHtml += '        <div class="panel panel-default">';
-    mainHtml += '          <div class="panel-heading" data-toggle="collapse" data-target="#collapse-accesses">';
-    mainHtml += '            <h4 class="panel-title">';
-    mainHtml += '              <i class="glyphicon glyphicon-lock"></i> Perfis de acesso';
-    mainHtml += '              <span class="badge pull-right">{{ $computed.sortedAccesses().length }}</span>';
-    mainHtml += '            </h4>';
-    mainHtml += '          </div>';
-    mainHtml += '          <div id="collapse-accesses" class="panel-collapse collapse in">';
-    mainHtml += '            <div class="panel-body">';
-    mainHtml += '              <button type="button" @click="addNewAccess" class="btn btn-primary btn-sm btn-block">';
-    mainHtml += '                <i class="glyphicon glyphicon-plus"></i> Adicionar perfil de  acesso';
-    mainHtml += '              </button>';
-    mainHtml += '              <div class="mdash-sidebar-list">';
-    mainHtml += '                <p v-if="$computed.sortedAccesses().length === 0" class="text-muted text-center" style="margin-top: 10px;"><small>Nenhum acesso configurado</small></p>';
-    mainHtml += '                <div v-for="access in $computed.sortedAccesses()" :key="access.mdashaccessstamp" class="mdash-sidebar-item" :data-stamp="access.mdashaccessstamp">';
-    mainHtml += '                  <div class="mdash-sidebar-item-content" @click="editAccess(access.mdashaccessstamp)">';
-    mainHtml += '                    <i :class="getAccessOriginIcon(access.origem)"></i>';
-    mainHtml += '                    <span>{{ access.nome || access.codigo || \'Sem nome\' }}</span>';
-    mainHtml += '                  </div>';
-    mainHtml += '                  <div class="mdash-sidebar-item-actions">';
-    mainHtml += '                    <span class="badge badge-info mdash-access-origin-badge">{{ (access.origem || \'phc\').toUpperCase() }}</span>';
-    mainHtml += '                    <button type="button" @click.stop="deleteAccess(access.mdashaccessstamp)" class="btn btn-xs mdash-btn-delete">';
-    mainHtml += '                      <i class="glyphicon glyphicon-trash"></i>';
-    mainHtml += '                    </button>';
-    mainHtml += '                  </div>';
-    mainHtml += '                </div>';
-    mainHtml += '              </div>';
-    mainHtml += '            </div>';
-    mainHtml += '          </div>';
-    mainHtml += '        </div>';
-
-    // Separadores (Tabs do dashboard)
-    mainHtml += '        <div class="panel panel-default">';
-    mainHtml += '          <div class="panel-heading" data-toggle="collapse" data-target="#collapse-tabs">';
-    mainHtml += '            <h4 class="panel-title">';
-    mainHtml += '              <i class="glyphicon glyphicon-folder-close"></i> Separadores';
-    mainHtml += '              <span class="badge pull-right">{{ tabs.length }}</span>';
-    mainHtml += '            </h4>';
-    mainHtml += '          </div>';
-    mainHtml += '          <div id="collapse-tabs" class="panel-collapse collapse in">';
-    mainHtml += '            <div class="panel-body">';
-    mainHtml += '              <button type="button" @click="addDashboardTab" class="btn btn-primary btn-sm btn-block">';
-    mainHtml += '                <i class="glyphicon glyphicon-plus"></i> Adicionar Separador';
-    mainHtml += '              </button>';
-    mainHtml += '              <div class="mdash-sidebar-list">';
-    mainHtml += '                <p v-if="tabs.length === 0" class="text-muted text-center" style="margin-top: 10px;"><small>Nenhum separador</small></p>';
-    mainHtml += '                <div v-for="tab in $computed.sortedTabs()" :key="tab.mdashtabstamp" class="mdash-sidebar-item mdash-sidebar-tab" :class="{\'is-active\': activeTabStamp === tab.mdashtabstamp}" :data-stamp="tab.mdashtabstamp" :style="getTabInlineStyle(tab)">';
-    mainHtml += '                  <div class="mdash-sidebar-item-content" @click="selectDashboardTab(tab.mdashtabstamp)">';
-    mainHtml += '                    <span class="mdash-sidebar-tab-accent"></span>';
-    mainHtml += '                    <i :class="tab.icone || \'glyphicon glyphicon-list-alt\'"></i>';
-    mainHtml += '                    <span>{{ tab.titulo || \'Sem nome\' }}</span>';
-    mainHtml += '                  </div>';
-    mainHtml += '                  <div class="mdash-sidebar-item-actions mdash-tab-color-wrap">';
-    mainHtml += '                    <button type="button" class="mdash-tab-color-swatch" :style="getPhcSwatchStyle(getTabColor(tab))" @click.stop="toggleTabColorPicker(tab.mdashtabstamp)" title="Cor do separador"></button>';
-    mainHtml += '                    <div v-if="tabColorPickerOpenFor === tab.mdashtabstamp" class="mdash-phc-color-picker" @click.stop>';
-    mainHtml += '                      <button v-for="opt in getPhcColorOptions()" :key="opt.value" type="button" class="mdash-phc-color-option" :class="{\'is-active\': getTabColor(tab) === opt.value}" :style="getPhcSwatchStyle(opt.value)" :title="opt.label" @click.stop="setTabColor(tab, opt.value)"></button>';
-    mainHtml += '                    </div>';
-    mainHtml += '                    <button type="button" @click.stop="deleteDashboardTab(tab.mdashtabstamp)" class="btn btn-xs mdash-btn-delete" title="Remover separador">';
-    mainHtml += '                      <i class="glyphicon glyphicon-trash"></i>';
-    mainHtml += '                    </button>';
-    mainHtml += '                  </div>';
-    mainHtml += '                </div>';
-    mainHtml += '              </div>';
-    mainHtml += '            </div>';
-    mainHtml += '          </div>';
-    mainHtml += '        </div>';
 
     // -- Objetos (catálogo de componentes visuais) --
     mainHtml += '        <div class="panel panel-default">';
@@ -4937,6 +4929,74 @@ function initModernDashboardUI() {
     mainHtml += '                  </div>';
     mainHtml += '                  <div class="mdash-sidebar-item-actions">';
     mainHtml += '                    <button type="button" @click.stop="deleteFilter(filter.mdashfilterstamp)" class="btn btn-xs mdash-btn-delete">';
+    mainHtml += '                      <i class="glyphicon glyphicon-trash"></i>';
+    mainHtml += '                    </button>';
+    mainHtml += '                  </div>';
+    mainHtml += '                </div>';
+    mainHtml += '              </div>';
+    mainHtml += '            </div>';
+    mainHtml += '          </div>';
+    mainHtml += '        </div>';
+
+    // Acessos
+    mainHtml += '        <div class="panel panel-default">';
+    mainHtml += '          <div class="panel-heading" data-toggle="collapse" data-target="#collapse-accesses">';
+    mainHtml += '            <h4 class="panel-title">';
+    mainHtml += '              <i class="glyphicon glyphicon-lock"></i> Perfis de acesso';
+    mainHtml += '              <span class="badge pull-right">{{ $computed.sortedAccesses().length }}</span>';
+    mainHtml += '            </h4>';
+    mainHtml += '          </div>';
+    mainHtml += '          <div id="collapse-accesses" class="panel-collapse collapse">';
+    mainHtml += '            <div class="panel-body">';
+    mainHtml += '              <button type="button" @click="addNewAccess" class="btn btn-primary btn-sm btn-block">';
+    mainHtml += '                <i class="glyphicon glyphicon-plus"></i> Adicionar perfil de  acesso';
+    mainHtml += '              </button>';
+    mainHtml += '              <div class="mdash-sidebar-list">';
+    mainHtml += '                <p v-if="$computed.sortedAccesses().length === 0" class="text-muted text-center" style="margin-top: 10px;"><small>Nenhum acesso configurado</small></p>';
+    mainHtml += '                <div v-for="access in $computed.sortedAccesses()" :key="access.mdashaccessstamp" class="mdash-sidebar-item" :data-stamp="access.mdashaccessstamp">';
+    mainHtml += '                  <div class="mdash-sidebar-item-content" @click="editAccess(access.mdashaccessstamp)">';
+    mainHtml += '                    <i :class="getAccessOriginIcon(access.origem)"></i>';
+    mainHtml += '                    <span>{{ access.nome || access.codigo || \'Sem nome\' }}</span>';
+    mainHtml += '                  </div>';
+    mainHtml += '                  <div class="mdash-sidebar-item-actions">';
+    mainHtml += '                    <span class="badge badge-info mdash-access-origin-badge">{{ (access.origem || \'phc\').toUpperCase() }}</span>';
+    mainHtml += '                    <button type="button" @click.stop="deleteAccess(access.mdashaccessstamp)" class="btn btn-xs mdash-btn-delete">';
+    mainHtml += '                      <i class="glyphicon glyphicon-trash"></i>';
+    mainHtml += '                    </button>';
+    mainHtml += '                  </div>';
+    mainHtml += '                </div>';
+    mainHtml += '              </div>';
+    mainHtml += '            </div>';
+    mainHtml += '          </div>';
+    mainHtml += '        </div>';
+
+    // Separadores (Tabs do dashboard)
+    mainHtml += '        <div class="panel panel-default">';
+    mainHtml += '          <div class="panel-heading" data-toggle="collapse" data-target="#collapse-tabs">';
+    mainHtml += '            <h4 class="panel-title">';
+    mainHtml += '              <i class="glyphicon glyphicon-folder-close"></i> Separadores';
+    mainHtml += '              <span class="badge pull-right">{{ tabs.length }}</span>';
+    mainHtml += '            </h4>';
+    mainHtml += '          </div>';
+    mainHtml += '          <div id="collapse-tabs" class="panel-collapse collapse">';
+    mainHtml += '            <div class="panel-body">';
+    mainHtml += '              <button type="button" @click="addDashboardTab" class="btn btn-primary btn-sm btn-block">';
+    mainHtml += '                <i class="glyphicon glyphicon-plus"></i> Adicionar Separador';
+    mainHtml += '              </button>';
+    mainHtml += '              <div class="mdash-sidebar-list">';
+    mainHtml += '                <p v-if="tabs.length === 0" class="text-muted text-center" style="margin-top: 10px;"><small>Nenhum separador</small></p>';
+    mainHtml += '                <div v-for="tab in $computed.sortedTabs()" :key="tab.mdashtabstamp" class="mdash-sidebar-item mdash-sidebar-tab" :class="{\'is-active\': activeTabStamp === tab.mdashtabstamp}" :data-stamp="tab.mdashtabstamp" :style="getTabInlineStyle(tab)">';
+    mainHtml += '                  <div class="mdash-sidebar-item-content" @click="selectDashboardTab(tab.mdashtabstamp)">';
+    mainHtml += '                    <span class="mdash-sidebar-tab-accent"></span>';
+    mainHtml += '                    <i :class="tab.icone || \'glyphicon glyphicon-list-alt\'"></i>';
+    mainHtml += '                    <span>{{ tab.titulo || \'Sem nome\' }}</span>';
+    mainHtml += '                  </div>';
+    mainHtml += '                  <div class="mdash-sidebar-item-actions mdash-tab-color-wrap">';
+    mainHtml += '                    <button type="button" class="mdash-tab-color-swatch" :style="getPhcSwatchStyle(getTabColor(tab))" @click.stop="toggleTabColorPicker(tab.mdashtabstamp)" title="Cor do separador"></button>';
+    mainHtml += '                    <div v-if="tabColorPickerOpenFor === tab.mdashtabstamp" class="mdash-phc-color-picker" @click.stop>';
+    mainHtml += '                      <button v-for="opt in getPhcColorOptions()" :key="opt.value" type="button" class="mdash-phc-color-option" :class="{\'is-active\': getTabColor(tab) === opt.value}" :style="getPhcSwatchStyle(opt.value)" :title="opt.label" @click.stop="setTabColor(tab, opt.value)"></button>';
+    mainHtml += '                    </div>';
+    mainHtml += '                    <button type="button" @click.stop="deleteDashboardTab(tab.mdashtabstamp)" class="btn btn-xs mdash-btn-delete" title="Remover separador">';
     mainHtml += '                      <i class="glyphicon glyphicon-trash"></i>';
     mainHtml += '                    </button>';
     mainHtml += '                  </div>';
