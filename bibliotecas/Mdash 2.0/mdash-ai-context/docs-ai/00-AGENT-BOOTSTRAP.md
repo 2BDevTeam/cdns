@@ -54,6 +54,19 @@ Abra `Mdash.html` apenas se a tarefa envolver:
 - skeleton/loading;
 - objetos que aparecem diferente no preview vs final.
 
+## Gerar dashboard JSON (IA / importação)
+
+Para **gerar JSON importável** a partir de prompt ou foto (sem alterar código):
+
+1. Ler `architecture/00-README.md` + `architecture/00-DATA-STRUCTURE-LAYER.md` (SQL + stamps 25 chars)
+2. Modelo 3 camadas: `architecture/11-THREE-LAYERS-MODEL.md`
+3. Design/CSS: `architecture/12-DESIGN-ASSETS-MAP.md`; decisões foto/prompt: `architecture/13-DECISION-FLOW.md`
+4. Seguir `architecture/09-JSON-GENERATION-RULES.md`
+5. Usar `architecture/10-PROMPT-GUIDE.md` para prompts
+6. Validar contra `architecture/examples/minimal-dashboard.json`
+
+Não usar `modules/` para inventar campos — usar `architecture/` para nomes exactos de propriedades.
+
 ## Quando NÃO abrir `Mdash.html`
 Não abra `Mdash.html` para tarefas apenas de builder:
 - formulário de propriedades;

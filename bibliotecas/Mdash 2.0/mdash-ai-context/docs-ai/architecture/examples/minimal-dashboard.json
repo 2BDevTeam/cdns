@@ -1,0 +1,252 @@
+{
+  "relatoriostamp": "a1000001-0000-4000-8000-a",
+  "generatedAt": "2026-06-10T12:00:00.000Z",
+  "recordsToDelete": [],
+  "config": [
+    {
+      "sourceTable": "u_mdash",
+      "sourceKey": "u_mdashstamp",
+      "records": [
+        {
+          "u_mdashstamp": "a1000001-0000-4000-8000-a",
+          "codigo": "DASH_EXEMPLO_IA",
+          "descricao": "Dashboard Exemplo IA",
+          "temfiltro": true,
+          "filtrohorizont": true,
+          "categoria": "Painel Principal",
+          "configjson": "{\"activarMultiSeparadores\":false,\"activeTabStamp\":\"\",\"tabOverflowMode\":\"squeeze\",\"tabWrapAfterCount\":8}",
+          "table": "u_mdash",
+          "idfield": "u_mdashstamp"
+        }
+      ]
+    },
+    {
+      "sourceTable": "MdashAccess",
+      "sourceKey": "mdashaccessstamp",
+      "records": []
+    },
+    {
+      "sourceTable": "MdashTab",
+      "sourceKey": "mdashtabstamp",
+      "records": []
+    },
+    {
+      "sourceTable": "MdashContainer",
+      "sourceKey": "mdashcontainerstamp",
+      "records": [
+        {
+          "mdashcontainerstamp": "b2000001-0000-4000-8000-b",
+          "dashboardstamp": "a1000001-0000-4000-8000-a",
+          "mdashtabstamp": "",
+          "codigo": "row_kpis",
+          "titulo": "Indicadores",
+          "tipo": "",
+          "tamanho": 12,
+          "layoutmode": "auto",
+          "ordem": 1,
+          "inactivo": false,
+          "table": "MdashContainer",
+          "idfield": "mdashcontainerstamp",
+          "localsource": "GMDashContainers"
+        },
+        {
+          "mdashcontainerstamp": "b2000002-0000-4000-8000-c",
+          "dashboardstamp": "a1000001-0000-4000-8000-a",
+          "mdashtabstamp": "",
+          "codigo": "row_grafico",
+          "titulo": "Análise",
+          "tamanho": 12,
+          "layoutmode": "auto",
+          "ordem": 2,
+          "inactivo": false,
+          "table": "MdashContainer",
+          "idfield": "mdashcontainerstamp",
+          "localsource": "GMDashContainers"
+        }
+      ]
+    },
+    {
+      "sourceTable": "MdashContainerItem",
+      "sourceKey": "mdashcontaineritemstamp",
+      "records": [
+        {
+          "mdashcontaineritemstamp": "c3000001-0000-4000-8000-d",
+          "mdashcontainerstamp": "b2000001-0000-4000-8000-b",
+          "dashboardstamp": "a1000001-0000-4000-8000-a",
+          "codigo": "kpi_vendas",
+          "titulo": "Vendas",
+          "tamanho": 4,
+          "layoutmode": "inherit",
+          "ordem": 1,
+          "templatelayout": "snap_card",
+          "layoutcontaineritemdefault": true,
+          "expressaolayoutcontaineritem": "",
+          "fontelocal": false,
+          "urlfetch": "../programs/gensel.aspx?cscript=getdbcontaineritemdata",
+          "expressaodblistagem": "",
+          "expressaoapresentacaodados": "",
+          "slotsconfigjson": "[]",
+          "inactivo": false,
+          "table": "MdashContainerItem",
+          "idfield": "mdashcontaineritemstamp",
+          "localsource": "GMDashContainerItems"
+        },
+        {
+          "mdashcontaineritemstamp": "c3000002-0000-4000-8000-e",
+          "mdashcontainerstamp": "b2000002-0000-4000-8000-c",
+          "dashboardstamp": "a1000001-0000-4000-8000-a",
+          "codigo": "grafico_vendas",
+          "titulo": "Vendas por mês",
+          "tamanho": 12,
+          "layoutmode": "inherit",
+          "ordem": 1,
+          "templatelayout": "card_standard",
+          "layoutcontaineritemdefault": true,
+          "slotsconfigjson": "[]",
+          "inactivo": false,
+          "table": "MdashContainerItem",
+          "idfield": "mdashcontaineritemstamp",
+          "localsource": "GMDashContainerItems"
+        }
+      ]
+    },
+    {
+      "sourceTable": "MdashFilter",
+      "sourceKey": "mdashfilterstamp",
+      "records": [
+        {
+          "mdashfilterstamp": "d4000001-0000-4000-8000-f",
+          "dashboardstamp": "a1000001-0000-4000-8000-a",
+          "codigo": "filtro_ano",
+          "descricao": "Ano",
+          "tipo": "list",
+          "tamanho": 2,
+          "expressaolistagem": "SELECT 2026 AS valor, '2026' AS opcao UNION ALL SELECT 2025, '2025'",
+          "expressaojslistagem": "",
+          "eventochange": false,
+          "expressaochange": "",
+          "valordefeito": "2026",
+          "campooption": "opcao",
+          "campovalor": "valor",
+          "escopo": "global",
+          "mdashtabstamp": "",
+          "ordem": 1,
+          "table": "MdashFilter",
+          "idfield": "mdashfilterstamp",
+          "localsource": "GMDashFilters"
+        }
+      ]
+    },
+    {
+      "sourceTable": "MdashContainerItemObject",
+      "sourceKey": "mdashcontaineritemobjectstamp",
+      "records": [
+        {
+          "mdashcontaineritemobjectstamp": "e5000001-0000-4000-8000-g",
+          "mdashcontaineritemstamp": "c3000001-0000-4000-8000-d",
+          "dashboardstamp": "a1000001-0000-4000-8000-a",
+          "tipo": "TituloItem",
+          "slotid": "title",
+          "ordem": 1,
+          "tamanho": 0,
+          "processaFonte": false,
+          "categoria": "display",
+          "fontestamp": "",
+          "fontesstampsjson": "[]",
+          "configjson": "{}",
+          "transformconfigjson": "",
+          "expressaoobjecto": "",
+          "objectexpressaodblistagem": "",
+          "tipoquery": "item",
+          "temdetalhes": false,
+          "table": "MdashContainerItemObject",
+          "idfield": "mdashcontaineritemobjectstamp",
+          "localsource": "GMDashContainerItemObjects"
+        },
+        {
+          "mdashcontaineritemobjectstamp": "e5000002-0000-4000-8000-h",
+          "mdashcontaineritemstamp": "c3000001-0000-4000-8000-d",
+          "dashboardstamp": "a1000001-0000-4000-8000-a",
+          "tipo": "text",
+          "slotid": "body",
+          "ordem": 2,
+          "processaFonte": true,
+          "categoria": "editor",
+          "fontestamp": "f6000001-0000-4000-8000-i",
+          "fontesstampsjson": "[]",
+          "configjson": "{\"dataField\":\"total\",\"staticText\":\"\",\"dataFormat\":{\"type\":\"currency\",\"locale\":\"pt-PT\",\"currency\":\"EUR\",\"minimumFractionDigits\":0,\"maximumFractionDigits\":0},\"textFormat\":{\"fontSize\":28,\"fontWeight\":\"bold\",\"textAlign\":\"center\"},\"colors\":{\"textColor\":\"#0f172a\",\"backgroundColor\":\"transparent\"}}",
+          "transformconfigjson": "",
+          "table": "MdashContainerItemObject",
+          "idfield": "mdashcontaineritemobjectstamp",
+          "localsource": "GMDashContainerItemObjects"
+        },
+        {
+          "mdashcontaineritemobjectstamp": "e5000003-0000-4000-8000-j",
+          "mdashcontaineritemstamp": "c3000002-0000-4000-8000-e",
+          "dashboardstamp": "a1000001-0000-4000-8000-a",
+          "tipo": "chart",
+          "slotid": "body",
+          "ordem": 1,
+          "processaFonte": true,
+          "categoria": "editor",
+          "fontestamp": "f6000002-0000-4000-8000-k",
+          "fontesstampsjson": "[]",
+          "configjson": "{\"theme\":\"modern\",\"chartType\":\"bar\",\"height\":300,\"xField\":\"mes\",\"series\":[{\"field\":\"total\",\"name\":\"Vendas\",\"type\":\"default\",\"color\":\"\"}],\"legend\":{\"show\":true,\"position\":\"top\"},\"title\":{\"show\":true,\"text\":\"Vendas por mês\"}}",
+          "transformconfigjson": "",
+          "table": "MdashContainerItemObject",
+          "idfield": "mdashcontaineritemobjectstamp",
+          "localsource": "GMDashContainerItemObjects"
+        }
+      ]
+    },
+    {
+      "sourceTable": "MDashFonte",
+      "sourceKey": "mdashfontestamp",
+      "records": [
+        {
+          "mdashfontestamp": "f6000001-0000-4000-8000-i",
+          "dashboardstamp": "a1000001-0000-4000-8000-a",
+          "codigo": "fonte_kpi_vendas",
+          "descricao": "KPI Vendas",
+          "ordem": 1,
+          "inactivo": false,
+          "scope": "global",
+          "scopestamp": "",
+          "tipo": "directquery",
+          "expressaolistagem": "SELECT SUM(valor) AS total FROM vendas WHERE ano = @ano",
+          "urlfetch": "../programs/gensel.aspx?cscript=getdbcontaineritemdata",
+          "expressaojslistagem": "",
+          "parametrosjson": "[{\"token\":\"@ano\",\"source\":\"filter\",\"filterstamp\":\"d4000001-0000-4000-8000-f\",\"defaultValue\":\"2026\"}]",
+          "refreshmode": "onfilterchange",
+          "schemajson": "[]",
+          "apiurl": "",
+          "apimethod": "GET",
+          "apiheadersjson": "{}",
+          "apibodyjson": "{}",
+          "schemamode": "auto",
+          "refreshintervalsec": 0,
+          "lastResultscached": "[]",
+          "table": "MDashFonte",
+          "idfield": "mdashfontestamp",
+          "localsource": "GMDashFontes"
+        },
+        {
+          "mdashfontestamp": "f6000002-0000-4000-8000-k",
+          "dashboardstamp": "a1000001-0000-4000-8000-a",
+          "codigo": "fonte_vendas_mes",
+          "descricao": "Vendas por mês",
+          "ordem": 2,
+          "scope": "global",
+          "tipo": "directquery",
+          "expressaolistagem": "SELECT MONTH(data) AS mes, SUM(valor) AS total FROM vendas WHERE ano = @ano GROUP BY MONTH(data) ORDER BY mes",
+          "parametrosjson": "[{\"token\":\"@ano\",\"source\":\"filter\",\"filterstamp\":\"d4000001-0000-4000-8000-f\",\"defaultValue\":\"2026\"}]",
+          "refreshmode": "onfilterchange",
+          "schemajson": "[]",
+          "table": "MDashFonte",
+          "idfield": "mdashfontestamp",
+          "localsource": "GMDashFontes"
+        }
+      ]
+    }
+  ]
+}

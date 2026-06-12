@@ -13,6 +13,17 @@
 | Funções default | `js/MDASH DEFAULT FUNCTIONS.js` | Helpers default pequenos |
 | Main loader | `js/MDASH-MAIN.js` | Entrada/carregamento inicial |
 
+## Documentação para geração JSON por IA
+
+| Pasta/ficheiro | Uso |
+|---|---|
+| `docs-ai/architecture/00-README.md` | Entrada: hierarquia dashboard, índice de specs |
+| `docs-ai/architecture/02-IMPORT-EXPORT-JSON.md` | Formato exacto do ficheiro importável |
+| `docs-ai/architecture/03-FILTERS.md` … `08-LAYOUTS-AND-SLOTS.md` | Propriedades por componente |
+| `docs-ai/architecture/09-JSON-GENERATION-RULES.md` | Regras anti-alucinação |
+| `docs-ai/architecture/10-PROMPT-GUIDE.md` | Prompts foto/texto → JSON |
+| `docs-ai/architecture/examples/minimal-dashboard.json` | Exemplo importável |
+
 ## Documentação existente útil
 
 | Documento | Uso |
