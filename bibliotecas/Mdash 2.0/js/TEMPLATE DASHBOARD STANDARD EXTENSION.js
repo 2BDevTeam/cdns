@@ -993,14 +993,14 @@ var _TABLE_SAMPLE_CONFIG = {
 function _tblGetExecutiveSampleRows() {
     return [
         { __rowType: 'section', indicador: 'FATURACAO' },
-        { __rowType: 'data', __rowLevel: 1, indicador: 'Faturacao', anoAtualAcumulada: 29765412.09, anoAtualMediaMensal: 11392520.83, anoAtualMensal: 6980370.43, anoAnteriorAcumulada: 17069543.95, anoAnteriorMensal: 6486247.26, variacaoAcumulada: 74.4, variacaoAcumuladaDisplay: '+74,4%' },
-        { __rowType: 'data', __rowLevel: 1, indicador: 'Rentabilidade', anoAtualAcumulada: 22740853.32, anoAtualMediaMensal: 8968486.48, anoAtualMensal: 4803880.35, anoAnteriorAcumulada: 13864607.45, anoAnteriorMensal: 5767487.24, variacaoAcumulada: 64.0, variacaoAcumuladaDisplay: '+64,0%' },
+        { __rowType: 'data', __rowLevel: 1, indicador: 'Faturacao', anoAtualAcumulada: 29765412.09, anoAtualMediaMensal: 11392520.83, anoAtualMensal: 6980370.43, anoAnteriorAcumulada: 17069543.95, anoAnteriorMensal: 6486247.26, variacaoAcumulada: 74.4 },
+        { __rowType: 'data', __rowLevel: 1, indicador: 'Rentabilidade', anoAtualAcumulada: 22740853.32, anoAtualMediaMensal: 8968486.48, anoAtualMensal: 4803880.35, anoAnteriorAcumulada: 13864607.45, anoAnteriorMensal: 5767487.24, variacaoAcumulada: 64.0 },
         { __rowType: 'section', indicador: 'COMPRAS' },
-        { __rowType: 'data', __rowLevel: 1, indicador: 'Compras', anoAtualAcumulada: 9537459.78, anoAtualMediaMensal: 3241919.36, anoAtualMensal: 2984974.05, anoAnteriorAcumulada: 12601929.62, anoAnteriorMensal: 5604214.27, variacaoAcumulada: -24.3, variacaoAcumuladaDisplay: '-24,3%' },
+        { __rowType: 'data', __rowLevel: 1, indicador: 'Compras', anoAtualAcumulada: 9537459.78, anoAtualMediaMensal: 3241919.36, anoAtualMensal: 2984974.05, anoAnteriorAcumulada: 12601929.62, anoAnteriorMensal: 5604214.27, variacaoAcumulada: -24.3 },
         { __rowType: 'section', indicador: 'TESOURARIA' },
-        { __rowType: 'data', __rowLevel: 1, indicador: 'Recebimentos', anoAtualAcumulada: 28449748.09, anoAtualMediaMensal: 12144062.32, anoAtualMensal: 4161623.44, anoAnteriorAcumulada: 132366740.95, anoAnteriorMensal: 8110374.13, variacaoAcumulada: -78.5, variacaoAcumuladaDisplay: '-78,5%' },
-        { __rowType: 'data', __rowLevel: 1, indicador: 'Pagamentos', anoAtualAcumulada: 21154446.01, anoAtualMediaMensal: 10202229.73, anoAtualMensal: 749986.55, anoAnteriorAcumulada: 134557910.96, anoAnteriorMensal: 7800576.21, variacaoAcumulada: -84.3, variacaoAcumuladaDisplay: '-84,3%' },
-        { __rowType: 'total', __rowLevel: 1, indicador: 'Saldo', anoAtualAcumulada: 7295302.08, anoAtualMediaMensal: 1941832.59, anoAtualMensal: 3411636.89, anoAnteriorAcumulada: -2191170.01, anoAnteriorMensal: 309797.92, variacaoAcumulada: 9.5, variacaoAcumuladaDisplay: '+9,5 M EUR' }
+        { __rowType: 'data', __rowLevel: 1, indicador: 'Recebimentos', anoAtualAcumulada: 28449748.09, anoAtualMediaMensal: 12144062.32, anoAtualMensal: 4161623.44, anoAnteriorAcumulada: 132366740.95, anoAnteriorMensal: 8110374.13, variacaoAcumulada: -78.5 },
+        { __rowType: 'data', __rowLevel: 1, indicador: 'Pagamentos', anoAtualAcumulada: 21154446.01, anoAtualMediaMensal: 10202229.73, anoAtualMensal: 749986.55, anoAnteriorAcumulada: 134557910.96, anoAnteriorMensal: 7800576.21, variacaoAcumulada: -84.3 },
+        { __rowType: 'total', __rowLevel: 1, indicador: 'Saldo', anoAtualAcumulada: 7295302.08, anoAtualMediaMensal: 1941832.59, anoAtualMensal: 3411636.89, anoAnteriorAcumulada: -2191170.01, anoAnteriorMensal: 309797.92, variacaoAcumulada: 9.5 }
     ];
 }
 
@@ -1024,7 +1024,16 @@ function _tblGetExecutiveSampleColumns() {
                 { title: 'Mensal', field: 'anoAnteriorMensal', minWidth: 105, semantic: 'moneyMuted', headerSort: false }
             ]
         },
-        { title: 'Variacao acum.', field: 'variacaoAcumulada', minWidth: 100, semantic: 'deltaBadge', displayField: 'variacaoAcumuladaDisplay', headerSort: false, hozAlign: 'center' }
+        {
+            title: 'Variacao acum.',
+            field: 'variacaoAcumulada',
+            minWidth: 100,
+            formatter: 'conditional',
+            conditional: _tblGetDeltaPercentConditionalTemplate('variacaoAcumulada'),
+            headerSort: false,
+            hozAlign: 'center',
+            sorter: 'number'
+        }
     ];
 }
 
@@ -1073,7 +1082,7 @@ function _tblCompactGroupedColumns(columns) {
 
         var maxMinWidth = 108;
         if (column.semantic === 'indicator' || column.field === 'indicador') maxMinWidth = 150;
-        if (column.semantic === 'deltaBadge') maxMinWidth = 92;
+        if (column.semantic === 'deltaBadge' || column.formatter === 'conditional') maxMinWidth = 92;
 
         var currentMinWidth = parseInt(column.minWidth, 10);
         if (!currentMinWidth || currentMinWidth > maxMinWidth) column.minWidth = maxMinWidth;
@@ -1160,8 +1169,39 @@ var _TABLE_FORMATTERS = [
     { value: 'color', label: 'Cor' },
     { value: 'link', label: 'Link' },
     { value: 'linkButton', label: 'Botão (link)' },
-    { value: 'html', label: 'HTML' }
+    { value: 'html', label: 'HTML' },
+    { value: 'expression', label: 'Expressão' },
+    { value: 'conditional', label: 'Condicional' }
 ];
+
+var _TABLE_BADGE_FORMATS = [
+    { value: 'deltaPercentBadge', label: 'Badge variação %' },
+    { value: 'deltaBadge', label: 'Badge delta' },
+    { value: 'statusBadge', label: 'Badge estado' }
+];
+
+var _TABLE_EXPRESSION_SAMPLE = '_tblFormatDeltaPercent(value)';
+
+function _tblGetTableColumnFormatOptions(opts) {
+    opts = opts || {};
+    var list = _TABLE_FORMATTERS.filter(function (f) { return f.value !== 'conditional'; });
+    if (opts.includeBadges !== false) {
+        list = list.concat(_TABLE_BADGE_FORMATS);
+    }
+    return list;
+}
+
+function _tblFormatNeedsVariant(format) {
+    return format === 'deltaPercentBadge' || format === 'deltaBadge' || format === 'statusBadge';
+}
+
+function _tblExpressionHelpHtml() {
+    return '<div class="mtbl-expr-help" style="font-size:9.5px;color:#475569;line-height:1.45;margin-top:5px;">'
+        + '<code>row</code> · <code>value</code> · <code>cell</code> · '
+        + '<code>data</code> (fonte, igual customCode) · <code>fetchData()</code><br>'
+        + 'Helpers: <code>_tblFormatDeltaPercent</code>, <code>_tblFormatCurrency</code>, <code>_mciEsc</code>'
+        + '</div>';
+}
 
 // ── Opções de alinhamento ────────────────────────────────────────────────────
 var _TABLE_ALIGNS = [
@@ -1669,7 +1709,22 @@ function _tblBuildLeafColumn(c, cfg, rows) {
     if (c.headerSort === false) col.headerSort = false;
     if (c.headerHozAlign) col.headerHozAlign = c.headerHozAlign;
     if (c.cssClass) col.cssClass = c.cssClass;
-    if (c.semantic) {
+    if (c.formatter === 'conditional') {
+        _tblEnsureColumnConditional(c);
+        col.formatter = _tblConditionalFormatter;
+        col.formatterParams = _tblCompileConditionalConfig(c.conditional, c.field, rows);
+        col.sorter = c.sorter || 'number';
+        if (!c.hozAlign) col.hozAlign = 'center';
+    } else if (c.formatter === 'expression') {
+        var exprSrc = c.expr || (c.formatterParams && c.formatterParams.expr) || _TABLE_EXPRESSION_SAMPLE;
+        col.formatter = _tblExpressionColumnFormatter;
+        col.formatterParams = {
+            expr: exprSrc,
+            compiledFn: _mdashCompileTableExpression(exprSrc, 'value'),
+            allRows: rows,
+            fetchData: function () { return rows || []; }
+        };
+    } else if (c.semantic) {
         col.formatter = _tblSemanticFormatter;
         col.formatterParams = {
             semantic: c.semantic,
@@ -2258,45 +2313,19 @@ function _tblPrepareFormatterParams(formatter, params) {
         // urlExpr: expressão JS por linha, com acesso a `row`, `value`, `cell`
         // ex: "'../intranet/flow/wwfaform.aspx?oristamp=' + encodeURIComponent(getStampEncriptado(row.wwfastamp)) + '&acao=aprovar'"
         if (typeof out.urlExpr === 'string' && out.urlExpr.trim()) {
-            var _urlFn;
-            try {
-                _urlFn = new Function('cell', 'row', 'value',
-                    'with(row){return (' + out.urlExpr + ');}');
-            } catch (e) {
-                console.warn('[Tabulator link] urlExpr inválida:', e.message, '|', out.urlExpr);
-                _urlFn = function () { return '#'; };
-            }
+            var _urlCompiled = _mdashCompileTableExpression(out.urlExpr, 'value');
             var _urlBase = out.urlBase;
             out.url = function (cell) {
-                try {
-                    var row = cell.getData() || {};
-                    var raw = _urlFn(cell, row, cell.getValue());
-                    return _mdashResolveUrl(raw, _urlBase);
-                } catch (err) {
-                    console.warn('[Tabulator link] url runtime error:', err.message);
-                    return '#';
-                }
+                var raw = _mdashEvalCompiledTableExpression(_urlCompiled, cell, [], function () { return []; });
+                return _mdashResolveUrl(raw == null ? '#' : raw, _urlBase);
             };
             delete out.urlExpr;
         }
-        // labelExpr: expressão JS para texto do link (caso contrário usa value/labelField)
         if (typeof out.labelExpr === 'string' && out.labelExpr.trim()) {
-            var _lblFn;
-            try {
-                _lblFn = new Function('cell', 'row', 'value',
-                    'with(row){return (' + out.labelExpr + ');}');
-            } catch (e) {
-                console.warn('[Tabulator link] labelExpr inválida:', e.message, '|', out.labelExpr);
-                _lblFn = function () { return ''; };
-            }
+            var _lblCompiled = _mdashCompileTableExpression(out.labelExpr, 'value');
             out.label = function (cell) {
-                try {
-                    var row = cell.getData() || {};
-                    return _lblFn(cell, row, cell.getValue());
-                } catch (err) {
-                    console.warn('[Tabulator link] label runtime error:', err.message);
-                    return cell.getValue();
-                }
+                var label = _mdashEvalCompiledTableExpression(_lblCompiled, cell, [], function () { return []; });
+                return label == null ? cell.getValue() : label;
             };
             delete out.labelExpr;
         }
@@ -2308,6 +2337,88 @@ function _tblPrepareFormatterParams(formatter, params) {
         if (!out.target) out.target = '_blank';
     }
     return out;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MDASH TABLE EXPRESSIONS — API central (data = fonte, alinhado com customCode)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function _mdashGetTableExpressionHelpers() {
+    return {
+        Math: Math,
+        Number: Number,
+        String: String,
+        Date: Date,
+        parseFloat: parseFloat,
+        parseInt: parseInt,
+        _tblSafeNumber: _tblSafeNumber,
+        _tblLikeMatch: typeof _tblLikeMatch === 'function' ? _tblLikeMatch : function () { return false; },
+        _tblFormatDeltaPercent: typeof _tblFormatDeltaPercent === 'function' ? _tblFormatDeltaPercent : function (v) { return v; },
+        _tblFormatCurrency: _tblFormatCurrency,
+        _mciEsc: _mciEsc
+    };
+}
+
+function _mdashCompileTableExpression(expr, mode) {
+    expr = String(expr == null ? '' : expr).trim();
+    if (!expr) expr = mode === 'boolean' ? 'false' : 'value';
+    var body = mode === 'boolean' ? ('return !!(' + expr + ');') : ('return (' + expr + ');');
+    try {
+        return new Function(
+            'cell', 'row', 'value', 'data', 'fetchData', 'helpers',
+            'with(helpers){with(row){' + body + '}}'
+        );
+    } catch (e) {
+        console.warn('[Mdash table expr] compile:', e.message, '|', expr);
+        return null;
+    }
+}
+
+function _mdashBuildTableExpressionContext(cell, allRows, fetchDataFn) {
+    return {
+        cell: cell,
+        row: cell.getData() || {},
+        value: cell.getValue(),
+        data: allRows || [],
+        fetchData: fetchDataFn || function () { return allRows || []; },
+        helpers: _mdashGetTableExpressionHelpers()
+    };
+}
+
+function _mdashEvalCompiledTableExpression(compiledFn, cell, allRows, fetchDataFn) {
+    if (!compiledFn) return undefined;
+    var ctx = _mdashBuildTableExpressionContext(cell, allRows, fetchDataFn);
+    try {
+        return compiledFn(ctx.cell, ctx.row, ctx.value, ctx.data, ctx.fetchData, ctx.helpers);
+    } catch (e) {
+        console.warn('[Mdash table expr] runtime:', e.message);
+        return undefined;
+    }
+}
+
+function _tblCoerceExpressionCellOutput(result, fallbackValue) {
+    if (result == null || result === '') {
+        return fallbackValue == null ? '' : _mciEsc(fallbackValue);
+    }
+    if (typeof result === 'string' && /<\s*\w+/i.test(result)) return result;
+    if (result && result.nodeType) return result;
+    return _mciEsc(result);
+}
+
+function _tblExpressionColumnFormatter(cell, formatterParams) {
+    var row = cell.getData() || {};
+    if (row.__rowType === 'section') return '';
+    var params = formatterParams || {};
+    var result = _mdashEvalCompiledTableExpression(params.compiledFn, cell, params.allRows, params.fetchData);
+    return _tblCoerceExpressionCellOutput(result, cell.getValue());
+}
+
+if (typeof window !== 'undefined') {
+    window.mdashCompileTableExpression = _mdashCompileTableExpression;
+    window.mdashEvalTableExpression = function (expr, cell, allRows, fetchDataFn, mode) {
+        var fn = _mdashCompileTableExpression(expr, mode || 'value');
+        return _mdashEvalCompiledTableExpression(fn, cell, allRows, fetchDataFn);
+    };
 }
 
 // ── Adivinhar sorter ─────────────────────────────────────────────────────────
@@ -2409,9 +2520,17 @@ var _TABLE_FILTER_OPERATORS = {
         if (!fieldValue) return false;
         return String(fieldValue).toLowerCase().includes(String(filterValue).toLowerCase());
     },
+    'like': function(fieldValue, filterValue) {
+        if (fieldValue == null || fieldValue === '') return false;
+        return _tblLikeMatch(String(fieldValue), String(filterValue == null ? '' : filterValue));
+    },
     'startsWith': function(fieldValue, filterValue) {
         if (!fieldValue) return false;
         return String(fieldValue).toLowerCase().startsWith(String(filterValue).toLowerCase());
+    },
+    'endsWith': function(fieldValue, filterValue) {
+        if (!fieldValue) return false;
+        return String(fieldValue).toLowerCase().endsWith(String(filterValue).toLowerCase());
     },
     'in': function(fieldValue, filterValue) {
         return Array.isArray(filterValue) && filterValue.includes(fieldValue);
@@ -2521,6 +2640,354 @@ function _tblApplyFilter(rows, filterDef) {
         }
         return finalResult;
     });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONDITIONAL COLUMN — formatter: 'conditional'
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _TABLE_CONDITION_OPERATORS = [
+    { value: 'eq', label: 'Igual (=)' },
+    { value: 'neq', label: 'Diferente (≠)' },
+    { value: 'gt', label: 'Maior (>)' },
+    { value: 'gte', label: 'Maior ou igual (≥)' },
+    { value: 'lt', label: 'Menor (<)' },
+    { value: 'lte', label: 'Menor ou igual (≤)' },
+    { value: 'contains', label: 'Contém' },
+    { value: 'like', label: 'Like (% _)' },
+    { value: 'startsWith', label: 'Começa com' },
+    { value: 'endsWith', label: 'Termina com' },
+    { value: 'in', label: 'Em lista' },
+    { value: 'isNull', label: 'É nulo' },
+    { value: 'isNotNull', label: 'Não é nulo' }
+];
+
+function _tblLikeMatch(text, pattern) {
+    if (pattern == null || pattern === '') return false;
+    var escaped = String(pattern)
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/%/g, '.*')
+        .replace(/_/g, '.');
+    try {
+        return new RegExp('^' + escaped + '$', 'i').test(String(text));
+    } catch (e) {
+        return false;
+    }
+}
+
+function _tblNormalizeWhenClause(when) {
+    when = when || {};
+    if (when.mode === 'expression') return when;
+    if (Array.isArray(when.conditions) && when.conditions.length) {
+        return { mode: 'simple', conditions: when.conditions };
+    }
+    if (when.field && when.operator) {
+        return {
+            mode: 'simple',
+            conditions: [{ field: when.field, operator: when.operator, value: when.value, logic: 'AND' }]
+        };
+    }
+    return { mode: 'simple', conditions: [] };
+}
+
+function _tblEvaluateConditionGroup(conditions, row, allRows) {
+    if (!conditions || !conditions.length) return true;
+    var results = [];
+    for (var i = 0; i < conditions.length; i++) {
+        var cond = conditions[i];
+        if (!cond || !cond.operator) {
+            results.push({ result: false, logic: (cond && cond.logic) || 'AND' });
+            continue;
+        }
+        var fieldValue = cond.field ? row[cond.field] : undefined;
+        var compareValue = cond.valueMode === 'field' && cond.valueField
+            ? row[cond.valueField]
+            : _tblResolveFilterValue(cond.value);
+        var operator = _TABLE_FILTER_OPERATORS[cond.operator];
+        var result = operator ? operator(fieldValue, compareValue, row, allRows || []) : false;
+        results.push({ result: !!result, logic: cond.logic || 'AND' });
+    }
+    if (!results.length) return true;
+    var finalResult = results[0].result;
+    for (var j = 1; j < results.length; j++) {
+        var prevLogic = results[j - 1].logic;
+        finalResult = prevLogic === 'OR' ? (finalResult || results[j].result) : (finalResult && results[j].result);
+    }
+    return finalResult;
+}
+
+function _tblFormatDeltaPercent(value, precision) {
+    var n = _tblSafeNumber(value);
+    var prec = precision === undefined ? 1 : precision;
+    var formatted = new Intl.NumberFormat('pt-PT', {
+        minimumFractionDigits: prec,
+        maximumFractionDigits: prec
+    }).format(Math.abs(n));
+    var sign = n > 0 ? '+' : (n < 0 ? '-' : '');
+    return sign + formatted + '%';
+}
+
+function _tblDeltaBadgeVariantClass(variant) {
+    if (variant === 'positive' || variant === 'success') return 'is-positive';
+    if (variant === 'negative' || variant === 'danger') return 'is-negative';
+    return 'is-neutral';
+}
+
+function _tblResolveConditionalDisplayValue(cell, params, thenCfg) {
+    var row = cell.getData() || {};
+    var valueField = (thenCfg && thenCfg.valueField) || (params && params.valueField) || cell.getField();
+    var raw = valueField ? row[valueField] : cell.getValue();
+    var displayField = (thenCfg && thenCfg.displayField) || (params && params.displayField) || '';
+    if (displayField && row[displayField] != null && row[displayField] !== '') {
+        return row[displayField];
+    }
+    return raw;
+}
+
+var _TABLE_CONDITION_PRESET_RENDERERS = {
+    deltaPercentBadge: function (cell, params, thenCfg) {
+        var row = cell.getData() || {};
+        if (row.__rowType === 'section') return '';
+        var valueField = (thenCfg && thenCfg.valueField) || (params && params.valueField) || cell.getField();
+        var numericRaw = valueField ? (row[valueField] !== undefined ? row[valueField] : cell.getValue()) : cell.getValue();
+        var displayField = (thenCfg && thenCfg.displayField) || (params && params.displayField) || '';
+        var displayText = (displayField && row[displayField] != null && row[displayField] !== '')
+            ? row[displayField]
+            : _tblFormatDeltaPercent(numericRaw, thenCfg && thenCfg.precision);
+        var variant = thenCfg && thenCfg.variant;
+        if (!variant) {
+            var n = _tblSafeNumber(numericRaw);
+            variant = n > 0 ? 'positive' : (n < 0 ? 'negative' : 'neutral');
+        }
+        return '<span class="mtbl-delta-badge ' + _tblDeltaBadgeVariantClass(variant) + '">' + _mciEsc(displayText) + '</span>';
+    },
+    deltaBadge: function (cell, params, thenCfg) {
+        var row = cell.getData() || {};
+        if (row.__rowType === 'section') return '';
+        var numericSource = (thenCfg && thenCfg.valueField) || (params && params.valueField) || cell.getField();
+        var numericRaw = numericSource ? (row[numericSource] !== undefined ? row[numericSource] : cell.getValue()) : cell.getValue();
+        var displayText = _tblResolveConditionalDisplayValue(cell, params, thenCfg);
+        var variant = thenCfg && thenCfg.variant;
+        if (!variant) {
+            var n = _tblSafeNumber(numericRaw);
+            variant = n > 0 ? 'positive' : (n < 0 ? 'negative' : 'neutral');
+        }
+        return '<span class="mtbl-delta-badge ' + _tblDeltaBadgeVariantClass(variant) + '">' + _mciEsc(displayText) + '</span>';
+    },
+    statusBadge: function (cell, params, thenCfg) {
+        var text = (thenCfg && thenCfg.text) || _mciEsc(cell.getValue());
+        var variant = (thenCfg && thenCfg.variant) || 'neutral';
+        return '<span class="mtbl-delta-badge ' + _tblDeltaBadgeVariantClass(variant) + '">' + _mciEsc(text) + '</span>';
+    },
+    plaintext: function (cell) {
+        return _mciEsc(cell.getValue());
+    }
+};
+
+function _tblNormalizeThenClause(then) {
+    if (!then) return { format: 'plaintext' };
+    if (then.format) return then;
+    if (then.mode === 'expression') return { format: 'expression', expr: then.expr || '' };
+    if (then.mode === 'formatter') {
+        var merged = { format: then.formatter || 'plaintext' };
+        if (then.formatterParams && typeof then.formatterParams === 'object') {
+            Object.keys(then.formatterParams).forEach(function (k) { merged[k] = then.formatterParams[k]; });
+        }
+        return merged;
+    }
+    if (then.preset || then.mode === 'preset') {
+        return {
+            format: then.preset || 'plaintext',
+            variant: then.variant,
+            text: then.text,
+            precision: then.precision,
+            displayField: then.displayField
+        };
+    }
+    return { format: 'plaintext' };
+}
+
+function _tblIsBadgeFormat(format) {
+    return format === 'deltaPercentBadge' || format === 'deltaBadge' || format === 'statusBadge';
+}
+
+function _tblRenderColumnFormat(cell, format, cfg, params) {
+    format = format || 'plaintext';
+    cfg = cfg || {};
+    params = params || {};
+    var row = cell.getData() || {};
+    if (row.__rowType === 'section' && format !== 'html' && format !== 'expression') return '';
+    if (_tblIsBadgeFormat(format)) {
+        var badgeRenderer = _TABLE_CONDITION_PRESET_RENDERERS[format];
+        return badgeRenderer ? badgeRenderer(cell, params, cfg) : _mciEsc(cell.getValue());
+    }
+    if (format === 'expression') {
+        var compiled = cfg._compiledExpr || _mdashCompileTableExpression(cfg.expr, 'value');
+        var result = _mdashEvalCompiledTableExpression(compiled, cell, params.allRows, params.fetchData);
+        return _tblCoerceExpressionCellOutput(result, cell.getValue());
+    }
+    if (format === 'link' || format === 'linkButton') {
+        var linkParams = _tblPrepareFormatterParams('link', cfg);
+        if (format === 'linkButton') return _tblLinkButtonFormatter(cell, linkParams);
+        var url = '#';
+        try { url = linkParams.url ? linkParams.url(cell) : (cell.getValue() || '#'); } catch (e1) { }
+        var label = cell.getValue();
+        try {
+            if (linkParams.label) label = linkParams.label(cell);
+            else if (linkParams.linkLabel) label = linkParams.linkLabel;
+        } catch (e2) { }
+        url = _mdashResolveUrl(url, linkParams.urlBase);
+        var target = linkParams.target || '_blank';
+        return '<a href="' + _mciEsc(url) + '" target="' + _mciEsc(target) + '">' + _mciEsc(label) + '</a>';
+    }
+    var value = cell.getValue();
+    if (format === 'plaintext') return _mciEsc(value);
+    if (format === 'money') return _mciEsc(_tblFormatCurrency(value, cfg.precision));
+    if (format === 'number') {
+        var num = _tblSafeNumber(value);
+        return cfg.precision !== undefined ? _mciEsc(num.toFixed(cfg.precision)) : _mciEsc(num);
+    }
+    if (format === 'percentage') {
+        var pn = _tblSafeNumber(value);
+        var pp = cfg.precision === undefined ? 1 : cfg.precision;
+        var sign = cfg.showSign && pn > 0 ? '+' : (pn < 0 ? '-' : '');
+        return _mciEsc(sign + new Intl.NumberFormat('pt-PT', {
+            minimumFractionDigits: pp,
+            maximumFractionDigits: pp
+        }).format(Math.abs(pn)) + '%');
+    }
+    if (format === 'date' || format === 'datetime') {
+        if (value === null || value === undefined || value === '') return '';
+        var d = new Date(value);
+        if (isNaN(d.getTime())) return _mciEsc(value);
+        if (format === 'date') {
+            return _mciEsc(('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear());
+        }
+        return _mciEsc(d.toLocaleString('pt-PT'));
+    }
+    if (format === 'tickCross') {
+        var ok = value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true' || String(value).toLowerCase() === 'sim';
+        return ok
+            ? '<i class="glyphicon glyphicon-ok" style="color:#16a34a;"></i>'
+            : '<i class="glyphicon glyphicon-remove" style="color:#dc2626;"></i>';
+    }
+    if (format === 'star') {
+        var stars = Math.min(5, Math.max(0, parseInt(value, 10) || 0));
+        var out = '';
+        for (var s = 0; s < stars; s++) out += '★';
+        for (var u = stars; u < 5; u++) out += '☆';
+        return out;
+    }
+    if (format === 'progress') {
+        var pct = Math.min(100, Math.max(0, _tblSafeNumber(value)));
+        return '<div style="background:#e2e8f0;border-radius:4px;height:8px;width:100%;min-width:48px;">'
+            + '<div style="width:' + pct + '%;background:#2563eb;height:8px;border-radius:4px;"></div></div>';
+    }
+    if (format === 'color') {
+        var colorVal = String(value || '#cbd5e1');
+        return '<span style="display:inline-block;width:18px;height:18px;border-radius:4px;background:' + _mciEsc(colorVal) + ';border:1px solid rgba(0,0,0,.12);"></span>';
+    }
+    if (format === 'html') return String(value == null ? '' : value);
+    return _mciEsc(value);
+}
+
+function _tblCompileWhenFn(when) {
+    when = _tblNormalizeWhenClause(when);
+    if (when.mode === 'expression' && when.expr) {
+        var compiledWhen = _mdashCompileTableExpression(when.expr, 'boolean');
+        return function (cell, row, value, allRows) {
+            var result = _mdashEvalCompiledTableExpression(compiledWhen, cell, allRows, function () { return allRows || []; });
+            return !!result;
+        };
+    }
+    var conditions = when.conditions || [];
+    return function (cell, row, value, allRows) {
+        return _tblEvaluateConditionGroup(conditions, row, allRows);
+    };
+}
+
+function _tblCompileThenFn(then) {
+    then = _tblNormalizeThenClause(then);
+    var format = then.format || 'plaintext';
+    if (format === 'expression') {
+        var compiledThen = _mdashCompileTableExpression(then.expr, 'value');
+        return function (cell, params) {
+            var result = _mdashEvalCompiledTableExpression(compiledThen, cell, params.allRows, params.fetchData);
+            return _tblCoerceExpressionCellOutput(result, cell.getValue());
+        };
+    }
+    var thenCfg = then;
+    return function (cell, params) {
+        return _tblRenderColumnFormat(cell, format, thenCfg, params);
+    };
+}
+
+function _tblCompileConditionalConfig(conditional, columnField, allRows) {
+    conditional = conditional || {};
+    var fetchDataFn = function () { return allRows || []; };
+    var params = {
+        valueField: conditional.valueField || columnField,
+        displayField: conditional.displayField || '',
+        allRows: allRows || [],
+        fetchData: fetchDataFn,
+        rules: [],
+        fallbackFn: _tblCompileThenFn(conditional.fallback || { format: 'plaintext' })
+    };
+    (conditional.rules || []).forEach(function (rule) {
+        if (!rule) return;
+        params.rules.push({
+            whenFn: _tblCompileWhenFn(rule.when),
+            thenFn: _tblCompileThenFn(rule.then)
+        });
+    });
+    return params;
+}
+
+function _tblConditionalFormatter(cell, formatterParams) {
+    var row = cell.getData() || {};
+    if (row.__rowType === 'section') return '';
+    var params = formatterParams || {};
+    var rules = params.rules || [];
+    var i;
+    for (i = 0; i < rules.length; i++) {
+        if (rules[i].whenFn(cell, row, cell.getValue(), params.allRows)) {
+            return rules[i].thenFn(cell, params);
+        }
+    }
+    if (params.fallbackFn) return params.fallbackFn(cell, params);
+    return _mciEsc(cell.getValue());
+}
+
+function _tblGetDeltaPercentConditionalTemplate(valueField) {
+    valueField = valueField || 'variacaoAcumulada';
+    return {
+        valueField: valueField,
+        rules: [
+            {
+                when: { mode: 'simple', conditions: [{ field: valueField, operator: 'gt', value: '0', logic: 'AND' }] },
+                then: { format: 'deltaPercentBadge', variant: 'positive', precision: 1 }
+            },
+            {
+                when: { mode: 'simple', conditions: [{ field: valueField, operator: 'lt', value: '0', logic: 'AND' }] },
+                then: { format: 'deltaPercentBadge', variant: 'negative', precision: 1 }
+            }
+        ],
+        fallback: { format: 'deltaPercentBadge', variant: 'neutral', precision: 1 }
+    };
+}
+
+function _tblEnsureColumnConditional(col) {
+    if (!col || col.formatter !== 'conditional') return col;
+    if (!col.conditional || !Array.isArray(col.conditional.rules) || !col.conditional.rules.length) {
+        col.conditional = _tblGetDeltaPercentConditionalTemplate(col.field);
+    }
+    return col;
+}
+
+function _tblConditionalSummary(conditional) {
+    conditional = conditional || {};
+    var count = (conditional.rules || []).length;
+    return count ? (count + ' regra' + (count === 1 ? '' : 's')) : 'Sem regras';
 }
 
 function _tblCalculateFilterCount(filterDef, allData) {
@@ -3024,7 +3491,7 @@ function renderTablePropertiesInline(obj, panel) {
 
     // Inputs change — apenas no 'change' (blur/Enter), NÃO em 'input'/keyup,
     // para evitar refresh constante da tabela enquanto se digita.
-    panel.on('change.tblinline', 'select, input[type="text"], input[type="number"], input[type="color"]', function () {
+    panel.on('change.tblinline', 'select, input[type="text"], input[type="number"], input[type="color"], textarea.mtbl-col-expr', function () {
         if ($(this).hasClass('mtbl-gl-field')) {
             var $card = $(this).closest('.mtbl-gl');
             var idx = $card.parent().find('.mtbl-gl').index($card) + 1;
@@ -3140,16 +3607,63 @@ function renderTablePropertiesInline(obj, panel) {
         fire();
     });
 
-    // Mostrar/esconder painel de opções de link quando se muda o formatter
+    // Mostrar/esconder painel de opções de link / condicional quando se muda o formatter
     panel.on('change.tblinline', '.mtbl-col-formatter', function () {
         var $card = $(this).closest('.mtbl-col-card');
         var fmt = $(this).val();
         var isLink = (fmt === 'link' || fmt === 'linkButton');
         var isBtn = (fmt === 'linkButton');
+        var isConditional = (fmt === 'conditional');
+        var isExpression = (fmt === 'expression');
         $card.find('.mtbl-col-link-opts').toggle(isLink);
+        $card.find('.mtbl-col-conditional-opts').toggle(isConditional);
+        $card.find('.mtbl-col-expression-opts').toggle(isExpression);
+        if (isExpression && !$card.find('.mtbl-col-expr').val()) {
+            $card.find('.mtbl-col-expr').val(_TABLE_EXPRESSION_SAMPLE);
+        }
         $card.find('.mtbl-col-color-wrap').toggle(isBtn);
         var colorKey = $card.find('.mtbl-col-color-sel').val() || 'primary';
         $card.find('.mtbl-col-color-custom').toggle(isBtn && colorKey === 'custom');
+        if (isConditional) {
+            var field = $card.find('.mtbl-col-field').val() || '';
+            var currentJson = $card.find('.mtbl-col-conditional-json').val();
+            var parsed = null;
+            try { parsed = currentJson ? JSON.parse(currentJson) : null; } catch (e) { parsed = null; }
+            if (!parsed || !parsed.rules || !parsed.rules.length) {
+                parsed = _tblGetDeltaPercentConditionalTemplate(field);
+                $card.find('.mtbl-col-conditional-json').val(JSON.stringify(parsed));
+                $card.find('.mtbl-col-conditional-summary').text(_tblConditionalSummary(parsed));
+            }
+        }
+        fire();
+    });
+
+    panel.on('click.tblinline', '.mtbl-col-conditional-template', function (e) {
+        e.preventDefault();
+        var $card = $(this).closest('.mtbl-col-card');
+        var field = $card.find('.mtbl-col-field').val() || 'variacaoAcumulada';
+        var tpl = _tblGetDeltaPercentConditionalTemplate(field);
+        $card.find('.mtbl-col-conditional-json').val(JSON.stringify(tpl));
+        $card.find('.mtbl-col-conditional-summary').text(_tblConditionalSummary(tpl));
+        fire();
+    });
+
+    panel.on('click.tblinline', '.mtbl-col-conditional-edit', function (e) {
+        e.preventDefault();
+        var $card = $(this).closest('.mtbl-col-card');
+        var field = $card.find('.mtbl-col-field').val() || '';
+        var fields = _mciGetFields(obj);
+        var conditional = null;
+        try {
+            conditional = JSON.parse($card.find('.mtbl-col-conditional-json').val() || '{}');
+        } catch (err) {
+            conditional = _tblGetDeltaPercentConditionalTemplate(field);
+        }
+        _tblOpenConditionalColumnModal(conditional, field, fields, function (updated) {
+            $card.find('.mtbl-col-conditional-json').val(JSON.stringify(updated));
+            $card.find('.mtbl-col-conditional-summary').text(_tblConditionalSummary(updated));
+            fire();
+        });
     });
 
     // Toggle do color picker custom
@@ -3366,6 +3880,10 @@ function _tblManualRowCard(item, idx) {
 }
 
 function _tblColCard(col, idx, fields) {
+    var isConditional = (col.formatter === 'conditional');
+    var conditionalCfg = isConditional ? JSON.parse(JSON.stringify(col.conditional || _tblGetDeltaPercentConditionalTemplate(col.field))) : null;
+    var isExpression = (col.formatter === 'expression');
+    var colExpr = col.expr || (col.formatterParams && col.formatterParams.expr) || _TABLE_EXPRESSION_SAMPLE;
     var isLink = (col.formatter === 'link' || col.formatter === 'linkButton');
     var isBtn = (col.formatter === 'linkButton');
     var fp = col.formatterParams || {};
@@ -3402,6 +3920,20 @@ function _tblColCard(col, idx, fields) {
         + '<select class="mtbl-col-formatter form-control input-sm" style="font-size:10.5px;">'
         + _TABLE_FORMATTERS.map(function (f) { return '<option value="' + f.value + '"' + ((col.formatter || 'plaintext') === f.value ? ' selected' : '') + '>' + f.label + '</option>'; }).join('')
         + '</select>'
+        + '</div>'
+        + '<div class="mtbl-col-conditional-opts" style="margin-top:6px;padding:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;display:' + (isConditional ? 'block' : 'none') + ';">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;">'
+        + '<div style="font-size:10px;font-weight:bold;color:#1e3a8a;">Condicional · <span class="mtbl-col-conditional-summary">' + _mciEsc(_tblConditionalSummary(conditionalCfg)) + '</span></div>'
+        + '<button type="button" class="btn btn-xs btn-primary mtbl-col-conditional-edit" style="font-size:10px;"><i class="glyphicon glyphicon-cog"></i> Regras</button>'
+        + '</div>'
+        + '<button type="button" class="btn btn-xs btn-default mtbl-col-conditional-template" style="width:100%;font-size:10px;margin-bottom:4px;"><i class="glyphicon glyphicon-flash"></i> Template: Variação %</button>'
+        + '<input type="hidden" class="mtbl-col-conditional-json" value="' + _mciEsc(JSON.stringify(conditionalCfg || {})) + '">'
+        + '<div style="font-size:9.5px;color:#1d4ed8;line-height:1.35;">Regras avaliadas por ordem. Operadores: =, &gt;, &lt;, contains, <strong>like</strong> (% _), expressão JS.</div>'
+        + '</div>'
+        + '<div class="mtbl-col-expression-opts" style="margin-top:6px;padding:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:5px;display:' + (isExpression ? 'block' : 'none') + ';">'
+        + '<div style="font-size:10px;font-weight:bold;color:#166534;margin-bottom:4px;">Expressão JS</div>'
+        + '<textarea class="form-control input-sm mtbl-col-expr" rows="4" style="font-family:monospace;font-size:10.5px;resize:vertical;">' + _mciEsc(colExpr) + '</textarea>'
+        + _tblExpressionHelpHtml()
         + '</div>'
         + '<div class="mtbl-col-link-opts" style="margin-top:6px;padding:8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;display:' + (isLink ? 'block' : 'none') + ';">'
         + '<div style="font-size:10px;font-weight:bold;color:#9a3412;margin-bottom:6px;">\uD83D\uDD17 Op\u00e7\u00f5es do Link / Bot\u00e3o</div>'
@@ -3495,7 +4027,9 @@ function _tblOpenFilterConditionsModal(filterDef, fields, onSave) {
         { value: 'lt', label: 'Menor (<)' },
         { value: 'lte', label: 'Menor ou igual (≤)' },
         { value: 'contains', label: 'Contém' },
+        { value: 'like', label: 'Like (% _)' },
         { value: 'startsWith', label: 'Começa com' },
+        { value: 'endsWith', label: 'Termina com' },
         { value: 'in', label: 'Em lista' },
         { value: 'dateEq', label: 'Data igual' },
         { value: 'dateGt', label: 'Data posterior' },
@@ -3752,6 +4286,266 @@ function _tblOpenFilterConditionsModal(filterDef, fields, onSave) {
     $modal.modal('show');
 }
 
+function _tblCloneConditionalConfig(cfg) {
+    try { return JSON.parse(JSON.stringify(cfg || {})); } catch (e) { return {}; }
+}
+
+function _tblRenderConditionalWhenRow(cond, idx, fields) {
+    var html = '<div class="mtbl-cc-cond" data-idx="' + idx + '" style="display:grid;grid-template-columns:1fr 1fr 1.4fr auto auto;gap:4px;margin-bottom:4px;align-items:center;">';
+    html += '<select class="form-control input-sm mtbl-cc-cond-field">';
+    html += '<option value="">-- campo --</option>';
+    fields.forEach(function (f) {
+        html += '<option value="' + _mciEsc(f) + '"' + (cond.field === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>';
+    });
+    html += '</select>';
+    html += '<select class="form-control input-sm mtbl-cc-cond-operator">';
+    _TABLE_CONDITION_OPERATORS.forEach(function (op) {
+        html += '<option value="' + op.value + '"' + (cond.operator === op.value ? ' selected' : '') + '>' + op.label + '</option>';
+    });
+    html += '</select>';
+    html += '<input type="text" class="form-control input-sm mtbl-cc-cond-value" value="' + _mciEsc(cond.value == null ? '' : cond.value) + '" placeholder="Valor ou %FAT%">';
+    html += '<select class="form-control input-sm mtbl-cc-cond-logic" style="width:64px;">';
+    html += '<option value="AND"' + ((cond.logic || 'AND') === 'AND' ? ' selected' : '') + '>AND</option>';
+    html += '<option value="OR"' + (cond.logic === 'OR' ? ' selected' : '') + '>OR</option>';
+    html += '</select>';
+    html += '<button type="button" class="btn btn-xs btn-danger mtbl-cc-cond-remove"><i class="glyphicon glyphicon-trash"></i></button>';
+    html += '</div>';
+    return html;
+}
+
+function _tblRenderConditionalThenFields(then, fields) {
+    then = _tblNormalizeThenClause(then);
+    var format = then.format || 'plaintext';
+    var html = '<div class="mcbi-field" style="margin-top:6px;"><label style="font-size:10px;">Formato</label>';
+    html += '<select class="form-control input-sm mtbl-cc-then-format">';
+    _tblGetTableColumnFormatOptions().forEach(function (opt) {
+        html += '<option value="' + opt.value + '"' + (format === opt.value ? ' selected' : '') + '>' + opt.label + '</option>';
+    });
+    html += '</select></div>';
+    html += '<div class="mtbl-cc-then-variant-wrap" style="margin-top:4px;' + (_tblFormatNeedsVariant(format) ? '' : 'display:none;') + '">';
+    html += '<div class="mcbi-row2">';
+    html += '<div class="mcbi-field"><label style="font-size:10px;">Variante</label><select class="form-control input-sm mtbl-cc-then-variant">';
+    html += ['positive', 'negative', 'neutral', 'success', 'danger'].map(function (v) {
+        return '<option value="' + v + '"' + ((then.variant || 'positive') === v ? ' selected' : '') + '>' + v + '</option>';
+    }).join('');
+    html += '</select></div>';
+    html += '<div class="mcbi-field"><label style="font-size:10px;">Texto fixo</label>';
+    html += '<input type="text" class="form-control input-sm mtbl-cc-then-text" value="' + _mciEsc(then.text || '') + '" placeholder="statusBadge">';
+    html += '</div></div></div>';
+    html += '<div class="mtbl-cc-then-expr-wrap" style="margin-top:4px;' + (format === 'expression' ? '' : 'display:none;') + '">';
+    html += '<textarea class="form-control input-sm mtbl-cc-then-expr" rows="3" style="font-family:monospace;font-size:11px;" placeholder="' + _mciEsc(_TABLE_EXPRESSION_SAMPLE) + '">' + _mciEsc(then.expr || _TABLE_EXPRESSION_SAMPLE) + '</textarea>';
+    html += _tblExpressionHelpHtml();
+    html += '</div>';
+    return html;
+}
+
+function _tblToggleConditionalThenPanels($rule) {
+    var format = $rule.find('.mtbl-cc-then-format').val() || 'plaintext';
+    $rule.find('.mtbl-cc-then-variant-wrap').toggle(_tblFormatNeedsVariant(format));
+    $rule.find('.mtbl-cc-then-expr-wrap').toggle(format === 'expression');
+}
+
+function _tblRenderConditionalRuleCard(rule, idx, fields) {
+    rule = rule || {};
+    var when = _tblNormalizeWhenClause(rule.when);
+    var then = _tblNormalizeThenClause(rule.then);
+    var whenMode = when.mode === 'expression' ? 'expression' : 'simple';
+    var conditions = when.conditions || [{ field: '', operator: 'eq', value: '', logic: 'AND' }];
+    var condHtml = '';
+    conditions.forEach(function (cond, cIdx) {
+        condHtml += _tblRenderConditionalWhenRow(cond, cIdx, fields);
+    });
+    var html = '<div class="mtbl-cc-rule" data-idx="' + idx + '" style="border:1px solid #dbeafe;border-radius:8px;padding:8px;margin-bottom:8px;background:#fff;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
+    html += '<strong style="font-size:11px;color:#1e3a8a;">Regra ' + (idx + 1) + '</strong>';
+    html += '<button type="button" class="btn btn-xs btn-danger mtbl-cc-rule-remove"><i class="glyphicon glyphicon-trash"></i></button>';
+    html += '</div>';
+    html += '<div class="mcbi-field" style="margin-bottom:6px;"><label style="font-size:10px;">Quando</label>';
+    html += '<select class="form-control input-sm mtbl-cc-when-mode">';
+    html += '<option value="simple"' + (whenMode === 'simple' ? ' selected' : '') + '>Condições simples</option>';
+    html += '<option value="expression"' + (whenMode === 'expression' ? ' selected' : '') + '>Expressão JS</option>';
+    html += '</select></div>';
+    html += '<div class="mtbl-cc-when-simple"' + (whenMode === 'simple' ? '' : ' style="display:none;"') + '>';
+    html += '<div class="mtbl-cc-conditions">' + condHtml + '</div>';
+    html += '<button type="button" class="btn btn-xs btn-default mtbl-cc-add-cond"><i class="glyphicon glyphicon-plus"></i> Condição</button>';
+    html += '</div>';
+    html += '<div class="mtbl-cc-when-expression"' + (whenMode === 'expression' ? '' : ' style="display:none;"') + '>';
+    html += '<textarea class="form-control input-sm mtbl-cc-when-expr" rows="2" style="font-family:monospace;font-size:11px;" placeholder="row.variacaoAcumulada > 0">' + _mciEsc(when.expr || '') + '</textarea>';
+    html += _tblExpressionHelpHtml();
+    html += '</div>';
+    html += '<div style="font-size:10px;font-weight:700;color:#1e3a8a;margin:8px 0 4px;">Então</div>';
+    html += _tblRenderConditionalThenFields(then, fields);
+    html += '</div>';
+    return html;
+}
+
+function _tblReadConditionalRuleFromCard($rule) {
+    var whenMode = $rule.find('.mtbl-cc-when-mode').val() || 'simple';
+    var when = whenMode === 'expression'
+        ? { mode: 'expression', expr: ($rule.find('.mtbl-cc-when-expr').val() || '').trim() }
+        : { mode: 'simple', conditions: [] };
+    if (whenMode === 'simple') {
+        $rule.find('.mtbl-cc-cond').each(function () {
+            var $c = $(this);
+            when.conditions.push({
+                field: $c.find('.mtbl-cc-cond-field').val() || '',
+                operator: $c.find('.mtbl-cc-cond-operator').val() || 'eq',
+                value: $c.find('.mtbl-cc-cond-value').val(),
+                logic: $c.find('.mtbl-cc-cond-logic').val() || 'AND'
+            });
+        });
+    }
+    var format = $rule.find('.mtbl-cc-then-format').val() || 'plaintext';
+    var then = { format: format };
+    if (_tblFormatNeedsVariant(format)) {
+        then.variant = $rule.find('.mtbl-cc-then-variant').val() || 'neutral';
+        var txt = ($rule.find('.mtbl-cc-then-text').val() || '').trim();
+        if (txt) then.text = txt;
+        if (format === 'deltaPercentBadge' || format === 'deltaBadge') then.precision = 1;
+    }
+    if (format === 'expression') {
+        then.expr = ($rule.find('.mtbl-cc-then-expr').val() || _TABLE_EXPRESSION_SAMPLE).trim();
+    }
+    if (format === 'percentage') {
+        then.precision = 1;
+        then.showSign = true;
+    }
+    return { when: when, then: then };
+}
+
+function _tblOpenConditionalColumnModal(conditional, columnField, fields, onSave) {
+    var modalId = 'mtbl-conditional-column-modal';
+    $('#' + modalId).remove();
+    conditional = _tblCloneConditionalConfig(conditional);
+    if (!conditional.valueField) conditional.valueField = columnField || '';
+    if (!Array.isArray(conditional.rules)) conditional.rules = [];
+    if (!conditional.fallback) conditional.fallback = { format: 'plaintext', variant: 'neutral' };
+    conditional.fallback = _tblNormalizeThenClause(conditional.fallback);
+
+    var rulesHtml = '';
+    if (conditional.rules.length) {
+        conditional.rules.forEach(function (rule, idx) {
+            rulesHtml += _tblRenderConditionalRuleCard(rule, idx, fields);
+        });
+    } else {
+        rulesHtml = '<div class="mcbi-info mtbl-cc-empty">Sem regras. Adicione ou use o template Variação %.</div>';
+    }
+
+    var mHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1">'
+        + '<div class="modal-dialog modal-lg"><div class="modal-content">'
+        + '<div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button>'
+        + '<h4 class="modal-title"><i class="glyphicon glyphicon-resize-horizontal"></i> Coluna condicional</h4></div>'
+        + '<div class="modal-body" style="max-height:70vh;overflow:auto;">'
+        + '<div class="mcbi-row2" style="margin-bottom:8px;">'
+        + '<div class="mcbi-field"><label>Campo valor (sort)</label><select class="form-control input-sm mtbl-cc-value-field">' + _tblFieldOpts(fields, conditional.valueField || columnField) + '</select></div>'
+        + '<div class="mcbi-field"><label>Campo display (opcional)</label><select class="form-control input-sm mtbl-cc-display-field">'
+        + '<option value="">-- auto --</option>' + fields.map(function (f) {
+            return '<option value="' + _mciEsc(f) + '"' + (conditional.displayField === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>';
+        }).join('') + '</select></div></div>'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0 6px;">'
+        + '<label style="margin:0;font-weight:700;">Regras (primeira correspondência ganha)</label>'
+        + '<div><button type="button" class="btn btn-xs btn-default mtbl-cc-template"><i class="glyphicon glyphicon-flash"></i> Template %</button> '
+        + '<button type="button" class="btn btn-xs btn-primary mtbl-cc-add-rule"><i class="glyphicon glyphicon-plus"></i> Regra</button></div></div>'
+        + '<div class="mtbl-cc-rules">' + rulesHtml + '</div>'
+        + '<hr style="margin:12px 0;"><label style="font-weight:700;">Fallback (nenhuma regra)</label>'
+        + '<div class="mtbl-cc-fallback-wrap">' + _tblRenderConditionalThenFields(conditional.fallback, fields).replace(/mtbl-cc-then-/g, 'mtbl-cc-fallback-') + '</div>'
+        + '</div><div class="modal-footer">'
+        + '<button type="button" class="btn btn-primary mtbl-cc-save">Guardar</button>'
+        + '<button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>'
+        + '</div></div></div></div>';
+
+    $('body').append(mHtml);
+    var $modal = $('#' + modalId);
+
+    function toggleWhenPanels($rule) {
+        var wm = $rule.find('.mtbl-cc-when-mode').val();
+        $rule.find('.mtbl-cc-when-simple').toggle(wm === 'simple');
+        $rule.find('.mtbl-cc-when-expression').toggle(wm === 'expression');
+    }
+
+    function toggleFallbackPanels() {
+        var format = $modal.find('.mtbl-cc-fallback-format').val() || 'plaintext';
+        $modal.find('.mtbl-cc-fallback-variant-wrap').toggle(_tblFormatNeedsVariant(format));
+        $modal.find('.mtbl-cc-fallback-expr-wrap').toggle(format === 'expression');
+    }
+
+    $modal.on('change', '.mtbl-cc-when-mode', function () {
+        toggleWhenPanels($(this).closest('.mtbl-cc-rule'));
+    });
+
+    $modal.on('change', '.mtbl-cc-then-format', function () {
+        _tblToggleConditionalThenPanels($(this).closest('.mtbl-cc-rule'));
+    });
+
+    $modal.on('change', '.mtbl-cc-fallback-format', toggleFallbackPanels);
+    toggleFallbackPanels();
+
+    $modal.on('click', '.mtbl-cc-add-rule', function () {
+        $modal.find('.mtbl-cc-empty').remove();
+        var idx = $modal.find('.mtbl-cc-rule').length;
+        $modal.find('.mtbl-cc-rules').append(_tblRenderConditionalRuleCard({
+            when: { mode: 'simple', conditions: [{ field: columnField, operator: 'gt', value: '0', logic: 'AND' }] },
+            then: { format: 'deltaPercentBadge', variant: 'positive', precision: 1 }
+        }, idx, fields));
+    });
+
+    $modal.on('click', '.mtbl-cc-template', function () {
+        var vf = $modal.find('.mtbl-cc-value-field').val() || columnField;
+        var tpl = _tblGetDeltaPercentConditionalTemplate(vf);
+        $modal.find('.mtbl-cc-rules').html('');
+        tpl.rules.forEach(function (rule, idx) {
+            $modal.find('.mtbl-cc-rules').append(_tblRenderConditionalRuleCard(rule, idx, fields));
+        });
+        $modal.find('.mtbl-cc-fallback-format').val('deltaPercentBadge');
+        toggleFallbackPanels();
+    });
+
+    $modal.on('click', '.mtbl-cc-rule-remove', function () {
+        $(this).closest('.mtbl-cc-rule').remove();
+    });
+
+    $modal.on('click', '.mtbl-cc-add-cond', function () {
+        var $rule = $(this).closest('.mtbl-cc-rule');
+        var idx = $rule.find('.mtbl-cc-cond').length;
+        $rule.find('.mtbl-cc-conditions').append(_tblRenderConditionalWhenRow({ field: columnField, operator: 'eq', value: '', logic: 'AND' }, idx, fields));
+    });
+
+    $modal.on('click', '.mtbl-cc-cond-remove', function () {
+        $(this).closest('.mtbl-cc-cond').remove();
+    });
+
+    $modal.on('click', '.mtbl-cc-save', function () {
+        var out = {
+            valueField: $modal.find('.mtbl-cc-value-field').val() || columnField,
+            displayField: $modal.find('.mtbl-cc-display-field').val() || '',
+            rules: []
+        };
+        $modal.find('.mtbl-cc-rule').each(function () {
+            out.rules.push(_tblReadConditionalRuleFromCard($(this)));
+        });
+        var fbFormat = $modal.find('.mtbl-cc-fallback-format').val() || 'plaintext';
+        out.fallback = { format: fbFormat };
+        if (_tblFormatNeedsVariant(fbFormat)) {
+            out.fallback.variant = $modal.find('.mtbl-cc-fallback-variant').val() || 'neutral';
+            var fbTxt = ($modal.find('.mtbl-cc-fallback-text').val() || '').trim();
+            if (fbTxt) out.fallback.text = fbTxt;
+            if (fbFormat === 'deltaPercentBadge' || fbFormat === 'deltaBadge') out.fallback.precision = 1;
+        }
+        if (fbFormat === 'expression') {
+            out.fallback.expr = ($modal.find('.mtbl-cc-fallback-expr').val() || _TABLE_EXPRESSION_SAMPLE).trim();
+        }
+        if (fbFormat === 'percentage') {
+            out.fallback.precision = 1;
+            out.fallback.showSign = true;
+        }
+        $modal.modal('hide');
+        if (onSave) onSave(out);
+    });
+
+    $modal.on('hidden.bs.modal', function () { $(this).remove(); });
+    $modal.modal('show');
+}
+
 function _tblReadColumnCard($card) {
     var fmt = $card.find('.mtbl-col-formatter').val() || 'plaintext';
     var colDef = {
@@ -3777,6 +4571,22 @@ function _tblReadColumnCard($card) {
                 ? ($card.find('.mtbl-col-color-custom').val() || '#2563eb')
                 : 'phc:' + colorKey;
         }
+    }
+    if (fmt === 'conditional') {
+        try {
+            colDef.conditional = JSON.parse($card.find('.mtbl-col-conditional-json').val() || '{}');
+        } catch (e2) {
+            colDef.conditional = _tblGetDeltaPercentConditionalTemplate(colDef.field);
+        }
+        _tblEnsureColumnConditional(colDef);
+        delete colDef.expr;
+        delete colDef.semantic;
+    }
+    if (fmt === 'expression') {
+        colDef.expr = ($card.find('.mtbl-col-expr').val() || _TABLE_EXPRESSION_SAMPLE).trim();
+        delete colDef.conditional;
+        delete colDef.semantic;
+        delete colDef.displayField;
     }
     return colDef;
 }
@@ -3963,7 +4773,7 @@ function createDynamicSchemaTable(data) {
                         field: { type: 'string', title: 'Campo', 'enum': fieldOptions },
                         title: { type: 'string', title: 'T\u00edtulo' },
                         visible: { type: 'boolean', title: 'Vis\u00edvel', 'default': true },
-                        formatter: { type: 'string', title: 'Formatador', 'enum': ['plaintext', 'number', 'money', 'tickCross', 'star', 'progress', 'color', 'link', 'linkButton', 'html'] }
+                        formatter: { type: 'string', title: 'Formatador', 'enum': ['plaintext', 'number', 'money', 'percentage', 'date', 'datetime', 'tickCross', 'star', 'progress', 'color', 'link', 'linkButton', 'html', 'expression', 'conditional'] }
                     }
                 }
             }
