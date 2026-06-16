@@ -2093,7 +2093,7 @@
                 {{initUI()}}
                 <div v-for="(rowGroup, rowIndex) in getRowGroups(container.mdashcontainerstamp)"
                   :key="'row-' + rowIndex" :class="['gr-row', 'm-dash-container-item-row', getRowLayoutClass(rowGroup)]"
-                  style="margin-top: 0.6em;margin-bottom:1.6em">
+                  style="margin-top: 0px;margin-bottom: 5px;">
                   <div v-for="item in rowGroup.items" :key="item.mdashcontaineritemstamp"
                     :id="item.mdashcontaineritemstamp" :class="getItemClasses(item)" :style="getItemGridStyle(item)">
                   </div>
