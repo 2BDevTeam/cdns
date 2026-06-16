@@ -4865,6 +4865,7 @@ var MdashChartBuilder = (function () {
         { type: 'bar_h', label: 'Horiz.', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><rect y="1" x="0" height="5" width="15" rx="1.5"/><rect y="9.5" x="0" height="5" width="22" rx="1.5"/><rect y="18" x="0" height="5" width="11" rx="1.5"/></svg>' },
         { type: 'line', label: 'Linha', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,19 6,11 12,15 18,6 23,9"/><circle cx="1" cy="19" r="2.2" fill="currentColor" stroke="none"/><circle cx="6" cy="11" r="2.2" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="2.2" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="2.2" fill="currentColor" stroke="none"/><circle cx="23" cy="9" r="2.2" fill="currentColor" stroke="none"/></svg>' },
         { type: 'area', label: 'Área', svg: '<svg viewBox="0 0 24 24"><path d="M1 22L1 15L6 9L12 13L18 5L23 8L23 22Z" fill="currentColor" opacity=".3"/><polyline points="1,15 6,9 12,13 18,5 23,8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+        { type: 'sparkline', label: 'Sparkline', svg: '<svg viewBox="0 0 24 24"><path d="M2 20L4 16L6 13L9 15L12 8L15 11L18 6L22 10L22 22Z" fill="rgba(46,125,50,0.15)" opacity="0.4"/><polyline points="2,20 4,16 6,13 9,15 12,8 15,11 18,6 22,10" fill="none" stroke="#2E7D32" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
         { type: 'donut', label: 'Donut', svg: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="5"/><path d="M12 3A9 9 0 0 1 21 12" stroke="currentColor" stroke-width="5" opacity=".4" stroke-linecap="round"/></svg>' },
         { type: 'pie', label: 'Pizza', svg: '<svg viewBox="0 0 24 24"><path d="M12 12L12 2A10 10 0 0 1 22 12Z" fill="currentColor"/><path d="M12 12L22 12A10 10 0 0 1 6 21Z" fill="currentColor" opacity=".55"/><path d="M12 12L6 21A10 10 0 0 1 2 6Z" fill="currentColor" opacity=".3"/><path d="M12 12L2 6A10 10 0 0 1 12 2Z" fill="currentColor" opacity=".15"/></svg>' },
         { type: 'scatter', label: 'Dispersão', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="17" r="2.2"/><circle cx="9" cy="10" r="2.2"/><circle cx="14" cy="14" r="2.2"/><circle cx="19" cy="5" r="2.2"/><circle cx="21" cy="19" r="2.2"/><circle cx="7" cy="21" r="2.2"/></svg>' },
@@ -4934,6 +4935,7 @@ var MdashChartBuilder = (function () {
         if (ct === 'donut' || ct === 'pie') return _buildPieOption(base, cfg, rows, t, ct);
         if (ct === 'funnel') return _buildFunnelOption(base, cfg, rows, t);
         if (ct === 'scatter') return _buildScatterOption(base, cfg, rows, t);
+        if (ct === 'sparkline') return _buildSparklineOption(base, cfg, rows, t);
         if (ct === 'bar_h') return _buildBarHOption(base, cfg, rows, t);
         return _buildCartesianOption(base, cfg, rows, t, ct);
     }
@@ -5158,6 +5160,57 @@ var MdashChartBuilder = (function () {
             grid: _gridBase('none'),
             xAxis: { type: 'value', axisLine: { lineStyle: { color: t.axisLine } }, axisLabel: { color: t.subtext, fontSize: 11 }, splitLine: { lineStyle: { color: t.grid, type: [6, 4] } } },
             yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: t.subtext, fontSize: 11 }, splitLine: { lineStyle: { color: t.grid, type: [6, 4] } } },
+            series: series
+        });
+    }
+
+    function _buildSparklineOption(base, cfg, rows, t) {
+        var xField = cfg.xField || '';
+        var serDefs = (cfg.series || []).filter(function (s) { return s.field; });
+        var xData = rows.map(function (r) { return r[xField]; });
+        var series = serDefs.map(function (s, i) {
+            var baseCol = _resolvePHCColor(s.color) || '#2E7D32'; // Default green color for sparkline
+            return {
+                name: s.name || s.field,
+                type: 'line',
+                data: rows.map(function (r) { return r[s.field]; }),
+                smooth: true,
+                symbol: 'none',
+                lineStyle: { color: baseCol, width: 2 },
+                areaStyle: {
+                    color: {
+                        type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                        colorStops: [
+                            { offset: 0, color: _alpha(baseCol, 0.15) },
+                            { offset: 1, color: _alpha(baseCol, 0) }
+                        ]
+                    }
+                },
+                emphasis: { focus: 'none' }
+            };
+        });
+        return Object.assign({}, base, {
+            tooltip: { show: false },
+            legend: { show: false },
+            grid: { top: 0, bottom: 0, left: 0, right: 0, containLabel: false },
+            xAxis: {
+                type: 'category', data: xData,
+                show: false,
+                axisTick: { show: false },
+                axisLine: { show: false },
+                axisLabel: { show: false },
+                splitLine: { show: false }
+            },
+            yAxis: {
+                type: 'value',
+                show: false,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { show: false },
+                splitLine: { show: false }
+            },
+            title: { show: false },
+            toolbox: { show: false },
             series: series
         });
     }
@@ -6768,7 +6821,7 @@ function renderChartPropertiesInline(obj, panel) {
                 + '<em>' + th.name + '</em></button>';
         }).join('') + '</div></div>'
         + '<div class="mcbi-field"><label>Altura: <strong class="mcbi-h-lbl">' + (cfg.height || 320) + '</strong> px</label>'
-        + '<input type="range" class="mcbi-height" min="150" max="800" step="10" value="' + (cfg.height || 320) + '"></div>';
+        + '<input type="range" class="mcbi-height" min="50" max="800" step="10" value="' + (cfg.height || 320) + '"></div>';
 
     // Configurações Gerais (stack, toolbox, legendas, título, etiquetas, animações)
     var sGeral =
