@@ -129,7 +129,7 @@
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 1rem;
-    grid-auto-rows: 1fr;
+    grid-auto-rows: auto;
     margin-bottom: 2rem;
   }
 
@@ -730,8 +730,14 @@
   }
 
   .m-dash-render-area {
-    height: 100% !important;
     min-height: var(--md-item-min-h, 0px);
+    height: auto;
+  }
+
+  /* Layout manual: o item preenche a célula da grelha */
+  .m-dash-render-area.m-dash-item-host {
+    height: 100%;
+    min-height: 0;
   }
 
   @media screen and (min-width: 768px) {
@@ -1578,7 +1584,7 @@
     box-shadow: var(--md-shadow-card);
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: auto;
     overflow: hidden;
     transition: box-shadow 200ms ease, transform 200ms ease;
     position: relative;
@@ -1649,11 +1655,31 @@
   }
 
   .mdash-card__body {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     padding: 18px 20px;
     overflow: auto;
-    min-height: 80px;
+    min-height: 0;
     position: relative;
+  }
+
+  .m-dash-item-host .mdash-card {
+    height: 100%;
+  }
+
+  .m-dash-item-host .mdash-card__body {
+    flex: 1 1 auto;
+    min-height: 80px;
+  }
+
+  /* Layout automático: cards/layouts custom seguem a altura do conteúdo */
+  .m-dash-render-area:not(.m-dash-item-host) [data-mdash-scope] > * {
+    height: auto;
+    min-height: 0;
+  }
+
+  .m-dash-item-host [data-mdash-scope] > * {
+    height: 100%;
+    min-height: 0;
   }
 
   .mdash-card__footer {
@@ -2503,14 +2529,20 @@
         renderFallbackCard: mdashRenderEnterpriseCard,
         onHeightSync: scheduleMdashSidebarHeightSync
       };
-      if (typeof item._calculateLoadingHeight !== 'function') {
-        item._calculateLoadingHeight = LocalMdashContainerItem.prototype._calculateLoadingHeight;
+      var heightProto = (typeof window.MdashContainerItem === 'function')
+        ? window.MdashContainerItem.prototype
+        : LocalMdashContainerItem.prototype;
+      if (typeof item._measureRenderedContentHeight !== 'function' && heightProto._measureRenderedContentHeight) {
+        item._measureRenderedContentHeight = heightProto._measureRenderedContentHeight;
       }
-      if (typeof item._lockHostMinHeight !== 'function') {
-        item._lockHostMinHeight = LocalMdashContainerItem.prototype._lockHostMinHeight;
+      if (typeof item._calculateLoadingHeight !== 'function' && heightProto._calculateLoadingHeight) {
+        item._calculateLoadingHeight = heightProto._calculateLoadingHeight;
       }
-      if (typeof item._captureRenderedHeight !== 'function') {
-        item._captureRenderedHeight = LocalMdashContainerItem.prototype._captureRenderedHeight;
+      if (typeof item._lockHostMinHeight !== 'function' && heightProto._lockHostMinHeight) {
+        item._lockHostMinHeight = heightProto._lockHostMinHeight;
+      }
+      if (typeof item._captureRenderedHeight !== 'function' && heightProto._captureRenderedHeight) {
+        item._captureRenderedHeight = heightProto._captureRenderedHeight;
       }
       if (typeof item.hideSkeleton !== 'function') {
         item.hideSkeleton = LocalMdashContainerItem.prototype.hideSkeleton;
@@ -2655,12 +2687,16 @@
       this.records = [];
     }
 
-    LocalMdashContainerItem.prototype._calculateLoadingHeight = function () {
+    LocalMdashContainerItem.prototype._measureRenderedContentHeight = function () {
       var host = document.getElementById(this.mdashcontaineritemstamp);
-      var currentHeight = 0;
-      if (host) {
-        currentHeight = Math.round(host.getBoundingClientRect().height || 0);
-      }
+      if (!host) return 0;
+      var contentEl = host.querySelector('.mdash-card, .dashcard, [data-mdash-scope], .cont-item-object-rendered');
+      var target = contentEl || host;
+      return Math.round(target.getBoundingClientRect().height || 0);
+    };
+
+    LocalMdashContainerItem.prototype._calculateLoadingHeight = function () {
+      var currentHeight = this._measureRenderedContentHeight();
       if (currentHeight > 40) {
         this.lastMeasuredHeight = currentHeight;
         return currentHeight;
@@ -2686,12 +2722,12 @@
       if (!host) return;
       [80, 260].forEach(function (delay) {
         setTimeout(function () {
-          var h = Math.round(host.getBoundingClientRect().height || 0);
+          var h = containerItem._measureRenderedContentHeight();
           if (h > 40) {
             containerItem.lastMeasuredHeight = h;
-            host.style.setProperty('--md-item-min-h', h + 'px');
-            scheduleMdashSidebarHeightSync();
           }
+          host.style.removeProperty('--md-item-min-h');
+          scheduleMdashSidebarHeightSync();
         }, delay);
       });
     };
@@ -3604,7 +3640,7 @@
       getItemGridStyle(item) {
         var allContainers = (this.mdash && this.mdash.containers) ? this.mdash.containers : [];
         var mode = getEffectiveItemLayoutModeRuntime(item, allContainers);
-        if (mode !== 'manual') return 'height:100%';
+        if (mode !== 'manual') return '';
 
         // DRY: delega na lógica centralizada do config lib.js (span via 'tamanho',
         // clamp de colStart até 12, rowspan). Assim o sistema de layout vive num

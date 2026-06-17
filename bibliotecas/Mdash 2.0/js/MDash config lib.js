@@ -1370,6 +1370,9 @@ function MdashContainerItem(data) {
     this.filters = data.filters || [];
     this.records = data.records || [];
     this.dadosTemplate = data.dadosTemplate || {};
+    this.lastMeasuredHeight = parseInt(data.lastMeasuredHeight, 10) || 0;
+    this._pendingFetchPromise = null;
+    this._pendingFetchKey = "";
     // -- Configuração dos slots (JSON persistido na BD) --
     this.slotsconfigjson = data.slotsconfigjson || '[]';
     this.slotsconfig = []; // array de MdashSlot — preenchido pelo initSlotsConfig()
@@ -3906,6 +3909,10 @@ function mdashRefreshContainerItemRuntime(containerItem, runtimeCtx, options) {
             $('#' + containerItem.skeletonId).hide();
         }
 
+        if (typeof containerItem._lockHostMinHeight === 'function') {
+            containerItem._lockHostMinHeight(0);
+        }
+
         $(hostSelector).find('.mdash-card, [data-mdash-scope]').addClass('mdash-content-fade-in');
 
         if (typeof containerItem._captureRenderedHeight === 'function') {
@@ -3927,6 +3934,64 @@ function mdashRefreshContainerItemRuntime(containerItem, runtimeCtx, options) {
     });
 }
 window.mdashRefreshContainerItemRuntime = mdashRefreshContainerItemRuntime;
+
+MdashContainerItem.prototype._measureRenderedContentHeight = function () {
+    var host = document.getElementById(this.mdashcontaineritemstamp);
+    if (!host) return 0;
+    var contentEl = host.querySelector('.mdash-card, .dashcard, [data-mdash-scope], .cont-item-object-rendered');
+    var target = contentEl || host;
+    return Math.round(target.getBoundingClientRect().height || 0);
+};
+
+MdashContainerItem.prototype._calculateLoadingHeight = function () {
+    var currentHeight = this._measureRenderedContentHeight();
+    if (currentHeight > 40) {
+        this.lastMeasuredHeight = currentHeight;
+        return currentHeight;
+    }
+    if (this.lastMeasuredHeight > 40) return this.lastMeasuredHeight;
+    if (typeof getMdashSkeletonMinHeightBySize === 'function') {
+        return getMdashSkeletonMinHeightBySize(this.tamanho);
+    }
+    return 0;
+};
+
+MdashContainerItem.prototype._lockHostMinHeight = function (height) {
+    var host = document.getElementById(this.mdashcontaineritemstamp);
+    if (!host) return;
+    var h = parseInt(height, 10) || 0;
+    if (h > 0) {
+        host.style.setProperty('--md-item-min-h', h + 'px');
+    } else {
+        host.style.removeProperty('--md-item-min-h');
+    }
+};
+
+MdashContainerItem.prototype._captureRenderedHeight = function () {
+    var containerItem = this;
+    var host = document.getElementById(containerItem.mdashcontaineritemstamp);
+    if (!host) return;
+    var syncHeight = (containerItem._runtimeCtx && typeof containerItem._runtimeCtx.onHeightSync === 'function')
+        ? containerItem._runtimeCtx.onHeightSync
+        : (typeof scheduleMdashSidebarHeightSync === 'function' ? scheduleMdashSidebarHeightSync : null);
+    [80, 260].forEach(function (delay) {
+        setTimeout(function () {
+            var h = containerItem._measureRenderedContentHeight();
+            if (h > 40) {
+                containerItem.lastMeasuredHeight = h;
+            }
+            host.style.removeProperty('--md-item-min-h');
+            if (syncHeight) syncHeight();
+        }, delay);
+    });
+};
+
+MdashContainerItem.prototype.hideSkeleton = function () {
+    if (this.skeletonId) {
+        var el = document.getElementById(this.skeletonId);
+        if (el) el.style.display = 'none';
+    }
+};
 
 MdashContainerItem.prototype.handleLayout = function (runtimeCtx) {
     return mdashHandleContainerItemLayoutRuntime(this, runtimeCtx || this._runtimeCtx || {});
