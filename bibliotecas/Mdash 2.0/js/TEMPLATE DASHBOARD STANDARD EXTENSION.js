@@ -62,6 +62,29 @@ function otherStyles(styles) {
 
 }
 
+// Formatação numérica: abreviar (K/M/B) ou formato local
+function _mciAbbrevNumber(v, decimals) {
+    var n = Number(v);
+    if (!isFinite(n)) return v === null || v === undefined ? '—' : String(v);
+    var abs = Math.abs(n);
+    decimals = typeof decimals === 'number' ? decimals : (abs >= 1000 && abs < 1000000 ? 1 : 0);
+    if (abs >= 1e9) return (n / 1e9).toFixed(decimals).replace(/\.0+$/, '') + 'B';
+    if (abs >= 1e6) return (n / 1e6).toFixed(decimals).replace(/\.0+$/, '') + 'M';
+    if (abs >= 1e3) return (n / 1e3).toFixed(decimals).replace(/\.0+$/, '') + 'K';
+    return n.toFixed(decimals).replace(/\.0+$/, '');
+}
+
+function _mciFormatNumber(v, opts) {
+    opts = opts || {};
+    if (v === null || v === undefined || v === '') return '—';
+    var n = Number(v);
+    if (!isFinite(n)) return String(v);
+    if (opts.abbrev) return _mciAbbrevNumber(n, opts.decimals || 0);
+    // default: locale format (pt-PT)
+    var maxFr = typeof opts.maxFractionDigits === 'number' ? opts.maxFractionDigits : 2;
+    return n.toLocaleString('pt-PT', { maximumFractionDigits: maxFr });
+}
+
 // ...existing code...
 function addTabulatorStyles(styles) {
     var tabulatorCSS = "";
@@ -5017,13 +5040,13 @@ var MdashChartBuilder = (function () {
         });
 
         return Object.assign({}, base, {
-            tooltip: Object.assign(_tooltipBase(t, 'axis'), {
+                tooltip: Object.assign(_tooltipBase(t, 'axis'), {
                 formatter: function (params) {
                     var out = '<div style="padding:1px 0 5px;font-weight:700;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:5px;">' + (params[0] ? params[0].axisValue : '') + '</div>';
                     params.forEach(function (p) {
                         var col = typeof p.color === 'string' ? p.color : t.colors[0];
                         var dot = '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + col + ';margin-right:7px;flex-shrink:0;"></span>';
-                        var val = p.value != null ? (+p.value).toLocaleString('pt-PT', { maximumFractionDigits: 2 }) : '—';
+                        var val = p.value != null ? _mciFormatNumber(p.value, { abbrev: (typeof cfg !== 'undefined' && cfg.yAxis && cfg.yAxis.abbrev), maxFractionDigits: 2 }) : '—';
                         out += '<div style="display:flex;align-items:center;gap:3px;padding:2px 0;">' + dot + '<span style="flex:1;opacity:0.85;">' + p.seriesName + '</span><strong style="margin-left:12px;">' + val + '</strong></div>';
                     });
                     return out;
@@ -5045,7 +5068,7 @@ var MdashChartBuilder = (function () {
             yAxis: {
                 type: 'value', show: cfg.yAxis ? cfg.yAxis.show !== false : true,
                 axisLine: { show: false }, axisTick: { show: false },
-                axisLabel: { color: t.subtext, fontSize: 11 },
+                axisLabel: { color: t.subtext, fontSize: 11, formatter: function (v) { return _mciFormatNumber(v, { abbrev: (cfg && cfg.yAxis && cfg.yAxis.abbrev) }); } },
                 splitLine: { lineStyle: { color: t.grid, type: [6, 4] } },
                 name: cfg.yAxis && cfg.yAxis.name || '', nameTextStyle: { color: t.subtext, fontSize: 11 }
             },
@@ -6482,7 +6505,7 @@ function _mciReadConfig($root, obj) {
     cfg.animation = $root.find('.mcbi-anim').is(':checked');
     cfg.borderRadius = parseInt($root.find('.mcbi-br').val()) || 6;
     cfg.xAxis = { rotate: parseInt($root.find('.mcbi-xrot').val()) || 0, name: $root.find('.mcbi-xname').val() || '', interval: $root.find('.mcbi-xinterval').val() || 'auto' };
-    cfg.yAxis = { show: $root.find('.mcbi-yshow').is(':checked'), name: $root.find('.mcbi-yname').val() || '' };
+    cfg.yAxis = { show: $root.find('.mcbi-yshow').is(':checked'), name: $root.find('.mcbi-yname').val() || '', abbrev: $root.find('.mcbi-yabbrev').is(':checked') };
     cfg.legend = { show: $root.find('.mcbi-legend').is(':checked'), position: $root.find('.mcbi-legend-pos').val() || 'top' };
     cfg.title = { show: $root.find('.mcbi-title-show').is(':checked'), text: $root.find('.mcbi-title-text').val() || '' };
     cfg.tooltip = { show: true };
@@ -6871,6 +6894,7 @@ function renderChartPropertiesInline(obj, panel) {
         + '</div>'
         + '<div class="mcbi-field" style="margin-top:2px;">'
         + _mciChk('mcbi-yshow', 'Mostrar eixo Y', !cfg.yAxis || cfg.yAxis.show !== false)
+        + '<div style="margin-top:6px">' + _mciChk('mcbi-yabbrev', 'Abreviar valores (ex: 15M)', !!(cfg.yAxis && cfg.yAxis.abbrev)) + '</div>'
         + '</div>';
 
     // ── Assemble HTML ───────────────────────────────────────────────────────
