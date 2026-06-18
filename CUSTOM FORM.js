@@ -1146,12 +1146,12 @@ function generateSelect(selectData, classes, style, selectCustomData, fieldToOpt
     }
     
     // Debug log for ALL selects
-    console.log('generateSelect called for ' + fieldName + ':', {
+   /* console.log('generateSelect called for ' + fieldName + ':', {
         multiSelect: multiSelect,
         multiSelectType: typeof multiSelect,
         selectDataLength: selectData ? selectData.length : 0,
         label: label
-    });
+    });*/
     
     // Replace keys based on arguments
     var options = selectData.map(function (n) {
@@ -1374,12 +1374,396 @@ function getIframeLoadingStyle(styles) {
     styles.push(style);
 }
 
+/**
+ * Sessões de iframes geridas por generateComponent (vivem no parent — sobrevivem ao postback do iframe).
+ */
+var GComponentSessions = GComponentSessions || {};
+var CFORM_SAVE_INTENT_TTL_MS = 120000;
+var CFORM_SAVE_PROBE_DELAYS_MS = [0, 100, 300, 750, 1500, 3000];
+
+function getComponentWatchedFieldsKey(componentId) {
+    return "cform_component_" + componentId + "_watched";
+}
+
+function getComponentSaveIntentKey(componentId) {
+    return "cform_component_" + componentId + "_saveIntent";
+}
+
+function loadComponentWatchedFields(componentId) {
+    try {
+        var raw = localStorage.getItem(getComponentWatchedFieldsKey(componentId));
+        return raw ? JSON.parse(raw) : {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function persistComponentWatchedFields(componentId, watchedFields) {
+    try {
+        localStorage.setItem(getComponentWatchedFieldsKey(componentId), JSON.stringify(watchedFields || {}));
+    } catch (error) {
+        console.warn("persistComponentWatchedFields:", error);
+    }
+}
+
+function clearComponentWatchedFields(componentId) {
+    try {
+        localStorage.removeItem(getComponentWatchedFieldsKey(componentId));
+    } catch (error) {
+        console.warn("clearComponentWatchedFields:", error);
+    }
+}
+
+function getIframeFieldValue(iframeDoc, fieldId) {
+    var $field = iframeDoc.find("#" + fieldId);
+    if ($field.length === 0) {
+        return "";
+    }
+
+    if ($field.is("select")) {
+        var selectedText = $field.find("option:selected").text();
+        return ($field.val() || selectedText || "").toString().trim();
+    }
+
+    return ($field.val() || $field.text() || "").toString().trim();
+}
+
+function getPhcAlertifyLogs(iframeDoc) {
+    return iframeDoc.find("#alertify-logs");
+}
+
+function hasPhcAlertifySuccess(iframeDoc) {
+    return iframeDoc.find(
+        "#alertify-logs .alertify-log-success, article.alertify-log-success, .alertify-log.alertify-log-success"
+    ).length > 0;
+}
+
+function hasPhcAlertifyError(iframeDoc) {
+    var $logs = getPhcAlertifyLogs(iframeDoc);
+    if ($logs.length === 0) {
+        return false;
+    }
+    return $logs.find(".alertify-log-error").length > 0;
+}
+
+function createComponentSession(componentData) {
+    var session = GComponentSessions[componentData.id];
+
+    if (!session) {
+        session = {
+            id: componentData.id,
+            fieldWatchers: componentData.fieldWatchers || [],
+            afterSaveEvent: componentData.afterSaveEvent || null,
+            saveButtonId: componentData.saveButtonId || "#BUGRAVARBottom",
+            customPayload: componentData.customPayload || null,
+            watchedFields: loadComponentWatchedFields(componentData.id),
+            savePending: false,
+            completed: false,
+            _alertifyObserver: null
+        };
+        GComponentSessions[componentData.id] = session;
+        return session;
+    }
+
+    session.fieldWatchers = componentData.fieldWatchers || session.fieldWatchers;
+    session.afterSaveEvent = componentData.afterSaveEvent || session.afterSaveEvent;
+    session.saveButtonId = componentData.saveButtonId || session.saveButtonId;
+    session.customPayload = componentData.customPayload || session.customPayload;
+    session.watchedFields = loadComponentWatchedFields(componentData.id);
+
+    return session;
+}
+
+function destroyComponentSession(componentId) {
+    var session = GComponentSessions[componentId];
+    if (!session) {
+        return;
+    }
+
+    disconnectPhcAlertifyWatcher(session);
+
+    try {
+        sessionStorage.removeItem(getComponentSaveIntentKey(componentId));
+    } catch (error) {
+        console.warn("destroyComponentSession:", error);
+    }
+
+    clearComponentWatchedFields(componentId);
+    delete GComponentSessions[componentId];
+}
+
+function armComponentSaveIntent(session) {
+    session.savePending = true;
+    try {
+        sessionStorage.setItem(getComponentSaveIntentKey(session.id), String(Date.now()));
+    } catch (error) {
+        console.warn("armComponentSaveIntent:", error);
+    }
+}
+
+function restoreComponentSaveIntent(session) {
+    if (session.savePending) {
+        return true;
+    }
+
+    try {
+        var raw = sessionStorage.getItem(getComponentSaveIntentKey(session.id));
+        if (!raw) {
+            return false;
+        }
+
+        var timestamp = parseInt(raw, 10);
+        if (isNaN(timestamp) || (Date.now() - timestamp) > CFORM_SAVE_INTENT_TTL_MS) {
+            sessionStorage.removeItem(getComponentSaveIntentKey(session.id));
+            return false;
+        }
+
+        session.savePending = true;
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+function clearComponentSaveIntent(session) {
+    session.savePending = false;
+    try {
+        sessionStorage.removeItem(getComponentSaveIntentKey(session.id));
+    } catch (error) {
+        console.warn("clearComponentSaveIntent:", error);
+    }
+}
+
+function isPhcGravarPostBackTarget(target) {
+    var normalized = (target || "").toString().toUpperCase();
+    return normalized.indexOf("BUGRAVAR") !== -1 || normalized.indexOf("GRAVAR") !== -1;
+}
+
+function disconnectPhcAlertifyWatcher(session) {
+    if (session._alertifyObserver) {
+        session._alertifyObserver.disconnect();
+        session._alertifyObserver = null;
+    }
+
+    if (session._saveProbeTimeouts && session._saveProbeTimeouts.length > 0) {
+        session._saveProbeTimeouts.forEach(function (timeoutId) {
+            clearTimeout(timeoutId);
+        });
+        session._saveProbeTimeouts = [];
+    }
+}
+
+function scheduleAfterSaveProbes(session, probeFn) {
+    if (!session._saveProbeTimeouts) {
+        session._saveProbeTimeouts = [];
+    }
+
+    session._saveProbeTimeouts.forEach(function (timeoutId) {
+        clearTimeout(timeoutId);
+    });
+    session._saveProbeTimeouts = [];
+
+    CFORM_SAVE_PROBE_DELAYS_MS.forEach(function (delayMs) {
+        var timeoutId = setTimeout(function () {
+            if (!session.completed) {
+                probeFn();
+            }
+        }, delayMs);
+        session._saveProbeTimeouts.push(timeoutId);
+    });
+}
+
+/**
+ * Observa o body do iframe (alertify pode injectar #alertify-logs depois do load) + probes limitados.
+ */
+function connectPhcAlertifyWatcher(iframeDoc, session, onChange) {
+    disconnectPhcAlertifyWatcher(session);
+    onChange();
+
+    if (session.savePending) {
+        scheduleAfterSaveProbes(session, onChange);
+    }
+
+    var rootNode = iframeDoc.find("body")[0] || iframeDoc[0];
+    if (!rootNode || typeof MutationObserver === "undefined") {
+        scheduleAfterSaveProbes(session, onChange);
+        return;
+    }
+
+    session._alertifyObserver = new MutationObserver(onChange);
+    session._alertifyObserver.observe(rootNode, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["class", "style"]
+    });
+}
+
+function bindComponentSaveIntent(iframeDoc, iframeEl, session, onSaveProbe) {
+    var armSaveIntent = function () {
+        armComponentSaveIntent(session);
+        if (typeof onSaveProbe === "function") {
+            scheduleAfterSaveProbes(session, onSaveProbe);
+        }
+    };
+
+    iframeDoc.find(session.saveButtonId)
+        .off("click.cformSave mousedown.cformSave")
+        .on("click.cformSave mousedown.cformSave", armSaveIntent);
+
+    try {
+        var iframeWin = iframeEl.contentWindow;
+        if (!iframeWin) {
+            return;
+        }
+
+        if (typeof iframeWin.__doPostBack === "function" && !iframeWin.__cformSaveHooked) {
+            var originalPostBack = iframeWin.__doPostBack;
+            iframeWin.__doPostBack = function (eventTarget, eventArgument) {
+                if (isPhcGravarPostBackTarget(eventTarget)) {
+                    armSaveIntent();
+                }
+                return originalPostBack.apply(iframeWin, arguments);
+            };
+            iframeWin.__cformSaveHooked = true;
+        }
+
+        if (typeof iframeWin.WebForm_DoPostBackWithOptions === "function" && !iframeWin.__cformWebFormSaveHooked) {
+            var originalWebFormPostBack = iframeWin.WebForm_DoPostBackWithOptions;
+            iframeWin.WebForm_DoPostBackWithOptions = function (options) {
+                var eventTarget = options && options.eventTarget ? options.eventTarget : "";
+                if (isPhcGravarPostBackTarget(eventTarget)) {
+                    armSaveIntent();
+                }
+                return originalWebFormPostBack.apply(iframeWin, arguments);
+            };
+            iframeWin.__cformWebFormSaveHooked = true;
+        }
+    } catch (error) {
+        console.warn("bindComponentSaveIntent: postback hook", error);
+    }
+}
+
+function syncWatchedFieldsFromIframe(iframeDoc, session) {
+    if (!session.fieldWatchers || session.fieldWatchers.length === 0) {
+        return;
+    }
+
+    session.fieldWatchers.forEach(function (watcher) {
+        var key = watcher.key || watcher.fieldId;
+        var value = getIframeFieldValue(iframeDoc, watcher.fieldId);
+        if (value) {
+            session.watchedFields[key] = value;
+        }
+    });
+
+    persistComponentWatchedFields(session.id, session.watchedFields);
+}
+
+function setupComponentFieldWatchers(iframeDoc, session) {
+    if (!session.fieldWatchers || session.fieldWatchers.length === 0) {
+        return;
+    }
+
+    session.watchedFields = session.watchedFields || loadComponentWatchedFields(session.id);
+
+    session.fieldWatchers.forEach(function (watcher) {
+        var fieldId = watcher.fieldId;
+        var key = watcher.key || fieldId;
+        var events = watcher.events || ["change", "keyup", "paste"];
+        var $field = iframeDoc.find("#" + fieldId);
+
+        if ($field.length === 0) {
+            console.warn("setupComponentFieldWatchers: campo não encontrado", fieldId);
+            return;
+        }
+
+        var persistFieldValue = function () {
+            var value = getIframeFieldValue(iframeDoc, fieldId);
+            if (value) {
+                session.watchedFields[key] = value;
+                persistComponentWatchedFields(session.id, session.watchedFields);
+            }
+        };
+
+        events.forEach(function (eventName) {
+            $field.off(eventName + ".cformFieldWatcher").on(eventName + ".cformFieldWatcher", persistFieldValue);
+        });
+
+        persistFieldValue();
+    });
+}
+
+function tryDispatchAfterSave(iframeDoc, iframeEl, session) {
+    if (session.completed) {
+        return;
+    }
+
+    restoreComponentSaveIntent(session);
+
+    if (!session.savePending) {
+        return;
+    }
+
+    if (hasPhcAlertifyError(iframeDoc)) {
+        clearComponentSaveIntent(session);
+        return;
+    }
+
+    if (!hasPhcAlertifySuccess(iframeDoc)) {
+        return;
+    }
+
+    session.completed = true;
+    clearComponentSaveIntent(session);
+    disconnectPhcAlertifyWatcher(session);
+    syncWatchedFieldsFromIframe(iframeDoc, session);
+
+    if (typeof session.afterSaveEvent === "function") {
+        try {
+            session.afterSaveEvent({
+                iframeDoc: iframeDoc,
+                iframeEl: iframeEl,
+                componentId: session.id,
+                watchedFields: session.watchedFields || {},
+                customData: session.customPayload
+            });
+        } catch (error) {
+            console.error("afterSaveEvent error:", error);
+        }
+    }
+
+    clearComponentWatchedFields(session.id);
+}
+
+function initComponentIframeSession(componentData, iframeDoc, iframeEl) {
+    var session = createComponentSession(componentData);
+    var probeAfterSave = function () {
+        tryDispatchAfterSave(iframeDoc, iframeEl, session);
+    };
+
+    restoreComponentSaveIntent(session);
+    bindComponentSaveIntent(iframeDoc, iframeEl, session, probeAfterSave);
+    setupComponentFieldWatchers(iframeDoc, session);
+    connectPhcAlertifyWatcher(iframeDoc, session, probeAfterSave);
+
+    if (componentData.expressionToExecute && typeof componentData.expressionToExecute === "function") {
+        try {
+            componentData.expressionToExecute.call(iframeEl, iframeDoc, iframeEl, session);
+        } catch (error) {
+            console.error("expressionToExecute error:", error);
+        }
+    }
+}
+
 // ...existing code...
 function generateComponent(componentData) {
 
 
     // Criar container para o iframe com posição relativa
     var containerId = componentData.id + '-container';
+
+    destroyComponentSession(componentData.id);
 
     $('#' + containerId).remove(); // Remover container existente, se houver
     var container = $("<div>", {
@@ -1429,21 +1813,14 @@ function generateComponent(componentData) {
         var iframeElement = this;
 
         // Esconder elementos
-        componentData.elementsToHide.forEach(function (element) {
-
-            iframeDoc.find(element).hide();
-            iframeDoc.find(element).attr('style', 'display: none !important');
-        });
-
-        // Executar expressão customizada
-        if (componentData.expressionToExecute && typeof componentData.expressionToExecute === 'function') {
-
-            try {
-                componentData.expressionToExecute.call(this, iframeDoc, this);
-            } catch (error) {
-                console.error('Error executing expression:', error);
-            }
+        if (componentData.elementsToHide && componentData.elementsToHide.length > 0) {
+            componentData.elementsToHide.forEach(function (element) {
+                iframeDoc.find(element).hide();
+                iframeDoc.find(element).attr("style", "display: none !important");
+            });
         }
+
+        initComponentIframeSession(componentData, iframeDoc, iframeElement);
 
         // Remover overlay e mostrar iframe suavemente
         setTimeout(function () {
