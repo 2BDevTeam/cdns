@@ -62,6 +62,29 @@ function otherStyles(styles) {
 
 }
 
+// Formatação numérica: abreviar (K/M/B) ou formato local
+function _mciAbbrevNumber(v, decimals) {
+    var n = Number(v);
+    if (!isFinite(n)) return v === null || v === undefined ? '—' : String(v);
+    var abs = Math.abs(n);
+    decimals = typeof decimals === 'number' ? decimals : (abs >= 1000 && abs < 1000000 ? 1 : 0);
+    if (abs >= 1e9) return (n / 1e9).toFixed(decimals).replace(/\.0+$/, '') + 'B';
+    if (abs >= 1e6) return (n / 1e6).toFixed(decimals).replace(/\.0+$/, '') + 'M';
+    if (abs >= 1e3) return (n / 1e3).toFixed(decimals).replace(/\.0+$/, '') + 'K';
+    return n.toFixed(decimals).replace(/\.0+$/, '');
+}
+
+function _mciFormatNumber(v, opts) {
+    opts = opts || {};
+    if (v === null || v === undefined || v === '') return '—';
+    var n = Number(v);
+    if (!isFinite(n)) return String(v);
+    if (opts.abbrev) return _mciAbbrevNumber(n, opts.decimals || 0);
+    // default: locale format (pt-PT)
+    var maxFr = typeof opts.maxFractionDigits === 'number' ? opts.maxFractionDigits : 2;
+    return n.toLocaleString('pt-PT', { maximumFractionDigits: maxFr });
+}
+
 // ...existing code...
 function addTabulatorStyles(styles) {
     var tabulatorCSS = "";
@@ -4876,6 +4899,7 @@ var MdashChartBuilder = (function () {
         { type: 'bar_h', label: 'Horiz.', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><rect y="1" x="0" height="5" width="15" rx="1.5"/><rect y="9.5" x="0" height="5" width="22" rx="1.5"/><rect y="18" x="0" height="5" width="11" rx="1.5"/></svg>' },
         { type: 'line', label: 'Linha', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,19 6,11 12,15 18,6 23,9"/><circle cx="1" cy="19" r="2.2" fill="currentColor" stroke="none"/><circle cx="6" cy="11" r="2.2" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="2.2" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="2.2" fill="currentColor" stroke="none"/><circle cx="23" cy="9" r="2.2" fill="currentColor" stroke="none"/></svg>' },
         { type: 'area', label: 'Área', svg: '<svg viewBox="0 0 24 24"><path d="M1 22L1 15L6 9L12 13L18 5L23 8L23 22Z" fill="currentColor" opacity=".3"/><polyline points="1,15 6,9 12,13 18,5 23,8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+        { type: 'sparkline', label: 'Sparkline', svg: '<svg viewBox="0 0 24 24"><path d="M2 20L4 16L6 13L9 15L12 8L15 11L18 6L22 10L22 22Z" fill="rgba(46,125,50,0.15)" opacity="0.4"/><polyline points="2,20 4,16 6,13 9,15 12,8 15,11 18,6 22,10" fill="none" stroke="#2E7D32" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
         { type: 'donut', label: 'Donut', svg: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="5"/><path d="M12 3A9 9 0 0 1 21 12" stroke="currentColor" stroke-width="5" opacity=".4" stroke-linecap="round"/></svg>' },
         { type: 'pie', label: 'Pizza', svg: '<svg viewBox="0 0 24 24"><path d="M12 12L12 2A10 10 0 0 1 22 12Z" fill="currentColor"/><path d="M12 12L22 12A10 10 0 0 1 6 21Z" fill="currentColor" opacity=".55"/><path d="M12 12L6 21A10 10 0 0 1 2 6Z" fill="currentColor" opacity=".3"/><path d="M12 12L2 6A10 10 0 0 1 12 2Z" fill="currentColor" opacity=".15"/></svg>' },
         { type: 'scatter', label: 'Dispersão', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="17" r="2.2"/><circle cx="9" cy="10" r="2.2"/><circle cx="14" cy="14" r="2.2"/><circle cx="19" cy="5" r="2.2"/><circle cx="21" cy="19" r="2.2"/><circle cx="7" cy="21" r="2.2"/></svg>' },
@@ -4945,6 +4969,7 @@ var MdashChartBuilder = (function () {
         if (ct === 'donut' || ct === 'pie') return _buildPieOption(base, cfg, rows, t, ct);
         if (ct === 'funnel') return _buildFunnelOption(base, cfg, rows, t);
         if (ct === 'scatter') return _buildScatterOption(base, cfg, rows, t);
+        if (ct === 'sparkline') return _buildSparklineOption(base, cfg, rows, t);
         if (ct === 'bar_h') return _buildBarHOption(base, cfg, rows, t);
         return _buildCartesianOption(base, cfg, rows, t, ct);
     }
@@ -5026,13 +5051,13 @@ var MdashChartBuilder = (function () {
         });
 
         return Object.assign({}, base, {
-            tooltip: Object.assign(_tooltipBase(t, 'axis'), {
+                tooltip: Object.assign(_tooltipBase(t, 'axis'), {
                 formatter: function (params) {
                     var out = '<div style="padding:1px 0 5px;font-weight:700;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:5px;">' + (params[0] ? params[0].axisValue : '') + '</div>';
                     params.forEach(function (p) {
                         var col = typeof p.color === 'string' ? p.color : t.colors[0];
                         var dot = '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + col + ';margin-right:7px;flex-shrink:0;"></span>';
-                        var val = p.value != null ? (+p.value).toLocaleString('pt-PT', { maximumFractionDigits: 2 }) : '—';
+                        var val = p.value != null ? _mciFormatNumber(p.value, { abbrev: (typeof cfg !== 'undefined' && cfg.yAxis && cfg.yAxis.abbrev), maxFractionDigits: 2 }) : '—';
                         out += '<div style="display:flex;align-items:center;gap:3px;padding:2px 0;">' + dot + '<span style="flex:1;opacity:0.85;">' + p.seriesName + '</span><strong style="margin-left:12px;">' + val + '</strong></div>';
                     });
                     return out;
@@ -5054,7 +5079,7 @@ var MdashChartBuilder = (function () {
             yAxis: {
                 type: 'value', show: cfg.yAxis ? cfg.yAxis.show !== false : true,
                 axisLine: { show: false }, axisTick: { show: false },
-                axisLabel: { color: t.subtext, fontSize: 11 },
+                axisLabel: { color: t.subtext, fontSize: 11, formatter: function (v) { return _mciFormatNumber(v, { abbrev: (cfg && cfg.yAxis && cfg.yAxis.abbrev) }); } },
                 splitLine: { lineStyle: { color: t.grid, type: [6, 4] } },
                 name: cfg.yAxis && cfg.yAxis.name || '', nameTextStyle: { color: t.subtext, fontSize: 11 }
             },
@@ -5169,6 +5194,57 @@ var MdashChartBuilder = (function () {
             grid: _gridBase('none'),
             xAxis: { type: 'value', axisLine: { lineStyle: { color: t.axisLine } }, axisLabel: { color: t.subtext, fontSize: 11 }, splitLine: { lineStyle: { color: t.grid, type: [6, 4] } } },
             yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: t.subtext, fontSize: 11 }, splitLine: { lineStyle: { color: t.grid, type: [6, 4] } } },
+            series: series
+        });
+    }
+
+    function _buildSparklineOption(base, cfg, rows, t) {
+        var xField = cfg.xField || '';
+        var serDefs = (cfg.series || []).filter(function (s) { return s.field; });
+        var xData = rows.map(function (r) { return r[xField]; });
+        var series = serDefs.map(function (s, i) {
+            var baseCol = _resolvePHCColor(s.color) || '#2E7D32'; // Default green color for sparkline
+            return {
+                name: s.name || s.field,
+                type: 'line',
+                data: rows.map(function (r) { return r[s.field]; }),
+                smooth: true,
+                symbol: 'none',
+                lineStyle: { color: baseCol, width: 2 },
+                areaStyle: {
+                    color: {
+                        type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                        colorStops: [
+                            { offset: 0, color: _alpha(baseCol, 0.15) },
+                            { offset: 1, color: _alpha(baseCol, 0) }
+                        ]
+                    }
+                },
+                emphasis: { focus: 'none' }
+            };
+        });
+        return Object.assign({}, base, {
+            tooltip: { show: false },
+            legend: { show: false },
+            grid: { top: 0, bottom: 0, left: 0, right: 0, containLabel: false },
+            xAxis: {
+                type: 'category', data: xData,
+                show: false,
+                axisTick: { show: false },
+                axisLine: { show: false },
+                axisLabel: { show: false },
+                splitLine: { show: false }
+            },
+            yAxis: {
+                type: 'value',
+                show: false,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { show: false },
+                splitLine: { show: false }
+            },
+            title: { show: false },
+            toolbox: { show: false },
             series: series
         });
     }
@@ -6442,7 +6518,7 @@ function _mciReadConfig($root, obj) {
     cfg.animation = $root.find('.mcbi-anim').is(':checked');
     cfg.borderRadius = parseInt($root.find('.mcbi-br').val()) || 6;
     cfg.xAxis = { rotate: parseInt($root.find('.mcbi-xrot').val()) || 0, name: $root.find('.mcbi-xname').val() || '', interval: $root.find('.mcbi-xinterval').val() || 'auto' };
-    cfg.yAxis = { show: $root.find('.mcbi-yshow').is(':checked'), name: $root.find('.mcbi-yname').val() || '' };
+    cfg.yAxis = { show: $root.find('.mcbi-yshow').is(':checked'), name: $root.find('.mcbi-yname').val() || '', abbrev: $root.find('.mcbi-yabbrev').is(':checked') };
     cfg.legend = { show: $root.find('.mcbi-legend').is(':checked'), position: $root.find('.mcbi-legend-pos').val() || 'top' };
     cfg.title = { show: $root.find('.mcbi-title-show').is(':checked'), text: $root.find('.mcbi-title-text').val() || '' };
     cfg.tooltip = { show: true };
@@ -6781,7 +6857,7 @@ function renderChartPropertiesInline(obj, panel) {
                 + '<em>' + th.name + '</em></button>';
         }).join('') + '</div></div>'
         + '<div class="mcbi-field"><label>Altura: <strong class="mcbi-h-lbl">' + (cfg.height || 320) + '</strong> px</label>'
-        + '<input type="range" class="mcbi-height" min="150" max="800" step="10" value="' + (cfg.height || 320) + '"></div>';
+        + '<input type="range" class="mcbi-height" min="50" max="800" step="10" value="' + (cfg.height || 320) + '"></div>';
 
     // Configurações Gerais (stack, toolbox, legendas, título, etiquetas, animações)
     var sGeral =
@@ -6831,6 +6907,7 @@ function renderChartPropertiesInline(obj, panel) {
         + '</div>'
         + '<div class="mcbi-field" style="margin-top:2px;">'
         + _mciChk('mcbi-yshow', 'Mostrar eixo Y', !cfg.yAxis || cfg.yAxis.show !== false)
+        + '<div style="margin-top:6px">' + _mciChk('mcbi-yabbrev', 'Abreviar valores (ex: 15M)', !!(cfg.yAxis && cfg.yAxis.abbrev)) + '</div>'
         + '</div>';
 
     // ── Assemble HTML ───────────────────────────────────────────────────────
