@@ -2550,6 +2550,12 @@
       if (typeof item._mountDetailButton !== 'function') {
         item._mountDetailButton = LocalMdashContainerItem.prototype._mountDetailButton;
       }
+      if (typeof item.getEventsConfig !== 'function' && heightProto.getEventsConfig) {
+        item.parseEventsConfig = function () { return heightProto.parseEventsConfig.call(this); };
+        item.getEventsConfig = function () { return heightProto.getEventsConfig.call(this); };
+        item.setEventsConfig = function (cfg) { return heightProto.setEventsConfig.call(this, cfg); };
+        item.stringifyEventsConfig = function () { return heightProto.stringifyEventsConfig.call(this); };
+      }
       if (typeof item.handleLayout !== 'function' && typeof window.mdashHandleContainerItemLayoutRuntime === 'function') {
         item.handleLayout = function () {
           return window.mdashHandleContainerItemLayoutRuntime(this, getMdashContainerItemRuntimeCtx(this));
@@ -2676,6 +2682,7 @@
       this.expressaoapresentacaodados = data.expressaoapresentacaodados || "";
       // MDASH 2.0: slot system + grid placement
       this.slotsconfigjson = data.slotsconfigjson || "[]";
+      this.eventsconfigjson = data.eventsconfigjson || "{}";
       this.layoutmode = data.layoutmode || "inherit"; // 'inherit' | 'auto' | 'manual'
       this.gridrow = data.gridrow || "";
       this.gridcolstart = data.gridcolstart || "";
@@ -2746,41 +2753,9 @@
     };
 
     LocalMdashContainerItem.prototype._mountDetailButton = function (detailObjects) {
-      var containerItem = this;
-      var hostSelector = '#' + this.mdashcontaineritemstamp;
-      var btnId = 'botao-detalhe-' + this.mdashcontaineritemstamp;
-      var modalId = 'detalhe-modal-' + this.mdashcontaineritemstamp;
-      var $footer = $(hostSelector + ' .mdash-card__footer').first();
-      var $target = $footer.length ? $footer : $(hostSelector + ' .mdash-card__body, ' + hostSelector + ' .dashcard-body').first();
-
-      var btnHtml = '<button id="' + btnId + '" type="button" class="mdash-card__detail-btn" data-tooltip="true" title="Ver detalhes">' +
-        '<i class="glyphicon glyphicon-search"></i>Detalhes</button>';
-      $target.append(btnHtml);
-
-      // Build modal once
-      if (!$('#' + modalId).length) {
-        var modalHtml = __mdashLib.generateModalHTML({
-          title: 'Detalhes — ' + (containerItem.titulo || ''),
-          id: modalId,
-          customData: '',
-          otherclassess: 'mdash-detail-modal',
-          body: "<div id='detalhe-container-body-" + this.mdashcontaineritemstamp + "'></div>",
-          footerContent: ''
-        });
-        $('#mainPage').append(modalHtml);
-        $('#' + modalId + ' .modal-dialog').css('width', '90%');
+      if (typeof window.mdashMountLegacyDetailButton === 'function') {
+        return window.mdashMountLegacyDetailButton(this, detailObjects);
       }
-
-      $(document).off('click.' + btnId).on('click.' + btnId, '#' + btnId, function (e) {
-        e.preventDefault();
-        var $body = $('#detalhe-container-body-' + containerItem.mdashcontaineritemstamp).empty();
-        detailObjects.forEach(function (obj) {
-          var hostId = 'cont-item-obj-detalhe-' + obj.mdashcontaineritemobjectstamp;
-          $body.append('<div id="' + hostId + '" class="cont-item-object-rendered"></div>');
-          try { obj.renderObjectByContainerItem('#' + hostId, containerItem); } catch (err) { console.error(err); }
-        });
-        $('#' + modalId).modal('show');
-      });
     };
 
     LocalMdashContainerItem.prototype.handleLayout = function () {

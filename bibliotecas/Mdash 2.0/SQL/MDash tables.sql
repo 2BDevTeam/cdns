@@ -107,6 +107,7 @@ CREATE TABLE MdashContainerItem(
     gridrowspan INT DEFAULT 1,
     expressaoapresentacaodados TEXT DEFAULT '',
     slotsconfigjson TEXT DEFAULT '[]',
+    eventsconfigjson TEXT DEFAULT '{}',
 );
 
 
@@ -250,5 +251,14 @@ CREATE TABLE MdashTab (
 )
 GO
 
+-- Migração: acções/eventos por item (modal overlay, navegação, refresh, expressão JS)
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'MdashContainerItem') AND name = 'eventsconfigjson'
+)
+BEGIN
+    ALTER TABLE MdashContainerItem ADD eventsconfigjson TEXT NOT NULL DEFAULT '{}';
+END
+GO
 
 

@@ -1669,6 +1669,17 @@ function _tblBuildColumns(cfg, rows, options) {
                 col.formatter = 'tickCross';
                 col.hozAlign = 'center';
             }
+            if (col.sorter === 'date') {
+                var isDateTime = typeof sample === 'string' && sample.indexOf('T') > -1;
+                col.formatter = function (cell) {
+                    var v = cell.getValue();
+                    if (v === null || v === undefined || v === '') return '';
+                    var d = new Date(v);
+                    if (isNaN(d.getTime())) return String(v);
+                    if (isDateTime) return d.toLocaleString('pt-PT');
+                    return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+                };
+            }
             return col;
         });
     }
@@ -6346,8 +6357,10 @@ function _mciGetRows(obj) {
 }
 
 function _mciRerender(obj) {
-    var sel = '#mdash-slot-render-' + obj.mdashcontaineritemobjectstamp;
-    if (!$(sel).length) return;
+    var stamp = obj.mdashcontaineritemobjectstamp;
+    var sel = ['#mdash-slot-render-' + stamp, '#mdash-overlay-preview-' + stamp]
+        .find(function (selector) { return $(selector).length; });
+    if (!sel) return;
     var items = (window.appState && window.appState.containerItems) ? window.appState.containerItems : GMDashContainerItems;
     var ci = (items || []).find(function (x) { return x.mdashcontaineritemstamp === obj.mdashcontaineritemstamp; });
     if (!ci) return;
