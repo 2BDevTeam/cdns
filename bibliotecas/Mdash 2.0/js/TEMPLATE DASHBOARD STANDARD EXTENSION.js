@@ -394,7 +394,7 @@ function generateMDashCardSnapV2(cardData) {
 function generateMDashCardSnap(cardData) {
     var dashCard = new MDashCard(cardData);
     var cardHTML = "";
-    cardHTML += '<div id="' + (dashCard.id || 'snap-' + generateUUID()) + '" class="m-dash-card-snap ' + (dashCard.classes || '') + '" style="height: 100%!important;' + (dashCard.styles || '') + '">';
+    cardHTML += '<div id="' + (dashCard.id || 'snap-' + generateUUID()) + '" class="m-dash-card-snap ' + (dashCard.classes || '') + '" style="' + (dashCard.styles || '') + '">';
     // Header
     cardHTML += '  <div class="m-dash-card-snap-header p-2 ps-3">';
     cardHTML += '    <div class="d-flex justify-content-between">';
@@ -494,7 +494,7 @@ function generateBrdCardAdvancedAlert(cardData) {
 function generateDashCardSnapshot(cardData) {
     var dashCard = new MDashCard(cardData);
     var cardHTML = "";
-    cardHTML += '<div id="' + (dashCard.id || 'snapshot-' + generateUUID()) + '" class="m-dash-item snapshot ' + (dashCard.classes || '') + '" style="height: 100%!important;' + (dashCard.styles || '') + '">';
+    cardHTML += '<div id="' + (dashCard.id || 'snapshot-' + generateUUID()) + '" class="m-dash-item snapshot ' + (dashCard.classes || '') + '" style="' + (dashCard.styles || '') + '">';
     cardHTML += '  <div class="stats-card-value-container">';
     cardHTML += '    <span class="stats-card-label">' + (dashCard.title || "") + '</span>';
     cardHTML += '    <div class="stats-card-body">' + (dashCard.bodyContent || "") + '</div>';
@@ -10883,7 +10883,7 @@ function getDefaultLayoutDefinitions() {
     // ── HTML Templates partilhados ──────────────────────────────────────────
 
     var _tplDashCardInfo =
-        '<div id="mdash{{id}}" class="c-dashboardInfo {{classes}}" style="height:100%!important;{{styles}}">' +
+        '<div id="mdash{{id}}" class="c-dashboardInfo {{classes}}" style="{{styles}}">' +
         '<div class="wrap c-dashboardInfo_{{tipo}}">' +
         '<h4 class="heading heading5 hind-font medium-font-weight c-dashboardInfo__title">' +
         '<span data-mdash-slot="title"></span> <i data-mdash-slot="icon" data-mdash-slot-mode="class"></i>' +
@@ -10894,7 +10894,7 @@ function getDefaultLayoutDefinitions() {
         '</div></div>';
 
     var _tplDashCardSnapshot =
-        '<div id="{{id}}" class="m-dash-item snapshot {{classes}}" style="height:100%!important;{{styles}}">' +
+        '<div id="{{id}}" class="m-dash-item snapshot {{classes}}" style="{{styles}}">' +
         '<div class="stats-card-value-container">' +
         '<span data-mdash-slot="title" class="stats-card-label"></span>' +
         '<div data-mdash-slot="body" class="stats-card-body"></div>' +
@@ -11064,7 +11064,18 @@ function getDefaultLayoutDefinitions() {
         { descricao: "Top Border Card Advanced - Alert Danger", codigo: "brd_card_advanced_alert_danger", tipo: "card", UIData: { tipo: "danger" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Alert Yellow", codigo: "brd_card_advanced_alert_yellow", tipo: "card", UIData: { tipo: "yellow" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' },
         { descricao: "Top Border Card Advanced - Alert Black", codigo: "brd_card_advanced_alert_black", tipo: "card", UIData: { tipo: "black" }, htmltemplate: _tplBrdAlert, csstemplate: "", slotsdefinition: _slotsBrdAlert, containerSelectorToRender: '[data-mdash-slot="body"]' }
-    ];
+    ].map(function (def) {
+        if (def.rowsizing) return def;
+        var code = String(def.codigo || '').toLowerCase();
+        if (code === 'plain_card' || code === 'card_header_highlighted' || code === 'card_standard') {
+            def.rowsizing = 'stretch';
+        } else if (/^brd_card_advanced_alert_/i.test(code)) {
+            def.rowsizing = 'stretch';
+        } else {
+            def.rowsizing = 'compact';
+        }
+        return def;
+    });
 }
 
 // ── Legacy generate* removidas — renderização agora via renderUnifiedLayout() ──
@@ -11125,8 +11136,8 @@ function addDashboardStyles(styles) {
     dashboardCSS += "    text-align: center;";
     dashboardCSS += "    position: relative;";
     dashboardCSS += "    overflow: hidden;";
-    dashboardCSS += "    padding: 40px 25px 20px;";
-    dashboardCSS += "    height: 100%;";
+    dashboardCSS += "    padding: 28px 20px 16px;";
+    dashboardCSS += "    height: auto;";
     dashboardCSS += "}";
     dashboardCSS += ".c-dashboardInfo__title,";
     dashboardCSS += ".c-dashboardInfo__subInfo {";

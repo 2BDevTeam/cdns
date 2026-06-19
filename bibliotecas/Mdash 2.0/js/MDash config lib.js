@@ -221,6 +221,8 @@ function mdashCopySelection() {
         $('body').toggleClass('mdash-has-object-clipboard', type === 'object');
     } catch (e) { }
 
+    if (typeof updateOverlayDesignerPasteButtonState === 'function') updateOverlayDesignerPasteButtonState();
+
     // Visual feedback — marcar como "copied"
     _clipUpdateCopiedVisuals();
 
@@ -244,6 +246,7 @@ function mdashPasteClipboard() {
     }
 
     var pastedCount = 0;
+    var pastedToOverlay = false;
 
     if (clip.type === 'tab') {
         clip.items.forEach(function (snap) {
@@ -269,27 +272,54 @@ function mdashPasteClipboard() {
             if (typeof alertify !== 'undefined') alertify.warning('Seleccione um slot (ou item) para colar o(s) objecto(s).');
             return;
         }
+                if (target.overlayOptions && target.overlayOptions.createNewPlace) {
+            var pasteItem = (window.appState.containerItems || []).find(function (i) {
+                return i.mdashcontaineritemstamp === target.itemStamp;
+            });
+            if (pasteItem) {
+                var newPlace = addOverlayPlace(target.itemStamp, { select: false, skipSync: true });
+                target.overlayOptions.overlayPlaceId = newPlace.id;
+                target.overlayOptions.createNewPlace = false;
+                target.slotId = getOverlayPlaceMainSlotId(newPlace.templatelayout);
+            }
+        }
+        var lastPastedStamp = '';
         clip.items.forEach(function (snap) {
-            pastedCount += _clipPasteObject(snap, target.itemStamp, target.slotId, target.overlayOptions);
+            var newStamp = _clipPasteObject(snap, target.itemStamp, target.slotId, target.overlayOptions);
+            if (newStamp) {
+                pastedCount += 1;
+                lastPastedStamp = newStamp;
+            }
         });
         if (target.overlayOptions && target.itemStamp && typeof refreshMdashOverlayDesignerSurface === 'function') {
+            pastedToOverlay = true;
+            var overlayItemStamp = target.itemStamp;
+            var selectStamp = lastPastedStamp;
+            var pastedPlaceId = target.overlayOptions.overlayPlaceId;
             setTimeout(function () {
-                var parentItem = (window.appState.containerItems || []).find(function (i) {
-                    return i.mdashcontaineritemstamp === target.itemStamp;
-                });
-                if (parentItem) {
-                    normalizeOverlayObjectsAutoLayout(target.itemStamp, getItemOverlayLayoutConfig(parentItem).layoutmode || 'auto');
+                if (pastedPlaceId) {
+                    syncOverlayGridLayoutAfterChange(overlayItemStamp, {
+                        placeRefresh: pastedPlaceId,
+                        preserveSelection: selectStamp || undefined
+                    });
+                } else {
+                    refreshMdashOverlayDesignerSurface(overlayItemStamp, {
+                        preserveSelection: selectStamp || undefined,
+                        immediate: true
+                    });
                 }
-                refreshMdashOverlayDesignerSurface(target.itemStamp);
+                updateOverlayDesignerPasteButtonState();
             }, 0);
         }
     }
 
     if (pastedCount > 0) {
-        setTimeout(function () {
-            renderAllContainerItemTemplates();
-            if (typeof initDragAndDrop === 'function') initDragAndDrop();
-        }, 50);
+        if (!pastedToOverlay) {
+            setTimeout(function () {
+                renderAllContainerItemTemplates();
+                if (typeof initDragAndDrop === 'function') initDragAndDrop();
+            }, 50);
+        }
         var labels = { container: 'container(s)', containerItem: 'item(ns)', object: 'objecto(s)', tab: 'separador(es)' };
         if (typeof alertify !== 'undefined') alertify.success(pastedCount + ' ' + (labels[clip.type] || 'elemento(s)') + ' colado(s)');
     }
@@ -402,12 +432,25 @@ function _clipPasteObject(snap, targetItemStamp, targetSlotId, pasteOptions) {
     if (pasteOptions && pasteOptions.tamanho) {
         data.tamanho = pasteOptions.tamanho;
     }
+    if (pasteOptions && pasteOptions.overlayPlaceId) {
+        var pasteCfg = {};
+        if (data.configjson) {
+            try { pasteCfg = JSON.parse(data.configjson) || {}; } catch (e) { pasteCfg = {}; }
+        }
+        pasteCfg.overlayPlaceId = pasteOptions.overlayPlaceId;
+        data.configjson = JSON.stringify(pasteCfg);
+    }
 
     var newObj = new MdashContainerItemObject(data);
+    if (pasteOptions && pasteOptions.overlayPlaceId) {
+        if (!newObj.config || typeof newObj.config !== 'object') newObj.config = {};
+        newObj.config.overlayPlaceId = pasteOptions.overlayPlaceId;
+        syncOverlayObjectConfigjson(newObj);
+    }
     window.appState.containerItemObjects.push(newObj);
     if (typeof newObj.stringifyJSONFields === 'function') newObj.stringifyJSONFields();
     if (typeof realTimeComponentSync === 'function') realTimeComponentSync(newObj, newObj.table, newObj.idfield);
-    return 1;
+    return newStamp;
 }
 
 // -- Resolve target helpers -------------------------------------------------
@@ -441,28 +484,54 @@ function _clipResolveTargetItem() {
  * Devolve { itemStamp, slotId }. `slotId` pode ser undefined — nesse caso o
  * objecto será colado preservando o `slotid` original do snapshot (ou vazio se não tinha).
  */
+function _getOpenOverlayDesignerItemStamp() {
+    var $modal = $('#mdash-overlay-designer-modal');
+    if (!$modal.length) return '';
+    if (!$modal.hasClass('in') && !$modal.hasClass('show') && !$modal.is(':visible')) return '';
+    return $modal.data('item-stamp') || '';
+}
+
 function _clipResolveTargetItemSlot() {
     var sel = _currentSelectedComponent;
-    if (!sel) return { itemStamp: '', slotId: undefined };
+    var overlayItemStamp = _getOpenOverlayDesignerItemStamp();
+    if (overlayItemStamp) {
+        var containerItem = (window.appState.containerItems || []).find(function (i) {
+            return i.mdashcontaineritemstamp === overlayItemStamp;
+        });
+        var overlayPlaceId = '';
+        var slotId = MDASH_ITEM_OVERLAY_SLOT;
 
-    var $overlayModal = $('#mdash-overlay-designer-modal.in, #mdash-overlay-designer-modal.show');
-    if ($overlayModal.length) {
-        var overlayItemStamp = $overlayModal.data('item-stamp');
-        if (overlayItemStamp) {
-            if (sel && sel.type === 'slot' && sel.data && sel.data.itemStamp === overlayItemStamp && sel.data.slotId) {
-                return {
-                    itemStamp: overlayItemStamp,
-                    slotId: sel.data.slotId,
-                    overlayOptions: { categoria: 'overlay' }
-                };
-            }
-            return {
-                itemStamp: overlayItemStamp,
-                slotId: MDASH_ITEM_OVERLAY_SLOT,
-                overlayOptions: { categoria: 'overlay' }
-            };
+        if (sel && sel.type === 'overlayPlace' && sel.stamp) {
+            overlayPlaceId = sel.stamp;
+            slotId = sel.data && sel.data.mainSlotId ? sel.data.mainSlotId : getOverlayPlaceMainSlotId(sel.data && sel.data.templatelayout);
+        } else if (sel && sel.type === 'slot' && sel.data && sel.data.itemStamp === overlayItemStamp && sel.data.slotId) {
+            overlayPlaceId = sel.data.overlayPlaceId || '';
+            slotId = sel.data.slotId;
+        } else if (sel && sel.type === 'object' && sel.surface === 'overlay' && sel.data) {
+            overlayPlaceId = (sel.data.config && sel.data.config.overlayPlaceId) || '';
+            slotId = sel.data.slotid || getOverlayPlaceMainSlotId();
         }
+
+        if (!overlayPlaceId && containerItem) {
+            var places = getItemOverlayPlaces(containerItem);
+            if (places.length === 1) {
+                overlayPlaceId = places[0].id;
+                slotId = getOverlayPlaceMainSlotId(places[0].templatelayout);
+            }
+        }
+
+        return {
+            itemStamp: overlayItemStamp,
+            slotId: slotId,
+            overlayOptions: {
+                categoria: 'overlay',
+                overlayPlaceId: overlayPlaceId || undefined,
+                createNewPlace: !overlayPlaceId
+            }
+        };
     }
+
+    if (!sel) return { itemStamp: '', slotId: undefined };
 
     if (sel.surface === 'overlay' && sel.data && sel.data.mdashcontaineritemstamp) {
         return {
@@ -1493,6 +1562,7 @@ function getDefaultMdashItemEventsConfig() {
             templatelayout: '',
             layoutmode: 'auto'
         },
+        overlayPlaces: [],
         interactions: [{
             id: 'primary',
             enabled: false,
@@ -1517,6 +1587,9 @@ MdashContainerItem.prototype.parseEventsConfig = function () {
     }
     if (!parsed.overlayLayout) {
         parsed.overlayLayout = getDefaultMdashItemEventsConfig().overlayLayout;
+    }
+    if (!Array.isArray(parsed.overlayPlaces)) {
+        parsed.overlayPlaces = [];
     }
     return parsed;
 };
@@ -2543,6 +2616,7 @@ MdashContainerItemLayout.prototype.toTemplateOption = function () {
         cssCdnsList: this.cssCdnsList || [],
         jsCdnsList: this.jsCdnsList || [],
         containerSelectorToRender: '[data-mdash-slot="' + mainSlotId + '"]',
+        rowsizing: this.rowsizing || this.rowSizing || 'compact',
         generateCard: function (cardData) {
             return renderUnifiedLayout(this, cardData);
         }
@@ -3612,6 +3686,11 @@ function renderMdashContainerItemLayout(containerItem, hostSelector, cardData) {
     ensureMdashCDNsLoaded(template.cssCdnsList, template.jsCdnsList);
     $(hostSelector).empty().append(template.generateCard(cardData || {}));
 
+    if (isCompactContainerItemLayout(containerItem.templatelayout)) {
+        mdashResetCompactLayoutHeights(hostSelector);
+    }
+    mdashSyncContainerItemRowSizing(containerItem);
+
     if (template.jstemplate) {
         try {
             (new Function('containerItem', 'hostSelector', template.jstemplate))(containerItem, hostSelector);
@@ -3622,6 +3701,18 @@ function renderMdashContainerItemLayout(containerItem, hostSelector, cardData) {
     return template;
 }
 window.renderMdashContainerItemLayout = renderMdashContainerItemLayout;
+
+function mdashResetCompactLayoutHeights(hostSelector) {
+    if (typeof $ !== 'function' || !hostSelector) return;
+    var $host = $(hostSelector);
+    $host.css({ height: 'auto', 'min-height': '0', '--md-item-min-h': '0px' });
+    $host.find('[data-mdash-scope], [data-mdash-scope] > *').add($host.children()).each(function () {
+        this.style.setProperty('height', 'auto', 'important');
+        this.style.setProperty('min-height', '0', 'important');
+        this.style.setProperty('max-height', 'none', 'important');
+    });
+}
+window.mdashResetCompactLayoutHeights = mdashResetCompactLayoutHeights;
 
 /**
  * Monta os objetos do item nos slots definidos pelo layout já renderizado.
@@ -3762,10 +3853,14 @@ function mdashResolveItemOverlayObjects(containerItem, allObjects) {
     if (!itemStamp) return [];
     var overlay = getItemOverlayObjects(itemStamp, allObjects);
     var layoutCfg = getItemOverlayLayoutConfig(containerItem);
-    if (layoutCfg.mode !== 'template' || !layoutCfg.templatelayout) {
-        overlay = overlay.filter(function (obj) {
-            return !obj.slotid || obj.slotid === MDASH_ITEM_OVERLAY_SLOT;
-        });
+    var places = getItemOverlayPlaces(containerItem);
+
+    if (!places.length) {
+        if (layoutCfg.mode !== 'template' || !layoutCfg.templatelayout) {
+            overlay = overlay.filter(function (obj) {
+                return !obj.slotid || obj.slotid === MDASH_ITEM_OVERLAY_SLOT;
+            });
+        }
     }
     if (overlay.length) return overlay;
     return (allObjects || []).filter(function (obj) {
@@ -3813,9 +3908,26 @@ function mdashEnsureItemOverlayModalShell(containerItem, interaction) {
         });
         var $parent = $('#mainPage').length ? $('#mainPage') : $('body');
         $parent.append(modalHtml);
-        $('#' + modalId + ' .modal-dialog').css({ width: '92%', maxWidth: '1280px' });
+        $('#' + modalId + ' .modal-dialog').addClass('modal-lg');
+        $('#' + modalId).off('hidden.bs.modal.mdashOverlayCleanup').on('hidden.bs.modal.mdashOverlayCleanup', function () {
+            setTimeout(mdashCleanupOrphanModalBackdrop, 0);
+        });
     }
     return { modalId: modalId, bodyHostId: bodyHostId };
+}
+
+function mdashCleanupOrphanModalBackdrop() {
+    if (typeof $ !== 'function') return;
+    if ($('.modal.in:visible').length === 0) {
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open').css('padding-right', '');
+    }
+}
+
+function mdashShowItemOverlayModal($modal) {
+    if (!$modal || !$modal.length) return;
+    mdashCleanupOrphanModalBackdrop();
+    $modal.modal('show');
 }
 
 function mdashOpenItemOverlayRuntime(containerItem, runtimeCtx, options) {
@@ -3837,7 +3949,6 @@ function mdashOpenItemOverlayRuntime(containerItem, runtimeCtx, options) {
     }));
     var $body = $('#' + shell.bodyHostId).empty();
     var $modal = $('#' + shell.modalId);
-    applyMdashThemeToElement($modal[0]);
     var modalTitle = options.title || interaction.modalTitle || ('Detalhes — ' + (containerItem.titulo || ''));
     $modal.find('.modal-title').html(modalTitle);
 
@@ -3873,26 +3984,57 @@ function mdashOpenItemOverlayRuntime(containerItem, runtimeCtx, options) {
                     console.error('[MDash] erro a renderizar overlay (template)', obj.tipo, error);
                 }
             });
-            $modal.modal('show');
+            mdashShowItemOverlayModal($modal);
             return;
         }
     }
 
     $body.addClass('mdash-container-items-row');
-    normalizeOverlayObjectsAutoLayout(containerItem.mdashcontaineritemstamp, overlayLayout.layoutmode || 'auto');
+    normalizeOverlayPlacesAutoLayout(containerItem.mdashcontaineritemstamp, overlayLayout.layoutmode || 'auto');
 
-    overlayObjects.forEach(function (obj) {
-        var hostId = 'cont-item-obj-overlay-' + obj.mdashcontaineritemobjectstamp;
-        var gridStyle = getOverlayObjectGridStyleString(obj);
-        $body.append(buildMdashOverlayRuntimeCellHtml(hostId, gridStyle));
-        try {
-            obj.renderObjectByContainerItem('#' + hostId, containerItem);
-        } catch (error) {
-            console.error('[MDash] erro a renderizar overlay', obj.tipo, error);
-        }
-    });
+    var places = getItemOverlayPlaces(containerItem);
+    if (places.length) {
+        places.forEach(function (place) {
+            var placeHostId = 'overlay-runtime-place-' + place.id;
+            var gridStyle = getOverlayPlaceGridStyleString(place);
+            var template = getTemplateLayoutByCode(place.templatelayout || getDefaultOverlayPlaceTemplateCodigo());
+            if (template) ensureMdashCDNsLoaded(template.cssCdnsList, template.jsCdnsList);
+            $body.append(buildMdashOverlayRuntimePlaceHtml(placeHostId, gridStyle, template, place));
 
-    $modal.modal('show');
+            getOverlayObjectsForPlace(containerItem.mdashcontaineritemstamp, place.id).forEach(function (obj) {
+                var slotId = obj.slotid || getOverlayPlaceMainSlotId(place.templatelayout);
+                var $slot = resolveMdashContainerItemSlot(containerItem, slotId, '#' + placeHostId);
+                if (!$slot || !$slot.length) {
+                    $slot = mdashFindLeafSlotsInRoot($('#' + placeHostId)).first();
+                }
+                if (!$slot || !$slot.length) return;
+                var hostId = 'cont-item-obj-overlay-' + obj.mdashcontaineritemobjectstamp;
+                $slot.append(
+                    '<div class="mdash-overlay-runtime-object-wrap">'
+                    + '<div id="' + hostId + '" class="cont-item-object-rendered mdash-overlay-object-host"></div>'
+                    + '</div>'
+                );
+                try {
+                    obj.renderObjectByContainerItem('#' + hostId, containerItem);
+                } catch (error) {
+                    console.error('[MDash] erro a renderizar overlay (zona)', obj.tipo, error);
+                }
+            });
+        });
+    } else {
+        overlayObjects.forEach(function (obj) {
+            var hostId = 'cont-item-obj-overlay-' + obj.mdashcontaineritemobjectstamp;
+            var gridStyle = getOverlayObjectGridStyleString(obj);
+            $body.append(buildMdashOverlayRuntimeCellHtml(hostId, gridStyle));
+            try {
+                obj.renderObjectByContainerItem('#' + hostId, containerItem);
+            } catch (error) {
+                console.error('[MDash] erro a renderizar overlay', obj.tipo, error);
+            }
+        });
+    }
+
+    mdashShowItemOverlayModal($modal);
 }
 window.mdashOpenItemOverlayRuntime = mdashOpenItemOverlayRuntime;
 
@@ -3922,7 +4064,7 @@ function mdashMountLegacyDetailButton(containerItem, detailObjects) {
         });
         var $parent = $('#mainPage').length ? $('#mainPage') : $('body');
         $parent.append(modalHtml);
-        $('#' + modalId + ' .modal-dialog').css('width', '90%');
+        $('#' + modalId + ' .modal-dialog').addClass('modal-lg');
     }
 
     $(document).off('click.' + btnId).on('click.' + btnId, '#' + btnId, function (e) {
@@ -4049,6 +4191,287 @@ function setItemOverlayLayoutConfig(item, overlayLayout) {
     persistItemEventsConfig(item);
 }
 
+function getDefaultOverlayPlaceTemplateCodigo() {
+    var options = getTemplateLayoutOptions();
+    var plain = options.find(function (tpl) { return tpl.codigo === 'plain_card'; });
+    if (plain) return 'plain_card';
+    return getDefaultTemplateCodigo() || (options[0] && options[0].codigo) || 'plain_card';
+}
+
+function getOverlayPlaceMainSlotId(templateCodigo) {
+    return getMdashContainerItemMainSlotId({ templatelayout: templateCodigo || getDefaultOverlayPlaceTemplateCodigo() });
+}
+
+function ensureOverlayPlaceGridMeta(place) {
+    if (!place.overlayGrid || typeof place.overlayGrid !== 'object') {
+        place.overlayGrid = { layoutmode: 'auto', gridrow: null, gridcolstart: null, gridrowspan: 1 };
+    }
+    return place.overlayGrid;
+}
+
+function getOverlayPlaceGridStyleString(place) {
+    var gridMeta = ensureOverlayPlaceGridMeta(place);
+    var pseudoItem = {
+        tamanho: getItemGridSpan(place),
+        gridrow: gridMeta.gridrow,
+        gridcolstart: gridMeta.gridcolstart,
+        gridrowspan: gridMeta.gridrowspan || 1,
+        layoutmode: (gridMeta.gridrow && gridMeta.gridcolstart) ? 'manual' : 'auto'
+    };
+    return getItemGridStyleString(pseudoItem);
+}
+
+function persistItemOverlayPlaces(item, places) {
+    if (!item) return;
+    var cfg = item._eventsConfigCache || item.getEventsConfig();
+    cfg.overlayPlaces = places || [];
+    item._eventsConfigCache = cfg;
+    persistItemEventsConfig(item);
+}
+
+function ensureOverlayPlacesFromLegacy(item) {
+    if (!item) return [];
+    var cfg = item._eventsConfigCache || item.getEventsConfig();
+    if (Array.isArray(cfg.overlayPlaces) && cfg.overlayPlaces.length) {
+        return cfg.overlayPlaces;
+    }
+
+    var itemStamp = item.mdashcontaineritemstamp;
+    var allOverlay = getItemOverlayObjects(itemStamp);
+    var knownPlaceIds = [];
+    allOverlay.forEach(function (obj) {
+        if (obj.config && obj.config.overlayPlaceId && knownPlaceIds.indexOf(obj.config.overlayPlaceId) < 0) {
+            knownPlaceIds.push(obj.config.overlayPlaceId);
+        }
+    });
+
+    if (knownPlaceIds.length) {
+        cfg.overlayPlaces = knownPlaceIds.map(function (placeId, idx) {
+            var linkedObj = allOverlay.find(function (o) {
+                return o.config && o.config.overlayPlaceId === placeId;
+            });
+            var gridMeta = linkedObj ? ensureOverlayObjectGridMeta(linkedObj) : {};
+            return {
+                id: placeId,
+                titulo: '',
+                templatelayout: getDefaultOverlayPlaceTemplateCodigo(),
+                tamanho: linkedObj ? getItemGridSpan(linkedObj) : 6,
+                ordem: idx + 1,
+                overlayGrid: {
+                    layoutmode: gridMeta.layoutmode || 'auto',
+                    gridrow: gridMeta.gridrow || null,
+                    gridcolstart: gridMeta.gridcolstart || null,
+                    gridrowspan: gridMeta.gridrowspan || 1
+                }
+            };
+        });
+        item._eventsConfigCache = cfg;
+        return cfg.overlayPlaces;
+    }
+
+    var legacyObjects = allOverlay.filter(function (obj) {
+        return !obj.config || !obj.config.overlayPlaceId;
+    });
+
+    if (!legacyObjects.length) {
+        cfg.overlayPlaces = [];
+        item._eventsConfigCache = cfg;
+        return cfg.overlayPlaces;
+    }
+
+    cfg.overlayPlaces = legacyObjects.map(function (obj, idx) {
+        var gridMeta = ensureOverlayObjectGridMeta(obj);
+        return {
+            id: generateUUID(),
+            titulo: '',
+            templatelayout: getDefaultOverlayPlaceTemplateCodigo(),
+            tamanho: getItemGridSpan(obj),
+            ordem: idx + 1,
+            overlayGrid: {
+                layoutmode: gridMeta.layoutmode || 'auto',
+                gridrow: gridMeta.gridrow,
+                gridcolstart: gridMeta.gridcolstart,
+                gridrowspan: gridMeta.gridrowspan || 1
+            }
+        };
+    });
+
+    legacyObjects.forEach(function (obj, idx) {
+        if (!obj.config || typeof obj.config !== 'object') {
+            try { obj.config = JSON.parse(obj.configjson || '{}') || {}; } catch (e) { obj.config = {}; }
+        }
+        obj.config.overlayPlaceId = cfg.overlayPlaces[idx].id;
+        obj.slotid = getOverlayPlaceMainSlotId(cfg.overlayPlaces[idx].templatelayout);
+        syncOverlayObjectConfigjson(obj);
+        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+    });
+
+    item._eventsConfigCache = cfg;
+    persistItemEventsConfig(item);
+    return cfg.overlayPlaces;
+}
+
+function getItemOverlayPlaces(item) {
+    if (!item) return [];
+    ensureOverlayPlacesFromLegacy(item);
+    var cfg = item._eventsConfigCache || item.getEventsConfig();
+    return (cfg.overlayPlaces || []).slice().sort(function (a, b) {
+        return (a.ordem || 0) - (b.ordem || 0);
+    });
+}
+
+function findOverlayPlace(item, placeId) {
+    return getItemOverlayPlaces(item).find(function (place) { return place && place.id === placeId; }) || null;
+}
+
+function getOverlayObjectsForPlace(itemStamp, placeId) {
+    return getItemOverlayObjects(itemStamp).filter(function (obj) {
+        return obj && obj.config && obj.config.overlayPlaceId === placeId;
+    });
+}
+
+function getDefaultOverlayPlaceSpan(itemStamp) {
+    var item = (window.appState.containerItems || []).find(function (i) {
+        return i.mdashcontaineritemstamp === itemStamp;
+    });
+    var places = item ? getItemOverlayPlaces(item) : [];
+    if (!places.length) return 6;
+
+    var occupiedMap = {};
+    var lastRow = 1;
+    var lastRowUsed = 0;
+    places.forEach(function (place) {
+        var gridMeta = ensureOverlayPlaceGridMeta(place);
+        var span = getItemGridSpan(place);
+        var row = parseInt(gridMeta.gridrow, 10) || 1;
+        var colStart = parseInt(gridMeta.gridcolstart, 10) || 1;
+        markGridAreaOccupied(occupiedMap, row, colStart, span, 1);
+        if (row >= lastRow) {
+            lastRow = row;
+            lastRowUsed = Math.max(lastRowUsed, (colStart + span - 1));
+        }
+    });
+
+    var remaining = 12 - lastRowUsed;
+    if (remaining >= 4) return Math.min(6, remaining);
+    if (remaining >= 2) return remaining;
+    return 6;
+}
+
+function addOverlayPlace(itemStamp, options) {
+    options = options || {};
+    var containerItem = (window.appState.containerItems || []).find(function (i) {
+        return i.mdashcontaineritemstamp === itemStamp;
+    });
+    if (!containerItem) return null;
+
+    var places = getItemOverlayPlaces(containerItem);
+    var maxOrdem = places.reduce(function (max, place) { return Math.max(max, place.ordem || 0); }, 0);
+    var newPlace = {
+        id: generateUUID(),
+        titulo: options.titulo || '',
+        templatelayout: options.templatelayout || getDefaultOverlayPlaceTemplateCodigo(),
+        tamanho: options.tamanho || getDefaultOverlayPlaceSpan(itemStamp),
+        ordem: maxOrdem + 1,
+        overlayGrid: { layoutmode: 'auto', gridrow: null, gridcolstart: null, gridrowspan: 1 }
+    };
+    places.push(newPlace);
+    persistItemOverlayPlaces(containerItem, places);
+    if (!options.skipSync) {
+        syncOverlayGridLayoutAfterChange(itemStamp, {
+            preserveSelection: options.select === false ? undefined : newPlace.id,
+            preserveSelectionType: 'overlayPlace',
+            immediate: true
+        });
+    }
+    return newPlace;
+}
+
+function setOverlayPlaceTemplate(itemStamp, placeId, templateCode) {
+    var containerItem = (window.appState.containerItems || []).find(function (i) {
+        return i.mdashcontaineritemstamp === itemStamp;
+    });
+    if (!containerItem || !placeId || !templateCode) return;
+    var places = getItemOverlayPlaces(containerItem);
+    var place = places.find(function (p) { return p.id === placeId; });
+    if (!place || place.templatelayout === templateCode) return;
+    place.templatelayout = templateCode;
+    getOverlayObjectsForPlace(itemStamp, placeId).forEach(function (obj) {
+        obj.slotid = getOverlayPlaceMainSlotId(templateCode);
+        syncOverlayObjectConfigjson(obj);
+        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+    });
+    persistItemOverlayPlaces(containerItem, places);
+    refreshMdashOverlayDesignerSurface(itemStamp, { preserveSelection: placeId, preserveSelectionType: 'overlayPlace', immediate: true });
+}
+
+function deleteOverlayPlace(placeId, itemStamp) {
+    var containerItem = (window.appState.containerItems || []).find(function (i) {
+        return i.mdashcontaineritemstamp === itemStamp;
+    });
+    if (!containerItem) return;
+
+    var objs = window.appState.containerItemObjects || [];
+    for (var i = objs.length - 1; i >= 0; i--) {
+        var obj = objs[i];
+        if (obj.mdashcontaineritemstamp === itemStamp
+            && mdashGetObjectCategory(obj) === 'overlay'
+            && obj.config
+            && obj.config.overlayPlaceId === placeId) {
+            GMdashDeleteRecords.push({ table: 'MdashContainerItemObject', stamp: obj.mdashcontaineritemobjectstamp, tableKey: 'mdashcontaineritemobjectstamp' });
+            objs.splice(i, 1);
+        }
+    }
+
+    var places = getItemOverlayPlaces(containerItem).filter(function (place) { return place.id !== placeId; });
+    persistItemOverlayPlaces(containerItem, places);
+    refreshMdashOverlayDesignerSurface(itemStamp);
+    showOverlayDesignerPropsEmpty();
+}
+
+function normalizeOverlayPlacesAutoLayout(itemStamp, layoutMode) {
+    var containerItem = (window.appState.containerItems || []).find(function (i) {
+        return i.mdashcontaineritemstamp === itemStamp;
+    });
+    if (!containerItem) return;
+
+    var places = getItemOverlayPlaces(containerItem);
+    if (!places.length) return;
+
+    var occupiedMap = {};
+    var autoCursorRow = 1;
+    var autoCursorCol = 1;
+    var mode = layoutMode || 'auto';
+
+    places.forEach(function (place) {
+        var gridMeta = ensureOverlayPlaceGridMeta(place);
+        var span = getItemGridSpan(place);
+        var rowSpan = parseInt(gridMeta.gridrowspan, 10) || 1;
+        var isManual = mode === 'manual' && gridMeta.gridrow && gridMeta.gridcolstart;
+        var preferredRow = isManual ? gridMeta.gridrow : autoCursorRow;
+        var preferredCol = isManual ? gridMeta.gridcolstart : autoCursorCol;
+        var slot = findNextGridSlot(occupiedMap, preferredRow, preferredCol, span, rowSpan);
+
+        gridMeta.gridrow = slot.row;
+        gridMeta.gridcolstart = slot.colStart;
+        gridMeta.layoutmode = isManual ? 'manual' : 'auto';
+        place.tamanho = span;
+
+        markGridAreaOccupied(occupiedMap, slot.row, slot.colStart, span, rowSpan);
+
+        if (!isManual) {
+            autoCursorRow = slot.row;
+            autoCursorCol = slot.colStart + span;
+            while (autoCursorCol > 12) {
+                autoCursorRow += 1;
+                autoCursorCol = 1;
+            }
+        }
+    });
+
+    persistItemOverlayPlaces(containerItem, places);
+}
+
 function ensureOverlayObjectGridMeta(obj) {
     if (!obj.config || typeof obj.config !== 'object') {
         try { obj.config = JSON.parse(obj.configjson || '{}') || {}; } catch (e) { obj.config = {}; }
@@ -4124,44 +4547,124 @@ function syncOverlayGridLayoutAfterChange(itemStamp, options) {
     var layoutMode = layoutCfg.layoutmode || 'auto';
 
     if (layoutMode !== 'manual') {
-        getItemOverlayObjects(itemStamp).forEach(function (obj) {
-            var gridMeta = ensureOverlayObjectGridMeta(obj);
+        getItemOverlayPlaces(containerItem).forEach(function (place) {
+            var gridMeta = ensureOverlayPlaceGridMeta(place);
             gridMeta.gridrow = null;
             gridMeta.gridcolstart = null;
             gridMeta.layoutmode = 'auto';
-            syncOverlayObjectConfigjson(obj);
         });
+        persistItemOverlayPlaces(containerItem, getItemOverlayPlaces(containerItem));
     }
 
-    normalizeOverlayObjectsAutoLayout(itemStamp, layoutMode);
+    normalizeOverlayPlacesAutoLayout(itemStamp, layoutMode);
+
+    if (options.layoutOnly) {
+        applyOverlayDesignerLayoutOnly(itemStamp, options);
+        return;
+    }
+    if (options.placeRefresh) {
+        refreshOverlayDesignerPlace(itemStamp, options.placeRefresh, options);
+        return;
+    }
     refreshMdashOverlayDesignerSurface(itemStamp, options);
 }
 
-function getDefaultOverlayObjectSpan(itemStamp) {
-    var objects = getItemOverlayObjects(itemStamp).filter(function (o) {
-        return !o.slotid || o.slotid === MDASH_ITEM_OVERLAY_SLOT;
+function applyOverlayDesignerLayoutOnly(itemStamp, options) {
+    options = options || {};
+    var containerItem = (window.appState.containerItems || []).find(function (i) {
+        return i.mdashcontaineritemstamp === itemStamp;
     });
-    if (!objects.length) return 6;
+    if (!containerItem) return;
 
-    var occupiedMap = {};
-    var lastRow = 1;
-    var lastRowUsed = 0;
-    objects.forEach(function (obj) {
-        var gridMeta = ensureOverlayObjectGridMeta(obj);
-        var span = getItemGridSpan(obj);
-        var row = parseInt(gridMeta.gridrow, 10) || 1;
-        var colStart = parseInt(gridMeta.gridcolstart, 10) || 1;
-        markGridAreaOccupied(occupiedMap, row, colStart, span, 1);
-        if (row >= lastRow) {
-            lastRow = row;
-            lastRowUsed = Math.max(lastRowUsed, (colStart + span - 1));
+    getItemOverlayPlaces(containerItem).forEach(function (place) {
+        var span = getItemGridSpan(place);
+        var $el = $('.mdash-overlay-canvas-place[data-place-id="' + place.id + '"]');
+        if (!$el.length) return;
+        $el.attr('style', getOverlayPlaceGridStyleString(place));
+        var $badge = $el.find('.mdash-item-size-badge[data-place-id="' + place.id + '"]');
+        if ($badge.length) {
+            $badge.text(span + ' col').attr('title', 'Largura: ' + span + ' colunas');
         }
     });
 
-    var remaining = 12 - lastRowUsed;
-    if (remaining >= 4) return Math.min(6, remaining);
-    if (remaining >= 2) return remaining;
-    return 6;
+    if (options.preserveSelection) {
+        if (options.preserveSelectionType === 'overlayPlace') {
+            selectOverlayDesignerPlace(options.preserveSelection, itemStamp);
+        } else {
+            selectOverlayDesignerObject(options.preserveSelection, itemStamp);
+        }
+    }
+}
+
+function refreshOverlayDesignerPlace(itemStamp, placeId, options) {
+    options = options || {};
+    var containerItem = (window.appState.containerItems || []).find(function (i) {
+        return i.mdashcontaineritemstamp === itemStamp;
+    });
+    var place = containerItem ? findOverlayPlace(containerItem, placeId) : null;
+    if (!place || !containerItem) {
+        refreshMdashOverlayDesignerSurface(itemStamp, options);
+        return;
+    }
+
+    var $placeEl = $('.mdash-overlay-canvas-place[data-place-id="' + placeId + '"]');
+    if (!$placeEl.length) {
+        refreshMdashOverlayDesignerSurface(itemStamp, options);
+        return;
+    }
+
+    var template = getTemplateLayoutByCode(place.templatelayout || getDefaultOverlayPlaceTemplateCodigo());
+    if (!template) return;
+
+    ensureMdashCDNsLoaded(template.cssCdnsList, template.jsCdnsList);
+    var cardHtml = template.generateCard
+        ? template.generateCard({ title: '', id: 'overlay-place-' + place.id, tipo: 'primary', bodyContent: '' })
+        : (template.sampleHtml || '');
+    $placeEl.find('.mdash-overlay-place-template').html(cardHtml);
+
+    injectSlotDropOverlays(itemStamp, template, {
+        bodySelector: '.mdash-overlay-place-template[data-place-id="' + place.id + '"]',
+        overlayOnly: true,
+        overlayDesigner: true,
+        overlayPlaceId: place.id
+    });
+
+    if (options.preserveSelection) {
+        if (options.preserveSelectionType === 'overlayPlace') {
+            selectOverlayDesignerPlace(options.preserveSelection, itemStamp);
+        } else {
+            selectOverlayDesignerObject(options.preserveSelection, itemStamp);
+        }
+    }
+}
+
+var _overlayDesignerRefreshTimer = null;
+var _overlayDesignerRefreshPending = null;
+
+function refreshMdashOverlayDesignerSurface(itemStamp, options) {
+    options = options || {};
+    if (!$('#mdash-overlay-designer-host').length) return;
+
+    if (options.immediate) {
+        clearTimeout(_overlayDesignerRefreshTimer);
+        _overlayDesignerRefreshPending = null;
+        renderMdashItemEditSurface('#mdash-overlay-designer-host', itemStamp, options);
+        return;
+    }
+
+    _overlayDesignerRefreshPending = { itemStamp: itemStamp, options: options };
+    clearTimeout(_overlayDesignerRefreshTimer);
+    _overlayDesignerRefreshTimer = setTimeout(function () {
+        var pending = _overlayDesignerRefreshPending;
+        _overlayDesignerRefreshPending = null;
+        if (!pending || !$('#mdash-overlay-designer-host').length) return;
+        renderMdashItemEditSurface('#mdash-overlay-designer-host', pending.itemStamp, pending.options);
+    }, 100);
+}
+window.refreshMdashOverlayDesignerSurface = refreshMdashOverlayDesignerSurface;
+
+function getDefaultOverlayObjectSpan(itemStamp) {
+    return getDefaultOverlayPlaceSpan(itemStamp);
 }
 
 function mdashRefreshOverlayObjectPreview(objectStamp, containerItem) {
@@ -4216,15 +4719,8 @@ function buildOverlayDesignerShellHtml(itemStamp) {
         + '        </button>'
         + '      </div>'
         + '      <div class="mdash-sidebar-divider"></div>'
-        + '      <div class="panel panel-default" style="margin:0;border:none;box-shadow:none;background:transparent;">'
-        + '        <div class="panel-heading" style="background:transparent;border:none;padding:0 0 8px;">'
-        + '          <h4 class="panel-title" style="font-size:12px;font-weight:700;color:#fff;">'
-        + '            <i class="glyphicon glyphicon-object-align-bottom"></i> Objetos'
-        + '          </h4>'
-        + '        </div>'
-        + '        <div class="panel-body mdash-objects-panel" style="padding:0;">'
+        + '      <div class="mdash-objects-panel" style="padding:0;">'
         + buildOverlayDesignerCatalogHtml()
-        + '        </div>'
         + '      </div>'
         + '    </div>'
         + '  </div>'
@@ -4257,6 +4753,15 @@ function buildOverlayDesignerShellHtml(itemStamp) {
         + '    </div>'
         + '  </div>'
         + '</div>';
+}
+
+function updateOverlayDesignerPasteButtonState() {
+    var $btn = $('#mdash-overlay-paste-btn');
+    if (!$btn.length) return;
+    var canPaste = !!(GMDashClipboard && GMDashClipboard.type === 'object' && GMDashClipboard.items.length);
+    $btn.prop('disabled', !canPaste);
+    $btn.toggleClass('disabled', !canPaste);
+    $btn.attr('title', canPaste ? 'Colar objecto do clipboard' : 'Copie um objecto (Ctrl+C) antes de colar');
 }
 
 function initOverlayDesignerCatalogInteractions(itemStamp) {
@@ -4295,15 +4800,143 @@ function showOverlayDesignerPropsEmpty() {
     activateOverlayDesignerTab('properties');
 }
 
+function selectOverlayDesignerPlace(placeId, itemStamp) {
+    var containerItem = (window.appState.containerItems || []).find(function (i) {
+        return i.mdashcontaineritemstamp === itemStamp;
+    });
+    var place = containerItem ? findOverlayPlace(containerItem, placeId) : null;
+    if (!place) return;
+
+    $('.mdash-overlay-canvas-place, .mdash-overlay-canvas-object, .mdash-slot-zone-render').removeClass('is-selected');
+    $('.mdash-overlay-canvas-place[data-place-id="' + placeId + '"]').addClass('is-selected');
+
+    _currentSelectedComponent = {
+        type: 'overlayPlace',
+        stamp: placeId,
+        data: Object.assign({}, place, { mainSlotId: getOverlayPlaceMainSlotId(place.templatelayout) }),
+        surface: 'overlay'
+    };
+
+    var template = getTemplateLayoutByCode(place.templatelayout);
+    var label = (template && (template.descricao || template.codigo)) || 'Zona';
+    updatePropsComponentHeader({
+        type: 'overlayPlace',
+        stamp: placeId,
+        data: { tipo: 'overlayPlace', titulo: place.titulo || label }
+    }, { headerId: 'mdash-overlay-props-component-header' });
+    $('#mdash-overlay-delete-selected').show();
+
+    $('#mdash-overlay-props-panel').html(
+        '<div class="panel panel-default" style="margin:0;border:none;box-shadow:none;">'
+        + '<div class="panel-body" style="padding:12px;">'
+        + '<div class="form-group"><label>Título da zona</label>'
+        + '<input type="text" class="form-control input-sm" id="mdash-overlay-place-title" value="' + (place.titulo || '').replace(/"/g, '&quot;') + '" placeholder="Opcional"></div>'
+        + '<p class="text-muted" style="font-size:11px;margin:0;">Use o selector de layout no header da zona para alternar entre Plain Card e outros cards.</p>'
+        + '</div></div>'
+    );
+    $('#mdash-overlay-fontes-panel').html('<div class="mdash-props-empty-state"><i class="glyphicon glyphicon-hdd"></i><p>As fontes pertencem aos objectos dentro da zona</p></div>');
+    activateOverlayDesignerTab('properties');
+
+    $('#mdash-overlay-place-title').off('input.overlayPlaceTitle').on('input.overlayPlaceTitle', function () {
+        place.titulo = $(this).val();
+        persistItemOverlayPlaces(containerItem, getItemOverlayPlaces(containerItem));
+        $('.mdash-overlay-canvas-place[data-place-id="' + placeId + '"] .mdash-overlay-place-title-input').val(place.titulo);
+    });
+}
+
+function buildOverlayPlaceLayoutPickerHtml(place) {
+    var templateOptions = getTemplateLayoutOptions();
+    var currentTemplate = getTemplateLayoutByCode(place.templatelayout);
+    var currentLabel = (currentTemplate && (currentTemplate.descricao || currentTemplate.codigo)) || 'Layout';
+    var html = '<div class="mdash-inline-layout-picker mdash-overlay-place-layout-picker" data-place-id="' + place.id + '">';
+    html += '<button type="button" class="mdash-inline-layout-trigger mdash-overlay-place-layout-trigger" title="Alterar layout da zona">';
+    html += '<span class="mdash-inline-layout-thumb">' + getTemplateThumbnailHtml(place.templatelayout) + '</span>';
+    html += '<span class="mdash-inline-layout-name">' + currentLabel + '</span>';
+    html += '<i class="glyphicon glyphicon-chevron-down"></i></button>';
+    html += '<div class="mdash-inline-layout-menu mdash-overlay-place-layout-menu" style="display:none;">';
+    templateOptions.forEach(function (tpl) {
+        html += '<button type="button" class="mdash-inline-layout-option mdash-overlay-place-layout-option" data-template-code="' + tpl.codigo + '">';
+        html += '<span class="mdash-inline-layout-thumb">' + getTemplateThumbnailHtml(tpl.codigo) + '</span>';
+        html += '<span class="mdash-inline-layout-name">' + (tpl.descricao || tpl.codigo) + '</span>';
+        html += '</button>';
+    });
+    html += '</div></div>';
+    return html;
+}
+
+function renderOverlayPlaceDesignerCell(place, itemStamp, containerItem) {
+    var template = getTemplateLayoutByCode(place.templatelayout || getDefaultOverlayPlaceTemplateCodigo());
+    var gridStyle = getOverlayPlaceGridStyleString(place);
+    var sizeCols = parseInt(place.tamanho, 10) || 6;
+    var templateLabel = (template && (template.descricao || template.codigo)) || 'Zona';
+    var placeTitle = (place.titulo || '').trim() || templateLabel;
+
+    var html = '<div class="mdash-canvas-item mdash-overlay-canvas-place" data-place-id="' + place.id + '" style="' + gridStyle + '">';
+    html += '<div class="mdash-canvas-item-card">';
+    html += '<div class="mdash-item-resize-handle mdash-item-resize-handle-left" title="Redimensionar"></div>';
+    html += '<div class="mdash-item-resize-handle mdash-item-resize-handle-right" title="Redimensionar"></div>';
+    html += '<div class="mdash-canvas-item-header">';
+    html += '<div class="mdash-item-header-top">';
+    html += '<div class="mdash-overlay-item-drag-handle" title="Arrastar para reposicionar"><i class="glyphicon glyphicon-move"></i></div>';
+    html += '<div class="mdash-item-title-wrapper">';
+    html += '<input type="text" class="mdash-inline-title mdash-inline-title-sm mdash-overlay-place-title-input" data-place-id="' + place.id + '" value="' + (place.titulo || '').replace(/"/g, '&quot;') + '" placeholder="' + templateLabel + '">';
+    html += '<span class="mdash-item-size-badge" data-place-id="' + place.id + '" title="Largura: ' + sizeCols + ' colunas">' + sizeCols + ' col</span>';
+    html += '</div>';
+    html += '<div class="mdash-item-header-actions">';
+    html += '<button type="button" class="btn btn-xs btn-primary mdash-overlay-place-delete" data-place-id="' + place.id + '" title="Eliminar zona"><i class="glyphicon glyphicon-trash"></i></button>';
+    html += '</div></div>';
+    html += '<div class="mdash-item-header-bottom">';
+    html += buildOverlayPlaceLayoutPickerHtml(place);
+    html += '</div></div>';
+    html += '<div class="mdash-canvas-item-body mdash-overlay-place-body">';
+    if (template) {
+        ensureMdashCDNsLoaded(template.cssCdnsList, template.jsCdnsList);
+        var cardHtml = template.generateCard
+            ? template.generateCard({ title: '', id: 'overlay-place-' + place.id, tipo: 'primary', bodyContent: '' })
+            : (template.sampleHtml || '');
+        html += '<div class="mdash-overlay-place-template" data-place-id="' + place.id + '">' + cardHtml + '</div>';
+    } else {
+        html += '<div class="mdash-overlay-designer-empty">Layout não encontrado.</div>';
+    }
+    html += '</div></div></div>';
+    return html;
+}
+
+function initOverlayPlaceLayoutPickers(itemStamp) {
+    var $host = $('#mdash-overlay-designer-host');
+    $host.off('click.overlayPlaceLayoutTrigger').on('click.overlayPlaceLayoutTrigger', '.mdash-overlay-place-layout-trigger', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $picker = $(this).closest('.mdash-overlay-place-layout-picker');
+        $host.find('.mdash-overlay-place-layout-menu').not($picker.find('.mdash-overlay-place-layout-menu')).hide();
+        $picker.find('.mdash-overlay-place-layout-menu').toggle();
+    });
+    $host.off('click.overlayPlaceLayoutOption').on('click.overlayPlaceLayoutOption', '.mdash-overlay-place-layout-option', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var placeId = $(this).closest('[data-place-id]').data('place-id');
+        var templateCode = $(this).data('template-code');
+        $host.find('.mdash-overlay-place-layout-menu').hide();
+        if (placeId && templateCode) setOverlayPlaceTemplate(itemStamp, placeId, templateCode);
+    });
+    $(document).off('click.overlayPlaceLayoutDismiss').on('click.overlayPlaceLayoutDismiss', function (e) {
+        if ($(e.target).closest('.mdash-overlay-place-layout-picker').length) return;
+        $host.find('.mdash-overlay-place-layout-menu').hide();
+    });
+}
+
 function selectOverlayDesignerObject(objectStamp, itemStamp) {
     var obj = (window.appState.containerItemObjects || []).find(function (o) {
         return o.mdashcontaineritemobjectstamp === objectStamp;
     });
     if (!obj) return;
 
-    $('.mdash-overlay-canvas-object, .mdash-slot-zone-render').removeClass('is-selected');
+    $('.mdash-overlay-canvas-place, .mdash-overlay-canvas-object, .mdash-slot-zone-render').removeClass('is-selected');
     $('.mdash-overlay-canvas-object[data-stamp="' + objectStamp + '"]').addClass('is-selected');
     $('#mdash-slot-render-' + objectStamp).addClass('is-selected');
+    if (obj.config && obj.config.overlayPlaceId) {
+        $('.mdash-overlay-canvas-place[data-place-id="' + obj.config.overlayPlaceId + '"]').addClass('is-selected');
+    }
 
     _currentSelectedComponent = {
         type: 'object',
@@ -4323,28 +4956,54 @@ function _deleteOverlayObject(objectStamp, itemStamp) {
     var objs = window.appState.containerItemObjects || [];
     var idx = objs.findIndex(function (o) { return o.mdashcontaineritemobjectstamp === objectStamp; });
     if (idx < 0) return;
+    var removed = objs[idx];
+    var placeId = removed && removed.config && removed.config.overlayPlaceId;
     GMdashDeleteRecords.push({ table: 'MdashContainerItemObject', stamp: objectStamp, tableKey: 'mdashcontaineritemobjectstamp' });
     objs.splice(idx, 1);
-    refreshMdashOverlayDesignerSurface(itemStamp);
-    showOverlayDesignerPropsEmpty();
-    if (typeof renderContainerItemTemplate === 'function') {
+
+    if ($('#mdash-overlay-designer-modal').is(':visible')) {
+        if (placeId) {
+            syncOverlayGridLayoutAfterChange(itemStamp, { placeRefresh: placeId });
+        } else {
+            refreshMdashOverlayDesignerSurface(itemStamp, { immediate: true });
+        }
+        showOverlayDesignerPropsEmpty();
+    } else if (typeof renderContainerItemTemplate === 'function') {
         var item = (window.appState.containerItems || []).find(function (i) { return i.mdashcontaineritemstamp === itemStamp; });
         if (item) renderContainerItemTemplate(item);
     }
 }
 
-function addOverlayContainerItemObject(itemStamp, tipo, slotId) {
+function addOverlayContainerItemObject(itemStamp, tipo, slotId, options) {
+    options = options || {};
     var containerItem = (window.appState.containerItems || []).find(function (i) {
         return i.mdashcontaineritemstamp === itemStamp;
     });
     var layoutCfg = getItemOverlayLayoutConfig(containerItem);
-    var resolvedSlot = slotId || MDASH_ITEM_OVERLAY_SLOT;
-    if (!slotId && layoutCfg.mode === 'template' && layoutCfg.templatelayout && containerItem) {
-        resolvedSlot = getMdashContainerItemMainSlotId({
+    var place = null;
+    var resolvedSlot = slotId;
+    var createdNewPlace = false;
+
+    if (layoutCfg.mode === 'template' && layoutCfg.templatelayout && containerItem) {
+        resolvedSlot = slotId || getMdashContainerItemMainSlotId({
             templatelayout: layoutCfg.templatelayout,
             slotsconfigjson: containerItem.slotsconfigjson || '[]'
         });
+    } else {
+        if (options.placeId) {
+            place = findOverlayPlace(containerItem, options.placeId);
+        } else if (_currentSelectedComponent
+            && _currentSelectedComponent.type === 'overlayPlace'
+            && _currentSelectedComponent.stamp) {
+            place = findOverlayPlace(containerItem, _currentSelectedComponent.stamp);
+        }
+        if (!place) {
+            place = addOverlayPlace(itemStamp, { select: false, skipSync: true, tamanho: getDefaultOverlayPlaceSpan(itemStamp) });
+            createdNewPlace = true;
+        }
+        resolvedSlot = slotId || getOverlayPlaceMainSlotId(place.templatelayout);
     }
+
     var maxOrdem = (window.appState.containerItemObjects || [])
         .filter(function (o) { return o.mdashcontaineritemstamp === itemStamp && mdashGetObjectCategory(o) === 'overlay'; })
         .reduce(function (max, o) { return Math.max(max, o.ordem || 0); }, 0);
@@ -4353,24 +5012,26 @@ function addOverlayContainerItemObject(itemStamp, tipo, slotId) {
         dashboardstamp: GMDashStamp,
         tipo: tipo || 'table',
         categoria: 'overlay',
-        slotid: resolvedSlot,
+        slotid: resolvedSlot || MDASH_ITEM_OVERLAY_SLOT,
         tamanho: getDefaultOverlayObjectSpan(itemStamp),
         ordem: maxOrdem + 1
     });
-    ensureOverlayObjectGridMeta(newObj);
+    if (place) {
+        if (!newObj.config || typeof newObj.config !== 'object') newObj.config = {};
+        newObj.config.overlayPlaceId = place.id;
+        syncOverlayObjectConfigjson(newObj);
+    }
     window.appState.containerItemObjects.push(newObj);
     if (typeof newObj.stringifyJSONFields === 'function') newObj.stringifyJSONFields();
     if (typeof realTimeComponentSync === 'function') realTimeComponentSync(newObj, newObj.table, newObj.idfield);
-    syncOverlayGridLayoutAfterChange(itemStamp, { preserveSelection: newObj.mdashcontaineritemobjectstamp });
-}
-
-function refreshMdashOverlayDesignerSurface(itemStamp, options) {
-    options = options || {};
-    if ($('#mdash-overlay-designer-host').length) {
-        renderMdashItemEditSurface('#mdash-overlay-designer-host', itemStamp, options);
+    if (createdNewPlace) {
+        syncOverlayGridLayoutAfterChange(itemStamp, { preserveSelection: newObj.mdashcontaineritemobjectstamp, immediate: true });
+    } else if (place && place.id) {
+        syncOverlayGridLayoutAfterChange(itemStamp, { placeRefresh: place.id, preserveSelection: newObj.mdashcontaineritemobjectstamp });
+    } else {
+        syncOverlayGridLayoutAfterChange(itemStamp, { preserveSelection: newObj.mdashcontaineritemobjectstamp, immediate: true });
     }
 }
-window.refreshMdashOverlayDesignerSurface = refreshMdashOverlayDesignerSurface;
 
 function renderOverlayTemplateDesignerCanvas(itemStamp, containerItem, templateCodigo) {
     var template = getTemplateLayoutByCode(templateCodigo);
@@ -4387,36 +5048,15 @@ function renderOverlayTemplateDesignerCanvas(itemStamp, containerItem, templateC
 }
 
 function renderOverlayGridDesignerCanvas(itemStamp, containerItem, layoutMode) {
-    var objects = getItemOverlayObjects(itemStamp);
-    normalizeOverlayObjectsAutoLayout(itemStamp, layoutMode || 'auto');
+    var places = getItemOverlayPlaces(containerItem);
+    normalizeOverlayPlacesAutoLayout(itemStamp, layoutMode || 'auto');
 
     var html = '<div class="mdash-overlay-objects-row mdash-container-items-row" data-item-stamp="' + itemStamp + '">';
-    if (!objects.length) {
-        html += '<div class="mdash-overlay-designer-empty mdash-overlay-designer-empty--inline">Arraste ou cole objectos aqui — coloque-os lado a lado na grelha de 12 colunas</div>';
+    if (!places.length) {
+        html += '<div class="mdash-overlay-designer-empty mdash-overlay-designer-empty--inline">Adicione uma zona (card/plain) e depois arraste ou cole objectos para dentro — cada zona pode ter layout diferente</div>';
     } else {
-        objects.forEach(function (obj) {
-            if (obj.slotid && obj.slotid !== MDASH_ITEM_OVERLAY_SLOT) return;
-            var gridStyle = getOverlayObjectGridStyleString(obj);
-            var sizeCols = parseInt(obj.tamanho, 10) || 6;
-            var tipoEntry = getMdashObjectTypeEntry(obj.tipo);
-            var typeLabel = (tipoEntry && (tipoEntry.descricao || tipoEntry.label)) || obj.tipo || 'Objecto';
-            html += '<div class="mdash-canvas-item mdash-overlay-canvas-object" data-stamp="' + obj.mdashcontaineritemobjectstamp + '" style="' + gridStyle + '">';
-            html += '<div class="mdash-canvas-item-card">';
-            html += '<div class="mdash-item-resize-handle mdash-item-resize-handle-left" title="Redimensionar"></div>';
-            html += '<div class="mdash-item-resize-handle mdash-item-resize-handle-right" title="Redimensionar"></div>';
-            html += '<div class="mdash-canvas-item-header">';
-            html += '<div class="mdash-item-header-top">';
-            html += '<div class="mdash-overlay-item-drag-handle" title="Arrastar para reposicionar"><i class="glyphicon glyphicon-move"></i></div>';
-            html += '<div class="mdash-item-title-wrapper">';
-            html += '<span class="mdash-inline-title mdash-inline-title-sm" style="cursor:default;">' + typeLabel + '</span>';
-            html += '<span class="mdash-item-size-badge" data-overlay-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Largura: ' + sizeCols + ' colunas">' + sizeCols + ' col</span>';
-            html += '</div>';
-            html += '<div class="mdash-item-header-actions">';
-            html += '<button type="button" class="btn btn-xs btn-primary mdash-overlay-item-delete" data-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Eliminar objecto"><i class="glyphicon glyphicon-trash"></i></button>';
-            html += '</div></div></div>';
-            html += '<div class="mdash-canvas-item-body">';
-            html += '<div id="mdash-overlay-preview-' + obj.mdashcontaineritemobjectstamp + '" class="mdash-overlay-object-preview cont-item-object-rendered"></div>';
-            html += '</div></div></div>';
+        places.forEach(function (place) {
+            html += renderOverlayPlaceDesignerCell(place, itemStamp, containerItem);
         });
     }
     html += '</div>';
@@ -4432,9 +5072,9 @@ function initOverlayDesignerGridInteractions(itemStamp, containerItem) {
     }
 
     $row.sortable({
-        items: '.mdash-overlay-canvas-object',
+        items: '.mdash-overlay-canvas-place',
         handle: '.mdash-overlay-item-drag-handle',
-        cancel: '.mdash-item-resize-handle, .mdash-item-resize-handle *, .mdash-overlay-item-delete, .mdash-canvas-item-body, .mdash-canvas-item-body *',
+        cancel: '.mdash-item-resize-handle, .mdash-item-resize-handle *, .mdash-overlay-place-delete, .mdash-overlay-place-body, .mdash-overlay-place-body *, .mdash-inline-layout-picker, .mdash-inline-layout-picker *',
         helper: 'clone',
         appendTo: '#mdash-overlay-designer-modal .mdash-overlay-designer-canvas',
         zIndex: 10050,
@@ -4461,42 +5101,46 @@ function initOverlayDesignerGridInteractions(itemStamp, containerItem) {
             }
         },
         stop: function (event, ui) {
-            var movedStamp = ui.item.data('stamp');
-            var stamps = [];
-            $row.find('.mdash-overlay-canvas-object').each(function (idx) {
-                var stamp = $(this).data('stamp');
-                if (!stamp) return;
-                stamps.push(stamp);
-                var obj = (window.appState.containerItemObjects || []).find(function (o) {
-                    return o.mdashcontaineritemobjectstamp === stamp;
-                });
-                if (obj) obj.ordem = idx + 1;
+            var movedPlaceId = ui.item.data('place-id');
+            var places = getItemOverlayPlaces(containerItem);
+            var orderMap = {};
+            $row.find('.mdash-overlay-canvas-place').each(function (idx) {
+                var placeId = $(this).data('place-id');
+                if (placeId) orderMap[placeId] = idx + 1;
             });
-            syncOverlayGridLayoutAfterChange(itemStamp, { preserveSelection: movedStamp || stamps[0] });
+            places.forEach(function (place) {
+                if (orderMap[place.id]) place.ordem = orderMap[place.id];
+            });
+            persistItemOverlayPlaces(containerItem, places);
+            syncOverlayGridLayoutAfterChange(itemStamp, {
+                preserveSelection: movedPlaceId,
+                preserveSelectionType: 'overlayPlace',
+                layoutOnly: true
+            });
         }
     });
 
-    $row.off('click.overlayObjDelete').on('click.overlayObjDelete', '.mdash-overlay-item-delete', function (e) {
+    $row.off('click.overlayPlaceDelete').on('click.overlayPlaceDelete', '.mdash-overlay-place-delete', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        var stamp = $(this).data('stamp');
-        if (!stamp) return;
+        var placeId = $(this).data('place-id');
+        if (!placeId) return;
         if (typeof showDeleteConfirmation === 'function') {
             showDeleteConfirmation({
-                title: 'Eliminar objecto',
-                message: 'Tem a certeza que deseja eliminar este objecto da modal?',
+                title: 'Eliminar zona',
+                message: 'Tem a certeza que deseja eliminar esta zona e os objectos dentro dela?',
                 onConfirm: function () {
-                    _deleteOverlayObject(stamp, itemStamp);
+                    deleteOverlayPlace(placeId, itemStamp);
                 }
             });
-        } else if (window.confirm('Eliminar este objecto da modal?')) {
-            _deleteOverlayObject(stamp, itemStamp);
+        } else if (window.confirm('Eliminar esta zona da modal?')) {
+            deleteOverlayPlace(placeId, itemStamp);
         }
     });
 
-    $row.off('click.overlayObjSelect').on('click.overlayObjSelect', '.mdash-overlay-canvas-object', function (e) {
-        if ($(e.target).closest('.mdash-item-resize-handle, .mdash-overlay-item-delete, .mdash-overlay-item-drag-handle').length) return;
-        selectOverlayDesignerObject($(this).data('stamp'), itemStamp);
+    $row.off('click.overlayPlaceSelect').on('click.overlayPlaceSelect', '.mdash-overlay-canvas-place', function (e) {
+        if ($(e.target).closest('.mdash-item-resize-handle, .mdash-overlay-place-delete, .mdash-overlay-item-drag-handle, .mdash-inline-layout-picker, .mdash-slot-zone-drop, .mdash-slot-zone-toolbar, .mdash-slot-zone-render').length) return;
+        selectOverlayDesignerPlace($(this).data('place-id'), itemStamp);
     });
 
     $row.off('dragover.overlayGridDrop dragleave.overlayGridDrop drop.overlayGridDrop');
@@ -4516,6 +5160,19 @@ function initOverlayDesignerGridInteractions(itemStamp, containerItem) {
         var objDef;
         try { objDef = JSON.parse(raw); } catch (err) { return; }
         if (objDef && objDef.value) addOverlayContainerItemObject(itemStamp, objDef.value);
+    });
+
+    initOverlayPlaceLayoutPickers(itemStamp);
+
+    getItemOverlayPlaces(containerItem).forEach(function (place) {
+        var template = getTemplateLayoutByCode(place.templatelayout || getDefaultOverlayPlaceTemplateCodigo());
+        if (!template) return;
+        injectSlotDropOverlays(itemStamp, template, {
+            bodySelector: '.mdash-overlay-place-template[data-place-id="' + place.id + '"]',
+            overlayOnly: true,
+            overlayDesigner: true,
+            overlayPlaceId: place.id
+        });
     });
 }
 
@@ -4550,7 +5207,8 @@ function renderMdashItemEditSurface(hostSelector, itemStamp, options) {
         html += '<option value="' + tpl.value + '"' + (layoutCfg.templatelayout === tpl.value ? ' selected' : '') + '>' + tpl.label + '</option>';
     });
     html += '</select>';
-    html += '<span class="text-muted" style="font-size:11px;margin-left:4px;">Grelha 12 colunas — arraste pelo ícone <i class="glyphicon glyphicon-move"></i> no header; redimensione pelas margens</span>';
+    html += '<span class="text-muted" style="font-size:11px;margin-left:4px;">Grelha 12 colunas — cada zona pode ter card/plain diferente; arraste objectos para dentro</span>';
+    html += '<button type="button" class="btn btn-default btn-xs" id="mdash-overlay-add-place-btn" style="margin-left:8px;"><i class="glyphicon glyphicon-plus"></i> Zona</button>';
     html += '</label></div></div>';
     html += '<div class="mdash-overlay-designer-canvas">';
 
@@ -4573,18 +5231,14 @@ function renderMdashItemEditSurface(hostSelector, itemStamp, options) {
             });
         }
     } else {
-        getItemOverlayObjects(itemStamp).forEach(function (obj) {
-            if (obj.slotid && obj.slotid !== MDASH_ITEM_OVERLAY_SLOT) return;
-            try {
-                obj.renderObjectByContainerItem('#mdash-overlay-preview-' + obj.mdashcontaineritemobjectstamp, containerItem);
-            } catch (e) {
-                console.warn('[MDash] preview overlay', e);
-            }
-        });
         initOverlayDesignerGridInteractions(itemStamp, containerItem);
     }
 
     $host.off('.overlayDesigner');
+    $host.on('click.overlayDesigner', '#mdash-overlay-add-place-btn', function (e) {
+        e.preventDefault();
+        addOverlayPlace(itemStamp);
+    });
     $host.on('change.overlayDesigner', '#mdash-overlay-layout-mode', function () {
         var mode = $(this).val() || 'grid';
         setItemOverlayLayoutConfig(containerItem, {
@@ -4604,7 +5258,11 @@ function renderMdashItemEditSurface(hostSelector, itemStamp, options) {
     });
 
     if (options.preserveSelection) {
-        selectOverlayDesignerObject(options.preserveSelection, itemStamp);
+        if (options.preserveSelectionType === 'overlayPlace') {
+            selectOverlayDesignerPlace(options.preserveSelection, itemStamp);
+        } else {
+            selectOverlayDesignerObject(options.preserveSelection, itemStamp);
+        }
     }
 }
 window.renderMdashItemEditSurface = renderMdashItemEditSurface;
@@ -4631,22 +5289,33 @@ function openOverlayDesignerModal(itemStamp) {
     var $modal = $('#' + modalData.id);
     $modal.data('item-stamp', itemStamp);
     applyMdashThemeToElement($modal[0]);
+    applyMdashThemeToElement($modal.find('.mdash-overlay-designer-shell')[0]);
     $modal.find('.modal-dialog').css({ width: '98%', maxWidth: '1680px', margin: '12px auto' });
     $modal.find('.modal-body').css({ padding: '0', maxHeight: 'calc(100vh - 120px)', overflow: 'hidden' });
 
     showOverlayDesignerPropsEmpty();
     initOverlayDesignerCatalogInteractions(itemStamp);
-    renderMdashItemEditSurface('#mdash-overlay-designer-host', itemStamp);
+    renderMdashItemEditSurface('#mdash-overlay-designer-host', itemStamp, { immediate: true });
 
     $modal.off('click.overlayPaste').on('click.overlayPaste', '#mdash-overlay-paste-btn', function (e) {
         e.preventDefault();
+        if ($(this).prop('disabled')) return;
         if (typeof mdashPasteClipboard === 'function') mdashPasteClipboard();
+    });
+
+    updateOverlayDesignerPasteButtonState();
+    $modal.off('shown.bs.modal.overlayPaste').on('shown.bs.modal.overlayPaste', function () {
+        updateOverlayDesignerPasteButtonState();
     });
 
     $modal.off('click.overlayDeleteSelected').on('click.overlayDeleteSelected', '#mdash-overlay-delete-selected', function (e) {
         e.preventDefault();
-        if (_currentSelectedComponent && _currentSelectedComponent.surface === 'overlay' && _currentSelectedComponent.stamp) {
-            _deleteOverlayObject(_currentSelectedComponent.stamp, itemStamp);
+        if (_currentSelectedComponent && _currentSelectedComponent.surface === 'overlay') {
+            if (_currentSelectedComponent.type === 'overlayPlace' && _currentSelectedComponent.stamp) {
+                deleteOverlayPlace(_currentSelectedComponent.stamp, itemStamp);
+            } else if (_currentSelectedComponent.stamp) {
+                _deleteOverlayObject(_currentSelectedComponent.stamp, itemStamp);
+            }
         }
     });
 
@@ -4772,10 +5441,18 @@ window.renderMdashItemActionsPanel = renderMdashItemActionsPanel;
 function mdashBuildContainerItemCardData(containerItem, extra) {
     extra = extra || {};
     var mainSlotId = getMdashContainerItemMainSlotId(containerItem);
+    var template = typeof getTemplateLayoutByCode === 'function'
+        ? getTemplateLayoutByCode(containerItem.templatelayout)
+        : null;
+    var resolvedTipo = extra.tipo
+        || (template && template.UIData && template.UIData.tipo)
+        || containerItem.tipo
+        || 'primary';
+
     var cardData = {
         title: extra.title !== undefined ? extra.title : (containerItem.titulo || ''),
         id: extra.id || ('m-dash-layout-' + containerItem.mdashcontaineritemstamp),
-        tipo: extra.tipo || 'primary',
+        tipo: resolvedTipo,
         bodyContent: '',
         slotContents: {}
     };
@@ -4880,6 +5557,8 @@ function mdashHandleContainerItemLayoutRuntime(containerItem, runtimeCtx) {
     var measuredCardHeight = 0;
     var measuredBodyHeight = 0;
     var mainSlotId = getMdashContainerItemMainSlotId(containerItem);
+    var isCompactLayout = isCompactContainerItemLayout(containerItem.templatelayout);
+    mdashSyncContainerItemRowSizing(containerItem);
 
     try {
         var $existingCard = $(hostSelector + ' .mdash-card, ' + hostSelector + ' .dashcard, ' + hostSelector + ' [data-mdash-scope]').first();
@@ -4892,15 +5571,23 @@ function mdashHandleContainerItemLayoutRuntime(containerItem, runtimeCtx) {
         }
     } catch (e) { measuredBodyHeight = 0; }
 
+    if (isCompactLayout) {
+        measuredCardHeight = 0;
+        measuredBodyHeight = 0;
+    }
+
     containerItem.skeletonId = 'skeleton-' + containerItem.mdashcontaineritemstamp;
     var loadingHeight = typeof containerItem._calculateLoadingHeight === 'function'
         ? containerItem._calculateLoadingHeight()
         : 0;
 
     if (typeof containerItem._lockHostMinHeight === 'function') {
-        if (measuredCardHeight > 40) containerItem._lockHostMinHeight(measuredCardHeight);
+        if (isCompactLayout) containerItem._lockHostMinHeight(0);
+        else if (measuredCardHeight > 40) containerItem._lockHostMinHeight(measuredCardHeight);
         else containerItem._lockHostMinHeight(0);
     }
+
+    if (isCompactLayout) loadingHeight = 0;
 
     if (measuredBodyHeight > 40) loadingHeight = measuredBodyHeight;
 
@@ -4920,7 +5607,7 @@ function mdashHandleContainerItemLayoutRuntime(containerItem, runtimeCtx) {
 
     try {
         var $slotForSkeleton = resolveMdashContainerItemSlotForContent(containerItem, mainSlotId, hostSelector);
-        if ($slotForSkeleton && $slotForSkeleton.length && !mdashIsStructuralSlot($slotForSkeleton) && measuredBodyHeight > 40) {
+        if ($slotForSkeleton && $slotForSkeleton.length && !mdashIsStructuralSlot($slotForSkeleton) && measuredBodyHeight > 40 && !isCompactLayout) {
             $slotForSkeleton.empty().append(skeletonHTML);
             return true;
         }
@@ -5059,9 +5746,11 @@ function mdashRefreshContainerItemRuntime(containerItem, runtimeCtx, options) {
             containerItem._lockHostMinHeight(0);
         }
 
+        mdashSyncContainerItemRowSizing(containerItem);
+
         $(hostSelector).find('.mdash-card, [data-mdash-scope]').addClass('mdash-content-fade-in');
 
-        if (typeof containerItem._captureRenderedHeight === 'function') {
+        if (typeof containerItem._captureRenderedHeight === 'function' && !isCompactContainerItemLayout(containerItem.templatelayout)) {
             containerItem._captureRenderedHeight();
         }
         if (typeof runtimeCtx.onHeightSync === 'function') {
@@ -5443,7 +6132,8 @@ function renderUnifiedLayout(layout, cardData) {
     var css = layout.csstemplate || '';
 
     // Build token replacement map
-    var tipo = cardData.tipo || (layout.UIData && layout.UIData.tipo) || 'primary';
+    // UIData do layout tem prioridade sobre defaults do cardData (ex.: variantes metric danger/success)
+    var tipo = (layout.UIData && layout.UIData.tipo) || cardData.tipo || 'primary';
     var tokenMap = {
         id: cardData.id || '',
         tipo: tipo,
@@ -5527,7 +6217,9 @@ function renderUnifiedLayout(layout, cardData) {
         result += '<style>' + scopeLayoutCSS(css, scopeId) + '</style>';
     }
     // Wrapper com atributo de scope — todas as regras CSS ficam contidas aqui
-    result += '<div data-mdash-scope="' + scopeId + '">' + html + '</div>';
+    var rowSizing = layout.rowsizing || layout.rowSizing
+        || (String(layout.tipo || '').toLowerCase() === 'snapshot' ? 'compact' : 'stretch');
+    result += '<div data-mdash-scope="' + scopeId + '" data-mdash-row-sizing="' + rowSizing + '" class="mdash-layout-scope mdash-layout-scope--' + rowSizing + '">' + html + '</div>';
     return result;
 }
 
@@ -5584,15 +6276,24 @@ function injectSlotDropOverlays(itemStamp, template, options) {
         $el.empty();
         var objs = window.appState.containerItemObjects.filter(function (o) {
             if (o.mdashcontaineritemstamp !== itemStamp || o.slotid !== slotId) return false;
-            if (options.overlayOnly && mdashGetObjectCategory(o) !== 'overlay') return false;
+            var category = mdashGetObjectCategory(o);
+            if (options.overlayOnly) {
+                if (category !== 'overlay') return false;
+            } else if (category === 'overlay') {
+                return false;
+            }
+            if (options.overlayPlaceId) {
+                return !!(o.config && o.config.overlayPlaceId === options.overlayPlaceId);
+            }
             return true;
         });
 
         var dropHtml;
+        var overlayPlaceAttr = options.overlayPlaceId ? ' data-overlay-place-id="' + options.overlayPlaceId + '"' : '';
 
         if (objs.length > 0) {
             // -- Slot ocupado: um bloco empilhado por objecto --
-            dropHtml = '<div class="mdash-slot-zone-drop has-object" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '">';
+            dropHtml = '<div class="mdash-slot-zone-drop has-object" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '"' + overlayPlaceAttr + '>';
             objs.forEach(function (obj) {
                 var renderDivId = 'mdash-slot-render-' + obj.mdashcontaineritemobjectstamp;
                 var objEntry = getMdashObjectTypeEntry(obj.tipo);
@@ -5606,7 +6307,7 @@ function injectSlotDropOverlays(itemStamp, template, options) {
                 // Copiar objecto
                 dropHtml += '<button type="button" class="mdash-slot-zone-obj-copy mdash-clip-btn" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Copiar objecto"><i class="glyphicon glyphicon-copy"></i></button>';
                 // Colar objecto no slot (visível via CSS só quando clipboard tem objecto)
-                dropHtml += '<button type="button" class="mdash-slot-zone-obj-paste mdash-clip-btn mdash-clip-paste" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Colar objecto do clipboard aqui"><i class="glyphicon glyphicon-paste"></i></button>';
+                dropHtml += '<button type="button" class="mdash-slot-zone-obj-paste mdash-clip-btn mdash-clip-paste" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '"' + overlayPlaceAttr + ' title="Colar objecto do clipboard aqui"><i class="glyphicon glyphicon-paste"></i></button>';
                 // Lado direito: remover OBJECTO
                 dropHtml += '<button type="button" class="mdash-slot-zone-remove mdash-slot-zone-toolbar-right" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Remover objecto"><i class="glyphicon glyphicon-remove"></i> Remover</button>';
                 dropHtml += '</div>';
@@ -5620,10 +6321,10 @@ function injectSlotDropOverlays(itemStamp, template, options) {
             dropHtml += '</div>';
         } else {
             // -- Slot vazio: mesma toolbar overlay + hint de drag --
-            dropHtml = '<div class="mdash-slot-zone-drop" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '">';
+            dropHtml = '<div class="mdash-slot-zone-drop" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '"' + overlayPlaceAttr + '>';
             dropHtml += '<div class="mdash-slot-zone-toolbar">';
             dropHtml += '<button type="button" class="mdash-slot-zone-settings mdash-slot-zone-toolbar-left" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i> Slot</button>';
-            dropHtml += '<button type="button" class="mdash-slot-zone-obj-paste mdash-clip-btn mdash-clip-paste" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Colar objecto do clipboard aqui"><i class="glyphicon glyphicon-paste"></i></button>';
+            dropHtml += '<button type="button" class="mdash-slot-zone-obj-paste mdash-clip-btn mdash-clip-paste" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '"' + overlayPlaceAttr + ' title="Colar objecto do clipboard aqui"><i class="glyphicon glyphicon-paste"></i></button>';
             dropHtml += '</div>';
             dropHtml += '<span class="mdash-slot-zone-hint"><i class="glyphicon glyphicon-plus-sign"></i> ' + (slotDef.label || slotId) + '</span>';
             dropHtml += '</div>';
@@ -5693,10 +6394,22 @@ function bindSlotDropZoneEvents($drop, itemStamp, slotId, options) {
             slotid: slotId,
             categoria: options.overlayDesigner ? 'overlay' : undefined
         });
+        if (options.overlayDesigner && options.overlayPlaceId) {
+            if (!newObj.config || typeof newObj.config !== 'object') newObj.config = {};
+            newObj.config.overlayPlaceId = options.overlayPlaceId;
+            syncOverlayObjectConfigjson(newObj);
+        }
         window.appState.containerItemObjects.push(newObj);
         if (options.overlayDesigner) {
             if (typeof newObj.stringifyJSONFields === 'function') newObj.stringifyJSONFields();
-            refreshMdashOverlayDesignerSurface(itemStamp);
+            if (options.overlayPlaceId) {
+                syncOverlayGridLayoutAfterChange(itemStamp, {
+                    placeRefresh: options.overlayPlaceId,
+                    preserveSelection: newObj.mdashcontaineritemobjectstamp
+                });
+            } else {
+                refreshMdashOverlayDesignerSurface(itemStamp, { preserveSelection: newObj.mdashcontaineritemobjectstamp, immediate: true });
+            }
             selectOverlayDesignerObject(newObj.mdashcontaineritemobjectstamp, itemStamp);
         } else {
             refreshSlotOverlays(itemStamp);
@@ -5784,17 +6497,29 @@ function bindSlotDropZoneEvents($drop, itemStamp, slotId, options) {
         var $btn = $(this);
         var targetItemStamp = $btn.data('item-stamp');
         var targetSlotId = $btn.data('slot-id');
+        var overlayPlaceId = $btn.data('overlay-place-id');
         if (!targetItemStamp) return;
 
+        var pasteOptions = options.overlayDesigner
+            ? { categoria: 'overlay', overlayPlaceId: overlayPlaceId || undefined }
+            : undefined;
         var pastedCount = 0;
         GMDashClipboard.items.forEach(function (snap) {
-            pastedCount += _clipPasteObject(snap, targetItemStamp, String(targetSlotId || ''));
+            if (_clipPasteObject(snap, targetItemStamp, String(targetSlotId || ''), pasteOptions)) pastedCount += 1;
         });
         if (pastedCount > 0) {
             setTimeout(function () {
-                if (typeof refreshSlotOverlays === 'function') refreshSlotOverlays(targetItemStamp);
-                if (typeof renderAllContainerItemTemplates === 'function') renderAllContainerItemTemplates();
-                if (typeof initDragAndDrop === 'function') initDragAndDrop();
+                if (options.overlayDesigner && typeof refreshMdashOverlayDesignerSurface === 'function') {
+                    if (overlayPlaceId) {
+                        syncOverlayGridLayoutAfterChange(targetItemStamp, { placeRefresh: overlayPlaceId });
+                    } else {
+                        refreshMdashOverlayDesignerSurface(targetItemStamp);
+                    }
+                } else if (typeof refreshSlotOverlays === 'function') {
+                    refreshSlotOverlays(targetItemStamp);
+                }
+                if (!options.overlayDesigner && typeof renderAllContainerItemTemplates === 'function') renderAllContainerItemTemplates();
+                if (!options.overlayDesigner && typeof initDragAndDrop === 'function') initDragAndDrop();
             }, 50);
             if (typeof alertify !== 'undefined') alertify.success(pastedCount + ' objecto(s) colado(s) neste slot');
         }
@@ -5832,6 +6557,23 @@ function bindSlotDropZoneEvents($drop, itemStamp, slotId, options) {
         });
         if (idx === -1) return;
         var obj = window.appState.containerItemObjects[idx];
+
+        if (options.overlayDesigner) {
+            showDeleteConfirmation({
+                title: 'Remover objecto',
+                message: 'Tem a certeza que pretende remover o objecto <strong>' + (obj.tipo || 'Objecto') + '</strong> da modal?',
+                recordToDelete: {
+                    table: obj.table,
+                    tableKey: obj.idfield,
+                    stamp: obj[obj.idfield]
+                },
+                onConfirm: function () {
+                    _deleteOverlayObject(objectStamp, itemStamp);
+                }
+            });
+            return;
+        }
+
         showDeleteConfirmation({
             title: 'Remover objecto',
             message: 'Tem a certeza que pretende remover o objecto <strong>' + (obj.tipo || 'Objecto') + '</strong> deste slot?',
@@ -5906,6 +6648,7 @@ function getTemplateLayoutOptions() {
                 cssCdnsList: def.cssCdnsList || [],
                 jsCdnsList: def.jsCdnsList || [],
                 containerSelectorToRender: def.containerSelectorToRender || '[data-mdash-slot="body"]',
+                rowsizing: def.rowsizing || 'stretch',
                 isCustomLayout: false,
                 generateCard: function (cardData) {
                     return renderUnifiedLayout(this, cardData);
@@ -6425,7 +7168,7 @@ function initModernDashboardUI() {
     mainHtml += '            <div v-if="getContainerItems(container.mdashcontainerstamp).length === 0" class="mdash-canvas-empty-items">';
     mainHtml += '              <small class="text-muted">Arraste um Container Item para este container</small>';
     mainHtml += '            </div>';
-    mainHtml += '            <div v-for="item in getContainerItems(container.mdashcontainerstamp)" :key="item.mdashcontaineritemstamp" class="mdash-canvas-item" :class="{\'is-selected\': selectedComponent.stamp === item.mdashcontaineritemstamp}" :data-stamp="item.mdashcontaineritemstamp" @click.stop="selectContainerItem(item.mdashcontaineritemstamp, $event)" :style=\"getItemFlex(item)\">';
+    mainHtml += '            <div v-for="item in getContainerItems(container.mdashcontainerstamp)" :key="item.mdashcontaineritemstamp" class="mdash-canvas-item" :class="{\'is-selected\': selectedComponent.stamp === item.mdashcontaineritemstamp, \'mdash-item-compact\': isCompactLayoutItem(item)}" :data-stamp="item.mdashcontaineritemstamp" @click.stop="selectContainerItem(item.mdashcontaineritemstamp, $event)" :style=\"getItemFlex(item)\">';
     mainHtml += '              <div class="mdash-canvas-item-card">';
     mainHtml += '                <div class="mdash-item-resize-handle mdash-item-resize-handle-left" title="Redimensionar (2-12 colunas; ALT para 1)"></div>';
     mainHtml += '                <div class="mdash-item-resize-handle mdash-item-resize-handle-right" title="Redimensionar (2-12 colunas; ALT para 1)"></div>';
@@ -7196,6 +7939,10 @@ function initModernDashboardUI() {
             return getItemGridStyleString(item);
         },
 
+        isCompactLayoutItem: function (item) {
+            return isCompactContainerItemLayout(item && item.templatelayout);
+        },
+
         getItemSize: function (item) {
             return getItemGridSpan(item);
         },
@@ -7358,7 +8105,7 @@ function initModernDashboardUI() {
             if (!GMDashClipboard.items.length || GMDashClipboard.type !== 'object') return;
             var pastedCount = 0;
             GMDashClipboard.items.forEach(function (snap) {
-                pastedCount += _clipPasteObject(snap, itemStamp);
+                if (_clipPasteObject(snap, itemStamp)) pastedCount += 1;
             });
             if (pastedCount > 0) {
                 setTimeout(function () {
@@ -8774,9 +9521,56 @@ function getItemGridStyleMap(item) {
     };
 }
 
+function mdashSyncContainerItemRowSizing(containerItem) {
+    if (!containerItem || !containerItem.mdashcontaineritemstamp) return;
+    var host = document.getElementById(containerItem.mdashcontaineritemstamp);
+    if (!host) return;
+
+    var sizing = getContainerItemRowSizing(containerItem.templatelayout);
+    host.classList.remove('m-dash-item-compact', 'm-dash-item-host');
+    host.classList.add(sizing === 'stretch' ? 'm-dash-item-host' : 'm-dash-item-compact');
+
+    host.style.removeProperty('height');
+    host.style.removeProperty('min-height');
+    host.style.setProperty('--md-item-min-h', '0px');
+
+    if (sizing === 'compact') {
+        mdashResetCompactLayoutHeights('#' + containerItem.mdashcontaineritemstamp);
+    }
+}
+window.mdashSyncContainerItemRowSizing = mdashSyncContainerItemRowSizing;
+
+function getContainerItemRowSizing(templateCode) {
+    var code = String(templateCode || '').toLowerCase();
+    var tpl = typeof getTemplateLayoutByCode === 'function' ? getTemplateLayoutByCode(templateCode) : null;
+
+    if (tpl) {
+        var sizing = tpl.rowsizing || tpl.rowSizing;
+        if (sizing === 'compact' || sizing === 'stretch') return sizing;
+        if (String(tpl.tipo || '').toLowerCase() === 'snapshot') return 'compact';
+    }
+
+    // Fallback: só cards "altos" esticam; todo o resto do containerItem fica compacto
+    if (code === 'plain_card' || code === 'card_header_highlighted' || code === 'card_standard') return 'stretch';
+    if (code.indexOf('brd_card_advanced_alert') !== -1) return 'stretch';
+    return 'compact';
+}
+window.getContainerItemRowSizing = getContainerItemRowSizing;
+
+function isCompactContainerItemLayout(templateCode) {
+    return getContainerItemRowSizing(templateCode) === 'compact';
+}
+window.isCompactContainerItemLayout = isCompactContainerItemLayout;
+
 function getItemGridStyleString(item) {
     var cssMap = getItemGridStyleMap(item);
-    return 'grid-column: ' + cssMap.gridColumn + '; ' + (cssMap.gridRow ? ('grid-row: ' + cssMap.gridRow + '; ') : '') + 'min-width: 0;';
+    var s = 'grid-column: ' + cssMap.gridColumn + '; ' + (cssMap.gridRow ? ('grid-row: ' + cssMap.gridRow + '; ') : '') + 'min-width: 0;';
+    if (getContainerItemRowSizing(item && item.templatelayout) === 'compact') {
+        s += ' align-self: start;';
+    } else {
+        s += ' height: 100%; align-self: stretch;';
+    }
+    return s;
 }
 
 function isGridAreaFree(occupiedMap, rowStart, colStart, colSpan, rowSpan) {
@@ -9257,13 +10051,21 @@ function initContainerItemResize() {
             }
             if (pointX === undefined || pointX === null) return;
 
-            var $itemEl = $(this).closest('.mdash-canvas-item, .mdash-overlay-canvas-object');
+            var $itemEl = $(this).closest('.mdash-canvas-item, .mdash-overlay-canvas-object, .mdash-overlay-canvas-place');
             if (!$itemEl.length) return;
 
+            var isOverlayPlace = $itemEl.hasClass('mdash-overlay-canvas-place');
             var isOverlayObject = $itemEl.hasClass('mdash-overlay-canvas-object');
             var itemStamp = $itemEl.data('stamp');
             var item;
-            if (isOverlayObject) {
+            if (isOverlayPlace) {
+                var overlayItemStamp = $itemEl.closest('.mdash-overlay-objects-row').data('item-stamp');
+                var containerItem = (window.appState.containerItems || []).find(function (i) {
+                    return i.mdashcontaineritemstamp === overlayItemStamp;
+                });
+                item = containerItem ? findOverlayPlace(containerItem, $itemEl.data('place-id')) : null;
+                itemStamp = $itemEl.data('place-id');
+            } else if (isOverlayObject) {
                 item = (window.appState.containerItemObjects || []).find(function (o) {
                     return o.mdashcontaineritemobjectstamp === itemStamp;
                 });
@@ -9338,7 +10140,13 @@ function initContainerItemResize() {
 
                 lastSize = proposed;
                 item.tamanho = proposed;
-                if (isOverlayObject) {
+                if (isOverlayPlace) {
+                    var overlayContainerItem = (window.appState.containerItems || []).find(function (i) {
+                        return i.mdashcontaineritemstamp === $itemEl.closest('.mdash-overlay-objects-row').data('item-stamp');
+                    });
+                    if (overlayContainerItem) persistItemOverlayPlaces(overlayContainerItem, getItemOverlayPlaces(overlayContainerItem));
+                    $itemEl.attr('style', getOverlayPlaceGridStyleString(item));
+                } else if (isOverlayObject) {
                     syncOverlayObjectConfigjson(item);
                     $itemEl.attr('style', getOverlayObjectGridStyleString(item));
                 } else {
@@ -9346,7 +10154,7 @@ function initContainerItemResize() {
                 }
 
                 // Atualiza o badge diretamente no DOM durante o resize
-                var $badge = $itemEl.find('.mdash-item-size-badge[data-item-stamp="' + itemStamp + '"], .mdash-item-size-badge[data-overlay-stamp="' + itemStamp + '"]');
+                var $badge = $itemEl.find('.mdash-item-size-badge[data-item-stamp="' + itemStamp + '"], .mdash-item-size-badge[data-overlay-stamp="' + itemStamp + '"], .mdash-item-size-badge[data-place-id="' + itemStamp + '"]');
                 if ($badge.length) {
                     $badge.text(proposed + ' col');
                     $badge.attr('title', 'Largura: ' + proposed + ' colunas');
@@ -9381,7 +10189,22 @@ function initContainerItemResize() {
                     }
                 });
 
-                if (isOverlayObject) {
+                if (isOverlayPlace) {
+                    if (lastSize !== startSize) {
+                        var overlayItemStampPlace = $itemEl.closest('.mdash-overlay-objects-row').data('item-stamp');
+                        if (overlayItemStampPlace) {
+                            syncOverlayGridLayoutAfterChange(overlayItemStampPlace, {
+                                preserveSelection: itemStamp,
+                                preserveSelectionType: 'overlayPlace',
+                                layoutOnly: true
+                            });
+                        } else {
+                            $itemEl.attr('style', getOverlayPlaceGridStyleString(item));
+                        }
+                    } else {
+                        $itemEl.attr('style', getOverlayPlaceGridStyleString(item));
+                    }
+                } else if (isOverlayObject) {
                     if (typeof item.stringifyJSONFields === 'function') item.stringifyJSONFields();
                     if (lastSize !== startSize) {
                         var overlayItemStamp = $itemEl.closest('.mdash-overlay-objects-row').data('item-stamp');
@@ -9400,8 +10223,15 @@ function initContainerItemResize() {
                 if (lastSize !== startSize && typeof realTimeComponentSync === 'function') {
                     if (isOverlayObject && typeof item.stringifyJSONFields === 'function') {
                         item.stringifyJSONFields();
+                        realTimeComponentSync(item, item.table, item.idfield);
+                    } else if (isOverlayPlace) {
+                        var syncItem = (window.appState.containerItems || []).find(function (i) {
+                            return i.mdashcontaineritemstamp === $itemEl.closest('.mdash-overlay-objects-row').data('item-stamp');
+                        });
+                        if (syncItem) realTimeComponentSync(syncItem, syncItem.table, syncItem.idfield);
+                    } else {
+                        realTimeComponentSync(item, item.table, item.idfield);
                     }
-                    realTimeComponentSync(item, item.table, item.idfield);
                 }
                 if (!isOverlayObject) {
                     setTimeout(syncAllContainerItemsLayout, 0);
@@ -12051,23 +12881,13 @@ function applyMdashThemeToElement(el) {
 window.applyMdashThemeToElement = applyMdashThemeToElement;
 
 function getMdashOverlayRuntimeStylesCss() {
+    // Apenas layout da grelha de conteúdo — a modal usa o design nativo PHC (sem personalizar header/body).
     var css = '';
-    css += buildMdashThemeVarsCss('.mdash-item-overlay-modal');
-    css += '.mdash-item-overlay-modal .modal-dialog { margin: 28px auto; }';
-    css += '.mdash-item-overlay-modal .modal-content { border-radius: 14px; overflow: hidden; border: 1px solid rgba(15,23,42,0.08); box-shadow: 0 24px 48px rgba(2,6,23,0.2); }';
-    css += '.mdash-item-overlay-modal .modal-header { border-bottom: 1px solid rgba(255,255,255,0.16); padding: 14px 18px; }';
-    css += '.mdash-item-overlay-modal .modal-header .modal-title { color: #fff !important; font-weight: 700; font-size: 16px; letter-spacing: 0.01em; }';
-    css += '.mdash-item-overlay-modal .modal-header .close { color: #fff !important; opacity: 0.88; text-shadow: none; }';
-    css += '.mdash-item-overlay-modal .modal-body { padding: 16px 18px 20px; background: var(--md-bg, #f3f6fb); }';
     css += '.mdash-item-overlay-body { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; align-content: start; align-items: start; min-height: 0; }';
     css += '.mdash-item-overlay-cell { min-width: 0; margin: 0; }';
-    css += '.mdash-overlay-runtime-card { background: #fff; border: 1px solid var(--md-border, rgba(15,23,42,0.08)); border-radius: 12px; box-shadow: 0 4px 14px rgba(2,6,23,0.06); overflow: hidden; display: flex; flex-direction: column; height: auto; }';
-    css += '.mdash-overlay-runtime-card-body { flex: 1 1 auto; padding: 12px 14px; min-height: 72px; overflow: auto; }';
-    css += '.mdash-overlay-runtime-card-body .tabulator { border-radius: 8px; border: 1px solid rgba(15,23,42,0.08); }';
-    css += '.mdash-overlay-runtime-card-body .tabulator .tabulator-header { border-top-left-radius: 8px; border-top-right-radius: 8px; }';
     css += '.mdash-overlay-object-host { min-height: 48px; width: 100%; }';
-    css += '.mdash-overlay-runtime-template { background: #fff; border-radius: 12px; padding: 12px 14px; border: 1px solid var(--md-border, rgba(15,23,42,0.08)); box-shadow: 0 4px 14px rgba(2,6,23,0.06); }';
-    css += '.mdash-overlay-runtime-object-wrap { min-height: 48px; }';
+    css += '.mdash-overlay-runtime-template { min-height: 48px; }';
+    css += '.mdash-overlay-runtime-object-wrap { min-height: 48px; width: 100%; }';
     css += '@media (max-width: 767px) { .mdash-item-overlay-body { grid-template-columns: 1fr; } .mdash-item-overlay-cell { grid-column: 1 / -1 !important; } }';
     return css;
 }
@@ -12081,11 +12901,25 @@ window.ensureMdashOverlayRuntimeStyles = ensureMdashOverlayRuntimeStyles;
 function buildMdashOverlayRuntimeCellHtml(hostId, gridStyle) {
     return ''
         + '<div class="mdash-item-overlay-cell" style="' + gridStyle + '">'
-        + '  <div class="mdash-overlay-runtime-card">'
-        + '    <div class="mdash-overlay-runtime-card-body">'
-        + '      <div id="' + hostId + '" class="cont-item-object-rendered mdash-overlay-object-host"></div>'
-        + '    </div>'
-        + '  </div>'
+        + '  <div id="' + hostId + '" class="cont-item-object-rendered mdash-overlay-object-host"></div>'
+        + '</div>';
+}
+
+function buildMdashOverlayRuntimePlaceHtml(placeHostId, gridStyle, template, place) {
+    var cardHtml = '';
+    if (template && typeof template.generateCard === 'function') {
+        cardHtml = template.generateCard({
+            title: (place && place.titulo) || '',
+            id: placeHostId + '-card',
+            tipo: 'primary',
+            bodyContent: ''
+        });
+    } else if (template && template.sampleHtml) {
+        cardHtml = template.sampleHtml;
+    }
+    return ''
+        + '<div class="mdash-item-overlay-cell" style="' + gridStyle + '">'
+        + '  <div class="mdash-overlay-runtime-place" id="' + placeHostId + '">' + cardHtml + '</div>'
         + '</div>';
 }
 
@@ -12233,10 +13067,12 @@ function loadModernDashboardStyles() {
     styles += ".mdash-canvas-container-body { padding: 4px 0 0 0; min-height: 0; }";
 
     // Item no canvas
-    styles += ".mdash-container-items-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; position: relative; }";
+    styles += ".mdash-container-items-row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; position: relative; align-items: stretch; }";
     styles += ".mdash-container-items-row.is-empty { min-height: 92px; align-content: start; }";
     styles += ".mdash-container-items-row.is-drop-over { outline: 2px dashed rgba(var(--md-primary-rgb),0.62); outline-offset: 3px; border-radius: 10px; background: rgba(var(--md-primary-rgb),0.04); }";
-    styles += ".mdash-canvas-item { margin-bottom: 0; min-width: 0; }";
+    styles += ".mdash-canvas-item { margin-bottom: 0; min-width: 0; display: flex; flex-direction: column; align-self: stretch; min-height: 0; }";
+    styles += ".mdash-container-items-row > .mdash-canvas-item.mdash-item-compact { align-self: start; height: auto; }";
+    styles += ".mdash-container-items-row > .mdash-canvas-item.mdash-item-compact > .mdash-canvas-item-card { height: auto; flex: 0 0 auto; }";
     styles += ".mdash-item-sort-placeholder { min-height: 96px; border: 2px dashed var(--md-primary); border-radius: 10px; background: rgba(var(--md-primary-rgb),0.10); box-sizing: border-box; }";
     styles += ".mdash-item-sort-placeholder.is-manual-preview { position: relative; border-color: rgba(var(--md-primary-rgb),0.95); background: rgba(var(--md-primary-rgb),0.14); z-index: 2; }";
     styles += ".mdash-item-sort-placeholder.is-manual-preview::after { content: attr(data-grid-label); position: absolute; top: 6px; right: 8px; font-size: 11px; font-weight: 700; color: var(--md-primary); background: rgba(255,255,255,0.92); border: 1px solid rgba(var(--md-primary-rgb),0.36); border-radius: 999px; padding: 2px 8px; }";
@@ -12278,8 +13114,10 @@ function loadModernDashboardStyles() {
 
     styles += ".mdash-item-drag-helper { opacity: 0.96; transform: none; box-shadow: 0 18px 32px rgba(2,6,23,0.30); border-radius: 10px; }";
     styles += ".ui-sortable-helper.mdash-canvas-item { z-index: 10050 !important; }";
-    styles += ".mdash-canvas-item-card { position: relative; background: #fff; border: 1px solid var(--md-border); border-radius: 10px; padding: 10px 12px; min-height: 96px; box-shadow: 0 2px 8px rgba(2,6,23,0.06); }";
-    styles += ".mdash-canvas-item-card { height: 100%; }";
+    styles += ".mdash-canvas-item-card { position: relative; background: #fff; border: 1px solid var(--md-border); border-radius: 10px; padding: 10px 12px; min-height: 96px; box-shadow: 0 2px 8px rgba(2,6,23,0.06); display: flex; flex-direction: column; flex: 1 1 auto; }";
+    styles += ".mdash-container-items-row > .mdash-canvas-item:not(.mdash-layout-compact) > .mdash-canvas-item-card { height: 100%; }";
+    styles += ".mdash-container-items-row > .mdash-canvas-item.mdash-layout-compact { align-self: start; height: auto; }";
+    styles += ".mdash-container-items-row > .mdash-canvas-item.mdash-layout-compact > .mdash-canvas-item-card { height: auto; flex: 0 0 auto; }";
     styles += ".mdash-item-resize-handle { position: absolute; top: 8px; width: 12px; height: calc(100% - 16px); border-radius: 8px; cursor: ew-resize; background: transparent; z-index: 8; touch-action: none; }";
     styles += ".mdash-item-resize-handle-left { left: -1px; }";
     styles += ".mdash-item-resize-handle-right { right: -1px; }";
@@ -12290,7 +13128,11 @@ function loadModernDashboardStyles() {
     styles += ".mdash-item-header-top { width: 100%; }";
     styles += ".mdash-item-header-bottom { display: flex; align-items: center; gap: 10px; }";
     styles += ".mdash-item-header-actions { display: flex; gap: 3px; flex-shrink: 0; margin-left: auto; }";
-    styles += ".mdash-canvas-item-body { min-height: 60px; }";
+    styles += ".mdash-canvas-item-body { flex: 1 1 auto; min-height: 60px; display: flex; flex-direction: column; }";
+    styles += ".mdash-container-items-row .mdash-canvas-item-body > *,";
+    styles += ".mdash-container-items-row .mdash-canvas-item-body > [data-mdash-scope] { flex: 1 1 auto; height: 100%; min-height: 0; display: flex; flex-direction: column; margin: 0 !important; }";
+    styles += ".mdash-container-items-row .mdash-canvas-item.mdash-item-compact .mdash-canvas-item-body > *,";
+    styles += ".mdash-container-items-row .mdash-canvas-item.mdash-item-compact .mdash-canvas-item-body > [data-mdash-scope] { flex: 0 0 auto; height: auto !important; margin: 0 !important; }";
     styles += ".is-selected { outline: 2px solid rgba(var(--md-primary-rgb),0.3); outline-offset: 0; }";
 
     // Empty items
@@ -12588,10 +13430,26 @@ function loadModernDashboardStyles() {
     styles += ".mdash-item-interactive { position: relative; }";
     styles += "#mdash-overlay-designer-modal .modal-body { background: var(--md-bg, #f3f6fb); padding: 0; overflow: hidden; }";
     styles += "#mdash-overlay-designer-modal .mdash-overlay-designer-shell { height: calc(100vh - 120px); min-height: 480px; max-height: none; flex: 1; }";
+    styles += "#mdash-overlay-designer-modal .mdash-sidebar-body .mdash-section-label { color: var(--md-primary); }";
+    styles += "#mdash-overlay-designer-modal .mdash-sidebar-body .mdash-obj-category-label { color: #64748b; }";
+    styles += "#mdash-overlay-designer-modal .mdash-sidebar-body .mdash-obj-tile-name { color: #1f2937; }";
+    styles += "#mdash-overlay-designer-modal .mdash-sidebar-body .mdash-obj-tile-desc { color: #64748b; }";
+    styles += "#mdash-overlay-designer-modal #mdash-overlay-paste-btn.disabled, #mdash-overlay-designer-modal #mdash-overlay-paste-btn:disabled { opacity: 0.45; cursor: not-allowed; }";
     styles += "#mdash-overlay-designer-modal .mdash-canvas-body { flex: 1; overflow: auto; padding: 0; }";
     styles += "#mdash-overlay-designer-modal .mdash-overlay-designer-canvas { padding: 12px 14px 20px; min-height: 360px; }";
     styles += "#mdash-overlay-designer-modal .mdash-overlay-objects-row { min-height: 280px; align-content: start; }";
     styles += "#mdash-overlay-designer-modal .mdash-overlay-objects-row.drag-over { outline: 2px dashed rgba(var(--md-primary-rgb),0.45); outline-offset: 4px; border-radius: 10px; }";
+    styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-place { margin-bottom: 0; min-width: 0; }";
+    styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-place .mdash-canvas-item-card { overflow: hidden; display: flex; flex-direction: column; }";
+    styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-place .mdash-canvas-item-header { flex-shrink: 0; position: relative; z-index: 3; background: #fff; }";
+    styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-place .mdash-item-header-top { display: flex; align-items: center; gap: 8px; }";
+    styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-place .mdash-item-header-bottom { display: flex; align-items: center; gap: 8px; }";
+    styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-place .mdash-overlay-item-drag-handle { flex-shrink: 0; }";
+    styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-place .mdash-item-title-wrapper { flex: 1; min-width: 0; }";
+    styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-place .mdash-item-header-actions { flex-shrink: 0; margin-left: auto; }";
+    styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-place .mdash-canvas-item-body { flex: 1 1 auto; min-height: 80px; overflow: hidden; position: relative; }";
+    styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-place .mdash-overlay-place-template { height: 100%; }";
+    styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-place.is-selected .mdash-canvas-item-card { outline: 2px solid var(--md-primary); outline-offset: 1px; }";
     styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-object { margin-bottom: 0; min-width: 0; }";
     styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-object .mdash-canvas-item-card { overflow: hidden; display: flex; flex-direction: column; }";
     styles += "#mdash-overlay-designer-modal .mdash-overlay-canvas-object .mdash-canvas-item-header { flex-shrink: 0; position: relative; z-index: 3; background: #fff; }";
@@ -12611,12 +13469,12 @@ function loadModernDashboardStyles() {
 
     styles += "@media (max-width: 1440px) { .mdash-sidebar { width: 228px; min-width: 228px; } .mdash-properties { width: 280px; min-width: 280px; } .mdash-modern-layout { gap: 6px; padding: 6px; } }";
 
-    // ===== MODALS =====
-    styles += ".modal-header { background: linear-gradient(120deg, var(--md-primary), #0f172a); color: white; }";
-    styles += ".modal-header .close { color: white; opacity: 0.8; }";
-    styles += ".modal-header .close:hover { opacity: 1; }";
-    styles += ".modal-header .modal-title { margin: 0; color: " + primaryColor + " !important; }";
-    styles += ".modal-header .modal-title i { color: " + primaryColor + " !important; }";
+    // ===== MODALS (apenas modais do editor MDash — não afectar modais nativas PHC) =====
+    styles += ".modal:not(.mdash-item-overlay-modal):not(.mdash-detail-modal):not(#mdash-overlay-designer-modal) .modal-header { background: linear-gradient(120deg, var(--md-primary), #0f172a); color: white; }";
+    styles += ".modal:not(.mdash-item-overlay-modal):not(.mdash-detail-modal):not(#mdash-overlay-designer-modal) .modal-header .close { color: white; opacity: 0.8; }";
+    styles += ".modal:not(.mdash-item-overlay-modal):not(.mdash-detail-modal):not(#mdash-overlay-designer-modal) .modal-header .close:hover { opacity: 1; }";
+    styles += ".modal:not(.mdash-item-overlay-modal):not(.mdash-detail-modal):not(#mdash-overlay-designer-modal) .modal-header .modal-title { margin: 0; color: " + primaryColor + " !important; }";
+    styles += ".modal:not(.mdash-item-overlay-modal):not(.mdash-detail-modal):not(#mdash-overlay-designer-modal) .modal-header .modal-title i { color: " + primaryColor + " !important; }";
 
     // ===== MODAL DE CONFIRMAÇÃO DE ELIMINAÇÃO =====
     styles += "#mdash-delete-confirm-modal .modal-dialog { margin-top: 160px; }";

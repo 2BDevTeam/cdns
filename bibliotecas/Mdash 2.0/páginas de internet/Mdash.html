@@ -130,12 +130,13 @@
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 1rem;
     grid-auto-rows: auto;
+    align-items: stretch;
     margin-bottom: 2rem;
   }
 
-  /* ROW com layout automático — mais flexível */
+  /* ROW com layout automático — mantém grelha 12 col (groupItemsByRows + span) */
   .gr-row.mdash-layout-auto {
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
   }
 
   /* COLUNAS base */
@@ -738,12 +739,34 @@
   .m-dash-render-area {
     min-height: var(--md-item-min-h, 0px);
     height: auto;
+    align-self: start;
   }
 
-  /* Layout manual: o item preenche a célula da grelha */
+  /* Por omissão todos os container items são compactos; só stretch quando marcado */
+  .m-dash-render-area.m-dash-item-compact,
+  [data-mdash-row-sizing="compact"] {
+    height: auto !important;
+    min-height: 0 !important;
+    --md-item-min-h: 0px !important;
+    align-self: start;
+  }
+
+  .m-dash-render-area.m-dash-item-compact > *,
+  .m-dash-render-area.m-dash-item-compact [data-mdash-scope],
+  .m-dash-render-area.m-dash-item-compact [data-mdash-scope] > *,
+  [data-mdash-row-sizing="compact"],
+  [data-mdash-row-sizing="compact"] > * {
+    height: auto !important;
+    min-height: 0 !important;
+    flex: 0 0 auto;
+    margin-block: 0 !important;
+  }
+
+  /* Layout stretch: cards altos na mesma row */
   .m-dash-render-area.m-dash-item-host {
     height: 100%;
     min-height: 0;
+    align-self: stretch;
   }
 
   @media screen and (min-width: 768px) {
@@ -1674,10 +1697,46 @@
 
   .m-dash-item-host .mdash-card__body {
     flex: 1 1 auto;
-    min-height: 80px;
+    min-height: 0;
   }
 
-  /* Layout automático: cards/layouts custom seguem a altura do conteúdo */
+  /* Layout manual/auto: só cards altos preenchem a célula */
+  .m-dash-render-area.m-dash-item-host {
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* Mesma row = mesma altura — layouts com rowsizing=stretch */
+  .gr-row > .m-dash-render-area.m-dash-item-host {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .gr-row > .m-dash-render-area.m-dash-item-host > *,
+  .gr-row > .m-dash-render-area.m-dash-item-host > [data-mdash-scope] {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    margin-block: 0 !important;
+  }
+
+  .gr-row > .m-dash-render-area.m-dash-item-host > [data-mdash-scope] > * {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+  }
+
+  .gr-row > .m-dash-render-area.m-dash-item-host [data-mdash-slot="body"] {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* Fora de rows mantém altura pelo conteúdo */
   .m-dash-render-area:not(.m-dash-item-host) [data-mdash-scope] > * {
     height: auto;
     min-height: 0;
@@ -3580,11 +3639,13 @@
       getItemClasses(item) {
         var allContainers = (this.mdash && this.mdash.containers) ? this.mdash.containers : [];
         var mode = getEffectiveItemLayoutModeRuntime(item, allContainers);
-        var base = ['m-dash-render-area'];
+        var sizing = 'compact';
+        if (typeof getContainerItemRowSizing === 'function') {
+          sizing = getContainerItemRowSizing(item.templatelayout);
+        }
+        var base = ['m-dash-render-area', sizing === 'stretch' ? 'm-dash-item-host' : 'm-dash-item-compact'];
         if (mode !== 'manual') {
           base.push('gr-col-md-' + item.tamanho, 'gr-col-sm-' + item.tamanho, 'gr-col-lg-' + item.tamanho);
-        } else {
-          base.push('m-dash-item-host');
         }
         return base;
       },
@@ -3621,13 +3682,22 @@
       getItemGridStyle(item) {
         var allContainers = (this.mdash && this.mdash.containers) ? this.mdash.containers : [];
         var mode = getEffectiveItemLayoutModeRuntime(item, allContainers);
-        if (mode !== 'manual') return '';
+        if (mode !== 'manual') {
+          var sizing = typeof getContainerItemRowSizing === 'function'
+            ? getContainerItemRowSizing(item.templatelayout) : 'compact';
+          if (sizing === 'stretch') {
+            return 'min-width:0;height:100%;align-self:stretch;';
+          }
+          return 'min-width:0;align-self:start;';
+        }
 
         // DRY: delega na lógica centralizada do config lib.js (span via 'tamanho',
         // clamp de colStart até 12, rowspan). Assim o sistema de layout vive num
         // único sítio — mudar lá reflete no editor E no viewer.
         if (typeof getItemGridStyleString === 'function') {
-          return 'height:100%;' + getItemGridStyleString(item);
+          var sizingManual = typeof getContainerItemRowSizing === 'function'
+            ? getContainerItemRowSizing(item.templatelayout) : 'compact';
+          return (sizingManual === 'stretch' ? 'height:100%;' : '') + getItemGridStyleString(item);
         }
 
         // Fallback defensivo (só se a lib não carregar)
