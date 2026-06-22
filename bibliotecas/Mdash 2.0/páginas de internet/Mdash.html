@@ -2291,6 +2291,20 @@
     },
     replaceLocalDbKeywords: function (data) {
       return (typeof replaceLocalDbKeywords === 'function') ? replaceLocalDbKeywords(data) : data;
+    },
+    parseFilterTabStamps: function (value) {
+      if (typeof parseMdashFilterTabStamps === 'function') return parseMdashFilterTabStamps(value);
+      if (!value) return [];
+      return String(value).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    },
+    filterAppliesToTab: function (filter, activeTabStamp) {
+      if (typeof mdashFilterAppliesToTab === 'function') return mdashFilterAppliesToTab(filter, activeTabStamp);
+      if (!filter) return false;
+      if ((filter.escopo || 'global') === 'global') return true;
+      var active = String(activeTabStamp || '').trim();
+      if (!active) return false;
+      var stamps = this.parseFilterTabStamps(filter.mdashtabstamp);
+      return stamps.length > 0 && stamps.indexOf(active) !== -1;
     }
   };
 
@@ -2677,9 +2691,11 @@
       //this.expressaolistagem = data.expressaolistagem || "";
       this.valordefeito = data.valordefeito || "";
       this.ordem = data.ordem || 0;
-      // MDASH 2.0: filter scope ('global' | 'tab')
+      // MDASH 2.0: filter scope ('global' | 'tab'); mdashtabstamp = CSV de separadores
       this.escopo = data.escopo || "global";
-      this.mdashtabstamp = data.mdashtabstamp || "";
+      this.mdashtabstamp = (typeof normalizeMdashFilterTabStampField === 'function')
+        ? normalizeMdashFilterTabStampField(data.mdashtabstamp || "")
+        : String(data.mdashtabstamp || "").trim();
     }
 
     function MdashRendAccess(data) {
@@ -3728,9 +3744,7 @@
         var active = this.activeTabStamp;
         var filtered = this.tabsEnabled()
           ? all.filter(function (f) {
-            var scope = (f.escopo || 'global');
-            if (scope === 'global') return true;
-            return (f.mdashtabstamp || "") === active;
+            return __mdashLib.filterAppliesToTab(f, active);
           })
           : all;
         return filtered.slice().sort(function (a, b) {

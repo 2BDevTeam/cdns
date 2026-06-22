@@ -4379,7 +4379,8 @@ function _tblToggleConditionalThenPanels($rule) {
     $rule.find('.mtbl-cc-then-expr-wrap').toggle(format === 'expression');
 }
 
-function _tblRenderConditionalRuleCard(rule, idx, fields) {
+function _tblRenderConditionalRuleCard(rule, idx, fields, options) {
+    options = options || {};
     rule = rule || {};
     var when = _tblNormalizeWhenClause(rule.when);
     var then = _tblNormalizeThenClause(rule.then);
@@ -4409,11 +4410,15 @@ function _tblRenderConditionalRuleCard(rule, idx, fields) {
     html += '</div>';
     html += '<div style="font-size:10px;font-weight:700;color:#1e3a8a;margin:8px 0 4px;">Então</div>';
     html += _tblRenderConditionalThenFields(then, fields);
+    if (options.badgeMode && typeof _mbadgeRenderThenAppearanceBlock === 'function') {
+        html += _mbadgeRenderThenAppearanceBlock(then);
+    }
     html += '</div>';
     return html;
 }
 
-function _tblReadConditionalRuleFromCard($rule) {
+function _tblReadConditionalRuleFromCard($rule, options) {
+    options = options || {};
     var whenMode = $rule.find('.mtbl-cc-when-mode').val() || 'simple';
     var when = whenMode === 'expression'
         ? { mode: 'expression', expr: ($rule.find('.mtbl-cc-when-expr').val() || '').trim() }
@@ -4444,10 +4449,15 @@ function _tblReadConditionalRuleFromCard($rule) {
         then.precision = 1;
         then.showSign = true;
     }
+    if (options.badgeMode && typeof _mbadgeReadThenAppearance === 'function') {
+        then.appearance = _mbadgeReadThenAppearance($rule, then.variant || 'neutral');
+    }
     return { when: when, then: then };
 }
 
-function _tblOpenConditionalColumnModal(conditional, columnField, fields, onSave) {
+function _tblOpenConditionalColumnModal(conditional, columnField, fields, onSave, options) {
+    options = options || {};
+    var isBadge = !!options.badgeMode;
     var modalId = 'mtbl-conditional-column-modal';
     $('#' + modalId).remove();
     conditional = _tblCloneConditionalConfig(conditional);
@@ -4455,21 +4465,30 @@ function _tblOpenConditionalColumnModal(conditional, columnField, fields, onSave
     if (!Array.isArray(conditional.rules)) conditional.rules = [];
     if (!conditional.fallback) conditional.fallback = { format: 'plaintext', variant: 'neutral' };
     conditional.fallback = _tblNormalizeThenClause(conditional.fallback);
+    if (isBadge && typeof _mbadgeEnsureRuleAppearance === 'function') {
+        conditional = _mbadgeEnsureRuleAppearance(conditional, null);
+    }
 
     var rulesHtml = '';
     if (conditional.rules.length) {
         conditional.rules.forEach(function (rule, idx) {
-            rulesHtml += _tblRenderConditionalRuleCard(rule, idx, fields);
+            rulesHtml += _tblRenderConditionalRuleCard(rule, idx, fields, options);
         });
     } else {
         rulesHtml = '<div class="mcbi-info mtbl-cc-empty">Sem regras. Adicione ou use o template Variação %.</div>';
     }
 
+    var fallbackThenHtml = _tblRenderConditionalThenFields(conditional.fallback, fields).replace(/mtbl-cc-then-/g, 'mtbl-cc-fallback-');
+    if (isBadge && typeof _mbadgeRenderThenAppearanceBlock === 'function') {
+        fallbackThenHtml += _mbadgeRenderThenAppearanceBlock(conditional.fallback, true);
+    }
+
     var mHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1">'
         + '<div class="modal-dialog modal-lg"><div class="modal-content">'
         + '<div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button>'
-        + '<h4 class="modal-title"><i class="glyphicon glyphicon-resize-horizontal"></i> Coluna condicional</h4></div>'
+        + '<h4 class="modal-title"><i class="glyphicon glyphicon-resize-horizontal"></i> ' + (isBadge ? 'Regras do badge' : 'Coluna condicional') + '</h4></div>'
         + '<div class="modal-body" style="max-height:70vh;overflow:auto;">'
+        + (isBadge ? '<div class="mcbi-info" style="margin-bottom:8px;">Cada regra define condição + formato + design do badge quando verdadeira. A primeira correspondência ganha.</div>' : '')
         + '<div class="mcbi-row2" style="margin-bottom:8px;">'
         + '<div class="mcbi-field"><label>Campo valor (sort)</label><select class="form-control input-sm mtbl-cc-value-field">' + _tblFieldOpts(fields, conditional.valueField || columnField) + '</select></div>'
         + '<div class="mcbi-field"><label>Campo display (opcional)</label><select class="form-control input-sm mtbl-cc-display-field">'
@@ -4482,7 +4501,7 @@ function _tblOpenConditionalColumnModal(conditional, columnField, fields, onSave
         + '<button type="button" class="btn btn-xs btn-primary mtbl-cc-add-rule"><i class="glyphicon glyphicon-plus"></i> Regra</button></div></div>'
         + '<div class="mtbl-cc-rules">' + rulesHtml + '</div>'
         + '<hr style="margin:12px 0;"><label style="font-weight:700;">Fallback (nenhuma regra)</label>'
-        + '<div class="mtbl-cc-fallback-wrap">' + _tblRenderConditionalThenFields(conditional.fallback, fields).replace(/mtbl-cc-then-/g, 'mtbl-cc-fallback-') + '</div>'
+        + '<div class="mtbl-cc-fallback-wrap">' + fallbackThenHtml + '</div>'
         + '</div><div class="modal-footer">'
         + '<button type="button" class="btn btn-primary mtbl-cc-save">Guardar</button>'
         + '<button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>'
@@ -4514,23 +4533,48 @@ function _tblOpenConditionalColumnModal(conditional, columnField, fields, onSave
     $modal.on('change', '.mtbl-cc-fallback-format', toggleFallbackPanels);
     toggleFallbackPanels();
 
+    if (isBadge) {
+        $modal.on('click', '.mbadge-cc-app-preset', function (e) {
+            e.preventDefault();
+            var val = $(this).attr('data-value') || '';
+            $(this).closest('.mbadge-cc-appearance').find('.mbadge-cc-app-icon').val(val);
+        });
+        $modal.on('change', '.mtbl-cc-then-variant, .mtbl-cc-fallback-variant', function () {
+            var $app = $(this).closest('.mtbl-cc-rule, .mtbl-cc-fallback-wrap').find('.mbadge-cc-appearance').first();
+            var v = $(this).val() || 'neutral';
+            var $icon = $app.find('.mbadge-cc-app-icon');
+            if (!$icon.val()) {
+                $icon.val((_mbadgeDefaultThenAppearance(v).icon || ''));
+            }
+        });
+    }
+
     $modal.on('click', '.mtbl-cc-add-rule', function () {
         $modal.find('.mtbl-cc-empty').remove();
         var idx = $modal.find('.mtbl-cc-rule').length;
+        var newThen = { format: 'deltaPercentBadge', variant: 'positive', precision: 1 };
+        if (isBadge && typeof _mbadgeDefaultThenAppearance === 'function') {
+            newThen.appearance = _mbadgeDefaultThenAppearance('positive');
+        }
         $modal.find('.mtbl-cc-rules').append(_tblRenderConditionalRuleCard({
             when: { mode: 'simple', conditions: [{ field: columnField, operator: 'gt', value: '0', logic: 'AND' }] },
-            then: { format: 'deltaPercentBadge', variant: 'positive', precision: 1 }
-        }, idx, fields));
+            then: newThen
+        }, idx, fields, options));
     });
 
     $modal.on('click', '.mtbl-cc-template', function () {
         var vf = $modal.find('.mtbl-cc-value-field').val() || columnField;
-        var tpl = _tblGetDeltaPercentConditionalTemplate(vf);
+        var tpl = isBadge && typeof _mbadgeGetDeltaPercentConditionalTemplate === 'function'
+            ? _mbadgeGetDeltaPercentConditionalTemplate(vf)
+            : _tblGetDeltaPercentConditionalTemplate(vf);
         $modal.find('.mtbl-cc-rules').html('');
         tpl.rules.forEach(function (rule, idx) {
-            $modal.find('.mtbl-cc-rules').append(_tblRenderConditionalRuleCard(rule, idx, fields));
+            $modal.find('.mtbl-cc-rules').append(_tblRenderConditionalRuleCard(rule, idx, fields, options));
         });
-        $modal.find('.mtbl-cc-fallback-format').val('deltaPercentBadge');
+        $modal.find('.mtbl-cc-fallback-format').val(tpl.fallback.format || 'deltaPercentBadge');
+        if (isBadge && tpl.fallback && tpl.fallback.variant) {
+            $modal.find('.mtbl-cc-fallback-variant').val(tpl.fallback.variant);
+        }
         toggleFallbackPanels();
     });
 
@@ -4555,7 +4599,7 @@ function _tblOpenConditionalColumnModal(conditional, columnField, fields, onSave
             rules: []
         };
         $modal.find('.mtbl-cc-rule').each(function () {
-            out.rules.push(_tblReadConditionalRuleFromCard($(this)));
+            out.rules.push(_tblReadConditionalRuleFromCard($(this), options));
         });
         var fbFormat = $modal.find('.mtbl-cc-fallback-format').val() || 'plaintext';
         out.fallback = { format: fbFormat };
@@ -4571,6 +4615,12 @@ function _tblOpenConditionalColumnModal(conditional, columnField, fields, onSave
         if (fbFormat === 'percentage') {
             out.fallback.precision = 1;
             out.fallback.showSign = true;
+        }
+        if (isBadge && typeof _mbadgeReadThenAppearance === 'function') {
+            out.fallback.appearance = _mbadgeReadThenAppearance($modal.find('.mtbl-cc-fallback-wrap'), out.fallback.variant || 'neutral');
+        }
+        if (isBadge && typeof _mbadgeEnsureRuleAppearance === 'function') {
+            out = _mbadgeEnsureRuleAppearance(out, null);
         }
         $modal.modal('hide');
         if (onSave) onSave(out);
@@ -6244,6 +6294,11 @@ var MDASH_SAMPLE_DATA = [
  * de objecto antes de ser configurada uma fonte real.
  */
 function getMdashSampleData(tipo) {
+    if (tipo === 'badge' && typeof _tblGetExecutiveSampleRows === 'function') {
+        return _tblGetExecutiveSampleRows().filter(function (rowItem) {
+            return rowItem && rowItem.__rowType !== 'section';
+        });
+    }
     return MDASH_SAMPLE_DATA;
 }
 
@@ -8143,6 +8198,18 @@ function getTiposObjectoConfig() {
         sampleConfig: _TEXT_SAMPLE_CONFIG
     },
     {
+        tipo: "badge",
+        descricao: "Badge / Indicador delta",
+        label: "Badge",
+        icon: "fa fa-tag",
+        categoria: "editor",
+        renderPropertiesInline: renderBadgePropertiesInline,
+        createDynamicSchema: createDynamicSchemaBadge,
+        renderObject: renderObjectBadge,
+        getSampleData: function () { return getMdashSampleData('badge'); },
+        sampleConfig: _BADGE_SAMPLE_CONFIG
+    },
+    {
         tipo: "customCode",
         descricao: "Código Personalizado",
         label: "Personalizado",
@@ -9977,6 +10044,893 @@ function createDynamicSchemaTexto(data) {
                     maxWidth: { type: "string", title: "Largura Máxima", 'enum': ["none", "100%", "500px", "800px", "1200px"], 'default': "none" }
                 }
             }
+        }
+    };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  OBJECTO BADGE — Condicional + Design (motor partilhado com a tabela)
+// ══════════════════════════════════════════════════════════════════════════════
+
+var _MBADGE_SHAPES = [
+    { id: 'pill', label: 'Pill' },
+    { id: 'rounded', label: 'Arredondado' },
+    { id: 'square', label: 'Quadrado' },
+    { id: 'outline', label: 'Outline' },
+    { id: 'plain', label: 'Texto' },
+    { id: 'dot', label: 'Ponto + valor' },
+    { id: 'custom', label: 'Custom' }
+];
+
+var _MBADGE_ICON_TREND_SETS = [
+    { id: 'arrowsMs', label: 'Material arrow_drop_up / down', positive: 'ms:arrow_drop_up', negative: 'ms:arrow_drop_down', neutral: 'ms:remove' },
+    { id: 'trendMs', label: 'Material trending_up / down', positive: 'ms:trending_up', negative: 'ms:trending_down', neutral: 'ms:trending_flat' },
+    { id: 'arrowsUpMs', label: 'Material arrow_upward / down', positive: 'ms:arrow_upward', negative: 'ms:arrow_downward', neutral: 'ms:horizontal_rule' },
+    { id: 'keyboardMs', label: 'Material keyboard_arrow', positive: 'ms:keyboard_arrow_up', negative: 'ms:keyboard_arrow_down', neutral: 'ms:remove' },
+    { id: 'arrowsGl', label: 'Setas Glyphicon', positive: 'glyphicon glyphicon-arrow-up', negative: 'glyphicon glyphicon-arrow-down', neutral: 'glyphicon glyphicon-minus' },
+    { id: 'arrowsFa', label: 'Setas Font Awesome', positive: 'fa fa-arrow-up', negative: 'fa fa-arrow-down', neutral: 'fa fa-minus' },
+    { id: 'caretsFa', label: 'Carets FA', positive: 'fa fa-caret-up', negative: 'fa fa-caret-down', neutral: 'fa fa-minus' },
+    { id: 'chevronsFa', label: 'Chevrons FA', positive: 'fa fa-chevron-up', negative: 'fa fa-chevron-down', neutral: 'fa fa-minus' },
+    { id: 'longFa', label: 'Setas longas FA', positive: 'fa fa-long-arrow-up', negative: 'fa fa-long-arrow-down', neutral: 'fa fa-minus' },
+    { id: 'sortFa', label: 'Sort ascend/desc', positive: 'fa fa-sort-asc', negative: 'fa fa-sort-desc', neutral: 'fa fa-minus' },
+    { id: 'levelFa', label: 'Level up/down', positive: 'fa fa-level-up', negative: 'fa fa-level-down', neutral: 'fa fa-minus' },
+    { id: 'plusminus', label: 'Simbolos + / -', positive: '+', negative: '\u2212', neutral: '=' },
+    { id: 'unicode', label: 'Unicode triangulos', positive: '\u25B2', negative: '\u25BC', neutral: '\u25CF' },
+    { id: 'unicodeThin', label: 'Unicode triangulos finos', positive: '\u25B4', negative: '\u25BE', neutral: '\u2022' }
+];
+
+var _MBADGE_ICON_PRESETS = [
+    { label: 'arrow_drop_up', value: 'ms:arrow_drop_up' },
+    { label: 'arrow_drop_down', value: 'ms:arrow_drop_down' },
+    { label: 'trending_up', value: 'ms:trending_up' },
+    { label: 'trending_down', value: 'ms:trending_down' },
+    { label: 'trending_flat', value: 'ms:trending_flat' },
+    { label: 'arrow_upward', value: 'ms:arrow_upward' },
+    { label: 'arrow_downward', value: 'ms:arrow_downward' },
+    { label: 'remove', value: 'ms:remove' },
+    { label: '↑ Glyphicon', value: 'glyphicon glyphicon-arrow-up' },
+    { label: '↓ Glyphicon', value: 'glyphicon glyphicon-arrow-down' },
+    { label: '− Glyphicon', value: 'glyphicon glyphicon-minus' },
+    { label: '↑ FA', value: 'fa fa-arrow-up' },
+    { label: '↓ FA', value: 'fa fa-arrow-down' },
+    { label: '▲ Unicode', value: '▲' },
+    { label: '▼ Unicode', value: '▼' },
+    { label: '● Ponto', value: '●' },
+    { label: '+ Plus', value: '+' },
+    { label: '− Minus', value: '−' },
+    { label: 'Caret ↑', value: 'fa fa-caret-up' },
+    { label: 'Caret ↓', value: 'fa fa-caret-down' },
+    { label: 'Chevron ↑', value: 'fa fa-chevron-up' },
+    { label: 'Chevron ↓', value: 'fa fa-chevron-down' },
+    { label: 'Sort ↑', value: 'fa fa-sort-asc' },
+    { label: 'Sort ↓', value: 'fa fa-sort-desc' }
+];
+
+var _BADGE_SAMPLE_CONFIG = {
+    valueField: 'variacaoAcumulada',
+    conditional: {
+        valueField: 'variacaoAcumulada',
+        rules: [
+            {
+                when: { mode: 'simple', conditions: [{ field: 'variacaoAcumulada', operator: 'gt', value: '0', logic: 'AND' }] },
+                then: { format: 'deltaPercentBadge', variant: 'positive', precision: 1, appearance: { icon: 'ms:arrow_drop_up', bg: '', fg: '' } }
+            },
+            {
+                when: { mode: 'simple', conditions: [{ field: 'variacaoAcumulada', operator: 'lt', value: '0', logic: 'AND' }] },
+                then: { format: 'deltaPercentBadge', variant: 'negative', precision: 1, appearance: { icon: 'ms:arrow_drop_down', bg: '', fg: '' } }
+            }
+        ],
+        fallback: { format: 'deltaPercentBadge', variant: 'neutral', precision: 1, appearance: { icon: 'ms:remove', bg: '', fg: '' } }
+    },
+    design: {
+        align: 'center',
+        size: 'md',
+        shape: 'pill',
+        icon: { position: 'before', gap: 4, size: 16 },
+        badge: {
+            fontSize: 0,
+            fontWeight: '',
+            paddingX: 0,
+            paddingY: 0,
+            borderRadius: 0,
+            minWidth: 0
+        },
+        custom: {
+            className: '',
+            css: '',
+            variantCss: { positive: '', negative: '', neutral: '' }
+        },
+        container: { paddingTop: 4, paddingRight: 4, paddingBottom: 4, paddingLeft: 4 }
+    }
+};
+
+function _mbadgeNormalizeConfig(rawCfg) {
+    var base = JSON.parse(JSON.stringify(_BADGE_SAMPLE_CONFIG));
+    if (!rawCfg || typeof rawCfg !== 'object') return base;
+    return _txtDeepMerge(base, rawCfg);
+}
+
+function _mbadgeDefaultThenAppearance(variant) {
+    if (variant === 'positive') return { icon: 'ms:arrow_drop_up', bg: '', fg: '' };
+    if (variant === 'negative') return { icon: 'ms:arrow_drop_down', bg: '', fg: '' };
+    return { icon: 'ms:remove', bg: '', fg: '' };
+}
+
+function _mbadgeGetDeltaPercentConditionalTemplate(valueField) {
+    var tpl = _tblGetDeltaPercentConditionalTemplate(valueField);
+    (tpl.rules || []).forEach(function (rule) {
+        if (!rule.then) rule.then = {};
+        if (!rule.then.appearance) {
+            rule.then.appearance = _mbadgeDefaultThenAppearance(rule.then.variant || 'neutral');
+        }
+    });
+    if (!tpl.fallback) tpl.fallback = { format: 'deltaPercentBadge', variant: 'neutral', precision: 1 };
+    if (!tpl.fallback.appearance) {
+        tpl.fallback.appearance = _mbadgeDefaultThenAppearance(tpl.fallback.variant || 'neutral');
+    }
+    return tpl;
+}
+
+function _mbadgeEnsureRuleAppearance(conditional, design) {
+    conditional = conditional || {};
+    if (!Array.isArray(conditional.rules)) conditional.rules = [];
+    if (!conditional.fallback) conditional.fallback = { format: 'deltaPercentBadge', variant: 'neutral', precision: 1 };
+
+    // Migrar appearance antiga por variante -> regras com mesma variante
+    if (conditional.appearance && typeof conditional.appearance === 'object') {
+        conditional.rules.forEach(function (rule) {
+            if (!rule.then) rule.then = {};
+            var v = rule.then.variant || 'neutral';
+            var legacy = conditional.appearance[v];
+            if (legacy && !rule.then.appearance) {
+                rule.then.appearance = {
+                    icon: legacy.icon || '',
+                    bg: legacy.bg || '',
+                    fg: legacy.fg || ''
+                };
+            }
+        });
+        if (!conditional.fallback.appearance) {
+            var fbV = conditional.fallback.variant || 'neutral';
+            var legacyFb = conditional.appearance[fbV] || conditional.appearance.neutral;
+            if (legacyFb) {
+                conditional.fallback.appearance = {
+                    icon: legacyFb.icon || '',
+                    bg: legacyFb.bg || '',
+                    fg: legacyFb.fg || ''
+                };
+            }
+        }
+        delete conditional.appearance;
+    }
+
+    // Migrar design antigo
+    if (design) {
+        var legacyIcon = design.icon || {};
+        var legacyBv = legacyIcon.byVariant || {};
+        var legacyV = design.variants || {};
+        conditional.rules.forEach(function (rule) {
+            if (!rule.then) rule.then = {};
+            if (!rule.then.appearance) rule.then.appearance = _mbadgeDefaultThenAppearance(rule.then.variant || 'neutral');
+            var v = rule.then.variant || 'neutral';
+            if (legacyBv[v] && !rule.then.appearance.icon) rule.then.appearance.icon = legacyBv[v];
+            if (legacyV[v]) {
+                if (legacyV[v].bg && !rule.then.appearance.bg) rule.then.appearance.bg = legacyV[v].bg;
+                if (legacyV[v].fg && !rule.then.appearance.fg) rule.then.appearance.fg = legacyV[v].fg;
+            }
+        });
+    }
+
+    conditional.rules.forEach(function (rule) {
+        if (!rule.then) rule.then = {};
+        if (!rule.then.appearance) {
+            rule.then.appearance = _mbadgeDefaultThenAppearance(rule.then.variant || 'neutral');
+        }
+    });
+    if (!conditional.fallback.appearance) {
+        conditional.fallback.appearance = _mbadgeDefaultThenAppearance(conditional.fallback.variant || 'neutral');
+    }
+    return conditional;
+}
+
+function _mbadgeAppearanceColorDefaults() {
+    return {
+        positive: { bg: '#dcfce7', fg: '#15803d' },
+        negative: { bg: '#fee2e2', fg: '#dc2626' },
+        neutral: { bg: '#e2e8f0', fg: '#475569' }
+    };
+}
+
+function _mbadgeEnsureAppearance(conditional, design) {
+    return _mbadgeEnsureRuleAppearance(conditional, design);
+}
+
+function _mbadgeEnsureConditional(cfg) {
+    var vf = cfg.valueField || 'variacaoAcumulada';
+    if (!cfg.conditional || !Array.isArray(cfg.conditional.rules) || !cfg.conditional.rules.length) {
+        cfg.conditional = _mbadgeGetDeltaPercentConditionalTemplate(vf);
+    }
+    if (!cfg.conditional.valueField) cfg.conditional.valueField = vf;
+    cfg.conditional = _mbadgeEnsureRuleAppearance(cfg.conditional, cfg.design);
+    return cfg;
+}
+
+function _mbadgeCreateMockCell(row, valueField) {
+    var field = valueField || '';
+    return {
+        getData: function () { return row || {}; },
+        getValue: function () { return field ? row[field] : undefined; },
+        getField: function () { return field; }
+    };
+}
+
+function _mbadgeResolveVariant(row, conditional) {
+    var vf = (conditional && conditional.valueField) || '';
+    var n = _tblSafeNumber(vf ? row[vf] : 0);
+    if (n > 0) return 'positive';
+    if (n < 0) return 'negative';
+    return 'neutral';
+}
+
+function _mbadgeEvaluateHtml(row, conditional, allRows) {
+    conditional = conditional || {};
+    var valueField = conditional.valueField || '';
+    var cell = _mbadgeCreateMockCell(row, valueField);
+    var compiled = _tblCompileConditionalConfig(conditional, valueField, allRows || (row ? [row] : []));
+    return _tblConditionalFormatter(cell, compiled) || '';
+}
+
+function _mbadgeResolveMatchedThen(row, conditional, allRows) {
+    conditional = conditional || {};
+    var valueField = conditional.valueField || '';
+    var cell = _mbadgeCreateMockCell(row, valueField);
+    var rules = conditional.rules || [];
+    var i;
+    for (i = 0; i < rules.length; i++) {
+        var whenFn = _tblCompileWhenFn(rules[i].when);
+        if (whenFn(cell, row, cell.getValue(), allRows || [])) {
+            return rules[i].then || {};
+        }
+    }
+    return conditional.fallback || {};
+}
+
+function _mbadgeNormalizeDesign(design) {
+    design = design || {};
+    if (!design.icon || typeof design.icon !== 'object') design.icon = {};
+    if (design.icon.position === 'left') design.icon.position = 'before';
+    if (design.icon.position === 'right') design.icon.position = 'after';
+    if (!design.icon.position) design.icon.position = 'before';
+    if (!design.icon.size) design.icon.size = 16;
+    if (!design.icon.gap) design.icon.gap = 4;
+    if (!design.shape) design.shape = 'pill';
+    if (!design.custom || typeof design.custom !== 'object') {
+        design.custom = { className: '', css: '', variantCss: { positive: '', negative: '', neutral: '' } };
+    }
+    return design;
+}
+
+function _mbadgeGetThenAppearance(then, variant) {
+    then = then || {};
+    var app = then.appearance || _mbadgeDefaultThenAppearance(variant || then.variant || 'neutral');
+    return app;
+}
+
+function _mbadgeRenderThenAppearanceBlock(then, isFallback) {
+    then = then || {};
+    var variant = then.variant || 'neutral';
+    var app = then.appearance || _mbadgeDefaultThenAppearance(variant);
+    var defs = _mbadgeAppearanceColorDefaults();
+    var def = defs[variant] || defs.neutral;
+    var bgVal = app.bg || def.bg;
+    var fgVal = app.fg || def.fg;
+    var sample = variant === 'positive' ? '+14,9%' : (variant === 'negative' ? '-21,1%' : '0,0%');
+    var previewStyle = 'display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700;background:' + bgVal + ';color:' + fgVal + ';';
+    var presets = _MBADGE_ICON_PRESETS.slice(0, 8);
+    return '<div class="mbadge-cc-appearance" data-variant="' + _mciEsc(variant) + '" style="margin-top:8px;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">'
+        + '<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:6px;">Design ' + (isFallback ? 'do fallback' : 'desta regra') + '</div>'
+        + '<div class="mcbi-field"><label style="font-size:10px;">Icone</label>'
+        + '<input type="text" class="form-control input-sm mbadge-cc-app-icon" value="' + _mciEsc(app.icon || '') + '" placeholder="ms:arrow_drop_up">'
+        + '<div class="mbadge-icon-presets" style="margin-top:4px;">'
+        + presets.map(function (p) {
+            return '<button type="button" class="btn btn-xs btn-default mbadge-cc-app-preset" data-value="' + _mciEsc(p.value) + '" title="' + _mciEsc(p.label) + '">' + _mbadgeIconPresetInner(p.value) + '</button>';
+        }).join('') + '</div></div>'
+        + '<div class="mcbi-row2"><div class="mcbi-field"><label style="font-size:10px;">Fundo</label>'
+        + '<input type="color" class="form-control input-sm mbadge-cc-app-bg" value="' + bgVal + '"></div>'
+        + '<div class="mcbi-field"><label style="font-size:10px;">Texto</label>'
+        + '<input type="color" class="form-control input-sm mbadge-cc-app-fg" value="' + fgVal + '"></div></div>'
+        + '<div class="mbadge-cc-app-preview" style="margin-top:6px;font-size:9px;color:#64748b;">Preview: '
+        + '<span style="' + previewStyle + '">' + _mbadgeBuildIconHtml(app.icon || '', 16) + ' ' + sample + '</span></div>'
+        + '</div>';
+}
+
+function _mbadgeReadThenAppearance($scope, variant) {
+    var defs = _mbadgeAppearanceColorDefaults();
+    var def = defs[variant] || defs.neutral;
+    var bg = $scope.find('.mbadge-cc-app-bg').val() || '';
+    var fg = $scope.find('.mbadge-cc-app-fg').val() || '';
+    return {
+        icon: ($scope.find('.mbadge-cc-app-icon').val() || '').trim(),
+        bg: bg === def.bg ? '' : bg,
+        fg: fg === def.fg ? '' : fg
+    };
+}
+
+function _mbadgeParseFormatterOutput(html, row, conditional) {
+    var $tmp = $('<div>').html(html || '');
+    var $badge = $tmp.find('.mtbl-delta-badge').first();
+    if ($badge.length) {
+        var variant = 'neutral';
+        if ($badge.hasClass('is-positive')) variant = 'positive';
+        else if ($badge.hasClass('is-negative')) variant = 'negative';
+        return { text: $.trim($badge.text()), variant: variant, isBadge: true };
+    }
+    if ($tmp.children().length > 0) {
+        return { text: null, variant: _mbadgeResolveVariant(row, conditional), isBadge: false, rawHtml: html };
+    }
+    var text = $.trim($tmp.text());
+    return { text: text, variant: _mbadgeResolveVariant(row, conditional), isBadge: false };
+}
+
+function _mbadgeTrendSetById(id) {
+    for (var i = 0; i < _MBADGE_ICON_TREND_SETS.length; i++) {
+        if (_MBADGE_ICON_TREND_SETS[i].id === id) return _MBADGE_ICON_TREND_SETS[i];
+    }
+    return _MBADGE_ICON_TREND_SETS[0];
+}
+
+function _mbadgeIsMaterialIcon(val) {
+    return typeof val === 'string' && val.indexOf('ms:') === 0;
+}
+
+function _mbadgeIsUnicodeIcon(val) {
+    if (!val || typeof val !== 'string') return false;
+    if (_mbadgeIsMaterialIcon(val)) return false;
+    val = val.trim();
+    if (/^(fa|glyphicon|icon-|mdi|bi)\s/i.test(val)) return false;
+    if (/\b(fa-|glyphicon-)/.test(val)) return false;
+    return val.length <= 3;
+}
+
+function _mbadgeIconPresetInner(value) {
+    if (_mbadgeIsMaterialIcon(value)) {
+        return '<span class="material-symbols-rounded" style="font-size:14px;">' + _mciEsc(value.slice(3)) + '</span>';
+    }
+    if (_mbadgeIsUnicodeIcon(value)) return _mciEsc(value);
+    return '<i class="' + _mciEsc(value) + '"></i>';
+}
+
+function _mbadgeEnsureMaterialSymbolsCss() {
+    if (typeof $ === 'undefined') return;
+    if (!$('link[href*="Material+Symbols+Rounded"]').length) {
+        $('head').append('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">');
+    }
+    if ($('#mdash-badge-ms-css').length) return;
+    var s = '';
+    s += '.material-symbols-rounded{font-family:"Material Symbols Rounded";font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;font-feature-settings:"liga";-webkit-font-feature-settings:"liga";-webkit-font-smoothing:antialiased;}';
+    s += '.mbadge-icon-presets .material-symbols-rounded{font-size:18px;}';
+    $('head').append('<style id="mdash-badge-ms-css">' + s + '</style>');
+}
+
+function _mbadgeMaterialIconSize(size) {
+    size = size > 0 ? size : 16;
+    return Math.max(size, 16);
+}
+
+function _mbadgeBuildIconHtml(iconValue, size) {
+    if (!iconValue) return '';
+    if (_mbadgeIsMaterialIcon(iconValue)) {
+        var msSize = _mbadgeMaterialIconSize(size);
+        var msStyle = 'font-size:' + msSize + 'px;line-height:1;flex-shrink:0;font-variation-settings:\'FILL\' 0,\'wght\' 500,\'GRAD\' 0,\'opsz\' ' + msSize + ';';
+        return '<span class="material-symbols-rounded mbadge-icon" style="' + msStyle + '">' + _mciEsc(iconValue.slice(3)) + '</span>';
+    }
+    size = size > 0 ? size : 11;
+    var style = 'font-size:' + size + 'px;line-height:1;flex-shrink:0;';
+    if (_mbadgeIsUnicodeIcon(iconValue)) {
+        return '<span class="mbadge-icon mbadge-icon-unicode" style="' + style + '">' + _mciEsc(iconValue) + '</span>';
+    }
+    return '<i class="mbadge-icon ' + _mciEsc(iconValue) + '" style="' + style + '"></i>';
+}
+
+function _mbadgeIconPresetGridHtml(targetClass) {
+    return '<div class="mbadge-icon-presets">'
+        + _MBADGE_ICON_PRESETS.map(function (p) {
+            return '<button type="button" class="btn btn-xs btn-default mbadge-icon-preset" data-target="' + targetClass + '" data-value="' + _mciEsc(p.value) + '" title="' + _mciEsc(p.label) + '">' + _mbadgeIconPresetInner(p.value) + '</button>';
+        }).join('')
+        + '</div>';
+}
+
+function _mbadgeResolveIconHtml(matchedThen, design) {
+    design = _mbadgeNormalizeDesign(design);
+    var app = _mbadgeGetThenAppearance(matchedThen, matchedThen && matchedThen.variant);
+    var iconValue = (app.icon || '').trim();
+    if (!iconValue) return '';
+    return _mbadgeBuildIconHtml(iconValue, design.icon.size);
+}
+
+function _mbadgeBuildChipHtml(parts, design, matchedThen, row, stamp) {
+    design = _mbadgeNormalizeDesign(design);
+    parts = parts || { text: '', variant: 'neutral', isBadge: true };
+    var shape = design.shape || 'pill';
+    if (shape === 'plain') parts.isBadge = false;
+
+    var variant = parts.variant || (matchedThen && matchedThen.variant) || 'neutral';
+    var variantClass = 'is-' + variant;
+    var icon = design.icon || {};
+    var app = _mbadgeGetThenAppearance(matchedThen, variant);
+    var iconHtml = _mbadgeResolveIconHtml(matchedThen, design);
+    var gap = (icon.gap > 0 ? icon.gap : 4);
+    var valueHtml = '<span class="mbadge-value">' + _mciEsc(parts.text || '') + '</span>';
+    var inner = '';
+
+    if (shape === 'dot') {
+        inner = '<span class="mbadge-dot" title="' + _mciEsc(parts.text) + '"></span>' + valueHtml;
+    } else if (iconHtml) {
+        var iconPos = icon.position || 'before';
+        if (iconPos === 'left') iconPos = 'before';
+        if (iconPos === 'right') iconPos = 'after';
+        if (iconPos === 'after') {
+            inner = valueHtml + iconHtml;
+        } else {
+            inner = iconHtml + valueHtml;
+        }
+    } else {
+        inner = valueHtml;
+    }
+
+    var custom = design.custom || {};
+    var extraClass = custom.className ? (' ' + custom.className) : '';
+    var chipStyle = 'gap:' + gap + 'px;';
+    var defs = _mbadgeAppearanceColorDefaults();
+    var def = defs[variant] || defs.neutral;
+    if (app.bg) chipStyle += 'background:' + app.bg + '!important;';
+    else if (shape !== 'plain' && shape !== 'outline' && shape !== 'dot') chipStyle += '';
+    if (app.fg) chipStyle += 'color:' + app.fg + '!important;';
+    if (shape === 'custom' && custom.css) {
+        // inline fallback; instance CSS also injected
+    }
+
+    return '<span class="mbadge-chip shape-' + _mciEsc(shape) + ' ' + variantClass + extraClass
+        + '" style="' + chipStyle + '" data-variant="' + variant + '">' + inner + '</span>';
+}
+
+function _mbadgeInjectInstanceCss(stamp, design) {
+    if (typeof $ === 'undefined') return;
+    design = _mbadgeNormalizeDesign(design);
+    var styleId = 'mbadge-inst-css-' + stamp;
+    $('#' + styleId).remove();
+    var custom = design.custom || {};
+    var css = '';
+    var sel = '#mbadge_' + stamp + ' .mbadge-chip';
+    if (custom.css) css += sel + '{' + custom.css + '}';
+    var vCss = custom.variantCss || {};
+    ['positive', 'negative', 'neutral'].forEach(function (v) {
+        if (vCss[v]) css += sel + '.is-' + v + '{' + vCss[v] + '}';
+    });
+    if (css) $('head').append('<style id="' + styleId + '">' + css + '</style>');
+}
+
+function _mbadgeAlignToFlex(align) {
+    if (align === 'left') return 'flex-start';
+    if (align === 'right') return 'flex-end';
+    return 'center';
+}
+
+function _mbadgeBuildRootStyle(design) {
+    design = design || {};
+    var c = design.container || {};
+    var b = design.badge || {};
+    var s = 'display:flex;align-items:center;justify-content:' + _mbadgeAlignToFlex(design.align || 'center') + ';gap:5px;';
+    s += 'padding:' + (c.paddingTop || 0) + 'px ' + (c.paddingRight || 0) + 'px '
+        + (c.paddingBottom || 0) + 'px ' + (c.paddingLeft || 0) + 'px;';
+    if (b.fontSize > 0) s += '--mbadge-font-size:' + b.fontSize + 'px;';
+    if (b.fontWeight) s += '--mbadge-font-weight:' + b.fontWeight + ';';
+    if (b.paddingX > 0) s += '--mbadge-padding-x:' + b.paddingX + 'px;';
+    if (b.paddingY > 0) s += '--mbadge-padding-y:' + b.paddingY + 'px;';
+    if (b.borderRadius > 0) s += '--mbadge-radius:' + b.borderRadius + 'px;';
+    if (b.minWidth > 0) s += '--mbadge-min-width:' + b.minWidth + 'px;';
+    return s;
+}
+
+function _mbadgeInjectCss() {
+    _mbadgeEnsureMaterialSymbolsCss();
+    if ($('#mdash-badge-css').length) return;
+    var s = '';
+    s += '.m-dash-badge-root{display:flex;align-items:center;width:100%;box-sizing:border-box;min-height:0;}';
+    s += '.mdash-slot-zone-render .m-dash-badge-root{width:auto;max-width:100%;display:inline-flex;}';
+    s += '.m-dash-badge-root .mbadge-chip{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;font-weight:var(--mbadge-font-weight,800);letter-spacing:.01em;font-size:var(--mbadge-font-size,10px);line-height:1.2;min-width:var(--mbadge-min-width,62px);}';
+    s += '.m-dash-badge-root.size-sm .mbadge-chip{font-size:var(--mbadge-font-size,9px);min-width:var(--mbadge-min-width,48px);}';
+    s += '.m-dash-badge-root.size-lg .mbadge-chip{font-size:var(--mbadge-font-size,12px);min-width:var(--mbadge-min-width,72px);}';
+    s += '.m-dash-badge-root .mbadge-chip.shape-pill{border-radius:var(--mbadge-radius,999px);padding:var(--mbadge-padding-y,3px) var(--mbadge-padding-x,7px);}';
+    s += '.m-dash-badge-root .mbadge-chip.shape-rounded{border-radius:var(--mbadge-radius,6px);padding:var(--mbadge-padding-y,3px) var(--mbadge-padding-x,7px);}';
+    s += '.m-dash-badge-root .mbadge-chip.shape-square{border-radius:0;padding:var(--mbadge-padding-y,3px) var(--mbadge-padding-x,7px);}';
+    s += '.m-dash-badge-root .mbadge-chip.shape-outline{border-radius:var(--mbadge-radius,999px);padding:var(--mbadge-padding-y,2px) var(--mbadge-padding-x,7px);background:transparent!important;border:1px solid currentColor;}';
+    s += '.m-dash-badge-root .mbadge-chip.shape-plain{background:none!important;border:none!important;padding:0;min-width:auto;font-weight:var(--mbadge-font-weight,700);font-size:var(--mbadge-font-size,12px);}';
+    s += '.m-dash-badge-root .mbadge-chip.shape-dot{background:none!important;border:none!important;padding:0;min-width:auto;gap:6px!important;font-weight:var(--mbadge-font-weight,700);}';
+    s += '.m-dash-badge-root .mbadge-chip.shape-dot .mbadge-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;}';
+    s += '.m-dash-badge-root .mbadge-chip.shape-custom{padding:var(--mbadge-padding-y,3px) var(--mbadge-padding-x,7px);}';
+    s += '.m-dash-badge-root .mbadge-chip .mbadge-icon{color:inherit;opacity:.92;}';
+    s += '.m-dash-badge-root .mbadge-chip .material-symbols-rounded.mbadge-icon{font-variation-settings:\'FILL\' 0,\'wght\' 500,\'GRAD\' 0,\'opsz\' 20;line-height:1;opacity:1;width:1em;height:1em;overflow:visible;vertical-align:middle;}';
+    s += '.m-dash-badge-root .mbadge-chip .mbadge-icon-unicode{font-weight:700;display:inline-flex;align-items:center;justify-content:center;opacity:1;}';
+    s += '.mbadge-icon-presets{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}';
+    s += '.mbadge-icon-presets .mbadge-icon-preset{min-width:26px;height:26px;padding:2px 4px;line-height:1;display:inline-flex;align-items:center;justify-content:center;}';
+    s += '.m-dash-badge-root .mbadge-chip.is-positive{background:var(--mbadge-positive-bg,rgba(34,197,94,.14));color:var(--mbadge-positive-fg,#15803d);}';
+    s += '.m-dash-badge-root .mbadge-chip.is-negative{background:var(--mbadge-negative-bg,rgba(239,68,68,.14));color:var(--mbadge-negative-fg,#dc2626);}';
+    s += '.m-dash-badge-root .mbadge-chip.is-neutral{background:var(--mbadge-neutral-bg,rgba(148,163,184,.16));color:var(--mbadge-neutral-fg,#475569);}';
+    s += '.m-dash-badge-root .mbadge-chip.shape-plain.is-positive,.m-dash-badge-root .mbadge-chip.shape-dot.is-positive,.m-dash-badge-root .mbadge-chip.shape-outline.is-positive{background:none!important;color:var(--mbadge-positive-fg,#15803d);}';
+    s += '.m-dash-badge-root .mbadge-chip.shape-plain.is-negative,.m-dash-badge-root .mbadge-chip.shape-dot.is-negative,.m-dash-badge-root .mbadge-chip.shape-outline.is-negative{background:none!important;color:var(--mbadge-negative-fg,#dc2626);}';
+    s += '.m-dash-badge-root .mbadge-chip.shape-plain.is-neutral,.m-dash-badge-root .mbadge-chip.shape-dot.is-neutral,.m-dash-badge-root .mbadge-chip.shape-outline.is-neutral{background:none!important;color:var(--mbadge-neutral-fg,#475569);}';
+    s += '.m-dash-badge-root .mtbl-delta-badge{display:inline-flex;align-items:center;justify-content:center;font-weight:var(--mbadge-font-weight,800);letter-spacing:.01em;border-radius:var(--mbadge-radius,999px);font-size:var(--mbadge-font-size,10px);padding:var(--mbadge-padding-y,3px) var(--mbadge-padding-x,7px);min-width:var(--mbadge-min-width,62px);}';
+    s += '.m-dash-badge-root .mtbl-delta-badge.is-positive{background:var(--mbadge-positive-bg,rgba(34,197,94,.14));color:var(--mbadge-positive-fg,#15803d);}';
+    s += '.m-dash-badge-root .mtbl-delta-badge.is-negative{background:var(--mbadge-negative-bg,rgba(239,68,68,.14));color:var(--mbadge-negative-fg,#dc2626);}';
+    s += '.m-dash-badge-root .mtbl-delta-badge.is-neutral{background:var(--mbadge-neutral-bg,rgba(148,163,184,.16));color:var(--mbadge-neutral-fg,#475569);}';
+    $('head').append('<style id="mdash-badge-css">' + s + '</style>');
+}
+
+function _mbadgeFetchRows(dados, cfg) {
+    var rows = [];
+    var isSample = !!dados.isSample;
+    var tCfg = dados.transformConfig || cfg.transformConfig || null;
+
+    if (tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
+        try {
+            var raw = MdashTransformBuilder.executeRaw(tCfg);
+            if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
+                rows = raw.rows.map(function (r) {
+                    var o = {};
+                    raw.columns.forEach(function (c, i) { o[c] = r[i]; });
+                    return o;
+                });
+                isSample = false;
+            }
+        } catch (e) {
+            console.warn('[MDash] renderObjectBadge transform error:', e.message);
+        }
+    }
+    if (rows.length === 0 && dados.data && dados.data.length > 0) {
+        rows = dados.data;
+        isSample = false;
+    }
+    if (rows.length === 0) {
+        rows = getMdashSampleData('badge');
+        isSample = true;
+    }
+    return { rows: rows, isSample: isSample };
+}
+
+function renderObjectBadge(dados) {
+    var stamp = dados.itemObject.mdashcontaineritemobjectstamp;
+    var cfg = _mbadgeEnsureConditional(_mbadgeNormalizeConfig(dados.config));
+    var fetched = _mbadgeFetchRows(dados, cfg);
+    var row = fetched.rows[0] || {};
+    var design = _mbadgeNormalizeDesign(cfg.design || {});
+    var rawHtml = _mbadgeEvaluateHtml(row, cfg.conditional, fetched.rows);
+    var matchedThen = _mbadgeResolveMatchedThen(row, cfg.conditional, fetched.rows);
+    var parts = _mbadgeParseFormatterOutput(rawHtml, row, cfg.conditional);
+    var variant = parts.variant || (matchedThen && matchedThen.variant) || _mbadgeResolveVariant(row, cfg.conditional);
+    var contentHtml = parts.rawHtml
+        ? parts.rawHtml
+        : _mbadgeBuildChipHtml(parts, design, matchedThen, row, stamp);
+
+    _mbadgeInjectCss();
+    _mbadgeInjectInstanceCss(stamp, design);
+    var sampleHtml = fetched.isSample
+        ? '<div class="mchart-sample-badge" style="font-size:9px;color:#64748b;background:rgba(243,246,251,.95);padding:2px 8px;text-align:center;letter-spacing:.2px;border-bottom:1px solid rgba(0,0,0,.06);margin-bottom:2px;"><i class="glyphicon glyphicon-info-sign"></i> Dados de amostra</div>'
+        : '';
+
+    $(dados.containerSelector).html(
+        sampleHtml
+        + '<div id="mbadge_' + stamp + '" class="m-dash-badge-root size-' + (design.size || 'md') + '" style="' + _mbadgeBuildRootStyle(design) + '" data-variant="' + variant + '">'
+        + contentHtml
+        + '</div>'
+    );
+}
+
+function renderBadgePropertiesInline(obj, panel) {
+    panel.off();
+    var stamp = obj.mdashcontaineritemobjectstamp;
+    var cfg = _mbadgeEnsureConditional(_mbadgeNormalizeConfig(obj.config));
+    var fontes = _mciGetFontes(obj);
+    var fields = _mciGetFields(obj);
+    var isSample = !obj.fontestamp;
+    var conditionalCfg = JSON.parse(JSON.stringify(cfg.conditional || {}));
+    conditionalCfg = _mbadgeEnsureRuleAppearance(conditionalCfg, cfg.design);
+    var design = _mbadgeNormalizeDesign(cfg.design || {});
+    var badgeStyle = design.badge || {};
+    var container = design.container || {};
+    var icon = design.icon || {};
+    var custom = design.custom || {};
+    var curShape = design.shape || 'pill';
+
+    _mciCSS();
+
+    var _hasTrans = !!(obj.transformConfig && obj.transformConfig.sourceTable);
+    var sDados = '<div class="mcbi-field"><label>Fonte de dados</label>'
+        + '<select class="mcbi-fonte form-control input-sm"><option value="">-- seleccione uma fonte --</option>'
+        + fontes.map(function (f) {
+            return '<option value="' + _mciEsc(f.mdashfontestamp) + '"'
+                + (obj.fontestamp === f.mdashfontestamp ? ' selected' : '') + '>'
+                + _mciEsc(f.descricao || f.codigo || f.mdashfontestamp) + '</option>';
+        }).join('') + '</select></div>'
+        + (!fontes.length ? '<div class="mcbi-info">Nenhuma fonte disponível neste dashboard.</div>' : '')
+        + '<div class="mcbi-transform-status' + (_hasTrans ? ' is-active' : '') + '">'
+        + '<span class="mcbi-ts-badge">'
+        + (_hasTrans
+            ? '<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc(obj.transformConfig.sourceTable) + '</strong>'
+            : '<i class="glyphicon glyphicon-filter"></i> Sem transformação de dados')
+        + '</span>'
+        + '<button type="button" class="mcbi-btn-transform">'
+        + (_hasTrans ? '<i class="glyphicon glyphicon-pencil"></i> Editar' : '<i class="glyphicon glyphicon-plus"></i> Configurar')
+        + '</button></div>';
+
+    function _badgeFieldOpts(cur) {
+        return '<option value="">-- campo --</option>'
+            + fields.map(function (f) {
+                return '<option value="' + _mciEsc(f) + '"' + (cur === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>';
+            }).join('');
+    }
+
+    var sValor = '<div class="mcbi-field"><label>Campo valor (numérico)</label>'
+        + '<select class="mbadge-valuefield form-control input-sm">' + _badgeFieldOpts(cfg.valueField) + '</select></div>';
+
+    var sRegras = '<div style="padding:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">'
+        + '<div><div style="font-size:11px;font-weight:bold;color:#1e3a8a;">Regras do badge</div>'
+        + '<div style="font-size:10px;color:#475569;">' + _mciEsc(_tblConditionalSummary(conditionalCfg)) + '</div></div>'
+        + '<button type="button" class="btn btn-xs btn-primary mbadge-conditional-edit"><i class="glyphicon glyphicon-cog"></i> Editar regras</button>'
+        + '</div>'
+        + '<button type="button" class="btn btn-xs btn-default mbadge-conditional-template" style="width:100%;font-size:10px;margin-bottom:6px;"><i class="glyphicon glyphicon-flash"></i> Template: Variacao %</button>'
+        + '<div class="mcbi-info">Em cada regra defines: <strong>quando</strong> a condicao e verdadeira, <strong>como formatar</strong> o valor e <strong>o design</strong> (icone + cores) desse badge.</div>'
+        + '<input type="hidden" class="mbadge-conditional-json" value="' + _mciEsc(JSON.stringify(conditionalCfg || {})) + '">'
+        + '</div>';
+
+    var sDesign = '<div class="mcbi-field"><label>Forma (shape)</label>'
+        + '<div class="mcbi-ct-grid3 mbadge-shape-grid" style="grid-template-columns:repeat(4,1fr);gap:4px;">'
+        + _MBADGE_SHAPES.map(function (sh) {
+            return '<button type="button" class="mcbi-ct-btn mbadge-shape' + (curShape === sh.id ? ' is-on' : '') + '" data-shape="' + sh.id + '" title="' + _mciEsc(sh.label) + '"><span style="font-size:9px;">' + _mciEsc(sh.label) + '</span></button>';
+        }).join('') + '</div></div>'
+        + '<div class="mcbi-field"><label>Tamanho</label>'
+        + '<select class="mbadge-size form-control input-sm">'
+        + [['sm', 'Compacto'], ['md', 'Médio'], ['lg', 'Grande']].map(function (o) {
+            return '<option value="' + o[0] + '"' + ((design.size || 'md') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+        }).join('') + '</select></div>'
+        + '<div class="mcbi-field"><label>Alinhamento</label>'
+        + '<div class="mcbi-ct-grid3" style="grid-template-columns:repeat(3,1fr);">'
+        + [['left', 'glyphicon-align-left'], ['center', 'glyphicon-align-center'], ['right', 'glyphicon-align-right']].map(function (a) {
+            return '<button type="button" class="mcbi-ct-btn mbadge-align' + ((design.align || 'center') === a[0] ? ' is-on' : '') + '" data-align="' + a[0] + '"><i class="glyphicon ' + a[1] + '"></i><span>' + a[0] + '</span></button>';
+        }).join('') + '</div></div>'
+        + '<hr style="margin:10px 0;"><label style="font-weight:700;font-size:11px;">Icone (global)</label>'
+        + '<div class="mcbi-field"><label>Posicao do icone</label>'
+        + '<div class="mcbi-ct-grid3" style="grid-template-columns:repeat(2,1fr);">'
+        + [['before', 'Esquerda'], ['after', 'Direita']].map(function (p) {
+            var on = (icon.position || 'before') === p[0];
+            return '<button type="button" class="mcbi-ct-btn mbadge-icon-pos' + (on ? ' is-on' : '') + '" data-pos="' + p[0] + '"><span>' + p[1] + '</span></button>';
+        }).join('') + '</div></div>'
+        + '<div class="mcbi-field"><label>Tamanho icone</label>'
+        + '<input type="number" class="mbadge-icon-size form-control input-sm" value="' + (icon.size || 16) + '" min="12" max="28"></div>'
+        + '<div class="mbadge-custom-wrap" style="' + (curShape === 'custom' ? '' : 'display:none;') + '">'
+        + '<hr style="margin:10px 0;"><label style="font-weight:700;font-size:11px;">CSS personalizado</label>'
+        + '<div class="mcbi-field"><label>Classe extra</label>'
+        + '<input type="text" class="mbadge-custom-class form-control input-sm" value="' + _mciEsc(custom.className || '') + '" placeholder="minha-classe-badge"></div>'
+        + '<div class="mcbi-field"><label>CSS do chip</label>'
+        + '<textarea class="mbadge-custom-css form-control input-sm" rows="2" placeholder="border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.1);">' + _mciEsc(custom.css || '') + '</textarea></div>'
+        + '<div class="mcbi-field"><label>CSS variante +</label>'
+        + '<textarea class="mbadge-custom-css-pos form-control input-sm" rows="1" placeholder="background:#ecfdf5;">' + _mciEsc((custom.variantCss && custom.variantCss.positive) || '') + '</textarea></div>'
+        + '<div class="mcbi-field"><label>CSS variante -</label>'
+        + '<textarea class="mbadge-custom-css-neg form-control input-sm" rows="1" placeholder="background:#fef2f2;">' + _mciEsc((custom.variantCss && custom.variantCss.negative) || '') + '</textarea></div>'
+        + '<div class="mcbi-field"><label>CSS variante 0</label>'
+        + '<textarea class="mbadge-custom-css-neu form-control input-sm" rows="1">' + _mciEsc((custom.variantCss && custom.variantCss.neutral) || '') + '</textarea></div></div>'
+        + '<hr style="margin:10px 0;"><label style="font-weight:700;font-size:11px;">Overrides (0 = preset)</label>'
+        + '<div class="mcbi-row2"><div class="mcbi-field"><label>Font size</label><input type="number" class="mbadge-fontsize form-control input-sm" value="' + (badgeStyle.fontSize || 0) + '" min="0" max="24"></div>'
+        + '<div class="mcbi-field"><label>Min width</label><input type="number" class="mbadge-minwidth form-control input-sm" value="' + (badgeStyle.minWidth || 0) + '" min="0" max="200"></div></div>'
+        + '<div class="mcbi-row2"><div class="mcbi-field"><label>Padding X</label><input type="number" class="mbadge-padx form-control input-sm" value="' + (badgeStyle.paddingX || 0) + '" min="0" max="30"></div>'
+        + '<div class="mcbi-field"><label>Padding Y</label><input type="number" class="mbadge-pady form-control input-sm" value="' + (badgeStyle.paddingY || 0) + '" min="0" max="30"></div></div>'
+        + '<hr style="margin:10px 0;"><label style="font-weight:700;font-size:11px;">Contentor</label>'
+        + '<div class="mcbi-row2"><div class="mcbi-field"><label>Pad top</label><input type="number" class="mbadge-pt form-control input-sm" value="' + (container.paddingTop || 0) + '" min="0" max="60"></div>'
+        + '<div class="mcbi-field"><label>Pad bottom</label><input type="number" class="mbadge-pb form-control input-sm" value="' + (container.paddingBottom || 0) + '" min="0" max="60"></div></div>';
+
+    var h = '<div class="mcbi-root mbadge-root" data-stamp="' + stamp + '">'
+        + (isSample ? '<div class="mcbi-sample-label"><i class="glyphicon glyphicon-info-sign"></i> Dados de amostra</div>' : '')
+        + _mciSection('badge-dados', 'Dados', 'glyphicon-hdd', true, sDados)
+        + _mciSection('badge-valor', 'Valor', 'glyphicon-stats', true, sValor)
+        + _mciSection('badge-regras', 'Regras', 'glyphicon-resize-horizontal', true, sRegras)
+        + _mciSection('badge-design', 'Design geral', 'glyphicon-tint', true, sDesign)
+        + '</div>';
+
+    panel.html(h + _mciCSS());
+    _mbadgeEnsureMaterialSymbolsCss();
+    _mbadgeInjectCss();
+
+    var _badgeTimer = null;
+    function fire() {
+        clearTimeout(_badgeTimer);
+        _badgeTimer = setTimeout(function () {
+            if (!panel.find('.mbadge-root').length) return;
+            var newCfg = _badgeReadConfig(panel, obj);
+            obj.config = newCfg;
+            obj.transformConfig = newCfg.transformConfig;
+            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+            if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
+            _mciRerender(obj);
+        }, 300);
+    }
+
+    panel.on('change.badgeinline input.badgeinline', 'select,input,textarea', fire);
+    panel.on('click.badgeinline', '.mbadge-align', function (e) {
+        e.preventDefault();
+        panel.find('.mbadge-align').removeClass('is-on');
+        $(this).addClass('is-on');
+        fire();
+    });
+    panel.on('click.badgeinline', '.mbadge-shape', function (e) {
+        e.preventDefault();
+        panel.find('.mbadge-shape').removeClass('is-on');
+        $(this).addClass('is-on');
+        var sh = $(this).data('shape');
+        panel.find('.mbadge-custom-wrap').toggle(sh === 'custom');
+        fire();
+    });
+    panel.on('click.badgeinline', '.mbadge-icon-pos', function (e) {
+        e.preventDefault();
+        panel.find('.mbadge-icon-pos').removeClass('is-on');
+        $(this).addClass('is-on');
+        fire();
+    });
+    panel.on('click.badgeinline', '.mbadge-icon-preset', function (e) {
+        e.preventDefault();
+        var target = $(this).data('target');
+        var val = $(this).attr('data-value') || $(this).data('value') || '';
+        panel.find('.' + target).val(val).trigger('input');
+    });
+    panel.on('click.badgeinline', '.mbadge-conditional-template', function (e) {
+        e.preventDefault();
+        var vf = panel.find('.mbadge-valuefield').val() || cfg.valueField || 'variacaoAcumulada';
+        var tpl = _mbadgeGetDeltaPercentConditionalTemplate(vf);
+        panel.find('.mbadge-conditional-json').val(JSON.stringify(tpl));
+        fire();
+    });
+    panel.on('click.badgeinline', '.mbadge-conditional-edit', function (e) {
+        e.preventDefault();
+        var vf = panel.find('.mbadge-valuefield').val() || cfg.valueField || '';
+        var conditional = null;
+        try { conditional = JSON.parse(panel.find('.mbadge-conditional-json').val() || '{}'); }
+        catch (err) { conditional = _tblGetDeltaPercentConditionalTemplate(vf); }
+        _tblOpenConditionalColumnModal(conditional, vf, fields, function (updated) {
+            updated = _mbadgeEnsureRuleAppearance(updated, cfg.design);
+            panel.find('.mbadge-conditional-json').val(JSON.stringify(updated));
+            fire();
+        }, { badgeMode: true });
+    });
+    panel.on('click.badgeinline', '.mcbi-section-hd', function () {
+        var $s = $(this).closest('.mcbi-section');
+        $s.toggleClass('is-open');
+        var open = $s.hasClass('is-open');
+        $(this).find('.mcbi-chev').toggleClass('glyphicon-chevron-up', open).toggleClass('glyphicon-chevron-down', !open);
+    });
+    panel.on('change.badgeinline', '.mcbi-chk input[type=checkbox]', function () {
+        $(this).closest('.mcbi-chk').toggleClass('is-on', this.checked);
+        fire();
+    });
+
+    var _badgeTransformInited = false;
+    panel.on('click.badgeinline', '.mcbi-btn-transform', function () {
+        var _tFnt = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
+        var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
+        var modalId = 'mbadge-transform-modal';
+        $('#' + modalId).remove();
+        _badgeTransformInited = false;
+        $('body').append('<div class="modal fade" id="' + modalId + '" tabindex="-1"><div class="modal-dialog" style="width:860px;max-width:96vw;margin:32px auto;"><div class="modal-content" style="border-radius:14px;overflow:hidden;"><div style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;"><i class="glyphicon glyphicon-filter"></i><strong>Transformação</strong><button type="button" class="close" data-dismiss="modal">&times;</button></div><div id="mbadge-transform-modal-host" style="padding:16px;max-height:80vh;overflow:auto;"></div></div></div></div>');
+        var $modal = $('#' + modalId);
+        $modal.modal('show');
+        $modal.on('shown.bs.modal', function () {
+            if (_badgeTransformInited) return;
+            var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
+            if (!MTB) return;
+            _badgeTransformInited = true;
+            var _tSchema = _mciGetFonteSchema(_tFnt);
+            var _tName = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : '';
+            var _tConf = obj.transformConfig || cfg.transformConfig || (_tName ? MTB.autoConfig(_tName, 'Badge') : { mode: 'sql', sourceTable: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
+            _mciOpenTransformModalFor({
+                title: 'Transformação de Dados', fonteName: _tFntName, modalId: modalId, hostId: 'mbadge-transform-modal-host',
+                config: _tConf, schema: _tSchema,
+                onSave: function (newT) {
+                    obj.transformConfig = newT;
+                    if (obj.config) obj.config.transformConfig = newT;
+                    if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+                    fields = _mciGetFields(obj);
+                    _mciSetSelectFields(panel.find('.mbadge-valuefield'), fields, '-- campo --');
+                    fire();
+                }
+            });
+        });
+        $modal.on('hidden.bs.modal', function () { $(this).remove(); _badgeTransformInited = false; });
+    });
+    panel.on('change.badgeinline', '.mcbi-fonte', function () {
+        obj.fontestamp = $(this).val();
+        if (obj.fontestamp) {
+            panel.find('.mcbi-sample-label').hide();
+            _mciAutoApplyFonteTransform(obj.fontestamp, obj, panel);
+        } else {
+            panel.find('.mcbi-sample-label').show();
+            obj.transformConfig = null;
+        }
+        fields = _mciGetFields(obj);
+        _mciSetSelectFields(panel.find('.mbadge-valuefield'), fields, '-- campo --');
+        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+        fire();
+    });
+}
+
+function _badgeReadConfig(panel, obj) {
+    var cfg = _mbadgeNormalizeConfig(obj.config || {});
+    var vf = panel.find('.mbadge-valuefield').val() || '';
+    cfg.valueField = vf;
+    try { cfg.conditional = JSON.parse(panel.find('.mbadge-conditional-json').val() || '{}'); }
+    catch (e1) { cfg.conditional = _mbadgeGetDeltaPercentConditionalTemplate(vf); }
+    if (!cfg.conditional.valueField) cfg.conditional.valueField = vf;
+    cfg.conditional = _mbadgeEnsureRuleAppearance(cfg.conditional, cfg.design);
+
+    cfg.design = {
+        align: panel.find('.mbadge-align.is-on').data('align') || 'center',
+        size: panel.find('.mbadge-size').val() || 'md',
+        shape: panel.find('.mbadge-shape.is-on').data('shape') || 'pill',
+        icon: {
+            position: panel.find('.mbadge-icon-pos.is-on').data('pos') || 'before',
+            gap: 4,
+            size: parseInt(panel.find('.mbadge-icon-size').val(), 10) || 16
+        },
+        badge: {
+            fontSize: parseInt(panel.find('.mbadge-fontsize').val(), 10) || 0,
+            fontWeight: '',
+            paddingX: parseInt(panel.find('.mbadge-padx').val(), 10) || 0,
+            paddingY: parseInt(panel.find('.mbadge-pady').val(), 10) || 0,
+            borderRadius: 0,
+            minWidth: parseInt(panel.find('.mbadge-minwidth').val(), 10) || 0
+        },
+        custom: {
+            className: panel.find('.mbadge-custom-class').val() || '',
+            css: panel.find('.mbadge-custom-css').val() || '',
+            variantCss: {
+                positive: panel.find('.mbadge-custom-css-pos').val() || '',
+                negative: panel.find('.mbadge-custom-css-neg').val() || '',
+                neutral: panel.find('.mbadge-custom-css-neu').val() || ''
+            }
+        },
+        container: {
+            paddingTop: parseInt(panel.find('.mbadge-pt').val(), 10) || 0,
+            paddingBottom: parseInt(panel.find('.mbadge-pb').val(), 10) || 0,
+            paddingRight: 4,
+            paddingLeft: 4
+        }
+    };
+    if (obj.transformConfig) cfg.transformConfig = obj.transformConfig;
+    obj.configjson = JSON.stringify(cfg);
+    return cfg;
+}
+
+function createDynamicSchemaBadge(data) {
+    var fieldOptions = [];
+    var fieldTitles = [];
+    if (data && data.length > 0) {
+        Object.keys(data[0]).forEach(function (key) {
+            if (key.indexOf('__') !== 0) {
+                fieldOptions.push(key);
+                fieldTitles.push(key);
+            }
+        });
+    }
+    return {
+        type: 'object',
+        title: 'Configuração de Badge',
+        properties: {
+            valueField: {
+                type: 'string',
+                title: 'Campo valor',
+                'enum': fieldOptions,
+                options: { enum_titles: fieldTitles }
+            },
+            conditional: { type: 'object', title: 'Regras condicionais', additionalProperties: true },
+            design: { type: 'object', title: 'Design visual', additionalProperties: true }
         }
     };
 }

@@ -128,8 +128,8 @@ CREATE TABLE MdashFilter(
     expressaojslistagem TEXT DEFAULT '',
     valordefeito TEXT DEFAULT '',
     ordem INT DEFAULT 0,
-    escopo VARCHAR(20) NOT NULL DEFAULT 'global',  -- 'global' = todos os tabs; 'tab' = só o tab indicado
-    mdashtabstamp VARCHAR(25) NOT NULL DEFAULT ''   -- FK → MdashTab; só relevante quando escopo = 'tab'
+    escopo VARCHAR(20) NOT NULL DEFAULT 'global',  -- 'global' = todos os tabs; 'tab' = só nos separadores indicados
+    mdashtabstamp text NOT NULL DEFAULT ''   -- CSV de stamps MdashTab quando escopo = 'tab' (ex.: stamp1,stamp2)
 );
 
 CREATE TABLE MdashAccess(
@@ -261,4 +261,13 @@ BEGIN
 END
 GO
 
+-- MdashFilter: suportar vários separadores por filtro (CSV em mdashtabstamp)
+IF EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'MdashFilter') AND name = 'mdashtabstamp'
+)
+BEGIN
+    ALTER TABLE MdashFilter ALTER COLUMN mdashtabstamp VARCHAR(500) NOT NULL;
+END
+GO
 

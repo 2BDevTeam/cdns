@@ -24,7 +24,7 @@ Filtros do painel superior/lateral do dashboard (`MdashFilter`).
 | `campooption` | string | `""` | Condicional | Campo do row para label (list/radio/multiselect) |
 | `campovalor` | string | `""` | Condicional | Campo do row para value |
 | `escopo` | string | `"global"` | Sim | `"global"` ou `"tab"` |
-| `mdashtabstamp` | string | `""` | Se escopo tab | Tab onde o filtro aparece |
+| `mdashtabstamp` | string | `""` | Se escopo tab | Separadores onde o filtro aparece (CSV de `mdashtabstamp`) |
 | `ordem` | number | auto | Sim | Ordem visual (1, 2, 3…) |
 | `inactivo` | boolean | — | Não | Existe na BD; não no constructor JS |
 
@@ -48,7 +48,7 @@ Filtros do painel superior/lateral do dashboard (`MdashFilter`).
 | Valor | Comportamento |
 |-------|---------------|
 | `global` | Visível em todas as tabs |
-| `tab` | Só na tab `mdashtabstamp` |
+| `tab` | Só nos separadores listados em `mdashtabstamp` (vários, separados por vírgula) |
 
 ## Dashboard deve ter
 

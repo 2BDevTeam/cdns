@@ -22,7 +22,7 @@ Em `js/MDash config lib.js`, linhas 1088-1114:
 - `campooption`: campo exibido.
 - `campovalor`: campo usado como valor.
 - `escopo`: `global` ou outro escopo.
-- `mdashtabstamp`: filtro específico de tab.
+- `mdashtabstamp`: separadores do filtro quando `escopo: tab` (CSV de stamps).
 - `ordem`: ordenação.
 
 ## Filtros no runtime `Mdash.html`
