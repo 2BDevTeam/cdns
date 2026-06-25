@@ -1368,7 +1368,7 @@ function getIframeLoadingStyle(styles) {
 
     style += ".cform-iframe-container{";
     style += "position:relative;";
-    style += "min-height:400px;";
+   // style += "min-height:400px;";
     style += "}";
 
     styles.push(style);

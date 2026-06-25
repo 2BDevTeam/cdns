@@ -965,11 +965,18 @@ var _TABLE_SAMPLE_CONFIG = {
     columns: [],
     autoColumns: true,
     dataTree: { enabled: false, parentField: 'id', childField: 'parentId', startExpanded: true },
+    dataRowStyle: {
+        background: '#f8fafc',
+        textColor: '#334155',
+        fontSize: 0,
+        fontWeight: '',
+        fontFamily: ''
+    },
     structuredRows: {
         enabled: false,
         groupLevels: [
-            { field: '', bg: '#eef4ff', text: '#d40032', accent: '#d40032', bullet: 'circle' },
-            { field: '', bg: '#f8fafc', text: '#334155', accent: '#64748b', bullet: 'diamond' }
+            { field: '', bg: '#eef4ff', text: 'phc:primary', accent: 'phc:primary', bullet: 'circle' },
+            { field: '', bg: '#f8fafc', text: '#334155', accent: 'phc:info', bullet: 'diamond' }
         ],
         levelStyles: [],
         typeField: '__rowType',
@@ -981,28 +988,29 @@ var _TABLE_SAMPLE_CONFIG = {
         textColorField: '__rowTextColor',
         accentColorField: '__rowAccentColor',
         sectionBg: '#eef4ff',
-        sectionText: '#d40032',
-        sectionAccent: '#d40032',
+        sectionText: 'phc:primary',
+        sectionAccent: 'phc:primary',
         sectionBullet: 'circle',
+        dataRowBg: '#f8fafc',
         subgroupBg: '#f8fafc',
         subgroupText: '#334155',
-        subgroupAccent: '#64748b',
+        subgroupAccent: 'phc:info',
         subgroupBullet: 'diamond',
         totalBg: '#eef4ff',
         totalText: '#0f172a',
-        totalAccent: '#0f172a',
+        totalAccent: 'phc:primary',
         totalBullet: 'bar'
     },
     exportOptions: { enableExcel: true, enablePDF: false },
     styling: {
-        headerBg: '#1a3a6c',
-        headerBackgroundColor: '#1a3a6c',
-        headerText: '#f5e6c8',
-        headerTextColor: '#f5e6c8',
+        headerBg: 'phc:primary',
+        headerBackgroundColor: 'phc:primary',
+        headerText: '#ffffff',
+        headerTextColor: '#ffffff',
         borderRadius: 16,
         fontSize: 11,
         rowHeight: 'normal',
-        accentColor: '#c8a84b'
+        accentColor: 'phc:primary'
     },
     footer: { showRowCount: true, showColumnsInfo: false },
     filters: {
@@ -1205,6 +1213,255 @@ var _TABLE_BADGE_FORMATS = [
 
 var _TABLE_EXPRESSION_SAMPLE = '_tblFormatDeltaPercent(value)';
 
+function _tblGetDashboardFiltersList() {
+    if (window.mdashAppState && window.mdashAppState.mdash && Array.isArray(window.mdashAppState.mdash.filters)) {
+        return window.mdashAppState.mdash.filters;
+    }
+    if (window.appState && Array.isArray(window.appState.filters)) return window.appState.filters;
+    if (typeof GMDashFilters !== 'undefined' && Array.isArray(GMDashFilters)) return GMDashFilters;
+    return [];
+}
+
+function _tblGetDashboardFilterValues() {
+    if (window.mdashAppState && window.mdashAppState.mdash && window.mdashAppState.mdash.filterValues) {
+        return window.mdashAppState.mdash.filterValues;
+    }
+    if (window.appState && window.appState.filterValues) return window.appState.filterValues;
+    return {};
+}
+
+function _tblFindDashboardFilter(stampOrCodigo) {
+    if (!stampOrCodigo) return null;
+    var key = String(stampOrCodigo);
+    return _tblGetDashboardFiltersList().find(function (f) {
+        return f && (f.mdashfilterstamp === key || f.codigo === key);
+    }) || null;
+}
+
+function _tblNormalizeTitleBinding(def) {
+    def = def || {};
+    if (def.titleBinding && typeof def.titleBinding === 'object') {
+        var b = def.titleBinding;
+        return {
+            mode: b.mode || 'text',
+            text: b.text != null ? String(b.text) : String(def.title || ''),
+            filterStamp: b.filterStamp || '',
+            filterPart: b.filterPart || 'descricao',
+            fonteStamp: b.fonteStamp || '',
+            field: b.field || '',
+            expression: b.expression || ''
+        };
+    }
+    return {
+        mode: 'text',
+        text: String(def.title || ''),
+        filterStamp: '',
+        filterPart: 'descricao',
+        fonteStamp: '',
+        field: '',
+        expression: ''
+    };
+}
+
+function _tblGetFonteFirstRow(fonteStamp, obj) {
+    if (!fonteStamp) return null;
+    var fontes = _mciGetFontes(obj);
+    var fonte = fontes.find(function (f) { return f.mdashfontestamp === fonteStamp; });
+    if (!fonte) return null;
+    if (typeof mdashExtractRowsFromCache === 'function') {
+        var cachedRows = mdashExtractRowsFromCache(fonte.lastResultscached);
+        if (cachedRows && cachedRows.length) return cachedRows[0];
+    }
+    if (Array.isArray(fonte.lastResults) && fonte.lastResults.length) return fonte.lastResults[0];
+    try {
+        var parsed = JSON.parse(fonte.lastResultscached || '[]');
+        if (Array.isArray(parsed) && parsed.length && typeof parsed[0] === 'object') return parsed[0];
+        if (parsed && Array.isArray(parsed.rows) && parsed.rows.length) {
+            var cols = parsed.columns || [];
+            var row = parsed.rows[0];
+            if (Array.isArray(row) && cols.length) {
+                var objRow = {};
+                cols.forEach(function (c, i) { objRow[c] = row[i]; });
+                return objRow;
+            }
+        }
+    } catch (e) {}
+    return null;
+}
+
+function _tblBuildTitleResolveContext(obj, rows) {
+    return {
+        obj: obj || null,
+        data: rows || [],
+        filterValues: _tblGetDashboardFilterValues()
+    };
+}
+
+function _tblCompileTitleExpression(expr) {
+    expr = String(expr == null ? '' : expr).trim();
+    if (!expr) return null;
+    try {
+        return new Function('data', 'filters', 'helpers', 'with(helpers){return (' + expr + ');}');
+    } catch (e) {
+        console.warn('[Mdash table title expr] compile:', e.message, '|', expr);
+        return null;
+    }
+}
+
+function _tblEvalTitleExpression(expr, ctx) {
+    var fn = _tblCompileTitleExpression(expr);
+    if (!fn) return '';
+    var filterValues = (ctx && ctx.filterValues) || _tblGetDashboardFilterValues();
+    var helpers = Object.assign({}, _mdashGetTableExpressionHelpers(), {
+        filters: filterValues,
+        filterValues: filterValues,
+        getFilterValue: function (codigo) { return filterValues[codigo]; },
+        getFilterDescricao: function (stampOrCodigo) {
+            var f = _tblFindDashboardFilter(stampOrCodigo);
+            return f ? (f.descricao || f.codigo || '') : '';
+        },
+        getSourceValue: function (fonteStamp, field) {
+            var row = _tblGetFonteFirstRow(fonteStamp, ctx && ctx.obj);
+            return row && field ? row[field] : undefined;
+        }
+    });
+    try {
+        return fn((ctx && ctx.data) || [], filterValues, helpers);
+    } catch (e) {
+        console.warn('[Mdash table title expr] runtime:', e.message);
+        return '';
+    }
+}
+
+function _tblResolveTitleBinding(binding, ctx) {
+    binding = _tblNormalizeTitleBinding({ titleBinding: binding });
+    var fallback = binding.text || '';
+    try {
+        if (binding.mode === 'filter' && binding.filterStamp) {
+            var filter = _tblFindDashboardFilter(binding.filterStamp);
+            if (!filter) return fallback;
+            if (binding.filterPart === 'valor') {
+                var vals = (ctx && ctx.filterValues) || _tblGetDashboardFilterValues();
+                var val = vals[filter.codigo];
+                return val == null || val === '' ? fallback : String(val);
+            }
+            if (binding.filterPart === 'codigo') return filter.codigo || fallback;
+            return filter.descricao || fallback;
+        }
+        if (binding.mode === 'source' && binding.fonteStamp && binding.field) {
+            var sourceRow = _tblGetFonteFirstRow(binding.fonteStamp, ctx && ctx.obj);
+            if (sourceRow && sourceRow[binding.field] != null && sourceRow[binding.field] !== '') {
+                return String(sourceRow[binding.field]);
+            }
+            return fallback;
+        }
+        if (binding.mode === 'expression' && binding.expression) {
+            var result = _tblEvalTitleExpression(binding.expression, ctx);
+            if (result != null && result !== '') return String(result);
+            return fallback;
+        }
+        return binding.text || fallback;
+    } catch (e) {
+        console.warn('[MDash] title resolve:', e.message);
+        return fallback;
+    }
+}
+
+function _tblTitleBindingSummary(binding) {
+    binding = _tblNormalizeTitleBinding({ titleBinding: binding });
+    if (binding.mode === 'filter') {
+        var filter = _tblFindDashboardFilter(binding.filterStamp);
+        var partLabel = binding.filterPart === 'valor' ? 'valor' : (binding.filterPart === 'codigo' ? 'código' : 'nome');
+        return filter ? ('Filtro · ' + partLabel + ': ' + (filter.descricao || filter.codigo)) : 'Filtro do dashboard';
+    }
+    if (binding.mode === 'source') {
+        return binding.field ? ('Fonte · ' + binding.field) : 'Campo da fonte';
+    }
+    if (binding.mode === 'expression') return 'Expressão JS';
+    return binding.text || 'Coluna';
+}
+
+function _tblToggleTitleBindingPanel($binding, classPrefix) {
+    var mode = $binding.find('.' + classPrefix + '-mode').val() || 'text';
+    $binding.find('.' + classPrefix + '-opts-text').toggle(mode === 'text');
+    $binding.find('.' + classPrefix + '-opts-filter').toggle(mode === 'filter');
+    $binding.find('.' + classPrefix + '-opts-source').toggle(mode === 'source');
+    $binding.find('.' + classPrefix + '-opts-expression').toggle(mode === 'expression');
+}
+
+function _tblTitleBindingEditorHtml(binding, classPrefix, fontes, filters) {
+    binding = _tblNormalizeTitleBinding({ titleBinding: binding });
+    fontes = fontes || [];
+    filters = filters || _tblGetDashboardFiltersList();
+    var filterOpts = '<option value="">-- seleccione filtro --</option>'
+        + filters.map(function (f) {
+            return '<option value="' + _mciEsc(f.mdashfilterstamp) + '"' + (binding.filterStamp === f.mdashfilterstamp ? ' selected' : '') + '>'
+                + _mciEsc(f.descricao || f.codigo || f.mdashfilterstamp) + '</option>';
+        }).join('');
+    var fonteOpts = '<option value="">-- seleccione fonte --</option>'
+        + fontes.map(function (f) {
+            return '<option value="' + _mciEsc(f.mdashfontestamp) + '"' + (binding.fonteStamp === f.mdashfontestamp ? ' selected' : '') + '>'
+                + _mciEsc(f.descricao || f.codigo || f.mdashfontestamp) + '</option>';
+        }).join('');
+    var sourceFields = [];
+    if (binding.fonteStamp) {
+        var selectedFonte = fontes.find(function (f) { return f.mdashfontestamp === binding.fonteStamp; });
+        if (selectedFonte) {
+            sourceFields = _mciGetFonteSchema(selectedFonte).map(function (s) { return s.field; }).filter(Boolean);
+        }
+    }
+    var fieldOpts = '<option value="">-- campo --</option>'
+        + sourceFields.map(function (fieldName) {
+            return '<option value="' + _mciEsc(fieldName) + '"' + (binding.field === fieldName ? ' selected' : '') + '>'
+                + _mciEsc(fieldName) + '</option>';
+        }).join('');
+    var modeOpts = [
+        { v: 'text', l: 'Texto fixo' },
+        { v: 'filter', l: 'Filtro do dashboard' },
+        { v: 'source', l: 'Campo da fonte (1ª linha)' },
+        { v: 'expression', l: 'Expressão JavaScript' }
+    ].map(function (m) {
+        return '<option value="' + m.v + '"' + (binding.mode === m.v ? ' selected' : '') + '>' + m.l + '</option>';
+    }).join('');
+
+    return '<div class="mtbl-title-binding" style="grid-column:1 / -1;margin-top:2px;">'
+        + '<label style="font-size:9.5px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin:0 0 3px;">Título da coluna</label>'
+        + '<select class="' + classPrefix + '-mode form-control input-sm" style="font-size:10.5px;margin-bottom:4px;">' + modeOpts + '</select>'
+        + '<div class="' + classPrefix + '-opts-text" style="display:' + (binding.mode === 'text' ? 'block' : 'none') + ';">'
+        + '<input type="text" class="' + classPrefix + '-text form-control input-sm" value="' + _mciEsc(binding.text) + '" placeholder="Texto do título" style="font-size:10.5px;">'
+        + '</div>'
+        + '<div class="' + classPrefix + '-opts-filter" style="display:' + (binding.mode === 'filter' ? 'block' : 'none') + ';">'
+        + '<select class="' + classPrefix + '-filter form-control input-sm" style="font-size:10.5px;margin-bottom:3px;">' + filterOpts + '</select>'
+        + '<select class="' + classPrefix + '-filter-part form-control input-sm" style="font-size:10.5px;">'
+        + '<option value="descricao"' + (binding.filterPart === 'descricao' ? ' selected' : '') + '>Nome do filtro</option>'
+        + '<option value="valor"' + (binding.filterPart === 'valor' ? ' selected' : '') + '>Valor actual</option>'
+        + '<option value="codigo"' + (binding.filterPart === 'codigo' ? ' selected' : '') + '>Código</option>'
+        + '</select></div>'
+        + '<div class="' + classPrefix + '-opts-source" style="display:' + (binding.mode === 'source' ? 'block' : 'none') + ';">'
+        + '<select class="' + classPrefix + '-source-fonte form-control input-sm" style="font-size:10.5px;margin-bottom:3px;">' + fonteOpts + '</select>'
+        + '<select class="' + classPrefix + '-source-field form-control input-sm" style="font-size:10.5px;">' + fieldOpts + '</select>'
+        + '<div style="font-size:9px;color:#64748b;margin-top:3px;">Lê o valor do campo na primeira linha do array da fonte.</div>'
+        + '</div>'
+        + '<div class="' + classPrefix + '-opts-expression" style="display:' + (binding.mode === 'expression' ? 'block' : 'none') + ';">'
+        + '<textarea class="' + classPrefix + '-expr form-control input-sm" rows="3" style="font-family:monospace;font-size:10px;resize:vertical;">' + _mciEsc(binding.expression) + '</textarea>'
+        + '<div style="font-size:9px;color:#64748b;margin-top:3px;line-height:1.4;">'
+        + '<code>filters</code> · <code>getFilterValue(\'codigo\')</code> · <code>getFilterDescricao(\'stamp\')</code> · '
+        + '<code>getSourceValue(\'fontestamp\',\'campo\')</code> · <code>data[0].campo</code>'
+        + '</div></div></div>';
+}
+
+function _tblReadTitleBinding($scope, classPrefix) {
+    return {
+        mode: $scope.find('.' + classPrefix + '-mode').val() || 'text',
+        text: ($scope.find('.' + classPrefix + '-text').val() || '').trim(),
+        filterStamp: $scope.find('.' + classPrefix + '-filter').val() || '',
+        filterPart: $scope.find('.' + classPrefix + '-filter-part').val() || 'descricao',
+        fonteStamp: $scope.find('.' + classPrefix + '-source-fonte').val() || '',
+        field: $scope.find('.' + classPrefix + '-source-field').val() || '',
+        expression: ($scope.find('.' + classPrefix + '-expr').val() || '').trim()
+    };
+}
+
 function _tblGetTableColumnFormatOptions(opts) {
     opts = opts || {};
     var list = _TABLE_FORMATTERS.filter(function (f) { return f.value !== 'conditional'; });
@@ -1249,10 +1506,11 @@ function _tblCSS() {
     if (_tblCssInjected) return;
     _tblCssInjected = true;
     var s = '<style id="mdash-table-inline-css">';
-    s += '.mtbl-wrap{position:relative;border-radius:var(--mtbl-radius,16px);overflow:hidden;box-shadow:0 18px 40px rgba(15,23,42,.08),0 4px 16px rgba(15,23,42,.05);background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:1px solid rgba(148,163,184,.18);}';
+    s += '.mtbl-wrap{position:relative;border-radius:var(--mtbl-radius,16px);overflow:hidden;background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:none;box-shadow:none;}';
+    s += '.mtbl-wrap.mtbl-no-col-resize .tabulator-col-resize-handle,.mtbl-wrap.mtbl-no-col-resize .tabulator-col-resize-handle:hover{display:none!important;pointer-events:none!important;width:0!important;opacity:0!important;}';
     s += '.mtbl-wrap .tabulator{border:none;background:#ffffff;font-size:var(--mtbl-fs,13px);font-family:"Inter","Nunito","Segoe UI",Arial,sans-serif;}';
     s += '.mtbl-wrap .tabulator .tabulator-header{background:linear-gradient(180deg,var(--mtbl-hdr-bg,#1e293b) 0%,var(--mtbl-hdr-bg-2,#16263f) 100%);border-bottom:none;border-radius:var(--mtbl-radius,16px) var(--mtbl-radius,16px) 0 0;padding-top:0;box-shadow:inset 0 -1px 0 rgba(255,255,255,.08);}';
-    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col{background:var(--mtbl-hdr-bg,#1e293b) !important;color:var(--mtbl-hdr-text,#f8fafc);border-right:1px solid rgba(255,255,255,.08);padding:5px 10px;font-weight:700;font-size:11px;letter-spacing:.03em;text-transform:uppercase;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col{background:var(--mtbl-hdr-bg,#1e293b) !important;color:var(--mtbl-hdr-text,#f8fafc);border-right:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.08));padding:5px 10px;font-weight:700;font-size:11px;letter-spacing:.03em;text-transform:uppercase;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col:last-child{border-right:none;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-content,'
        + '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-title-holder,'
@@ -1260,16 +1518,16 @@ function _tblCSS() {
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-title{white-space:normal;line-height:1.15;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-content{display:flex;align-items:center;justify-content:center;min-height:28px;padding:0 2px;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-title-holder{display:flex;align-items:center;justify-content:center;width:100%;}';
-    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group{background:var(--mtbl-hdr-bg-2,#16263f) !important;border-bottom:1px solid rgba(255,255,255,.1);padding-top:0;padding-bottom:0;}';
-    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group > .tabulator-col-content{padding:0;background:var(--mtbl-hdr-bg-2,#16263f) !important;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group{background:var(--mtbl-hdr-bg-2,var(--mtbl-hdr-bg,#16263f)) !important;border-bottom:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.1));padding-top:0;padding-bottom:0;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group > .tabulator-col-content{padding:0;background:var(--mtbl-hdr-bg-2,var(--mtbl-hdr-bg,#16263f)) !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-title{font-size:10px;letter-spacing:.1em;opacity:.96;font-weight:800;}';
-    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-title-holder{background:var(--mtbl-hdr-bg-2,#16263f) !important;}';
-    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols{border-top:1px solid rgba(255,255,255,.1);margin-top:0;background:var(--mtbl-hdr-bg,#1e293b) !important;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-title-holder{background:var(--mtbl-hdr-bg-2,var(--mtbl-hdr-bg,#16263f)) !important;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols{border-top:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.1));margin-top:0;background:var(--mtbl-hdr-bg,#1e293b) !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-sorter{color:var(--mtbl-hdr-text,#f8fafc);}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-arrow{border-bottom-color:var(--mtbl-hdr-text,#f8fafc) !important;border-top-color:var(--mtbl-hdr-text,#f8fafc) !important;opacity:.8 !important;}';
     s += '.mtbl-exec-header{display:grid;background:var(--mtbl-hdr-bg,#1e293b);color:var(--mtbl-hdr-text,#f8fafc);border-radius:var(--mtbl-radius,16px) var(--mtbl-radius,16px) 0 0;overflow:hidden;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.035em;}';
-    s += '.mtbl-exec-header__cell{display:flex;align-items:center;justify-content:center;min-width:0;padding:3px 5px;border-right:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1);line-height:1.1;background:var(--mtbl-hdr-bg,#1e293b);white-space:normal;text-align:center;}';
-    s += '.mtbl-exec-header__cell.is-group{padding:3px 5px;background:var(--mtbl-hdr-bg-2,#16263f);font-size:9px;letter-spacing:.08em;}';
+    s += '.mtbl-exec-header__cell{display:flex;align-items:center;justify-content:center;min-width:0;padding:3px 5px;border-right:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.1));border-bottom:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.1));line-height:1.1;background:var(--mtbl-hdr-bg,#1e293b);white-space:normal;text-align:center;}';
+    s += '.mtbl-exec-header__cell.is-group{padding:3px 5px;background:var(--mtbl-hdr-bg-2,var(--mtbl-hdr-bg,#16263f));font-size:9px;letter-spacing:.08em;}';
     s += '.mtbl-exec-header__cell.is-rowspan{justify-content:flex-start;padding-left:9px;}';
     s += '.mtbl-exec-header__cell:last-child{border-right:none;}';
     s += '.mtbl-wrap.has-exec-header .tabulator{border-radius:0 0 var(--mtbl-radius,16px) var(--mtbl-radius,16px);}';
@@ -1282,7 +1540,8 @@ function _tblCSS() {
     s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-row-even{background:var(--mtbl-row-even,#f8fafc);}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row:hover{background:var(--mtbl-row-hover,rgba(37,99,235,.06)) !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell{min-height:28px;padding:5px 7px !important;border-right:none;color:#334155;vertical-align:middle;line-height:1.2;}';
-    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell:first-child{padding-left:10px !important;}';
+    s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell:first-child{padding-left:12px !important;}';
+    s += '.mtbl-wrap .tabulator-row.mtbl-row-section .tabulator-cell:first-child{padding-left:18px !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-selected{background:rgba(37,99,235,.08) !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-selected .tabulator-cell{color:var(--mtbl-accent,#2563eb);}';
     s += '.mtbl-wrap .tabulator .tabulator-data-tree-control{width:18px !important;height:18px !important;border-radius:4px;transition:background .15s;}';
@@ -1305,7 +1564,7 @@ function _tblCSS() {
     s += '.mtbl-wrap .tabulator-row.mtbl-row-total .tabulator-cell{font-weight:700;color:#0f172a;}';
     s += '.mtbl-wrap .tabulator-row.mtbl-row-data.mtbl-row-level-1 .tabulator-cell:first-child{padding-left:14px !important;}';
     s += '.mtbl-wrap .tabulator-row.mtbl-row-data.mtbl-row-level-2 .tabulator-cell:first-child{padding-left:21px !important;}';
-    s += '.mtbl-section-label{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--mtbl-accent,#2563eb);}';
+    s += '.mtbl-section-label{display:inline-flex;align-items:center;gap:8px;padding-left:2px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--mtbl-accent,#2563eb);}';
     s += '.mtbl-section-label:before{content:"";width:6px;height:6px;border-radius:999px;background:var(--mtbl-row-accent,var(--mtbl-accent,#2563eb));box-shadow:0 0 0 4px rgba(37,99,235,.12);}';
     s += '.mtbl-section-label.mtbl-bullet-square:before{border-radius:2px;}';
     s += '.mtbl-section-label.mtbl-bullet-diamond:before{border-radius:2px;transform:rotate(45deg);}';
@@ -1371,6 +1630,7 @@ function renderObjectTable(dados) {
     console.log('[Table] Renderizando tabela. Config filters:', cfg.filters);
     
     var theme = _tblResolveTheme(_TABLE_THEMES[cfg.theme] || _TABLE_THEMES.phcPrimary);
+    var resolvedStl = _tblResolveTableStyling(cfg, theme);
     var stl = cfg.styling || {};
     var hasConfiguredGroups = _tblHasColumnGroups(cfg.columns);
     var tblId = 'mtbl_' + stamp;
@@ -1385,20 +1645,23 @@ function renderObjectTable(dados) {
     // Renderizar filtros
     var filtersHtml = _tblRenderFilters(cfg.filters, rows);
 
-    var hdrBg = stl.headerBg || stl.headerBackgroundColor || theme.headerBg;
-    var accentC = stl.accentColor || theme.accent;
+    var hdrBg = resolvedStl.headerBg;
+    var hdrBgGroup = resolvedStl.headerBgGroup;
+    var hdrBorder = _tblResolveHeaderBorderColor(hdrBg);
+    var accentC = resolvedStl.accentColor;
     var cssVars = '--mtbl-hdr-bg:' + hdrBg + ';'
-        + '--mtbl-hdr-bg-2:' + _mdashDarkenHex(hdrBg, 0.14) + ';'
-        + '--mtbl-hdr-text:' + (stl.headerText || stl.headerTextColor || theme.headerText) + ';'
+        + '--mtbl-hdr-bg-2:' + hdrBgGroup + ';'
+        + '--mtbl-hdr-border:' + hdrBorder + ';'
+        + '--mtbl-hdr-text:' + resolvedStl.headerText + ';'
         + '--mtbl-accent:' + accentC + ';'
-        + '--mtbl-row-even:' + (theme.rowEven) + ';'
-        + '--mtbl-row-hover:' + (theme.rowHover) + ';'
+        + '--mtbl-row-even:' + (resolvedStl.rowEven) + ';'
+        + '--mtbl-row-hover:' + (resolvedStl.rowHover) + ';'
         + '--mtbl-border:' + (theme.border) + ';'
         + '--mtbl-radius:' + (stl.borderRadius || 10) + 'px;'
         + '--mtbl-fs:' + (hasConfiguredGroups ? Math.min(parseInt(stl.fontSize, 10) || 11, 11) : (stl.fontSize || 13)) + 'px;';
 
     var html = badgeHtml
-        + '<div id="' + wrapId + '" class="mtbl-wrap" style="' + cssVars + '" data-stamp="' + stamp + '">'
+        + '<div id="' + wrapId + '" class="mtbl-wrap' + (_tblAreColumnsResizable(cfg) ? '' : ' mtbl-no-col-resize') + '" style="' + cssVars + '" data-stamp="' + stamp + '">'
         + toolbarHtml
         + filtersHtml
         + '<div id="' + tblId + '"></div>'
@@ -1411,11 +1674,14 @@ function renderObjectTable(dados) {
         if (!dom) return;
 
         var columns = _tblBuildColumns(cfg, rows, {
-            useExecutivePreset: isSample && (!cfg.columns || !cfg.columns.length)
+            useExecutivePreset: isSample && (!cfg.columns || !cfg.columns.length),
+            obj: dados.itemObject
         });
         var hasGroupedColumns = _tblHasColumnGroups(columns);
         if (hasGroupedColumns) _tblCompactGroupedColumns(columns);
+        _tblApplyColumnResizePolicy(columns, cfg);
         var tabulatorColumns = hasGroupedColumns ? _tblFlattenColumnDefs(columns) : columns;
+        _tblApplyColumnResizePolicy(tabulatorColumns, cfg);
 
         if (hasGroupedColumns) {
             $('#' + wrapId)
@@ -1430,7 +1696,7 @@ function renderObjectTable(dados) {
             layout: cfg.layout || 'fitColumns',
             responsiveLayout: cfg.responsiveLayout || false,
             movableColumns: cfg.movableColumns || false,
-            resizableColumns: cfg.resizableColumns !== false,
+            resizableColumns: _tblAreColumnsResizable(cfg),
             selectable: cfg.selectable || false,
             placeholder: '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;"><i class="glyphicon glyphicon-info-sign"></i> Sem dados para apresentar</div>',
             locale: 'pt-br',
@@ -1452,9 +1718,7 @@ function renderObjectTable(dados) {
         rows = _tblNormalizeStructuredRows(rows, cfg.structuredRows, tabulatorColumns);
         tblCfg.data = rows;
 
-        if (_tblHasStructuredRows(rows)) {
-            tblCfg.rowFormatter = _tblBuildStructuredRowFormatter(tabulatorColumns, cfg.structuredRows);
-        }
+        tblCfg.rowFormatter = _tblBuildTableRowFormatter(tabulatorColumns, cfg, rows);
 
         if (cfg.height && cfg.height !== 'auto') tblCfg.height = cfg.height;
         if (cfg.maxHeight) tblCfg.maxHeight = cfg.maxHeight;
@@ -1662,12 +1926,30 @@ function renderObjectTable(dados) {
     }, 0);
 }
 
+function _tblAreColumnsResizable(cfg) {
+    return !cfg || cfg.resizableColumns !== false;
+}
+
+function _tblApplyColumnResizePolicy(columns, cfg) {
+    var allowResize = _tblAreColumnsResizable(cfg);
+    (columns || []).forEach(function (col) {
+        if (!col) return;
+        if (Array.isArray(col.columns) && col.columns.length) {
+            _tblApplyColumnResizePolicy(col.columns, cfg);
+            return;
+        }
+        col.resizable = allowResize ? (col.resizable !== false) : false;
+    });
+    return columns;
+}
+
 // ── Construir colunas Tabulator ──────────────────────────────────────────────
 function _tblBuildColumns(cfg, rows, options) {
     var cols = cfg.columns || [];
     var buildOptions = options || {};
+    var titleCtx = _tblBuildTitleResolveContext(buildOptions.obj, rows);
     if (buildOptions.useExecutivePreset) {
-        return _tblBuildColumnDefs(_tblGetExecutiveSampleColumns(), cfg, rows);
+        return _tblBuildColumnDefs(_tblGetExecutiveSampleColumns(), cfg, rows, titleCtx);
     }
     if ((!cols.length || cfg.autoColumns) && cfg.autoColumns !== false && rows.length > 0) {
         var firstDataRow = rows.find(function (rowItem) { return rowItem && rowItem.__rowType !== 'section'; }) || rows[0];
@@ -1677,7 +1959,7 @@ function _tblBuildColumns(cfg, rows, options) {
                 title: k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '),
                 field: k,
                 headerFilter: cfg.headerFilter === true ? 'input' : false,
-                resizable: true,
+                resizable: _tblAreColumnsResizable(cfg),
                 sorter: _tblGuessSorter(rows, k)
             };
             var sample = firstDataRow ? firstDataRow[k] : null;
@@ -1706,10 +1988,11 @@ function _tblBuildColumns(cfg, rows, options) {
             return col;
         });
     }
-    return _tblBuildColumnDefs(cols, cfg, rows);
+    return _tblBuildColumnDefs(cols, cfg, rows, titleCtx);
 }
 
-function _tblBuildColumnDefs(cols, cfg, rows) {
+function _tblBuildColumnDefs(cols, cfg, rows, titleCtx) {
+    titleCtx = titleCtx || _tblBuildTitleResolveContext(null, rows);
     return (cols || [])
         .filter(function (c) { return c && c.visible !== false; })
         .map(function (c, idx) {
@@ -1717,13 +2000,15 @@ function _tblBuildColumnDefs(cols, cfg, rows) {
                 var groupClasses = ['mtbl-col-group-lvl1', 'mtbl-col-group-idx-' + idx];
                 if (c.cssClass) groupClasses.unshift(c.cssClass);
                 return {
-                    title: c.title || '',
+                    title: _tblResolveTitleBinding(_tblNormalizeTitleBinding(c), titleCtx),
                     headerHozAlign: c.headerHozAlign || 'center',
                     cssClass: groupClasses.join(' '),
-                    columns: _tblBuildColumnDefs(c.columns, cfg, rows)
+                    columns: _tblBuildColumnDefs(c.columns, cfg, rows, titleCtx)
                 };
             }
-            return _tblBuildLeafColumn(c, cfg, rows);
+            var leaf = _tblBuildLeafColumn(c, cfg, rows);
+            leaf.title = _tblResolveTitleBinding(_tblNormalizeTitleBinding(c), titleCtx);
+            return leaf;
         });
 }
 
@@ -1733,7 +2018,7 @@ function _tblBuildLeafColumn(c, cfg, rows) {
         field: c.field,
         hozAlign: c.hozAlign || 'left',
         vertAlign: c.vertAlign || 'middle',
-        resizable: c.resizable !== false,
+        resizable: _tblAreColumnsResizable(cfg) ? (c.resizable !== false) : false,
         frozen: c.frozen || false,
         sorter: c.sorter || 'string',
         headerFilter: (cfg.headerFilter === true && c.headerFilter !== false) ? 'input' : false
@@ -2084,29 +2369,35 @@ function _tblHasLeafField(columns, fieldName) {
     return false;
 }
 
-function _tblBuildStructuredRowFormatter(columns, structuredCfg) {
+function _tblBuildStructuredRowFormatter(columns, structuredCfg, tableCfg) {
     var firstField = _tblFindFirstLeafField(columns);
     var cfg = structuredCfg || {};
+    tableCfg = tableCfg || {};
+    var drs = _tblNormalizeDataRowStyle(tableCfg);
+    var dataRowBg = _tblResolveColorToken(drs.background, '#f8fafc');
+    var totalBg = _tblResolveColorToken(cfg.totalBg, '#eef4ff');
+    var totalText = _tblResolveColorToken(cfg.totalText, '#0f172a');
     return function (row) {
         var data = row.getData() || {};
         var rowEl = row.getElement();
         var rowType = data.__rowType || 'data';
         var rowLevel = parseInt(data.__rowLevel, 10) || 0;
-        var resolvedTextColor = data.__rowTextColor || '';
+        var resolvedTextColor = data.__rowTextColor ? _tblResolveColorToken(data.__rowTextColor, '') : '';
         rowEl.classList.remove('mtbl-row-section', 'mtbl-row-total', 'mtbl-row-data', 'mtbl-row-level-1', 'mtbl-row-level-2');
         rowEl.classList.add('mtbl-row-' + rowType);
         if (rowLevel > 0) rowEl.classList.add('mtbl-row-level-' + Math.min(rowLevel, 2));
         if (rowType === 'section') {
             var isSubgroup = rowLevel > 0;
+            var sectionStyle = _tblGetLevelStyle(cfg, rowLevel, 'section');
             rowEl.classList.add('mtbl-row-section');
-            rowEl.style.setProperty('background', data.__rowBackground || (isSubgroup ? cfg.subgroupBg : cfg.sectionBg) || '#eef4ff', 'important');
-            resolvedTextColor = resolvedTextColor || (isSubgroup ? cfg.subgroupText : cfg.sectionText) || '#d40032';
+            rowEl.style.setProperty('background', _tblResolveColorToken(data.__rowBackground, sectionStyle.bg), 'important');
+            resolvedTextColor = resolvedTextColor || sectionStyle.text;
             rowEl.style.setProperty('color', resolvedTextColor);
-            rowEl.style.setProperty('--mtbl-row-accent', data.__rowAccentColor || (isSubgroup ? cfg.subgroupAccent : cfg.sectionAccent) || '#d40032');
+            rowEl.style.setProperty('--mtbl-row-accent', _tblResolveColorToken(data.__rowAccentColor, sectionStyle.accent));
             row.getCells().forEach(function (cell) {
                 var cellEl = cell.getElement();
                 if (cell.getField() === firstField) {
-                    cellEl.innerHTML = '<span class="mtbl-section-label mtbl-bullet-' + _mciEsc(data.__rowBulletStyle || (isSubgroup ? cfg.subgroupBullet : cfg.sectionBullet) || 'circle') + '">' + _mciEsc(data[firstField] || '') + '</span>';
+                    cellEl.innerHTML = '<span class="mtbl-section-label mtbl-bullet-' + _mciEsc(data.__rowBulletStyle || sectionStyle.bullet || 'circle') + '">' + _mciEsc(data[firstField] || '') + '</span>';
                     var labelEl = cellEl.querySelector('.mtbl-section-label');
                     if (labelEl) {
                         labelEl.style.color = resolvedTextColor;
@@ -2120,15 +2411,11 @@ function _tblBuildStructuredRowFormatter(columns, structuredCfg) {
         }
         if (rowType === 'total') {
             rowEl.classList.add('mtbl-row-total');
-            rowEl.style.setProperty('background', data.__rowBackground || cfg.totalBg || '#eef4ff', 'important');
-            resolvedTextColor = resolvedTextColor || cfg.totalText || '#0f172a';
-        } else if (rowLevel > 0) {
-            rowEl.style.setProperty('background', data.__rowBackground || cfg.subgroupBg || '#f8fafc', 'important');
-            resolvedTextColor = resolvedTextColor || cfg.subgroupText || '#334155';
+            rowEl.style.setProperty('background', _tblResolveColorToken(data.__rowBackground, totalBg), 'important');
+            resolvedTextColor = resolvedTextColor || totalText;
+        } else if (rowType === 'data') {
+            rowEl.style.setProperty('background', _tblResolveColorToken(data.__rowBackground, dataRowBg), 'important');
         }
-        row.getCells().forEach(function (cell) {
-            if (resolvedTextColor) cell.getElement().style.color = resolvedTextColor;
-        });
     };
 }
 
@@ -2140,11 +2427,15 @@ function _tblApplyHeaderPresentation(table, wrapId, cfg, theme) {
         if (!headerEl) return;
 
         var stl = cfg && cfg.styling ? cfg.styling : {};
-        var headerBg = stl.headerBg || stl.headerBackgroundColor || theme.headerBg || '#1a3a6c';
-        var headerBg2 = _mdashDarkenHex(headerBg, 0.14);
-        var headerText = stl.headerText || stl.headerTextColor || theme.headerText || '#f8fafc';
+        var resolvedStl = _tblResolveTableStyling(cfg, theme);
+        var headerBg = resolvedStl.headerBg;
+        var headerBg2 = resolvedStl.headerBgGroup;
+        var headerBorder = _tblResolveHeaderBorderColor(headerBg);
+        var headerText = resolvedStl.headerText;
 
-        headerEl.style.background = 'linear-gradient(180deg,' + headerBg + ' 0%,' + headerBg2 + ' 100%)';
+        headerEl.style.background = headerBg2 === headerBg
+            ? headerBg
+            : ('linear-gradient(180deg,' + headerBg + ' 0%,' + headerBg2 + ' 100%)');
         headerEl.style.borderBottom = 'none';
         headerEl.style.borderRadius = (stl.borderRadius || 16) + 'px ' + (stl.borderRadius || 16) + 'px 0 0';
         headerEl.style.boxShadow = 'inset 0 -1px 0 rgba(255,255,255,.08)';
@@ -2161,7 +2452,7 @@ function _tblApplyHeaderPresentation(table, wrapId, cfg, theme) {
             colEl.style.color = headerText;
             colEl.style.opacity = '1';
             colEl.style.visibility = 'visible';
-            colEl.style.borderRight = '1px solid rgba(255,255,255,.08)';
+            colEl.style.borderRight = '1px solid ' + headerBorder;
             colEl.style.padding = isGroup ? '2px 8px' : '5px 10px';
             colEl.style.position = '';
             colEl.style.display = '';
@@ -2228,7 +2519,7 @@ function _tblApplyHeaderPresentation(table, wrapId, cfg, theme) {
                 groupColsEl.style.zIndex = '';
                 groupColsEl.style.display = '';
                 groupColsEl.style.flex = '';
-                groupColsEl.style.borderTop = '1px solid rgba(255,255,255,.1)';
+                groupColsEl.style.borderTop = '1px solid ' + headerBorder;
                 groupColsEl.style.marginTop = '0';
                 groupColsEl.style.background = headerBg;
             }
@@ -2300,6 +2591,37 @@ function _mdashDarkenHex(hex, amount) {
         var b = Math.max(0, Math.round(parseInt(h.substr(4, 2), 16) * (1 - amount)));
         return '#' + [r, g, b].map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
     } catch (e) { return hex; }
+}
+
+function _tblParseHexRgb(hex) {
+    try {
+        var h = String(hex || '').replace('#', '').trim();
+        if (!h) return null;
+        if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+        if (h.length !== 6 || isNaN(parseInt(h, 16))) return null;
+        return {
+            r: parseInt(h.substr(0, 2), 16),
+            g: parseInt(h.substr(2, 2), 16),
+            b: parseInt(h.substr(4, 2), 16)
+        };
+    } catch (e) { return null; }
+}
+
+function _tblIsLightColor(color) {
+    var rgb = _tblParseHexRgb(color);
+    if (!rgb) return false;
+    return (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) >= 186;
+}
+
+function _tblResolveHeaderGroupBg(headerBg, groupOverride) {
+    if (groupOverride) return _tblResolveColorToken(groupOverride, headerBg);
+    if (!headerBg || headerBg === 'transparent') return headerBg;
+    if (_tblIsLightColor(headerBg)) return headerBg;
+    return _mdashDarkenHex(headerBg, 0.14);
+}
+
+function _tblResolveHeaderBorderColor(headerBg) {
+    return _tblIsLightColor(headerBg) ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.1)';
 }
 
 // ── Custom formatter: linkButton ────────────────────────────────────────────
@@ -2453,6 +2775,9 @@ if (typeof window !== 'undefined') {
         var fn = _mdashCompileTableExpression(expr, mode || 'value');
         return _mdashEvalCompiledTableExpression(fn, cell, allRows, fetchDataFn);
     };
+    window.mdashResolveTableColumnTitle = _tblResolveTitleBinding;
+    window.mdashNormalizeTableTitleBinding = _tblNormalizeTitleBinding;
+    window.mdashResolveColorToken = _tblResolveColorToken;
 }
 
 // ── Adivinhar sorter ─────────────────────────────────────────────────────────
@@ -3037,7 +3362,7 @@ function _tblCalculateFilterCount(filterDef, allData) {
     return _tblApplyFilter(allData, filterDef).length;
 }
 
-// ── Helper: Resolver cor PHC ──
+// ── Helper: Resolver cor PHC / token ──
 function _tblResolvePHCColor(colorStr) {
     if (!colorStr) return null;
     if (typeof colorStr === 'string' && colorStr.indexOf('phc:') === 0) {
@@ -3048,6 +3373,272 @@ function _tblResolvePHCColor(colorStr) {
         }
     }
     return colorStr;
+}
+
+function _tblResolveColorToken(colorStr, fallback) {
+    var resolved = _tblResolvePHCColor(colorStr);
+    if (resolved) return resolved;
+    resolved = _tblResolvePHCColor(fallback);
+    return resolved || fallback || '';
+}
+
+function _tblParseColorTokenForUI(value, defaultCustom, allowEmpty) {
+    if (!value && allowEmpty) return { token: '', custom: defaultCustom || '#2563eb' };
+    if (!value) return { token: 'phc:primary', custom: defaultCustom || '#2563eb' };
+    if (typeof value === 'string' && value.indexOf('phc:') === 0) {
+        return { token: value, custom: defaultCustom || '#2563eb' };
+    }
+    return { token: 'custom', custom: value || defaultCustom || '#2563eb' };
+}
+
+function _tblPhcColorSelectOptions(currentToken) {
+    return ['primary', 'success', 'info', 'warning', 'danger', 'dark'].map(function (pt) {
+        var token = 'phc:' + pt;
+        return '<option value="' + token + '"' + (currentToken === token ? ' selected' : '') + '>PHC ' + pt.charAt(0).toUpperCase() + pt.slice(1) + '</option>';
+    }).join('');
+}
+
+function _tblColorTokenFieldHtml(label, prefix, currentValue, compact, allowInherit) {
+    var parsed = _tblParseColorTokenForUI(currentValue, undefined, !!allowInherit);
+    var showCustom = parsed.token === 'custom';
+    var customLabel = compact ? 'Custom' : 'Personalizada';
+    return '<div class="mcbi-field mtbl-color-token-wrap' + (compact ? ' style="margin:0;min-width:0;"' : '') + '">'
+        + '<label' + (compact ? ' style="font-size:10px;"' : '') + '>' + label + '</label>'
+        + '<div style="display:flex;gap:6px;align-items:center;' + (compact ? 'min-width:0;' : '') + '">'
+        + '<select class="form-control input-sm mtbl-color-token ' + prefix + '-token" style="flex:1;min-width:0;font-size:10.5px;" title="Personalizada">'
+        + (allowInherit ? '<option value=""' + (!parsed.token ? ' selected' : '') + '>Herdar</option>' : '')
+        + _tblPhcColorSelectOptions(parsed.token === 'custom' || !parsed.token ? '' : parsed.token)
+        + '<option value="custom"' + (showCustom ? ' selected' : '') + '>' + customLabel + '</option>'
+        + '</select>'
+        + '<input type="color" class="form-control input-sm ' + prefix + '-custom" value="' + _mciEsc(parsed.custom) + '" style="flex-shrink:0;width:42px;height:28px;padding:2px;' + (showCustom ? '' : 'display:none;') + '">'
+        + '</div></div>';
+}
+
+function _tblFontWeightOpts(current, allowInherit) {
+    return [
+        allowInherit ? ['', 'Herdar'] : null,
+        ['400', 'Normal'],
+        ['600', 'Semibold'],
+        ['700', 'Bold'],
+        ['800', 'Extra bold']
+    ].filter(Boolean).map(function (o) {
+        return '<option value="' + o[0] + '"' + ((current || (allowInherit ? '' : '400')) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+    }).join('');
+}
+
+function _tblFontFamilyOpts(current, allowInherit) {
+    return [
+        allowInherit ? ['', 'Herdar'] : ['', 'Padrão da tabela'],
+        ['"Inter","Nunito","Segoe UI",Arial,sans-serif', 'Inter / sistema'],
+        ['"Nunito",sans-serif', 'Nunito'],
+        ['"Segoe UI",Arial,sans-serif', 'Segoe UI'],
+        ['Arial,sans-serif', 'Arial'],
+        ['monospace', 'Monospace']
+    ].filter(Boolean).map(function (o) {
+        return '<option value="' + _mciEsc(o[0]) + '"' + ((current || '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+    }).join('');
+}
+
+function _tblNormalizeDataRowStyle(cfg) {
+    var drs = (cfg && cfg.dataRowStyle) || {};
+    var sr = (cfg && cfg.structuredRows) || {};
+    return {
+        background: drs.background || sr.dataRowBg || sr.subgroupBg || '#f8fafc',
+        textColor: drs.textColor || '#334155',
+        fontSize: parseInt(drs.fontSize, 10) || 0,
+        fontWeight: drs.fontWeight || '',
+        fontFamily: drs.fontFamily || ''
+    };
+}
+
+function _tblResolveDataRowStyle(cfg) {
+    var drs = _tblNormalizeDataRowStyle(cfg);
+    var tableFs = parseInt((cfg && cfg.styling && cfg.styling.fontSize), 10) || 13;
+    return {
+        background: _tblResolveColorToken(drs.background, ''),
+        textColor: _tblResolveColorToken(drs.textColor, '#334155'),
+        fontSize: drs.fontSize > 0 ? drs.fontSize : tableFs,
+        fontWeight: drs.fontWeight || '',
+        fontFamily: drs.fontFamily || ''
+    };
+}
+
+function _tblNormalizeColumnCellStyle(cellStyle) {
+    cellStyle = cellStyle || {};
+    return {
+        background: cellStyle.background || '',
+        textColor: cellStyle.textColor || '',
+        fontSize: parseInt(cellStyle.fontSize, 10) || 0,
+        fontWeight: cellStyle.fontWeight || '',
+        fontFamily: cellStyle.fontFamily || ''
+    };
+}
+
+function _tblBuildColumnStyleMap(columns) {
+    var map = {};
+    function walk(cols) {
+        (cols || []).forEach(function (c) {
+            if (!c) return;
+            if (Array.isArray(c.columns)) {
+                walk(c.columns);
+                return;
+            }
+            if (c.field) map[c.field] = _tblNormalizeColumnCellStyle(c.cellStyle);
+        });
+    }
+    walk(columns);
+    return map;
+}
+
+function _tblCellStyleHasValues(cellStyle) {
+    cellStyle = _tblNormalizeColumnCellStyle(cellStyle);
+    return !!(cellStyle.background || cellStyle.textColor || cellStyle.fontSize || cellStyle.fontWeight || cellStyle.fontFamily);
+}
+
+function _tblColumnCellStyleEditorHtml(cellStyle) {
+    var cs = _tblNormalizeColumnCellStyle(cellStyle);
+    return '<details class="mtbl-col-cellstyle" style="margin-top:6px;">'
+        + '<summary style="font-size:10px;font-weight:700;color:#475569;cursor:pointer;user-select:none;">Estilo da célula</summary>'
+        + '<div style="padding:6px 2px 0;">'
+        + _tblColorTokenFieldHtml('Fundo', 'mtbl-col-cs-bg', cs.background, false, true)
+        + _tblColorTokenFieldHtml('Cor do texto', 'mtbl-col-cs-text', cs.textColor, false, true)
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label style="font-size:10px;">Tamanho fonte</label>'
+        + '<input type="number" class="mtbl-col-cs-fontsize form-control input-sm" value="' + (cs.fontSize || '') + '" min="0" max="24" placeholder="Herdar" style="font-size:10.5px;"></div>'
+        + '<div class="mcbi-field"><label style="font-size:10px;">Peso</label>'
+        + '<select class="mtbl-col-cs-fontweight form-control input-sm" style="font-size:10.5px;">' + _tblFontWeightOpts(cs.fontWeight, true) + '</select></div>'
+        + '</div>'
+        + '<div class="mcbi-field" style="margin-bottom:0;"><label style="font-size:10px;">Fonte</label>'
+        + '<select class="mtbl-col-cs-fontfamily form-control input-sm" style="font-size:10.5px;">' + _tblFontFamilyOpts(cs.fontFamily, true) + '</select></div>'
+        + '<div style="font-size:9px;color:#64748b;margin-top:4px;line-height:1.35;">Prioridade desta coluna &gt; campo da fonte &gt; estilo da linha.</div>'
+        + '</div></details>';
+}
+
+function _tblReadColumnCellStyle($card) {
+    var cs = {
+        background: _tblReadColorTokenField($card, 'mtbl-col-cs-bg'),
+        textColor: _tblReadColorTokenField($card, 'mtbl-col-cs-text'),
+        fontSize: parseInt($card.find('.mtbl-col-cs-fontsize').val(), 10) || 0,
+        fontWeight: $card.find('.mtbl-col-cs-fontweight').val() || '',
+        fontFamily: $card.find('.mtbl-col-cs-fontfamily').val() || ''
+    };
+    return _tblCellStyleHasValues(cs) ? cs : null;
+}
+
+function _tblApplyDataRowCellStyles(row, cfg) {
+    var data = row.getData() || {};
+    var rowType = data.__rowType || 'data';
+    if (rowType === 'section') return;
+
+    var colStyleMap = _tblBuildColumnStyleMap(cfg.columns);
+    var rowStyle = _tblResolveDataRowStyle(cfg);
+    var sr = cfg.structuredRows || {};
+    var rowTextDefault = rowType === 'total'
+        ? _tblResolveColorToken(sr.totalText, rowStyle.textColor)
+        : rowStyle.textColor;
+
+    row.getCells().forEach(function (cell) {
+        var field = cell.getField();
+        var colStyle = colStyleMap[field] || {};
+        var el = cell.getElement();
+        if (!el) return;
+
+        var bg = '';
+        if (colStyle.background) bg = _tblResolveColorToken(colStyle.background, '');
+
+        if (bg) el.style.setProperty('background', bg, 'important');
+        else el.style.background = '';
+
+        var color = '';
+        if (colStyle.textColor) color = _tblResolveColorToken(colStyle.textColor, '');
+        else if (data.__rowTextColor) color = _tblResolveColorToken(data.__rowTextColor, '');
+        else if (rowTextDefault) color = rowTextDefault;
+
+        if (color) el.style.color = color;
+
+        var fontSize = colStyle.fontSize > 0 ? colStyle.fontSize : rowStyle.fontSize;
+        if (fontSize > 0) el.style.fontSize = fontSize + 'px';
+
+        var fontWeight = colStyle.fontWeight || rowStyle.fontWeight;
+        if (fontWeight) el.style.fontWeight = fontWeight;
+        else el.style.fontWeight = '';
+
+        var fontFamily = colStyle.fontFamily || rowStyle.fontFamily;
+        if (fontFamily) el.style.fontFamily = fontFamily;
+        else el.style.fontFamily = '';
+    });
+}
+
+function _tblApplyPlainDataRowStyles(row, cfg) {
+    var data = row.getData() || {};
+    var rowType = data.__rowType || 'data';
+    if (rowType === 'section') return;
+
+    var rowStyle = _tblResolveDataRowStyle(cfg);
+    var rowEl = row.getElement();
+    var rowBg = data.__rowBackground ? _tblResolveColorToken(data.__rowBackground, '') : rowStyle.background;
+    if (rowBg) rowEl.style.setProperty('background', rowBg, 'important');
+}
+
+function _tblBuildTableRowFormatter(columns, cfg, rows) {
+    var structuredFmt = _tblHasStructuredRows(rows)
+        ? _tblBuildStructuredRowFormatter(columns, cfg.structuredRows || {}, cfg)
+        : null;
+    return function (row) {
+        if (structuredFmt) structuredFmt(row);
+        else _tblApplyPlainDataRowStyles(row, cfg);
+        _tblApplyDataRowCellStyles(row, cfg);
+    };
+}
+
+function _tblReadColorTokenField($scope, prefix) {
+    var token = $scope.find('.' + prefix + '-token').val();
+    if (token === 'custom') return ($scope.find('.' + prefix + '-custom').val() || '').trim();
+    return token || '';
+}
+
+function _tblResolveTableStyling(cfg, theme) {
+    var stl = (cfg && cfg.styling) || {};
+    theme = theme || _tblResolveTheme(_TABLE_THEMES[(cfg && cfg.theme) || 'phcPrimary'] || _TABLE_THEMES.phcPrimary);
+    var headerBg = _tblResolveColorToken(stl.headerBg || stl.headerBackgroundColor, theme.headerBg);
+    return {
+        headerBg: headerBg,
+        headerBgGroup: _tblResolveHeaderGroupBg(headerBg, stl.headerGroupBg),
+        headerText: _tblResolveColorToken(stl.headerText || stl.headerTextColor, theme.headerText),
+        accentColor: _tblResolveColorToken(stl.accentColor, theme.accent),
+        rowEven: _tblResolveColorToken(stl.rowEven, theme.rowEven),
+        rowHover: _tblResolveColorToken(stl.rowHover, theme.rowHover),
+        borderRadius: stl.borderRadius || 10,
+        fontSize: stl.fontSize || 13
+    };
+}
+
+function _tblApplyThemeTokensToPanel(panel, themeKey) {
+    var themeDef = _TABLE_THEMES[themeKey] || _TABLE_THEMES.phcPrimary;
+    if (themeDef.phcType) {
+        var phcToken = 'phc:' + themeDef.phcType;
+        panel.find('.mtbl-hdrbg-token').val(phcToken);
+        panel.find('.mtbl-hdrbg-custom').hide();
+        panel.find('.mtbl-accent-token').val(phcToken);
+        panel.find('.mtbl-accent-custom').hide();
+        panel.find('.mtbl-hdrtext-token').val('custom');
+        panel.find('.mtbl-hdrtext-custom').val(themeDef.headerText || '#ffffff').show();
+        panel.find('.mtbl-roweven-token').val('custom');
+        panel.find('.mtbl-roweven-custom').val(themeDef.rowEven || '#f8fafc').show();
+        panel.find('.mtbl-rowhover-token').val('custom');
+        panel.find('.mtbl-rowhover-custom').val(themeDef.rowHover || 'rgba(0,0,0,.03)').show();
+        return;
+    }
+    panel.find('.mtbl-hdrbg-token').val('custom');
+    panel.find('.mtbl-hdrbg-custom').val(themeDef.headerBg || '#1e293b').show();
+    panel.find('.mtbl-hdrtext-token').val('custom');
+    panel.find('.mtbl-hdrtext-custom').val(themeDef.headerText || '#f8fafc').show();
+    panel.find('.mtbl-accent-token').val('custom');
+    panel.find('.mtbl-accent-custom').val(themeDef.accent || '#2563eb').show();
+    panel.find('.mtbl-roweven-token').val('custom');
+    panel.find('.mtbl-roweven-custom').val(themeDef.rowEven || '#f8fafc').show();
+    panel.find('.mtbl-rowhover-token').val('custom');
+    panel.find('.mtbl-rowhover-custom').val(themeDef.rowHover || 'rgba(0,0,0,.03)').show();
 }
 
 function _tblRenderFilters(filterConfig, currentData) {
@@ -3155,6 +3746,7 @@ function renderTablePropertiesInline(obj, panel) {
         : JSON.parse(JSON.stringify(_TABLE_SAMPLE_CONFIG));
     var fontes = _mciGetFontes(obj);
     var fields = _mciGetFields(obj);
+    var dashboardFilters = _tblGetDashboardFiltersList();
 
     _mciCSS();
     _tblCSS();
@@ -3214,7 +3806,21 @@ function renderTablePropertiesInline(obj, panel) {
             + '<span style="font-size:9.5px;font-weight:600;color:#475569;">' + t.name + '</span>'
             + '</button>';
     });
-    sTema += '</div></div>';
+    var customParsed = _tblParseColorTokenForUI((cfg.styling && cfg.styling.headerBg) || '#2563eb');
+    var isCustomTheme = cfg.theme === 'custom';
+    var customHex = customParsed.custom || '#2563eb';
+    var customAccent = _mdashDarkenHex(customHex, 0.14);
+    sTema += '<button type="button" class="mtbl-theme-btn mtbl-theme-custom' + (isCustomTheme ? ' is-on' : '') + '" data-theme="custom"'
+        + ' style="display:flex;flex-direction:column;align-items:center;padding:6px 4px;border-radius:7px;border:1.5px solid ' + (isCustomTheme ? customHex : 'rgba(0,0,0,.08)') + ';background:' + (isCustomTheme ? 'rgba(37,99,235,.06)' : '#fff') + ';cursor:pointer;transition:all .15s;">'
+        + '<div class="mtbl-theme-custom-preview" style="display:flex;gap:2px;margin-bottom:3px;position:relative;width:26px;height:10px;" title="Escolher cor">'
+        + '<span class="mtbl-theme-custom-hdr" style="width:16px;height:10px;border-radius:2px;background:' + _mciEsc(customHex) + ';"></span>'
+        + '<span class="mtbl-theme-custom-acc" style="width:8px;height:10px;border-radius:2px;background:' + _mciEsc(customAccent) + ';opacity:.6;"></span>'
+        + '<input type="color" class="mtbl-theme-custom-picker" value="' + _mciEsc(customHex) + '" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0;margin:0;">'
+        + '</div>'
+        + '<span style="font-size:9.5px;font-weight:600;color:#475569;">Personalizada</span>'
+        + '</button>';
+    sTema += '</div>'
+        + '<div class="mcbi-info" style="margin-top:6px;">Temas PHC usam tokens dinâmicos (<code>phc:primary</code>, etc.) e acompanham o tema do PHC sem voltar a configurar.</div></div>';
 
     // ── Sec\u00e7\u00e3o: Layout ──
     var sLayout = '<div class="mcbi-field"><label>Modo de layout</label>'
@@ -3264,8 +3870,8 @@ function renderTablePropertiesInline(obj, panel) {
     if (manualCols.length) {
         manualCols.forEach(function (c, i) {
             sColunas += (c && Array.isArray(c.columns))
-                ? _tblGroupCard(c, i, fields)
-                : _tblColCard(c, i, fields);
+                ? _tblGroupCard(c, i, fields, fontes, dashboardFilters)
+                : _tblColCard(c, i, fields, fontes, dashboardFilters);
         });
     } else {
         sColunas += '<div class="mcbi-info">Desative "Auto-gerar" e adicione colunas manualmente.</div>';
@@ -3334,22 +3940,40 @@ function renderTablePropertiesInline(obj, panel) {
 
     // ── Sec\u00e7\u00e3o: Estilo ──
     var stl = cfg.styling || {};
+    var panelTheme = _tblResolveTheme(_TABLE_THEMES[cfg.theme || 'phcPrimary'] || _TABLE_THEMES.phcPrimary);
     var sEstilo = '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Cor cabe\u00e7alho</label>'
-        + '<input type="color" class="mtbl-hdrbg form-control input-sm" value="' + (stl.headerBg || '#1e293b') + '" style="width:50px;height:28px;padding:2px;"></div>'
-        + '<div class="mcbi-field"><label>Texto cabe\u00e7alho</label>'
-        + '<input type="color" class="mtbl-hdrtext form-control input-sm" value="' + (stl.headerText || '#f8fafc') + '" style="width:50px;height:28px;padding:2px;"></div>'
+        + _tblColorTokenFieldHtml('Cor cabe\u00e7alho', 'mtbl-hdrbg', stl.headerBg || stl.headerBackgroundColor || 'phc:primary')
+        + _tblColorTokenFieldHtml('Texto cabe\u00e7alho', 'mtbl-hdrtext', stl.headerText || stl.headerTextColor || '#ffffff')
         + '</div>'
         + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Cor destaque</label>'
-        + '<input type="color" class="mtbl-accent form-control input-sm" value="' + (stl.accentColor || '#2563eb') + '" style="width:50px;height:28px;padding:2px;"></div>'
+        + _tblColorTokenFieldHtml('Cor destaque', 'mtbl-accent', stl.accentColor || 'phc:primary')
         + '<div class="mcbi-field"><label>Raio bordas</label>'
         + '<input type="number" class="mtbl-radius form-control input-sm" value="' + (stl.borderRadius || 10) + '" min="0" max="20" style="width:70px;"></div>'
         + '</div>'
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Tamanho fonte</label>'
         + '<input type="number" class="mtbl-fontsize form-control input-sm" value="' + (stl.fontSize || 13) + '" min="10" max="18" style="width:70px;"> px</div>'
-        + '</div>';
+        + '</div>'
+        + '<div class="mcbi-row2">'
+        + _tblColorTokenFieldHtml('Fundo linhas pares', 'mtbl-roweven', stl.rowEven || panelTheme.rowEven)
+        + _tblColorTokenFieldHtml('Highlight hover', 'mtbl-rowhover', stl.rowHover || panelTheme.rowHover)
+        + '</div>'
+        + '<div class="mcbi-info">As linhas pares usam o checkbox <strong>Linhas alternadas</strong> no Layout. O estilo das linhas de dados está em <strong>Estilo Linhas de Dados</strong>.</div>';
+
+    // ── Secção: Estilo linhas de dados ──
+    var drsUi = _tblNormalizeDataRowStyle(cfg);
+    var tableFsHint = (stl.fontSize || 13);
+    var sDataRowStyle = _tblColorTokenFieldHtml('Fundo', 'mtbl-drs-bg', drsUi.background, false)
+        + _tblColorTokenFieldHtml('Cor do texto', 'mtbl-drs-text', drsUi.textColor, false)
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Tamanho fonte</label>'
+        + '<input type="number" class="mtbl-drs-fontsize form-control input-sm" value="' + (drsUi.fontSize || '') + '" min="0" max="24" placeholder="Herdar (' + tableFsHint + ')" style="font-size:10.5px;"></div>'
+        + '<div class="mcbi-field"><label>Peso</label>'
+        + '<select class="mtbl-drs-fontweight form-control input-sm" style="font-size:10.5px;">' + _tblFontWeightOpts(drsUi.fontWeight, true) + '</select></div>'
+        + '</div>'
+        + '<div class="mcbi-field"><label>Fonte</label>'
+        + '<select class="mtbl-drs-fontfamily form-control input-sm" style="font-size:10.5px;">' + _tblFontFamilyOpts(drsUi.fontFamily, true) + '</select></div>'
+        + '<div class="mcbi-info" style="margin-top:6px;">Prioridade: <strong>coluna</strong> &gt; campo da fonte (<code>__rowTextColor</code>, etc.) &gt; estilo da linha &gt; tema. O fundo da coluna cobre apenas essa célula; o fundo da linha fica visível nas restantes.</div>';
 
     // ── Secção: Filtros Rápidos ──
     var flt = cfg.filters || { enabled: false, definitions: [] };
@@ -3388,6 +4012,7 @@ function renderTablePropertiesInline(obj, panel) {
         + _mciSection('filtros', 'Filtros Rápidos', 'glyphicon-filter', false, sFiltros)
         + _mciSection('paginacao', 'Paginação', 'glyphicon-forward', false, sPagination)
         + _mciSection('colunas', 'Colunas', 'glyphicon-th-list', false, sColunas)
+        + _mciSection('linhas-dados', 'Estilo Linhas de Dados', 'glyphicon-list-alt', false, sDataRowStyle)
         + _mciSection('linhas-grupos', 'Linhas e Grupos', 'glyphicon-align-left', false, sStructuredRows)
         + _mciSection('hierarquia', 'Hierarquia', 'glyphicon-tree-deciduous', false, sTree)
         + _mciSection('exportacao', 'Exportação', 'glyphicon-download-alt', false, sExport)
@@ -3427,7 +4052,7 @@ function renderTablePropertiesInline(obj, panel) {
                             field: f,
                             title: f.charAt(0).toUpperCase() + f.slice(1).replace(/_/g, ' '),
                             visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext'
-                        }, idx, _af));
+                        }, idx, _af, _mciGetFontes(obj), _tblGetDashboardFiltersList()));
                     });
                 }
             }
@@ -3509,34 +4134,73 @@ function renderTablePropertiesInline(obj, panel) {
     });
 
     // Theme buttons
-    panel.on('click.tblinline', '.mtbl-theme-btn', function () {
+    panel.on('click.tblinline', '.mtbl-theme-btn', function (e) {
+        if ($(e.target).hasClass('mtbl-theme-custom-picker') || $(e.target).closest('.mtbl-theme-custom-preview').length) return;
         panel.find('.mtbl-theme-btn').each(function () {
             $(this).removeClass('is-on').css({ 'border-color': 'rgba(0,0,0,.08)', 'background': '#fff' });
         });
         var k = $(this).data('theme');
         var t = _tblResolveTheme(_TABLE_THEMES[k] || _TABLE_THEMES.phcPrimary);
-        $(this).addClass('is-on').css({ 'border-color': t.accent, 'background': 'rgba(37,99,235,.06)' });
-        // Sync style inputs from theme
-        panel.find('.mtbl-hdrbg').val(t.headerBg);
-        panel.find('.mtbl-hdrtext').val(t.headerText);
-        panel.find('.mtbl-accent').val(t.accent);
+        $(this).addClass('is-on').css({ 'border-color': (k === 'custom' ? '#2563eb' : t.accent), 'background': 'rgba(37,99,235,.06)' });
+        if (k === 'custom') {
+            var customHex = panel.find('.mtbl-theme-custom-picker').val() || '#2563eb';
+            $(this).css({ 'border-color': customHex });
+            panel.find('.mtbl-hdrbg-token').val('custom');
+            panel.find('.mtbl-hdrbg-custom').val(customHex).show();
+            panel.find('.mtbl-accent-token').val('custom');
+            panel.find('.mtbl-accent-custom').val(customHex).show();
+        } else {
+            _tblApplyThemeTokensToPanel(panel, k);
+        }
+        fire();
+    });
+
+    panel.on('change.tblinline', '.mtbl-theme-custom-picker', function (e) {
+        e.stopPropagation();
+        var hex = $(this).val() || '#2563eb';
+        panel.find('.mtbl-theme-btn').removeClass('is-on').css({ 'border-color': 'rgba(0,0,0,.08)', 'background': '#fff' });
+        panel.find('.mtbl-theme-custom').addClass('is-on').css({ 'border-color': hex, 'background': 'rgba(37,99,235,.06)' });
+        panel.find('.mtbl-theme-custom-hdr').css('background', hex);
+        panel.find('.mtbl-theme-custom-acc').css('background', _mdashDarkenHex(hex, 0.14));
+        panel.find('.mtbl-hdrbg-token').val('custom');
+        panel.find('.mtbl-hdrbg-custom').val(hex).show();
+        panel.find('.mtbl-accent-token').val('custom');
+        panel.find('.mtbl-accent-custom').val(hex).show();
+        fire();
+    });
+
+    panel.on('change.tblinline', '.mtbl-color-token', function () {
+        var $wrap = $(this).closest('.mtbl-color-token-wrap');
+        var isCustom = $(this).val() === 'custom';
+        $wrap.find('input[type="color"]').toggle(isCustom);
+        if ($(this).hasClass('mtbl-gl-accent-token')) {
+            var color = isCustom ? $wrap.find('.mtbl-gl-accent-custom').val() : _tblResolveColorToken($(this).val(), '#64748b');
+            var $card = $(this).closest('.mtbl-gl');
+            $card.css('border-left-color', color);
+            $card.find('.mcbi-sr-badge').css('background', color);
+        }
         fire();
     });
 
     // Inputs change — apenas no 'change' (blur/Enter), NÃO em 'input'/keyup,
     // para evitar refresh constante da tabela enquanto se digita.
-    panel.on('change.tblinline', 'select, input[type="text"], input[type="number"], input[type="color"], textarea.mtbl-col-expr', function () {
+    panel.on('change.tblinline', 'select, input[type="text"], input[type="number"], textarea.mtbl-col-expr', function () {
+        if ($(this).hasClass('mtbl-color-token') || $(this).hasClass('mtbl-theme-custom-picker')) return;
         if ($(this).hasClass('mtbl-gl-field')) {
             var $card = $(this).closest('.mtbl-gl');
             var idx = $card.parent().find('.mtbl-gl').index($card) + 1;
             $card.find('.mcbi-sr-title').text($(this).val() || ('Nivel ' + idx));
         }
-        if ($(this).hasClass('mtbl-gl-accent')) {
+        if ($(this).hasClass('mtbl-gl-accent-custom')) {
             var $cardAccent = $(this).closest('.mtbl-gl');
-            var color = $(this).val() || '#64748b';
+            var color = _tblResolveColorToken($(this).val(), '#64748b');
             $cardAccent.css('border-left-color', color);
             $cardAccent.find('.mcbi-sr-badge').css('background', color);
         }
+        fire();
+    });
+
+    panel.on('change.tblinline', 'input[type="color"]:not(.mtbl-theme-custom-picker)', function () {
         fire();
     });
 
@@ -3547,8 +4211,8 @@ function renderTablePropertiesInline(obj, panel) {
         $list.find('.mcbi-info').remove();
         var idx = $list.children('.mtbl-gl').length;
         var defaultStyles = idx === 0
-            ? { field: newFields[0] || '', bg: '#eef4ff', text: '#d40032', accent: '#d40032', bullet: 'circle' }
-            : { field: newFields[idx] || newFields[0] || '', bg: '#f8fafc', text: '#334155', accent: '#64748b', bullet: 'diamond' };
+            ? { field: newFields[0] || '', bg: '#eef4ff', text: 'phc:primary', accent: 'phc:primary', bullet: 'circle' }
+            : { field: newFields[idx] || newFields[0] || '', bg: '#f8fafc', text: '#334155', accent: 'phc:info', bullet: 'diamond' };
         $list.append(_tblGroupLevelRow(defaultStyles, idx, newFields));
         fire();
     });
@@ -3592,7 +4256,7 @@ function renderTablePropertiesInline(obj, panel) {
         var $list = panel.find('.mtbl-col-list');
         $list.find('.mcbi-info').remove();
         var idx = $list.find('.mtbl-col-card').length;
-        $list.append(_tblColCard({ field: nextField, title: nextField, visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }, idx, newFields));
+        $list.append(_tblColCard({ field: nextField, title: nextField, visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }, idx, newFields, _mciGetFontes(obj), _tblGetDashboardFiltersList()));
         fire();
     });
 
@@ -3607,7 +4271,7 @@ function renderTablePropertiesInline(obj, panel) {
         $list.append(_tblGroupCard({
             title: 'Novo grupo',
             columns: [{ field: firstField, title: firstField || 'Coluna', visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }]
-        }, idx, newFields));
+        }, idx, newFields, _mciGetFontes(obj), _tblGetDashboardFiltersList()));
         fire();
     });
 
@@ -3625,7 +4289,7 @@ function renderTablePropertiesInline(obj, panel) {
         var $groupList = $(this).closest('.mtbl-col-group-card').find('.mtbl-group-col-list').first();
         $groupList.find('.mcbi-info').remove();
         var idx = $groupList.children('.mtbl-col-card').length;
-        $groupList.append(_tblColCard({ field: nextField, title: nextField, visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }, idx, newFields));
+        $groupList.append(_tblColCard({ field: nextField, title: nextField, visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }, idx, newFields, _mciGetFontes(obj), _tblGetDashboardFiltersList()));
         fire();
     });
 
@@ -3669,6 +4333,29 @@ function renderTablePropertiesInline(obj, panel) {
                 $card.find('.mtbl-col-conditional-summary').text(_tblConditionalSummary(parsed));
             }
         }
+        fire();
+    });
+
+    panel.on('change.tblinline', '.mtbl-col-title-mode, .mtbl-group-title-mode', function () {
+        var prefix = $(this).hasClass('mtbl-col-title-mode') ? 'mtbl-col-title' : 'mtbl-group-title';
+        _tblToggleTitleBindingPanel($(this).closest('.mtbl-title-binding'), prefix);
+        fire();
+    });
+
+    panel.on('change.tblinline', '.mtbl-col-title-source-fonte, .mtbl-group-title-source-fonte', function () {
+        var prefix = $(this).hasClass('mtbl-col-title-source-fonte') ? 'mtbl-col-title' : 'mtbl-group-title';
+        var fonteStamp = $(this).val();
+        var fonte = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === fonteStamp; });
+        var schemaFields = fonte ? _mciGetFonteSchema(fonte).map(function (s) { return s.field; }).filter(Boolean) : [];
+        var $binding = $(this).closest('.mtbl-title-binding');
+        $binding.find('.' + prefix + '-source-field').html('<option value="">-- campo --</option>'
+            + schemaFields.map(function (fieldName) {
+                return '<option value="' + _mciEsc(fieldName) + '">' + _mciEsc(fieldName) + '</option>';
+            }).join(''));
+        fire();
+    });
+
+    panel.on('input.tblinline change.tblinline', '.mtbl-col-title-text, .mtbl-col-title-expr, .mtbl-group-title-text, .mtbl-group-title-expr, .mtbl-col-title-filter, .mtbl-col-title-filter-part, .mtbl-col-title-source-field, .mtbl-group-title-filter, .mtbl-group-title-filter-part, .mtbl-group-title-source-field', function () {
         fire();
     });
 
@@ -3850,18 +4537,19 @@ function _tblBulletOpts(current) {
 function _tblRowStyleEditor(label, key, cfg) {
     return '<div style="margin-bottom:7px;padding:8px 9px;background:#f8fafc;border:1px solid rgba(0,0,0,.06);border-radius:7px;">'
         + '<div style="font-size:10.5px;font-weight:800;color:#334155;margin-bottom:6px;">' + label + '</div>'
-        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
+        + '<div class="mcbi-row2">'
         + '<div class="mcbi-field" style="margin:0;"><label style="font-size:10px;">Bullet</label><select class="mtbl-row-' + key + '-bullet form-control input-sm">' + _tblBulletOpts(cfg.bullet) + '</select></div>'
-        + '<div class="mcbi-field" style="margin:0;"><label style="font-size:10px;">Cor destaque</label><input type="color" class="mtbl-row-' + key + '-accent form-control input-sm" value="' + _mciEsc(cfg.accent) + '" style="width:42px;height:28px;padding:2px;"></div>'
-        + '<div class="mcbi-field" style="margin:0;"><label style="font-size:10px;">Fundo</label><input type="color" class="mtbl-row-' + key + '-bg form-control input-sm" value="' + _mciEsc(cfg.bg) + '" style="width:42px;height:28px;padding:2px;"></div>'
-        + '<div class="mcbi-field" style="margin:0;"><label style="font-size:10px;">Texto</label><input type="color" class="mtbl-row-' + key + '-text form-control input-sm" value="' + _mciEsc(cfg.text) + '" style="width:42px;height:28px;padding:2px;"></div>'
-        + '</div></div>';
+        + _tblColorTokenFieldHtml('Cor destaque', 'mtbl-row-' + key + '-accent', cfg.accent, true)
+        + '</div>'
+        + _tblColorTokenFieldHtml('Fundo', 'mtbl-row-' + key + '-bg', cfg.bg, false)
+        + _tblColorTokenFieldHtml('Texto', 'mtbl-row-' + key + '-text', cfg.text, false)
+        + '</div>';
 }
 
 function _tblGroupLevelRow(level, idx, fields) {
     var title = 'Nivel ' + (idx + 1);
     var field = level && level.field ? level.field : '';
-    var badgeColor = level && level.accent ? level.accent : '#64748b';
+    var badgeColor = _tblResolveColorToken(level && level.accent, '#64748b');
     var isOpen = idx === 0;
     return '<div class="mcbi-sr mtbl-gl' + (isOpen ? ' is-open' : '') + '" data-idx="' + idx + '" style="border-left-color:' + _mciEsc(badgeColor) + ';">'
         + '<div class="mcbi-sr-hd">'
@@ -3877,12 +4565,10 @@ function _tblGroupLevelRow(level, idx, fields) {
         + '<div class="mcbi-field"><label>Campo</label><select class="mtbl-gl-field form-control input-sm">' + _tblFieldOpts(fields, field) + '</select></div>'
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Bullet</label><select class="mtbl-gl-bullet form-control input-sm">' + _tblBulletOpts((level && level.bullet) || 'circle') + '</select></div>'
-        + '<div class="mcbi-field"><label>Cor destaque</label><input type="color" class="mtbl-gl-accent form-control input-sm" value="' + _mciEsc((level && level.accent) || '#64748b') + '" style="width:42px;height:28px;padding:2px;"></div>'
+        + _tblColorTokenFieldHtml('Cor destaque', 'mtbl-gl-accent', (level && level.accent) || 'phc:info', true)
         + '</div>'
-        + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Fundo</label><input type="color" class="mtbl-gl-bg form-control input-sm" value="' + _mciEsc((level && level.bg) || '#f8fafc') + '" style="width:42px;height:28px;padding:2px;"></div>'
-        + '<div class="mcbi-field"><label>Texto</label><input type="color" class="mtbl-gl-text form-control input-sm" value="' + _mciEsc((level && level.text) || '#334155') + '" style="width:42px;height:28px;padding:2px;"></div>'
-        + '</div>'
+        + _tblColorTokenFieldHtml('Fundo', 'mtbl-gl-bg', (level && level.bg) || '#f8fafc', false)
+        + _tblColorTokenFieldHtml('Texto', 'mtbl-gl-text', (level && level.text) || '#334155', false)
         + '</div>'
         + '</div>';
 }
@@ -3913,7 +4599,7 @@ function _tblManualRowCard(item, idx) {
         + '</div>';
 }
 
-function _tblColCard(col, idx, fields) {
+function _tblColCard(col, idx, fields, fontes, filters) {
     var isConditional = (col.formatter === 'conditional');
     var conditionalCfg = isConditional ? JSON.parse(JSON.stringify(col.conditional || _tblGetDeltaPercentConditionalTemplate(col.field))) : null;
     var isExpression = (col.formatter === 'expression');
@@ -3929,6 +4615,7 @@ function _tblColCard(col, idx, fields) {
     var isCustomColor = linkColor && linkColor.charAt(0) === '#';
     var customColorVal = isCustomColor ? linkColor : '#2563eb';
     var colorKey = isCustomColor ? 'custom' : (linkColor.indexOf('phc:') === 0 ? linkColor.replace('phc:', '') : 'primary');
+    var titleSummary = _tblTitleBindingSummary(_tblNormalizeTitleBinding(col));
     var PHC_BTN_COLORS = [
         { key: 'primary', label: 'Primary (azul)' },
         { key: 'success', label: 'Success (verde)' },
@@ -3940,20 +4627,20 @@ function _tblColCard(col, idx, fields) {
     ];
     return '<div class="mtbl-col-card" data-idx="' + idx + '" style="padding:8px;border:1px solid rgba(0,0,0,.08);border-radius:7px;margin-bottom:4px;background:#fafbfc;">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
-        + '<strong style="font-size:11px;color:#334155;">' + _mciEsc(col.title || col.field || 'Coluna') + '</strong>'
+        + '<strong style="font-size:11px;color:#334155;">' + _mciEsc(titleSummary) + '</strong>'
         + '<button type="button" class="mtbl-col-remove" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:13px;padding:0 2px;" title="Remover"><i class="glyphicon glyphicon-trash"></i></button>'
         + '</div>'
         + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">'
         + '<select class="mtbl-col-field form-control input-sm" style="font-size:10.5px;">'
         + fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (col.field === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join('')
         + '</select>'
-        + '<input type="text" class="mtbl-col-title form-control input-sm" value="' + _mciEsc(col.title || '') + '" placeholder="T\u00edtulo da coluna" style="font-size:10.5px;">'
         + '<select class="mtbl-col-align form-control input-sm" style="font-size:10.5px;">'
         + _TABLE_ALIGNS.map(function (a) { return '<option value="' + a.value + '"' + ((col.hozAlign || 'left') === a.value ? ' selected' : '') + '>' + a.label + '</option>'; }).join('')
         + '</select>'
-        + '<select class="mtbl-col-formatter form-control input-sm" style="font-size:10.5px;">'
+        + '<select class="mtbl-col-formatter form-control input-sm" style="font-size:10.5px;grid-column:1 / -1;">'
         + _TABLE_FORMATTERS.map(function (f) { return '<option value="' + f.value + '"' + ((col.formatter || 'plaintext') === f.value ? ' selected' : '') + '>' + f.label + '</option>'; }).join('')
         + '</select>'
+        + _tblTitleBindingEditorHtml(_tblNormalizeTitleBinding(col), 'mtbl-col-title', fontes, filters)
         + '</div>'
         + '<div class="mtbl-col-conditional-opts" style="margin-top:6px;padding:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;display:' + (isConditional ? 'block' : 'none') + ';">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;">'
@@ -3993,21 +4680,25 @@ function _tblColCard(col, idx, fields) {
         + '<label style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px;"><input type="checkbox" class="mtbl-col-visible"' + (col.visible !== false ? ' checked' : '') + '> Vis\u00edvel</label>'
         + '<label style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px;"><input type="checkbox" class="mtbl-col-frozen"' + (col.frozen ? ' checked' : '') + '> Congelar</label>'
         + '<label style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px;"><input type="checkbox" class="mtbl-col-filter"' + (col.headerFilter !== false ? ' checked' : '') + '> Filtro</label>'
-        + '</div></div>';
+        + '</div>'
+        + _tblColumnCellStyleEditorHtml(col.cellStyle)
+        + '</div>';
 }
 
-function _tblGroupCard(group, idx, fields) {
+function _tblGroupCard(group, idx, fields, fontes, filters) {
     var columns = Array.isArray(group.columns) ? group.columns : [];
     var html = '<div class="mtbl-col-group-card" data-idx="' + idx + '" style="padding:7px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:6px;background:#f1f5f9;">'
-        + '<div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;">'
-        + '<i class="glyphicon glyphicon-folder-open" style="color:#d40032;font-size:11px;"></i>'
-        + '<input type="text" class="mtbl-group-title form-control input-sm" value="' + _mciEsc(group.title || 'Grupo') + '" placeholder="Título do grupo" style="height:27px;font-size:11px;font-weight:700;">'
-        + '<button type="button" class="mtbl-group-remove" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:13px;padding:0 2px;" title="Remover grupo"><i class="glyphicon glyphicon-trash"></i></button>'
+        + '<div style="display:flex;align-items:flex-start;gap:5px;margin-bottom:6px;">'
+        + '<i class="glyphicon glyphicon-folder-open" style="color:#d40032;font-size:11px;margin-top:8px;"></i>'
+        + '<div style="flex:1;min-width:0;">'
+        + _tblTitleBindingEditorHtml(_tblNormalizeTitleBinding(group), 'mtbl-group-title', fontes, filters)
+        + '</div>'
+        + '<button type="button" class="mtbl-group-remove" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:13px;padding:0 2px;margin-top:6px;" title="Remover grupo"><i class="glyphicon glyphicon-trash"></i></button>'
         + '</div>'
         + '<div class="mtbl-group-col-list" style="padding-left:7px;border-left:2px solid #d40032;">';
     if (columns.length) {
         columns.forEach(function (col, colIdx) {
-            html += _tblColCard(col, colIdx, fields);
+            html += _tblColCard(col, colIdx, fields, fontes, filters);
         });
     } else {
         html += '<div class="mcbi-info" style="margin:2px 0 5px;">Adicione as subcolunas deste grupo.</div>';
@@ -4632,9 +5323,11 @@ function _tblOpenConditionalColumnModal(conditional, columnField, fields, onSave
 
 function _tblReadColumnCard($card) {
     var fmt = $card.find('.mtbl-col-formatter').val() || 'plaintext';
+    var titleBinding = _tblReadTitleBinding($card, 'mtbl-col-title');
     var colDef = {
         field: $card.find('.mtbl-col-field').val(),
-        title: $card.find('.mtbl-col-title').val(),
+        title: titleBinding.mode === 'text' ? titleBinding.text : (titleBinding.text || $card.find('.mtbl-col-field').val() || ''),
+        titleBinding: titleBinding,
         hozAlign: $card.find('.mtbl-col-align').val() || 'left',
         formatter: fmt,
         visible: $card.find('.mtbl-col-visible').is(':checked'),
@@ -4672,6 +5365,9 @@ function _tblReadColumnCard($card) {
         delete colDef.semantic;
         delete colDef.displayField;
     }
+    var cellStyle = _tblReadColumnCellStyle($card);
+    if (cellStyle) colDef.cellStyle = cellStyle;
+    else delete colDef.cellStyle;
     return colDef;
 }
 
@@ -4708,8 +5404,10 @@ function _tblReadConfig(panel, obj) {
         panel.find('.mtbl-col-list').children('.mtbl-col-card, .mtbl-col-group-card').each(function () {
             var $item = $(this);
             if ($item.hasClass('mtbl-col-group-card')) {
+                var groupBinding = _tblReadTitleBinding($item, 'mtbl-group-title');
                 var groupDef = {
-                    title: ($item.find('.mtbl-group-title').first().val() || 'Grupo').trim(),
+                    title: groupBinding.mode === 'text' ? groupBinding.text : (groupBinding.text || 'Grupo'),
+                    titleBinding: groupBinding,
                     headerHozAlign: 'center',
                     columns: []
                 };
@@ -4739,9 +5437,9 @@ function _tblReadConfig(panel, obj) {
         collectedLevels.push({
             field: $level.find('.mtbl-gl-field').val() || '',
             bullet: $level.find('.mtbl-gl-bullet').val() || 'circle',
-            accent: $level.find('.mtbl-gl-accent').val() || '#64748b',
-            bg: $level.find('.mtbl-gl-bg').val() || '#f8fafc',
-            text: $level.find('.mtbl-gl-text').val() || '#334155'
+            accent: _tblReadColorTokenField($level, 'mtbl-gl-accent'),
+            bg: _tblReadColorTokenField($level, 'mtbl-gl-bg'),
+            text: _tblReadColorTokenField($level, 'mtbl-gl-text')
         });
     });
     collectedLevels = collectedLevels.filter(function (level) { return level.field; });
@@ -4766,18 +5464,26 @@ function _tblReadConfig(panel, obj) {
         backgroundField: panel.find('.mtbl-row-bg-field').val() || '',
         textColorField: panel.find('.mtbl-row-text-field').val() || '',
         accentColorField: panel.find('.mtbl-row-accent-field').val() || '',
-        sectionBg: panel.find('.mtbl-row-section-bg').val() || '#eef4ff',
-        sectionText: panel.find('.mtbl-row-section-text').val() || '#d40032',
-        sectionAccent: panel.find('.mtbl-row-section-accent').val() || '#d40032',
+        sectionBg: _tblReadColorTokenField(panel, 'mtbl-row-section-bg'),
+        sectionText: _tblReadColorTokenField(panel, 'mtbl-row-section-text'),
+        sectionAccent: _tblReadColorTokenField(panel, 'mtbl-row-section-accent'),
         sectionBullet: panel.find('.mtbl-row-section-bullet').val() || 'circle',
-        subgroupBg: panel.find('.mtbl-row-subgroup-bg').val() || '#f8fafc',
-        subgroupText: panel.find('.mtbl-row-subgroup-text').val() || '#334155',
-        subgroupAccent: panel.find('.mtbl-row-subgroup-accent').val() || '#64748b',
+        subgroupBg: _tblReadColorTokenField(panel, 'mtbl-row-subgroup-bg'),
+        subgroupText: _tblReadColorTokenField(panel, 'mtbl-row-subgroup-text'),
+        subgroupAccent: _tblReadColorTokenField(panel, 'mtbl-row-subgroup-accent'),
         subgroupBullet: panel.find('.mtbl-row-subgroup-bullet').val() || 'diamond',
-        totalBg: panel.find('.mtbl-row-total-bg').val() || '#eef4ff',
-        totalText: panel.find('.mtbl-row-total-text').val() || '#0f172a',
-        totalAccent: panel.find('.mtbl-row-total-accent').val() || '#0f172a',
+        totalBg: _tblReadColorTokenField(panel, 'mtbl-row-total-bg'),
+        totalText: _tblReadColorTokenField(panel, 'mtbl-row-total-text'),
+        totalAccent: _tblReadColorTokenField(panel, 'mtbl-row-total-accent'),
         totalBullet: panel.find('.mtbl-row-total-bullet').val() || 'bar'
+    };
+
+    cfg.dataRowStyle = {
+        background: _tblReadColorTokenField(panel, 'mtbl-drs-bg'),
+        textColor: _tblReadColorTokenField(panel, 'mtbl-drs-text'),
+        fontSize: parseInt(panel.find('.mtbl-drs-fontsize').val(), 10) || 0,
+        fontWeight: panel.find('.mtbl-drs-fontweight').val() || '',
+        fontFamily: panel.find('.mtbl-drs-fontfamily').val() || ''
     };
 
     // Exporta\u00e7\u00e3o
@@ -4788,9 +5494,11 @@ function _tblReadConfig(panel, obj) {
 
     // Estilo
     cfg.styling = {
-        headerBg: panel.find('.mtbl-hdrbg').val() || '',
-        headerText: panel.find('.mtbl-hdrtext').val() || '#f8fafc',
-        accentColor: panel.find('.mtbl-accent').val() || '',
+        headerBg: _tblReadColorTokenField(panel, 'mtbl-hdrbg'),
+        headerText: _tblReadColorTokenField(panel, 'mtbl-hdrtext'),
+        accentColor: _tblReadColorTokenField(panel, 'mtbl-accent'),
+        rowEven: _tblReadColorTokenField(panel, 'mtbl-roweven'),
+        rowHover: _tblReadColorTokenField(panel, 'mtbl-rowhover'),
         borderRadius: parseInt(panel.find('.mtbl-radius').val(), 10) || 10,
         fontSize: parseInt(panel.find('.mtbl-fontsize').val(), 10) || 13
     };
