@@ -107,6 +107,7 @@ CREATE TABLE MdashContainerItem(
     gridrowspan INT DEFAULT 1,
     expressaoapresentacaodados TEXT DEFAULT '',
     slotsconfigjson TEXT DEFAULT '[]',
+    layoutpropsjson TEXT DEFAULT '{}',
     eventsconfigjson TEXT DEFAULT '{}',
 );
 
@@ -221,6 +222,7 @@ CREATE TABLE MdashContainerItemLayout(
     csstemplate TEXT DEFAULT '',                       -- CSS do template
     jstemplate TEXT DEFAULT '',                        -- JavaScript do template
     slotsdefinition TEXT DEFAULT '[]',                 -- JSON: definição dos slots editáveis [{id, label, type, defaultContent}]
+    propsdefinition TEXT DEFAULT '[]',               -- JSON: propriedades dinâmicas [{id, label, type, default, behaviors[]}]
     iconcdn TEXT DEFAULT '',                           -- URL do ícone/thumbnail CDN
     jscdns TEXT DEFAULT '[]',                          -- JSON: array de CDNs JS necessários
     csscdns TEXT DEFAULT '[]',                         -- JSON: array de CDNs CSS necessários
@@ -268,6 +270,26 @@ IF EXISTS (
 )
 BEGIN
     ALTER TABLE MdashFilter ALTER COLUMN mdashtabstamp VARCHAR(500) NOT NULL;
+END
+GO
+
+-- Layout Builder: schema de propriedades dinâmicas por layout (tipos + behaviors)
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'MdashContainerItemLayout') AND name = 'propsdefinition'
+)
+BEGIN
+    ALTER TABLE MdashContainerItemLayout ADD propsdefinition TEXT NOT NULL DEFAULT '[]';
+END
+GO
+
+-- Dashboard editor: valores das propriedades de layout por item
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'MdashContainerItem') AND name = 'layoutpropsjson'
+)
+BEGIN
+    ALTER TABLE MdashContainerItem ADD layoutpropsjson TEXT NOT NULL DEFAULT '{}';
 END
 GO
 

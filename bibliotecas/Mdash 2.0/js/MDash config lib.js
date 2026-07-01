@@ -86,6 +86,11 @@ function _clipSnapshot(entity) {
     return snap;
 }
 
+/** True quando o dashboard está a ser editado (não em mdash.html runtime). */
+function mdashIsEditorMode() {
+    return $('.mdash-editor-wrapper').length > 0;
+}
+
 /**
  * Copia a selecção actual (single ou multi) para o clipboard.
  * Se há multi-selecção, copia todos; senão copia o selectedComponent.
@@ -864,6 +869,7 @@ function renderContainerItemTemplate(item) {
             tipo: (template.UIData && template.UIData.tipo) || "primary",
             bodyContent: ""
         });
+        applyContainerItemLayoutProps(item, bodySelector);
     } else if (template && template.sampleHtml) {
         $body.html(template.sampleHtml);
     } else {
@@ -1578,13 +1584,50 @@ function MdashContainerItem(data) {
     this.slotsconfig = []; // array de MdashSlot — preenchido pelo initSlotsConfig()
     // -- Acções / eventos do item (modal, navegação, refresh, expressão JS) --
     this.eventsconfigjson = data.eventsconfigjson || '{}';
+    // -- Propriedades dinâmicas do layout (valores por item) --
+    this.layoutpropsjson = data.layoutpropsjson || '{}';
+    this.layoutprops = {};
     this.localsource = "GMDashContainerItems";
     this.idfield = "mdashcontaineritemstamp";
     this.table = "MdashContainerItem";
 
     // Inicializar slots a partir do JSON persistido
     this.initSlotsConfig();
+    this.initLayoutProps();
 }
+
+/**
+ * Inicializa this.layoutprops a partir do schema do layout + JSON persistido.
+ */
+MdashContainerItem.prototype.initLayoutProps = function () {
+    var schema = getLayoutPropsSchemaForItem(this);
+    var saved = forceJSONParse(this.layoutpropsjson, {});
+    var typeRegistry = getMdashLayoutPropTypeRegistry();
+    var merged = {};
+
+    schema.forEach(function (propDef) {
+        if (!propDef || !propDef.id) return;
+        var typeMeta = typeRegistry[propDef.type] || {};
+        var fallback = propDef.default !== undefined ? propDef.default : typeMeta.defaultValue;
+        merged[propDef.id] = saved.hasOwnProperty(propDef.id) ? saved[propDef.id] : fallback;
+    });
+
+    this.layoutprops = merged;
+};
+
+MdashContainerItem.prototype.stringifyLayoutProps = function () {
+    this.layoutpropsjson = JSON.stringify(this.layoutprops || {});
+};
+
+MdashContainerItem.prototype.setLayoutPropValue = function (propId, value, isExpression) {
+    if (!this.layoutprops) this.layoutprops = {};
+    if (isExpression) {
+        this.layoutprops[propId] = { expr: true, v: value };
+    } else {
+        this.layoutprops[propId] = value;
+    }
+    this.stringifyLayoutProps();
+};
 
 /**
  * Inicializa this.slotsconfig a partir do JSON persistido.
@@ -2034,7 +2077,8 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
                         transformConfig: self.transformConfig,
                         containerItem: containerItem,
                         data: resolved.data,
-                        isSample: resolved.isSample
+                        isSample: resolved.isSample,
+                        isEditor: mdashIsEditorMode()
                     });
                 } catch (renderError) {
                     console.error('[RenderObject] Erro ao renderizar objeto:', renderError);
@@ -2053,7 +2097,8 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
                         transformConfig: self.transformConfig,
                         containerItem: containerItem,
                         data: entry.getSampleData(),
-                        isSample: true
+                        isSample: true,
+                        isEditor: mdashIsEditorMode()
                     });
                 } catch (renderError) {
                     console.error('[RenderObject] Erro ao renderizar objeto com dados de amostra:', renderError);
@@ -2597,6 +2642,798 @@ MdashSlot.prototype.applyToElement = function ($el) {
 };
 
 // ============================================================================
+// LAYOUT PROPS — tipos dinâmicos, behaviors e runtime
+// ============================================================================
+// O designer define propriedades (só tipo + label + default) e behaviors no
+// Layout Builder. No editor, ao seleccionar um item com esse layout, aparecem
+// os campos correspondentes. Em runtime os behaviors aplicam o valor resolvido.
+
+function getMdashLayoutPropTypeRegistry() {
+    var registry = {};
+    registry['color'] = { label: 'Cor', editor: 'color', defaultValue: 'var(--md-primary)' };
+    registry['text'] = { label: 'Texto', editor: 'text', defaultValue: '' };
+    registry['number'] = { label: 'Número', editor: 'number', defaultValue: 0 };
+    registry['boolean'] = { label: 'Booleano', editor: 'checkbox', defaultValue: false };
+    registry['icon'] = { label: 'Ícone', editor: 'icon', defaultValue: 'star' };
+    registry['select'] = { label: 'Selecção', editor: 'select', defaultValue: '' };
+    return registry;
+}
+
+/** Cores do tema MDash + tokens PHC para propriedades de layout tipo cor */
+function getMdashLayoutThemeColorOptions() {
+    return [
+        { value: 'var(--md-primary)', label: 'Principal' },
+        { value: 'var(--md-surface)', label: 'Superfície' },
+        { value: 'var(--md-bg)', label: 'Fundo' },
+        { value: 'var(--md-text)', label: 'Texto' },
+        { value: 'var(--md-muted)', label: 'Secundário' },
+        { value: 'var(--md-border)', label: 'Borda' },
+        { value: 'primary', label: 'PHC Primary' },
+        { value: 'success', label: 'PHC Success' },
+        { value: 'info', label: 'PHC Info' },
+        { value: 'warning', label: 'PHC Warning' },
+        { value: 'danger', label: 'PHC Danger' },
+        { value: 'default', label: 'PHC Default' }
+    ];
+}
+window.getMdashLayoutThemeColorOptions = getMdashLayoutThemeColorOptions;
+
+function mdashResolveColorValue(val) {
+    if (val == null || val === '') return val;
+    var s = String(val);
+    if (s.charAt(0) === '#' || s.indexOf('rgb') === 0 || s.indexOf('hsl') === 0) return s;
+    if (s.indexOf('var(') === 0) {
+        var tokens = typeof getMdashThemeTokens === 'function' ? getMdashThemeTokens() : {};
+        if (s === 'var(--md-primary)') return tokens.primary || '#2563eb';
+        if (s === 'var(--md-surface)') return tokens.surface || '#ffffff';
+        if (s === 'var(--md-bg)') return tokens.bg || '#f3f6fb';
+        if (s === 'var(--md-text)') return tokens.text || '#1f2937';
+        if (s === 'var(--md-muted)') return tokens.muted || '#64748b';
+        if (s === 'var(--md-border)') return tokens.border || 'rgba(15,23,42,0.08)';
+        return s;
+    }
+    try {
+        if (typeof getColorByType === 'function') {
+            var c = getColorByType(s);
+            if (c && c.background) return c.background;
+        }
+    } catch (e) { /* fallback */ }
+    return s;
+}
+window.mdashResolveColorValue = mdashResolveColorValue;
+
+function mdashResolveLayoutColorForCss(val) {
+    if (val == null || val === '') return val;
+    var s = String(val);
+    if (s.indexOf('var(') === 0) return s;
+    return mdashResolveColorValue(val);
+}
+
+/**
+ * Resolve tokens de tema {{...}} dentro do CSS de um layout (design tokens do PHC).
+ * Whitelist (sem eval — seguro):
+ *   {{primary}} {{warning}} {{success}} {{danger}} {{info}}  -> getColorByType(x).background
+ *   {{primary.text}}                                          -> cor de texto do tema
+ *   {{primary.rgb}}                                           -> "r,g,b" (para rgba()/gradientes)
+ *   {{getColorByType("warning")}}  {{getColorByType('x').text}}
+ *   {{self}} {{self.text}} {{self.rgb}}                       -> usa context.tipo (tipo do card)
+ *   {{var(--md-primary)}}                                     -> passthrough da CSS var
+ * Tokens não reconhecidos ficam intactos (com aviso na consola).
+ *
+ * Os tokens são guardados tal-e-qual na BD e resolvidos no render, por isso
+ * acompanham automaticamente o tema PHC.
+ */
+function mdashResolveThemeTokensInCss(css, context) {
+    if (!css || String(css).indexOf('{{') === -1) return css || '';
+    context = context || {};
+    var selfType = context.tipo || context.type || 'primary';
+
+    function colorFor(type) {
+        type = String(type || '').trim();
+        if (type === 'self') type = selfType;
+        if (!type) return null;
+        try {
+            if (typeof getCachedColor === 'function') return getCachedColor(type);
+            if (typeof getColorByType === 'function') return getColorByType(type);
+        } catch (e) { /* fallback */ }
+        return null;
+    }
+
+    function resolve(type, part) {
+        var c = colorFor(type);
+        if (!c) return null;
+        part = (part || 'background').toLowerCase();
+        if (part === 'text' || part === 'color') return c.text || '';
+        if (part === 'rgb') {
+            var bg = c.background || '';
+            return (typeof hexToRgb === 'function') ? hexToRgb(bg) : bg;
+        }
+        return c.background || '';
+    }
+
+    return String(css).replace(/\{\{\s*([^}]+?)\s*\}\}/g, function (full, expr) {
+        expr = String(expr).trim();
+        if (/^var\(\s*--/.test(expr)) return expr;
+        var m = expr.match(/^getColorByType\(\s*['"]([^'"]+)['"]\s*\)(?:\s*\.\s*(background|text|rgb|color))?$/i);
+        if (m) { var r1 = resolve(m[1], m[2]); return r1 != null ? r1 : full; }
+        var m2 = expr.match(/^([a-zA-Z_][\w-]*)(?:\s*\.\s*(background|text|rgb|color))?$/);
+        if (m2) { var r2 = resolve(m2[1], m2[2]); return r2 != null ? r2 : full; }
+        if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[MDash] token de tema não reconhecido no CSS: {{' + expr + '}}');
+        }
+        return full;
+    });
+}
+window.mdashResolveThemeTokensInCss = mdashResolveThemeTokensInCss;
+
+function mdashLayoutColorSwatchStyle(value) {
+    var resolved = mdashResolveColorValue(value || '#cccccc');
+    return 'background:' + resolved + ';';
+}
+
+function mdashIsCustomLayoutColorValue(value) {
+    if (value == null || value === '') return true;
+    var s = String(value);
+    if (s.charAt(0) === '#') return true;
+    if (s.indexOf('rgb') === 0 || s.indexOf('hsl') === 0) return true;
+    var opts = getMdashLayoutThemeColorOptions();
+    for (var i = 0; i < opts.length; i++) {
+        if (opts[i].value === s) return false;
+    }
+    return true;
+}
+
+function mdashLayoutColorPickerCustomHex(value) {
+    if (typeof value === 'string' && value.charAt(0) === '#') return value;
+    return '#3b82f6';
+}
+
+function buildMdashLayoutColorPickerHtml(value, inputId, includeThemeColors) {
+    inputId = inputId || 'mdash-layout-color-value';
+    value = value != null ? value : 'var(--md-primary)';
+    if (includeThemeColors === undefined) includeThemeColors = true;
+    var options = includeThemeColors ? getMdashLayoutThemeColorOptions() : [];
+    var html = '<div class="mdash-layout-color-picker" data-color-input-id="' + inputId + '">';
+    if (includeThemeColors) {
+        html += '<div class="mdash-tab-editor-title" style="margin-bottom:4px;">Cores do tema</div>';
+    }
+    html += '<div class="mdash-tab-editor-colors">';
+    var i;
+    for (i = 0; i < options.length; i++) {
+        var opt = options[i];
+        var isOn = value === opt.value ? ' is-active' : '';
+        html += '<button type="button" class="mdash-phc-color-option mdash-layout-theme-color' + isOn + '" data-theme-color="' + opt.value + '" style="' + mdashLayoutColorSwatchStyle(opt.value) + '" title="' + opt.label + '"></button>';
+    }
+    var customOn = mdashIsCustomLayoutColorValue(value) ? ' is-active' : '';
+    var customHex = mdashLayoutColorPickerCustomHex(value);
+    html += '<label class="mdash-phc-color-custom mdash-layout-custom-color' + customOn + '" style="' + mdashLayoutColorSwatchStyle(customHex) + '" title="Cor personalizada">';
+    html += '<i class="glyphicon glyphicon-tint"></i>';
+    html += '<input type="color" class="mdash-layout-color-native" value="' + customHex + '" />';
+    html += '</label>';
+    html += '</div>';
+    html += '<input type="hidden" class="mdash-layout-color-value" id="' + inputId + '" value="' + value + '" />';
+    html += '</div>';
+    return html;
+}
+
+function bindMdashLayoutColorPicker($root, onChange) {
+    if (!$root || !$root.length) return;
+    $root.off('click.mdashLayoutColor', '.mdash-layout-theme-color');
+    $root.on('click.mdashLayoutColor', '.mdash-layout-theme-color', function () {
+        var val = $(this).data('theme-color');
+        var $picker = $(this).closest('.mdash-layout-color-picker');
+        $picker.find('.mdash-layout-theme-color, .mdash-layout-custom-color').removeClass('is-active');
+        $(this).addClass('is-active');
+        $picker.find('.mdash-layout-color-value').val(val).trigger('change');
+        if (typeof onChange === 'function') onChange(val);
+    });
+    $root.off('input.mdashLayoutColor change.mdashLayoutColor', '.mdash-layout-color-native');
+    $root.on('input.mdashLayoutColor change.mdashLayoutColor', '.mdash-layout-color-native', function () {
+        var val = $(this).val();
+        var $picker = $(this).closest('.mdash-layout-color-picker');
+        $picker.find('.mdash-layout-theme-color, .mdash-layout-custom-color').removeClass('is-active');
+        $picker.find('.mdash-layout-custom-color').addClass('is-active').css('background', val);
+        $picker.find('.mdash-layout-color-value').val(val).trigger('change');
+        if (typeof onChange === 'function') onChange(val);
+    });
+}
+window.buildMdashLayoutColorPickerHtml = buildMdashLayoutColorPickerHtml;
+window.bindMdashLayoutColorPicker = bindMdashLayoutColorPicker;
+
+// ============================================================================
+// Fontes de valor de propriedade (tema / classe / personalizada)
+// ----------------------------------------------------------------------------
+// A "fonte" é uma característica transversal a qualquer propriedade: o valor
+// pode vir do tema PHC, de uma classe predefinida (variante) ou de um valor
+// personalizado. Guardamos { src: 'theme'|'class'|'custom', value: '...' }.
+// ============================================================================
+
+/** Normaliza a config de fontes de uma propriedade (com retrocompat do legacy). */
+function mdashGetPropSources(propDef) {
+    propDef = propDef || {};
+    var raw = propDef.sources;
+    var classesOpts = [];
+    var classPrefix = '';
+    var themeOn, customOn, classesOn;
+
+    if (raw && typeof raw === 'object') {
+        // se theme existir como objecto respeita enabled, senão desligado
+        themeOn = raw.theme ? (raw.theme.enabled !== false) : false;
+        customOn = raw.custom ? (raw.custom.enabled !== false) : false;
+        if (raw.classes) {
+            classesOn = raw.classes.enabled !== false;
+            classPrefix = raw.classes.classPrefix || '';
+            classesOpts = Array.isArray(raw.classes.options) ? raw.classes.options : [];
+        } else {
+            classesOn = false;
+        }
+    } else {
+        // Legacy: só existia includeThemeColors + custom para cor
+        themeOn = propDef.includeThemeColors !== false;
+        customOn = true;
+        classesOn = false;
+    }
+
+    return {
+        theme: { enabled: !!themeOn },
+        classes: { enabled: !!classesOn, classPrefix: classPrefix, options: classesOpts },
+        custom: { enabled: !!customOn }
+    };
+}
+window.mdashGetPropSources = mdashGetPropSources;
+
+/** Infere/normaliza o valor guardado de uma propriedade para { src, value }. */
+function mdashGetPropSourceValue(stored, propDef) {
+    var sources = mdashGetPropSources(propDef);
+
+    // Já vem com fonte explícita
+    if (stored && typeof stored === 'object' && !Array.isArray(stored) && stored.src) {
+        return { src: stored.src, value: stored.value };
+    }
+
+    var value = stored;
+    var def = propDef ? propDef.default : undefined;
+    if (value === undefined || value === null || value === '') {
+        if (def && typeof def === 'object' && def.src) return { src: def.src, value: def.value };
+        value = def;
+    }
+
+    var s = value != null ? String(value) : '';
+
+    // Corresponde a uma classe predefinida?
+    if (sources.classes.enabled) {
+        for (var i = 0; i < sources.classes.options.length; i++) {
+            var ov = sources.classes.options[i] && sources.classes.options[i].value;
+            if (ov != null && String(ov) === s) return { src: 'class', value: s };
+        }
+    }
+
+    // Token de tema (var(...) ou nome de cor do tema)
+    if (s.indexOf('var(') === 0) return { src: 'theme', value: s };
+    if (typeof getMdashLayoutThemeColorOptions === 'function') {
+        var topts = getMdashLayoutThemeColorOptions();
+        for (var j = 0; j < topts.length; j++) {
+            if (topts[j].value === s) return { src: 'theme', value: s };
+        }
+    }
+
+    return { src: 'custom', value: s };
+}
+window.mdashGetPropSourceValue = mdashGetPropSourceValue;
+
+function mdashSrcEscapeAttr(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Selector unificado de cor para o editor do dashboard.
+ * Combina, numa única lista: cores do tema PHC, estilos predefinidos (classes)
+ * e cor personalizada — conforme as fontes activadas na definição da propriedade.
+ */
+function buildMdashLayoutColorSourcePickerHtml(propDef, sv, inputId) {
+    inputId = inputId || 'mdash-layout-src-value';
+    var sources = mdashGetPropSources(propDef);
+    sv = sv || { src: 'theme', value: 'var(--md-primary)' };
+
+    var html = '<div class="mdash-layout-source-picker" data-source-input-id="' + inputId + '">';
+
+    if (sources.theme.enabled) {
+        html += '<div class="mdash-src-group-title">Cores do tema</div>';
+        html += '<div class="mdash-src-swatches">';
+        var opts = getMdashLayoutThemeColorOptions();
+        for (var i = 0; i < opts.length; i++) {
+            var onT = (sv.src === 'theme' && sv.value === opts[i].value) ? ' is-active' : '';
+            html += '<button type="button" class="mdash-phc-color-option mdash-src-theme-opt' + onT + '" data-value="' + mdashSrcEscapeAttr(opts[i].value) + '" style="' + mdashLayoutColorSwatchStyle(opts[i].value) + '" title="' + mdashSrcEscapeAttr(opts[i].label) + '"></button>';
+        }
+        html += '</div>';
+    }
+
+    if (sources.classes.enabled && sources.classes.options.length) {
+        html += '<div class="mdash-src-group-title">Estilos predefinidos</div>';
+        html += '<div class="mdash-src-chips">';
+        for (var j = 0; j < sources.classes.options.length; j++) {
+            var o = sources.classes.options[j];
+            var val = (o && o.value != null) ? o.value : '';
+            var lbl = (o && o.label) ? o.label : val;
+            var onC = (sv.src === 'class' && String(sv.value) === String(val)) ? ' is-active' : '';
+            var dot = o && o.color ? ('background:' + o.color + ';') : '';
+            html += '<button type="button" class="mdash-src-class-chip' + onC + '" data-value="' + mdashSrcEscapeAttr(val) + '" title="' + mdashSrcEscapeAttr(lbl) + '"><span class="mdash-src-chip-dot" style="' + dot + '"></span><span class="mdash-src-chip-lbl">' + mdashSrcEscapeAttr(lbl) + '</span></button>';
+        }
+        html += '</div>';
+    }
+
+    if (sources.custom.enabled) {
+        html += '<div class="mdash-src-group-title">Personalizada</div>';
+        html += '<div class="mdash-src-swatches">';
+        var customHex = mdashLayoutColorPickerCustomHex(sv.src === 'custom' ? sv.value : '#3b82f6');
+        var onCust = sv.src === 'custom' ? ' is-active' : '';
+        html += '<label class="mdash-phc-color-custom mdash-src-custom' + onCust + '" style="' + mdashLayoutColorSwatchStyle(customHex) + '" title="Cor personalizada"><i class="glyphicon glyphicon-tint"></i><input type="color" class="mdash-src-custom-native" value="' + customHex + '" /></label>';
+        html += '</div>';
+    }
+
+    html += '<input type="hidden" class="mdash-layout-prop-input mdash-layout-prop-source-value" data-prop-id="' + (propDef && propDef.id) + '" id="' + inputId + '" value="' + mdashSrcEscapeAttr(JSON.stringify(sv)) + '" />';
+    html += '</div>';
+    return html;
+}
+window.buildMdashLayoutColorSourcePickerHtml = buildMdashLayoutColorSourcePickerHtml;
+
+function bindMdashLayoutColorSourcePicker($root) {
+    if (!$root || !$root.length) return;
+    function commit($btn, sv) {
+        var $picker = $btn.closest('.mdash-layout-source-picker');
+        $picker.find('.is-active').removeClass('is-active');
+        $picker.find('.mdash-layout-prop-source-value').val(JSON.stringify(sv)).trigger('change');
+        return $picker;
+    }
+    $root.off('click.mdashSrc', '.mdash-src-theme-opt')
+        .on('click.mdashSrc', '.mdash-src-theme-opt', function () {
+            commit($(this), { src: 'theme', value: String($(this).attr('data-value')) });
+            $(this).addClass('is-active');
+        });
+    $root.off('click.mdashSrc', '.mdash-src-class-chip')
+        .on('click.mdashSrc', '.mdash-src-class-chip', function () {
+            commit($(this), { src: 'class', value: String($(this).attr('data-value')) });
+            $(this).addClass('is-active');
+        });
+    $root.off('input.mdashSrc change.mdashSrc', '.mdash-src-custom-native')
+        .on('input.mdashSrc change.mdashSrc', '.mdash-src-custom-native', function () {
+            var val = $(this).val();
+            var $picker = commit($(this), { src: 'custom', value: val });
+            $picker.find('.mdash-src-custom').addClass('is-active').css('background', val);
+        });
+}
+window.bindMdashLayoutColorSourcePicker = bindMdashLayoutColorSourcePicker;
+
+/** Lista curada de ícones Material Symbols para o seletor visual. */
+function getMdashLayoutIconOptions() {
+    return [
+        { value: 'dashboard', label: 'Dashboard' },
+        { value: 'analytics', label: 'Analytics' },
+        { value: 'monitoring', label: 'Monitoring' },
+        { value: 'trending_up', label: 'Tendência subir' },
+        { value: 'trending_down', label: 'Tendência descer' },
+        { value: 'bar_chart', label: 'Gráfico barras' },
+        { value: 'pie_chart', label: 'Gráfico circular' },
+        { value: 'show_chart', label: 'Gráfico linhas' },
+        { value: 'timeline', label: 'Timeline' },
+        { value: 'leaderboard', label: 'Leaderboard' },
+        { value: 'speed', label: 'Velocímetro' },
+        { value: 'percent', label: 'Percentagem' },
+        { value: 'check_circle', label: 'Verificado' },
+        { value: 'task_alt', label: 'Tarefa OK' },
+        { value: 'cancel', label: 'Cancelar' },
+        { value: 'warning', label: 'Aviso' },
+        { value: 'error', label: 'Erro' },
+        { value: 'info', label: 'Informação' },
+        { value: 'star', label: 'Estrela' },
+        { value: 'favorite', label: 'Coração' },
+        { value: 'bolt', label: 'Raio' },
+        { value: 'verified', label: 'Verificado' },
+        { value: 'rocket_launch', label: 'Foguetão' },
+        { value: 'schedule', label: 'Relógio' },
+        { value: 'calendar_month', label: 'Calendário' },
+        { value: 'person', label: 'Pessoa' },
+        { value: 'group', label: 'Grupo' },
+        { value: 'shopping_cart', label: 'Carrinho' },
+        { value: 'attach_money', label: 'Dinheiro' },
+        { value: 'euro', label: 'Euro' },
+        { value: 'payments', label: 'Pagamentos' },
+        { value: 'account_balance', label: 'Banco' },
+        { value: 'savings', label: 'Poupança' },
+        { value: 'receipt_long', label: 'Recibo' },
+        { value: 'inventory_2', label: 'Inventário' },
+        { value: 'local_shipping', label: 'Envio' },
+        { value: 'assignment', label: 'Tarefa' },
+        { value: 'description', label: 'Documento' },
+        { value: 'folder', label: 'Pasta' },
+        { value: 'home', label: 'Início' },
+        { value: 'settings', label: 'Definições' },
+        { value: 'notifications', label: 'Notificação' },
+        { value: 'mail', label: 'Correio' },
+        { value: 'phone', label: 'Telefone' },
+        { value: 'location_on', label: 'Localização' },
+        { value: 'flag', label: 'Bandeira' },
+        { value: 'thumb_up', label: 'Gosto' },
+        { value: 'visibility', label: 'Visível' },
+        { value: 'search', label: 'Procurar' }
+    ];
+}
+window.getMdashLayoutIconOptions = getMdashLayoutIconOptions;
+
+/** Garante que a fonte Material Symbols está carregada (para o seletor fora do card). */
+function mdashEnsureMaterialSymbolsFont() {
+    if (document.getElementById('mdash-material-symbols-font')) return;
+    try {
+        var link = document.createElement('link');
+        link.id = 'mdash-material-symbols-font';
+        link.rel = 'stylesheet';
+        link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200';
+        document.head.appendChild(link);
+    } catch (e) { /* offline / intranet — ignora */ }
+}
+
+/** Normaliza a classe de fonte de ícone usada por um layout. */
+function mdashNormalizeIconClass(iconClass) {
+    var c = $.trim(String(iconClass || ''));
+    if (!c) return 'material-symbols-rounded';
+    var m = c.match(/material-symbols-(rounded|outlined|sharp)/);
+    if (m) return m[0];
+    if (/material-symbols/.test(c)) return 'material-symbols-outlined';
+    if (/material-icons/.test(c)) return 'material-icons';
+    return c;
+}
+
+/**
+ * @param {string} value      nome/ligatura do ícone selecionado
+ * @param {string} inputId    id do input escondido
+ * @param {string} iconClass  classe de fonte do layout (ex: material-symbols-rounded).
+ *                            Por defeito material-symbols-rounded; varia conforme o layout.
+ */
+function buildMdashLayoutIconPickerHtml(value, inputId, iconClass) {
+    inputId = inputId || 'mdash-layout-icon-value';
+    value = value != null ? String(value) : '';
+    iconClass = mdashNormalizeIconClass(iconClass);
+    mdashEnsureMaterialSymbolsFont();
+    var options = getMdashLayoutIconOptions();
+    var html = '<div class="mdash-layout-icon-picker" data-icon-input-id="' + inputId + '" data-icon-class="' + iconClass + '">';
+    html += '<div class="mdash-layout-icon-search"><span class="' + iconClass + '">search</span>';
+    html += '<input type="text" class="mdash-layout-icon-filter" placeholder="Procurar \u00edcone..." /></div>';
+    html += '<div class="mdash-layout-icon-grid">';
+    for (var i = 0; i < options.length; i++) {
+        var opt = options[i];
+        var on = value === opt.value ? ' is-active' : '';
+        html += '<button type="button" class="mdash-layout-icon-btn' + on + '" data-icon="' + opt.value + '" title="' + opt.label + '"><span class="' + iconClass + '">' + opt.value + '</span></button>';
+    }
+    html += '</div>';
+    html += '<div class="mdash-layout-icon-current"><span class="mdash-layout-icon-current-lbl">Selecionado:</span> <span class="' + iconClass + ' mdash-layout-icon-preview">' + (value || 'help') + '</span> <code class="mdash-layout-icon-name">' + (value || '\u2014') + '</code></div>';
+    html += '<input type="hidden" class="mdash-layout-icon-value" id="' + inputId + '" value="' + value + '" />';
+    html += '</div>';
+    return html;
+}
+window.mdashNormalizeIconClass = mdashNormalizeIconClass;
+
+function bindMdashLayoutIconPicker($root, onChange) {
+    if (!$root || !$root.length) return;
+    $root.off('click.mdashLayoutIcon', '.mdash-layout-icon-btn').on('click.mdashLayoutIcon', '.mdash-layout-icon-btn', function () {
+        var val = $(this).data('icon');
+        var $picker = $(this).closest('.mdash-layout-icon-picker');
+        $picker.find('.mdash-layout-icon-btn').removeClass('is-active');
+        $(this).addClass('is-active');
+        $picker.find('.mdash-layout-icon-value').val(val).trigger('change');
+        $picker.find('.mdash-layout-icon-preview').text(val);
+        $picker.find('.mdash-layout-icon-name').text(val);
+        if (typeof onChange === 'function') onChange(val);
+    });
+    $root.off('input.mdashLayoutIcon', '.mdash-layout-icon-filter').on('input.mdashLayoutIcon', '.mdash-layout-icon-filter', function () {
+        var q = ($(this).val() || '').toLowerCase();
+        var $picker = $(this).closest('.mdash-layout-icon-picker');
+        $picker.find('.mdash-layout-icon-btn').each(function () {
+            var name = ('' + ($(this).data('icon') || '')).toLowerCase();
+            var title = ($(this).attr('title') || '').toLowerCase();
+            $(this).toggle(name.indexOf(q) >= 0 || title.indexOf(q) >= 0);
+        });
+    });
+}
+window.buildMdashLayoutIconPickerHtml = buildMdashLayoutIconPickerHtml;
+window.bindMdashLayoutIconPicker = bindMdashLayoutIconPicker;
+
+function getMdashLayoutPropBehaviorRegistry() {
+    return {
+        setCssVariable: {
+            label: 'Definir variável CSS',
+            fields: [
+                { key: 'varName', label: 'Variável CSS', placeholder: '--md-accent' }
+            ]
+        },
+        setCssProperty: {
+            label: 'Definir propriedade CSS',
+            fields: [
+                { key: 'property', label: 'Propriedade', placeholder: 'background-color' }
+            ]
+        },
+        setIcon: {
+            label: 'Definir ícone',
+            fields: [
+                { key: 'iconLibrary', label: 'Biblioteca', placeholder: 'material | glyphicon | fa' }
+            ]
+        },
+        setAttribute: {
+            label: 'Definir atributo HTML',
+            fields: [
+                { key: 'attribute', label: 'Atributo', placeholder: 'data-variant' }
+            ]
+        },
+        setClass: {
+            label: 'Definir classe CSS',
+            fields: [
+                { key: 'classPrefix', label: 'Prefixo (opcional)', placeholder: 'm-card--' },
+                { key: 'mode', label: 'Modo', placeholder: 'replace | append' }
+            ]
+        },
+        toggleClass: {
+            label: 'Alternar classe por valor',
+            fields: [
+                { key: 'classPrefix', label: 'Prefixo', placeholder: 'm-card--' }
+            ]
+        },
+        setText: {
+            label: 'Definir texto',
+            fields: []
+        }
+    };
+}
+
+function parseLayoutPropsDefinition(layoutOrJson) {
+    if (!layoutOrJson) return [];
+    if (Array.isArray(layoutOrJson)) return layoutOrJson;
+    if (Array.isArray(layoutOrJson.props)) return layoutOrJson.props;
+    var raw = layoutOrJson.propsdefinition || layoutOrJson.propsDefinition || '[]';
+    return forceJSONParse(raw, []);
+}
+
+function getLayoutPropsSchemaForTemplate(template) {
+    if (!template) return [];
+    if (Array.isArray(template.props) && template.props.length) return template.props;
+    var fromDef = parseLayoutPropsDefinition(template);
+    if (fromDef.length) return fromDef;
+    if (template.layoutStamp && Array.isArray(GMDashContainerItemLayouts)) {
+        var layout = GMDashContainerItemLayouts.find(function (l) {
+            return l && l.mdashcontaineritemlayoutstamp === template.layoutStamp;
+        });
+        if (layout) return parseLayoutPropsDefinition(layout);
+    }
+    return [];
+}
+
+function getLayoutPropsSchemaForItem(containerItem) {
+    if (!containerItem) return [];
+    var template = getTemplateLayoutByCode(containerItem.templatelayout);
+    return getLayoutPropsSchemaForTemplate(template);
+}
+
+function mdashNormalizeLayoutPropStorage(raw) {
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && raw.expr) {
+        return { isExpression: true, value: raw.v != null ? raw.v : '' };
+    }
+    return { isExpression: false, value: raw };
+}
+
+function mdashCoerceLayoutPropValue(propDef, value) {
+    var type = (propDef && propDef.type) || 'text';
+    if (value === undefined || value === null) value = propDef ? propDef.default : '';
+    if (type === 'number') return parseFloat(value) || 0;
+    if (type === 'boolean') return value === true || value === 'true' || value === 1 || value === '1';
+    return value;
+}
+
+function resolveLayoutPropValue(propDef, storedValue, context) {
+    context = context || {};
+    var norm = mdashNormalizeLayoutPropStorage(storedValue);
+    var val;
+    if (norm.isExpression) {
+        try {
+            var fn = new Function(
+                'item', 'data', 'props', 'filters', 'Math', 'Number', 'String', 'Date',
+                'return (' + norm.value + ');'
+            );
+            val = fn(
+                context.item || {},
+                context.data || {},
+                context.props || {},
+                context.filters || {},
+                Math, Number, String, Date
+            );
+        } catch (err) {
+            console.warn('[MDash] expressão da propriedade de layout falhou:', propDef.id, err);
+            val = propDef.default;
+        }
+    } else {
+        val = storedValue !== undefined && storedValue !== null ? storedValue : propDef.default;
+    }
+    return mdashCoerceLayoutPropValue(propDef, val);
+}
+
+function resolveAllLayoutPropValues(schema, layoutProps, context) {
+    var resolved = {};
+    (schema || []).forEach(function (propDef) {
+        if (!propDef || !propDef.id) return;
+        var stored = layoutProps ? layoutProps[propDef.id] : undefined;
+        resolved[propDef.id] = resolveLayoutPropValue(propDef, stored, Object.assign({}, context, { props: resolved }));
+    });
+    return resolved;
+}
+
+function mdashResolveLayoutPropTargets($scope, targetSelector) {
+    var sel = (targetSelector || '').trim();
+    if (!sel || sel === ':scope' || sel === ':root') return $scope;
+    var $found = $scope.find(sel);
+    if (!$found.length && $scope.is(sel)) return $scope;
+    return $found;
+}
+
+function applyLayoutPropBehavior($targets, behavior, value, propDef) {
+    if (!$targets || !$targets.length || !behavior) return;
+    var kind = behavior.kind || behavior.type;
+    var behaviorRegistry = getMdashLayoutPropBehaviorRegistry();
+
+    $targets.each(function () {
+        var el = this;
+        var $el = $(el);
+
+        if (kind === 'setCssVariable') {
+            var varName = behavior.varName || behavior.param || ('--md-prop-' + (propDef.id || 'value'));
+            el.style.setProperty(varName, value);
+            return;
+        }
+        if (kind === 'setCssProperty') {
+            var cssProp = behavior.property || behavior.param || 'color';
+            var cssVal = value;
+            if (propDef && propDef.type === 'color') {
+                cssVal = mdashResolveLayoutColorForCss(value);
+            }
+            $el.css(cssProp, cssVal);
+            return;
+        }
+        if (kind === 'setIcon') {
+            var iconVal = String(value || '');
+            if (/^(material-symbols(-(rounded|outlined|sharp))?|material-icons)$/.test(iconVal.trim())) {
+                return;
+            }
+            var lib = (behavior.iconLibrary || 'material').toLowerCase();
+            var iconSelector = 'i, .material-icons, [class*="material-symbols"], .fa';
+            var $icon = $el.is(iconSelector) ? $el : $el.find(iconSelector).first();
+            if (!$icon.length) {
+                if (lib === 'glyphicon' || iconVal.indexOf('glyphicon') >= 0) {
+                    $el.prepend('<i class="glyphicon glyphicon-' + iconVal.replace(/^glyphicon-/, '') + '"></i>');
+                } else if (lib === 'fa' || iconVal.indexOf('fa-') >= 0) {
+                    $el.prepend('<i class="fa fa-' + iconVal.replace(/^fa-/, '') + '"></i>');
+                } else {
+                    $el.prepend('<span class="material-symbols-rounded">' + iconVal + '</span>');
+                }
+                return;
+            }
+            var iconCls = $icon.attr('class') || '';
+            var isMaterial = $icon.hasClass('material-icons') || /material-symbols/.test(iconCls)
+                || (lib === 'material' && iconVal.indexOf('glyphicon') < 0 && iconVal.indexOf('fa-') < 0);
+            if (isMaterial) {
+                $icon.text(iconVal);
+            } else if (iconVal.indexOf('glyphicon') >= 0 || lib === 'glyphicon') {
+                $icon.attr('class', iconVal.indexOf('glyphicon') >= 0 ? iconVal : ('glyphicon glyphicon-' + iconVal));
+            } else if (iconVal.indexOf('fa ') >= 0 || iconVal.indexOf('fa-') >= 0 || lib === 'fa') {
+                $icon.attr('class', iconVal.indexOf('fa ') >= 0 ? iconVal : ('fa fa-' + iconVal.replace(/^fa-/, '')));
+            } else {
+                $icon.text(iconVal);
+            }
+            return;
+        }
+        if (kind === 'setAttribute') {
+            $el.attr(behavior.attribute || behavior.param || 'data-mdash-prop', value);
+            return;
+        }
+        if (kind === 'setClass') {
+            var cls = behavior.classPrefix ? (behavior.classPrefix + value) : String(value || '');
+            if ((behavior.mode || '').toLowerCase() === 'append') $el.addClass(cls);
+            else $el.attr('class', cls);
+            return;
+        }
+        if (kind === 'toggleClass') {
+            var prefix = behavior.classPrefix || '';
+            var classes = ($el.attr('class') || '').split(/\s+/).filter(function (c) {
+                return c && (!prefix || c.indexOf(prefix) !== 0);
+            });
+            if (value) classes.push(prefix + value);
+            $el.attr('class', classes.join(' '));
+            return;
+        }
+        if (kind === 'setText') {
+            $el.text(value);
+            return;
+        }
+        if (!behaviorRegistry[kind]) {
+            console.warn('[MDash] behavior de layout desconhecido:', kind);
+        }
+    });
+}
+
+function applyLayoutPropsToScope($scope, template, containerItem, options) {
+    if (!$scope || !$scope.length || !containerItem) return;
+    options = options || {};
+    var schema = getLayoutPropsSchemaForTemplate(template);
+    if (!schema.length) return;
+
+    if (typeof containerItem.initLayoutProps === 'function') {
+        containerItem.initLayoutProps();
+    }
+    var layoutProps = containerItem.layoutprops || forceJSONParse(containerItem.layoutpropsjson, {});
+    var context = {
+        item: containerItem,
+        data: options.data || (containerItem.records && containerItem.records[0]) || containerItem.dadosTemplate || {},
+        filters: options.filters || (typeof GFiltros !== 'undefined' ? GFiltros : {})
+    };
+    var resolved = resolveAllLayoutPropValues(schema, layoutProps, context);
+
+    schema.forEach(function (propDef) {
+        if (!propDef || !propDef.id) return;
+        var behaviors = Array.isArray(propDef.behaviors) ? propDef.behaviors : [];
+        if (!behaviors.length) {
+            behaviors = mdashInferDefaultBehaviorsForProp(propDef);
+        }
+
+        var storedRaw = layoutProps ? layoutProps[propDef.id] : undefined;
+        var normStore = mdashNormalizeLayoutPropStorage(storedRaw);
+
+        // Aplicação por fonte (tema / classe / personalizada) — cor por agora.
+        if (!normStore.isExpression && propDef.type === 'color') {
+            var sv = mdashGetPropSourceValue(storedRaw, propDef);
+            if (sv.src === 'class') {
+                var srcCfg = mdashGetPropSources(propDef);
+                var prefix = (srcCfg.classes && srcCfg.classes.classPrefix) || '';
+                var primary = behaviors[0] || { target: ':scope' };
+                var $classTargets = mdashResolveLayoutPropTargets($scope, primary.target);
+                applyLayoutPropBehavior($classTargets, { kind: 'toggleClass', target: primary.target, classPrefix: prefix }, sv.value, propDef);
+                return;
+            }
+            behaviors.forEach(function (behavior) {
+                var $t = mdashResolveLayoutPropTargets($scope, behavior.target);
+                applyLayoutPropBehavior($t, behavior, sv.value, propDef);
+            });
+            return;
+        }
+
+        var value = resolved[propDef.id];
+        behaviors.forEach(function (behavior) {
+            var $targets = mdashResolveLayoutPropTargets($scope, behavior.target);
+            applyLayoutPropBehavior($targets, behavior, value, propDef);
+        });
+    });
+
+    $scope.attr('data-mdash-layout-props-applied', '1');
+}
+
+function mdashInferDefaultBehaviorsForProp(propDef) {
+    var type = (propDef && propDef.type) || 'text';
+    if (type === 'color') {
+        return [{ kind: 'setCssVariable', target: ':scope', varName: '--md-prop-' + propDef.id }];
+    }
+    if (type === 'icon') {
+        return [{ kind: 'setIcon', target: '[data-mdash-prop="' + propDef.id + '"]', iconLibrary: 'material' }];
+    }
+    return [{ kind: 'setText', target: '[data-mdash-prop="' + propDef.id + '"]' }];
+}
+
+function applyContainerItemLayoutProps(containerItem, hostSelector, options) {
+    if (typeof $ !== 'function' || !containerItem || !hostSelector) return;
+    var template = getTemplateLayoutByCode(containerItem.templatelayout);
+    if (!template) return;
+    var $host = $(hostSelector);
+    var $scope = $host.find('[data-mdash-scope]').first();
+    if (!$scope.length) $scope = $host;
+    applyLayoutPropsToScope($scope, template, containerItem, options);
+}
+window.applyContainerItemLayoutProps = applyContainerItemLayoutProps;
+
+// ============================================================================
 // MdashContainerItemLayout - Layouts reutilizáveis para cards
 // ============================================================================
 
@@ -2616,6 +3453,7 @@ function MdashContainerItemLayout(data) {
     this.csstemplate = data.csstemplate || '';
     this.jstemplate = data.jstemplate || '';
     this.slotsdefinition = data.slotsdefinition || '[]';
+    this.propsdefinition = data.propsdefinition || '[]';
     this.iconcdn = data.iconcdn || '';
     this.jscdns = data.jscdns || '[]';
     this.csscdns = data.csscdns || '[]';
@@ -2628,6 +3466,7 @@ function MdashContainerItemLayout(data) {
 
     // Parsed JSON fields (in-memory only)
     this.slots = forceJSONParse(this.slotsdefinition, []);
+    this.props = forceJSONParse(this.propsdefinition, []);
     this.jsCdnsList = forceJSONParse(this.jscdns, []);
     this.cssCdnsList = forceJSONParse(this.csscdns, []);
 
@@ -2639,6 +3478,7 @@ function MdashContainerItemLayout(data) {
 
 MdashContainerItemLayout.prototype.stringifyJSONFields = function () {
     this.slotsdefinition = JSON.stringify(this.slots || []);
+    this.propsdefinition = JSON.stringify(this.props || []);
     this.jscdns = JSON.stringify(this.jsCdnsList || []);
     this.csscdns = JSON.stringify(this.cssCdnsList || []);
     return this;
@@ -2700,6 +3540,8 @@ MdashContainerItemLayout.prototype.toTemplateOption = function () {
         jstemplate: this.jstemplate || '',
         slotsdefinition: this.slotsdefinition || '[]',
         slots: layoutSlots,
+        propsdefinition: this.propsdefinition || '[]',
+        props: this.props || forceJSONParse(this.propsdefinition, []),
         cssCdnsList: this.cssCdnsList || [],
         jsCdnsList: this.jsCdnsList || [],
         containerSelectorToRender: '[data-mdash-slot="' + mainSlotId + '"]',
@@ -3772,6 +4614,7 @@ function renderMdashContainerItemLayout(containerItem, hostSelector, cardData) {
     containerItem.dadosTemplate = template;
     ensureMdashCDNsLoaded(template.cssCdnsList, template.jsCdnsList);
     mountUnifiedLayout($(hostSelector), template, cardData || {});
+    applyContainerItemLayoutProps(containerItem, hostSelector, { data: cardData });
 
     if (isCompactContainerItemLayout(containerItem.templatelayout)) {
         mdashResetCompactLayoutHeights(hostSelector);
@@ -6311,7 +7154,8 @@ function buildUnifiedLayoutParts(layout, cardData) {
     var scopeId = (layout.codigo || 'layout') + '_' + (cardData.id || Math.random().toString(36).substr(2, 6));
     var rowSizing = layout.rowsizing || layout.rowSizing
         || (String(layout.tipo || '').toLowerCase() === 'snapshot' ? 'compact' : 'stretch');
-    var scopedCss = css ? scopeLayoutCSS(css, scopeId) : '';
+    var resolvedCss = css ? mdashResolveThemeTokensInCss(css, { tipo: tipo }) : '';
+    var scopedCss = resolvedCss ? scopeLayoutCSS(resolvedCss, scopeId) : '';
     var wrapperHtml = '<div data-mdash-scope="' + scopeId + '" data-mdash-row-sizing="' + rowSizing + '" class="mdash-layout-scope mdash-layout-scope--' + rowSizing + '">' + html + '</div>';
 
     return { scopeId: scopeId, scopedCss: scopedCss, html: wrapperHtml };
@@ -6341,6 +7185,34 @@ function renderUnifiedLayout(layout, cardData, options) {
     }
     result += parts.html;
     return result;
+}
+
+/**
+ * Constrói o HTML de UM bloco de objecto (toolbar + render area), com a
+ * disposição-padrão: [Slot] [objecto] [copiar] [colar] ... [Remover].
+ * Usado tanto nos slots normais como no fallback de objectos órfãos, para
+ * garantir disposição idêntica.
+ */
+function _mdashBuildSlotObjectBlockHtml(obj, itemStamp, slotId, overlayPlaceAttr) {
+    overlayPlaceAttr = overlayPlaceAttr || '';
+    var renderDivId = 'mdash-slot-render-' + obj.mdashcontaineritemobjectstamp;
+    var objEntry = getMdashObjectTypeEntry(obj.tipo);
+    var objProcessaFonte = objEntry ? (objEntry.processaFonte !== undefined ? objEntry.processaFonte : obj.processaFonte) : obj.processaFonte;
+    var h = '<div class="mdash-slot-zone-obj-block' + ((obj.tipo === 'badge' || obj.tipo === 'kpi') ? ' is-compact-object' : '') + (obj.tipo === 'customCode' ? ' is-custom-code-object' : '') + '">';
+    h += '<div class="mdash-slot-zone-toolbar">';
+    h += '<button type="button" class="mdash-slot-zone-settings mdash-slot-zone-toolbar-left" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i> Slot</button>';
+    h += '<button type="button" class="mdash-slot-zone-obj-props" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Propriedades do objecto"><i class="' + getObjectTypeIcon(obj.tipo) + '"></i> ' + (obj.tipo || 'Objecto') + '</button>';
+    h += '<button type="button" class="mdash-slot-zone-obj-copy mdash-clip-btn" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Copiar objecto"><i class="glyphicon glyphicon-copy"></i></button>';
+    h += '<button type="button" class="mdash-slot-zone-obj-paste mdash-clip-btn mdash-clip-paste" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '"' + overlayPlaceAttr + ' title="Colar objecto do clipboard aqui"><i class="glyphicon glyphicon-paste"></i></button>';
+    h += '<button type="button" class="mdash-slot-zone-remove mdash-slot-zone-toolbar-right" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Remover objecto"><i class="glyphicon glyphicon-remove"></i> Remover</button>';
+    h += '</div>';
+    h += '<div class="mdash-slot-zone-render" id="' + renderDivId + '" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '">';
+    if (objProcessaFonte !== false || obj.tipo === 'customCode') {
+        h += '<div class="mdash-slot-zone-render-placeholder"><i class="' + getObjectTypeIcon(obj.tipo) + '"></i> ' + (obj.tipo || 'Objecto') + '</div>';
+    }
+    h += '</div>';
+    h += '</div>';
+    return h;
 }
 
 /**
@@ -6406,37 +7278,19 @@ function injectSlotDropOverlays(itemStamp, template, options) {
                 return !!(o.config && o.config.overlayPlaceId === options.overlayPlaceId);
             }
             return true;
-        });
+        }).sort(function (a, b) { return (a.ordem || 0) - (b.ordem || 0); });
+
+        var hasCustomCode = objs.some(function (o) { return o.tipo === 'customCode'; });
+        var inEditorMode = typeof mdashIsEditorMode === 'function' && mdashIsEditorMode();
 
         var dropHtml;
         var overlayPlaceAttr = options.overlayPlaceId ? ' data-overlay-place-id="' + options.overlayPlaceId + '"' : '';
 
         if (objs.length > 0) {
             // -- Slot ocupado: um bloco empilhado por objecto --
-            dropHtml = '<div class="mdash-slot-zone-drop has-object" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '"' + overlayPlaceAttr + '>';
+            dropHtml = '<div class="mdash-slot-zone-drop has-object' + (hasCustomCode ? ' has-custom-code-slot' : '') + '" data-slot-id="' + slotId + '" data-item-stamp="' + itemStamp + '"' + overlayPlaceAttr + '>';
             objs.forEach(function (obj) {
-                var renderDivId = 'mdash-slot-render-' + obj.mdashcontaineritemobjectstamp;
-                var objEntry = getMdashObjectTypeEntry(obj.tipo);
-                var objProcessaFonte = objEntry ? (objEntry.processaFonte !== undefined ? objEntry.processaFonte : obj.processaFonte) : obj.processaFonte;
-                dropHtml += '<div class="mdash-slot-zone-obj-block' + ((obj.tipo === 'badge' || obj.tipo === 'kpi') ? ' is-compact-object' : '') + '">';
-                dropHtml += '<div class="mdash-slot-zone-toolbar">';
-                // Lado esquerdo: opções do SLOT
-                dropHtml += '<button type="button" class="mdash-slot-zone-settings mdash-slot-zone-toolbar-left" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i> Slot</button>';
-                // Centro: propriedades do OBJECTO (mostra o tipo em vez de "Propriedades")
-                dropHtml += '<button type="button" class="mdash-slot-zone-obj-props" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Propriedades do objecto"><i class="' + getObjectTypeIcon(obj.tipo) + '"></i> ' + (obj.tipo || 'Objecto') + '</button>';
-                // Copiar objecto
-                dropHtml += '<button type="button" class="mdash-slot-zone-obj-copy mdash-clip-btn" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Copiar objecto"><i class="glyphicon glyphicon-copy"></i></button>';
-                // Colar objecto no slot (visível via CSS só quando clipboard tem objecto)
-                dropHtml += '<button type="button" class="mdash-slot-zone-obj-paste mdash-clip-btn mdash-clip-paste" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '"' + overlayPlaceAttr + ' title="Colar objecto do clipboard aqui"><i class="glyphicon glyphicon-paste"></i></button>';
-                // Lado direito: remover OBJECTO
-                dropHtml += '<button type="button" class="mdash-slot-zone-remove mdash-slot-zone-toolbar-right" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Remover objecto"><i class="glyphicon glyphicon-remove"></i> Remover</button>';
-                dropHtml += '</div>';
-                dropHtml += '<div class="mdash-slot-zone-render" id="' + renderDivId + '" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '">';
-                if (objProcessaFonte !== false) {
-                    dropHtml += '<div class="mdash-slot-zone-render-placeholder"><i class="' + getObjectTypeIcon(obj.tipo) + '"></i> ' + (obj.tipo || 'Objecto') + '</div>';
-                }
-                dropHtml += '</div>';
-                dropHtml += '</div>'; // .mdash-slot-zone-obj-block
+                dropHtml += _mdashBuildSlotObjectBlockHtml(obj, itemStamp, slotId, overlayPlaceAttr);
             });
             dropHtml += '</div>';
         } else {
@@ -6451,6 +7305,11 @@ function injectSlotDropOverlays(itemStamp, template, options) {
         }
 
         $el.html(dropHtml);
+        if (hasCustomCode) {
+            $el.addClass('mdash-slot-has-custom-code');
+        } else {
+            $el.removeClass('mdash-slot-has-custom-code');
+        }
 
         // Aplicar configuração persistida do slot
         if (item) {
@@ -6467,12 +7326,73 @@ function injectSlotDropOverlays(itemStamp, template, options) {
                     obj.renderObjectByContainerItem('#' + renderDivId, item);
                 }
             });
+            if (typeof mdashRefreshCustomCodeEditorShells === 'function') {
+                mdashRefreshCustomCodeEditorShells(objs);
+            }
         }
 
         // -- Bind directo nos elementos criados (não delegado) --
         var $drop = $el.find('.mdash-slot-zone-drop');
         bindSlotDropZoneEvents($drop, itemStamp, slotId, options);
     });
+
+    // -- Fallback para objectos órfãos -----------------------------------------
+    // Alguns layouts custom têm slots que não geram drop zone-folha (slot
+    // aninhado, sem data-mdash-slot correspondente, escondido ou com altura 0).
+    // Esses objectos ficariam invisíveis e impossíveis de editar. Garantimos
+    // aqui uma superfície de edição com a MESMA disposição dos objectos normais.
+    // Dedupe por stamp: um objecto que já tem render div visível NUNCA é órfão.
+    var _isOverlayInject = options.overlayOnly || options.overlayDesigner || options.overlayPlaceId;
+    var _inEditorMode = typeof mdashIsEditorMode !== 'function' || mdashIsEditorMode();
+    $body.find('.mdash-slot-orphan-zone').remove();
+    if (!_isOverlayInject && _inEditorMode && item) {
+        var _seen = {};
+        var orphans = window.appState.containerItemObjects.filter(function (o) {
+            if (o.mdashcontaineritemstamp !== itemStamp) return false;
+            if (mdashGetObjectCategory(o) === 'overlay') return false;
+            var st = o.mdashcontaineritemobjectstamp;
+            if (_seen[st]) return false;               // dedupe por stamp
+            _seen[st] = true;
+            return $body.find('#mdash-slot-render-' + st).length === 0;
+        });
+
+        if (orphans.length) {
+            // Agrupar por slot para manter a noção de slot na barra
+            var bySlot = {};
+            var slotOrder = [];
+            orphans.forEach(function (o) {
+                var sid = o.slotid || '';
+                if (!bySlot[sid]) { bySlot[sid] = []; slotOrder.push(sid); }
+                bySlot[sid].push(o);
+            });
+
+            var zoneHtml = '<div class="mdash-slot-orphan-zone" data-item-stamp="' + itemStamp + '">';
+            slotOrder.forEach(function (sid) {
+                var sObjs = bySlot[sid].sort(function (a, b) { return (a.ordem || 0) - (b.ordem || 0); });
+                var hasCC = sObjs.some(function (o) { return o.tipo === 'customCode'; });
+                zoneHtml += '<div class="mdash-slot-zone-drop has-object mdash-slot-zone-orphan' + (hasCC ? ' has-custom-code-slot' : '') + '" data-slot-id="' + sid + '" data-item-stamp="' + itemStamp + '">';
+                sObjs.forEach(function (o) {
+                    zoneHtml += _mdashBuildSlotObjectBlockHtml(o, itemStamp, sid, '');
+                });
+                zoneHtml += '</div>';
+            });
+            zoneHtml += '</div>';
+            $body.append(zoneHtml);
+
+            // Render + bind por slot (igual aos slots normais)
+            slotOrder.forEach(function (sid) {
+                bySlot[sid].forEach(function (o) {
+                    var rid = 'mdash-slot-render-' + o.mdashcontaineritemobjectstamp;
+                    if ($('#' + rid).length) o.renderObjectByContainerItem('#' + rid, item);
+                });
+                if (typeof mdashRefreshCustomCodeEditorShells === 'function') {
+                    mdashRefreshCustomCodeEditorShells(bySlot[sid]);
+                }
+                var $od = $body.find('.mdash-slot-zone-orphan[data-slot-id="' + sid + '"]');
+                bindSlotDropZoneEvents($od, itemStamp, sid, options);
+            });
+        }
+    }
 }
 
 /**
@@ -11328,6 +12248,132 @@ function updatePropsComponentHeader(selectedComponent, options) {
     }
 }
 
+function appendContainerItemLayoutPropsSection(panel, containerItem) {
+    if (!panel || !panel.length || !containerItem) return;
+    panel.find('[data-mdash-layout-props-section]').remove();
+
+    var schema = getLayoutPropsSchemaForItem(containerItem);
+    if (!schema.length) return;
+
+    containerItem.initLayoutProps();
+    var typeRegistry = getMdashLayoutPropTypeRegistry();
+    var secId = 'mdash-prop-sec-layout-props';
+
+    var html = '<div class="mdash-prop-section" data-mdash-layout-props-section data-section="' + secId + '">';
+    html += '  <div class="mdash-prop-section-header" data-toggle-section="' + secId + '">';
+    html += '    <span class="mdash-prop-section-title"><i class="glyphicon glyphicon-adjust"></i> Propriedades do Layout</span>';
+    html += '    <i class="glyphicon glyphicon-chevron-down mdash-prop-section-chevron"></i>';
+    html += '  </div>';
+    html += '  <div class="mdash-prop-section-body" id="' + secId + '">';
+    html += '    <p class="text-muted" style="font-size:11px;margin:0 0 10px 0;">Definidas no Layout Builder — tipos e behaviors do template activo.</p>';
+
+    schema.forEach(function (propDef) {
+        if (!propDef || !propDef.id) return;
+        var typeMeta = typeRegistry[propDef.type] || typeRegistry.text;
+        var stored = containerItem.layoutprops[propDef.id];
+        var norm = mdashNormalizeLayoutPropStorage(stored);
+        var displayVal = norm.isExpression ? norm.value : (stored !== undefined ? stored : propDef.default);
+        var fieldId = 'mdash-layout-prop-' + propDef.id;
+
+        html += '<div class="mdash-prop-field mdash-layout-prop-field" data-prop-id="' + propDef.id + '" style="margin-bottom:10px;">';
+        html += '  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">';
+        html += '    <label style="margin:0;">' + (propDef.label || propDef.id) + ' <span class="text-muted">(' + (typeMeta.label || propDef.type) + ')</span></label>';
+        html += '    <button type="button" class="btn btn-xs btn-default mdash-layout-prop-expr-toggle" data-prop-id="' + propDef.id + '" title="Alternar valor estático / expressão JS">';
+        html += '      <i class="glyphicon glyphicon-console"></i> ' + (norm.isExpression ? 'Expr' : 'Estático');
+        html += '    </button>';
+        html += '  </div>';
+
+        if (norm.isExpression) {
+            html += '  <textarea class="form-control input-sm mdash-layout-prop-input" data-prop-id="' + propDef.id + '" data-expr="1" rows="2" placeholder="ex: data.valor &gt; 100 ? \'#ef4444\' : \'#22c55e\'">' + (displayVal || '') + '</textarea>';
+        } else if ((typeMeta.editor || propDef.type) === 'color') {
+            var colorInputId = fieldId + '-color';
+            var svEditor = mdashGetPropSourceValue(stored, propDef);
+            html += '  ' + buildMdashLayoutColorSourcePickerHtml(propDef, svEditor, colorInputId);
+        } else if ((typeMeta.editor || propDef.type) === 'number') {
+            html += '  <input type="number" class="form-control input-sm mdash-layout-prop-input" data-prop-id="' + propDef.id + '" value="' + (displayVal != null ? displayVal : 0) + '" />';
+        } else if ((typeMeta.editor || propDef.type) === 'checkbox' || propDef.type === 'boolean') {
+            html += '  <label class="mdash-prop-field-check" style="margin-top:4px;"><input type="checkbox" class="mdash-layout-prop-input" data-prop-id="' + propDef.id + '"' + (displayVal ? ' checked' : '') + ' /><span>Activado</span></label>';
+        } else if ((typeMeta.editor || propDef.type) === 'select' && Array.isArray(propDef.options) && propDef.options.length) {
+            html += '  <select class="form-control input-sm mdash-layout-prop-input" data-prop-id="' + propDef.id + '">';
+            propDef.options.forEach(function (opt) {
+                var optVal = (opt && opt.value !== undefined) ? opt.value : opt;
+                var optLabel = (opt && opt.label !== undefined) ? opt.label : optVal;
+                html += '<option value="' + optVal + '"' + (displayVal == optVal ? ' selected' : '') + '>' + optLabel + '</option>';
+            });
+            html += '  </select>';
+        } else if ((typeMeta.editor || propDef.type) === 'icon') {
+            var iconInputId = fieldId + '-icon';
+            html += '  ' + buildMdashLayoutIconPickerHtml(displayVal || 'star', iconInputId, propDef.iconClass);
+            html += '  <input type="hidden" class="mdash-layout-prop-input mdash-layout-prop-icon-value" data-prop-id="' + propDef.id + '" value="' + (displayVal || 'star') + '" />';
+        } else {
+            html += '  <input type="text" class="form-control input-sm mdash-layout-prop-input" data-prop-id="' + propDef.id + '" value="' + (displayVal != null ? displayVal : '') + '" />';
+        }
+
+        if (Array.isArray(propDef.behaviors) && propDef.behaviors.length) {
+            html += '  <div class="text-muted" style="font-size:10px;margin-top:4px;">';
+            propDef.behaviors.forEach(function (b) {
+                html += '<span class="label label-default" style="margin-right:4px;font-weight:500;">' + (b.kind || b.type || 'behavior') + '</span>';
+            });
+            html += '  </div>';
+        }
+        html += '</div>';
+    });
+
+    html += '  </div>';
+    html += '</div>';
+
+    panel.append(html);
+
+    bindMdashLayoutColorSourcePicker(panel);
+
+    bindMdashLayoutIconPicker(panel);
+    panel.off('change.mdashLayoutIconProp', '.mdash-layout-icon-value').on('change.mdashLayoutIconProp', '.mdash-layout-icon-value', function () {
+        var val = $(this).val();
+        var propId = $(this).closest('.mdash-layout-prop-field').data('prop-id');
+        panel.find('.mdash-layout-prop-icon-value[data-prop-id="' + propId + '"]').val(val).trigger('change');
+    });
+
+    panel.find('.mdash-prop-section-header[data-toggle-section="' + secId + '"]').off('click.mdashLayoutProps').on('click.mdashLayoutProps', function () {
+        $(this).closest('.mdash-prop-section').toggleClass('is-collapsed');
+    });
+
+    panel.off('change.mdashLayoutProps', '.mdash-layout-prop-input')
+        .on('change.mdashLayoutProps', '.mdash-layout-prop-input', function () {
+            var propId = $(this).data('prop-id');
+            var isExpr = $(this).data('expr') === 1 || $(this).data('expr') === '1';
+            var val;
+            if (this.type === 'checkbox') val = this.checked;
+            else if ($(this).hasClass('mdash-layout-prop-source-value')) {
+                try { val = JSON.parse($(this).val()); } catch (e) { val = $(this).val(); }
+            }
+            else val = $(this).val();
+            containerItem.setLayoutPropValue(propId, val, isExpr);
+            if (typeof realTimeComponentSync === 'function') {
+                realTimeComponentSync(containerItem, containerItem.table, containerItem.idfield);
+            }
+            renderContainerItemTemplate(containerItem);
+        });
+
+    panel.off('click.mdashLayoutProps', '.mdash-layout-prop-expr-toggle')
+        .on('click.mdashLayoutProps', '.mdash-layout-prop-expr-toggle', function () {
+            var propId = $(this).data('prop-id');
+            var current = containerItem.layoutprops[propId];
+            var norm = mdashNormalizeLayoutPropStorage(current);
+            if (norm.isExpression) {
+                containerItem.setLayoutPropValue(propId, norm.value, false);
+            } else {
+                var seed = current;
+                if (seed && typeof seed === 'object' && seed.src) seed = seed.value;
+                containerItem.setLayoutPropValue(propId, String(seed != null ? seed : ''), true);
+            }
+            appendContainerItemLayoutPropsSection(panel, containerItem);
+            if (typeof realTimeComponentSync === 'function') {
+                realTimeComponentSync(containerItem, containerItem.table, containerItem.idfield);
+            }
+            renderContainerItemTemplate(containerItem);
+        });
+}
+
 function handleComponentProperties(selectedComponent) {
     var panel = $('#mdash-properties-panel');
     if (!panel.length) return;
@@ -11365,6 +12411,7 @@ function handleComponentProperties(selectedComponent) {
     } else if (selectedComponent.type === "containerItem") {
         var formConfigItem = getContainerItemUIObjectFormConfigAndSourceValues();
         renderPropertiesForm(panel, selectedComponent.data, formConfigItem);
+        appendContainerItemLayoutPropsSection(panel, selectedComponent.data);
     } else if (selectedComponent.type === "slot") {
         var slotData = selectedComponent.data;
         if (slotData && slotData.itemStamp && slotData.slotId) {
@@ -11503,7 +12550,14 @@ function renderPropertiesForm(panel, entity, formConfig) {
         }
         var isContainerItemEntity = !!entity.mdashcontaineritemstamp;
         if (isContainerItemEntity && (field === 'templatelayout' || field === 'tamanho' || field === 'titulo')) {
+            if (field === 'templatelayout' && typeof entity.initLayoutProps === 'function') {
+                entity.initLayoutProps();
+                entity.stringifyLayoutProps();
+            }
             renderContainerItemTemplate(entity);
+            if (field === 'templatelayout') {
+                appendContainerItemLayoutPropsSection(panel, entity);
+            }
         }
         if (field === 'tamanho' || field === 'gridrow' || field === 'gridcolstart' || field === 'layoutmode') {
             setTimeout(syncAllContainerItemsLayout, 0);
@@ -13844,6 +14898,17 @@ function loadModernDashboardStyles() {
     styles += ".mdash-slot-zone-render.is-selected { outline: 2px solid var(--md-primary); outline-offset: -1px; }";
     styles += ".mdash-slot-zone-render-placeholder { padding: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--md-muted); font-size: 11px; font-style: italic; }";
     styles += ".mdash-slot-zone-render-placeholder i { color: var(--md-muted); font-size: 12px; }";
+    styles += ".mdash-slot-zone-obj-block.is-custom-code-object .mdash-slot-zone-render { min-height: 34px; overflow: visible; }";
+    styles += ".mdash-editor-wrapper .mdash-slot-zone-obj-block.is-custom-code-object { min-height: 36px; border-top: 1px dashed rgba(var(--md-primary-rgb),0.28); margin-top: 2px; }";
+    styles += ".mdash-editor-wrapper .mdash-slot-zone-obj-block.is-custom-code-object .mdash-slot-zone-toolbar { opacity: 1; pointer-events: auto; }";
+    styles += ".mdash-customcode-editor-shell { padding: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; color: var(--md-muted); font-size: 11px; font-style: italic; text-align: center; }";
+    styles += ".mdash-customcode-editor-shell i { font-size: 12px; opacity: 0.75; }";
+    styles += ".mdash-editor-wrapper .mdash-slot-zone-drop.has-custom-code-slot { display: flex; flex-direction: column; overflow: visible !important; position: relative; z-index: 3; }";
+    styles += ".mdash-editor-wrapper [data-mdash-slot].mdash-slot-has-custom-code { overflow: visible !important; height: auto !important; max-height: none !important; }";
+    styles += ".mdash-editor-wrapper .mdash-canvas-item-body { overflow: visible; }";
+    // Zona de objectos órfãos — mesma disposição dos slots normais, empilhados
+    styles += ".mdash-slot-orphan-zone { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }";
+    styles += ".mdash-slot-zone-orphan { position: relative; }";
 
     // ===== OBJECTS PANEL (sidebar) =====
     styles += ".mdash-objects-panel { padding: 8px !important; }";
@@ -14230,6 +15295,33 @@ function loadModernDashboardStyles() {
     styles += ".mdash-phc-color-option { width:22px; height:22px; border-radius:50%; border:2px solid #fff; padding:0; cursor:pointer; box-shadow:0 0 0 1px rgba(15,23,42,0.15); transition:transform 0.12s; }";
     styles += ".mdash-phc-color-option:hover { transform:scale(1.15); }";
     styles += ".mdash-phc-color-option.is-active { box-shadow:0 0 0 2px var(--md-primary), 0 2px 6px rgba(0,0,0,0.25); }";
+
+    // ===== SOURCE PICKER (fonte de cor: tema / classe / personalizada) =====
+    styles += ".mdash-layout-source-picker { border:1px solid rgba(15,23,42,0.1); border-radius:10px; padding:8px 10px; background:#fff; }";
+    styles += ".mdash-src-group-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--md-muted,#64748b); margin:2px 0 5px; }";
+    styles += ".mdash-src-group-title + .mdash-src-group-title, .mdash-src-swatches + .mdash-src-group-title, .mdash-src-chips + .mdash-src-group-title { margin-top:10px; }";
+    styles += ".mdash-src-swatches { display:flex; flex-wrap:wrap; gap:7px; align-items:center; }";
+    styles += ".mdash-src-chips { display:flex; flex-wrap:wrap; gap:6px; }";
+    styles += ".mdash-src-class-chip { display:inline-flex; align-items:center; gap:6px; padding:4px 10px 4px 7px; border:1px solid rgba(15,23,42,0.12); border-radius:999px; background:#f8fafc; cursor:pointer; font-size:11px; font-weight:600; color:#334155; transition:all 0.12s; }";
+    styles += ".mdash-src-class-chip:hover { border-color:var(--md-primary,#2563eb); color:var(--md-primary,#2563eb); background:rgba(var(--md-primary-rgb,37,99,235),0.06); }";
+    styles += ".mdash-src-class-chip.is-active { border-color:var(--md-primary,#2563eb); background:var(--md-primary,#2563eb); color:#fff; box-shadow:0 2px 8px rgba(var(--md-primary-rgb,37,99,235),0.30); }";
+    styles += ".mdash-src-chip-dot { width:12px; height:12px; border-radius:50%; background:rgba(15,23,42,0.18); box-shadow:0 0 0 1px rgba(15,23,42,0.12) inset; flex:0 0 auto; }";
+    styles += ".mdash-src-class-chip.is-active .mdash-src-chip-dot { box-shadow:0 0 0 1px rgba(255,255,255,0.6) inset; }";
+
+    // ===== ICON PICKER (propriedades de layout) =====
+    styles += ".mdash-layout-icon-picker { border:1px solid rgba(15,23,42,0.1); border-radius:10px; padding:8px; background:#fff; }";
+    styles += ".mdash-layout-icon-search { display:flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid rgba(15,23,42,0.12); border-radius:8px; margin-bottom:8px; background:#f8fafc; }";
+    styles += ".mdash-layout-icon-search > span { font-size:16px; color:var(--md-muted,#64748b); }";
+    styles += ".mdash-layout-icon-filter { border:none; outline:none; background:transparent; font-size:12px; width:100%; color:#1f2937; }";
+    styles += ".mdash-layout-icon-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(34px, 1fr)); gap:4px; max-height:150px; overflow-y:auto; padding:2px; }";
+    styles += ".mdash-layout-icon-btn { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; border:1px solid rgba(15,23,42,0.08); border-radius:8px; background:#fff; cursor:pointer; color:#475569; padding:0; transition:all 0.12s; }";
+    styles += ".mdash-layout-icon-btn > span, .mdash-layout-icon-btn > i { font-size:20px; line-height:1; }";
+    styles += ".mdash-layout-icon-btn:hover { border-color:var(--md-primary,#2563eb); color:var(--md-primary,#2563eb); background:rgba(var(--md-primary-rgb,37,99,235),0.06); transform:translateY(-1px); }";
+    styles += ".mdash-layout-icon-btn.is-active { border-color:var(--md-primary,#2563eb); background:var(--md-primary,#2563eb); color:#fff; box-shadow:0 2px 8px rgba(var(--md-primary-rgb,37,99,235),0.35); }";
+    styles += ".mdash-layout-icon-current { display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid rgba(15,23,42,0.08); font-size:11px; color:var(--md-muted,#64748b); }";
+    styles += ".mdash-layout-icon-current .mdash-layout-icon-preview { font-size:20px; color:var(--md-primary,#2563eb); }";
+    styles += ".mdash-layout-icon-current code { font-size:11px; background:rgba(15,23,42,0.05); padding:1px 6px; border-radius:4px; color:#334155; }";
+
     styles += ".mdash-filter-scope-badge { display: inline-block; max-width: 100%; padding: 2px 7px; border-radius: 999px; font-size: 9px; font-weight: 700; line-height: 1.35; background: rgba(var(--md-primary-rgb),0.12); color: var(--md-primary); white-space: normal; word-break: break-word; box-sizing: border-box; }";
 
     // ===== ERROR DISPLAY =====

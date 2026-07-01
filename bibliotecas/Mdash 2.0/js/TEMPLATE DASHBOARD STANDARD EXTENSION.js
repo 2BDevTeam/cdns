@@ -519,10 +519,74 @@ function generateDashCardStandard(cardData) {
 // ────────────────────────────────────────────────────────────────────────────
 
 var _CUSTOMCODE_SAMPLE_CONFIG = {
-    code: '// Variáveis disponíveis:\n// containerSelector — selector CSS do container (string)\n// $container       — $(containerSelector) (jQuery)\n// data             — array de registos da fonte\n// config           — objecto de configuração\n// itemObject       — MdashContainerItemObject\n// fetchData()      — função que devolve array de dados da fonte+transform\n\n$container.html(\'<div style="padding:16px;color:#64748b;font-size:13px;"><i class="fa fa-code"></i> Código personalizado</div>\');',
+    code: '// Variáveis disponíveis:\n// containerSelector — selector CSS do slot (string)\n// $container       — $(containerSelector)\n// $scope / $item   — âmbito do item (card inteiro)\n// querySelector()  — procura APENAS dentro do item\n// data             — array de registos da fonte\n// config           — objecto de configuração\n// itemObject       — MdashContainerItemObject\n// fetchData()      — dados da fonte+transform\n\n$scope.find(\'#meuElemento\').css(\'color\', \'red\');',
     cssCode: '',
-    executeOnEdit: true
+    executeOnEdit: false
 };
+
+function mdashResolveCustomCodeScope(dados) {
+    var $container = $(dados.containerSelector);
+    var itemSelector = null;
+    var $item = $();
+
+    if (dados.containerItem && dados.containerItem.mdashcontaineritemstamp) {
+        itemSelector = ".mdash-canvas-item[data-stamp='" + dados.containerItem.mdashcontaineritemstamp + "']";
+        $item = $(itemSelector);
+        if (!$item.length && dados.containerItem.id) {
+            itemSelector = '#' + dados.containerItem.id;
+            $item = $(itemSelector);
+        }
+    }
+    if (!$item.length) {
+        $item = $container.closest('.mdash-canvas-item, .m-dash-item');
+        if ($item.length && $item.attr('id')) {
+            itemSelector = '#' + $item.attr('id');
+        }
+    }
+
+    var $scope = $item.length ? $item : $container;
+    return {
+        itemSelector: itemSelector,
+        $item: $item,
+        $scope: $scope,
+        querySelector: function (sel) {
+            if (!sel) return null;
+            var found = $scope.find(sel);
+            return found.length ? found.get(0) : null;
+        },
+        querySelectorAll: function (sel) {
+            if (!sel) return [];
+            return $scope.find(sel).toArray();
+        }
+    };
+}
+
+function _customCodeEditorShellHtml(executing) {
+    var msg = executing
+        ? 'customCode — preview no editor (âmbito do item)'
+        : 'customCode — protegido no editor';
+    return '<div class="mdash-customcode-editor-shell"><i class="fa fa-code"></i> ' + msg + '</div>';
+}
+
+function _customCodeShowEditorShell($container, executing) {
+    $container.html(_customCodeEditorShellHtml(executing));
+}
+
+/** Garante shell visível nos blocos customCode do editor (após re-render do slot). */
+function mdashRefreshCustomCodeEditorShells(objects) {
+    if (typeof mdashIsEditorMode === 'function' && !mdashIsEditorMode()) return;
+    (objects || []).forEach(function (obj) {
+        if ((obj.tipo || '') !== 'customCode') return;
+        var $render = $('#mdash-slot-render-' + obj.mdashcontaineritemobjectstamp);
+        if (!$render.length) return;
+        var cfg = obj.config || {};
+        if (typeof cfg === 'string') {
+            try { cfg = JSON.parse(cfg); } catch (e) { cfg = {}; }
+        }
+        _customCodeShowEditorShell($render, cfg.executeOnEdit === true);
+    });
+}
+window.mdashRefreshCustomCodeEditorShells = mdashRefreshCustomCodeEditorShells;
 
 // ── Renderer ────────────────────────────────────────────────────────────────
 function renderObjectCustomCode(dados) {
@@ -555,9 +619,15 @@ function renderObjectCustomCode(dados) {
 
     var code = cfg.code || '';
     var cssCode = cfg.cssCode || '';
+    var inEditor = dados.isEditor === true
+        || (typeof mdashIsEditorMode === 'function' && mdashIsEditorMode())
+        || $('.mdash-editor-wrapper').length > 0;
+    var executeOnEdit = cfg.executeOnEdit === true;
+    var scope = mdashResolveCustomCodeScope(dados);
+    var $container = $(sel);
 
     if (!code) {
-        $(sel).html(
+        $container.html(
             '<div style="padding:16px;text-align:center;color:#94a3b8;font-size:12px;">'
             + '<i class="fa fa-code" style="font-size:24px;display:block;margin-bottom:6px;opacity:.5;"></i>'
             + 'Código personalizado — sem código definido'
@@ -566,11 +636,21 @@ function renderObjectCustomCode(dados) {
         return;
     }
 
-    // Inject scoped CSS if present
+    if (inEditor && !executeOnEdit) {
+        _customCodeShowEditorShell($container, false);
+        return;
+    }
+
+    // Inject scoped CSS inside the item (não polui o <head> nem o editor global)
     var styleId = 'mcc-style-' + stamp;
     $('#' + styleId).remove();
+    scope.$scope.find('#' + styleId).remove();
     if (cssCode) {
-        $('head').append('<style id="' + styleId + '">' + cssCode + '</style>');
+        scope.$scope.append('<style id="' + styleId + '">' + cssCode + '</style>');
+    }
+
+    if (inEditor) {
+        _customCodeShowEditorShell($container, true);
     }
 
     // ── Helper: fetchData() — obtém dados da fonte + transform configurada ──
@@ -598,17 +678,35 @@ function renderObjectCustomCode(dados) {
     try {
         var fn = new Function(
             'containerSelector', '$container', 'data', 'config', 'itemObject', '$', 'fetchData',
+            'itemSelector', '$item', '$scope', 'querySelector', 'querySelectorAll', 'isEditor',
             code
         );
-        fn(sel, $(sel), rows, cfg, dados.itemObject, $, fetchData);
-    } catch (err) {
-        $(sel).html(
-            '<div style="padding:12px;font-size:12px;">'
-            + '<div style="color:#dc2626;font-weight:700;margin-bottom:4px;"><i class="glyphicon glyphicon-exclamation-sign"></i> Erro no código personalizado</div>'
-            + '<pre style="background:#fff5f5;border:1px solid #fecaca;color:#991b1b;padding:8px;border-radius:6px;font-size:11px;white-space:pre-wrap;max-height:200px;overflow:auto;">'
-            + $('<span>').text(err.message || String(err)).html()
-            + '</pre></div>'
+        fn(
+            sel, $container, rows, cfg, dados.itemObject, $, fetchData,
+            scope.itemSelector, scope.$item, scope.$scope,
+            scope.querySelector, scope.querySelectorAll, inEditor
         );
+        if (inEditor) {
+            $container.find('.mdash-customcode-editor-error').remove();
+        }
+    } catch (err) {
+        if (inEditor) {
+            _customCodeShowEditorShell($container, executeOnEdit);
+            $container.append(
+                '<div class="mdash-customcode-editor-error" style="padding:6px 8px;margin-top:4px;font-size:10px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;">'
+                + '<i class="glyphicon glyphicon-exclamation-sign"></i> '
+                + $('<span>').text(err.message || String(err)).html()
+                + '</div>'
+            );
+        } else {
+            $container.html(
+                '<div style="padding:12px;font-size:12px;">'
+                + '<div style="color:#dc2626;font-weight:700;margin-bottom:4px;"><i class="glyphicon glyphicon-exclamation-sign"></i> Erro no código personalizado</div>'
+                + '<pre style="background:#fff5f5;border:1px solid #fecaca;color:#991b1b;padding:8px;border-radius:6px;font-size:11px;white-space:pre-wrap;max-height:200px;overflow:auto;">'
+                + $('<span>').text(err.message || String(err)).html()
+                + '</pre></div>'
+            );
+        }
     }
 }
 
@@ -686,8 +784,9 @@ function renderCustomCodePropertiesInline(obj, panel) {
         + '</div>';
 
     // ── Section: Opções ──
-    var sOpcoes = '<div class="mcbi-field">'
-        + _mciChk('mcc-exec-edit', 'Executar no editor (live preview)', cfg.executeOnEdit !== false)
+    var sOpcoes = '<div class="mcbi-field mcc-exec-edit-field">'
+        + _mciChk('mcc-exec-edit', 'Executar no editor (preview no âmbito do item)', cfg.executeOnEdit === true)
+        + '<p style="margin:6px 0 0;font-size:10px;color:#94a3b8;line-height:1.5;">Por defeito o código <strong>não corre</strong> no editor, para não afectar outros widgets. Use <code>$scope</code> ou <code>querySelector()</code> em vez de <code>document.querySelector</code>.</p>'
         + '</div>'
         + '<div class="mcbi-field">'
         + '<label>Campos disponíveis</label>'
@@ -698,17 +797,23 @@ function renderCustomCodePropertiesInline(obj, panel) {
     // ── Ajuda ──
     var sAjuda = '<div style="font-size:10.5px;color:#64748b;line-height:1.6;">'
         + '<p style="margin:0 0 6px;"><strong>Variáveis disponíveis:</strong></p>'
-        + '<code>containerSelector</code> — selector CSS (string)<br>'
-        + '<code>$container</code> — $(containerSelector) (jQuery)<br>'
+        + '<code>containerSelector</code> — selector do slot (string)<br>'
+        + '<code>$container</code> — $(containerSelector)<br>'
+        + '<code>itemSelector</code> — selector do item/card<br>'
+        + '<code>$item</code> / <code>$scope</code> — jQuery do item inteiro<br>'
+        + '<code>querySelector(sel)</code> — procura só dentro do item<br>'
+        + '<code>querySelectorAll(sel)</code> — lista de elementos no item<br>'
         + '<code>data</code> — array de registos [{campo: valor}, ...]<br>'
         + '<code>config</code> — objecto de configuração<br>'
         + '<code>itemObject</code> — MdashContainerItemObject<br>'
         + '<code>$</code> — jQuery<br>'
-        + '<code>fetchData()</code> — função que devolve array de dados da fonte+transform<br>'
+        + '<code>fetchData()</code> — dados da fonte+transform<br>'
+        + '<code>isEditor</code> — true no editor de configuração<br>'
         + '<hr style="margin:8px 0;border-color:rgba(0,0,0,.06);">'
+        + '<p style="margin:0 0 4px;color:#b45309;"><strong>Âmbito:</strong> evite <code>document.querySelector</code> — use <code>querySelector(\'#id\')</code> ou <code>$scope.find(\'#id\')</code> para afectar apenas este item.</p>'
         + '<p style="margin:0;"><strong>Exemplo:</strong></p>'
         + '<pre style="background:rgba(0,0,0,.03);padding:8px;border-radius:5px;font-size:10px;margin:4px 0 0;">'
-        + '$container.empty();\nvar html = \'&lt;ul&gt;\';\ndata.forEach(function(row) {\n  html += \'&lt;li&gt;\' + row.nome + \'&lt;/li&gt;\';\n});\nhtml += \'&lt;/ul&gt;\';\n$container.html(html);'
+        + 'var el = querySelector(\'#progressOcp\');\nif (el && data[0]) {\n  el.style.width = data[0].percentagem + \'%\';\n}'
         + '</pre></div>';
 
     // ── Assemble HTML ──
@@ -852,8 +957,34 @@ function renderCustomCodePropertiesInline(obj, panel) {
         });
     });
 
-    // Checkbox change
-    panel.on('change.mcbi', '.mcbi-chk input[type=checkbox]', function () {
+    // Evita scroll ao focar o input escondido do toggle
+    panel.on('mousedown.mcbi', '.mcc-exec-edit-field .mcbi-chk', function (e) {
+        e.preventDefault();
+    });
+
+    // Toggle "executar no editor" — preview imediato sem rebuild do painel nem AJAX bloqueante
+    panel.on('change.mcbi', '.mcc-exec-edit', function () {
+        var checked = this.checked;
+        $(this).closest('.mcbi-chk').toggleClass('is-on', checked);
+        var scrollState = _mciCaptureEditorScrollState();
+
+        obj.config = obj.config || {};
+        obj.config.executeOnEdit = checked;
+        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+
+        _mciRerender(obj, { preserveFocus: true });
+
+        setTimeout(function () {
+            _mciRestoreEditorScrollState(scrollState);
+            if (typeof realTimeComponentSync === 'function') {
+                realTimeComponentSync(obj, obj.table, obj.idfield);
+            }
+            _mciRestoreEditorScrollState(scrollState);
+        }, 0);
+    });
+
+    // Outros checkboxes
+    panel.on('change.mcbi', '.mcbi-chk input[type=checkbox]:not(.mcc-exec-edit)', function () {
         $(this).closest('.mcbi-chk').toggleClass('is-on', this.checked);
         fire();
     });
@@ -7195,7 +7326,29 @@ function _mciGetRows(obj) {
     return MDASH_SAMPLE_DATA;
 }
 
-function _mciRerender(obj) {
+function _mciCaptureEditorScrollState() {
+    var $props = $('.mdash-properties').not('#mdash-overlay-designer-modal .mdash-properties').first();
+    var $canvas = $('#mdash-canvas-body');
+    return {
+        windowTop: $(window).scrollTop(),
+        windowLeft: $(window).scrollLeft(),
+        propsTop: $props.length ? $props.scrollTop() : 0,
+        canvasTop: $canvas.length ? $canvas.scrollTop() : 0
+    };
+}
+
+function _mciRestoreEditorScrollState(state) {
+    if (!state) return;
+    $(window).scrollTop(state.windowTop);
+    $(window).scrollLeft(state.windowLeft);
+    var $props = $('.mdash-properties').not('#mdash-overlay-designer-modal .mdash-properties').first();
+    var $canvas = $('#mdash-canvas-body');
+    if ($props.length) $props.scrollTop(state.propsTop);
+    if ($canvas.length) $canvas.scrollTop(state.canvasTop);
+}
+
+function _mciRerender(obj, options) {
+    options = options || {};
     var stamp = obj.mdashcontaineritemobjectstamp;
     var sel = ['#mdash-slot-render-' + stamp, '#mdash-overlay-preview-' + stamp]
         .find(function (selector) { return $(selector).length; });
@@ -7203,17 +7356,21 @@ function _mciRerender(obj) {
     var items = (window.appState && window.appState.containerItems) ? window.appState.containerItems : GMDashContainerItems;
     var ci = (items || []).find(function (x) { return x.mdashcontaineritemstamp === obj.mdashcontaineritemstamp; });
     if (!ci) return;
-    // Guardar scroll antes de re-render — Tabulator e outros componentes podem causar scroll durante init
-    var _sTop = $(window).scrollTop();
-    var _sLeft = $(window).scrollLeft();
-    // Blur do elemento focado evita que o browser tente manter em viewport um elemento prestes a ser destruído
-    if (document.activeElement && document.activeElement !== document.body) {
-        document.activeElement.blur();
+
+    var scrollState = _mciCaptureEditorScrollState();
+    var $active = $(document.activeElement);
+    var focusInProps = $active.closest('#mdash-properties-panel, #mdash-overlay-props-panel, .mdash-properties').length > 0;
+    if (!options.preserveFocus && !focusInProps) {
+        if (document.activeElement && document.activeElement !== document.body) {
+            document.activeElement.blur();
+        }
     }
+
     obj.renderObjectByContainerItem(sel, ci);
-    // Restaurar a 0ms (pós-render síncrono) e a 100ms (cobre init assíncrono do Tabulator)
-    setTimeout(function () { $(window).scrollTop(_sTop); $(window).scrollLeft(_sLeft); }, 0);
-    setTimeout(function () { $(window).scrollTop(_sTop); $(window).scrollLeft(_sLeft); }, 100);
+
+    function restoreScroll() { _mciRestoreEditorScrollState(scrollState); }
+    setTimeout(restoreScroll, 0);
+    setTimeout(restoreScroll, 100);
 }
 
 function _mciPreviewUpdate(stamp, cfg, rows) {
