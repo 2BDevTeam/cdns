@@ -4279,6 +4279,16 @@
         }
       } catch (e) { console.warn('[MDash] carregamento de layouts custom (viewer) falhou:', e); }
 
+      // ── BIBLIOTECAS GLOBAIS (MdashLibrary, tipo icon) ───────────────────────
+      // O endpoint getconfiguracaoclientmdash devolve response.data.libraries;
+      // hidrata o registo do picker (Flaticon, FA custom, etc.).
+      try {
+        if (typeof hydrateMdashLibrariesFromDashboardData === 'function'
+          && response.data) {
+          hydrateMdashLibrariesFromDashboardData(response.data);
+        }
+      } catch (e) { console.warn('[MDash] carregamento de bibliotecas (viewer) falhou:', e); }
+
       // ── LAYOUT: normalização CENTRALIZADA (mesma função do editor) ───────────
       // Resolve sobreposições de grid (reatribui gridrow/gridcolstart via
       // findNextGridSlot da lib) ANTES do render. Sem isto, coordenadas que se

@@ -1983,7 +1983,8 @@ function getMdashObjectTypeEntry(tipo) {
         'tabela': 'table', 'texto': 'text', 'customcode': 'customCode',
         'detail': 'detail', 'detalhe': 'detail',
         'overlay': 'overlay', 'modal': 'overlay',
-        'kpi': 'badge'
+        'kpi': 'badge',
+        'progressbar': 'progress', 'barraprogresso': 'progress'
     };
     var normalized = _legacy[tipoStr.toLowerCase()];
     if (normalized) tipoStr = normalized;
@@ -3005,138 +3006,19 @@ function bindMdashLayoutColorSourcePicker($root) {
 }
 window.bindMdashLayoutColorSourcePicker = bindMdashLayoutColorSourcePicker;
 
-/** Lista curada de ícones Material Symbols para o seletor visual. */
-function getMdashLayoutIconOptions() {
-    return [
-        { value: 'dashboard', label: 'Dashboard' },
-        { value: 'analytics', label: 'Analytics' },
-        { value: 'monitoring', label: 'Monitoring' },
-        { value: 'trending_up', label: 'Tendência subir' },
-        { value: 'trending_down', label: 'Tendência descer' },
-        { value: 'bar_chart', label: 'Gráfico barras' },
-        { value: 'pie_chart', label: 'Gráfico circular' },
-        { value: 'show_chart', label: 'Gráfico linhas' },
-        { value: 'timeline', label: 'Timeline' },
-        { value: 'leaderboard', label: 'Leaderboard' },
-        { value: 'speed', label: 'Velocímetro' },
-        { value: 'percent', label: 'Percentagem' },
-        { value: 'check_circle', label: 'Verificado' },
-        { value: 'task_alt', label: 'Tarefa OK' },
-        { value: 'cancel', label: 'Cancelar' },
-        { value: 'warning', label: 'Aviso' },
-        { value: 'error', label: 'Erro' },
-        { value: 'info', label: 'Informação' },
-        { value: 'star', label: 'Estrela' },
-        { value: 'favorite', label: 'Coração' },
-        { value: 'bolt', label: 'Raio' },
-        { value: 'verified', label: 'Verificado' },
-        { value: 'rocket_launch', label: 'Foguetão' },
-        { value: 'schedule', label: 'Relógio' },
-        { value: 'calendar_month', label: 'Calendário' },
-        { value: 'person', label: 'Pessoa' },
-        { value: 'group', label: 'Grupo' },
-        { value: 'shopping_cart', label: 'Carrinho' },
-        { value: 'attach_money', label: 'Dinheiro' },
-        { value: 'euro', label: 'Euro' },
-        { value: 'payments', label: 'Pagamentos' },
-        { value: 'account_balance', label: 'Banco' },
-        { value: 'savings', label: 'Poupança' },
-        { value: 'receipt_long', label: 'Recibo' },
-        { value: 'inventory_2', label: 'Inventário' },
-        { value: 'local_shipping', label: 'Envio' },
-        { value: 'assignment', label: 'Tarefa' },
-        { value: 'description', label: 'Documento' },
-        { value: 'folder', label: 'Pasta' },
-        { value: 'home', label: 'Início' },
-        { value: 'settings', label: 'Definições' },
-        { value: 'notifications', label: 'Notificação' },
-        { value: 'mail', label: 'Correio' },
-        { value: 'phone', label: 'Telefone' },
-        { value: 'location_on', label: 'Localização' },
-        { value: 'flag', label: 'Bandeira' },
-        { value: 'thumb_up', label: 'Gosto' },
-        { value: 'visibility', label: 'Visível' },
-        { value: 'search', label: 'Procurar' }
-    ];
-}
-window.getMdashLayoutIconOptions = getMdashLayoutIconOptions;
-
-/** Garante que a fonte Material Symbols está carregada (para o seletor fora do card). */
-function mdashEnsureMaterialSymbolsFont() {
-    if (document.getElementById('mdash-material-symbols-font')) return;
-    try {
-        var link = document.createElement('link');
-        link.id = 'mdash-material-symbols-font';
-        link.rel = 'stylesheet';
-        link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200';
-        document.head.appendChild(link);
-    } catch (e) { /* offline / intranet — ignora */ }
-}
-
-/** Normaliza a classe de fonte de ícone usada por um layout. */
-function mdashNormalizeIconClass(iconClass) {
-    var c = $.trim(String(iconClass || ''));
-    if (!c) return 'material-symbols-rounded';
-    var m = c.match(/material-symbols-(rounded|outlined|sharp)/);
-    if (m) return m[0];
-    if (/material-symbols/.test(c)) return 'material-symbols-outlined';
-    if (/material-icons/.test(c)) return 'material-icons';
-    return c;
-}
-
-/**
- * @param {string} value      nome/ligatura do ícone selecionado
- * @param {string} inputId    id do input escondido
- * @param {string} iconClass  classe de fonte do layout (ex: material-symbols-rounded).
- *                            Por defeito material-symbols-rounded; varia conforme o layout.
- */
-function buildMdashLayoutIconPickerHtml(value, inputId, iconClass) {
-    inputId = inputId || 'mdash-layout-icon-value';
-    value = value != null ? String(value) : '';
-    iconClass = mdashNormalizeIconClass(iconClass);
-    mdashEnsureMaterialSymbolsFont();
-    var options = getMdashLayoutIconOptions();
-    var html = '<div class="mdash-layout-icon-picker" data-icon-input-id="' + inputId + '" data-icon-class="' + iconClass + '">';
-    html += '<div class="mdash-layout-icon-search"><span class="' + iconClass + '">search</span>';
-    html += '<input type="text" class="mdash-layout-icon-filter" placeholder="Procurar \u00edcone..." /></div>';
-    html += '<div class="mdash-layout-icon-grid">';
-    for (var i = 0; i < options.length; i++) {
-        var opt = options[i];
-        var on = value === opt.value ? ' is-active' : '';
-        html += '<button type="button" class="mdash-layout-icon-btn' + on + '" data-icon="' + opt.value + '" title="' + opt.label + '"><span class="' + iconClass + '">' + opt.value + '</span></button>';
-    }
-    html += '</div>';
-    html += '<div class="mdash-layout-icon-current"><span class="mdash-layout-icon-current-lbl">Selecionado:</span> <span class="' + iconClass + ' mdash-layout-icon-preview">' + (value || 'help') + '</span> <code class="mdash-layout-icon-name">' + (value || '\u2014') + '</code></div>';
-    html += '<input type="hidden" class="mdash-layout-icon-value" id="' + inputId + '" value="' + value + '" />';
-    html += '</div>';
-    return html;
-}
-window.mdashNormalizeIconClass = mdashNormalizeIconClass;
-
-function bindMdashLayoutIconPicker($root, onChange) {
-    if (!$root || !$root.length) return;
-    $root.off('click.mdashLayoutIcon', '.mdash-layout-icon-btn').on('click.mdashLayoutIcon', '.mdash-layout-icon-btn', function () {
-        var val = $(this).data('icon');
-        var $picker = $(this).closest('.mdash-layout-icon-picker');
-        $picker.find('.mdash-layout-icon-btn').removeClass('is-active');
-        $(this).addClass('is-active');
-        $picker.find('.mdash-layout-icon-value').val(val).trigger('change');
-        $picker.find('.mdash-layout-icon-preview').text(val);
-        $picker.find('.mdash-layout-icon-name').text(val);
-        if (typeof onChange === 'function') onChange(val);
-    });
-    $root.off('input.mdashLayoutIcon', '.mdash-layout-icon-filter').on('input.mdashLayoutIcon', '.mdash-layout-icon-filter', function () {
-        var q = ($(this).val() || '').toLowerCase();
-        var $picker = $(this).closest('.mdash-layout-icon-picker');
-        $picker.find('.mdash-layout-icon-btn').each(function () {
-            var name = ('' + ($(this).data('icon') || '')).toLowerCase();
-            var title = ($(this).attr('title') || '').toLowerCase();
-            $(this).toggle(name.indexOf(q) >= 0 || title.indexOf(q) >= 0);
-        });
-    });
-}
-window.buildMdashLayoutIconPickerHtml = buildMdashLayoutIconPickerHtml;
-window.bindMdashLayoutIconPicker = bindMdashLayoutIconPicker;
+// ============================================================================
+// BIBLIOTECAS DE ÍCONES / RECURSOS  ->  MOVIDO PARA "Mdash Library.js"
+// ----------------------------------------------------------------------------
+// Todo o sistema de ícones (registo de bibliotecas, picker, modelo MdashLibrary,
+// load/save/delete/detect) vive agora em "Mdash Library.js". O config lib apenas
+// CONSOME estas funções globais:
+//   getMdashLayoutIconOptions, buildMdashLayoutIconPickerHtml, bindMdashLayoutIconPicker,
+//   mdashRenderIconPreviewHtml, mdashNormalizeIconClass, registerMdashIconLibrary,
+//   getMdashIconLibraryRegistry, mdashEnsureIconLibFonts, MdashIconLibrary,
+//   loadIconLibrariesFromServer, saveIconLibraryToServer, deleteIconLibraryFromServer,
+//   applyDbIconLibrariesToRegistry, mdashDetectIconsFromCssText/Stylesheets, GMDashIconLibraries
+// NOTA: "Mdash Library.js" TEM de ser incluído na página (a par deste ficheiro).
+// ============================================================================
 
 function getMdashLayoutPropBehaviorRegistry() {
     return {
@@ -3296,35 +3178,47 @@ function applyLayoutPropBehavior($targets, behavior, value, propDef) {
             return;
         }
         if (kind === 'setIcon') {
-            var iconVal = String(value || '');
-            if (/^(material-symbols(-(rounded|outlined|sharp))?|material-icons)$/.test(iconVal.trim())) {
+            var iconVal = $.trim(String(value || ''));
+            if (!iconVal) return;
+            // ignora quando o valor é apenas o nome da fonte (não um ícone)
+            if (/^(material-symbols(-(rounded|outlined|sharp))?|material-icons)$/.test(iconVal)) {
                 return;
             }
-            var lib = (behavior.iconLibrary || 'material').toLowerCase();
-            var iconSelector = 'i, .material-icons, [class*="material-symbols"], .fa';
+            // A biblioteca é inferida do próprio valor/token (material vs classe)
+            var isClassToken = (typeof mdashIsIconClassToken === 'function')
+                ? mdashIsIconClassToken(iconVal)
+                : (/(^|\s)glyphicon(\s|-)/.test(iconVal) || /(^|\s)fa[srlbd]?(\s|-)/.test(iconVal) || /(^|\s)fi(\s|-)/.test(iconVal));
+            var iconSelector = 'i, .material-icons, [class*="material-symbols"], [class*="glyphicon"], .fa, [class*="fa-"], [class*="fi-"], [class*="bi-"]';
             var $icon = $el.is(iconSelector) ? $el : $el.find(iconSelector).first();
-            if (!$icon.length) {
-                if (lib === 'glyphicon' || iconVal.indexOf('glyphicon') >= 0) {
-                    $el.prepend('<i class="glyphicon glyphicon-' + iconVal.replace(/^glyphicon-/, '') + '"></i>');
-                } else if (lib === 'fa' || iconVal.indexOf('fa-') >= 0) {
-                    $el.prepend('<i class="fa fa-' + iconVal.replace(/^fa-/, '') + '"></i>');
-                } else {
-                    $el.prepend('<span class="material-symbols-rounded">' + iconVal + '</span>');
+
+            if (isClassToken) {
+                var cls = iconVal;
+                if (/glyphicon/.test(iconVal) && !/(^|\s)glyphicon(\s|$)/.test(iconVal)) {
+                    cls = 'glyphicon ' + iconVal.replace(/^glyphicon-/, 'glyphicon-');
                 }
+                if (/(^|\s)fa-/.test(iconVal) && !/(^|\s)fa[srlbd]?(\s|$)/.test(iconVal)) {
+                    cls = 'fa ' + iconVal;
+                }
+                if (/(^|\s)fi-/.test(iconVal) && !/(^|\s)fi(\s|$)/.test(iconVal)) {
+                    cls = 'fi ' + iconVal;
+                }
+                if (/(^|\s)bi-/.test(iconVal) && !/(^|\s)bi(\s|$)/.test(iconVal)) {
+                    cls = 'bi ' + iconVal;
+                }
+                if (!$icon.length) { $el.prepend('<i class="' + cls + '"></i>'); return; }
+                $icon.text('');
+                $icon.attr('class', cls);
                 return;
             }
-            var iconCls = $icon.attr('class') || '';
-            var isMaterial = $icon.hasClass('material-icons') || /material-symbols/.test(iconCls)
-                || (lib === 'material' && iconVal.indexOf('glyphicon') < 0 && iconVal.indexOf('fa-') < 0);
-            if (isMaterial) {
-                $icon.text(iconVal);
-            } else if (iconVal.indexOf('glyphicon') >= 0 || lib === 'glyphicon') {
-                $icon.attr('class', iconVal.indexOf('glyphicon') >= 0 ? iconVal : ('glyphicon glyphicon-' + iconVal));
-            } else if (iconVal.indexOf('fa ') >= 0 || iconVal.indexOf('fa-') >= 0 || lib === 'fa') {
-                $icon.attr('class', iconVal.indexOf('fa ') >= 0 ? iconVal : ('fa fa-' + iconVal.replace(/^fa-/, '')));
-            } else {
-                $icon.text(iconVal);
+
+            // material ligature
+            if (!$icon.length) { $el.prepend('<span class="material-symbols-rounded">' + iconVal + '</span>'); return; }
+            var curCls = $icon.attr('class') || '';
+            if (!/material-symbols|material-icons/.test(curCls)) {
+                // elemento era glyphicon/fa -> converter para material
+                $icon.attr('class', 'material-symbols-rounded');
             }
+            $icon.text(iconVal);
             return;
         }
         if (kind === 'setAttribute') {
@@ -4222,6 +4116,13 @@ function loadDashboardDataFromServer(config) {
                             return new MdashContainerItemLayout(l);
                         });
                     }
+
+                    // Bibliotecas globais (MdashLibrary, tipo icon)
+                    if (typeof hydrateMdashLibrariesFromDashboardData === 'function') {
+                        hydrateMdashLibrariesFromDashboardData(dashboardData);
+                    } else if (typeof loadIconLibrariesFromServer === 'function') {
+                        loadIconLibrariesFromServer();
+                    }
                 }
 
                 console.log("Dados carregados:", {
@@ -4232,6 +4133,7 @@ function loadDashboardDataFromServer(config) {
                     filters: GMDashFilters.length,
                     fontes: GMDashFontes.length,
                     layouts: GMDashContainerItemLayouts.length,
+                    libraries: (typeof GMDashIconLibraries !== 'undefined' && GMDashIconLibraries) ? GMDashIconLibraries.length : 0,
                     codigoDash: config.codigo
                 });
 
@@ -7198,7 +7100,7 @@ function _mdashBuildSlotObjectBlockHtml(obj, itemStamp, slotId, overlayPlaceAttr
     var renderDivId = 'mdash-slot-render-' + obj.mdashcontaineritemobjectstamp;
     var objEntry = getMdashObjectTypeEntry(obj.tipo);
     var objProcessaFonte = objEntry ? (objEntry.processaFonte !== undefined ? objEntry.processaFonte : obj.processaFonte) : obj.processaFonte;
-    var h = '<div class="mdash-slot-zone-obj-block' + ((obj.tipo === 'badge' || obj.tipo === 'kpi') ? ' is-compact-object' : '') + (obj.tipo === 'customCode' ? ' is-custom-code-object' : '') + '">';
+    var h = '<div class="mdash-slot-zone-obj-block' + ((obj.tipo === 'badge' || obj.tipo === 'kpi' || obj.tipo === 'progress') ? ' is-compact-object' : '') + (obj.tipo === 'customCode' ? ' is-custom-code-object' : '') + '">';
     h += '<div class="mdash-slot-zone-toolbar">';
     h += '<button type="button" class="mdash-slot-zone-settings mdash-slot-zone-toolbar-left" data-item-stamp="' + itemStamp + '" data-slot-id="' + slotId + '" title="Propriedades do slot"><i class="glyphicon glyphicon-cog"></i> Slot</button>';
     h += '<button type="button" class="mdash-slot-zone-obj-props" data-object-stamp="' + obj.mdashcontaineritemobjectstamp + '" title="Propriedades do objecto"><i class="' + getObjectTypeIcon(obj.tipo) + '"></i> ' + (obj.tipo || 'Objecto') + '</button>';
@@ -7886,6 +7788,9 @@ function initModernDashboardUI() {
     mainHtml += '          </div>';
     mainHtml += '          <div class="mdash-widget-tile" @click="openLayoutBuilder" title="Layout Builder">';
     mainHtml += '            <i class="glyphicon glyphicon-blackboard"></i><span>Layouts</span>';
+    mainHtml += '          </div>';
+    mainHtml += '          <div class="mdash-widget-tile" @click="openIconLibraryManager" title="Bibliotecas de ícones">';
+    mainHtml += '            <i class="glyphicon glyphicon-picture"></i><span>Ícones</span>';
     mainHtml += '          </div>';
     mainHtml += '        </div>';
     mainHtml += '      </div>';
@@ -9116,6 +9021,10 @@ function initModernDashboardUI() {
 
         openLayoutBuilder: function () {
             openLayoutBuilder();
+        },
+
+        openIconLibraryManager: function () {
+            if (typeof lbOpenIconLibraryManager === 'function') lbOpenIconLibraryManager();
         },
 
         editFonte: function (stamp) {
@@ -12322,7 +12231,7 @@ function appendContainerItemLayoutPropsSection(panel, containerItem) {
     html += '  </div>';
     html += '</div>';
 
-    panel.append(html);
+    panel.prepend(html);
 
     bindMdashLayoutColorSourcePicker(panel);
 
@@ -12585,6 +12494,7 @@ function getObjectTypeIcon(tipo) {
         'title': 'glyphicon glyphicon-header',
         'kpi': 'glyphicon glyphicon-dashboard',
         'badge': 'glyphicon glyphicon-tag',
+        'progress': 'glyphicon glyphicon-signal',
         'list': 'glyphicon glyphicon-list',
         'separator': 'glyphicon glyphicon-minus',
         'html': 'glyphicon glyphicon-console',
@@ -12606,6 +12516,7 @@ function getObjectCatalogDefinitions() {
                 { value: 'chart', label: 'Gráfico', icon: 'glyphicon glyphicon-stats', color: 'rgba(59,130,246,0.12)', description: 'Gráfico de barras, linhas ou pizza' },
                 { value: 'table', label: 'Tabela', icon: 'glyphicon glyphicon-th', color: 'rgba(16,185,129,0.12)', description: 'Tabela de dados com colunas' },
                 { value: 'badge', label: 'Badge', icon: 'glyphicon glyphicon-tag', color: 'rgba(245,158,11,0.12)', description: 'Indicador delta % com cor condicional, regras e design configurável' },
+                { value: 'progress', label: 'Progresso', icon: 'glyphicon glyphicon-signal', color: 'rgba(14,165,233,0.12)', description: 'Barra de progresso com meta (100%), limiares e cores por faixa' },
                 { value: 'list', label: 'Lista', icon: 'glyphicon glyphicon-list', color: 'rgba(139,92,246,0.12)', description: 'Lista de registos ou items' }
             ]
         },
@@ -13079,6 +12990,7 @@ function openContainerItemObjectEditModal(obj) {
         { value: 'chart', label: 'Gráfico' },
         { value: 'table', label: 'Tabela' },
         { value: 'badge', label: 'Badge' },
+        { value: 'progress', label: 'Progresso' },
         { value: 'list', label: 'Lista' },
         { value: 'title', label: 'Título' },
         { value: 'text', label: 'Texto' },
@@ -15265,7 +15177,7 @@ function loadModernDashboardStyles() {
     styles += ".mdash-tab-editor-colors { display:grid; grid-template-columns:repeat(7, 24px); gap:6px; align-items:center; }";
     styles += ".mdash-phc-color-custom { position:relative; width:22px; height:22px; border-radius:50%; border:2px solid #fff; padding:0; margin:0; cursor:pointer; box-shadow:0 0 0 1px rgba(15,23,42,0.15); display:inline-flex; align-items:center; justify-content:center; overflow:hidden; }";
     styles += ".mdash-phc-color-custom:hover { transform:scale(1.15); }";
-    styles += ".mdash-phc-color-custom.is-active { box-shadow:0 0 0 2px var(--md-primary), 0 2px 6px rgba(0,0,0,0.25); }";
+    styles += ".mdash-phc-color-custom.is-active { box-shadow:0 0 0 2px var(--md-primary,#7c3aed), 0 2px 6px rgba(0,0,0,0.25); }";
     styles += ".mdash-phc-color-custom i { color:#fff; font-size:10px; text-shadow:0 1px 1px rgba(0,0,0,0.35); pointer-events:none; }";
     styles += ".mdash-phc-color-custom input[type=color] { position:absolute; inset:0; width:100%; height:100%; opacity:0; border:none; padding:0; cursor:pointer; }";
     styles += ".mdash-tab-editor-icons { display:grid; grid-template-columns:repeat(5, 1fr); gap:4px; max-height:140px; overflow-y:auto; }";
@@ -15294,7 +15206,7 @@ function loadModernDashboardStyles() {
     styles += ".mdash-phc-color-picker::before { content:''; position:absolute; top:-5px; right:8px; width:10px; height:10px; background:#fff; border-left:1px solid rgba(15,23,42,0.12); border-top:1px solid rgba(15,23,42,0.12); transform:rotate(45deg); }";
     styles += ".mdash-phc-color-option { width:22px; height:22px; border-radius:50%; border:2px solid #fff; padding:0; cursor:pointer; box-shadow:0 0 0 1px rgba(15,23,42,0.15); transition:transform 0.12s; }";
     styles += ".mdash-phc-color-option:hover { transform:scale(1.15); }";
-    styles += ".mdash-phc-color-option.is-active { box-shadow:0 0 0 2px var(--md-primary), 0 2px 6px rgba(0,0,0,0.25); }";
+    styles += ".mdash-phc-color-option.is-active { box-shadow:0 0 0 2px var(--md-primary,#7c3aed), 0 2px 6px rgba(0,0,0,0.25); }";
 
     // ===== SOURCE PICKER (fonte de cor: tema / classe / personalizada) =====
     styles += ".mdash-layout-source-picker { border:1px solid rgba(15,23,42,0.1); border-radius:10px; padding:8px 10px; background:#fff; }";
@@ -15313,14 +15225,19 @@ function loadModernDashboardStyles() {
     styles += ".mdash-layout-icon-search { display:flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid rgba(15,23,42,0.12); border-radius:8px; margin-bottom:8px; background:#f8fafc; }";
     styles += ".mdash-layout-icon-search > span { font-size:16px; color:var(--md-muted,#64748b); }";
     styles += ".mdash-layout-icon-filter { border:none; outline:none; background:transparent; font-size:12px; width:100%; color:#1f2937; }";
+    styles += ".mdash-layout-icon-cats { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px; }";
+    styles += ".mdash-layout-icon-cat { font-size:11px; font-weight:600; padding:3px 10px; border:1px solid rgba(15,23,42,0.12); border-radius:999px; background:#f8fafc; color:#475569; cursor:pointer; transition:all 0.12s; }";
+    styles += ".mdash-layout-icon-cat:hover { border-color:var(--md-primary,#2563eb); color:var(--md-primary,#2563eb); }";
+    styles += ".mdash-layout-icon-cat.is-active { border-color:var(--md-primary,#2563eb); background:var(--md-primary,#2563eb); color:#fff; box-shadow:0 2px 6px rgba(var(--md-primary-rgb,37,99,235),0.30); }";
     styles += ".mdash-layout-icon-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(34px, 1fr)); gap:4px; max-height:150px; overflow-y:auto; padding:2px; }";
     styles += ".mdash-layout-icon-btn { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; border:1px solid rgba(15,23,42,0.08); border-radius:8px; background:#fff; cursor:pointer; color:#475569; padding:0; transition:all 0.12s; }";
     styles += ".mdash-layout-icon-btn > span, .mdash-layout-icon-btn > i { font-size:20px; line-height:1; }";
     styles += ".mdash-layout-icon-btn:hover { border-color:var(--md-primary,#2563eb); color:var(--md-primary,#2563eb); background:rgba(var(--md-primary-rgb,37,99,235),0.06); transform:translateY(-1px); }";
     styles += ".mdash-layout-icon-btn.is-active { border-color:var(--md-primary,#2563eb); background:var(--md-primary,#2563eb); color:#fff; box-shadow:0 2px 8px rgba(var(--md-primary-rgb,37,99,235),0.35); }";
-    styles += ".mdash-layout-icon-current { display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid rgba(15,23,42,0.08); font-size:11px; color:var(--md-muted,#64748b); }";
-    styles += ".mdash-layout-icon-current .mdash-layout-icon-preview { font-size:20px; color:var(--md-primary,#2563eb); }";
-    styles += ".mdash-layout-icon-current code { font-size:11px; background:rgba(15,23,42,0.05); padding:1px 6px; border-radius:4px; color:#334155; }";
+    styles += ".mdash-layout-icon-current { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid rgba(15,23,42,0.08); font-size:11px; color:var(--md-muted,#64748b); min-width:0; }";
+    styles += ".mdash-layout-icon-current .mdash-layout-icon-preview { font-size:20px; color:var(--md-primary,#2563eb); flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; }";
+    styles += ".mdash-layout-icon-current .mdash-layout-icon-preview > i, .mdash-layout-icon-current .mdash-layout-icon-preview > span { font-size:20px; line-height:1; }";
+    styles += ".mdash-layout-icon-current code.mdash-layout-icon-name { font-size:11px; background:rgba(15,23,42,0.05); padding:1px 6px; border-radius:4px; color:#334155; word-break:break-all; overflow-wrap:anywhere; flex:1; min-width:0; }";
 
     styles += ".mdash-filter-scope-badge { display: inline-block; max-width: 100%; padding: 2px 7px; border-radius: 999px; font-size: 9px; font-weight: 700; line-height: 1.35; background: rgba(var(--md-primary-rgb),0.12); color: var(--md-primary); white-space: normal; word-break: break-word; box-sizing: border-box; }";
 

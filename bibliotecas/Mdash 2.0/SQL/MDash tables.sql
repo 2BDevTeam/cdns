@@ -236,6 +236,35 @@ CREATE TABLE MdashContainerItemLayout(
 
 
 -- ============================================================================
+-- MdashLibrary - Bibliotecas/recursos globais (partilhados por todos os
+-- dashboards/layouts). Tabela ABSTRACTA: o campo 'tipo' discrimina o que é
+-- (hoje 'icon'; no futuro 'font', 'palette', 'component', ...), permitindo
+-- reutilizar a mesma estrutura sem criar tabelas novas.
+--
+-- Genérico:
+--   cdn         -> URL de recurso associado (ex.: CSS da fonte de ícones)
+--   configjson  -> config específica do tipo (ex.: ícones = {kind, base, prefix})
+--   itemsjson   -> lista de itens (ex.: ícones = [{value, label}])
+--
+-- As bibliotecas por defeito (Material Symbols, Glyphicons, Font Awesome) estão
+-- embutidas no código; esta tabela guarda as importadas/criadas pelo utilizador.
+-- ============================================================================
+CREATE TABLE MdashLibrary(
+
+    mdashlibrarystamp VARCHAR(25) PRIMARY KEY,
+    tipo VARCHAR(50) DEFAULT 'icon',                   -- discriminador: 'icon' (futuro: 'font', 'palette', 'component', ...)
+    codigo VARCHAR(100) DEFAULT '',                    -- id usado no registo (ex: 'fa6', 'bootstrap-icons')
+    label VARCHAR(250) DEFAULT '',                     -- nome visível (ex: 'Font Awesome 6')
+    cdn TEXT DEFAULT '',                               -- URL de recurso associado (ex.: CSS da fonte)
+    configjson TEXT DEFAULT '{}',                      -- JSON: config específica do tipo (ícones: {kind, base, prefix})
+    itemsjson TEXT DEFAULT '[]',                       -- JSON: itens da biblioteca (ícones: [{value, label}])
+    ordem INT DEFAULT 0,
+    inactivo BIT DEFAULT 0
+)
+GO
+
+
+-- ============================================================================
 -- MdashTab - Separadores (tabs) de um dashboard
 -- Um dashboard pode ter 0 ou N tabs.
 -- Quando não existem tabs (ou activarMultiSeparadores = 0 no dashboard),
