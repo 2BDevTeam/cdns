@@ -870,16 +870,15 @@ function renderCustomCodePropertiesInline(obj, panel) {
     // Fonte change
     panel.on('change.mcbi', '.mcbi-fonte', function () {
         var newStamp = $(this).val();
-        obj.fontestamp = newStamp || '';
-        _mciAutoApplyFonteTransform(newStamp, obj, panel);
-        // Refresh fields list
-        var newFields = _mciGetFields(obj);
-        panel.find('.mcc-fields-list').html(
-            newFields.length
-                ? newFields.map(function (f) { return '<code style="background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;margin:1px;">' + _mciEsc(f) + '</code>'; }).join(' ')
-                : '<em>Sem campos — seleccione uma fonte</em>'
-        );
-        fire();
+        _mciOnFonteSelected(newStamp, obj, panel, function () {
+            var newFields = _mciGetFields(obj);
+            panel.find('.mcc-fields-list').html(
+                newFields.length
+                    ? newFields.map(function (f) { return '<code style="background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;margin:1px;">' + _mciEsc(f) + '</code>'; }).join(' ')
+                    : '<em>Sem campos — seleccione uma fonte</em>'
+            );
+            fire();
+        });
     });
 
     // Transform button
@@ -887,9 +886,6 @@ function renderCustomCodePropertiesInline(obj, panel) {
         var currentTC = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
         var fonteStamp = obj.fontestamp;
         var fonte = fonteStamp && _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === fonteStamp; });
-        
-        // Obter schema da fonte (tenta schemajson, lastResultscached, ou DB)
-        var schema = _mciGetFonteSchema(fonte);
         var tbl = (fonte && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(fonte) : null;
         
         // Se não há transformConfig existente E temos fonte válida, criar config inicial
@@ -914,10 +910,11 @@ function renderCustomCodePropertiesInline(obj, panel) {
         _mciOpenTransformModalFor({
             title: 'Transformação — Código Personalizado',
             fonteName: fonte ? (fonte.descricao || fonte.codigo) : '',
+            fonte: fonte || null,
+            objectType: 'CustomCode',
             modalId: 'mcc-transform-modal',
             hostId: 'mcc-transform-modal-host',
             config: currentTC,
-            schema: schema,
             onSave: function (newT) {
                 obj.transformConfig = newT;
                 obj.transformconfigjson = JSON.stringify(newT);
@@ -1731,27 +1728,38 @@ function renderObjectTable(dados) {
         ? JSON.parse(JSON.stringify(dados.config))
         : JSON.parse(JSON.stringify(_TABLE_SAMPLE_CONFIG));
     var isSample = !!dados.isSample;
+    var hasSource = typeof mdashObjectHasDataSource === 'function'
+        ? mdashObjectHasDataSource(dados.itemObject)
+        : !!(dados.itemObject && dados.itemObject.fontestamp);
 
     var rows = dados.data || [];
-    var tCfg = dados.transformConfig || cfg.transformConfig || null;
-    if (rows.length === 0 && tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
-        try {
-            var raw = MdashTransformBuilder.executeRaw(tCfg);
-            if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
-                rows = raw.rows.map(function (r) {
-                    var o = {};
-                    raw.columns.forEach(function (c, i) { o[c] = r[i]; });
-                    return o;
-                });
-                isSample = false;
-            }
-        } catch (e) {
-            console.warn('[MDash] renderObjectTable fallback transform error:', e.message);
+    if (hasSource) {
+        isSample = false;
+        if (typeof mdashResolveObjectData === 'function') {
+            var fbRecords = (dados.containerItem && dados.containerItem.records) || [];
+            var resolvedRows = mdashResolveObjectData(dados.itemObject, fbRecords);
+            rows = (resolvedRows && Array.isArray(resolvedRows.data)) ? resolvedRows.data : [];
         }
-    }
-    if (rows.length === 0) {
-        rows = _tblGetExecutiveSampleRows();
-        isSample = true;
+    } else {
+        var tCfg = dados.transformConfig || cfg.transformConfig || null;
+        if (rows.length === 0 && tCfg && tCfg.sourceTable && typeof MdashTransformBuilder !== 'undefined') {
+            try {
+                var raw = MdashTransformBuilder.executeRaw(tCfg);
+                if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
+                    rows = raw.rows.map(function (r) {
+                        var o = {};
+                        raw.columns.forEach(function (c, i) { o[c] = r[i]; });
+                        return o;
+                    });
+                    isSample = false;
+                }
+            } catch (e) {
+                console.warn('[MDash] renderObjectTable fallback transform error:', e.message);
+            }
+        }
+        if (rows.length === 0 && isSample) {
+            rows = _tblGetExecutiveSampleRows();
+        }
     }
 
     // Injetar CSS para tabela e filtros
@@ -3536,6 +3544,19 @@ function _tblParseColorTokenForUI(value, defaultCustom, allowEmpty) {
     return { token: 'custom', custom: value || defaultCustom || '#2563eb' };
 }
 
+function _mciColorInputValue(color, fallback) {
+    fallback = fallback || '#2563eb';
+    var v = (color != null && color !== '') ? String(color) : '';
+    if (!v || v.indexOf('phc:') === 0) {
+        var resolved = _tblResolvePHCColor(v || fallback);
+        if (resolved && String(resolved).charAt(0) === '#') return resolved;
+        return fallback;
+    }
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) return v;
+    if (/^#[0-9a-fA-F]{3}$/.test(v)) return '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
+    return fallback;
+}
+
 function _tblPhcColorSelectOptions(currentToken) {
     return ['primary', 'success', 'info', 'warning', 'danger', 'dark'].map(function (pt) {
         var token = 'phc:' + pt;
@@ -3555,7 +3576,7 @@ function _tblColorTokenFieldHtml(label, prefix, currentValue, compact, allowInhe
         + _tblPhcColorSelectOptions(parsed.token === 'custom' || !parsed.token ? '' : parsed.token)
         + '<option value="custom"' + (showCustom ? ' selected' : '') + '>' + customLabel + '</option>'
         + '</select>'
-        + '<input type="color" class="form-control input-sm ' + prefix + '-custom" value="' + _mciEsc(parsed.custom) + '" style="flex-shrink:0;width:42px;height:28px;padding:2px;' + (showCustom ? '' : 'display:none;') + '">'
+        + '<input type="color" class="form-control input-sm ' + prefix + '-custom" value="' + _mciEsc(_mciColorInputValue(parsed.custom)) + '" style="flex-shrink:0;width:42px;height:28px;padding:2px;' + (showCustom ? '' : 'display:none;') + '">'
         + '</div></div>';
 }
 
@@ -3882,6 +3903,117 @@ function _tblAddFiltersCSS() {
     $('head').append(css);
 }
 
+function _tblColPanelCSS() {
+    if ($('#mtbl-col-panel-styles').length) return;
+    $('head').append('<style id="mtbl-col-panel-styles">'
+        + '.mtbl-col-list>.mcbi-sr,.mtbl-group-col-list>.mcbi-sr{margin-bottom:5px;}'
+        + '.mtbl-col-card.is-dragging,.mtbl-col-group-card.is-dragging,.mtbl-filter-item.is-dragging{opacity:.65;}'
+        + '.mtbl-sortable-placeholder{border:1px dashed #94a3b8;border-radius:7px;background:#f1f5f9;margin-bottom:5px;min-height:36px;box-sizing:border-box;}'
+        + '.mtbl-col-list .mcbi-sr-hd,.mtbl-col-group-card>.mcbi-sr-hd{cursor:default;}'
+        + '.mtbl-col-drag,.mtbl-group-drag,.mtbl-filter-drag{cursor:move !important;color:#94a3b8;font-size:10px;flex-shrink:0;}'
+        + '.mtbl-col-group-card>.mcbi-sr-body>.mcbi-field{margin-top:0;}'
+        + '.mtbl-group-col-list{padding-left:7px;border-left:2px solid #d40032;margin-top:6px;}'
+        + '</style>');
+}
+
+function _tblSortableChevron() {
+    return '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,5 8,11 13,5"/></svg>';
+}
+
+function _tblRefreshColCardTitle($card) {
+    if (!$card || !$card.length) return;
+    var summary = _tblTitleBindingSummary(_tblReadTitleBinding($card, 'mtbl-col-title'));
+    var field = $card.find('.mtbl-col-field').val();
+    $card.find('.mtbl-col-title-lbl').text(summary || field || 'Coluna');
+}
+
+function _tblRefreshGroupCardTitle($card) {
+    if (!$card || !$card.length) return;
+    var summary = _tblTitleBindingSummary(_tblReadTitleBinding($card, 'mtbl-group-title'));
+    $card.find('.mtbl-group-title-lbl').text(summary || 'Grupo');
+}
+
+function _tblInitPanelSortables(panel, obj, fire) {
+    if (typeof $.fn.sortable !== 'function') return;
+
+    var sortableOpts = {
+        axis: 'y',
+        tolerance: 'pointer',
+        distance: 4,
+        cancel: 'input,button,select,textarea,.mcbi-sr-tog,.mtbl-col-remove,.mtbl-group-remove,.mtbl-filter-remove,.mtbl-filter-edit',
+        placeholder: 'mtbl-sortable-placeholder',
+        forcePlaceholderSize: true,
+        start: function (ev, ui) {
+            ui.item.addClass('is-dragging');
+            if (ui.placeholder) ui.placeholder.height(ui.item.outerHeight());
+        },
+        stop: function (ev, ui) {
+            ui.item.removeClass('is-dragging');
+        }
+    };
+
+    var $colList = panel.find('.mtbl-col-list');
+    if ($colList.length) {
+        if ($colList.hasClass('ui-sortable')) {
+            try { $colList.sortable('destroy'); } catch (e) { }
+        }
+        if ($colList.children('.mtbl-col-card, .mtbl-col-group-card').length) {
+            $colList.sortable($.extend({}, sortableOpts, {
+                items: '> .mtbl-col-card, > .mtbl-col-group-card',
+                handle: '.mtbl-col-drag, .mtbl-group-drag',
+                stop: function (ev, ui) {
+                    sortableOpts.stop(ev, ui);
+                    fire();
+                }
+            }));
+        }
+    }
+
+    panel.find('.mtbl-group-col-list').each(function () {
+        var $groupList = $(this);
+        if ($groupList.hasClass('ui-sortable')) {
+            try { $groupList.sortable('destroy'); } catch (e) { }
+        }
+        if (!$groupList.children('.mtbl-col-card').length) return;
+        $groupList.sortable($.extend({}, sortableOpts, {
+            items: '> .mtbl-col-card',
+            handle: '.mtbl-col-drag',
+            stop: function (ev, ui) {
+                sortableOpts.stop(ev, ui);
+                fire();
+            }
+        }));
+    });
+
+    var $filterList = panel.find('.mtbl-filters-list');
+    if ($filterList.length) {
+        if ($filterList.hasClass('ui-sortable')) {
+            try { $filterList.sortable('destroy'); } catch (e) { }
+        }
+        if ($filterList.children('.mtbl-filter-item').length) {
+            $filterList.sortable($.extend({}, sortableOpts, {
+                items: '> .mtbl-filter-item',
+                handle: '.mtbl-filter-drag',
+                stop: function (ev, ui) {
+                    sortableOpts.stop(ev, ui);
+                    if (!obj.config || !obj.config.filters || !Array.isArray(obj.config.filters.definitions)) return;
+                    var defs = obj.config.filters.definitions;
+                    var newOrder = [];
+                    $filterList.children('.mtbl-filter-item').each(function (newIdx) {
+                        var oldIdx = $(this).data('idx');
+                        $(this).attr('data-idx', newIdx);
+                        if (defs[oldIdx] !== undefined) newOrder.push(defs[oldIdx]);
+                    });
+                    if (newOrder.length === defs.length) {
+                        obj.config.filters.definitions = newOrder;
+                    }
+                    fire();
+                }
+            }));
+        }
+    }
+}
+
 
 // ── Painel de propriedades inline da Tabela ──────────────────────────────────
 function renderTablePropertiesInline(obj, panel) {
@@ -3895,6 +4027,7 @@ function renderTablePropertiesInline(obj, panel) {
 
     _mciCSS();
     _tblCSS();
+    _tblColPanelCSS();
 
     var _timer = null;
     function fire() {
@@ -3960,7 +4093,7 @@ function renderTablePropertiesInline(obj, panel) {
         + '<div class="mtbl-theme-custom-preview" style="display:flex;gap:2px;margin-bottom:3px;position:relative;width:26px;height:10px;" title="Escolher cor">'
         + '<span class="mtbl-theme-custom-hdr" style="width:16px;height:10px;border-radius:2px;background:' + _mciEsc(customHex) + ';"></span>'
         + '<span class="mtbl-theme-custom-acc" style="width:8px;height:10px;border-radius:2px;background:' + _mciEsc(customAccent) + ';opacity:.6;"></span>'
-        + '<input type="color" class="mtbl-theme-custom-picker" value="' + _mciEsc(customHex) + '" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0;margin:0;">'
+        + '<input type="color" class="mtbl-theme-custom-picker" value="' + _mciEsc(_mciColorInputValue(customHex)) + '" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0;margin:0;">'
         + '</div>'
         + '<span style="font-size:9.5px;font-weight:600;color:#475569;">Personalizada</span>'
         + '</button>';
@@ -4015,8 +4148,8 @@ function renderTablePropertiesInline(obj, panel) {
     if (manualCols.length) {
         manualCols.forEach(function (c, i) {
             sColunas += (c && Array.isArray(c.columns))
-                ? _tblGroupCard(c, i, fields, fontes, dashboardFilters)
-                : _tblColCard(c, i, fields, fontes, dashboardFilters);
+                ? _tblGroupCard(c, i, fields, fontes, dashboardFilters, { isOpen: i === 0 })
+                : _tblColCard(c, i, fields, fontes, dashboardFilters, { isOpen: i === 0 });
         });
     } else {
         sColunas += '<div class="mcbi-info">Desative "Auto-gerar" e adicione colunas manualmente.</div>';
@@ -4136,7 +4269,7 @@ function renderTablePropertiesInline(obj, panel) {
     if (flt.definitions && flt.definitions.length) {
         flt.definitions.forEach(function(f, idx) {
             sFiltros += '<div class="mtbl-filter-item" data-idx="' + idx + '" style="display:flex;align-items:center;gap:6px;padding:6px;background:#f8fafc;border-radius:6px;margin-bottom:4px;">';
-            sFiltros += '<span class="glyphicon glyphicon-menu-hamburger" style="color:#94a3b8;cursor:move;font-size:10px;"></span>';
+            sFiltros += '<span class="glyphicon glyphicon-menu-hamburger mtbl-filter-drag" title="Arrastar para reordenar"></span>';
             sFiltros += '<input type="text" class="form-control input-sm mtbl-filter-label" value="' + _mciEsc(f.label || '') + '" placeholder="Label" style="flex:1;">';
             sFiltros += '<button type="button" class="btn btn-xs btn-default mtbl-filter-edit" title="Editar condições">';
             sFiltros += '<i class="glyphicon glyphicon-cog"></i></button>';
@@ -4170,6 +4303,24 @@ function renderTablePropertiesInline(obj, panel) {
     // Limpar TODOS os handlers (incluindo de outros tipos de objetos)
     panel.off();
 
+    // Colapsar/expandir colunas e grupos
+    panel.on('click.tblinline', '.mtbl-col-tog', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).closest('.mtbl-col-card').toggleClass('is-open');
+    });
+    panel.on('click.tblinline', '.mtbl-group-tog', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).closest('.mtbl-col-group-card').toggleClass('is-open');
+    });
+    panel.on('change.tblinline', '.mtbl-col-field, .mtbl-col-title-mode, .mtbl-col-title-text, .mtbl-col-title-field', function () {
+        _tblRefreshColCardTitle($(this).closest('.mtbl-col-card'));
+    });
+    panel.on('change.tblinline', '.mtbl-group-title-mode, .mtbl-group-title-text, .mtbl-group-title-field', function () {
+        _tblRefreshGroupCardTitle($(this).closest('.mtbl-col-group-card'));
+    });
+
     // Section toggle
     panel.on('click.tblinline', '.mcbi-section-hd', function () {
         var sec = $(this).closest('.mcbi-section');
@@ -4197,9 +4348,10 @@ function renderTablePropertiesInline(obj, panel) {
                             field: f,
                             title: f.charAt(0).toUpperCase() + f.slice(1).replace(/_/g, ' '),
                             visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext'
-                        }, idx, _af, _mciGetFontes(obj), _tblGetDashboardFiltersList()));
+                        }, idx, _af, _mciGetFontes(obj), _tblGetDashboardFiltersList(), { isOpen: idx === 0 }));
                     });
                 }
+                _tblInitPanelSortables(panel, obj, fire);
             }
         }
         // Tree toggle
@@ -4215,11 +4367,11 @@ function renderTablePropertiesInline(obj, panel) {
     // Fonte change
     panel.on('change.tblinline', '.mcbi-fonte', function () {
         var fs = $(this).val();
-        obj.fontestamp = fs;
-        _mciAutoApplyFonteTransform(fs, obj, panel);
-        var newFields = _mciGetFields(obj);
-        _tblRefreshFieldSelects(panel, newFields);
-        fire();
+        _mciOnFonteSelected(fs, obj, panel, function () {
+            var newFields = _mciGetFields(obj);
+            _tblRefreshFieldSelects(panel, newFields);
+            fire();
+        });
     });
 
     // Transform button
@@ -4227,20 +4379,14 @@ function renderTablePropertiesInline(obj, panel) {
         var currentTC = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
         var fonteStamp = obj.fontestamp;
         var fonte = fonteStamp && _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === fonteStamp; });
-        
-        // Obter schema da fonte (tenta schemajson, lastResultscached, ou DB)
-        var schema = _mciGetFonteSchema(fonte);
         var tbl = (fonte && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(fonte) : null;
-        
-        // Se não há transformConfig existente E temos fonte válida, criar config inicial
+
         if (!currentTC && tbl && typeof MdashTransformBuilder !== 'undefined') {
             currentTC = MdashTransformBuilder.autoConfig(tbl, 'Table');
         }
-        
-        // Se ainda não há config (sem fonte), criar config vazio
         if (!currentTC) {
             currentTC = {
-                sourceTable: '',
+                sourceTable: tbl || '',
                 mode: 'visual',
                 columns: [],
                 measures: [],
@@ -4250,14 +4396,15 @@ function renderTablePropertiesInline(obj, panel) {
                 sqlFree: ''
             };
         }
-        
+
         _mciOpenTransformModalFor({
             title: 'Transformação — Tabela',
             fonteName: fonte ? (fonte.descricao || fonte.codigo) : '',
+            fonte: fonte || null,
+            objectType: 'Table',
             modalId: 'mtbl-transform-modal',
             hostId: 'mtbl-transform-modal-host',
             config: currentTC,
-            schema: schema,
             onSave: function (newT) {
                 // Atualizar apenas as localizações fundamentais
                 obj.transformConfig = newT;
@@ -4400,8 +4547,9 @@ function renderTablePropertiesInline(obj, panel) {
         if (!nextField && newFields.length) nextField = newFields[0];
         var $list = panel.find('.mtbl-col-list');
         $list.find('.mcbi-info').remove();
-        var idx = $list.find('.mtbl-col-card').length;
-        $list.append(_tblColCard({ field: nextField, title: nextField, visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }, idx, newFields, _mciGetFontes(obj), _tblGetDashboardFiltersList()));
+        var idx = $list.children('.mtbl-col-card, .mtbl-col-group-card').length;
+        $list.append(_tblColCard({ field: nextField, title: nextField, visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }, idx, newFields, _mciGetFontes(obj), _tblGetDashboardFiltersList(), { isOpen: true }));
+        _tblInitPanelSortables(panel, obj, fire);
         fire();
     });
 
@@ -4416,7 +4564,8 @@ function renderTablePropertiesInline(obj, panel) {
         $list.append(_tblGroupCard({
             title: 'Novo grupo',
             columns: [{ field: firstField, title: firstField || 'Coluna', visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }]
-        }, idx, newFields, _mciGetFontes(obj), _tblGetDashboardFiltersList()));
+        }, idx, newFields, _mciGetFontes(obj), _tblGetDashboardFiltersList(), { isOpen: true }));
+        _tblInitPanelSortables(panel, obj, fire);
         fire();
     });
 
@@ -4434,19 +4583,22 @@ function renderTablePropertiesInline(obj, panel) {
         var $groupList = $(this).closest('.mtbl-col-group-card').find('.mtbl-group-col-list').first();
         $groupList.find('.mcbi-info').remove();
         var idx = $groupList.children('.mtbl-col-card').length;
-        $groupList.append(_tblColCard({ field: nextField, title: nextField, visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }, idx, newFields, _mciGetFontes(obj), _tblGetDashboardFiltersList()));
+        $groupList.append(_tblColCard({ field: nextField, title: nextField, visible: true, hozAlign: 'left', sorter: 'string', formatter: 'plaintext' }, idx, newFields, _mciGetFontes(obj), _tblGetDashboardFiltersList(), { isOpen: true }));
+        _tblInitPanelSortables(panel, obj, fire);
         fire();
     });
 
     // Remove column
     panel.on('click.tblinline', '.mtbl-col-remove', function () {
         $(this).closest('.mtbl-col-card').remove();
+        _tblInitPanelSortables(panel, obj, fire);
         fire();
     });
 
     // Remove column group
     panel.on('click.tblinline', '.mtbl-group-remove', function () {
         $(this).closest('.mtbl-col-group-card').remove();
+        _tblInitPanelSortables(panel, obj, fire);
         fire();
     });
 
@@ -4484,6 +4636,8 @@ function renderTablePropertiesInline(obj, panel) {
     panel.on('change.tblinline', '.mtbl-col-title-mode, .mtbl-group-title-mode', function () {
         var prefix = $(this).hasClass('mtbl-col-title-mode') ? 'mtbl-col-title' : 'mtbl-group-title';
         _tblToggleTitleBindingPanel($(this).closest('.mtbl-title-binding'), prefix);
+        if (prefix === 'mtbl-col-title') _tblRefreshColCardTitle($(this).closest('.mtbl-col-card'));
+        else _tblRefreshGroupCardTitle($(this).closest('.mtbl-col-group-card'));
         fire();
     });
 
@@ -4501,6 +4655,10 @@ function renderTablePropertiesInline(obj, panel) {
     });
 
     panel.on('input.tblinline change.tblinline', '.mtbl-col-title-text, .mtbl-col-title-expr, .mtbl-group-title-text, .mtbl-group-title-expr, .mtbl-col-title-filter, .mtbl-col-title-filter-part, .mtbl-col-title-source-field, .mtbl-group-title-filter, .mtbl-group-title-filter-part, .mtbl-group-title-source-field', function () {
+        var $col = $(this).closest('.mtbl-col-card');
+        if ($col.length) _tblRefreshColCardTitle($col);
+        var $grp = $(this).closest('.mtbl-col-group-card');
+        if ($grp.length) _tblRefreshGroupCardTitle($grp);
         fire();
     });
 
@@ -4577,7 +4735,7 @@ function renderTablePropertiesInline(obj, panel) {
         $list.find('.mcbi-info').remove(); // Remove mensagem "Nenhum filtro"
         
         var filterHtml = '<div class="mtbl-filter-item" data-idx="' + idx + '" style="display:flex;align-items:center;gap:6px;padding:6px;background:#f8fafc;border-radius:6px;margin-bottom:4px;">';
-        filterHtml += '<span class="glyphicon glyphicon-menu-hamburger" style="color:#94a3b8;cursor:move;font-size:10px;"></span>';
+        filterHtml += '<span class="glyphicon glyphicon-menu-hamburger mtbl-filter-drag" title="Arrastar para reordenar"></span>';
         filterHtml += '<input type="text" class="form-control input-sm mtbl-filter-label" value="' + (newFilter.label || '') + '" placeholder="Label" style="flex:1;">';
         filterHtml += '<button type="button" class="btn btn-xs btn-default mtbl-filter-edit" title="Editar condições">';
         filterHtml += '<i class="glyphicon glyphicon-cog"></i></button>';
@@ -4586,6 +4744,7 @@ function renderTablePropertiesInline(obj, panel) {
         filterHtml += '</div>';
         
         $list.append(filterHtml);
+        _tblInitPanelSortables(panel, obj, fire);
         
         console.log('[Table Filters] Item adicionado ao DOM');
         fire();
@@ -4630,6 +4789,7 @@ function renderTablePropertiesInline(obj, panel) {
             if (obj.config.filters.definitions.length === 0) {
                 panel.find('.mtbl-filters-list').html('<div class="mcbi-info">Nenhum filtro. Clique "Adicionar".</div>');
             }
+            _tblInitPanelSortables(panel, obj, fire);
             
             fire();
         }
@@ -4656,6 +4816,8 @@ function renderTablePropertiesInline(obj, panel) {
             });
         }
     });
+
+    _tblInitPanelSortables(panel, obj, fire);
 }
 
 // ── Helpers de UI da tabela ──────────────────────────────────────────────────
@@ -4744,7 +4906,9 @@ function _tblManualRowCard(item, idx) {
         + '</div>';
 }
 
-function _tblColCard(col, idx, fields, fontes, filters) {
+function _tblColCard(col, idx, fields, fontes, filters, opts) {
+    opts = opts || {};
+    var isOpen = opts.isOpen !== undefined ? opts.isOpen : (idx === 0);
     var isConditional = (col.formatter === 'conditional');
     var conditionalCfg = isConditional ? JSON.parse(JSON.stringify(col.conditional || _tblGetDeltaPercentConditionalTemplate(col.field))) : null;
     var isExpression = (col.formatter === 'expression');
@@ -4761,6 +4925,7 @@ function _tblColCard(col, idx, fields, fontes, filters) {
     var customColorVal = isCustomColor ? linkColor : '#2563eb';
     var colorKey = isCustomColor ? 'custom' : (linkColor.indexOf('phc:') === 0 ? linkColor.replace('phc:', '') : 'primary');
     var titleSummary = _tblTitleBindingSummary(_tblNormalizeTitleBinding(col));
+    var headerLabel = titleSummary || col.field || ('Coluna ' + (idx + 1));
     var PHC_BTN_COLORS = [
         { key: 'primary', label: 'Primary (azul)' },
         { key: 'success', label: 'Success (verde)' },
@@ -4770,11 +4935,15 @@ function _tblColCard(col, idx, fields, fontes, filters) {
         { key: 'dark', label: 'Dark (preto)' },
         { key: 'custom', label: 'Personalizada\u2026' }
     ];
-    return '<div class="mtbl-col-card" data-idx="' + idx + '" style="padding:8px;border:1px solid rgba(0,0,0,.08);border-radius:7px;margin-bottom:4px;background:#fafbfc;">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
-        + '<strong style="font-size:11px;color:#334155;">' + _mciEsc(titleSummary) + '</strong>'
-        + '<button type="button" class="mtbl-col-remove" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:13px;padding:0 2px;" title="Remover"><i class="glyphicon glyphicon-trash"></i></button>'
-        + '</div>'
+    return '<div class="mcbi-sr mtbl-col-card' + (isOpen ? ' is-open' : '') + '" data-idx="' + idx + '">'
+        + '<div class="mcbi-sr-hd">'
+        + '<span class="glyphicon glyphicon-menu-hamburger mtbl-col-drag" title="Arrastar para reordenar"></span>'
+        + '<span class="mcbi-sr-title mtbl-col-title-lbl">' + _mciEsc(headerLabel) + '</span>'
+        + '<div class="mcbi-sr-acts">'
+        + '<button type="button" class="mcbi-sr-tog mtbl-col-tog" title="Expandir/Colapsar">' + _tblSortableChevron() + '</button>'
+        + '<button type="button" class="mtbl-col-remove" title="Remover" style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;color:#ef4444;border-radius:7px;cursor:pointer;padding:0;"><i class="glyphicon glyphicon-trash" style="font-size:12px;"></i></button>'
+        + '</div></div>'
+        + '<div class="mcbi-sr-body mtbl-col-body">'
         + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">'
         + '<select class="mtbl-col-field form-control input-sm" style="font-size:10.5px;">'
         + fields.map(function (f) { return '<option value="' + _mciEsc(f) + '"' + (col.field === f ? ' selected' : '') + '>' + _mciEsc(f) + '</option>'; }).join('')
@@ -4817,7 +4986,7 @@ function _tblColCard(col, idx, fields, fontes, filters) {
         + '<select class="mtbl-col-color form-control input-sm mtbl-col-color-sel" style="font-size:10.5px;">'
         + PHC_BTN_COLORS.map(function (c) { return '<option value="' + c.key + '"' + (colorKey === c.key ? ' selected' : '') + '>' + c.label + '</option>'; }).join('')
         + '</select></div>'
-        + '<input type="color" class="mtbl-col-color-custom" value="' + _mciEsc(customColorVal) + '" style="width:34px;height:30px;padding:0;border:1px solid #ccc;border-radius:4px;display:' + (isBtn && colorKey === 'custom' ? '' : 'none') + ';">'
+        + '<input type="color" class="mtbl-col-color-custom" value="' + _mciEsc(_mciColorInputValue(customColorVal)) + '" style="width:34px;height:30px;padding:0;border:1px solid #ccc;border-radius:4px;display:' + (isBtn && colorKey === 'custom' ? '' : 'none') + ';">'
         + '</div>'
         + '<div style="font-size:9.5px;color:#7c2d12;margin-top:6px;line-height:1.3;">Helpers dispon\u00edveis na URL: <code>getStampEncriptado(s)</code>, <code>mdashResolveUrl(p)</code>. Prefixos: <code>~/</code>=raiz da app, <code>../</code>=relativa, <code>/</code>=absoluta.</div>'
         + '</div>'
@@ -4827,30 +4996,38 @@ function _tblColCard(col, idx, fields, fontes, filters) {
         + '<label style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:3px;"><input type="checkbox" class="mtbl-col-filter"' + (col.headerFilter !== false ? ' checked' : '') + '> Filtro</label>'
         + '</div>'
         + _tblColumnCellStyleEditorHtml(col.cellStyle)
-        + '</div>';
+        + '</div></div>';
 }
 
-function _tblGroupCard(group, idx, fields, fontes, filters) {
+function _tblGroupCard(group, idx, fields, fontes, filters, opts) {
+    opts = opts || {};
+    var isOpen = opts.isOpen !== undefined ? opts.isOpen : false;
     var columns = Array.isArray(group.columns) ? group.columns : [];
-    var html = '<div class="mtbl-col-group-card" data-idx="' + idx + '" style="padding:7px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:6px;background:#f1f5f9;">'
-        + '<div style="display:flex;align-items:flex-start;gap:5px;margin-bottom:6px;">'
-        + '<i class="glyphicon glyphicon-folder-open" style="color:#d40032;font-size:11px;margin-top:8px;"></i>'
-        + '<div style="flex:1;min-width:0;">'
+    var groupTitle = _tblTitleBindingSummary(_tblNormalizeTitleBinding(group)) || 'Grupo';
+    var html = '<div class="mcbi-sr mtbl-col-group-card' + (isOpen ? ' is-open' : '') + '" data-idx="' + idx + '" style="border-left:3px solid #d40032;">'
+        + '<div class="mcbi-sr-hd">'
+        + '<span class="glyphicon glyphicon-menu-hamburger mtbl-group-drag" title="Arrastar para reordenar"></span>'
+        + '<span class="glyphicon glyphicon-folder-open" style="color:#d40032;font-size:11px;flex-shrink:0;"></span>'
+        + '<span class="mcbi-sr-title mtbl-group-title-lbl">' + _mciEsc(groupTitle) + '</span>'
+        + '<div class="mcbi-sr-acts">'
+        + '<button type="button" class="mcbi-sr-tog mtbl-group-tog" title="Expandir/Colapsar">' + _tblSortableChevron() + '</button>'
+        + '<button type="button" class="mtbl-group-remove" title="Remover grupo" style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;color:#ef4444;border-radius:7px;cursor:pointer;padding:0;"><i class="glyphicon glyphicon-trash" style="font-size:12px;"></i></button>'
+        + '</div></div>'
+        + '<div class="mcbi-sr-body">'
+        + '<div class="mcbi-field">'
         + _tblTitleBindingEditorHtml(_tblNormalizeTitleBinding(group), 'mtbl-group-title', fontes, filters)
         + '</div>'
-        + '<button type="button" class="mtbl-group-remove" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:13px;padding:0 2px;margin-top:6px;" title="Remover grupo"><i class="glyphicon glyphicon-trash"></i></button>'
-        + '</div>'
-        + '<div class="mtbl-group-col-list" style="padding-left:7px;border-left:2px solid #d40032;">';
+        + '<div class="mtbl-group-col-list">';
     if (columns.length) {
         columns.forEach(function (col, colIdx) {
-            html += _tblColCard(col, colIdx, fields, fontes, filters);
+            html += _tblColCard(col, colIdx, fields, fontes, filters, { isOpen: colIdx === 0 });
         });
     } else {
         html += '<div class="mcbi-info" style="margin:2px 0 5px;">Adicione as subcolunas deste grupo.</div>';
     }
     html += '</div>'
         + '<button type="button" class="btn btn-xs btn-default mtbl-group-add-col" style="margin-top:5px;width:100%;"><i class="glyphicon glyphicon-plus"></i> Adicionar coluna ao grupo</button>'
-        + '</div>';
+        + '</div></div>';
     return html;
 }
 
@@ -4959,7 +5136,7 @@ function _tblOpenFilterConditionsModal(filterDef, fields, onSave) {
         + '</div>'
         + '<div class="mtbl-fc-custom-color-panel" style="' + (currentColorKey === 'custom' ? '' : 'display:none;') + 'padding:12px;background:#f8fafc;border-radius:8px;margin-bottom:8px;">'
         + '<label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#475569;display:block;margin-bottom:8px;">Cor personalizada</label>'
-        + '<input type="color" class="form-control mtbl-fc-color-custom" value="' + _mciEsc(currentCustomColor) + '" style="width:100%;height:40px;padding:4px;">'
+        + '<input type="color" class="form-control mtbl-fc-color-custom" value="' + _mciEsc(_mciColorInputValue(currentCustomColor)) + '" style="width:100%;height:40px;padding:4px;">'
         + '</div>'
         + '<div style="margin-top:12px;">'
         + '<label style="font-size:11px;color:#64748b;margin-bottom:4px;">Classe CSS adicional (opcional)</label>'
@@ -6461,7 +6638,7 @@ var MdashChartBuilder = (function () {
         if (ct === 'mixed') {
             h += '<select class="mcb-st form-control input-sm" style="width:74px;">' + tOpts + '</select>';
         }
-        h += '<input type="color" class="mcb-sc" value="' + (s.color || '#2563EB') + '" title="Cor">';
+        h += '<input type="color" class="mcb-sc" value="' + _mciColorInputValue(s.color, '#2563EB') + '" title="Cor">';
         h += '<button type="button" class="mcb-del btn btn-xs btn-danger" title="Remover"><i class="glyphicon glyphicon-remove"></i></button>';
         h += '</div>';
         return h;
@@ -7200,9 +7377,10 @@ function _mciGetFontes(obj) {
     return [];
 }
 
-// Devolve [{field, type}] para uma fonte, por prioridade: schemajson → lastResultscached → PRAGMA.
+// Devolve [{field, type}] para uma fonte — delega no resolver central.
 function _mciGetFonteSchema(fonte) {
     if (!fonte) return [];
+    if (typeof mdashDetectSourceSchema === 'function') return mdashDetectSourceSchema(fonte);
     if (fonte.schemajson) {
         try {
             var sc = JSON.parse(fonte.schemajson);
@@ -7210,19 +7388,101 @@ function _mciGetFonteSchema(fonte) {
                 return sc.map(function (c) { return { field: typeof c === 'string' ? c : (c.field || c.name || String(c)), type: c.type || 'TEXT' }; }).filter(function (c) { return c.field; });
         } catch (e) {}
     }
-    if (fonte.lastResultscached) {
-        try {
-            var lrc = JSON.parse(fonte.lastResultscached);
-            var cols = (lrc && Array.isArray(lrc.columns) && lrc.columns.length) ? lrc.columns
-                : (Array.isArray(lrc) && lrc.length && typeof lrc[0] === 'object' ? Object.keys(lrc[0]) : null);
-            if (cols) return cols.map(function (c) { return { field: c, type: 'TEXT' }; });
-        } catch (e) {}
-    }
-    if (typeof MdashTransformBuilder !== 'undefined' && typeof mdashFonteTableName === 'function') {
-        var tbl = mdashFonteTableName(fonte);
-        if (tbl) return MdashTransformBuilder.getTableSchema(tbl);
-    }
     return [];
+}
+
+// Ao seleccionar fonte: garante schema SQLite e rebind da transformação passthrough.
+function _mciOnFonteSelected(fonteStamp, obj, panel, onReady) {
+    var prevStamp = obj.fontestamp || '';
+    obj.fontestamp = fonteStamp || '';
+
+    if (!fonteStamp) {
+        obj.transformConfig = null;
+        obj.transformconfigjson = '';
+        if (obj.config) obj.config.transformConfig = null;
+        if (panel) {
+            var $tsEmpty = panel.find('.mcbi-transform-status');
+            $tsEmpty.removeClass('is-active');
+            $tsEmpty.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-filter"></i> Sem transformação');
+            $tsEmpty.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-plus"></i> Configurar');
+        }
+        if (typeof onReady === 'function') onReady();
+        return;
+    }
+
+    var fonte = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === fonteStamp; });
+    if (!fonte) {
+        if (typeof onReady === 'function') onReady();
+        return;
+    }
+
+    var fonteChanged = prevStamp !== fonteStamp;
+
+    function finish() {
+        var newTbl = (typeof mdashFonteTableName === 'function') ? mdashFonteTableName(fonte) : '';
+        var currentTC = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
+        var currentTbl = currentTC ? (currentTC.sourceTable || '') : '';
+        var needsRebind = fonteChanged || !currentTC || !currentTbl || (newTbl && currentTbl !== newTbl);
+
+        if (needsRebind) {
+            _mciAutoApplyFonteTransform(fonteStamp, obj, panel);
+            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+        }
+        if (typeof onReady === 'function') onReady();
+    }
+
+    var existing = (typeof mdashDetectSourceSchema === 'function') ? mdashDetectSourceSchema(fonte) : [];
+    if (existing.length) {
+        if (typeof mdashEnsureFonteInDb === 'function') mdashEnsureFonteInDb(fonte);
+        finish();
+        return;
+    }
+    if (typeof mdashEnsureSourceSchema === 'function') {
+        mdashEnsureSourceSchema(fonte, function () { finish(); });
+    } else {
+        if (typeof mdashEnsureFonteInDb === 'function') mdashEnsureFonteInDb(fonte);
+        finish();
+    }
+}
+
+function _mciRefreshPanelsForFonte(fonteStamp) {
+    if (!fonteStamp) return;
+    var objects = (window.appState && window.appState.containerItemObjects)
+        || (typeof GMDashContainerItemObjects !== 'undefined' ? GMDashContainerItemObjects : []);
+    objects.forEach(function (obj) {
+        if (!obj || obj.fontestamp !== fonteStamp) return;
+        var stamp = obj.mdashcontaineritemobjectstamp;
+        var $panel = $('.mcbi-root[data-stamp="' + stamp + '"]');
+        if (!$panel.length) return;
+        var fields = _mciGetFields(obj);
+        _mciRefreshFieldSelects($panel, fields);
+        $panel.find('.mtxt-datafield, .mbadge-valuefield, .mprog-valuefield, .mprog-ref-field, .mprog-label-field, .mprog-list-title-field, .mprog-list-subtitle-field, .mprog-title-field, .mprog-kpi-trend-field, .mlst-labelfield, .mlst-subtitlefield, .mlst-datefield, .mlst-linkfield, .mlst-linklabel, .mlst-badgefield').each(function () {
+            _mciSetSelectFields($(this), fields, '-- campo --');
+        });
+        if ($panel.hasClass('mtbl-root') && typeof _tblRefreshFieldSelects === 'function') {
+            _tblRefreshFieldSelects($panel, fields);
+        }
+        var $mccList = $panel.find('.mcc-fields-list');
+        if ($mccList.length) {
+            $mccList.html(fields.length
+                ? fields.map(function (f) { return '<code style="background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;margin:1px;">' + _mciEsc(f) + '</code>'; }).join(' ')
+                : '<em>Sem campos — seleccione uma fonte</em>');
+        }
+        var $mhtmlList = $panel.find('.mhtml-fields-list');
+        if ($mhtmlList.length) {
+            $mhtmlList.html(fields.length
+                ? fields.map(function (f) {
+                    return '<code style="cursor:pointer;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;margin:1px;display:inline-block;" class="mhtml-field-pill" data-field="' + _mciEsc(f) + '">' + _mciEsc(f) + '</code>';
+                }).join(' ')
+                : '<em style="color:#94a3b8;">Sem campos</em>');
+        }
+    });
+}
+
+if (typeof $ !== 'undefined') {
+    $(document).off('mdash:schema:updated.mdashMci').on('mdash:schema:updated.mdashMci', function (ev, data) {
+        if (data && data.fonteStamp) _mciRefreshPanelsForFonte(data.fonteStamp);
+    });
 }
 
 // Actualiza um <select> jQuery com uma lista de campos, preservando a selecção actual.
@@ -7243,44 +7503,41 @@ function _mciAutoApplyFonteTransform(fonteStamp, obj, panel) {
     var fonte = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === fonteStamp; });
     if (!fonte) return;
 
-    // 1. Carregar cache na DB in-memory
-    if (typeof mdashExtractRowsFromCache === 'function' && typeof mdashLoadFonteIntoDb === 'function') {
-        var _rows = mdashExtractRowsFromCache(fonte.lastResultscached);
-        if (_rows.length) mdashLoadFonteIntoDb(fonte, _rows);
-    }
+    if (typeof mdashEnsureFonteInDb === 'function') mdashEnsureFonteInDb(fonte);
 
     var tblName = (typeof mdashFonteTableName === 'function') ? mdashFonteTableName(fonte) : '';
+    var schema = (typeof mdashDetectSourceSchema === 'function')
+        ? mdashDetectSourceSchema(fonte)
+        : _mciGetFonteSchema(fonte);
 
-    // 2. Derivar schema via helper centralizado
-    var schema = _mciGetFonteSchema(fonte);
-
-    // 3. Construir config passthrough (todas as colunas, sem filtros)
-    var autoConf = tblName ? MTB.autoConfig(tblName, 'Gráfico') : { mode: 'builder', sourceTable: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null };
+    var autoConf = tblName ? MTB.autoConfig(tblName, 'Gráfico') : { mode: 'visual', sourceTable: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null };
     if (!autoConf.columns.length && schema.length) {
         autoConf.sourceTable = tblName;
         autoConf.columns = schema.map(function (s) { return { field: s.field, alias: '', aggregate: 'none', visible: true }; });
     }
-    // Guardar transformationSchema para resolução imediata de campos (evita re-execução)
     if (!autoConf.transformationSchema || !autoConf.transformationSchema.length) {
         autoConf.transformationSchema = (schema.length ? schema : autoConf.columns).map(function (s) { return s.field || s; }).filter(Boolean);
     }
+    autoConf.schemaSyncedAt = fonte.lastexecuted || new Date().toISOString();
 
-    // 4. Persistir
     obj.transformConfig = autoConf;
     obj.transformconfigjson = JSON.stringify(autoConf);
     obj.config = obj.config || {};
     obj.config.transformConfig = autoConf;
 
-    // 5. Actualizar UI se panel disponível
     if (panel) {
         var $ts = panel.find('.mcbi-transform-status');
         $ts.addClass('is-active');
-        $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + (tblName || 'fonte') + '</strong>');
+        $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-ok-sign"></i> Transformação: <strong>' + _mciEsc(tblName || 'fonte') + '</strong>');
         $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-pencil"></i> Editar');
     }
 }
 
 function _mciGetFields(obj) {
+    if (typeof mdashResolveObjectFields === 'function') {
+        var resolved = mdashResolveObjectFields(obj);
+        if (resolved && resolved.length) return resolved;
+    }
     var cfg = obj.config || {};
     // 1. TransformConfig — coluna própria tem prioridade sobre legado dentro de cfg
     var tCfg = obj.transformConfig || cfg.transformConfig || null;
@@ -7573,14 +7830,14 @@ function _mciSerieRow(s, i, fields, fontes) {
         + '<div class="mcbi-field mcbi-sr-color-row">'
         + '<label>Cor</label>'
         + '<select class="mcbi-sc-phc form-control input-sm"><option value="">— Personalizada —</option>' + phcOpts + '</select>'
-        + '<input type="color" class="mcbi-sc"' + (phcToken ? ' style="display:none"' : '') + ' value="' + hexColor + '">'
+        + '<input type="color" class="mcbi-sc"' + (phcToken ? ' style="display:none"' : '') + ' value="' + _mciColorInputValue(hexColor) + '">'
         + '</div>'
         + '<div class="mcbi-srs">'
         + '<div class="mcbi-srs-hd"><svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M2 4h12v1.5H2zM4 7.5h8V9H4zM6 11h4v1.5H6z"/></svg> Estilo da série</div>'
         + '<div class="mcbi-srs-general">'
         + '<div class="mcbi-row2" style="align-items:center">'
         + '<div class="mcbi-field" style="margin-bottom:0">' + _mciChkVal('mcbi-s-labels', 'Etiquetas', s.dataLabels === true) + '</div>'
-        + '<div class="mcbi-field mcbi-s-labelcol-wrap" style="margin-bottom:0"><label>Cor etiqueta</label><input type="color" class="mcbi-s-labelcol" value="' + (s.labelColor || '#ffffff') + '"></div>'
+        + '<div class="mcbi-field mcbi-s-labelcol-wrap" style="margin-bottom:0"><label>Cor etiqueta</label><input type="color" class="mcbi-s-labelcol" value="' + _mciColorInputValue(s.labelColor, '#ffffff') + '"></div>'
         + '</div>'
         + '</div>'
         + '<div class="mcbi-srs-bar">'
@@ -7690,15 +7947,15 @@ function _mciResolveSeriesRows(cfg, mainRows) {
 // ── Main inline render function (called by showObjectPropertiesEditor) ────────
 
 // ── Modal de transformação genérico (reutilizável) ───────────────────────
-// opts: { title, fonteName, modalId, hostId, config, schema, onSave }
+// opts: { title, fonteName, fonte, objectType, modalId, hostId, config, schema, onSave }
 function _mciOpenTransformModalFor(opts) {
-    $('#' + modalId).remove();
-    $(".modal-backdrop").remove()
+    opts = opts || {};
     var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
     if (!MTB) { if (typeof alertify !== 'undefined') alertify.error('MdashTransformBuilder não disponível.', 4000); return; }
     var modalId = opts.modalId || 'mcbi-generic-transform-modal';
     var hostId = opts.hostId || (modalId + '-host');
     $('#' + modalId).remove();
+    $(".modal-backdrop").remove();
     var mHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1" role="dialog">'
         + '<div class="modal-dialog" style="width:860px;max-width:96vw;margin:32px auto;">'
         + '<div class="modal-content" style="border-radius:14px;overflow:hidden;border:none;box-shadow:0 24px 80px rgba(0,0,0,.24);">'
@@ -7713,15 +7970,63 @@ function _mciOpenTransformModalFor(opts) {
         + '</div></div></div></div>';
     $('body').append(mHtml);
     var $modal = $('#' + modalId);
-    
-    MTB.render($('#' + hostId)[0], {
-        config: opts.config,
-        schema: (opts.schema && opts.schema.length) ? opts.schema : undefined,
-        onSave: function (newT) { $modal.modal('hide'); if (opts.onSave) opts.onSave(newT); },
-        onCancel: function () { $modal.modal('hide'); }
-    });
+    var $host = $('#' + hostId);
+
+    function renderBuilder(schema) {
+        var cfg = opts.config ? JSON.parse(JSON.stringify(opts.config)) : null;
+        var tbl = (opts.fonte && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(opts.fonte) : '';
+        if (!cfg) {
+            cfg = tbl ? MTB.autoConfig(tbl, opts.objectType || 'Object') : {
+                sourceTable: tbl || '',
+                mode: 'visual',
+                columns: [],
+                measures: [],
+                filters: [],
+                orderBy: [],
+                limit: null,
+                sqlFree: ''
+            };
+        } else if (tbl && !cfg.sourceTable) {
+            cfg.sourceTable = tbl;
+        }
+        if (schema && schema.length && tbl && (!cfg.columns || !cfg.columns.length)) {
+            cfg.sourceTable = tbl;
+            cfg.columns = schema.map(function (s) {
+                return { field: s.field, alias: '', aggregate: 'none', visible: true, type: s.type };
+            });
+        }
+        $host.empty();
+        MTB.render($host[0], {
+            config: cfg,
+            schema: (schema && schema.length) ? schema : undefined,
+            fonte: opts.fonte || null,
+            onSave: function (newT) {
+                if (opts.fonte && opts.fonte.lastexecuted) newT.schemaSyncedAt = opts.fonte.lastexecuted;
+                $modal.modal('hide');
+                if (opts.onSave) opts.onSave(newT);
+            },
+            onCancel: function () { $modal.modal('hide'); }
+        });
+    }
+
     $modal.on('hidden.bs.modal', function () { $(this).remove(); });
-    $modal.modal('show');
+
+    if (opts.fonte && typeof mdashEnsureSourceSchema === 'function') {
+        $host.html('<div style="padding:48px 16px;text-align:center;color:#64748b;font-size:13px;">'
+            + '<i class="glyphicon glyphicon-refresh" style="animation:mdspin 1s linear infinite;margin-right:6px;"></i>'
+            + 'A detectar schema da fonte…</div>');
+        if (!$('#mdspin-style').length) {
+            $('head').append('<style id="mdspin-style">@keyframes mdspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>');
+        }
+        $modal.modal('show');
+        mdashEnsureSourceSchema(opts.fonte, function (err, schema) {
+            if (err && typeof console !== 'undefined') console.warn('[MDash] schema:', err.message || err);
+            renderBuilder(schema && schema.length ? schema : (opts.schema || []));
+        });
+    } else {
+        renderBuilder((opts.schema && opts.schema.length) ? opts.schema : []);
+        $modal.modal('show');
+    }
 }
 
 
@@ -7807,7 +8112,7 @@ function renderChartPropertiesInline(obj, panel) {
         + '<div class="mcbi-custom-palette"' + (cfg.piePalette === 'custom' ? '' : ' style="display:none"') + '>'
         + '<label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#475569;display:block;margin:6px 0 4px;">Cores personalizadas</label>'
         + '<div class="mcbi-custom-colors">'
-        + [0, 1, 2, 3, 4, 5].map(function (ci) { var cv = (cfg.piePaletteCustom && cfg.piePaletteCustom[ci]) || '#2563EB'; return '<input type="color" class="mcbi-custom-c" data-ci="' + ci + '" value="' + cv + '">'; }).join('')
+        + [0, 1, 2, 3, 4, 5].map(function (ci) { var cv = _mciColorInputValue(cfg.piePaletteCustom && cfg.piePaletteCustom[ci]); return '<input type="color" class="mcbi-custom-c" data-ci="' + ci + '" value="' + cv + '">'; }).join('')
         + '</div></div>'
         + '</div>'
         + '</div>';
@@ -7979,27 +8284,17 @@ function renderChartPropertiesInline(obj, panel) {
         var _tName = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : '';
         var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
 
-        // Carregar cache na DB in-memory (para PRAGMA e botão Testar)
-        if (_tFnt && typeof mdashExtractRowsFromCache === 'function' && typeof mdashLoadFonteIntoDb === 'function') {
-            var _tRows = mdashExtractRowsFromCache(_tFnt.lastResultscached);
-            if (_tRows.length > 0) mdashLoadFonteIntoDb(_tFnt, _tRows);
-        }
-
-        var _tSchema = _mciGetFonteSchema(_tFnt);
         var _tCfgRaw = obj.transformConfig || cfg.transformConfig || null;
         var _tConf = _tCfgRaw || (_tName ? MTB.autoConfig(_tName, 'Gráfico') : { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
-        if (!_tConf.columns.length && _tSchema.length) {
-            _tConf.sourceTable = _tName;
-            _tConf.columns = _tSchema.map(function (s) { return { field: s.field, alias: '', aggregate: 'none', visible: true }; });
-        }
 
         _mciOpenTransformModalFor({
             title: 'Transformação de Dados',
             fonteName: _tFntName,
+            fonte: _tFnt || null,
+            objectType: 'Gráfico',
             modalId: 'mcbi-transform-modal',
             hostId: 'mcbi-transform-modal-host',
             config: _tConf,
-            schema: _tSchema,
             onSave: function (newT) {
                 // Atualizar apenas as localizações fundamentais
                 obj.transformConfig = newT;
@@ -8028,16 +8323,16 @@ function renderChartPropertiesInline(obj, panel) {
         var _sFnt = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === _sFonteStamp; });
         var _sName = (_sFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_sFnt) : '';
         var _sFntName = (_sFnt && (_sFnt.descricao || _sFnt.codigo)) || '';
-        var _tSchema = _mciGetFonteSchema(_sFnt);
         var _tConf = existingTCfg || (_sName ? MTB.autoConfig(_sName, 'Série') : { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
 
         _mciOpenTransformModalFor({
             title: 'Transformação da Série',
             fonteName: _sFntName,
+            fonte: _sFnt || null,
+            objectType: 'Série',
             modalId: 'mcbi-sr-transform-modal',
             hostId: 'mcbi-sr-transform-modal-host',
             config: _tConf,
-            schema: _tSchema,
             onSave: function (newT) {
                 $sr.data('seriesTransformConfig', newT);
                 $sr.find('.mcbi-s-ds-trans-lbl').text(newT.sourceTable || 'SQL');
@@ -8163,8 +8458,15 @@ function renderChartPropertiesInline(obj, panel) {
         $sr.find('.mcbi-s-ds-edit-trans').html('<i class="glyphicon glyphicon-plus"></i> Config. transf.');
         if (stamp) {
             var _fo = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === stamp; });
-            var _fl = _fo ? _mciGetFonteSchema(_fo).map(function (s) { return s.field; }) : [];
-            if (_fl.length) _mciSetSelectFields($sr.find('.mcbi-sf'), _fl, 'campo…');
+            if (_fo && typeof mdashEnsureSourceSchema === 'function') {
+                mdashEnsureSourceSchema(_fo, function (err, schema) {
+                    var _fl = (schema || []).map(function (s) { return s.field; });
+                    if (_fl.length) _mciSetSelectFields($sr.find('.mcbi-sf'), _fl, 'campo…');
+                });
+            } else if (_fo) {
+                var _fl = _mciGetFonteSchema(_fo).map(function (s) { return s.field; });
+                if (_fl.length) _mciSetSelectFields($sr.find('.mcbi-sf'), _fl, 'campo…');
+            }
         }
         _mciRefreshXField(panel, obj);
         fire();
@@ -8215,13 +8517,19 @@ function renderChartPropertiesInline(obj, panel) {
     });
 
     panel.on('change.mcbi', '.mcbi-fonte', function () {
-        obj.fontestamp = $(this).val();
+        var fs = $(this).val();
         _mciTransformInited = false;
-        if (obj.fontestamp) {
+        if (fs) {
             panel.find('.mcbi-sample-label').hide();
-            // Auto-aplica transformação passthrough para a nova fonte
-            _mciAutoApplyFonteTransform(obj.fontestamp, obj, panel);
+            _mciOnFonteSelected(fs, obj, panel, function () {
+                _mciRefreshFieldSelects(panel, _mciGetFields(obj));
+                _mciRefreshXField(panel, obj);
+                if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+                if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
+                fire();
+            });
         } else {
+            obj.fontestamp = '';
             panel.find('.mcbi-sample-label').show();
             obj.transformConfig = null;
             obj.transformconfigjson = null;
@@ -8230,13 +8538,12 @@ function renderChartPropertiesInline(obj, panel) {
             $ts.removeClass('is-active');
             $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-filter"></i> Sem transformação de dados');
             $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-plus"></i> Configurar');
+            _mciRefreshFieldSelects(panel, _mciGetFields(obj));
+            _mciRefreshXField(panel, obj);
+            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+            if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
+            fire();
         }
-        _mciRefreshFieldSelects(panel, _mciGetFields(obj));
-        _mciRefreshXField(panel, obj);
-        // Sincronizar a invariante triplicada antes de persistir
-        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
-        if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
-        fire();
     });
 
     panel.on('change.mcbi', '.mcbi-st', function () {
@@ -8461,10 +8768,12 @@ function _htmlRenderTemplate(template, data) {
     }
 }
 
-// ── Helper: sanitizar HTML (strip <script> e atributos on*) ─────────────────
+// Helper: sanitizar HTML (remove blocos perigosos e atributos on-event)
 function _htmlSanitize(html) {
-    // Remove blocos <script>...</script>
-    html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+    // Safe para embed inline em paginas PHC — evitar sequencias que fecham tags no source
+    var _scOpen = '<' + 'script';
+    var _scClose = '<' + '/' + 'script>';
+    html = html.replace(new RegExp(_scOpen + '[\\s\\S]*?' + _scClose, 'gi'), '');
     // Remove atributos de evento inline (onclick, onload, etc.)
     html = html.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
     // Remove href="javascript:..."
@@ -8678,17 +8987,17 @@ function renderHtmlPropertiesInline(obj, panel) {
 
     // Fonte change
     panel.on('change.mhtmlinline', '.mcbi-fonte', function () {
-        obj.fontestamp = $(this).val() || '';
-        _mciAutoApplyFonteTransform(obj.fontestamp, obj, panel);
-        var newFields = _mciGetFields(obj);
-        panel.find('.mhtml-fields-list').html(
-            newFields.length
-                ? newFields.map(function (f) {
-                    return '<code style="cursor:pointer;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;margin:1px;display:inline-block;" class="mhtml-field-pill" data-field="' + _mciEsc(f) + '">' + _mciEsc(f) + '</code>';
-                }).join(' ')
-                : '<em style="color:#94a3b8;">Sem campos</em>'
-        );
-        fire();
+        _mciOnFonteSelected($(this).val() || '', obj, panel, function () {
+            var newFields = _mciGetFields(obj);
+            panel.find('.mhtml-fields-list').html(
+                newFields.length
+                    ? newFields.map(function (f) {
+                        return '<code style="cursor:pointer;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:3px;margin:1px;display:inline-block;" class="mhtml-field-pill" data-field="' + _mciEsc(f) + '">' + _mciEsc(f) + '</code>';
+                    }).join(' ')
+                    : '<em style="color:#94a3b8;">Sem campos</em>'
+            );
+            fire();
+        });
     });
 
     // Clicar num campo insere {{campo}} no editor ACE activo
@@ -8710,26 +9019,17 @@ function renderHtmlPropertiesInline(obj, panel) {
         var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
 
         // Carregar cache na DB in-memory (para PRAGMA e botão Testar)
-        if (_tFnt && typeof mdashExtractRowsFromCache === 'function' && typeof mdashLoadFonteIntoDb === 'function') {
-            var _tRows = mdashExtractRowsFromCache(_tFnt.lastResultscached);
-            if (_tRows.length > 0) mdashLoadFonteIntoDb(_tFnt, _tRows);
-        }
-
-        var _tSchema = _mciGetFonteSchema(_tFnt);
         var _tCfgRaw = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
         var _tConf = _tCfgRaw || (_tName ? MTB.autoConfig(_tName, 'HTML') : { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
-        if (!_tConf.columns.length && _tSchema.length) {
-            _tConf.sourceTable = _tName;
-            _tConf.columns = _tSchema.map(function (s) { return { field: s.field, alias: '', aggregate: 'none', visible: true }; });
-        }
 
         _mciOpenTransformModalFor({
             title: 'Transformação de Dados',
             fonteName: _tFntName,
+            fonte: _tFnt || null,
+            objectType: 'HTML',
             modalId: 'mhtml-transform-modal',
             hostId: 'mhtml-transform-modal-host',
             config: _tConf,
-            schema: _tSchema,
             onSave: function (newT) {
                 // Atualizar apenas as localizações fundamentais
                 obj.transformConfig = newT;
@@ -9751,7 +10051,7 @@ function _lstManualItemRow(item) {
         + '</select>'
         + '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;" title="Cor do texto do link">'
         + '<i class="glyphicon glyphicon-tint" style="font-size:11px;color:#94a3b8;"></i>'
-        + '<input type="color" class="mlst-mi-color" value="' + clr + '" style="width:32px;height:28px;border-radius:5px;border:1px solid rgba(0,0,0,.12);cursor:pointer;padding:1px;">'
+        + '<input type="color" class="mlst-mi-color" value="' + _mciColorInputValue(clr, '#2563eb') + '" style="width:32px;height:28px;border-radius:5px;border:1px solid rgba(0,0,0,.12);cursor:pointer;padding:1px;">'
         + '</div>'
         + '</div>'
         + '</div>'
@@ -9867,20 +10167,20 @@ function renderListaPropertiesInline(obj, panel) {
         + colorSelect('mlst-bulletcolor', cfg.bulletColor, 'Cor bullet / dot / número')
         + '<div class="mcbi-field mlst-bullet-custom-wrap" ' + (cfg.bulletColor !== 'custom' ? 'style="display:none;"' : '') + '>'
         + '<label>Cor personalizada bullet</label>'
-        + '<input type="color" class="mlst-bulletcolorcustom" value="' + (cfg.bulletColorCustom || '#5b8dee') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
+        + '<input type="color" class="mlst-bulletcolorcustom" value="' + _mciColorInputValue(cfg.bulletColorCustom, '#5b8dee') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
 
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Fundo do marcador</label>'
-        + '<input type="color" class="mlst-markerbg form-control" value="' + (cfg.markerBgColor || '#e0e8ff') + '" style="padding:2px;height:28px;cursor:pointer;"></div>'
+        + '<input type="color" class="mlst-markerbg form-control" value="' + _mciColorInputValue(cfg.markerBgColor, '#e0e8ff') + '" style="padding:2px;height:28px;cursor:pointer;"></div>'
         + '<div class="mcbi-field"><label>Cor ícone / número</label>'
-        + '<input type="color" class="mlst-markericoncol form-control" value="' + (cfg.markerIconColor || '#5b8dee') + '" style="padding:2px;height:28px;cursor:pointer;"></div>'
+        + '<input type="color" class="mlst-markericoncol form-control" value="' + _mciColorInputValue(cfg.markerIconColor, '#5b8dee') + '" style="padding:2px;height:28px;cursor:pointer;"></div>'
         + '</div>'
 
         + '<div class="mlst-tl-color-wrap" ' + (cfg.listStyle !== 'timeline' ? 'style="display:none;"' : '') + '>'
         + colorSelect('mlst-tllinecolor', cfg.timelineLineColor, 'Cor da linha timeline')
         + '<div class="mcbi-field mlst-tl-custom-wrap" ' + (cfg.timelineLineColor !== 'custom' ? 'style="display:none;"' : '') + '>'
         + '<label>Cor personalizada linha</label>'
-        + '<input type="color" class="mlst-tllinecolorcustom" value="' + (cfg.timelineLineColorCustom || '#5b8dee') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
+        + '<input type="color" class="mlst-tllinecolorcustom" value="' + _mciColorInputValue(cfg.timelineLineColorCustom, '#5b8dee') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
         + '</div>'
 
         + '<div class="mcbi-checks">'
@@ -9923,12 +10223,12 @@ function renderListaPropertiesInline(obj, panel) {
     // ── Secção Cores ───────────────────────────────────────────────────────────
     var cl = cfg.colors || {};
     var sCores = '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Cor do texto</label><input type="color" class="mlst-textcolor" value="' + (cl.textColor && cl.textColor !== '' && cl.textColor !== 'inherit' ? cl.textColor : '#333333') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"> ' + _mciChk('mlst-textcolor-inherit', 'Herdar tema', !cl.textColor || cl.textColor === 'inherit') + '</div>'
-        + '<div class="mcbi-field"><label>Cor de fundo</label><input type="color" class="mlst-bgcolor" value="' + (cl.backgroundColor && cl.backgroundColor !== 'transparent' ? cl.backgroundColor : '#ffffff') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"> ' + _mciChk('mlst-bgtransp', 'Transparente', !cl.backgroundColor || cl.backgroundColor === 'transparent') + '</div>'
+        + '<div class="mcbi-field"><label>Cor do texto</label><input type="color" class="mlst-textcolor" value="' + _mciColorInputValue(cl.textColor && cl.textColor !== '' && cl.textColor !== 'inherit' ? cl.textColor : null, '#333333') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"> ' + _mciChk('mlst-textcolor-inherit', 'Herdar tema', !cl.textColor || cl.textColor === 'inherit') + '</div>'
+        + '<div class="mcbi-field"><label>Cor de fundo</label><input type="color" class="mlst-bgcolor" value="' + _mciColorInputValue(cl.backgroundColor && cl.backgroundColor !== 'transparent' ? cl.backgroundColor : null, '#ffffff') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"> ' + _mciChk('mlst-bgtransp', 'Transparente', !cl.backgroundColor || cl.backgroundColor === 'transparent') + '</div>'
         + '</div>'
         + '<div class="mcbi-row2">'
-        + '<div class="mcbi-field"><label>Hover fundo</label><input type="color" class="mlst-hoverbg" value="' + (cl.hoverBgColor || '#f1f5f9') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
-        + '<div class="mcbi-field"><label>Hover texto</label><input type="color" class="mlst-hovertxt" value="' + (cl.hoverTextColor || '#1e293b') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
+        + '<div class="mcbi-field"><label>Hover fundo</label><input type="color" class="mlst-hoverbg" value="' + _mciColorInputValue(cl.hoverBgColor, '#f1f5f9') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
+        + '<div class="mcbi-field"><label>Hover texto</label><input type="color" class="mlst-hovertxt" value="' + _mciColorInputValue(cl.hoverTextColor, '#1e293b') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
         + '</div>';
 
     // ── Secção Espaçamento/Borda ────────────────────────────────────────────────
@@ -9944,7 +10244,7 @@ function renderListaPropertiesInline(obj, panel) {
         + '</div>'
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Borda largura</label><input type="number" class="mlst-bw form-control input-sm" value="' + (bd2.width || 0) + '" min="0" max="8"></div>'
-        + '<div class="mcbi-field"><label>Borda cor</label><input type="color" class="mlst-bordercolor" value="' + (bd2.borderColor && bd2.borderColor !== 'transparent' ? bd2.borderColor : '#e2e8f0') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
+        + '<div class="mcbi-field"><label>Borda cor</label><input type="color" class="mlst-bordercolor" value="' + _mciColorInputValue(bd2.borderColor && bd2.borderColor !== 'transparent' ? bd2.borderColor : null, '#e2e8f0') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
         + '</div>';
 
     // ── Secção Items Manuais ───────────────────────────────────────────────────
@@ -10066,10 +10366,22 @@ function renderListaPropertiesInline(obj, panel) {
 
     // Fonte change
     panel.on('change.lstinline', '.mcbi-fonte', function () {
-        obj.fontestamp = $(this).val();
-        if (obj.fontestamp) {
-            _mciAutoApplyFonteTransform(obj.fontestamp, obj, panel);
+        var fs = $(this).val();
+        if (fs) {
+            _mciOnFonteSelected(fs, obj, panel, function () {
+                var newFields = _mciGetFields(obj);
+                fields = newFields;
+                panel.find('.mlst-labelfield, .mlst-subtitlefield, .mlst-datefield, .mlst-linkfield, .mlst-linklabel, .mlst-badgefield').each(function () {
+                    var cur = $(this).val();
+                    _mciSetSelectFields($(this), newFields, '-- campo --');
+                    if (newFields.indexOf(cur) >= 0) $(this).val(cur);
+                });
+                if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+                if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
+                fire();
+            });
         } else {
+            obj.fontestamp = '';
             obj.transformConfig = null;
             obj.transformconfigjson = null;
             if (obj.config) obj.config.transformConfig = null;
@@ -10077,17 +10389,17 @@ function renderListaPropertiesInline(obj, panel) {
             $ts.removeClass('is-active');
             $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-filter"></i> Sem transformação');
             $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-plus"></i> Configurar');
+            var newFields = _mciGetFields(obj);
+            fields = newFields;
+            panel.find('.mlst-labelfield, .mlst-subtitlefield, .mlst-datefield, .mlst-linkfield, .mlst-linklabel, .mlst-badgefield').each(function () {
+                var cur = $(this).val();
+                _mciSetSelectFields($(this), newFields, '-- campo --');
+                if (newFields.indexOf(cur) >= 0) $(this).val(cur);
+            });
+            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+            if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
+            fire();
         }
-        var newFields = _mciGetFields(obj);
-        fields = newFields;
-        panel.find('.mlst-labelfield, .mlst-subtitlefield, .mlst-datefield, .mlst-linkfield, .mlst-linklabel, .mlst-badgefield').each(function () {
-            var cur = $(this).val();
-            _mciSetSelectFields($(this), newFields, '-- campo --');
-            if (newFields.indexOf(cur) >= 0) $(this).val(cur);
-        });
-        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
-        if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
-        fire();
     });
 
     // Botão transformação
@@ -10095,24 +10407,20 @@ function renderListaPropertiesInline(obj, panel) {
 
     function _lstOpenTransformModal() {
         var _tFnt   = fontes.filter(function (f) { return f.mdashfontestamp === obj.fontestamp; })[0] || fontes[0];
-        var _tName  = _tFnt ? (_tFnt.codigo || _tFnt.descricao || '') : '';
+        var _tName  = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : (_tFnt ? (_tFnt.codigo || _tFnt.descricao || '') : '');
         var _tFntName = _tFnt ? (_tFnt.descricao || _tFnt.codigo || _tName) : '';
-        var _tSchema  = _mciGetFonteSchema(_tFnt);
         var _tCfgRaw  = obj.transformConfig || null;
         var MTB = (typeof MdashTransformBuilder !== 'undefined') ? MdashTransformBuilder : null;
         var _tConf = _tCfgRaw || (_tName && MTB ? MTB.autoConfig(_tName, 'Lista') : { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
-        if (_tConf.columns && !_tConf.columns.length && _tSchema.length) {
-            _tConf.sourceTable = _tName;
-            _tConf.columns = _tSchema.map(function (s) { return { field: s.field, alias: '', aggregate: 'none', visible: true }; });
-        }
 
         _mciOpenTransformModalFor({
             title: 'Transformação de Dados — Lista',
             fonteName: _tFntName,
+            fonte: _tFnt || null,
+            objectType: 'Lista',
             modalId: 'mlst-transform-modal',
             hostId: 'mlst-transform-modal-host',
             config: _tConf,
-            schema: _tSchema,
             onSave: function (newT) {
                 obj.transformConfig = newT;
                 obj.config = obj.config || {};
@@ -10215,7 +10523,7 @@ function _lstReadConfig(panel, obj) {
 
 var _TEXT_SAMPLE_CONFIG = {
     dataField: '', staticText: 'Texto personalizado aqui...',
-    dataFormat: { type: 'text', locale: 'pt-PT', currency: 'EUR', currencyPosition: 'right', decimalSeparator: 'locale', minimumFractionDigits: 0, maximumFractionDigits: 2, prefix: '', suffix: '' },
+    dataFormat: { type: 'text', locale: 'pt-PT', currency: 'EUR', currencyPosition: 'right', decimalSeparator: 'locale', minimumFractionDigits: 0, maximumFractionDigits: 2, prefix: '', suffix: '', fallbackValue: '' },
     content: { htmlEnabled: false, multipleValues: false, separator: ', ' },
     textFormat: { fontSize: 18, fontWeight: 'bold', fontStyle: 'normal', fontFamily: 'Nunito, sans-serif', textAlign: 'center', lineHeight: 1.5 },
     colors: { textColor: '#6d7c91', backgroundColor: 'transparent', borderColor: 'transparent' },
@@ -10328,13 +10636,13 @@ function renderObjectTexto(dados) {
         if (cfg.content && cfg.content.multipleValues) {
             var sep = _txtGetSeparator(cfg);
             inner = rows.map(function (item) {
-                var raw = item[cfg.dataField];
+                var raw = _txtResolveFieldValue(item[cfg.dataField], df);
                 return '<span class="m-dash-text-item">'
                     + spanGroup(raw, _txtFormatNoAffix(raw, df))
                     + '</span>';
             }).join('<span class="m-dash-text-sep">' + out(sep) + '</span>');
         } else {
-            var raw = rows[0][cfg.dataField];
+            var raw = _txtResolveFieldValue(rows[0][cfg.dataField], df);
             inner = spanGroup(raw, _txtFormatNoAffix(raw, df));
         }
     } else if (cfg.staticText) {
@@ -10359,6 +10667,40 @@ function renderObjectTexto(dados) {
 // Escapa texto para HTML seguro.
 function _txtEsc(s) {
     return $('<div>').text(s === null || s === undefined ? '' : String(s)).html();
+}
+
+function _txtIsEmptyValue(v) {
+    return v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
+}
+
+function _txtDefaultFallbackForType(type) {
+    switch (type) {
+        case 'number':
+        case 'currency':
+        case 'percentage':
+            return 0;
+        default:
+            return '';
+    }
+}
+
+function _txtCoerceFallbackValue(fallback, type) {
+    type = type || 'text';
+    if (type === 'number' || type === 'currency' || type === 'percentage') {
+        var n = parseFloat(String(fallback).replace(/\s/g, '').replace(',', '.'));
+        return isNaN(n) ? 0 : n;
+    }
+    return fallback == null ? '' : String(fallback);
+}
+
+function _txtResolveFieldValue(rawValue, df) {
+    df = df || {};
+    if (!_txtIsEmptyValue(rawValue)) return rawValue;
+    var fb = df.fallbackValue;
+    if (fb !== null && fb !== undefined && String(fb).trim() !== '') {
+        return _txtCoerceFallbackValue(fb, df.type || 'text');
+    }
+    return _txtDefaultFallbackForType(df.type || 'text');
 }
 
 // Formata um valor SEM aplicar prefixo/sufixo (estes passam a spans próprios).
@@ -10492,7 +10834,10 @@ function renderTextPropertiesInline(obj, panel) {
         + '<input type="text" class="mtxt-prefix form-control input-sm" value="' + _mciEsc(df.prefix || '') + '"></div>'
         + '<div class="mcbi-field"><label>Sufixo</label>'
         + '<input type="text" class="mtxt-suffix form-control input-sm" value="' + _mciEsc(df.suffix || '') + '"></div>'
-        + '</div>';
+        + '</div>'
+        + '<div class="mcbi-field"><label>Valor se vazio</label>'
+        + '<input type="text" class="mtxt-fallback form-control input-sm" value="' + _mciEsc(df.fallbackValue != null ? String(df.fallbackValue) : '') + '" placeholder="ex: 0, N/A, —"></div>'
+        + '<div class="mcbi-info">Quando o campo não existir ou estiver vazio. Se deixar em branco: número/moeda/% usam <b>0</b>, texto fica vazio.</div>';
 
     // Tipografia
     var tx = cfg.textFormat || {};
@@ -10529,13 +10874,13 @@ function renderTextPropertiesInline(obj, panel) {
     var cl = cfg.colors || {};
     var sCores = '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Cor do texto</label>'
-        + '<input type="color" class="mtxt-textcolor" value="' + (cl.textColor || '#6d7c91') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
+        + '<input type="color" class="mtxt-textcolor" value="' + _mciColorInputValue(cl.textColor, '#6d7c91') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
         + '<div class="mcbi-field"><label>Cor de fundo</label>'
-        + '<input type="color" class="mtxt-bgcolor" value="' + (cl.backgroundColor && cl.backgroundColor !== 'transparent' ? cl.backgroundColor : '#ffffff') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;">'
+        + '<input type="color" class="mtxt-bgcolor" value="' + _mciColorInputValue(cl.backgroundColor && cl.backgroundColor !== 'transparent' ? cl.backgroundColor : null, '#ffffff') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;">'
         + ' ' + _mciChk('mtxt-bgtransp', 'Transparente', cl.backgroundColor === 'transparent') + '</div>'
         + '</div>'
         + '<div class="mcbi-field"><label>Cor da borda</label>'
-        + '<input type="color" class="mtxt-bordercolor" value="' + (cl.borderColor && cl.borderColor !== 'transparent' ? cl.borderColor : '#cccccc') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;">'
+        + '<input type="color" class="mtxt-bordercolor" value="' + _mciColorInputValue(cl.borderColor && cl.borderColor !== 'transparent' ? cl.borderColor : null, '#cccccc') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;">'
         + ' ' + _mciChk('mtxt-bordertransp', 'Transparente', cl.borderColor === 'transparent') + '</div>';
 
     // Espaçamento
@@ -10568,7 +10913,7 @@ function renderTextPropertiesInline(obj, panel) {
     var sEfeitos = _mciChk('mtxt-shadow', 'Sombra do texto', ef.textShadow)
         + '<div class="mcbi-row2" style="margin-top:8px;">'
         + '<div class="mcbi-field"><label>Cor sombra</label>'
-        + '<input type="color" class="mtxt-shcolor" value="' + (ef.shadowColor || '#666666') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
+        + '<input type="color" class="mtxt-shcolor" value="' + _mciColorInputValue(ef.shadowColor, '#666666') + '" style="width:40px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,.12);cursor:pointer;"></div>'
         + '<div class="mcbi-field"><label>Desfoque</label><input type="number" class="mtxt-shblur form-control input-sm" value="' + (ef.shadowBlur || 2) + '" min="0" max="20"></div>'
         + '</div><div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Offset X</label><input type="number" class="mtxt-shx form-control input-sm" value="' + (ef.shadowOffsetX || 1) + '" min="-20" max="20"></div>'
@@ -10642,75 +10987,27 @@ function renderTextPropertiesInline(obj, panel) {
     }
 
     // ── Transform Builder ────────────────────────────────────────────────────
-    var _txtTransformInited = false;
-
-    function _txtOpenTransformModal() {
-        var _tFnt = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
-        var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
-        var modalId = 'mtxt-transform-modal';
-        $('#' + modalId).remove();
-        _txtTransformInited = false;
-
-        var mHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1" >'
-            + '<div class="modal-dialog" style="width:860px;max-width:96vw;margin:32px auto;">'
-            + '<div class="modal-content" style="border-radius:14px;overflow:hidden;border:none;box-shadow:0 24px 80px rgba(0,0,0,.24);">'
-            + '<div style="display:flex;align-items:center;gap:10px;padding:14px 20px;background:#fff;border-bottom:1px solid rgba(0,0,0,.08);">'
-            + '<i class="glyphicon glyphicon-filter" style="color:var(--md-primary,#5b8dee);font-size:15px;opacity:.9;"></i>'
-            + '<span style="font-size:14px;font-weight:700;color:#1e293b;">Transformação de Dados</span>'
-            + (_tFntName ? '<span style="font-size:11px;color:#64748b;border-left:1px solid rgba(0,0,0,.1);padding-left:10px;margin-left:4px;">' + _mciEsc(_tFntName) + '</span>' : '')
-            + '<button type="button" class="close" data-dismiss="modal" aria-label="Fechar" style="margin-left:auto;font-size:20px;line-height:1;padding:2px 6px;opacity:.5;">&times;</button>'
-            + '</div>'
-            + '<div style="background:#f8fafc;overflow-y:auto;max-height:80vh;">'
-            + '<div id="mtxt-transform-modal-host" style="max-width:780px;margin:0 auto;padding:16px;"></div>'
-            + '</div></div></div></div>';
-
-        $('body').append(mHtml);
-        var $modal = $('#' + modalId);
-        $modal.modal('show');
-        $modal.on('shown.bs.modal', function () { _txtInitTransform(); });
-        $modal.on('hidden.bs.modal', function () { $(this).remove(); _txtTransformInited = false; });
-    }
-
-    function _txtInitTransform() {
-        if (_txtTransformInited) return;
-        var MTB = window.MdashTransformBuilder
-            || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
-        if (!MTB) {
-            if (typeof alertify !== 'undefined') alertify.error('DATA SOURCE Operations.js não está carregado.', 6000);
-            return;
-        }
-        _txtTransformInited = true;
+    panel.on('click.txtinline', '.mcbi-btn-transform', function () {
+        var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
+        if (!MTB) { if (typeof alertify !== 'undefined') alertify.error('MdashTransformBuilder não disponível.', 4000); return; }
         var _tFnt = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
         var _tName = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : '';
         var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
-
-        if (_tFnt && typeof mdashExtractRowsFromCache === 'function' && typeof mdashLoadFonteIntoDb === 'function') {
-            var _tRows = mdashExtractRowsFromCache(_tFnt.lastResultscached);
-            if (_tRows.length > 0) mdashLoadFonteIntoDb(_tFnt, _tRows);
-        }
-
-        var _tSchema = _mciGetFonteSchema(_tFnt);
         var _tCfgRaw = obj.transformConfig || cfg.transformConfig || null;
         var _tConf = _tCfgRaw || (_tName ? MTB.autoConfig(_tName, 'Texto') : { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
-        if (!_tConf.columns.length && _tSchema.length) {
-            _tConf.sourceTable = _tName;
-            _tConf.columns = _tSchema.map(function (s) { return { field: s.field, alias: '', aggregate: 'none', visible: true }; });
-        }
-
         _mciOpenTransformModalFor({
             title: 'Transformação de Dados',
             fonteName: _tFntName,
+            fonte: _tFnt || null,
+            objectType: 'Texto',
             modalId: 'mtxt-transform-modal',
             hostId: 'mtxt-transform-modal-host',
             config: _tConf,
-            schema: _tSchema,
             onSave: function (newT) {
-                // Atualizar apenas as localizações fundamentais
                 obj.transformConfig = newT;
                 cfg.transformConfig = newT;
                 obj.config = obj.config || {};
                 obj.config.transformConfig = newT;
-                // Sincronizar a invariante triplicada antes de persistir
                 if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
                 if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
                 var $ts = panel.find('.mcbi-transform-status');
@@ -10723,7 +11020,7 @@ function renderTextPropertiesInline(obj, panel) {
                 fire();
             }
         });
-    }
+    });
 
     // Section collapse
     panel.on('click.txtinline', '.mcbi-section-hd', function () {
@@ -10733,16 +11030,20 @@ function renderTextPropertiesInline(obj, panel) {
         $(this).find('.mcbi-chev').toggleClass('glyphicon-chevron-up', open).toggleClass('glyphicon-chevron-down', !open);
     });
 
-    panel.on('click.txtinline', '.mcbi-btn-transform', function () { _txtOpenTransformModal(); });
-
-    // Fonte change
     panel.on('change.txtinline', '.mcbi-fonte', function () {
-        obj.fontestamp = $(this).val();
-        _txtTransformInited = false;
-        if (obj.fontestamp) {
+        var fs = $(this).val();
+        if (fs) {
             panel.find('.mcbi-sample-label').hide();
-            _mciAutoApplyFonteTransform(obj.fontestamp, obj, panel);
+            _mciOnFonteSelected(fs, obj, panel, function () {
+                var newFields = _mciGetFields(obj);
+                fields = newFields;
+                _mciSetSelectFields(panel.find('.mtxt-datafield'), newFields, '-- campo --');
+                if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+                if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
+                fire();
+            });
         } else {
+            obj.fontestamp = '';
             panel.find('.mcbi-sample-label').show();
             obj.transformConfig = null;
             obj.transformconfigjson = null;
@@ -10751,14 +11052,13 @@ function renderTextPropertiesInline(obj, panel) {
             $ts.removeClass('is-active');
             $ts.find('.mcbi-ts-badge').html('<i class="glyphicon glyphicon-filter"></i> Sem transformação de dados');
             $ts.find('.mcbi-btn-transform').html('<i class="glyphicon glyphicon-plus"></i> Configurar');
+            var newFields = _mciGetFields(obj);
+            fields = newFields;
+            _mciSetSelectFields(panel.find('.mtxt-datafield'), newFields, '-- campo --');
+            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+            if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
+            fire();
         }
-        var newFields = _mciGetFields(obj);
-        fields = newFields;
-        _mciSetSelectFields(panel.find('.mtxt-datafield'), newFields, '-- campo --');
-        // Sincronizar a invariante triplicada antes de persistir
-        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
-        if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
-        fire();
     });
 
     // Alignment buttons
@@ -10816,7 +11116,8 @@ function _txtReadConfig(panel, obj) {
         minimumFractionDigits: parseInt(panel.find('.mtxt-mindec').val()) || 0,
         maximumFractionDigits: parseInt(panel.find('.mtxt-maxdec').val()) || 2,
         prefix: panel.find('.mtxt-prefix').val() || '',
-        suffix: panel.find('.mtxt-suffix').val() || ''
+        suffix: panel.find('.mtxt-suffix').val() || '',
+        fallbackValue: panel.find('.mtxt-fallback').val() || ''
     };
 
     var align = panel.find('.mtxt-align.is-on').data('align') || 'center';
@@ -10899,7 +11200,8 @@ function createDynamicSchemaTexto(data) {
                     minimumFractionDigits: { type: "integer", title: "Mínimo de Casas Decimais", 'default': 0, minimum: 0, maximum: 20 },
                     maximumFractionDigits: { type: "integer", title: "Máximo de Casas Decimais", 'default': 2, minimum: 0, maximum: 20 },
                     prefix: { type: "string", title: "Prefixo", 'default': "" },
-                    suffix: { type: "string", title: "Sufixo", 'default': "" }
+                    suffix: { type: "string", title: "Sufixo", 'default': "" },
+                    fallbackValue: { type: "string", title: "Valor se vazio", 'default': "", description: "Valor quando o campo não existir ou estiver vazio. Em branco: 0 para números." }
                 }
             },
             content: {
@@ -11258,9 +11560,9 @@ function _mbadgeRenderThenAppearanceBlock(then, isFallback) {
             return '<button type="button" class="btn btn-xs btn-default mbadge-cc-app-preset" data-value="' + _mciEsc(p.value) + '" title="' + _mciEsc(p.label) + '">' + _mbadgeIconPresetInner(p.value) + '</button>';
         }).join('') + '</div></div>'
         + '<div class="mcbi-row2"><div class="mcbi-field"><label style="font-size:10px;">Fundo</label>'
-        + '<input type="color" class="form-control input-sm mbadge-cc-app-bg" value="' + bgVal + '"></div>'
+        + '<input type="color" class="form-control input-sm mbadge-cc-app-bg" value="' + _mciColorInputValue(bgVal, def.bg) + '"></div>'
         + '<div class="mcbi-field"><label style="font-size:10px;">Texto</label>'
-        + '<input type="color" class="form-control input-sm mbadge-cc-app-fg" value="' + fgVal + '"></div></div>'
+        + '<input type="color" class="form-control input-sm mbadge-cc-app-fg" value="' + _mciColorInputValue(fgVal, def.fg) + '"></div></div>'
         + '<div class="mbadge-cc-app-preview" style="margin-top:6px;font-size:9px;color:#64748b;">Preview: '
         + '<span style="' + previewStyle + '">' + _mbadgeBuildIconHtml(app.icon || '', 16) + ' ' + sample + '</span></div>'
         + '</div>';
@@ -11734,52 +12036,50 @@ function renderBadgePropertiesInline(obj, panel) {
         fire();
     });
 
-    var _badgeTransformInited = false;
     panel.on('click.badgeinline', '.mcbi-btn-transform', function () {
+        var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
+        if (!MTB) return;
         var _tFnt = _mciGetFontes(obj).find(function (f) { return f.mdashfontestamp === obj.fontestamp; });
         var _tFntName = (_tFnt && (_tFnt.descricao || _tFnt.codigo)) || '';
-        var modalId = 'mbadge-transform-modal';
-        $('#' + modalId).remove();
-        _badgeTransformInited = false;
-        $('body').append('<div class="modal fade" id="' + modalId + '" tabindex="-1"><div class="modal-dialog" style="width:860px;max-width:96vw;margin:32px auto;"><div class="modal-content" style="border-radius:14px;overflow:hidden;"><div style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;"><i class="glyphicon glyphicon-filter"></i><strong>Transformação</strong><button type="button" class="close" data-dismiss="modal">&times;</button></div><div id="mbadge-transform-modal-host" style="padding:16px;max-height:80vh;overflow:auto;"></div></div></div></div>');
-        var $modal = $('#' + modalId);
-        $modal.modal('show');
-        $modal.on('shown.bs.modal', function () {
-            if (_badgeTransformInited) return;
-            var MTB = window.MdashTransformBuilder || (typeof MdashTransformBuilder !== 'undefined' ? MdashTransformBuilder : null);
-            if (!MTB) return;
-            _badgeTransformInited = true;
-            var _tSchema = _mciGetFonteSchema(_tFnt);
-            var _tName = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : '';
-            var _tConf = obj.transformConfig || cfg.transformConfig || (_tName ? MTB.autoConfig(_tName, 'Badge') : { mode: 'sql', sourceTable: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
-            _mciOpenTransformModalFor({
-                title: 'Transformação de Dados', fonteName: _tFntName, modalId: modalId, hostId: 'mbadge-transform-modal-host',
-                config: _tConf, schema: _tSchema,
-                onSave: function (newT) {
-                    obj.transformConfig = newT;
-                    if (obj.config) obj.config.transformConfig = newT;
-                    if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
-                    fields = _mciGetFields(obj);
-                    _mciSetSelectFields(panel.find('.mbadge-valuefield'), fields, '-- campo --');
-                    fire();
-                }
-            });
+        var _tName = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : '';
+        var _tConf = obj.transformConfig || cfg.transformConfig || (_tName ? MTB.autoConfig(_tName, 'Badge') : { mode: 'sql', sourceTable: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
+        _mciOpenTransformModalFor({
+            title: 'Transformação de Dados',
+            fonteName: _tFntName,
+            fonte: _tFnt || null,
+            objectType: 'Badge',
+            modalId: 'mbadge-transform-modal',
+            hostId: 'mbadge-transform-modal-host',
+            config: _tConf,
+            onSave: function (newT) {
+                obj.transformConfig = newT;
+                if (obj.config) obj.config.transformConfig = newT;
+                if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+                fields = _mciGetFields(obj);
+                _mciSetSelectFields(panel.find('.mbadge-valuefield'), fields, '-- campo --');
+                fire();
+            }
         });
-        $modal.on('hidden.bs.modal', function () { $(this).remove(); _badgeTransformInited = false; });
     });
     panel.on('change.badgeinline', '.mcbi-fonte', function () {
-        obj.fontestamp = $(this).val();
-        if (obj.fontestamp) {
+        var fs = $(this).val();
+        if (fs) {
             panel.find('.mcbi-sample-label').hide();
-            _mciAutoApplyFonteTransform(obj.fontestamp, obj, panel);
+            _mciOnFonteSelected(fs, obj, panel, function () {
+                fields = _mciGetFields(obj);
+                _mciSetSelectFields(panel.find('.mbadge-valuefield'), fields, '-- campo --');
+                if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+                fire();
+            });
         } else {
+            obj.fontestamp = '';
             panel.find('.mcbi-sample-label').show();
             obj.transformConfig = null;
+            fields = _mciGetFields(obj);
+            _mciSetSelectFields(panel.find('.mbadge-valuefield'), fields, '-- campo --');
+            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+            fire();
         }
-        fields = _mciGetFields(obj);
-        _mciSetSelectFields(panel.find('.mbadge-valuefield'), fields, '-- campo --');
-        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
-        fire();
     });
 }
 
@@ -13101,39 +13401,50 @@ function renderProgressPropertiesInline(obj, panel) {
         fire();
     });
     panel.on('change.mproginline', '.mcbi-fonte', function () {
-        obj.fontestamp = $(this).val();
-        if (obj.fontestamp && typeof _mciAutoApplyFonteTransform === 'function') {
-            _mciAutoApplyFonteTransform(obj.fontestamp, obj, panel);
+        var fs = $(this).val();
+        if (fs) {
+            _mciOnFonteSelected(fs, obj, panel, function () {
+                fields = _mciGetFields(obj);
+                panel.find('.mprog-valuefield, .mprog-ref-field, .mprog-label-field, .mprog-list-title-field, .mprog-list-subtitle-field, .mprog-title-field, .mprog-kpi-trend-field').each(function () {
+                    var cur = $(this).val();
+                    _mciSetSelectFields($(this), fields, '-- campo --');
+                    if (fields.indexOf(cur) >= 0) $(this).val(cur);
+                });
+                if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+                if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
+                fire();
+            });
         } else {
+            obj.fontestamp = '';
             obj.transformConfig = null;
             obj.transformconfigjson = null;
             if (obj.config) obj.config.transformConfig = null;
+            fields = _mciGetFields(obj);
+            panel.find('.mprog-valuefield, .mprog-ref-field, .mprog-label-field, .mprog-list-title-field, .mprog-list-subtitle-field, .mprog-title-field, .mprog-kpi-trend-field').each(function () {
+                var cur = $(this).val();
+                _mciSetSelectFields($(this), fields, '-- campo --');
+                if (fields.indexOf(cur) >= 0) $(this).val(cur);
+            });
+            if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
+            if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
+            fire();
         }
-        fields = _mciGetFields(obj);
-        panel.find('.mprog-valuefield, .mprog-ref-field, .mprog-label-field, .mprog-list-title-field, .mprog-list-subtitle-field, .mprog-title-field, .mprog-kpi-trend-field').each(function () {
-            var cur = $(this).val();
-            _mciSetSelectFields($(this), fields, '-- campo --');
-            if (fields.indexOf(cur) >= 0) $(this).val(cur);
-        });
-        if (typeof obj.stringifyJSONFields === 'function') obj.stringifyJSONFields();
-        if (typeof realTimeComponentSync === 'function') realTimeComponentSync(obj, obj.table, obj.idfield);
-        fire();
     });
     panel.on('click.mproginline', '.mcbi-btn-transform', function () {
         var _tFnt = fontes.filter(function (f) { return f.mdashfontestamp === obj.fontestamp; })[0] || fontes[0];
-        var _tName = _tFnt ? (_tFnt.codigo || _tFnt.descricao || '') : '';
+        var _tName = (_tFnt && typeof mdashFonteTableName === 'function') ? mdashFonteTableName(_tFnt) : (_tFnt ? (_tFnt.codigo || _tFnt.descricao || '') : '');
         var _tFntName = _tFnt ? (_tFnt.descricao || _tFnt.codigo || _tName) : '';
-        var _tSchema = _mciGetFonteSchema(_tFnt);
         var _tCfgRaw = obj.transformConfig || null;
         var MTB = (typeof MdashTransformBuilder !== 'undefined') ? MdashTransformBuilder : null;
         var _tConf = _tCfgRaw || (_tName && MTB ? MTB.autoConfig(_tName, 'Progresso') : { mode: 'sql', sourceTable: '', sqlFree: '', columns: [], measures: [], filters: [], groupBy: [], orderBy: [], limit: null });
         _mciOpenTransformModalFor({
             title: 'Transformação de Dados — Progresso',
             fonteName: _tFntName,
+            fonte: _tFnt || null,
+            objectType: 'Progresso',
             modalId: 'mprog-transform-modal',
             hostId: 'mprog-transform-modal-host',
             config: _tConf,
-            schema: _tSchema,
             onSave: function (newT) {
                 obj.transformConfig = newT;
                 obj.config = obj.config || {};
@@ -13281,12 +13592,12 @@ function updateTextElement(containerSelector, itemObject, config, data, isConfig
         if (config.content && config.content.multipleValues) {
             // Múltiplos valores
             var values = data.map(function (item) {
-                return formatDataValue(item[config.dataField], config.dataFormat);
+                return formatDataValue(_txtResolveFieldValue(item[config.dataField], config.dataFormat), config.dataFormat);
             });
             content = values.join(_txtGetSeparator(config));
         } else {
             // Primeiro valor apenas
-            var rawValue = data[0][config.dataField];
+            var rawValue = _txtResolveFieldValue(data[0][config.dataField], config.dataFormat);
             content = formatDataValue(rawValue, config.dataFormat);
         }
     } else if (config.staticText) {

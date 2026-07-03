@@ -37,6 +37,7 @@ var GSelectedType = "";
 var GActiveTab = "general";
 var GMDashReactiveInstance = null;
 var _currentSelectedComponent = null; // espelho externo do selectedComponent (PetiteVue mount() não expõe o scope reactivo)
+var _currentFontesPanelSelector = '#mdash-fontes-panel';
 var GTemplateThumbCache = {};
 var GMDashIsResizingItem = false;
 var GMDashTabsRuntime = null;
@@ -2064,7 +2065,8 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
                 return;
             }
 
-            var podeRenderizar = processaFonte === false || resolved.data.length > 0;
+            var hasSource = mdashObjectHasDataSource(self);
+            var podeRenderizar = processaFonte === false || resolved.data.length > 0 || hasSource;
             // console.log('  processaFonte =', processaFonte, '| podeRenderizar =', podeRenderizar, '| data.length =', resolved.data.length);
             if (podeRenderizar) {
 
@@ -2078,7 +2080,7 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
                         transformConfig: self.transformConfig,
                         containerItem: containerItem,
                         data: resolved.data,
-                        isSample: resolved.isSample,
+                        isSample: false,
                         isEditor: mdashIsEditorMode()
                     });
                 } catch (renderError) {
@@ -2086,8 +2088,8 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
                     var containerItemStamp = self.mdashcontaineritemobjectstamp;
                     showContainerItemError(containerItemStamp, renderError.message, renderError);
                 }
-            } else if (typeof entry.getSampleData === 'function') {
-                // Sem dados reais ainda — renderizar com dados de amostra
+            } else if (typeof entry.getSampleData === 'function' && typeof mdashIsEditorMode === 'function' && mdashIsEditorMode()) {
+                // Sem fonte configurada — preview com dados de amostra apenas no editor
 
                 try {
                     entry.renderObject({
@@ -2107,10 +2109,23 @@ MdashContainerItemObject.prototype.renderObjectByContainerItem = function (conta
                     showContainerItemError(containerItemStamp, renderError.message, renderError);
                 }
             } else {
-
-                $(containerSelector).html(
-                    '<div class="mdash-slot-zone-render-placeholder"><i class="' + (getObjectTypeIcon(tipoStr) || 'glyphicon glyphicon-stop') + '"></i> ' + (tipoStr || 'Objecto') + '</div>'
-                );
+                try {
+                    entry.renderObject({
+                        containerSelector: containerSelector,
+                        itemObject: self,
+                        queryConfig: self.queryConfig,
+                        config: self.config,
+                        transformConfig: self.transformConfig,
+                        containerItem: containerItem,
+                        data: [],
+                        isSample: false,
+                        isEditor: typeof mdashIsEditorMode === 'function' ? mdashIsEditorMode() : false
+                    });
+                } catch (renderError) {
+                    console.error('[RenderObject] Erro ao renderizar objeto vazio:', renderError);
+                    var containerItemStampEmpty = self.mdashcontaineritemobjectstamp;
+                    showContainerItemError(containerItemStampEmpty, renderError.message, renderError);
+                }
             }
         } else {
             console.error('  ? WARNING ICON — entry null ou sem renderObject');
@@ -2281,6 +2296,16 @@ MdashObjectDependencyAnalyzer.prototype.getWarnings = function () {
 //   3. fallbackData                       ? containerItem.records (legado)
 // Retorna: { data: Array, isSample: Boolean, analyzer: MdashObjectDependencyAnalyzer }
 // ============================================================================
+function mdashObjectHasDataSource(obj) {
+    if (!obj) return false;
+    if (obj.fontestamp) return true;
+    var tc = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
+    if (tc && tc.sourceTable) return true;
+    if (Array.isArray(obj.fontesstamps) && obj.fontesstamps.length > 0) return true;
+    if (obj.queryConfig && obj.queryConfig.generatedSQL) return true;
+    return false;
+}
+
 function mdashResolveObjectData(obj, fallbackData) {
     var allFontes = (window.appState && window.appState.fontes) || GMDashFontes || [];
 
@@ -2295,17 +2320,21 @@ function mdashResolveObjectData(obj, fallbackData) {
     }
 
     // -- 2. transformConfig ? query sobre SQLite in-memory --
-    if (obj && obj.transformConfig && obj.transformConfig.sourceTable &&
+    var transformConfig = (obj && (obj.transformConfig || (obj.config && obj.config.transformConfig))) || null;
+    if (transformConfig && transformConfig.sourceTable &&
         typeof MdashTransformBuilder !== 'undefined') {
         try {
-            var raw = MdashTransformBuilder.executeRaw(obj.transformConfig);
-            if (!raw.error && raw.rows && raw.columns && raw.rows.length > 0) {
-                var rows = raw.rows.map(function (r) {
-                    var o = {};
-                    raw.columns.forEach(function (c, i) { o[c] = r[i]; });
-                    return o;
-                });
-                return { data: rows, isSample: false };
+            var raw = MdashTransformBuilder.executeRaw(transformConfig);
+            if (!raw.error && raw.rows && raw.columns) {
+                if (raw.rows.length > 0) {
+                    var rows = raw.rows.map(function (r) {
+                        var o = {};
+                        raw.columns.forEach(function (c, i) { o[c] = r[i]; });
+                        return o;
+                    });
+                    return { data: rows, isSample: false };
+                }
+                return { data: [], isSample: false };
             }
         } catch (e) {
             console.warn('[MDash] mdashResolveObjectData: erro no transform —', e.message);
@@ -2318,8 +2347,13 @@ function mdashResolveObjectData(obj, fallbackData) {
     // -- 3. Fonte primária ? lastResults em memória --
     if (obj && obj.fontestamp) {
         var fonte = allFontes.filter(function (f) { return f.mdashfontestamp === obj.fontestamp; })[0];
-        if (fonte && fonte.lastResults && fonte.lastResults.length > 0) {
-            return { data: fonte.lastResults, isSample: false, analyzer: analyzer, hasErrors: !analyzer.canRender };
+        if (fonte) {
+            return {
+                data: fonte.lastResults || [],
+                isSample: false,
+                analyzer: analyzer,
+                hasErrors: !analyzer.canRender
+            };
         }
     }
 
@@ -2501,7 +2535,9 @@ MDashFonte.prototype.execute = function (context, callback) {
                 if (self.schemamode === 'auto' && self.lastResults.length > 0) {
                     self.schema = self.extractSchemaFromResults();
                 }
-                if (self.lastResults.length > 0 && typeof mdashLoadFonteIntoDb === 'function') {
+                if (typeof mdashEnsureFonteInDb === 'function') {
+                    mdashEnsureFonteInDb(self);
+                } else if (self.lastResults.length > 0 && typeof mdashLoadFonteIntoDb === 'function') {
                     mdashLoadFonteIntoDb(self, self.lastResults);
                 }
                 if (typeof callback === 'function') callback(null, self.lastResults);
@@ -9319,11 +9355,25 @@ var _SCOPE_RESOLVERS = {
 };
 
 /**
+ * Selector do painel de fontes activo (dashboard principal vs modal overlay).
+ */
+function _resolveFontesPanelSelector() {
+    if (_currentSelectedComponent && _currentSelectedComponent.surface === 'overlay'
+        && $('#mdash-overlay-designer-modal').is(':visible')
+        && $('#mdash-overlay-fontes-panel').length) {
+        return '#mdash-overlay-fontes-panel';
+    }
+    return '#mdash-fontes-panel';
+}
+
+/**
  * Renderiza o painel de fontes para o componente seleccionado.
  * Mostra fontes próprias do scope + fontes herdadas (em cascata) + botão para adicionar.
  */
 function renderFontesPanel(selectedComponent, panelSelector) {
-    var panel = panelSelector ? $(panelSelector) : $('#mdash-fontes-panel');
+    var resolvedSelector = panelSelector || _resolveFontesPanelSelector();
+    _currentFontesPanelSelector = resolvedSelector;
+    var panel = $(resolvedSelector);
     if (!panel.length) return;
 
     if (!selectedComponent || !selectedComponent.data) {
@@ -9370,7 +9420,7 @@ function renderFontesPanel(selectedComponent, panelSelector) {
 
     var bindings = [
         { ns: 'addfonte', sel: '.mdash-add-scoped-fonte', stop: false, fn: function () { addScopedFonte($(this).data('scope'), $(this).data('scopestamp')); } },
-        { ns: 'editfonte', sel: '.mdash-fonte-list-item', stop: false, fn: function () { var s = $(this).data('fontestamp'); if (s) editFonteInPanel(s); } },
+        { ns: 'editfonte', sel: '.mdash-fonte-list-item', stop: false, fn: function () { var s = $(this).data('fontestamp'); if (s) editFonteInPanel(s, resolvedSelector); } },
         { ns: 'removefonte', sel: '.mdash-fonte-remove', stop: true, fn: function () { var s = $(this).data('fontestamp'); if (s) removeScopedFonte(s); } },
         { ns: 'runfonte', sel: '.mdash-fonte-run', stop: true, fn: function () { var s = $(this).data('fontestamp'); if (s) executeFonteByStamp(s); } }
     ];
@@ -9524,7 +9574,9 @@ function executeFonteByStamp(fonteStamp) {
 
     fonte.execute({}, function (err, results) {
         if (!err) {
+            if (typeof mdashEnsureFonteInDb === 'function') mdashEnsureFonteInDb(fonte);
             fonte.stringifyJSONFields();
+            if (typeof mdashNotifySchemaUpdated === 'function') mdashNotifySchemaUpdated(fonte.mdashfontestamp);
             if (typeof realTimeComponentSync === 'function') {
                 realTimeComponentSync(fonte.toDbRecord(), fonte.table, fonte.idfield);
             }
@@ -9541,7 +9593,7 @@ function executeFonteByStamp(fonteStamp) {
 /**
  * Abre o editor de fonte inline no painel de fontes.
  */
-function editFonteInPanel(fonteStamp) {
+function editFonteInPanel(fonteStamp, panelSelector) {
     var fonte = window.appState.fontes.find(function (f) {
         return String(f.mdashfontestamp) === String(fonteStamp);
     });
@@ -9561,8 +9613,14 @@ function editFonteInPanel(fonteStamp) {
     var _schemamode = (fonte.schemamode != null && String(fonte.schemamode) !== 'undefined') ? String(fonte.schemamode) : 'auto';
     var _refreshmode = (fonte.refreshmode != null && String(fonte.refreshmode) !== 'undefined') ? String(fonte.refreshmode) : 'onload';
 
-    var panel = $('#mdash-fontes-panel');
+    var resolvedSelector = panelSelector || _currentFontesPanelSelector || _resolveFontesPanelSelector();
+    _currentFontesPanelSelector = resolvedSelector;
+    var panel = $(resolvedSelector);
     if (!panel.length) return;
+
+    if (resolvedSelector === '#mdash-overlay-fontes-panel') {
+        activateOverlayDesignerTab('fontes');
+    }
 
     var tipoOptions = [
         { option: 'Query Directa', value: 'directquery' },
@@ -9688,7 +9746,7 @@ function editFonteInPanel(fonteStamp) {
     // Bind: voltar à lista — guardar antes de sair
     panel.off('click.fonteback').on('click.fonteback', '.mdash-fonte-back', function () {
         _persistFonte();
-        renderFontesPanel(_currentSelectedComponent);
+        renderFontesPanel(_currentSelectedComponent, resolvedSelector);
     });
 
     // Bind: mudar tipo ? mostrar/esconder secções e sincronizar
@@ -14940,7 +14998,7 @@ function loadModernDashboardStyles() {
     styles += ".mdash-props-tab-content .btn-default:hover { background: rgba(255,255,255,0.12) !important; }";
 
     // ===== FONTES PANEL =====
-    styles += "#mdash-fontes-panel { padding: 8px 0; }";
+    styles += "#mdash-fontes-panel, #mdash-overlay-fontes-panel { padding: 8px 0; }";
 
     // -- Add bar (compact header with scope label + circular add button) --
     styles += ".mdash-fonte-add-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 14px 8px; }";
@@ -14969,9 +15027,9 @@ function loadModernDashboardStyles() {
     styles += ".mdash-fonte-status.status-error { background: #ef4444; }";
 
     // -- Fontes panel buttons --
-    styles += "#mdash-fontes-panel .btn-primary { background: var(--md-primary); border-color: var(--md-primary); color: #fff; border-radius: 7px; font-size: 12px; font-weight: 600; }";
-    styles += "#mdash-fontes-panel .btn-primary:hover { filter: brightness(1.15); }";
-    styles += "#mdash-fontes-panel > div { padding: 0 10px; }";
+    styles += "#mdash-fontes-panel .btn-primary, #mdash-overlay-fontes-panel .btn-primary { background: var(--md-primary); border-color: var(--md-primary); color: #fff; border-radius: 7px; font-size: 12px; font-weight: 600; }";
+    styles += "#mdash-fontes-panel .btn-primary:hover, #mdash-overlay-fontes-panel .btn-primary:hover { filter: brightness(1.15); }";
+    styles += "#mdash-fontes-panel > div, #mdash-overlay-fontes-panel > div { padding: 0 10px; }";
 
     // Fonte editor (inline no painel — light theme)
     styles += ".mdash-fonte-editor { padding: 0 14px; }";
