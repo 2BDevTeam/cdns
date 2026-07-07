@@ -107,6 +107,7 @@ CREATE TABLE MdashContainerItem(
     gridrowspan INT DEFAULT 1,
     expressaoapresentacaodados TEXT DEFAULT '',
     slotsconfigjson TEXT DEFAULT '[]',
+    layoutpropsjson TEXT DEFAULT '{}',
     eventsconfigjson TEXT DEFAULT '{}',
 );
 
@@ -221,6 +222,7 @@ CREATE TABLE MdashContainerItemLayout(
     csstemplate TEXT DEFAULT '',                       -- CSS do template
     jstemplate TEXT DEFAULT '',                        -- JavaScript do template
     slotsdefinition TEXT DEFAULT '[]',                 -- JSON: definição dos slots editáveis [{id, label, type, defaultContent}]
+    propsdefinition TEXT DEFAULT '[]',               -- JSON: propriedades dinâmicas [{id, label, type, default, behaviors[]}]
     iconcdn TEXT DEFAULT '',                           -- URL do ícone/thumbnail CDN
     jscdns TEXT DEFAULT '[]',                          -- JSON: array de CDNs JS necessários
     csscdns TEXT DEFAULT '[]',                         -- JSON: array de CDNs CSS necessários
@@ -231,6 +233,35 @@ CREATE TABLE MdashContainerItemLayout(
     ordem INT DEFAULT 0,
     inactivo BIT DEFAULT 0
 )
+
+
+-- ============================================================================
+-- MdashLibrary - Bibliotecas/recursos globais (partilhados por todos os
+-- dashboards/layouts). Tabela ABSTRACTA: o campo 'tipo' discrimina o que é
+-- (hoje 'icon'; no futuro 'font', 'palette', 'component', ...), permitindo
+-- reutilizar a mesma estrutura sem criar tabelas novas.
+--
+-- Genérico:
+--   cdn         -> URL de recurso associado (ex.: CSS da fonte de ícones)
+--   configjson  -> config específica do tipo (ex.: ícones = {kind, base, prefix})
+--   itemsjson   -> lista de itens (ex.: ícones = [{value, label}])
+--
+-- As bibliotecas por defeito (Material Symbols, Glyphicons, Font Awesome) estão
+-- embutidas no código; esta tabela guarda as importadas/criadas pelo utilizador.
+-- ============================================================================
+CREATE TABLE MdashLibrary(
+
+    mdashlibrarystamp VARCHAR(25) PRIMARY KEY,
+    tipo VARCHAR(50) DEFAULT 'icon',                   -- discriminador: 'icon' (futuro: 'font', 'palette', 'component', ...)
+    codigo VARCHAR(100) DEFAULT '',                    -- id usado no registo (ex: 'fa6', 'bootstrap-icons')
+    label VARCHAR(250) DEFAULT '',                     -- nome visível (ex: 'Font Awesome 6')
+    cdn TEXT DEFAULT '',                               -- URL de recurso associado (ex.: CSS da fonte)
+    configjson TEXT DEFAULT '{}',                      -- JSON: config específica do tipo (ícones: {kind, base, prefix})
+    itemsjson TEXT DEFAULT '[]',                       -- JSON: itens da biblioteca (ícones: [{value, label}])
+    ordem INT DEFAULT 0,
+    inactivo BIT DEFAULT 0
+)
+GO
 
 
 -- ============================================================================
@@ -268,6 +299,26 @@ IF EXISTS (
 )
 BEGIN
     ALTER TABLE MdashFilter ALTER COLUMN mdashtabstamp VARCHAR(500) NOT NULL;
+END
+GO
+
+-- Layout Builder: schema de propriedades dinâmicas por layout (tipos + behaviors)
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'MdashContainerItemLayout') AND name = 'propsdefinition'
+)
+BEGIN
+    ALTER TABLE MdashContainerItemLayout ADD propsdefinition TEXT NOT NULL DEFAULT '[]';
+END
+GO
+
+-- Dashboard editor: valores das propriedades de layout por item
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'MdashContainerItem') AND name = 'layoutpropsjson'
+)
+BEGIN
+    ALTER TABLE MdashContainerItem ADD layoutpropsjson TEXT NOT NULL DEFAULT '{}';
 END
 GO
 

@@ -79,6 +79,9 @@ Try
     sqlParametersTab.add(new System.Data.SqlClient.SqlParameter("@codigo",requestDr("codigo")))
     Dim queryResultTab as DataTable= ExecuteQuery(queryMdashTab,sqlParametersTab)
 
+    Dim queryMdashLibrary="SELECT * FROM MdashLibrary WHERE inactivo=0 ORDER BY ordem ASC"
+    Dim queryResultLibrary as DataTable= ExecuteQuery(queryMdashLibrary, Nothing)
+
       If Not queryResultContainerItem.Columns.Contains("filters") Then
           queryResultContainerItem.Columns.Add("filters", GetType(Object))
       End If
@@ -120,7 +123,8 @@ Try
         .filters = queryResultFilter,
         .containerItemLayouts = queryResultContainerItemLayout,
         .fontes = queryResultFonte,
-        .tabs = queryResultTab
+        .tabs = queryResultTab,
+        .libraries = queryResultLibrary
         }
      
      Dim responseDTO= New With {.cod ="0000" ,.codDesc="Success",.message="Success",.data=dadosRelatorio}

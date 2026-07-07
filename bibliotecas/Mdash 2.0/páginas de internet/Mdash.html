@@ -2250,6 +2250,21 @@
       }
       return { data: fallback || [], isSample: false };
     },
+    mdashObjectHasDataSource: function (obj) {
+      if (typeof mdashObjectHasDataSource === 'function') {
+        try { return mdashObjectHasDataSource(obj); } catch (e) { /* fallthrough */ }
+      }
+      if (!obj) return false;
+      if (obj.fontestamp) return true;
+      var tc = obj.transformConfig || (obj.config && obj.config.transformConfig) || null;
+      return !!(tc && tc.sourceTable);
+    },
+    mdashIsEditorMode: function () {
+      if (typeof mdashIsEditorMode === 'function') {
+        try { return mdashIsEditorMode(); } catch (e) { /* fallthrough */ }
+      }
+      return false;
+    },
     forceJSONParse: function (raw, fallback) {
       if (typeof forceJSONParse === 'function') return forceJSONParse(raw, fallback);
       try { return JSON.parse(raw || ''); } catch (e) { return fallback; }
@@ -3053,11 +3068,14 @@
         }
 
         var hasData = effectiveData && effectiveData.length > 0;
+        var hasSource = (__mdashLib.mdashObjectHasDataSource)
+          ? __mdashLib.mdashObjectHasDataSource(self)
+          : !!(self.fontestamp || (self.transformConfig && self.transformConfig.sourceTable));
+        var podeRenderizar = processaFonte === false || hasData || hasSource;
 
-        // Empty state when this object DOES depend on data and there is none
-        if (!hasData && processaFonte !== false) {
-          if (typeof entry.getSampleData === 'function') {
-            // Render with sample data so user sees a structural preview
+        if (!podeRenderizar) {
+          var isEditor = __mdashLib.mdashIsEditorMode && __mdashLib.mdashIsEditorMode();
+          if (isEditor && typeof entry.getSampleData === 'function') {
             try {
               entry.renderObject({
                 containerSelector: containerSelector,
@@ -4282,6 +4300,16 @@
           });
         }
       } catch (e) { console.warn('[MDash] carregamento de layouts custom (viewer) falhou:', e); }
+
+      // ── BIBLIOTECAS GLOBAIS (MdashLibrary, tipo icon) ───────────────────────
+      // O endpoint getconfiguracaoclientmdash devolve response.data.libraries;
+      // hidrata o registo do picker (Flaticon, FA custom, etc.).
+      try {
+        if (typeof hydrateMdashLibrariesFromDashboardData === 'function'
+          && response.data) {
+          hydrateMdashLibrariesFromDashboardData(response.data);
+        }
+      } catch (e) { console.warn('[MDash] carregamento de bibliotecas (viewer) falhou:', e); }
 
       // ── LAYOUT: normalização CENTRALIZADA (mesma função do editor) ───────────
       // Resolve sobreposições de grid (reatribui gridrow/gridcolstart via

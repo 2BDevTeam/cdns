@@ -33,9 +33,17 @@ var GLayoutBuilderState = {
         html: null,
         css: null,
         js: null,
-        slots: null
+        slots: null,
+        props: null
     },
     previewDebounceTimer: null,
+    propsDebounceTimer: null,
+    syncingPropsEditor: false,
+    syncingFromPropMode: false,
+    propModeActive: false,
+    propModeSelectedElement: null,
+    propTargetPick: null,
+    pendingQuickProp: null,
     slotModeActive: false,
     slotModeSelectedElement: null,
     syncingFromSlotMode: false
@@ -141,7 +149,95 @@ function addLayoutBuilderStyles() {
     css += '.mdash-lb-properties label { font-size: 11px; font-weight: 700; color: var(--md-muted); letter-spacing: 0.2px; margin-bottom: 3px; display: block; }';
     css += '.mdash-lb-properties input:not([type="checkbox"]), .mdash-lb-properties select { font-size: 12px; border-radius: 8px; border: 1px solid rgba(var(--md-primary-rgb),0.35); box-shadow: none; min-height: 32px; transition: border-color 0.2s, box-shadow 0.2s; }';
     css += '.mdash-lb-properties input:not([type="checkbox"]):focus, .mdash-lb-properties select:focus { border-color: var(--md-primary); box-shadow: 0 0 0 2px rgba(var(--md-primary-rgb),0.16); outline: none; }';
-    css += '.mdash-lb-properties input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--md-primary); cursor: pointer; vertical-align: middle; margin: 0 4px 0 0; }';
+    css += '.mdash-lb-prop-behavior-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; align-items:flex-end; }';
+    css += '.mdash-lb-prop-card { border:1px solid var(--md-border); border-radius:10px; padding:10px; margin-bottom:10px; background:#fff; }';
+    css += '.mdash-lb-prop-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }';
+    css += '.mdash-lb-prop-card-title { font-weight:700; font-size:12px; color:var(--md-text); }';
+    css += '.mdash-lb-props-builder { width:100%; }';
+
+    // ===== PROPS MODE (marcação visual data-mdash-prop-target) =====
+    css += '.mdash-lb-prop-mode-btn { border-radius: 6px; font-size: 10px; font-weight: 700; padding: 3px 10px; border: 1px solid rgba(147,51,234,0.35); color: #7c3aed; background: rgba(147,51,234,0.08); transition: all 0.2s; letter-spacing: 0.3px; text-transform: uppercase; }';
+    css += '.mdash-lb-prop-mode-btn:hover { background: rgba(147,51,234,0.14); }';
+    css += '.mdash-lb-prop-mode-btn.active { background: #7c3aed; color: #fff; border-color: #7c3aed; box-shadow: 0 2px 8px rgba(124,58,237,0.35); }';
+    css += '.mdash-lb-prop-mode-info { padding: 8px 14px; background: linear-gradient(120deg, rgba(147,51,234,0.1), rgba(147,51,234,0.03)); border-bottom: 1px solid var(--md-border); font-size: 11px; color: var(--md-text); display: none; align-items: center; gap: 8px; }';
+    css += '.mdash-lb-prop-mode-info.active { display: flex; }';
+    css += '.mdash-lb-prop-mode-info i { color: #7c3aed; }';
+    css += '.mdash-lb-prop-breadcrumb { padding: 6px 14px; background: rgba(147,51,234,0.04); border-bottom: 1px solid var(--md-border); font-size: 11px; color: var(--md-muted); display: none; overflow-x: auto; white-space: nowrap; }';
+    css += '.mdash-lb-prop-breadcrumb.active { display: flex; align-items: center; gap: 2px; }';
+    css += '.mdash-lb-prop-breadcrumb span { cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: all 0.15s; }';
+    css += '.mdash-lb-prop-breadcrumb span:hover { background: rgba(147,51,234,0.12); color: #7c3aed; }';
+    css += '.mdash-lb-prop-breadcrumb .sep { cursor: default; color: var(--md-muted); opacity: 0.5; }';
+    css += '.mdash-lb-prop-breadcrumb .is-prop { color: #7c3aed; font-weight: 700; }';
+    css += '#mdash-lb-props-preview-content.prop-mode { cursor: crosshair; }';
+    css += '#mdash-lb-props-preview-content.prop-mode .mdash-lb-preview-card-wrapper * { cursor: crosshair; transition: outline 0.12s, background-color 0.12s; }';
+    css += '#mdash-lb-props-preview-content.prop-mode .mdash-lb-preview-card-wrapper *:hover { outline: 2px solid rgba(124,58,237,0.45); outline-offset: -1px; background-color: rgba(124,58,237,0.04); }';
+    css += '#mdash-lb-props-preview-content.prop-mode .mdash-lb-prop-selected { outline: 3px solid #7c3aed !important; outline-offset: -1px; background-color: rgba(124,58,237,0.08) !important; }';
+    // ===== PROP MODE INSPECTOR (estilo DevTools: 1 etiqueta flutuante no hover) =====
+    css += '#mdash-lb-props-preview-content.prop-mode .mdash-lb-preview-card-wrapper [data-lb-badge-empty] { min-height: 30px; min-width: 48px; border: 1px dashed rgba(124,58,237,0.45); background: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(124,58,237,0.05) 5px, rgba(124,58,237,0.05) 10px); display: inline-block; box-sizing: border-box; }';
+    css += '.mdash-lb-prop-hover-label { position: fixed; z-index: 10030; display: none; pointer-events: none; font-size: 10px; font-weight: 600; font-family: "SF Mono", "Fira Code", Consolas, monospace; line-height: 1; white-space: nowrap; padding: 3px 7px; border-radius: 5px; background: #7c3aed; color: #fff; box-shadow: 0 4px 12px rgba(124,58,237,0.35); }';
+    css += '.mdash-lb-prop-hover-label .lbl-tag { opacity: 0.7; }';
+    css += '.mdash-lb-prop-hover-label .lbl-cls { color: #ede9fe; }';
+    css += '.mdash-lb-prop-popover-list { margin: 0 0 10px; padding: 0; list-style: none; max-height: 140px; overflow-y: auto; }';
+    css += '.mdash-lb-prop-popover-list li { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 8px; border-radius: 8px; background: #f8fafc; border: 1px solid var(--md-border); margin-bottom: 4px; font-size: 11px; }';
+    css += '.mdash-lb-prop-popover-list li .prop-name { font-weight: 700; color: var(--md-text); }';
+    css += '.mdash-lb-prop-popover-list li .prop-type { font-size: 10px; color: var(--md-muted); }';
+    css += '.mdash-lb-prop-popover-add { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }';
+    css += '.mdash-lb-prop-check { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--md-text); cursor: pointer; margin: 0; }';
+    css += '.mdash-lb-prop-check input[type="checkbox"] { width: 14px; height: 14px; margin: 0; accent-color: #7c3aed; cursor: pointer; }';
+    css += '.mdash-lb-color-sources { display: flex; flex-direction: column; gap: 5px; padding: 6px 8px; border: 1px solid rgba(15,23,42,0.08); border-radius: 8px; background: #f8fafc; margin-bottom: 4px; }';
+    css += '.mdash-lb-props-hero { background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(59,130,246,0.06)); border: 1px solid rgba(124,58,237,0.18); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }';
+    css += '.mdash-lb-props-hero h6 { margin: 0 0 6px; font-size: 12px; font-weight: 800; color: #5b21b6; }';
+    css += '.mdash-lb-props-hero p { margin: 0; font-size: 11px; line-height: 1.5; color: var(--md-muted); }';
+    css += '.mdash-lb-props-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; font-size: 10px; font-weight: 700; }';
+    css += '.mdash-lb-props-legend span { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; background: #fff; border: 1px solid var(--md-border); }';
+    css += '.mdash-lb-prop-quick-add { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }';
+    css += '.mdash-lb-prop-quick-add .btn { border-radius: 999px; font-size: 11px; font-weight: 700; padding: 4px 12px; }';
+    css += '.mdash-lb-prop-tile { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--md-border); border-radius: 12px; padding: 12px; margin-bottom: 10px; background: #fff; box-shadow: 0 2px 8px rgba(15,23,42,0.04); }';
+    css += '.mdash-lb-prop-tile-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; color: #fff; background: #7c3aed; }';
+    css += '.mdash-lb-prop-tile-icon.is-color { padding: 0; overflow: hidden; }';
+    css += '.mdash-lb-prop-tile-icon.is-color .mdash-lb-prop-swatch-lg { width: 100%; height: 100%; border-radius: 10px; border: none; }';
+    css += '.mdash-lb-prop-tile-body { flex: 1; min-width: 0; }';
+    css += '.mdash-lb-prop-tile-title { font-size: 13px; font-weight: 800; color: var(--md-text); margin: 0 0 2px; }';
+    css += '.mdash-lb-prop-tile-desc { font-size: 11px; color: var(--md-muted); margin: 0 0 6px; line-height: 1.4; }';
+    css += '.mdash-lb-prop-tile-meta { font-size: 10px; color: #7c3aed; font-weight: 700; }';
+    css += '.mdash-lb-prop-tile-actions { display: flex; flex-direction: column; gap: 4px; }';
+    css += '.mdash-lb-prop-advanced { margin-top: 8px; border-top: 1px dashed var(--md-border); padding-top: 8px; }';
+    css += '.mdash-lb-prop-advanced summary { font-size: 10px; font-weight: 700; color: var(--md-muted); cursor: pointer; margin-bottom: 6px; }';
+    css += '.mdash-lb-prop-empty-cta { text-align: center; padding: 20px 12px; border: 2px dashed rgba(124,58,237,0.25); border-radius: 12px; background: rgba(124,58,237,0.03); }';
+    css += '.mdash-lb-prop-empty-cta p { font-size: 12px; color: var(--md-muted); margin: 8px 0 12px; }';
+    css += '.mdash-lb-prop-popover .mdash-lb-prop-help { font-size: 11px; color: var(--md-muted); margin: -4px 0 10px; line-height: 1.45; }';
+    css += '.mdash-lb-prop-popover .mdash-lb-prop-effect-preview { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(124,58,237,0.06); border: 1px solid rgba(124,58,237,0.15); margin-bottom: 10px; font-size: 11px; color: #5b21b6; }';
+    css += '.mdash-lb-prop-color-row { display: flex; align-items: center; gap: 8px; }';
+    css += '.mdash-lb-prop-color-row input[type="color"] { width: 44px; height: 36px; padding: 2px; border-radius: 8px; border: 1px solid rgba(124,58,237,0.35); cursor: pointer; }';
+    css += '.mdash-lb-prop-color-row input[type="text"] { flex: 1; }';
+    css += '.mdash-lb-prop-popover { background: var(--md-surface, #fff); border: 1px solid var(--md-border); border-radius: 12px; box-shadow: 0 16px 40px rgba(2,6,23,0.22); padding: 16px; min-width: 260px; max-width: 320px; max-height: calc(100vh - 16px); display: flex; flex-direction: column; overflow: hidden; }';
+    css += '.mdash-lb-prop-popover-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; margin: 0 -2px; padding: 0 2px; }';
+    css += '.mdash-lb-prop-popover h6 { margin: 0 0 10px; font-size: 11px; font-weight: 800; color: #7c3aed; text-transform: uppercase; letter-spacing: 1px; }';
+    css += '.mdash-lb-prop-popover .mdash-lb-prop-el-info { font-size: 10px; color: var(--md-muted); margin-bottom: 10px; font-family: monospace; background: rgba(124,58,237,0.06); padding: 5px 10px; border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 1px solid var(--md-border); }';
+    css += '.mdash-lb-prop-popover .form-group { margin-bottom: 8px; }';
+    css += '.mdash-lb-prop-popover label { font-size: 11px; font-weight: 700; color: var(--md-muted); display: block; margin-bottom: 3px; }';
+    css += '.mdash-lb-prop-popover input, .mdash-lb-prop-popover select { font-size: 12px; border-radius: 8px; border: 1px solid rgba(124,58,237,0.35); padding: 6px 10px; width: 100%; box-sizing: border-box; background: #fff; color: #1f2937; }';
+    css += '.mdash-lb-prop-popover-actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; flex-shrink: 0; padding-top: 10px; border-top: 1px solid var(--md-border); background: var(--md-surface, #fff); }';
+    css += '.mdash-lb-prop-pick-hint { font-size: 10px; color: #7c3aed; margin-top: 6px; font-weight: 600; }';
+    // ===== EDITOR DE OPÇÕES (select / variantes) =====
+    css += '.mdash-lb-sel-prefix-row { display: flex; gap: 4px; align-items: center; }';
+    css += '.mdash-lb-sel-prefix-row input { flex: 1; }';
+    css += '.mdash-lb-opt-hint { font-size: 10px; color: #64748b; margin: 2px 0 6px; }';
+    css += '.mdash-lb-opt-head { display: flex; align-items: center; gap: 4px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px; color: #94a3b8; font-weight: 700; margin-bottom: 2px; }';
+    css += '.mdash-lb-opt-head span:nth-child(1) { flex: 0 0 16px; }';
+    css += '.mdash-lb-opt-head span:nth-child(2) { flex: 1 1 52%; }';
+    css += '.mdash-lb-opt-head span:nth-child(3) { flex: 1 1 40%; }';
+    css += '.mdash-lb-opt-head span:nth-child(4) { flex: 0 0 26px; }';
+    css += '.mdash-lb-prop-options-list { display: flex; flex-direction: column; gap: 4px; margin: 4px 0; max-height: 160px; overflow-y: auto; }';
+    css += '.mdash-lb-opt-row { display: flex; align-items: center; gap: 4px; }';
+    css += '.mdash-lb-opt-row .mdash-lb-opt-default { flex: 0 0 16px; width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: #7c3aed; }';
+    css += '.mdash-lb-opt-row { padding: 3px 4px; border: 1px solid transparent; border-radius: 8px; }';
+    css += '.mdash-lb-opt-row.is-default { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.35); }';
+    css += '.mdash-lb-opt-row .mdash-lb-opt-label { flex: 1 1 52%; min-width: 0; font-weight: 600; }';
+    css += '.mdash-lb-opt-row .mdash-lb-opt-value { flex: 1 1 40%; min-width: 0; font-family: "SF Mono", Consolas, monospace; font-size: 11px; color: #64748b; background: #f8fafc; }';
+    css += '.mdash-lb-opt-row .mdash-lb-opt-remove { flex: 0 0 26px; padding: 2px 6px; }';
+    css += '.mdash-lb-prop-behavior-row.is-picking-target { outline: 2px solid #7c3aed; border-radius: 8px; padding: 6px; background: rgba(124,58,237,0.06); }';
+    css += '.mdash-lb-prop-mark-btn { font-size: 10px; padding: 2px 8px; }';
 
     // ===== CDN MANAGER =====
     css += '.mdash-lb-cdn-list { list-style: none; padding: 0; margin: 4px 0; }';
@@ -205,6 +301,29 @@ function addLayoutBuilderStyles() {
     css += '.mdash-lb-slot-badge .badge-icon { margin-right: 3px; font-size: 8px; font-family: "Glyphicons Halflings"; }';
     css += '.mdash-lb-preview-content.slot-mode .mdash-lb-preview-card-wrapper [data-lb-badge-host] { position: relative; }';
     css += '.mdash-lb-preview-content.slot-mode .mdash-lb-preview-card-wrapper [data-lb-badge-host]:empty, .mdash-lb-preview-content.slot-mode .mdash-lb-preview-card-wrapper [data-lb-badge-empty] { min-height: 48px; min-width: 80px; padding-top: 20px !important; border: 2px dashed rgba(var(--md-primary-rgb),0.4); background: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(var(--md-primary-rgb),0.04) 5px, rgba(var(--md-primary-rgb),0.04) 10px); display: block; box-sizing: border-box; }';
+
+    // ===== PAINEL DE TOKENS DE TEMA (separador CSS) =====
+    css += '.mdash-lb-css-tokens { background: #1e1e2e; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 6px 10px; }';
+    css += '.mdash-lb-tokens-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }';
+    css += '.mdash-lb-tokens-lbl { font-size: 10px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }';
+    css += '.mdash-lb-tokens-lbl .glyphicon { font-size: 10px; margin-right: 3px; }';
+    css += '.mdash-lb-token-variants { display: inline-flex; background: rgba(255,255,255,0.06); border-radius: 6px; padding: 2px; }';
+    css += '.mdash-lb-token-variant { border: none; background: transparent; color: #cbd5e1; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; cursor: pointer; transition: all 0.12s; }';
+    css += '.mdash-lb-token-variant:hover { color: #fff; }';
+    css += '.mdash-lb-token-variant.is-active { background: #7c3aed; color: #fff; }';
+    css += '.mdash-lb-token-help-btn { margin-left: auto; border: none; background: transparent; color: #94a3b8; cursor: pointer; padding: 2px 4px; }';
+    css += '.mdash-lb-token-help-btn:hover { color: #a5b4fc; }';
+    css += '.mdash-lb-tokens-chips { display: flex; flex-wrap: wrap; gap: 5px; }';
+    css += '.mdash-lb-token-chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: #e2e8f0; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; cursor: pointer; transition: all 0.12s; font-family: "SF Mono", Consolas, monospace; }';
+    css += '.mdash-lb-token-chip:hover { border-color: #7c3aed; background: rgba(124,58,237,0.18); color: #fff; transform: translateY(-1px); }';
+    css += '.mdash-lb-token-chip .swatch { width: 12px; height: 12px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2); }';
+    css += '.mdash-lb-token-chip .swatch-self { background: conic-gradient(#2563eb, #16a34a, #f59e0b, #dc2626, #2563eb); }';
+    css += '.mdash-lb-tokens-help { margin-top: 8px; padding: 8px 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; font-size: 11px; color: #cbd5e1; }';
+    css += '.mdash-lb-tokens-help p { margin: 0 0 6px; }';
+    css += '.mdash-lb-tokens-help ul { margin: 0 0 6px; padding-left: 16px; }';
+    css += '.mdash-lb-tokens-help li { margin-bottom: 2px; }';
+    css += '.mdash-lb-tokens-help code { background: rgba(124,58,237,0.22); color: #e9d5ff; padding: 1px 5px; border-radius: 4px; font-size: 10px; }';
+    css += '.mdash-lb-tokens-help .mdash-lb-tokens-ex { margin-top: 4px; color: #94a3b8; }';
 
     // Alertify acima do overlay do Layout Builder
     css += '.alertify, .alertify-logs { z-index: 10060 !important; }';
@@ -300,6 +419,7 @@ function selectLayoutForEditing(layoutStamp) {
 
     // Update preview
     updateLayoutPreview();
+    updateLayoutPropsPreview();
 }
 
 function getLayoutByStamp(stamp) {
@@ -338,6 +458,7 @@ function initLayoutBuilderAceEditors() {
         editors.css.session.setMode("ace/mode/css");
         editors.css.setOptions({ fontSize: "12px", wrap: true, showPrintMargin: false });
         editors.css.on('change', debounceLayoutPreview);
+        renderCssTokensBar();
     }
 
     // JS Editor
@@ -358,6 +479,16 @@ function initLayoutBuilderAceEditors() {
         editors.slots.session.setMode("ace/mode/json");
         editors.slots.setOptions({ fontSize: "12px", wrap: true, showPrintMargin: false });
     }
+
+    // Props JSON Editor
+    var propsEl = document.getElementById('mdash-lb-ace-props');
+    if (propsEl && !editors.props) {
+        editors.props = ace.edit(propsEl);
+        editors.props.setTheme("ace/theme/monokai");
+        editors.props.session.setMode("ace/mode/json");
+        editors.props.setOptions({ fontSize: "12px", wrap: true, showPrintMargin: false });
+        editors.props.on('change', debounceLayoutPropsSync);
+    }
 }
 
 function destroyLayoutBuilderAceEditors() {
@@ -366,6 +497,7 @@ function destroyLayoutBuilderAceEditors() {
     if (editors.css) { editors.css.destroy(); editors.css = null; }
     if (editors.js) { editors.js.destroy(); editors.js = null; }
     if (editors.slots) { editors.slots.destroy(); editors.slots = null; }
+    if (editors.props) { editors.props.destroy(); editors.props = null; }
 }
 
 function loadLayoutIntoEditors(layout) {
@@ -387,6 +519,14 @@ function loadLayoutIntoEditors(layout) {
         } catch (e) { /* ignore */ }
         editors.slots.setValue(slotsJson, -1);
     }
+    if (editors.props) {
+        var propsJson = '[]';
+        try {
+            propsJson = JSON.stringify(layout.props || [], null, 2);
+        } catch (e2) { /* ignore */ }
+        editors.props.setValue(propsJson, -1);
+    }
+    renderLayoutPropsBuilder(layout);
 }
 
 function saveEditorsToLayout() {
@@ -402,6 +542,11 @@ function saveEditorsToLayout() {
         var slotsVal = editors.slots.getValue();
         layout.slotsdefinition = slotsVal;
         layout.slots = forceJSONParse(slotsVal, []);
+    }
+    if (editors.props) {
+        var propsVal = editors.props.getValue();
+        layout.propsdefinition = propsVal;
+        layout.props = forceJSONParse(propsVal, []);
     }
 
     // Stringify JSON fields before sync
@@ -428,7 +573,104 @@ function debounceLayoutPreview() {
  * Utiliza scopeLayoutCSS() (engine central em REFACTOR.js) com scope fixo para o preview.
  * Fallback inline caso scopeLayoutCSS ainda não esteja carregado.
  */
+// ============================================================================
+// LAYOUT BUILDER - PAINEL DE TOKENS DE TEMA (CSS)
+// ============================================================================
+
+var LB_CSS_TOKEN_TYPES = [
+    { type: 'primary', fallback: '#2563eb' },
+    { type: 'success', fallback: '#16a34a' },
+    { type: 'warning', fallback: '#f59e0b' },
+    { type: 'danger', fallback: '#dc2626' },
+    { type: 'info', fallback: '#0ea5e9' }
+];
+
+function lbTokenSwatchColor(type, fallback) {
+    try {
+        if (typeof getColorByType === 'function') {
+            var c = getColorByType(type);
+            if (c && c.background) return c.background;
+        }
+    } catch (e) { /* fallback */ }
+    return fallback || '#64748b';
+}
+
+function lbInsertCssToken(token) {
+    var ed = GLayoutBuilderState.aceEditors.css;
+    if (!ed) return;
+    ed.session.insert(ed.getCursorPosition(), token);
+    ed.focus();
+}
+
+function renderCssTokensBar() {
+    var $bar = $('#mdash-lb-css-tokens');
+    if (!$bar.length) return;
+
+    var h = '';
+    h += '<div class="mdash-lb-tokens-row">';
+    h += '  <span class="mdash-lb-tokens-lbl"><i class="glyphicon glyphicon-tint"></i> Tokens de tema</span>';
+    h += '  <div class="mdash-lb-token-variants">';
+    h += '    <button type="button" class="mdash-lb-token-variant is-active" data-variant="">fundo</button>';
+    h += '    <button type="button" class="mdash-lb-token-variant" data-variant=".text">texto</button>';
+    h += '    <button type="button" class="mdash-lb-token-variant" data-variant=".rgb">rgb</button>';
+    h += '  </div>';
+    h += '  <button type="button" class="mdash-lb-token-help-btn" title="Como funcionam os tokens"><i class="glyphicon glyphicon-question-sign"></i></button>';
+    h += '</div>';
+
+    h += '<div class="mdash-lb-tokens-chips">';
+    LB_CSS_TOKEN_TYPES.forEach(function (t) {
+        h += '<button type="button" class="mdash-lb-token-chip" data-token-type="' + t.type + '">'
+            + '<span class="swatch" style="background:' + lbTokenSwatchColor(t.type, t.fallback) + '"></span>' + t.type + '</button>';
+    });
+    h += '<button type="button" class="mdash-lb-token-chip mdash-lb-token-self" data-token-type="self" title="Usa o tipo do pr\u00f3prio card (primary/warning/...)">'
+        + '<span class="swatch swatch-self"></span>self</button>';
+    h += '</div>';
+
+    h += '<div class="mdash-lb-tokens-help" style="display:none;">';
+    h += '  <p>Escreve tokens no CSS; s\u00e3o resolvidos no render com o tema PHC (acompanham o tema automaticamente).</p>';
+    h += '  <ul>';
+    h += '    <li><code>{{primary}}</code> \u2192 cor de fundo do tipo</li>';
+    h += '    <li><code>{{primary.text}}</code> \u2192 cor de texto do tipo</li>';
+    h += '    <li><code>{{primary.rgb}}</code> \u2192 <code>r,g,b</code> (para <code>rgba()</code>/gradientes)</li>';
+    h += '    <li><code>{{self}}</code> / <code>{{self.rgb}}</code> \u2192 usa o tipo do pr\u00f3prio card</li>';
+    h += '    <li><code>{{getColorByType("warning").text}}</code> \u2192 forma expl\u00edcita</li>';
+    h += '  </ul>';
+    h += '  <p class="mdash-lb-tokens-ex">Ex.: <code>background: linear-gradient(135deg, {{self}}, rgba({{self.rgb}},0.6));</code></p>';
+    h += '</div>';
+
+    $bar.html(h);
+    bindCssTokensBar();
+    var ed = GLayoutBuilderState.aceEditors && GLayoutBuilderState.aceEditors.css;
+    if (ed && ed.resize) setTimeout(function () { ed.resize(); }, 0);
+}
+
+function bindCssTokensBar() {
+    var $bar = $('#mdash-lb-css-tokens');
+    if (!$bar.length) return;
+
+    $bar.off('click.tokvariant', '.mdash-lb-token-variant').on('click.tokvariant', '.mdash-lb-token-variant', function () {
+        $bar.find('.mdash-lb-token-variant').removeClass('is-active');
+        $(this).addClass('is-active');
+    });
+
+    $bar.off('click.tokchip', '.mdash-lb-token-chip').on('click.tokchip', '.mdash-lb-token-chip', function () {
+        var type = $(this).data('token-type');
+        var variant = $bar.find('.mdash-lb-token-variant.is-active').data('variant') || '';
+        lbInsertCssToken('{{' + type + variant + '}}');
+    });
+
+    $bar.off('click.tokhelp', '.mdash-lb-token-help-btn').on('click.tokhelp', '.mdash-lb-token-help-btn', function () {
+        $bar.find('.mdash-lb-tokens-help').slideToggle(120);
+    });
+}
+
 function scopeCssToPreview(css) {
+    // Resolve tokens de tema {{primary}}, {{getColorByType("warning")}}, {{self.rgb}}…
+    if (typeof mdashResolveThemeTokensInCss === 'function') {
+        var layout = getSelectedLayout();
+        var tipo = (layout && layout.UIData && layout.UIData.tipo) || 'primary';
+        css = mdashResolveThemeTokensInCss(css, { tipo: tipo });
+    }
     // Usa a engine central de scoping — scope fixo para o preview do Layout Builder
     if (typeof scopeLayoutCSS === 'function') {
         return scopeLayoutCSS(css, 'lb-preview');
@@ -450,7 +692,7 @@ function scopeCssToPreview(css) {
 }
 
 function updateLayoutPreview() {
-    if (GLayoutBuilderState.syncingFromSlotMode) return;
+    if (GLayoutBuilderState.syncingFromSlotMode || GLayoutBuilderState.syncingFromPropMode) return;
 
     var $preview = $('.mdash-lb-preview-card-wrapper');
     if (!$preview.length) return;
@@ -460,34 +702,59 @@ function updateLayoutPreview() {
     var cssVal = editors.css ? editors.css.getValue() : '';
 
     if (!htmlVal && !cssVal) {
-        $preview.html(
-            '<div class="mdash-lb-empty-state" style="height:200px;">' +
+        var emptyHtml = '<div class="mdash-lb-empty-state" style="height:200px;">' +
             '  <i class="glyphicon glyphicon-eye-open"></i>' +
             '  <p>Escreva HTML para ver a pré-visualização</p>' +
-            '</div>'
-        );
+            '</div>';
+        $('.mdash-lb-preview-card-wrapper').each(function () {
+            if (!$(this).hasClass('mdash-lb-preview-css-mirror') && !$(this).hasClass('mdash-lb-preview-js-mirror')) {
+                $(this).html(emptyHtml);
+            }
+        });
         return;
     }
 
     // Remove estilos anteriores do preview
-    $('#mdash-lb-preview-injected-css').remove();
+    $('#mdash-lb-preview-injected-css, #mdash-lb-props-preview-injected-css').remove();
 
     // Carrega CDNs via loader central (deduplicated — reutiliza os já carregados)
-    var layout = getSelectedLayout(); 
+    var layout = getSelectedLayout();
     if (layout) {
         ensureMdashCDNsLoaded(layout.cssCdnsList, layout.jsCdnsList);
     }
 
-    // Inject scoped CSS via scopeLayoutCSS — isolado por data-mdash-scope="lb-preview"
+    var scopedCss = '';
     if (cssVal) {
-        var scopedCss = scopeCssToPreview(cssVal);
+        scopedCss = scopeCssToPreview(cssVal);
         $('head').append('<style id="mdash-lb-preview-injected-css">' + scopedCss + '</style>');
+        $('head').append('<style id="mdash-lb-props-preview-injected-css">' + scopedCss + '</style>');
     }
 
-    // Wrapper com scope attribute para que o CSS scoped fique contido
-    $preview.html('<div data-mdash-scope="lb-preview">' + htmlVal + '</div>');
+    // Limpar artefactos de runtime que possam estar baked no HTML guardado
+    // (wrappers de scope aninhados, flags e variáveis de tema) para não acumular.
+    htmlVal = lbCleanHtmlStringArtifacts(htmlVal);
+
+    var previewHtml = '<div data-mdash-scope="lb-preview">' + htmlVal + '</div>';
+    $preview.each(function () {
+        var $el = $(this);
+        if ($el.hasClass('mdash-lb-preview-css-mirror') || $el.hasClass('mdash-lb-preview-js-mirror')) return;
+        $el.html(previewHtml);
+    });
+
+    if (GLayoutBuilderState.slotModeActive) {
+        injectSlotModeBadges();
+    }
+    if (GLayoutBuilderState.propModeActive) {
+        injectPropModeHighlights();
+    } else {
+        refreshPropsPreviewChrome();
+    }
 
     // JS is NOT auto-executed in preview for safety - only on explicit "Run JS" action
+}
+
+function updateLayoutPropsPreview() {
+    updateLayoutPreview();
 }
 
 function executePreviewJS() {
@@ -502,6 +769,2292 @@ function executePreviewJS() {
     } catch (e) {
         console.error("Erro ao executar JS do layout:", e);
         alertify.error("Erro no JS: " + e.message, 4000);
+    }
+}
+
+// ============================================================================
+// LAYOUT BUILDER - PROPRIEDADES DINÂMICAS (schema + behaviors)
+// ============================================================================
+
+function debounceLayoutPropsSync() {
+    if (GLayoutBuilderState.propsDebounceTimer) {
+        clearTimeout(GLayoutBuilderState.propsDebounceTimer);
+    }
+    GLayoutBuilderState.propsDebounceTimer = setTimeout(function () {
+        syncPropsEditorToLayout();
+    }, 350);
+}
+
+function syncPropsEditorToLayout() {
+    if (GLayoutBuilderState.syncingPropsEditor) return;
+    var layout = getSelectedLayout();
+    var editors = GLayoutBuilderState.aceEditors;
+    if (!layout || !editors.props) return;
+    try {
+        layout.props = forceJSONParse(editors.props.getValue(), []);
+        layout.propsdefinition = JSON.stringify(layout.props);
+        renderLayoutPropsBuilder(layout);
+    } catch (err) {
+        console.warn('[Layout Builder] JSON de propriedades inválido:', err);
+    }
+}
+
+function lbGetPropTypeMeta(type) {
+    var icon = '?';
+    var label = type || '';
+    if (type === 'color') { icon = '\u25FC'; label = 'Cor'; }
+    else if (type === 'text') { icon = 'T'; label = 'Texto'; }
+    else if (type === 'number') { icon = '#'; label = 'N\u00famero'; }
+    else if (type === 'boolean') { icon = '\u2713'; label = 'Sim/N\u00e3o'; }
+    else if (type === 'icon') { icon = '\u2605'; label = '\u00cdcone'; }
+    else if (type === 'select') { icon = '\u25BE'; label = 'Lista'; }
+    var result = {};
+    result.icon = icon;
+    result.label = label;
+    return result;
+}
+
+function lbMakePropStub(id, propType) {
+    var o = {};
+    o.id = id;
+    o.type = propType;
+    return o;
+}
+
+var LB_PROP_TARGET_ATTR = 'data-mdash-prop-target';
+
+function lbPropTargetSelector(targetId) {
+    return '[' + LB_PROP_TARGET_ATTR + '="' + targetId + '"]';
+}
+
+function lbMigrateElementPropAttribute(element) {
+    if (!element || !element.getAttribute) return;
+    var legacy = element.getAttribute('data-mdash-prop');
+    if (legacy && !element.getAttribute(LB_PROP_TARGET_ATTR)) {
+        element.setAttribute(LB_PROP_TARGET_ATTR, legacy);
+    }
+    if (element.getAttribute(LB_PROP_TARGET_ATTR) || legacy) {
+        element.removeAttribute('data-mdash-prop');
+    }
+}
+
+function lbSlugifyPropTargetId(element, layout) {
+    var base = suggestPropName(element) || 'target';
+    var existing = {};
+    var $w = getPropsPreviewWrapper();
+    if ($w.length) {
+        $w.find('[' + LB_PROP_TARGET_ATTR + ']').each(function () {
+            var t = $(this).attr(LB_PROP_TARGET_ATTR);
+            if (t) existing[t] = true;
+        });
+    }
+    var candidate = base;
+    var n = 2;
+    while (existing[candidate]) {
+        candidate = base + '_' + n;
+        n++;
+    }
+    return candidate;
+}
+
+function lbEnsurePropTargetOnElement(element, layout) {
+    lbMigrateElementPropAttribute(element);
+    var targetId = element.getAttribute(LB_PROP_TARGET_ATTR);
+    if (!targetId) {
+        targetId = lbSlugifyPropTargetId(element, layout);
+        element.setAttribute(LB_PROP_TARGET_ATTR, targetId);
+    }
+    return targetId;
+}
+
+/** Devolve o targetId do elemento sem escrever o atributo (a não ser que create=true). */
+function lbResolvePropTargetId(element, layout, create) {
+    lbMigrateElementPropAttribute(element);
+    var targetId = element.getAttribute(LB_PROP_TARGET_ATTR);
+    if (targetId) return targetId;
+    targetId = lbSlugifyPropTargetId(element, layout);
+    if (create) element.setAttribute(LB_PROP_TARGET_ATTR, targetId);
+    return targetId;
+}
+
+/** Remove atributos de alvo de elementos que não têm qualquer propriedade associada. */
+function lbStripOrphanPropTargets($wrapper, layout) {
+    if (!$wrapper || !$wrapper.length) return false;
+    var changed = false;
+    $wrapper.find('[' + LB_PROP_TARGET_ATTR + ']').each(function () {
+        var targetId = $(this).attr(LB_PROP_TARGET_ATTR);
+        if (!targetId) return;
+        var has = layout && Array.isArray(layout.props) && layout.props.some(function (p) {
+            return p && lbGetPropTargetId(p) === targetId;
+        });
+        if (!has) {
+            $(this).removeAttr(LB_PROP_TARGET_ATTR);
+            changed = true;
+        }
+    });
+    return changed;
+}
+
+/** Recolhe os prefixos de classe usados por uma propriedade (variantes). */
+/**
+ * Limpa uma STRING de HTML de artefactos de runtime (wrappers de scope aninhados,
+ * flags de aplicação e variáveis de tema inline). Usado ao construir a pré-visualização
+ * para não acumular wrappers a cada render.
+ */
+function lbCleanHtmlStringArtifacts(htmlStr) {
+    if (!htmlStr || htmlStr.indexOf('data-mdash-scope') < 0 && htmlStr.indexOf('data-mdash-layout-props-applied') < 0 && htmlStr.indexOf('--md-') < 0) {
+        return htmlStr;
+    }
+    try {
+        var $tmp = $('<div></div>').html(htmlStr);
+        $tmp.find('[data-mdash-scope]').each(function () { $(this).replaceWith($(this).contents()); });
+        $tmp.find('[data-mdash-layout-props-applied]').removeAttr('data-mdash-layout-props-applied');
+        $tmp.find('[style]').each(function () {
+            var cleaned = lbStripThemeVarsFromStyle(this.getAttribute('style'));
+            if ($.trim(cleaned)) this.setAttribute('style', cleaned); else this.removeAttribute('style');
+        });
+        return $tmp.html();
+    } catch (e) {
+        return htmlStr;
+    }
+}
+
+function lbCollectPropClassPrefixes(prop) {
+    var prefixes = [];
+    if (!prop) return prefixes;
+    if (prop.sources && prop.sources.classes && prop.sources.classes.classPrefix) prefixes.push(prop.sources.classes.classPrefix);
+    if (prop.classPrefix) prefixes.push(prop.classPrefix);
+    if (Array.isArray(prop.behaviors)) {
+        prop.behaviors.forEach(function (b) { if (b && b.classPrefix) prefixes.push(b.classPrefix); });
+    }
+    // únicos
+    var seen = {}, out = [];
+    prefixes.forEach(function (p) { if (p && !seen[p]) { seen[p] = 1; out.push(p); } });
+    return out;
+}
+
+/** Remove uma variável de tema (--md-*) de uma string de estilo inline. */
+function lbStripThemeVarsFromStyle(styleStr) {
+    if (!styleStr) return '';
+    return styleStr.split(';').filter(function (decl) {
+        var d = $.trim(decl);
+        if (!d) return false;
+        var name = $.trim(d.split(':')[0]);
+        return name.indexOf('--md-') !== 0;
+    }).join('; ');
+}
+
+/** Remove os artefactos que uma propriedade injecta no elemento (classes de variante + estilos). */
+function lbStripPropArtifactsFromEls($els, prop) {
+    if (!$els || !$els.length || !prop) return;
+    var prefixes = lbCollectPropClassPrefixes(prop);
+    var cssProps = [];
+    if (Array.isArray(prop.behaviors)) {
+        prop.behaviors.forEach(function (b) {
+            if (b && (b.kind === 'setCssProperty' || b.type === 'setCssProperty') && (b.property || b.param)) {
+                cssProps.push(b.property || b.param);
+            }
+        });
+    }
+    $els.each(function () {
+        var el = this;
+        if (prefixes.length) {
+            var cls = (el.getAttribute('class') || '').split(/\s+/).filter(function (c) {
+                if (!c) return false;
+                for (var i = 0; i < prefixes.length; i++) { if (c.indexOf(prefixes[i]) === 0) return false; }
+                return true;
+            }).join(' ');
+            if (cls) el.setAttribute('class', cls); else el.removeAttribute('class');
+        }
+        if (cssProps.length && el.style) {
+            cssProps.forEach(function (p) { el.style.removeProperty(p); });
+            if (!$.trim(el.getAttribute('style') || '')) el.removeAttribute('style');
+        }
+    });
+}
+
+/**
+ * Limpa o clone da pré-visualização de TODOS os artefactos de runtime antes de
+ * gravar no template: wrappers de scope, flags, variáveis de tema, marcadores
+ * órfãos e classes/estilos aplicados pelas propriedades (mantém o template neutro).
+ */
+function lbCleanPreviewClone($clone, layout) {
+    if (!$clone || !$clone.length) return;
+
+    // 1. Desembrulhar wrappers de scope da pré-visualização (não pertencem ao template)
+    $clone.find('[data-mdash-scope]').each(function () {
+        $(this).replaceWith($(this).contents());
+    });
+
+    // 2. Remover flags de aplicação de props
+    $clone.find('[data-mdash-layout-props-applied]').removeAttr('data-mdash-layout-props-applied');
+
+    // 3. Remover variáveis de tema dos estilos inline
+    $clone.find('[style]').each(function () {
+        var cleaned = lbStripThemeVarsFromStyle(this.getAttribute('style'));
+        if ($.trim(cleaned)) this.setAttribute('style', cleaned); else this.removeAttribute('style');
+    });
+
+    // 4. Remover marcadores de props que já não existem
+    lbStripOrphanPropTargets($clone, layout);
+
+    // 5. Remover classes/estilos que as propriedades aplicam (variantes por defeito)
+    var props = (layout && Array.isArray(layout.props)) ? layout.props : [];
+    props.forEach(function (prop) {
+        if (!prop) return;
+        var targetId = lbGetPropTargetId(prop);
+        if (!targetId) return;
+        lbStripPropArtifactsFromEls($clone.find('[' + LB_PROP_TARGET_ATTR + '="' + targetId + '"]'), prop);
+    });
+
+    // 6. Limpar atributos class vazios
+    $clone.find('[class=""]').removeAttr('class');
+}
+
+function lbGetPropTargetId(propDef) {
+    if (propDef && propDef.targetId) return propDef.targetId;
+    if (!propDef || !Array.isArray(propDef.behaviors) || !propDef.behaviors.length) return '';
+    var t = propDef.behaviors[0].target || '';
+    var m = t.match(/\[data-mdash-prop-target="([^"]+)"\]/);
+    if (m) return m[1];
+    m = t.match(/\[data-mdash-prop="([^"]+)"\]/);
+    if (m) return m[1];
+    return '';
+}
+
+function lbSetPropTarget(propDef, targetId, element) {
+    if (!propDef || !targetId) return;
+    propDef.targetId = targetId;
+    var sel = lbPropTargetSelector(targetId);
+    var behaviors = lbInferDefaultBehaviorsForProp(propDef, sel, element);
+    if (Array.isArray(propDef.behaviors) && propDef.behaviors.length) {
+        behaviors.forEach(function (b, i) {
+            var prev = propDef.behaviors[i];
+            if (prev) {
+                if (prev.kind) b.kind = prev.kind;
+                if (prev.property) b.property = prev.property;
+                if (prev.varName) b.varName = prev.varName;
+                if (prev.iconLibrary) b.iconLibrary = prev.iconLibrary;
+                if (prev.classPrefix) b.classPrefix = prev.classPrefix;
+            }
+            b.target = sel;
+        });
+    }
+    propDef.behaviors = behaviors;
+}
+
+function lbGetPropsForTarget(layout, targetId) {
+    if (!layout || !Array.isArray(layout.props) || !targetId) return [];
+    return layout.props.filter(function (p) {
+        return p && lbGetPropTargetId(p) === targetId;
+    });
+}
+
+function lbMigrateLayoutPropTargets($wrapper, layout) {
+    if (!$wrapper || !$wrapper.length || !layout) return false;
+    var changed = false;
+    $wrapper.find('[data-mdash-prop]').each(function () {
+        lbMigrateElementPropAttribute(this);
+        changed = true;
+    });
+    (layout.props || []).forEach(function (p) {
+        if (!p) return;
+        var tid = lbGetPropTargetId(p);
+        var oldSel = '[data-mdash-prop="' + (p.id || '') + '"]';
+        if (Array.isArray(p.behaviors)) {
+            p.behaviors.forEach(function (b) {
+                if (!b) return;
+                if (b.target === oldSel || (b.target && b.target.indexOf('data-mdash-prop=') >= 0 && b.target.indexOf('data-mdash-prop-target') < 0)) {
+                    var useId = tid || p.id;
+                    if (useId) {
+                        b.target = lbPropTargetSelector(useId);
+                        if (!p.targetId) p.targetId = useId;
+                        changed = true;
+                    }
+                }
+            });
+        }
+        if (!p.targetId && p.id) {
+            var $el = $wrapper.find(lbPropTargetSelector(p.id) + ', [data-mdash-prop="' + p.id + '"]');
+            if ($el.length) {
+                p.targetId = p.id;
+                lbSetPropTarget(p, p.id, $el[0]);
+                changed = true;
+            }
+        }
+    });
+    if (changed) layout.propsdefinition = JSON.stringify(layout.props || []);
+    return changed;
+}
+
+function lbBuildColorDefaultFieldHtml(value, inputId, includeThemeColors) {
+    if (typeof buildMdashLayoutColorPickerHtml === 'function') {
+        return buildMdashLayoutColorPickerHtml(value || 'var(--md-primary)', inputId || 'mdash-lb-prop-default-input', includeThemeColors);
+    }
+    var v = value || '#3b82f6';
+    return '<div class="mdash-lb-prop-color-row"><input type="color" id="mdash-lb-prop-default-color" value="' + v + '" /><input type="text" id="mdash-lb-prop-default-input" value="' + v + '" /></div>';
+}
+
+function lbBindColorDefaultField($scope) {
+    $scope = $scope || $(document);
+    if (typeof bindMdashLayoutColorPicker === 'function') {
+        bindMdashLayoutColorPicker($scope);
+    }
+    $scope.find('#mdash-lb-prop-default-color').off('input change').on('input change', function () {
+        var $block = $(this).closest('.mdash-lb-color-sources-block, #mdash-lb-prop-popover, .mdash-lb-prop-tile, .mdash-lb-tile-color-config');
+        $block.find('.mdash-lb-select-default-input, #mdash-lb-prop-default-input').val($(this).val());
+    });
+}
+
+function lbSanitizeIconValue(value) {
+    var v = $.trim(String(value || ''));
+    if (!v || /^(material-symbols(-(rounded|outlined|sharp))?|material-icons)$/.test(v)) return 'star';
+    return v;
+}
+
+function lbBuildIconDefaultFieldHtml(value, inputId, iconClass) {
+    if (typeof buildMdashLayoutIconPickerHtml === 'function') {
+        return buildMdashLayoutIconPickerHtml(lbSanitizeIconValue(value), inputId || 'mdash-lb-prop-default-input', iconClass);
+    }
+    return '<input type="text" id="' + (inputId || 'mdash-lb-prop-default-input') + '" value="' + lbSanitizeIconValue(value) + '" />';
+}
+
+function lbBindIconDefaultField($scope) {
+    if (typeof bindMdashLayoutIconPicker === 'function') {
+        bindMdashLayoutIconPicker($scope || $(document));
+    }
+}
+
+// ============================================================================
+// LAYOUT BUILDER - GESTOR DE BIBLIOTECAS DE ÍCONES (tabela MdashLibrary, tipo='icon')
+// ============================================================================
+
+var GLbIconMgrState = { selectedStamp: null, selectedBuiltin: null };
+
+function lbAddIconManagerStyles() {
+    if (document.getElementById('mdash-lb-iconmgr-styles')) return;
+    var css = '';
+    css += '.mdash-iconmgr-overlay { position:fixed; top:0; right:0; bottom:0; left:0; background:rgba(2,6,23,0.55); z-index:10050; display:flex; align-items:center; justify-content:center; }';
+    css += '.mdash-iconmgr { width:900px; max-width:95vw; height:600px; max-height:90vh; background:#fff; border-radius:14px; box-shadow:0 24px 60px rgba(2,6,23,0.4); display:flex; flex-direction:column; overflow:hidden; }';
+    css += '.mdash-iconmgr-head { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:linear-gradient(120deg, rgba(var(--md-primary-rgb,37,99,235),0.96), #101828 88%); color:#fff; }';
+    css += '.mdash-iconmgr-head b { font-size:15px; font-weight:700; }';
+    css += '.mdash-iconmgr-head .btn { border-radius:8px; }';
+    css += '.mdash-iconmgr-body { flex:1; display:flex; min-height:0; }';
+    css += '.mdash-iconmgr-list { width:230px; border-right:1px solid rgba(15,23,42,0.1); display:flex; flex-direction:column; }';
+    css += '.mdash-iconmgr-list-head { padding:8px 10px; border-bottom:1px solid rgba(15,23,42,0.08); display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; color:#334155; }';
+    css += '.mdash-iconmgr-list-items { flex:1; overflow-y:auto; padding:6px; }';
+    css += '.mdash-iconmgr-item { padding:8px 10px; border-radius:8px; cursor:pointer; font-size:12px; color:#334155; display:flex; align-items:center; gap:6px; }';
+    css += '.mdash-iconmgr-item:hover { background:rgba(15,23,42,0.05); }';
+    css += '.mdash-iconmgr-item.is-active { background:var(--md-primary,#2563eb); color:#fff; }';
+    css += '.mdash-iconmgr-item .badge-default { font-size:9px; background:rgba(15,23,42,0.12); color:#475569; padding:1px 6px; border-radius:999px; margin-left:auto; }';
+    css += '.mdash-iconmgr-item.is-active .badge-default { background:rgba(255,255,255,0.25); color:#fff; }';
+    css += '.mdash-iconmgr-form { flex:1; overflow-y:auto; padding:14px 16px; }';
+    css += '.mdash-iconmgr-form label { font-size:11px; font-weight:600; color:#475569; display:block; margin:8px 0 3px; }';
+    css += '.mdash-iconmgr-form .form-row { display:flex; gap:10px; }';
+    css += '.mdash-iconmgr-form .form-row > div { flex:1; }';
+    css += '.mdash-iconmgr-form input[type=text], .mdash-iconmgr-form select, .mdash-iconmgr-form textarea { width:100%; border:1px solid rgba(15,23,42,0.15); border-radius:8px; padding:6px 8px; font-size:12px; box-sizing:border-box; }';
+    css += '.mdash-iconmgr-form textarea { resize:vertical; font-family:monospace; }';
+    css += '.mdash-iconmgr-detectbar { display:flex; gap:6px; margin-top:6px; }';
+    css += '.mdash-iconmgr-preview { display:grid; grid-template-columns:repeat(auto-fill, minmax(34px,1fr)); gap:4px; max-height:120px; overflow-y:auto; border:1px solid rgba(15,23,42,0.1); border-radius:8px; padding:6px; margin-top:4px; background:#f8fafc; }';
+    css += '.mdash-iconmgr-preview .ic { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; border:1px solid rgba(15,23,42,0.08); border-radius:8px; background:#fff; color:#475569; }';
+    css += '.mdash-iconmgr-preview .ic > span, .mdash-iconmgr-preview .ic > i { font-size:18px; line-height:1; }';
+    css += '.mdash-iconmgr-foot { padding:10px 16px; border-top:1px solid rgba(15,23,42,0.1); display:flex; justify-content:space-between; gap:8px; }';
+    css += '.mdash-iconmgr-empty { padding:40px 20px; text-align:center; color:#94a3b8; font-size:13px; }';
+    var style = document.createElement('style');
+    style.id = 'mdash-lb-iconmgr-styles';
+    style.textContent = css;
+    document.head.appendChild(style);
+}
+
+function lbIconMgrParseIconsText(text) {
+    var out = [];
+    var seen = {};
+    String(text || '').split(/[\n,]+/).forEach(function (line) {
+        var raw = $.trim(line);
+        if (!raw) return;
+        var parts = raw.split('|');
+        var value = $.trim(parts[0]);
+        if (!value || seen[value]) return;
+        seen[value] = true;
+        var label = parts.length > 1 ? $.trim(parts.slice(1).join('|')) : value.replace(/[-_]+/g, ' ');
+        out.push({ value: value, label: label });
+    });
+    return out;
+}
+
+function lbIconMgrFormatIconsText(list) {
+    return (list || []).map(function (ic) {
+        var v = (ic && ic.value !== undefined) ? ic.value : ic;
+        var l = (ic && ic.label !== undefined) ? ic.label : '';
+        return l && l !== String(v).replace(/[-_]+/g, ' ') ? (v + '|' + l) : v;
+    }).join('\n');
+}
+
+function lbIconMgrEnsureFont(url) {
+    if (!url) return;
+    var id = 'mdash-iconmgr-font-' + url.replace(/[^a-z0-9]/gi, '').slice(-24);
+    if (document.getElementById(id)) return;
+    try {
+        var link = document.createElement('link');
+        link.id = id; link.rel = 'stylesheet'; link.href = url;
+        document.head.appendChild(link);
+    } catch (e) { /* ignora */ }
+}
+
+function lbIconMgrRenderIcon(form, value) {
+    if (form.kind === 'material') {
+        return '<span class="' + (form.base || 'material-symbols-rounded') + '">' + value + '</span>';
+    }
+    var cls = $.trim((form.base ? form.base + ' ' : '') + form.prefix + value);
+    return '<i class="' + cls + '"></i>';
+}
+
+function lbIconMgrGetFormValues() {
+    var $r = $('.mdash-iconmgr');
+    return {
+        codigo: $.trim($r.find('#mdash-iconmgr-codigo').val() || ''),
+        label: $.trim($r.find('#mdash-iconmgr-label').val() || ''),
+        kind: $r.find('#mdash-iconmgr-kind').val() || 'prefix',
+        base: $.trim($r.find('#mdash-iconmgr-base').val() || ''),
+        prefix: $.trim($r.find('#mdash-iconmgr-prefix').val() || ''),
+        cdn: $.trim($r.find('#mdash-iconmgr-fontcdn').val() || ''),
+        iconsText: $r.find('#mdash-iconmgr-icons').val() || ''
+    };
+}
+
+function lbIconMgrRefreshPreview() {
+    var form = lbIconMgrGetFormValues();
+    lbIconMgrEnsureFont(form.cdn);
+    var list = lbIconMgrParseIconsText(form.iconsText).slice(0, 200);
+    var html = '';
+    if (!list.length) {
+        html = '<div style="grid-column:1/-1;color:#94a3b8;font-size:11px;text-align:center;padding:8px;">Sem ícones — adicione nomes ou use "Detetar do CSS".</div>';
+    } else {
+        list.forEach(function (ic) {
+            html += '<div class="ic" title="' + (ic.label || ic.value) + '">' + lbIconMgrRenderIcon(form, ic.value) + '</div>';
+        });
+    }
+    $('.mdash-iconmgr-preview').html(html);
+}
+
+function lbIconMgrRenderList() {
+    var libs = (typeof GMDashIconLibraries !== 'undefined' && GMDashIconLibraries) ? GMDashIconLibraries : [];
+    var defaults = [
+        { codigo: 'material', label: 'Material Symbols' },
+        { codigo: 'glyphicon', label: 'Glyphicons' },
+        { codigo: 'fa', label: 'Font Awesome' }
+    ];
+    var html = '';
+    defaults.forEach(function (d) {
+        var on = GLbIconMgrState.selectedBuiltin === d.codigo ? ' is-active' : '';
+        html += '<div class="mdash-iconmgr-item' + on + '" data-builtin="' + d.codigo + '" title="Biblioteca embutida (só leitura)">'
+            + '<i class="glyphicon glyphicon-lock" style="font-size:11px;"></i> ' + d.label
+            + '<span class="badge-default">default</span></div>';
+    });
+    libs.forEach(function (lib) {
+        var on = GLbIconMgrState.selectedStamp === lib.mdashlibrarystamp ? ' is-active' : '';
+        html += '<div class="mdash-iconmgr-item' + on + '" data-stamp="' + lib.mdashlibrarystamp + '">'
+            + '<i class="glyphicon glyphicon-th" style="font-size:11px;"></i> ' + (lib.label || lib.codigo) + '</div>';
+    });
+    $('.mdash-iconmgr-list-items').html(html);
+}
+
+function lbIconMgrRenderForm(lib, readonly) {
+    var f = lib || {};
+    var kind = f.kind || 'prefix';
+    var iconsText = lib ? lbIconMgrFormatIconsText(lib.itemsList || []) : '';
+    var dis = readonly ? ' disabled' : '';
+    var html = '';
+    if (readonly) {
+        html += '<div style="background:rgba(15,23,42,0.05);border:1px solid rgba(15,23,42,0.1);border-radius:8px;padding:8px 10px;font-size:11px;color:#475569;margin-bottom:6px;">'
+            + '<i class="glyphicon glyphicon-lock"></i> Biblioteca embutida — só leitura. Duplique num "Nova" para personalizar.</div>';
+    }
+    html += '<div class="form-row"><div><label>Nome visível</label>'
+        + '<input type="text" id="mdash-iconmgr-label" value="' + (f.label || '') + '" placeholder="Font Awesome 6"' + dis + ' /></div>';
+    html += '<div><label>ID (código único)</label>'
+        + '<input type="text" id="mdash-iconmgr-codigo" value="' + (f.codigo || '') + '" placeholder="fa6"' + dis + ' /></div></div>';
+    html += '<div class="form-row"><div><label>Tipo</label><select id="mdash-iconmgr-kind"' + dis + '>'
+        + '<option value="prefix"' + (kind === 'prefix' ? ' selected' : '') + '>Classe (base + prefixo)</option>'
+        + '<option value="material"' + (kind === 'material' ? ' selected' : '') + '>Ligatura (Material)</option>'
+        + '</select></div>';
+    html += '<div><label>Classe base</label><input type="text" id="mdash-iconmgr-base" value="' + (f.base || '') + '" placeholder="fa / bi / material-symbols-rounded"' + dis + ' /></div>';
+    html += '<div><label>Prefixo do ícone</label><input type="text" id="mdash-iconmgr-prefix" value="' + (f.prefix || '') + '" placeholder="fa- / bi-"' + dis + ' /></div></div>';
+    html += '<label>CDN CSS da fonte</label><input type="text" id="mdash-iconmgr-fontcdn" value="' + (f.cdn || '') + '" placeholder="https://.../font-awesome.min.css"' + dis + ' />';
+    html += '<label>Ícones <span style="font-weight:400;color:#94a3b8;">(um por linha — <code>valor</code> ou <code>valor|Etiqueta</code>)</span></label>';
+    html += '<textarea id="mdash-iconmgr-icons" rows="6" placeholder="home\nuser|Utilizador\ngear|Definições"' + dis + '>' + iconsText + '</textarea>';
+    if (!readonly) {
+        html += '<div class="mdash-iconmgr-detectbar">';
+        html += '  <button type="button" class="btn btn-xs btn-default" id="mdash-iconmgr-detect-loaded"><i class="glyphicon glyphicon-search"></i> Detetar do CSS carregado</button>';
+        html += '  <button type="button" class="btn btn-xs btn-default" id="mdash-iconmgr-detect-paste"><i class="glyphicon glyphicon-paste"></i> Colar CSS e detetar</button>';
+        html += '</div>';
+    }
+    html += '<label>Pré-visualização</label><div class="mdash-iconmgr-preview"></div>';
+    $('.mdash-iconmgr-form').html(html);
+    lbIconMgrRefreshPreview();
+}
+
+function lbIconMgrSelect(stamp) {
+    GLbIconMgrState.selectedStamp = stamp;
+    GLbIconMgrState.selectedBuiltin = null;
+    lbIconMgrRenderList();
+    var lib = null;
+    (GMDashIconLibraries || []).forEach(function (l) { if (l.mdashlibrarystamp === stamp) lib = l; });
+    if (lib) lbIconMgrRenderForm(lib, false);
+    lbIconMgrUpdateFootState();
+}
+
+function lbIconMgrSelectBuiltin(id) {
+    GLbIconMgrState.selectedStamp = null;
+    GLbIconMgrState.selectedBuiltin = id;
+    lbIconMgrRenderList();
+    var reg = (typeof getMdashIconLibraryRegistry === 'function') ? getMdashIconLibraryRegistry() : {};
+    var lib = reg[id];
+    if (!lib) { lbIconMgrNew(); return; }
+    lbIconMgrRenderForm({
+        codigo: lib.id,
+        label: lib.label,
+        kind: lib.kind,
+        base: lib.base || lib.materialClass || '',
+        prefix: lib.prefix || '',
+        cdn: lib.fontUrl || '',
+        itemsList: lib.icons || []
+    }, true);
+    lbIconMgrUpdateFootState();
+}
+
+function lbIconMgrNew() {
+    GLbIconMgrState.selectedStamp = null;
+    GLbIconMgrState.selectedBuiltin = null;
+    lbIconMgrRenderList();
+    lbIconMgrRenderForm(null, false);
+    lbIconMgrUpdateFootState();
+}
+
+function lbIconMgrUpdateFootState() {
+    $('#mdash-iconmgr-delete').prop('disabled', !GLbIconMgrState.selectedStamp);
+    $('#mdash-iconmgr-save').prop('disabled', !!GLbIconMgrState.selectedBuiltin);
+}
+
+function lbIconMgrSave() {
+    var vals = lbIconMgrGetFormValues();
+    if (!vals.label) { alertify.error('Indique o nome da biblioteca', 2500); return; }
+    if (!vals.codigo || !/^[a-zA-Z0-9_-]+$/.test(vals.codigo)) { alertify.error('ID inválido (use letras, números, - ou _)', 3000); return; }
+    if (vals.kind === 'prefix' && !vals.base && !vals.prefix) { alertify.error('Defina a classe base e/ou o prefixo', 3000); return; }
+
+    var iconsList = lbIconMgrParseIconsText(vals.iconsText);
+    var lib = null;
+    (GMDashIconLibraries || []).forEach(function (l) { if (l.mdashlibrarystamp === GLbIconMgrState.selectedStamp) lib = l; });
+
+    if (lib) {
+        lib.codigo = vals.codigo; lib.label = vals.label; lib.kind = vals.kind;
+        lib.base = vals.base; lib.prefix = vals.prefix; lib.cdn = vals.cdn;
+        lib.itemsList = iconsList;
+    } else {
+        lib = new MdashIconLibrary({
+            codigo: vals.codigo, label: vals.label, kind: vals.kind,
+            base: vals.base, prefix: vals.prefix, cdn: vals.cdn,
+            itemsjson: JSON.stringify(iconsList)
+        });
+        lib.itemsList = iconsList;
+        GMDashIconLibraries.push(lib);
+        GLbIconMgrState.selectedStamp = lib.mdashlibrarystamp;
+    }
+
+    if (typeof saveIconLibraryToServer === 'function') saveIconLibraryToServer(lib);
+    if (typeof applyDbIconLibrariesToRegistry === 'function') applyDbIconLibrariesToRegistry();
+    lbIconMgrRenderList();
+    lbIconMgrUpdateFootState();
+    alertify.success('Biblioteca de ícones guardada', 2000);
+}
+
+function lbIconMgrDelete() {
+    var stamp = GLbIconMgrState.selectedStamp;
+    if (!stamp) return;
+    var lib = null;
+    (GMDashIconLibraries || []).forEach(function (l) { if (l.mdashlibrarystamp === stamp) lib = l; });
+    if (!lib) return;
+    if (typeof alertify !== 'undefined' && alertify.confirm) {
+        alertify.confirm('Eliminar a biblioteca "' + (lib.label || lib.codigo) + '"?', function () {
+            if (typeof deleteIconLibraryFromServer === 'function') deleteIconLibraryFromServer(lib);
+            lbIconMgrNew();
+            alertify.success('Biblioteca eliminada', 2000);
+        });
+    } else {
+        if (typeof deleteIconLibraryFromServer === 'function') deleteIconLibraryFromServer(lib);
+        lbIconMgrNew();
+    }
+}
+
+function lbIconMgrDetectLoaded() {
+    var vals = lbIconMgrGetFormValues();
+    lbIconMgrEnsureFont(vals.cdn);
+    var hrefHint = '';
+    try { if (vals.cdn) { var mm = vals.cdn.split('/'); hrefHint = mm[mm.length - 1].split('?')[0]; } } catch (e) { }
+    var detected = (typeof mdashDetectIconsFromStylesheets === 'function')
+        ? mdashDetectIconsFromStylesheets(vals.prefix, hrefHint || null) : [];
+    if (!detected.length && (typeof mdashDetectIconsFromStylesheets === 'function')) {
+        detected = mdashDetectIconsFromStylesheets(vals.prefix, null);
+    }
+    if (!detected.length) {
+        alertify.error('Nada detetado. O CSS pode não estar carregado ou bloquear leitura (CORS). Use "Colar CSS e detetar".', 5000);
+        return;
+    }
+    lbIconMgrMergeDetected(detected);
+    alertify.success(detected.length + ' ícones detetados', 2500);
+}
+
+function lbIconMgrDetectPaste() {
+    var vals = lbIconMgrGetFormValues();
+    lbIconMgrShowPasteBox(function (cssText) {
+        if (!cssText) return;
+        var detected = mdashDetectIconsFromCssText(cssText, vals.prefix);
+        if (!detected.length) { alertify.error('Nenhum ícone reconhecido no CSS colado.', 4000); return; }
+        lbIconMgrMergeDetected(detected);
+        alertify.success(detected.length + ' ícones detetados', 2500);
+    });
+}
+
+function lbIconMgrShowPasteBox(onDetect) {
+    if ($('#mdash-iconmgr-pastebox').length) return;
+    var html = '<div id="mdash-iconmgr-pastebox" style="position:absolute;top:0;right:0;bottom:0;left:0;background:rgba(255,255,255,0.98);z-index:5;display:flex;flex-direction:column;padding:14px;">';
+    html += '<label style="font-size:12px;font-weight:700;margin-bottom:6px;">Cole o CSS da fonte de ícones</label>';
+    html += '<textarea id="mdash-iconmgr-pastecss" style="flex:1;width:100%;border:1px solid rgba(15,23,42,0.15);border-radius:8px;padding:8px;font-family:monospace;font-size:11px;box-sizing:border-box;" placeholder=".fa-home:before{content:\'\\f015\'} ..."></textarea>';
+    html += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">';
+    html += '<button type="button" class="btn btn-xs btn-default" id="mdash-iconmgr-paste-cancel">Cancelar</button>';
+    html += '<button type="button" class="btn btn-xs btn-primary" id="mdash-iconmgr-paste-ok"><i class="glyphicon glyphicon-ok"></i> Detetar</button>';
+    html += '</div></div>';
+    var $form = $('.mdash-iconmgr-form');
+    $form.css('position', 'relative').append(html);
+    $('#mdash-iconmgr-paste-cancel').on('click', function () { $('#mdash-iconmgr-pastebox').remove(); });
+    $('#mdash-iconmgr-paste-ok').on('click', function () {
+        var css = $('#mdash-iconmgr-pastecss').val();
+        $('#mdash-iconmgr-pastebox').remove();
+        onDetect(css);
+    });
+}
+
+function lbIconMgrMergeDetected(detected) {
+    var existing = lbIconMgrParseIconsText($('.mdash-iconmgr').find('#mdash-iconmgr-icons').val());
+    var seen = {};
+    existing.forEach(function (ic) { seen[ic.value] = true; });
+    detected.forEach(function (ic) { if (!seen[ic.value]) { existing.push(ic); seen[ic.value] = true; } });
+    $('.mdash-iconmgr').find('#mdash-iconmgr-icons').val(lbIconMgrFormatIconsText(existing));
+    lbIconMgrRefreshPreview();
+}
+
+function lbIconMgrClose() {
+    $('#mdash-iconmgr-overlay').remove();
+}
+
+function lbOpenIconLibraryManager() {
+    if (typeof loadIconLibrariesFromServer === 'function' && !window.__mdashIconLibsLoaded) {
+        loadIconLibrariesFromServer();
+    }
+    lbAddIconManagerStyles();
+    if ($('#mdash-iconmgr-overlay').length) return;
+
+    var html = '';
+    html += '<div class="mdash-iconmgr-overlay" id="mdash-iconmgr-overlay">';
+    html += '  <div class="mdash-iconmgr">';
+    html += '    <div class="mdash-iconmgr-head"><b><i class="glyphicon glyphicon-picture"></i> Bibliotecas de ícones</b>';
+    html += '      <button type="button" class="btn btn-xs btn-default" id="mdash-iconmgr-close"><i class="glyphicon glyphicon-remove"></i></button></div>';
+    html += '    <div class="mdash-iconmgr-body">';
+    html += '      <div class="mdash-iconmgr-list">';
+    html += '        <div class="mdash-iconmgr-list-head"><span>Bibliotecas</span>';
+    html += '          <button type="button" class="btn btn-xs btn-success" id="mdash-iconmgr-new"><i class="glyphicon glyphicon-plus"></i> Nova</button></div>';
+    html += '        <div class="mdash-iconmgr-list-items"></div>';
+    html += '      </div>';
+    html += '      <div class="mdash-iconmgr-form"></div>';
+    html += '    </div>';
+    html += '    <div class="mdash-iconmgr-foot">';
+    html += '      <button type="button" class="btn btn-sm btn-danger" id="mdash-iconmgr-delete" disabled><i class="glyphicon glyphicon-trash"></i> Eliminar</button>';
+    html += '      <div>';
+    html += '        <button type="button" class="btn btn-sm btn-default" id="mdash-iconmgr-cancel">Fechar</button> ';
+    html += '        <button type="button" class="btn btn-sm btn-primary" id="mdash-iconmgr-save"><i class="glyphicon glyphicon-floppy-disk"></i> Guardar</button>';
+    html += '      </div>';
+    html += '    </div>';
+    html += '  </div>';
+    html += '</div>';
+    $('body').append(html);
+
+    // Cabeçalho com a cor do tema (getColorByType via getMdashThemeTokens)
+    var _tok = (typeof getMdashThemeTokens === 'function') ? getMdashThemeTokens() : { primary: '#2563eb' };
+    $('#mdash-iconmgr-overlay .mdash-iconmgr-head').css('background', 'linear-gradient(120deg, ' + _tok.primary + ' 0%, #101828 92%)');
+
+    lbIconMgrRenderList();
+    lbIconMgrNew();
+
+    var $r = $('#mdash-iconmgr-overlay');
+    $r.on('click', function (e) { if (e.target === this) lbIconMgrClose(); });
+    $('#mdash-iconmgr-close, #mdash-iconmgr-cancel').on('click', lbIconMgrClose);
+    $('#mdash-iconmgr-new').on('click', lbIconMgrNew);
+    $('#mdash-iconmgr-save').on('click', lbIconMgrSave);
+    $('#mdash-iconmgr-delete').on('click', lbIconMgrDelete);
+    $r.on('click', '.mdash-iconmgr-item[data-stamp]', function () { lbIconMgrSelect($(this).data('stamp')); });
+    $r.on('click', '.mdash-iconmgr-item[data-builtin]', function () { lbIconMgrSelectBuiltin('' + $(this).data('builtin')); });
+    $r.on('input change', '#mdash-iconmgr-icons, #mdash-iconmgr-kind, #mdash-iconmgr-base, #mdash-iconmgr-prefix, #mdash-iconmgr-fontcdn', lbIconMgrRefreshPreview);
+    $r.on('click', '#mdash-iconmgr-detect-loaded', lbIconMgrDetectLoaded);
+    $r.on('click', '#mdash-iconmgr-detect-paste', lbIconMgrDetectPaste);
+}
+window.lbOpenIconLibraryManager = lbOpenIconLibraryManager;
+
+// ============================================================================
+// LAYOUT BUILDER - PROPRIEDADE SELECT / VARIANTES (lista de classes)
+// ============================================================================
+
+var LB_VARIANT_LABELS = {
+    primary: 'Primary', secondary: 'Secondary', success: 'Sucesso',
+    danger: 'Perigo', warning: 'Aviso', info: 'Info', light: 'Claro', dark: 'Escuro'
+};
+
+function lbEscapeRegex(s) {
+    return String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function lbPrettyOptionLabel(value) {
+    var v = String(value || '');
+    if (LB_VARIANT_LABELS[v]) return LB_VARIANT_LABELS[v];
+    return v.charAt(0).toUpperCase() + v.slice(1).replace(/[-_]+/g, ' ');
+}
+
+/** Sugere o prefixo de classe a partir da 1ª classe do elemento (ex: dashboard-card--). */
+function lbGuessVariantPrefix(element) {
+    if (!element) return 'variant--';
+    var cls = (element.className || '').replace(/mdash-lb-[\w-]+/g, '').trim();
+    var first = cls.split(/\s+/)[0];
+    if (first) return first + '--';
+    var tag = element.tagName ? element.tagName.toLowerCase() : 'variant';
+    return tag + '--';
+}
+
+/** Varre o CSS do layout à procura de classes com o prefixo dado -> [{value,label}]. */
+function lbScanCssForClassOptions(prefix) {
+    var out = [];
+    if (!prefix) return out;
+    var editors = GLayoutBuilderState.aceEditors;
+    var css = editors && editors.css ? editors.css.getValue() : '';
+    if (!css) return out;
+    var re = new RegExp('\\.' + lbEscapeRegex(prefix) + '([A-Za-z0-9_-]+)', 'g');
+    var seen = {};
+    var m;
+    while ((m = re.exec(css)) !== null) {
+        var val = m[1];
+        if (val && !seen[val]) { seen[val] = 1; out.push({ value: val, label: lbPrettyOptionLabel(val) }); }
+    }
+    return out;
+}
+
+function lbBuildOptionRowHtml(opt, checked) {
+    var val = (opt && opt.value != null) ? opt.value : '';
+    var label = (opt && opt.label != null) ? opt.label : lbPrettyOptionLabel(val);
+    var h = '<div class="mdash-lb-opt-row">';
+    h += '<input type="radio" name="mdash-lb-opt-default" class="mdash-lb-opt-default" value="' + val + '"' + (checked ? ' checked' : '') + ' title="Op\u00e7\u00e3o por defeito" />';
+    h += '<input type="text" class="mdash-lb-opt-label" value="' + label + '" placeholder="Nome vis\u00edvel (ex: Perigo)" title="O que o utilizador l\u00ea" />';
+    h += '<input type="text" class="mdash-lb-opt-value" value="' + val + '" placeholder="classe" title="Classe CSS (t\u00e9cnico)" />';
+    h += '<button type="button" class="btn btn-xs btn-danger mdash-lb-opt-remove" title="Remover"><i class="glyphicon glyphicon-remove"></i></button>';
+    h += '</div>';
+    return h;
+}
+
+function lbBuildSelectOptionsFieldHtml(editingProp, element, omitDefaultInput) {
+    var prefix = '';
+    var options = [];
+    var defVal = '';
+    if (editingProp) {
+        defVal = lbSelectDefaultScalar(editingProp);
+        // fonte "classes" de uma propriedade de cor guarda as opções em sources.classes
+        if (editingProp.sources && editingProp.sources.classes) {
+            if (Array.isArray(editingProp.sources.classes.options) && editingProp.sources.classes.options.length) {
+                options = editingProp.sources.classes.options.slice();
+            }
+            if (editingProp.sources.classes.classPrefix) prefix = editingProp.sources.classes.classPrefix;
+        }
+        if (!options.length && Array.isArray(editingProp.options)) options = editingProp.options.slice();
+        if (!prefix && editingProp.classPrefix) prefix = editingProp.classPrefix;
+        else if (!prefix && Array.isArray(editingProp.behaviors) && editingProp.behaviors[0] && editingProp.behaviors[0].classPrefix) {
+            prefix = editingProp.behaviors[0].classPrefix;
+        }
+    }
+    if (!prefix) prefix = lbGuessVariantPrefix(element);
+    if (!options.length) {
+        options = lbScanCssForClassOptions(prefix);
+        if (!options.length) {
+            options = [
+                { value: 'primary', label: 'Primary' },
+                { value: 'success', label: 'Sucesso' },
+                { value: 'danger', label: 'Perigo' }
+            ];
+        }
+    }
+    if (!defVal && options.length) defVal = options[0].value;
+
+    var h = '';
+    h += '<label>Classe base (prefixo)</label>';
+    h += '<div class="mdash-lb-sel-prefix-row">';
+    h += '  <input type="text" class="mdash-lb-prop-classprefix form-control input-sm" value="' + prefix + '" placeholder="ex: dashboard-card--" />';
+    h += '  <button type="button" class="btn btn-xs btn-default mdash-lb-prop-detect-classes" title="Detetar classes no CSS"><i class="glyphicon glyphicon-search"></i></button>';
+    h += '</div>';
+    h += '<label style="margin-top:6px;">Op\u00e7\u00f5es (o utilizador escolhe uma)</label>';
+    h += '<p class="mdash-lb-opt-hint">O utilizador s\u00f3 v\u00ea o <b>Nome</b>. A classe \u00e9 t\u00e9cnica e fica escondida.</p>';
+    h += '<div class="mdash-lb-opt-head"><span></span><span>Nome vis\u00edvel</span><span>Classe</span><span></span></div>';
+    h += '<div class="mdash-lb-prop-options-list">';
+    options.forEach(function (opt) {
+        h += lbBuildOptionRowHtml(opt, String(opt.value) === String(defVal));
+    });
+    h += '</div>';
+    h += '<button type="button" class="btn btn-xs btn-default mdash-lb-prop-add-option" style="margin-top:4px;"><i class="glyphicon glyphicon-plus"></i> Adicionar op\u00e7\u00e3o</button>';
+    if (!omitDefaultInput) {
+        h += '<input type="hidden" class="mdash-lb-select-default-input" value="' + defVal + '" />';
+    }
+    return h;
+}
+
+/** Extrai o valor de default (scalar) de uma prop select/classe (aceita {src,value}). */
+function lbSelectDefaultScalar(prop) {
+    if (!prop) return '';
+    var d = prop['default'];
+    if (d && typeof d === 'object' && d.src) return d.value != null ? d.value : '';
+    return d != null ? d : '';
+}
+
+/** Extrai o valor de cor (scalar) para preview, aceitando {src,value} ou scalar legacy. */
+function lbColorDefaultScalar(prop) {
+    if (!prop) return 'var(--md-primary)';
+    var d = prop['default'];
+    if (d && typeof d === 'object' && d.src) {
+        if (d.src === 'class') return 'var(--md-primary)';
+        return d.value != null ? d.value : 'var(--md-primary)';
+    }
+    return d != null ? d : 'var(--md-primary)';
+}
+
+/** Recolhe opções + prefixo + default do editor de select (popover ou tile). */
+function lbCollectSelectOptions($scope) {
+    $scope = ($scope && $scope.length) ? $scope : $('#mdash-lb-prop-popover');
+    if (!$scope.length) $scope = $(document);
+    var prefix = $.trim($scope.find('.mdash-lb-prop-classprefix').val() || '');
+    var options = [];
+    var chosen = $scope.find('input.mdash-lb-opt-default:checked').val();
+    $scope.find('.mdash-lb-prop-options-list .mdash-lb-opt-row').each(function () {
+        var val = $.trim($(this).find('.mdash-lb-opt-value').val() || '');
+        if (!val) return;
+        var label = $.trim($(this).find('.mdash-lb-opt-label').val() || '') || lbPrettyOptionLabel(val);
+        options.push({ value: val, label: label });
+    });
+    var def = chosen || (options[0] && options[0].value) || '';
+    return { classPrefix: prefix, options: options, 'default': def };
+}
+
+function lbBindSelectOptionsField($scope) {
+    $scope = ($scope && $scope.length) ? $scope : $(document);
+    $scope.off('click.selAdd', '.mdash-lb-prop-add-option').on('click.selAdd', '.mdash-lb-prop-add-option', function () {
+        $(this).siblings('.mdash-lb-prop-options-list').append(lbBuildOptionRowHtml({ value: '', label: '' }, false));
+    });
+    $scope.off('click.selRemove', '.mdash-lb-opt-remove').on('click.selRemove', '.mdash-lb-opt-remove', function () {
+        var $block = $(this).closest('.mdash-lb-color-sources-block, #mdash-lb-prop-popover, .mdash-lb-tile-color-config');
+        if (!$block.length) $block = $scope;
+        $(this).closest('.mdash-lb-opt-row').remove();
+        if (!$block.find('input.mdash-lb-opt-default:checked').length) {
+            $block.find('input.mdash-lb-opt-default').first().prop('checked', true).trigger('change');
+        }
+        if ($block.closest('.mdash-lb-tile-color-config').length) {
+            $block.closest('.mdash-lb-tile-color-config').trigger('lbTileColorPersist');
+        }
+    });
+    $scope.off('change.selDefault', '.mdash-lb-opt-default').on('change.selDefault', '.mdash-lb-opt-default', function () {
+        var $block = $(this).closest('.mdash-lb-color-sources-block, #mdash-lb-prop-popover, .mdash-lb-tile-color-config');
+        if (!$block.length) $block = $scope;
+        $block.find('.mdash-lb-select-default-input, #mdash-lb-prop-default-input').val($(this).val());
+    });
+    $scope.off('input.selLabel', '.mdash-lb-opt-label').on('input.selLabel', '.mdash-lb-opt-label', function () {
+        var $row = $(this).closest('.mdash-lb-opt-row');
+        var $block = $row.closest('.mdash-lb-color-sources-block, #mdash-lb-prop-popover, .mdash-lb-tile-color-config');
+        if (!$block.length) $block = $scope;
+        var $val = $row.find('.mdash-lb-opt-value');
+        // Preenche a classe automaticamente a partir do nome (slug), até o designer a editar.
+        if (!$.trim($val.val()) || $val.data('autoslug')) {
+            var slug = String($(this).val() || '').toLowerCase()
+                .replace(/[àáâãäå]/g, 'a').replace(/[èéêë]/g, 'e').replace(/[ìíîï]/g, 'i')
+                .replace(/[òóôõö]/g, 'o').replace(/[ùúûü]/g, 'u').replace(/ç/g, 'c')
+                .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+            $val.val(slug).data('autoslug', true);
+            $row.find('.mdash-lb-opt-default').val(slug);
+            if ($row.find('.mdash-lb-opt-default').is(':checked')) {
+                $block.find('.mdash-lb-select-default-input, #mdash-lb-prop-default-input').val(slug);
+            }
+        }
+    });
+
+    $scope.off('input.selValue', '.mdash-lb-opt-value').on('input.selValue', '.mdash-lb-opt-value', function () {
+        var $row = $(this).closest('.mdash-lb-opt-row');
+        var $block = $row.closest('.mdash-lb-color-sources-block, #mdash-lb-prop-popover, .mdash-lb-tile-color-config');
+        if (!$block.length) $block = $scope;
+        $(this).data('autoslug', false);
+        $row.find('.mdash-lb-opt-default').val($(this).val());
+        if ($row.find('.mdash-lb-opt-default').is(':checked')) {
+            $block.find('.mdash-lb-select-default-input, #mdash-lb-prop-default-input').val($(this).val());
+        }
+    });
+    $scope.off('click.selDetect', '.mdash-lb-prop-detect-classes').on('click.selDetect', '.mdash-lb-prop-detect-classes', function () {
+        var $block = $(this).closest('.mdash-lb-color-sources-block, #mdash-lb-prop-popover, .mdash-lb-tile-color-config');
+        if (!$block.length) $block = $scope;
+        var prefix = $.trim($block.find('.mdash-lb-prop-classprefix').val() || '');
+        var found = lbScanCssForClassOptions(prefix);
+        if (!found.length) {
+            if (typeof alertify !== 'undefined') alertify.message('Nenhuma classe "' + prefix + '..." encontrada no CSS', 2500);
+            return;
+        }
+        var $list = $block.find('.mdash-lb-prop-options-list');
+        $list.empty();
+        found.forEach(function (opt, i) { $list.append(lbBuildOptionRowHtml(opt, i === 0)); });
+        $block.find('.mdash-lb-select-default-input, #mdash-lb-prop-default-input').val(found[0].value);
+        if (typeof alertify !== 'undefined') alertify.success(found.length + ' op\u00e7\u00e3o(\u00f5es) detetada(s)', 2000);
+        if ($block.closest('.mdash-lb-tile-color-config').length) {
+            $block.closest('.mdash-lb-tile-color-config').trigger('lbTileColorPersist');
+        }
+    });
+}
+
+/**
+ * Config das fontes de cor no popover do builder: tema PHC, estilos por classe
+ * e cor personalizada. O utilizador final vê tudo numa única lista no editor.
+ */
+function lbBuildColorSourcesConfigHtml(editingProp, element) {
+    var sources = (typeof mdashGetPropSources === 'function')
+        ? mdashGetPropSources(editingProp || {})
+        : { theme: { enabled: true }, classes: { enabled: false }, custom: { enabled: true } };
+    // Retrocompat: uma prop nova (sem sources) arranca com tema + personalizada.
+    if (!editingProp || (!editingProp.sources && editingProp.includeThemeColors === undefined && !editingProp.type)) {
+        sources.theme.enabled = true; sources.custom.enabled = true;
+    }
+    var themeOn = sources.theme.enabled;
+    var classesOn = sources.classes.enabled;
+    var customOn = sources.custom.enabled;
+    var colorScalar = lbColorDefaultScalar(editingProp);
+
+    var h = '';
+    h += '<div class="mdash-lb-color-sources-block">';
+    h += '<label>Fontes de cor <span class="text-muted" style="font-weight:400;">(o utilizador escolhe numa única lista)</span></label>';
+    h += '<div class="mdash-lb-color-sources">';
+    h += '  <label class="mdash-lb-prop-check"><input type="checkbox" class="mdash-lb-src-theme"' + (themeOn ? ' checked' : '') + ' /> <span>Cores do tema PHC</span></label>';
+    h += '  <label class="mdash-lb-prop-check"><input type="checkbox" class="mdash-lb-src-classes"' + (classesOn ? ' checked' : '') + ' /> <span>Estilos por classe (variantes)</span></label>';
+    h += '  <label class="mdash-lb-prop-check"><input type="checkbox" class="mdash-lb-src-custom"' + (customOn ? ' checked' : '') + ' /> <span>Cor personalizada</span></label>';
+    h += '</div>';
+
+    h += '<div class="mdash-lb-src-classes-wrap" style="' + (classesOn ? '' : 'display:none;') + 'margin-top:6px;padding:8px;border:1px dashed rgba(124,58,237,0.3);border-radius:8px;background:rgba(124,58,237,0.03);">';
+    h += lbBuildSelectOptionsFieldHtml(classesOn ? editingProp : null, element, true);
+    h += '</div>';
+
+    h += '<div class="mdash-lb-src-color-wrap" style="margin-top:6px;">';
+    h += '  <label>Cor por defeito <span class="text-muted" style="font-weight:400;">(clique para usar como valor inicial)</span></label>';
+    h += lbBuildColorDefaultFieldHtml(colorScalar, 'mdash-lb-prop-color-default', themeOn);
+    h += '</div>';
+    h += '</div>';
+    return h;
+}
+
+/** Recolhe as fontes de cor definidas no popover ou num tile. */
+function lbCollectColorSources($scope) {
+    $scope = ($scope && $scope.length) ? $scope : $('#mdash-lb-prop-popover');
+    if (!$scope.length) $scope = $(document);
+    var themeOn = $scope.find('.mdash-lb-src-theme').is(':checked');
+    var classesOn = $scope.find('.mdash-lb-src-classes').is(':checked');
+    var customOn = $scope.find('.mdash-lb-src-custom').is(':checked');
+    if (!themeOn && !classesOn && !customOn) { customOn = true; }
+
+    var sources = {
+        theme: { enabled: themeOn },
+        classes: { enabled: classesOn, classPrefix: '', options: [] },
+        custom: { enabled: customOn }
+    };
+
+    var classDefault = '';
+    if (classesOn) {
+        var sel = lbCollectSelectOptions($scope);
+        sources.classes.classPrefix = sel.classPrefix;
+        sources.classes.options = sel.options;
+        // Só é default por classe se o designer marcou explicitamente um radio.
+        var $chk = $scope.find('.mdash-lb-prop-options-list input.mdash-lb-opt-default:checked');
+        classDefault = $chk.length ? $.trim($chk.val()) : '';
+    }
+
+    // Default UNIFICADO: se há classe marcada, é essa; senão a cor escolhida (tema/personalizada).
+    var colorVal = $.trim($scope.find('.mdash-lb-src-color-wrap .mdash-layout-color-value').val() || '') || 'var(--md-primary)';
+    var def;
+    if (classesOn && classDefault) {
+        def = { src: 'class', value: classDefault };
+    } else if (themeOn && colorVal.charAt(0) !== '#') {
+        def = { src: 'theme', value: colorVal };
+    } else {
+        def = { src: 'custom', value: colorVal };
+    }
+
+    return { sources: sources, 'default': def };
+}
+
+function lbColorSyncDefaultRow($scope) {
+    $scope = ($scope && $scope.length) ? $scope : $(document);
+    // Destaca a linha da opção que está marcada como default.
+    $scope.find('.mdash-lb-opt-row').removeClass('is-default');
+    $scope.find('.mdash-lb-prop-options-list input.mdash-lb-opt-default:checked')
+        .closest('.mdash-lb-opt-row').addClass('is-default');
+}
+
+function lbColorMarkColorAsDefault($scope) {
+    $scope = ($scope && $scope.length) ? $scope : $(document);
+    // Cor (tema/personalizada) passa a ser o default → desmarca todas as opções de classe.
+    $scope.find('.mdash-lb-prop-options-list input.mdash-lb-opt-default').prop('checked', false);
+    lbColorSyncDefaultRow($scope);
+}
+
+function lbColorMarkClassAsDefault($scope) {
+    $scope = ($scope && $scope.length) ? $scope : $(document);
+    // Uma classe passa a ser o default → tira o destaque visual da cor.
+    $scope.find('.mdash-lb-src-color-wrap .mdash-layout-theme-color, .mdash-lb-src-color-wrap .mdash-layout-custom-color').removeClass('is-active');
+    lbColorSyncDefaultRow($scope);
+}
+
+function lbResolveColorSourcesEditingProp($scope, editingProp) {
+    if (editingProp) return editingProp;
+    $scope = ($scope && $scope.length) ? $scope : $(document);
+    var editId = $.trim($scope.find('#mdash-lb-prop-id-input').val());
+    if (editId) {
+        var layout = getSelectedLayout();
+        if (layout && Array.isArray(layout.props)) {
+            return layout.props.find(function (p) { return p && p.id === editId; }) || null;
+        }
+    }
+    var $tileCfg = $scope.filter('.mdash-lb-tile-color-config');
+    if (!$tileCfg.length) $tileCfg = $scope.closest('.mdash-lb-tile-color-config');
+    if (!$tileCfg.length) $tileCfg = $scope.find('.mdash-lb-tile-color-config').first();
+    if ($tileCfg.length) {
+        var idx = parseInt($tileCfg.data('prop-idx'), 10);
+        var lay = getSelectedLayout();
+        if (lay && lay.props && lay.props[idx]) return lay.props[idx];
+    }
+    return null;
+}
+
+function lbBindColorSourcesField($scope, element, editingProp) {
+    $scope = ($scope && $scope.length) ? $scope : $(document);
+
+    $scope.off('change.srcThemeToggle', '.mdash-lb-src-theme').on('change.srcThemeToggle', '.mdash-lb-src-theme', function () {
+        var $block = $(this).closest('.mdash-lb-color-sources-block');
+        if (!$block.length) $block = $scope;
+        var withTheme = $(this).is(':checked');
+        var current = $.trim($block.find('.mdash-lb-src-color-wrap .mdash-layout-color-value').val() || '') || 'var(--md-primary)';
+        var $cw = $block.find('.mdash-lb-src-color-wrap');
+        $cw.html('<label>Cor por defeito <span class="text-muted" style="font-weight:400;">(clique para usar como valor inicial)</span></label>' + lbBuildColorDefaultFieldHtml(current, 'mdash-lb-prop-color-default', withTheme));
+        lbBindColorDefaultField($block);
+    });
+
+    $scope.off('change.srcToggle', '.mdash-lb-src-classes').on('change.srcToggle', '.mdash-lb-src-classes', function () {
+        var $block = $(this).closest('.mdash-lb-color-sources-block');
+        if (!$block.length) $block = $scope;
+        var on = $(this).is(':checked');
+        var $wrap = $block.find('.mdash-lb-src-classes-wrap');
+        if (on) {
+            var editing = lbResolveColorSourcesEditingProp($block, editingProp);
+            $wrap.html(lbBuildSelectOptionsFieldHtml(editing, element, true)).show();
+            lbBindSelectOptionsField($block);
+            // Activar classes não muda o default: mantém a cor até escolherem um radio.
+            var defWasClass = editing && editing['default'] && typeof editing['default'] === 'object' && editing['default'].src === 'class';
+            if (!defWasClass) lbColorMarkColorAsDefault($block);
+        } else {
+            $wrap.hide();
+            lbColorMarkColorAsDefault($block); // sem classes, o default é a cor
+        }
+    });
+
+    // Exclusão mútua do DEFAULT entre cor (tema/personalizada) e classe.
+    $scope.off('change.srcColorDef', '.mdash-lb-src-color-wrap .mdash-layout-color-value')
+        .on('change.srcColorDef', '.mdash-lb-src-color-wrap .mdash-layout-color-value', function () {
+            var $block = $(this).closest('.mdash-lb-color-sources-block');
+            lbColorMarkColorAsDefault($block.length ? $block : $scope);
+        });
+    $scope.off('change.srcClassDef', '.mdash-lb-prop-options-list .mdash-lb-opt-default')
+        .on('change.srcClassDef', '.mdash-lb-prop-options-list .mdash-lb-opt-default', function () {
+            if ($(this).is(':checked')) {
+                var $block = $(this).closest('.mdash-lb-color-sources-block');
+                lbColorMarkClassAsDefault($block.length ? $block : $scope);
+            }
+        });
+
+    lbBindSelectOptionsField($scope);
+    lbBindColorDefaultField($scope);
+
+    // Estado inicial coerente do DEFAULT unificado: uma só fonte fica marcada.
+    var editing = lbResolveColorSourcesEditingProp($scope, editingProp);
+    var defSrc = (editing && editing['default'] && typeof editing['default'] === 'object') ? editing['default'].src : null;
+    var $initBlock = $scope.hasClass('mdash-lb-color-sources-block') ? $scope : $scope.find('.mdash-lb-color-sources-block').first();
+    if (!$initBlock.length) $initBlock = $scope;
+    if (defSrc === 'class') {
+        lbColorMarkClassAsDefault($initBlock);   // classe é o default → cor sem destaque
+    } else {
+        lbColorMarkColorAsDefault($initBlock);   // cor (tema/personalizada) é o default → sem classe marcada
+    }
+}
+
+function lbSlugifyPropId(label, layout) {
+    var base = String(label || 'prop').toLowerCase()
+        .replace(/[àáâãäå]/g, 'a').replace(/[èéêë]/g, 'e').replace(/[ìíîï]/g, 'i')
+        .replace(/[òóôõö]/g, 'o').replace(/[ùúûü]/g, 'u').replace(/ç/g, 'c')
+        .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (!base || !/^[a-z]/.test(base)) base = 'prop_' + base;
+    var props = (layout && layout.props) || [];
+    var candidate = base;
+    var n = 2;
+    while (props.some(function (p) { return p && p.id === candidate; })) {
+        candidate = base + '_' + n;
+        n++;
+    }
+    return candidate;
+}
+
+function lbInferColorCssProperty(element) {
+    if (!element || !element.tagName) return 'background-color';
+    var tag = element.tagName.toLowerCase();
+    var cls = (element.className || '').toString();
+    if (tag === 'i' || cls.indexOf('material-icons') >= 0 || cls.indexOf('glyphicon') >= 0) return 'color';
+    if (tag === 'span' || tag === 'p' || tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'h4' || tag === 'label') return 'color';
+    return 'background-color';
+}
+
+function lbHumanEffectLabel(propDef) {
+    if (!propDef) return '';
+    var type = propDef.type || 'text';
+    var behaviors = propDef.behaviors || [];
+    var b = behaviors[0] || {};
+    if (type === 'color') {
+        if (b.kind === 'setCssVariable') return 'Define uma variável de cor para o card inteiro';
+        var propName = b.property || lbInferColorCssProperty(null);
+        if (propName === 'color') return 'Muda a cor do texto/ícone do elemento marcado';
+        return 'Muda a cor de fundo do elemento marcado';
+    }
+    if (type === 'icon') return 'Muda o ícone do elemento marcado';
+    if (type === 'text') return 'Muda o texto do elemento marcado';
+    if (type === 'number') return 'Define um valor numérico';
+    if (type === 'boolean') return 'Liga/desliga uma opção visual';
+    if (type === 'select') return 'Escolhe uma variante visual (ex: primary, success)';
+    return 'Personaliza o aspecto do layout';
+}
+
+function lbDescribeBehaviorHuman(behavior) {
+    if (!behavior) return '';
+    var kind = behavior.kind || behavior.type || '';
+    if (kind === 'setCssProperty') return 'Aplica ' + (behavior.property || 'estilo') + ' no elemento';
+    if (kind === 'setCssVariable') return 'Variável CSS ' + (behavior.varName || '');
+    if (kind === 'setIcon') return 'Altera o ícone';
+    if (kind === 'setText') return 'Altera o texto';
+    if (kind === 'toggleClass') return 'Alterna classe ' + (behavior.classPrefix || '');
+    return kind;
+}
+
+function renderLayoutPropsBuilder(layout) {
+    var $container = $('#mdash-lb-props-builder');
+    if (!$container.length) return;
+
+    layout = layout || getSelectedLayout();
+    if (!layout) {
+        $container.html('<div class="text-muted">Selecione um layout</div>');
+        return;
+    }
+
+    var props = layout.props || forceJSONParse(layout.propsdefinition, []);
+    var typeRegistry = typeof getMdashLayoutPropTypeRegistry === 'function'
+        ? getMdashLayoutPropTypeRegistry() : {};
+
+    var html = '<div class="mdash-lb-props-builder">';
+    html += '<div class="mdash-lb-props-hero">';
+    html += '  <h6><i class="glyphicon glyphicon-adjust"></i> Aparência personalizável</h6>';
+    html += '  <p><b>Slots</b> = onde entram dados (título, números). <b>Propriedades</b> = o que o utilizador pode mudar visualmente (cores, ícones) em cada card do dashboard.</p>';
+    html += '  <div class="mdash-lb-props-legend">';
+    html += '    <span style="color:#2563eb;"><i class="glyphicon glyphicon-th"></i> Slots (conteúdo)</span>';
+    html += '    <span style="color:#7c3aed;"><i class="glyphicon glyphicon-adjust"></i> Props (aparência)</span>';
+    html += '  </div>';
+    html += '</div>';
+
+    html += '<div class="mdash-lb-prop-quick-add">';
+    html += '  <button type="button" class="btn btn-default btn-xs mdash-lb-prop-quick" data-quick-type="color" data-quick-label="Cor de fundo"><i class="glyphicon glyphicon-tint"></i> + Cor</button>';
+    html += '  <button type="button" class="btn btn-default btn-xs mdash-lb-prop-quick" data-quick-type="icon" data-quick-label="Ícone"><i class="glyphicon glyphicon-star"></i> + Ícone</button>';
+    html += '  <button type="button" class="btn btn-default btn-xs mdash-lb-prop-quick" data-quick-type="text" data-quick-label="Texto"><i class="glyphicon glyphicon-font"></i> + Texto</button>';
+    html += '  <button type="button" class="btn btn-primary btn-xs" id="mdash-lb-prop-mode-start"><i class="glyphicon glyphicon-screenshot"></i> Marcar na pré-visualização</button>';
+    html += '</div>';
+
+    if (!props.length) {
+        html += '<div class="mdash-lb-prop-empty-cta">';
+        html += '  <i class="glyphicon glyphicon-hand-up" style="font-size:28px;color:#7c3aed;opacity:0.5;"></i>';
+        html += '  <p>Ainda não há propriedades.<br/>Clique <b>Marcar na pré-visualização</b> e escolha um elemento à direita (ex: fundo do card, ícone).</p>';
+        html += '  <button type="button" class="btn btn-sm" id="mdash-lb-prop-mode-start-empty" style="background:#7c3aed;color:#fff;border:none;"><i class="glyphicon glyphicon-screenshot"></i> Começar a marcar</button>';
+        html += '</div>';
+    }
+
+    props.forEach(function (prop, idx) {
+        if (!prop) return;
+        var typeMeta = lbGetPropTypeMeta(prop.type || 'text');
+        var defVal = prop.type === 'color'
+            ? lbColorDefaultScalar(prop)
+            : (prop.default != null ? prop.default : lbDefaultValueForPropType(prop.type));
+        var effect = lbHumanEffectLabel(prop);
+
+        html += '<div class="mdash-lb-prop-tile" data-prop-idx="' + idx + '">';
+        html += '  <div class="mdash-lb-prop-tile-icon' + (prop.type === 'color' ? ' is-color' : '') + '">';
+        if (prop.type === 'color') {
+            var swatchStyle = typeof mdashLayoutColorSwatchStyle === 'function'
+                ? mdashLayoutColorSwatchStyle(defVal || 'var(--md-primary)')
+                : ('background:' + (defVal || '#3b82f6') + ';');
+            html += '    <span class="mdash-lb-prop-swatch-lg" style="' + swatchStyle + ';"></span>';
+        } else {
+            html += typeMeta.icon;
+        }
+        html += '  </div>';
+        html += '  <div class="mdash-lb-prop-tile-body">';
+        html += '    <div class="mdash-lb-prop-tile-title">' + (prop.label || prop.id || ('Propriedade ' + (idx + 1))) + '</div>';
+        html += '    <div class="mdash-lb-prop-tile-desc">' + effect + '</div>';
+        html += '    <div class="mdash-lb-prop-tile-meta">' + typeMeta.label + (prop.targetId ? ' · alvo: ' + prop.targetId : '') + (prop.id ? ' · ' + prop.id : '') + '</div>';
+
+        html += '    <div class="row" style="margin:8px -4px 0;">';
+        html += '      <div class="col-xs-12" style="padding:0 4px;margin-bottom:6px;"><label>Nome no editor</label><input type="text" class="form-control input-sm mdash-lb-prop-field" data-prop-idx="' + idx + '" data-field="label" value="' + (prop.label || '') + '" /></div>';
+        html += '      <div class="col-xs-6" style="padding:0 4px;margin-bottom:6px;"><label>Tipo</label><select class="form-control input-sm mdash-lb-prop-field" data-prop-idx="' + idx + '" data-field="type">';
+        Object.keys(typeRegistry).forEach(function (typeKey) {
+            html += '<option value="' + typeKey + '"' + (prop.type === typeKey ? ' selected' : '') + '>' + typeRegistry[typeKey].label + '</option>';
+        });
+        html += '      </select></div>';
+        var tileColWidth = (prop.type === 'icon' || prop.type === 'color') ? 'col-xs-12' : 'col-xs-6';
+        if (prop.type !== 'color') {
+            html += '      <div class="' + tileColWidth + '" style="padding:0 4px;margin-bottom:6px;"><label>Valor de exemplo</label>';
+            if (prop.type === 'icon') {
+                var tileIconVal = lbSanitizeIconValue(defVal);
+                html += lbBuildIconDefaultFieldHtml(tileIconVal, 'mdash-lb-prop-def-' + idx, prop.iconClass);
+                html += '<input type="hidden" class="mdash-lb-prop-field" data-prop-idx="' + idx + '" data-field="default" value="' + tileIconVal + '" />';
+            } else {
+                html += '<input type="text" class="form-control input-sm mdash-lb-prop-field" data-prop-idx="' + idx + '" data-field="default" value="' + (defVal != null ? defVal : '') + '" />';
+            }
+            html += '      </div>';
+        }
+        if (prop.type === 'color') {
+            var tid = lbGetPropTargetId(prop);
+            var $targetEl = (tid && typeof getPropsPreviewWrapper === 'function')
+                ? getPropsPreviewWrapper().find(lbPropTargetSelector(tid)).first()
+                : $();
+            var targetElement = $targetEl.length ? $targetEl[0] : null;
+            html += '      <div class="col-xs-12 mdash-lb-tile-color-config" style="padding:0 4px;margin-bottom:6px;" data-prop-idx="' + idx + '">';
+            html += lbBuildColorSourcesConfigHtml(prop, targetElement);
+            html += '      </div>';
+        }
+        html += '    </div>';
+
+        html += '    <details class="mdash-lb-prop-advanced"><summary>Detalhes técnicos (opcional)</summary>';
+        html += '      <div style="margin-bottom:6px;"><label>ID interno</label><input type="text" class="form-control input-sm mdash-lb-prop-field" data-prop-idx="' + idx + '" data-field="id" value="' + (prop.id || '') + '" /></div>';
+        var behaviors = Array.isArray(prop.behaviors) ? prop.behaviors : [];
+        behaviors.forEach(function (behavior, bIdx) {
+            html += '<div class="mdash-lb-prop-behavior-row" data-prop-idx="' + idx + '" data-behavior-idx="' + bIdx + '">';
+            html += '  <span class="text-muted" style="font-size:10px;min-width:100px;">' + lbDescribeBehaviorHuman(behavior) + '</span>';
+            html += '  <button type="button" class="btn btn-primary btn-xs mdash-lb-prop-mark-target" data-prop-idx="' + idx + '" data-behavior-idx="' + bIdx + '" title="Re-marcar elemento"><i class="glyphicon glyphicon-screenshot"></i></button>';
+            html += '  <button type="button" class="btn btn-danger btn-xs mdash-lb-prop-behavior-remove" data-prop-idx="' + idx + '" data-behavior-idx="' + bIdx + '"><i class="glyphicon glyphicon-minus"></i></button>';
+            html += '</div>';
+        });
+        html += '    </details>';
+        html += '  </div>';
+        html += '  <div class="mdash-lb-prop-tile-actions">';
+        html += '    <button type="button" class="btn btn-danger btn-xs mdash-lb-prop-remove" data-prop-idx="' + idx + '" title="Remover"><i class="glyphicon glyphicon-trash"></i></button>';
+        html += '  </div>';
+        html += '</div>';
+    });
+
+    html += '</div>';
+    $container.html(html);
+    bindLayoutPropsBuilderEvents();
+    if (typeof bindMdashLayoutColorPicker === 'function') {
+        bindMdashLayoutColorPicker($container);
+    }
+    if (typeof bindMdashLayoutIconPicker === 'function') {
+        bindMdashLayoutIconPicker($container);
+    }
+    $container.find('.mdash-lb-tile-color-config').each(function () {
+        var $tileCfg = $(this);
+        var idx = parseInt($tileCfg.data('prop-idx'), 10);
+        var layout = getSelectedLayout();
+        var prop = layout && layout.props && layout.props[idx] ? layout.props[idx] : null;
+        var tid = prop ? lbGetPropTargetId(prop) : '';
+        var $el = (tid && typeof getPropsPreviewWrapper === 'function')
+            ? getPropsPreviewWrapper().find(lbPropTargetSelector(tid)).first()
+            : $();
+        var element = $el.length ? $el[0] : null;
+        lbBindColorSourcesField($tileCfg, element, prop);
+    });
+    $container.off('change.lbPropThemeColor', '.mdash-layout-color-value').on('change.lbPropThemeColor', '.mdash-layout-color-value', function () {
+        var val = $(this).val();
+        var $tile = $(this).closest('.mdash-lb-prop-tile');
+        if ($tile.find('.mdash-lb-tile-color-config').length) return;
+        var idx = $tile.data('prop-idx');
+        $tile.find('.mdash-lb-prop-field[data-field="default"]').val(val).trigger('change');
+        var swatchStyle = typeof mdashLayoutColorSwatchStyle === 'function' ? mdashLayoutColorSwatchStyle(val) : ('background:' + val + ';');
+        $tile.find('.mdash-lb-prop-swatch-lg').attr('style', swatchStyle);
+    });
+    $container.off('change.lbPropIcon', '.mdash-layout-icon-value').on('change.lbPropIcon', '.mdash-layout-icon-value', function () {
+        var val = $(this).val();
+        var $tile = $(this).closest('.mdash-lb-prop-tile');
+        $tile.find('.mdash-lb-prop-field[data-field="default"]').val(val).trigger('change');
+    });
+    refreshPropsPreviewChrome();
+}
+
+function bindLayoutPropsBuilderEvents() {
+    var $root = $('#mdash-lb-props-builder');
+    if (!$root.length) return;
+
+    function persistPropsFromLayout(layout, rerender) {
+        layout.propsdefinition = JSON.stringify(layout.props || []);
+        var editors = GLayoutBuilderState.aceEditors;
+        if (editors.props) {
+            GLayoutBuilderState.syncingPropsEditor = true;
+            editors.props.setValue(layout.propsdefinition, -1);
+            setTimeout(function () { GLayoutBuilderState.syncingPropsEditor = false; }, 100);
+        }
+        if (rerender !== false) {
+            renderLayoutPropsBuilder(layout);
+        }
+        syncLayoutToServer(layout);
+    }
+
+    $('#mdash-lb-prop-add').off('click').on('click', function () {
+        lbStartQuickProp('color', 'Nova cor');
+    });
+
+    $root.off('click', '.mdash-lb-prop-quick').on('click', '.mdash-lb-prop-quick', function () {
+        lbStartQuickProp($(this).data('quick-type'), $(this).data('quick-label'));
+    });
+
+    $('#mdash-lb-prop-mode-start-empty').off('click').on('click', function () {
+        if (!GLayoutBuilderState.propModeActive) togglePropMode();
+    });
+
+    $root.off('input change', '.mdash-lb-prop-color-picker').on('input change', '.mdash-lb-prop-color-picker', function () {
+        var idx = parseInt($(this).data('prop-idx'), 10);
+        var val = $(this).val();
+        $(this).closest('.mdash-lb-prop-color-row').find('input[data-field="default"][type="text"]').val(val);
+        var layout = getSelectedLayout();
+        if (layout && layout.props[idx]) {
+            layout.props[idx]['default'] = val;
+            persistPropsFromLayout(layout, false);
+            refreshPropsPreviewChrome();
+        }
+    });
+
+
+    function persistTileColorSources($tileCfg) {
+        var layout = getSelectedLayout();
+        if (!layout || !Array.isArray(layout.props)) return;
+        var idx = parseInt($tileCfg.data('prop-idx'), 10);
+        if (!layout.props[idx] || layout.props[idx].type !== 'color') return;
+        var collected = lbCollectColorSources($tileCfg);
+        if (collected.sources.classes.enabled && !collected.sources.classes.options.length) {
+            if (typeof alertify !== 'undefined') alertify.message('Adicione pelo menos uma op\u00e7\u00e3o de estilo, ou desmarque "Estilos por classe"', 2500);
+            return;
+        }
+        layout.props[idx].sources = collected.sources;
+        layout.props[idx]['default'] = collected['default'];
+        delete layout.props[idx].includeThemeColors;
+        var scalar = lbColorDefaultScalar(layout.props[idx]);
+        var swatchStyle = typeof mdashLayoutColorSwatchStyle === 'function'
+            ? mdashLayoutColorSwatchStyle(scalar)
+            : ('background:' + scalar + ';');
+        $tileCfg.closest('.mdash-lb-prop-tile').find('.mdash-lb-prop-swatch-lg').attr('style', swatchStyle);
+        persistPropsFromLayout(layout, false);
+        refreshPropsPreviewChrome();
+    }
+
+    $root.off('change.lbTileColorSrc', '.mdash-lb-tile-color-config .mdash-lb-src-theme, .mdash-lb-tile-color-config .mdash-lb-src-classes, .mdash-lb-tile-color-config .mdash-lb-src-custom')
+        .on('change.lbTileColorSrc', '.mdash-lb-tile-color-config .mdash-lb-src-theme, .mdash-lb-tile-color-config .mdash-lb-src-classes, .mdash-lb-tile-color-config .mdash-lb-src-custom', function () {
+            persistTileColorSources($(this).closest('.mdash-lb-tile-color-config'));
+        });
+
+    $root.off('lbTileColorPersist', '.mdash-lb-tile-color-config')
+        .on('lbTileColorPersist', '.mdash-lb-tile-color-config', function () {
+            persistTileColorSources($(this));
+        });
+
+    $root.off('change.lbTileColorPersist', '.mdash-lb-tile-color-config .mdash-layout-color-value, .mdash-lb-tile-color-config .mdash-lb-opt-default, .mdash-lb-tile-color-config .mdash-lb-prop-classprefix')
+        .on('change.lbTileColorPersist', '.mdash-lb-tile-color-config .mdash-layout-color-value, .mdash-lb-tile-color-config .mdash-lb-opt-default, .mdash-lb-tile-color-config .mdash-lb-prop-classprefix', function () {
+            persistTileColorSources($(this).closest('.mdash-lb-tile-color-config'));
+        });
+
+    $root.off('input.lbTileColorPersist', '.mdash-lb-tile-color-config .mdash-lb-opt-value, .mdash-lb-tile-color-config .mdash-lb-opt-label, .mdash-lb-tile-color-config .mdash-lb-prop-classprefix')
+        .on('input.lbTileColorPersist', '.mdash-lb-tile-color-config .mdash-lb-opt-value, .mdash-lb-tile-color-config .mdash-lb-opt-label, .mdash-lb-tile-color-config .mdash-lb-prop-classprefix', function () {
+            persistTileColorSources($(this).closest('.mdash-lb-tile-color-config'));
+        });
+
+    $root.off('change', '.mdash-lb-prop-field').on('change', '.mdash-lb-prop-field', function () {
+        var layout = getSelectedLayout();
+        if (!layout || !Array.isArray(layout.props)) return;
+        var idx = parseInt($(this).data('prop-idx'), 10);
+        var field = $(this).data('field');
+        if (!layout.props[idx]) return;
+        var newVal = $(this).val();
+        // Cor guarda { src, value }: preserva a fonte ao editar o valor de exemplo.
+        if (field === 'default' && layout.props[idx].type === 'color') {
+            var isCustom = String(newVal).charAt(0) === '#' || String(newVal).indexOf('rgb') === 0;
+            layout.props[idx]['default'] = { src: isCustom ? 'custom' : 'theme', value: newVal };
+        } else {
+            layout.props[idx][field] = newVal;
+        }
+        if (field === 'type') {
+            var tid = lbGetPropTargetId(layout.props[idx]);
+            var sel = tid ? lbPropTargetSelector(tid) : '';
+            layout.props[idx].behaviors = lbInferDefaultBehaviorsForProp(layout.props[idx], sel);
+            persistPropsFromLayout(layout, true);
+            refreshPropsPreviewChrome();
+            return;
+        }
+        persistPropsFromLayout(layout, false);
+        refreshPropsPreviewChrome();
+    });
+
+    $root.off('click', '.mdash-lb-prop-remove').on('click', '.mdash-lb-prop-remove', function () {
+        var layout = getSelectedLayout();
+        if (!layout || !Array.isArray(layout.props)) return;
+        var rmIdx = parseInt($(this).data('prop-idx'), 10);
+        var removed = layout.props[rmIdx];
+        // Limpar do HTML os artefactos desta propriedade antes de a remover
+        var $wrapper = (typeof getPropsPreviewWrapper === 'function') ? getPropsPreviewWrapper() : $('.mdash-lb-preview-card-wrapper').first();
+        if (removed && $wrapper && $wrapper.length) {
+            var tid = lbGetPropTargetId(removed);
+            if (tid) lbStripPropArtifactsFromEls($wrapper.find('[' + LB_PROP_TARGET_ATTR + '="' + tid + '"]'), removed);
+        }
+        layout.props.splice(rmIdx, 1);
+        persistPropsFromLayout(layout);
+        syncPreviewToHtmlEditor({ wrapper: '#mdash-lb-props-preview-wrapper', updateSlots: false });
+        refreshPropsPreviewChrome();
+    });
+
+    $root.off('click', '.mdash-lb-prop-behavior-remove').on('click', '.mdash-lb-prop-behavior-remove', function () {
+        var layout = getSelectedLayout();
+        if (!layout || !Array.isArray(layout.props)) return;
+        var pIdx = parseInt($(this).data('prop-idx'), 10);
+        var bIdx = parseInt($(this).data('behavior-idx'), 10);
+        if (!layout.props[pIdx] || !Array.isArray(layout.props[pIdx].behaviors)) return;
+        layout.props[pIdx].behaviors.splice(bIdx, 1);
+        persistPropsFromLayout(layout);
+        refreshPropsPreviewChrome();
+    });
+
+    $('#mdash-lb-prop-mode-start').off('click').on('click', function () {
+        if (!GLayoutBuilderState.propModeActive) {
+            if (GLayoutBuilderState.slotModeActive) toggleSlotMode();
+            togglePropMode();
+        } else {
+            togglePropMode();
+        }
+    });
+
+    $root.off('click', '.mdash-lb-prop-mark-target').on('click', '.mdash-lb-prop-mark-target', function () {
+        var pIdx = parseInt($(this).data('prop-idx'), 10);
+        var bIdx = parseInt($(this).data('behavior-idx'), 10);
+        var pick = {};
+        pick.propIdx = pIdx;
+        pick.behaviorIdx = bIdx;
+        GLayoutBuilderState.propTargetPick = pick;
+        $('.mdash-lb-prop-behavior-row').removeClass('is-picking-target');
+        $(this).closest('.mdash-lb-prop-behavior-row').addClass('is-picking-target');
+        if (!GLayoutBuilderState.propModeActive) {
+            if (GLayoutBuilderState.slotModeActive) toggleSlotMode();
+            togglePropMode();
+        }
+        alertify.message('Clique no elemento colorido à direita', 2500);
+    });
+}
+
+function lbStartQuickProp(type, label) {
+    if (!GLayoutBuilderState.propModeActive) {
+        if (GLayoutBuilderState.slotModeActive) toggleSlotMode();
+        togglePropMode();
+    }
+    var pending = {};
+    pending.type = type || 'color';
+    pending.label = label || 'Nova propriedade';
+    GLayoutBuilderState.pendingQuickProp = pending;
+    alertify.message('Agora clique no elemento que quer personalizar', 3000);
+}
+
+// ============================================================================
+// LAYOUT BUILDER - PROP MODE (marcação visual data-mdash-prop-target)
+// ============================================================================
+
+function getPropsPreviewWrapper() {
+    return $('#mdash-lb-props-preview-wrapper');
+}
+
+function togglePropMode() {
+    GLayoutBuilderState.propModeActive = !GLayoutBuilderState.propModeActive;
+    var active = GLayoutBuilderState.propModeActive;
+
+    var $btn = $('#mdash-lb-prop-mode-toggle');
+    var $info = $('#mdash-lb-prop-mode-info');
+    var $breadcrumb = $('#mdash-lb-prop-breadcrumb');
+    var $previewContent = $('#mdash-lb-props-preview-content');
+
+    if (active) {
+        if (GLayoutBuilderState.slotModeActive) toggleSlotMode();
+        updateLayoutPropsPreview();
+        $btn.addClass('active');
+        $info.addClass('active');
+        $previewContent.addClass('prop-mode');
+        bindPropModeEvents($previewContent);
+        refreshPropsPreviewChrome();
+        injectPropModeBadges();
+    } else {
+        $btn.removeClass('active');
+        $info.removeClass('active');
+        $breadcrumb.removeClass('active').empty();
+        $previewContent.removeClass('prop-mode');
+        unbindPropModeEvents($previewContent);
+        hidePropPopover();
+        removePropModeBadges();
+        GLayoutBuilderState.propTargetPick = null;
+        $('.mdash-lb-prop-behavior-row').removeClass('is-picking-target');
+        getPropsPreviewWrapper().find('.mdash-lb-prop-selected').removeClass('mdash-lb-prop-selected');
+    }
+}
+
+function bindPropModeEvents($previewContent) {
+    var $wrapper = getPropsPreviewWrapper();
+
+    $wrapper.off('click.propmode').on('click.propmode', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var target = e.target;
+        if ($(target).hasClass('mdash-lb-prop-badge')) {
+            target = target.parentElement;
+        }
+        if (!target || $(target).hasClass('mdash-lb-preview-card-wrapper')) return;
+        if ($(target).closest('.mdash-lb-empty-state').length) return;
+        if ($(target).is('[data-mdash-scope]')) return;
+
+        $wrapper.find('.mdash-lb-prop-selected').removeClass('mdash-lb-prop-selected');
+        $(target).addClass('mdash-lb-prop-selected');
+        GLayoutBuilderState.propModeSelectedElement = target;
+
+        updatePropBreadcrumb(target, $wrapper[0]);
+
+        if (GLayoutBuilderState.propTargetPick) {
+            applyPropTargetPick(target);
+            return;
+        }
+
+        showPropPopover(target, GLayoutBuilderState.pendingQuickProp);
+        GLayoutBuilderState.pendingQuickProp = null;
+    });
+
+    $wrapper.off('mouseover.propmode').on('mouseover.propmode', function (e) {
+        e.stopPropagation();
+        showPropHoverLabelFor(e.target);
+    });
+    $wrapper.off('mouseleave.propmode').on('mouseleave.propmode', function () {
+        hidePropHoverLabel();
+    });
+}
+
+function unbindPropModeEvents($previewContent) {
+    getPropsPreviewWrapper().off('click.propmode mouseover.propmode mouseleave.propmode');
+    destroyPropHoverLabel();
+    GLayoutBuilderState.propModeSelectedElement = null;
+}
+
+function updatePropBreadcrumb(element, container) {
+    var $breadcrumb = $('#mdash-lb-prop-breadcrumb');
+    var path = [];
+    var el = element;
+
+    while (el && el !== container) {
+        var tag = el.tagName.toLowerCase();
+        var cls = (el.className || '').replace(/mdash-lb-prop-selected/g, '').trim();
+        var label = tag;
+        if (cls) {
+            var firstClass = cls.split(/\s+/)[0];
+            if (firstClass) label += '.' + firstClass;
+        }
+        var isProp = el.hasAttribute(LB_PROP_TARGET_ATTR);
+        path.unshift({ label: label, element: el, isProp: isProp });
+        el = el.parentElement;
+    }
+
+    var html = '';
+    path.forEach(function (item, idx) {
+        if (idx > 0) html += '<span class="sep">\u203A</span>';
+        var propClass = item.isProp ? ' class="is-prop"' : '';
+        var propBadge = item.isProp ? ' \u25CF' : '';
+        html += '<span data-bc-idx="' + idx + '"' + propClass + '>' + item.label + propBadge + '</span>';
+    });
+
+    $breadcrumb.html(html).addClass('active');
+
+    $breadcrumb.find('span[data-bc-idx]').off('click').on('click', function () {
+        var idx = parseInt($(this).data('bc-idx'), 10);
+        if (path[idx] && path[idx].element) {
+            var $wrapper = $(container);
+            $wrapper.find('.mdash-lb-prop-selected').removeClass('mdash-lb-prop-selected');
+            $(path[idx].element).addClass('mdash-lb-prop-selected');
+            GLayoutBuilderState.propModeSelectedElement = path[idx].element;
+            updatePropBreadcrumb(path[idx].element, container);
+            if (!GLayoutBuilderState.propTargetPick) showPropPopover(path[idx].element);
+        }
+    });
+}
+
+function inferPropTypeFromElement(element) {
+    if (!element) return 'text';
+    var tag = element.tagName ? element.tagName.toLowerCase() : '';
+    var cls = (element.className || '').toString();
+    if (cls.indexOf('material-icons') >= 0 || cls.indexOf('material-symbols') >= 0 || tag === 'i') return 'icon';
+    if ($(element).find('.material-icons, [class*="material-symbols"], i.fa, i.glyphicon').length) return 'icon';
+    if (tag === 'input' && element.type === 'color') return 'color';
+    if (tag === 'input' && element.type === 'number') return 'number';
+    if ((element.style && element.style.color) || (element.style && element.style.backgroundColor)) return 'color';
+    return 'text';
+}
+
+/** Devolve o glifo/nome do ícone atual de um elemento (ou do seu filho de ícone). */
+function lbGetElementIconValue(element) {
+    if (!element) return '';
+    var $el = $(element);
+    var sel = 'i, .material-icons, [class*="material-symbols"], [class*="glyphicon"], .fa, [class*="fa-"]';
+    var $icon = $el.is(sel) ? $el : $el.find(sel).first();
+    if (!$icon.length) $icon = $el;
+    var cls = $icon.attr('class') || '';
+    var ownText = $icon.length ? $.trim(getOwnTextContent($icon[0])) : '';
+    if (/material-symbols|material-icons/.test(cls)) {
+        return ownText;
+    }
+    // token completo (coerente com o picker): 'glyphicon glyphicon-x' / 'fa fa-x'
+    var m = cls.match(/glyphicon-[\w-]+/);
+    if (m) return 'glyphicon ' + m[0];
+    m = cls.match(/fa-[\w-]+/);
+    if (m) {
+        var baseM = cls.match(/(^|\s)(fa[srlbd]?)(\s|$)/);
+        var base = baseM ? baseM[2] : 'fa';
+        return base + ' ' + m[0];
+    }
+    return ownText;
+}
+
+/** Deteta a classe de fonte de ícone usada pelo elemento (varia por layout). */
+function lbGetElementIconClass(element) {
+    if (!element) return 'material-symbols-rounded';
+    var $el = $(element);
+    var sel = 'i, .material-icons, [class*="material-symbols"], .fa, .glyphicon';
+    var $icon = $el.is(sel) ? $el : $el.find(sel).first();
+    if (!$icon.length) $icon = $el;
+    var cls = $icon.attr('class') || '';
+    var m = cls.match(/material-symbols-(rounded|outlined|sharp)/);
+    if (m) return m[0];
+    if (/material-symbols/.test(cls)) return 'material-symbols-outlined';
+    if (/material-icons/.test(cls)) return 'material-icons';
+    return 'material-symbols-rounded';
+}
+
+/** Valor de exemplo por defeito, sensível ao elemento (para ícones usa o glifo atual). */
+function lbDefaultExampleForType(type, element) {
+    if (type === 'icon') {
+        var glyph = lbGetElementIconValue(element);
+        if (glyph) return glyph;
+    }
+    return lbDefaultValueForPropType(type);
+}
+
+function lbInferDefaultBehaviorsForProp(propDef, target, element) {
+    var type = (propDef && propDef.type) || 'text';
+    var propId = (propDef && propDef.id) || 'value';
+    var targetId = (propDef && propDef.targetId) || propId;
+    target = target || lbPropTargetSelector(targetId);
+    if (type === 'color') {
+        var bColor = {};
+        bColor.kind = 'setCssProperty';
+        bColor.target = target;
+        bColor.property = lbInferColorCssProperty(element);
+        return [bColor];
+    }
+    if (type === 'icon') {
+        var bIcon = {};
+        bIcon.kind = 'setIcon';
+        bIcon.target = target;
+        bIcon.iconLibrary = 'material';
+        return [bIcon];
+    }
+    if (type === 'select') {
+        var bSelect = {};
+        bSelect.kind = 'toggleClass';
+        bSelect.target = target;
+        bSelect.classPrefix = 'm-variant--';
+        return [bSelect];
+    }
+    var bText = {};
+    bText.kind = 'setText';
+    bText.target = target;
+    return [bText];
+}
+
+function lbDefaultValueForPropType(type) {
+    var registry = typeof getMdashLayoutPropTypeRegistry === 'function' ? getMdashLayoutPropTypeRegistry() : {};
+    var meta = registry[type] || registry['text'] || {};
+    return meta.defaultValue != null ? meta.defaultValue : '';
+}
+
+function suggestPropName(element) {
+    return suggestSlotName(element);
+}
+
+function showPropPopover(element, quickPreset, editPropId) {
+    hidePropPopover();
+    hidePropHoverLabel();
+    if (!quickPreset && GLayoutBuilderState.pendingQuickProp) {
+        quickPreset = GLayoutBuilderState.pendingQuickProp;
+        GLayoutBuilderState.pendingQuickProp = null;
+    }
+    quickPreset = quickPreset || null;
+    var layout = getSelectedLayout();
+    var targetId = lbResolvePropTargetId(element, layout, false);
+    var existingProps = lbGetPropsForTarget(layout, targetId);
+    var editingProp = null;
+    if (editPropId && layout && Array.isArray(layout.props)) {
+        editingProp = layout.props.find(function (p) { return p && p.id === editPropId; }) || null;
+    }
+
+    var inferredType = (quickPreset && quickPreset.type) || (editingProp && editingProp.type) || inferPropTypeFromElement(element);
+    var suggestedLabel = (quickPreset && quickPreset.label) || (editingProp && editingProp.label) || 'Nova propriedade';
+    var defaultColor = (editingProp && editingProp.default) || lbDefaultValueForPropType('color');
+    var includeThemeColors = editingProp ? (editingProp.includeThemeColors !== false) : true;
+    var isAdding = !!(quickPreset || editingProp || !existingProps.length);
+
+    var tag = element.tagName.toLowerCase();
+    var cls = (element.className || '').replace(/mdash-lb-prop-selected/g, '').trim();
+    var elementInfo = tag + (cls ? (' · ' + cls.split(/\s+/)[0]) : '');
+    var typeRegistry = typeof getMdashLayoutPropTypeRegistry === 'function' ? getMdashLayoutPropTypeRegistry() : {};
+    var effectHint = inferredType === 'color'
+        ? ('Vai alterar: ' + (lbInferColorCssProperty(element) === 'color' ? 'cor do texto/ícone' : 'cor de fundo'))
+        : (inferredType === 'icon' ? 'Vai alterar o ícone deste elemento' : 'Vai alterar o conteúdo visual deste elemento');
+
+    var html = '<div class="mdash-lb-prop-popover" id="mdash-lb-prop-popover">';
+    html += '  <h6><i class="glyphicon glyphicon-adjust"></i> Propriedades do elemento</h6>';
+    html += '  <div class="mdash-lb-prop-popover-body">';
+    html += '  <p class="mdash-lb-prop-help">Elemento: <b>' + elementInfo + '</b></p>';
+    html += '  <p class="mdash-lb-prop-help" style="font-size:10px;color:#64748b;">Alvo: <code>' + targetId + '</code> — pode ter várias propriedades</p>';
+
+    if (existingProps.length && !isAdding) {
+        html += '  <ul class="mdash-lb-prop-popover-list">';
+        existingProps.forEach(function (p) {
+            var meta = lbGetPropTypeMeta(p.type || 'text');
+            html += '<li><div><span class="prop-name">' + (p.label || p.id) + '</span> <span class="prop-type">(' + meta.label + ')</span></div>';
+            html += '<button type="button" class="btn btn-xs btn-default mdash-lb-prop-edit-existing" data-prop-id="' + p.id + '"><i class="glyphicon glyphicon-pencil"></i></button>';
+            html += '<button type="button" class="btn btn-xs btn-danger mdash-lb-prop-remove-existing" data-prop-id="' + p.id + '"><i class="glyphicon glyphicon-trash"></i></button></li>';
+        });
+        html += '  </ul>';
+        html += '  <div class="mdash-lb-prop-popover-add">';
+        html += '    <button type="button" class="btn btn-default btn-xs mdash-lb-prop-add-on-target" data-quick-type="color" data-quick-label="Cor"><i class="glyphicon glyphicon-tint"></i> + Cor</button>';
+        html += '    <button type="button" class="btn btn-default btn-xs mdash-lb-prop-add-on-target" data-quick-type="icon" data-quick-label="Ícone"><i class="glyphicon glyphicon-star"></i> + Ícone</button>';
+        html += '    <button type="button" class="btn btn-default btn-xs mdash-lb-prop-add-on-target" data-quick-type="text" data-quick-label="Texto"><i class="glyphicon glyphicon-font"></i> + Texto</button>';
+        html += '    <button type="button" class="btn btn-default btn-xs mdash-lb-prop-add-on-target" data-quick-type="select" data-quick-label="Variante"><i class="glyphicon glyphicon-list"></i> + Variante</button>';
+        html += '  </div>';
+    }
+
+    if (isAdding || !existingProps.length) {
+        html += '  <div class="mdash-lb-prop-effect-preview"><i class="glyphicon glyphicon-eye-open"></i> ' + effectHint + '</div>';
+        html += '  <div class="form-group"><label>Nome (o que o utilizador vê no editor)</label><input type="text" id="mdash-lb-prop-label-input" value="' + suggestedLabel + '" placeholder="ex: Cor de fundo" /></div>';
+        html += '  <div class="form-group"><label>Tipo</label><select id="mdash-lb-prop-type-input">';
+        Object.keys(typeRegistry).forEach(function (typeKey) {
+            html += '<option value="' + typeKey + '"' + (inferredType === typeKey ? ' selected' : '') + '>' + typeRegistry[typeKey].label + '</option>';
+        });
+        html += '  </select></div>';
+        html += '  <div class="form-group" id="mdash-lb-prop-default-wrap">';
+        if (inferredType !== 'select' && inferredType !== 'color') html += '    <label>Valor de exemplo (pré-visualização)</label>';
+        if (inferredType === 'color') {
+            html += lbBuildColorSourcesConfigHtml(editingProp, element);
+        } else if (inferredType === 'icon') {
+            var iconDef = (editingProp && editingProp.default != null) ? editingProp.default : lbDefaultExampleForType('icon', element);
+            var iconCls = (editingProp && editingProp.iconClass) || lbGetElementIconClass(element);
+            html += lbBuildIconDefaultFieldHtml(iconDef, 'mdash-lb-prop-default-input', iconCls);
+        } else if (inferredType === 'select') {
+            html += lbBuildSelectOptionsFieldHtml(editingProp, element);
+        } else {
+            var defExample = (editingProp && editingProp.default != null) ? editingProp.default : lbDefaultExampleForType(inferredType, element);
+            html += '    <input type="text" id="mdash-lb-prop-default-input" value="' + defExample + '" />';
+        }
+        html += '  </div>';
+        html += '  <input type="hidden" id="mdash-lb-prop-id-input" value="' + (editingProp && editingProp.id ? editingProp.id : '') + '" />';
+        html += '  <input type="hidden" id="mdash-lb-prop-target-id" value="' + targetId + '" />';
+        html += '  </div>'; // /body
+        html += '  <div class="mdash-lb-prop-popover-actions">';
+        html += '    <button type="button" class="btn btn-sm" id="mdash-lb-prop-apply" style="background:#7c3aed;color:#fff;flex:1;"><i class="glyphicon glyphicon-ok"></i> ' + (editingProp ? 'Guardar' : 'Adicionar') + '</button>';
+        html += '    <button type="button" class="btn btn-sm" id="mdash-lb-prop-cancel" style="background:#f3f6fb;color:#1f2937;border:1px solid rgba(15,23,42,0.08);"><i class="glyphicon glyphicon-remove"></i></button>';
+        html += '  </div>';
+    } else {
+        html += '  </div>'; // /body
+        html += '  <div class="mdash-lb-prop-popover-actions">';
+        html += '    <button type="button" class="btn btn-sm" id="mdash-lb-prop-cancel" style="background:#f3f6fb;color:#1f2937;border:1px solid rgba(15,23,42,0.08);flex:1;"><i class="glyphicon glyphicon-remove"></i> Fechar</button>';
+        html += '  </div>';
+    }
+    html += '</div>';
+
+    var rect = element.getBoundingClientRect();
+    var $popover = $(html);
+    $('body').append($popover);
+
+    var popoverWidth = 300;
+    var left = rect.right + 10;
+    var top = rect.top;
+    if (left + popoverWidth > window.innerWidth) left = rect.left - popoverWidth - 10;
+    if (left < 8) left = 8;
+
+    // Estrutura: cabeçalho + corpo com scroll + rodapé de botões fixo.
+    // Estilos inline garantem o comportamento mesmo com o CSS compilado em cache.
+    $popover.css({
+        position: 'fixed',
+        left: left + 'px',
+        top: top + 'px',
+        zIndex: 10020,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+    });
+    $popover.find('.mdash-lb-prop-popover-body').css({
+        flex: '1 1 auto',
+        minHeight: '0',
+        overflowY: 'auto',
+        overflowX: 'hidden'
+    });
+    $popover.find('.mdash-lb-prop-popover-actions').css({ flexShrink: '0' });
+
+    // Posicionamento robusto: medir a posição REAL no ecrã (getBoundingClientRect
+    // dá coordenadas do viewport mesmo dentro de contentores com transform) e
+    // ajustar por delta. Assim o rodapé de botões fica sempre visível.
+    var margin = 10;
+    var vpH = (window.visualViewport && window.visualViewport.height)
+        ? window.visualViewport.height
+        : (document.documentElement.clientHeight || window.innerHeight);
+
+    var rct = $popover[0].getBoundingClientRect();
+    // Se transborda em baixo, sobe; se depois passa o topo, encosta ao topo.
+    if (rct.bottom > vpH - margin) {
+        var delta = rct.bottom - (vpH - margin);
+        var newTopReal = rct.top - delta;
+        if (newTopReal < margin) delta = rct.top - margin; // não passar do topo
+        $popover.css('top', (top - delta) + 'px');
+    }
+
+    // Limitar a altura ao espaço real disponível abaixo do topo do popover.
+    var rct2 = $popover[0].getBoundingClientRect();
+    var avail = vpH - rct2.top - margin;
+    $popover.css('maxHeight', Math.max(180, avail) + 'px');
+
+    setTimeout(function () { $('#mdash-lb-prop-label-input').focus().select(); }, 50);
+
+    $('#mdash-lb-prop-type-input').off('change').on('change', function () {
+        var t = $(this).val();
+        var $wrap = $('#mdash-lb-prop-default-wrap');
+        if (t === 'color') {
+            $wrap.html(lbBuildColorSourcesConfigHtml(null, element));
+            lbBindColorSourcesField($popover, element);
+        } else if (t === 'icon') {
+            $wrap.html('<label>Escolha o ícone</label>' + lbBuildIconDefaultFieldHtml(lbDefaultExampleForType('icon', element), 'mdash-lb-prop-default-input', lbGetElementIconClass(element)));
+            lbBindIconDefaultField($popover);
+        } else if (t === 'select') {
+            $wrap.html(lbBuildSelectOptionsFieldHtml(null, element));
+            lbBindSelectOptionsField($popover);
+        } else {
+            $wrap.html('<label>Valor de exemplo (pré-visualização)</label><input type="text" id="mdash-lb-prop-default-input" value="' + lbDefaultExampleForType(t, element) + '" />');
+        }
+    });
+
+    // Alternar a fonte "tema" re-renderiza o color picker (mostra/esconde swatches do tema).
+    // Tratado em lbBindColorSourcesField (popover e tiles).
+
+    if (inferredType === 'color') {
+        lbBindColorSourcesField($popover, element, editingProp);
+    }
+    lbBindColorDefaultField($popover);
+    lbBindIconDefaultField($popover);
+    lbBindSelectOptionsField($popover);
+
+    bindPropPopoverEvents(element);
+}
+
+function hidePropPopover() {
+    $('#mdash-lb-prop-popover').remove();
+}
+
+function bindPropPopoverEvents(element) {
+    var $pop = $('#mdash-lb-prop-popover');
+    $pop.off('click.propAdd').on('click.propAdd', '.mdash-lb-prop-add-on-target', function () {
+        showPropPopover(element, {
+            type: $(this).data('quick-type'),
+            label: $(this).data('quick-label')
+        });
+    });
+
+    $pop.off('click.propEdit').on('click.propEdit', '.mdash-lb-prop-edit-existing', function () {
+        showPropPopover(element, null, $(this).data('prop-id'));
+    });
+
+    $pop.off('click.propRemove').on('click.propRemove', '.mdash-lb-prop-remove-existing', function () {
+        var propId = $(this).data('prop-id');
+        var layout = getSelectedLayout();
+        if (layout && Array.isArray(layout.props) && propId) {
+            var removed = layout.props.find(function (p) { return p && p.id === propId; });
+            // Limpar do HTML os artefactos desta propriedade (classes de variante, estilos)
+            var $wrapper = getPropsPreviewWrapper();
+            if (removed && $wrapper && $wrapper.length) {
+                var tid = lbGetPropTargetId(removed);
+                if (tid) lbStripPropArtifactsFromEls($wrapper.find('[' + LB_PROP_TARGET_ATTR + '="' + tid + '"]'), removed);
+            }
+            layout.props = layout.props.filter(function (p) { return !p || p.id !== propId; });
+            persistPropsFromLayoutQuick(layout);
+        }
+        syncPreviewToHtmlEditor({ wrapper: '#mdash-lb-props-preview-wrapper', updateSlots: false });
+        refreshPropsPreviewChrome();
+        showPropPopover(element);
+        alertify.success('Propriedade removida', 2000);
+    });
+
+    $('#mdash-lb-prop-apply').off('click').on('click', function () {
+        var propLabel = $.trim($('#mdash-lb-prop-label-input').val());
+        var propType = $('#mdash-lb-prop-type-input').val() || 'text';
+        var $defaultInput = $('#mdash-lb-prop-default-input');
+        var propDefault = $defaultInput.length ? $.trim($defaultInput.val()) : '';
+        if (!propLabel) {
+            alertify.error('Introduza um nome para a propriedade', 2000);
+            return;
+        }
+
+        var layout = getSelectedLayout();
+        var targetId = $('#mdash-lb-prop-target-id').val() || lbResolvePropTargetId(element, layout, false);
+        element.setAttribute(LB_PROP_TARGET_ATTR, targetId);
+        var propId = $.trim($('#mdash-lb-prop-id-input').val()) || lbSlugifyPropId(propLabel, layout);
+        var target = lbPropTargetSelector(targetId);
+
+        var selData = null;
+        var colorSrc = null;
+        if (propType === 'select') {
+            selData = lbCollectSelectOptions($pop);
+            if (!selData.options.length) {
+                alertify.error('Adicione pelo menos uma opção', 2000);
+                return;
+            }
+            propDefault = selData['default'] || propDefault;
+        } else if (propType === 'color') {
+            colorSrc = lbCollectColorSources($pop);
+            if (colorSrc.sources.classes.enabled && !colorSrc.sources.classes.options.length) {
+                alertify.error('Adicione pelo menos uma opção de estilo, ou desmarque "Estilos por classe"', 2500);
+                return;
+            }
+        }
+
+        if (layout) {
+            if (!Array.isArray(layout.props)) layout.props = [];
+            var propDef = layout.props.find(function (p) { return p && p.id === propId; });
+            var isNew = !propDef;
+            if (isNew) {
+                propDef = {};
+                propDef.id = propId;
+                propDef.targetId = targetId;
+                propDef.behaviors = lbInferDefaultBehaviorsForProp(lbMakePropStub(propId, propType), target, element);
+                layout.props.push(propDef);
+            }
+            propDef.label = propLabel;
+            propDef.type = propType;
+            propDef.targetId = targetId;
+
+            if (propType === 'color' && colorSrc) {
+                propDef.sources = colorSrc.sources;
+                propDef['default'] = colorSrc['default'];
+                delete propDef.includeThemeColors;
+            } else {
+                propDef['default'] = propDefault || lbDefaultValueForPropType(propType);
+                if (propType !== 'color') delete propDef.includeThemeColors;
+                if (propType !== 'color') delete propDef.sources;
+            }
+
+            if (propType === 'icon') propDef.iconClass = lbGetElementIconClass(element);
+            else delete propDef.iconClass;
+
+            if (propType === 'select') {
+                propDef.options = selData.options;
+                propDef.classPrefix = selData.classPrefix;
+                var bSel = {};
+                bSel.kind = 'toggleClass';
+                bSel.target = target;
+                bSel.classPrefix = selData.classPrefix;
+                propDef.behaviors = [bSel];
+            } else {
+                delete propDef.options;
+                delete propDef.classPrefix;
+            }
+
+            if (!isNew) lbSetPropTarget(propDef, targetId, element);
+            persistPropsFromLayoutQuick(layout);
+        }
+
+        hidePropPopover();
+        syncPreviewToHtmlEditor({ wrapper: '#mdash-lb-props-preview-wrapper', updateSlots: false });
+        refreshPropsPreviewChrome();
+
+        var $wrapper = getPropsPreviewWrapper();
+        if ($wrapper.length) updatePropBreadcrumb(element, $wrapper[0]);
+        alertify.success("'" + propLabel + "' aplicada na pré-visualização", 2500);
+    });
+
+    $('#mdash-lb-prop-cancel').off('click').on('click', function () {
+        hidePropPopover();
+    });
+
+    $('#mdash-lb-prop-label-input').off('keydown').on('keydown', function (e) {
+        if (e.keyCode === 13) { e.preventDefault(); $('#mdash-lb-prop-apply').click(); }
+        if (e.keyCode === 27) { e.preventDefault(); e.stopPropagation(); hidePropPopover(); }
+    });
+}
+
+function applyPropTargetPick(element) {
+    var pick = GLayoutBuilderState.propTargetPick;
+    if (!pick) return;
+    var layout = getSelectedLayout();
+    if (!layout || !Array.isArray(layout.props) || !layout.props[pick.propIdx]) return;
+
+    var propDef = layout.props[pick.propIdx];
+    if (!Array.isArray(propDef.behaviors)) propDef.behaviors = [];
+    if (!propDef.behaviors[pick.behaviorIdx]) {
+        var newBehavior = {};
+        newBehavior.kind = 'setCssProperty';
+        newBehavior.target = '';
+        newBehavior.property = 'color';
+        propDef.behaviors[pick.behaviorIdx] = newBehavior;
+    }
+
+    var propId = propDef.id || suggestPropName(element);
+    if (!propDef.id) propDef.id = propId;
+    var targetId = lbEnsurePropTargetOnElement(element, layout);
+
+    var target = lbPropTargetSelector(targetId);
+    propDef.targetId = targetId;
+    propDef.behaviors[pick.behaviorIdx].target = target;
+    if (propDef.behaviors[pick.behaviorIdx].kind === 'setCssProperty' && !propDef.behaviors[pick.behaviorIdx].property) {
+        propDef.behaviors[pick.behaviorIdx].property = lbInferColorCssProperty(element);
+    }
+
+    GLayoutBuilderState.propTargetPick = null;
+    $('.mdash-lb-prop-behavior-row').removeClass('is-picking-target');
+    hidePropPopover();
+    persistPropsFromLayoutQuick(layout);
+    syncPreviewToHtmlEditor({ wrapper: '#mdash-lb-props-preview-wrapper', updateSlots: false });
+    refreshPropsPreviewChrome();
+    alertify.success('Elemento ligado à propriedade', 2000);
+}
+
+function persistPropsFromLayoutQuick(layout) {
+    layout.propsdefinition = JSON.stringify(layout.props || []);
+    var editors = GLayoutBuilderState.aceEditors;
+    if (editors.props) {
+        GLayoutBuilderState.syncingPropsEditor = true;
+        editors.props.setValue(layout.propsdefinition, -1);
+        setTimeout(function () { GLayoutBuilderState.syncingPropsEditor = false; }, 100);
+    }
+    renderLayoutPropsBuilder(layout);
+    layout.stringifyJSONFields();
+    syncLayoutToServer(layout);
+    refreshPropsPreviewChrome();
+}
+
+function injectPropBadgesOnPreview($wrapper) {
+    if (!$wrapper || !$wrapper.length) return;
+    $wrapper.find('.mdash-lb-prop-badge').remove();
+}
+
+/** Devolve o card-wrapper interno da pré-visualização de props (onde marcamos elementos). */
+function getPropsPreviewCardWrapper() {
+    var $wrapper = getPropsPreviewWrapper();
+    if (!$wrapper.length) return $();
+    var $card = $wrapper.find('.mdash-lb-preview-card-wrapper').first();
+    return $card.length ? $card : $wrapper;
+}
+
+/**
+ * Marca apenas os elementos vazios para ficarem clicáveis (caixa tracejada),
+ * sem poluir o preview com etiquetas. A identificação faz-se via inspetor de hover.
+ */
+function injectPropModeBadges() {
+    var $card = getPropsPreviewCardWrapper();
+    if (!$card.length) return;
+
+    removePropModeBadges();
+
+    $card.find('*').each(function () {
+        var el = this;
+        if ($(el).hasClass('mdash-lb-empty-state')) return;
+        if ($(el).is('[data-mdash-scope]')) return;
+        if (el.tagName === 'BR' || el.tagName === 'HR' || el.tagName === 'IMG' || el.tagName === 'INPUT') return;
+
+        var ownText = getOwnTextContent(el).trim();
+        if (!ownText && el.children.length === 0) el.setAttribute('data-lb-badge-empty', '1');
+    });
+}
+
+/** Remove marcas e a etiqueta flutuante do modo prop. */
+function removePropModeBadges() {
+    var $card = getPropsPreviewCardWrapper();
+    if ($card.length) {
+        $card.find('.mdash-lb-prop-badge').remove();
+        $card.find('[data-lb-has-prop]').removeAttr('data-lb-has-prop');
+        $card.find('[data-lb-badge-host]').removeAttr('data-lb-badge-host');
+        $card.find('[data-lb-badge-empty]').removeAttr('data-lb-badge-empty');
+    }
+    hidePropHoverLabel();
+}
+
+/** Etiqueta flutuante única (estilo inspetor DevTools/Webflow). */
+function ensurePropHoverLabel() {
+    var el = document.getElementById('mdash-lb-prop-hover-label');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'mdash-lb-prop-hover-label';
+        el.className = 'mdash-lb-prop-hover-label';
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+function hidePropHoverLabel() {
+    var el = document.getElementById('mdash-lb-prop-hover-label');
+    if (el) el.style.display = 'none';
+}
+
+function destroyPropHoverLabel() {
+    var el = document.getElementById('mdash-lb-prop-hover-label');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+function showPropHoverLabelFor(target) {
+    if (!target || !target.getBoundingClientRect) { hidePropHoverLabel(); return; }
+    var $t = $(target);
+    if ($t.hasClass('mdash-lb-preview-card-wrapper') || $t.is('[data-mdash-scope]') ||
+        $t.closest('.mdash-lb-empty-state').length || target.tagName === 'BR' || target.tagName === 'HR') {
+        hidePropHoverLabel();
+        return;
+    }
+    var info = getElementBadgeLabel(target);
+    var tag = info.tag || target.tagName.toLowerCase();
+    var clsPart = '';
+    if (info.label && info.label.indexOf('.') >= 0) clsPart = info.label.substring(info.label.indexOf('.'));
+    var lbl = ensurePropHoverLabel();
+    lbl.innerHTML = '<span class="lbl-tag">' + tag + '</span>' + (clsPart ? '<span class="lbl-cls">' + clsPart + '</span>' : '');
+    lbl.style.display = 'block';
+    var rect = target.getBoundingClientRect();
+    var lblRect = lbl.getBoundingClientRect();
+    var left = rect.left;
+    if (left + lblRect.width > window.innerWidth - 6) left = window.innerWidth - lblRect.width - 6;
+    if (left < 4) left = 4;
+    var top = rect.top - lblRect.height - 3;
+    if (top < 4) top = rect.top + 3;
+    lbl.style.left = left + 'px';
+    lbl.style.top = top + 'px';
+}
+
+function applyPreviewPropValues($wrapper) {
+    if (!$wrapper || !$wrapper.length) return;
+    var layout = getSelectedLayout();
+    if (!layout || !Array.isArray(layout.props) || !layout.props.length) return;
+    var $scope = $wrapper.find('[data-mdash-scope]').first();
+    if (!$scope.length) $scope = $wrapper;
+
+    var mockItem = {
+        layoutprops: {},
+        initLayoutProps: function () { }
+    };
+    layout.props.forEach(function (p) {
+        if (!p || !p.id) return;
+        mockItem.layoutprops[p.id] = p.default != null ? p.default : lbDefaultValueForPropType(p.type);
+    });
+
+    var mockTemplate = {
+        props: layout.props,
+        propsdefinition: layout.propsdefinition || '[]'
+    };
+
+    if (typeof applyLayoutPropsToScope === 'function') {
+        applyLayoutPropsToScope($scope, mockTemplate, mockItem, {});
+    }
+}
+
+function lbMigrateLegacyColorProps(layout, $wrapper) {
+    if (!layout || !Array.isArray(layout.props) || !$wrapper || !$wrapper.length) return false;
+    var changed = false;
+    layout.props.forEach(function (p) {
+        if (!p || p.type !== 'color' || !Array.isArray(p.behaviors) || !p.behaviors.length) return;
+        var b = p.behaviors[0];
+        if (!b || b.kind !== 'setCssVariable') return;
+        var $el = $wrapper.find(lbPropTargetSelector(p.targetId || p.id));
+        if (!$el.length) $el = $wrapper.find('[data-mdash-prop="' + p.id + '"]');
+        if (!$el.length) return;
+        lbSetPropTarget(p, p.targetId || p.id, $el[0]);
+        changed = true;
+    });
+    if (changed) {
+        layout.propsdefinition = JSON.stringify(layout.props);
+    }
+    return changed;
+}
+
+function refreshPropsPreviewChrome() {
+    var layout = getSelectedLayout();
+    var $wrappers = $('#mdash-lb-props-preview-wrapper, #mdash-lb-main-preview-content .mdash-lb-preview-card-wrapper');
+    $wrappers.each(function () {
+        var $w = $(this);
+        if ($w.hasClass('mdash-lb-preview-css-mirror') || $w.hasClass('mdash-lb-preview-js-mirror')) return;
+        var migratedTargets = layout && lbMigrateLayoutPropTargets($w, layout);
+        if (migratedTargets) {
+            var editors = GLayoutBuilderState.aceEditors;
+            if (editors.props) {
+                GLayoutBuilderState.syncingPropsEditor = true;
+                editors.props.setValue(layout.propsdefinition, -1);
+                setTimeout(function () { GLayoutBuilderState.syncingPropsEditor = false; }, 100);
+            }
+            syncPreviewToHtmlEditor({ wrapper: $w, updateSlots: false, updateProps: false });
+        }
+        if (layout && lbMigrateLegacyColorProps(layout, $w)) {
+            var editors = GLayoutBuilderState.aceEditors;
+            if (editors.props) {
+                GLayoutBuilderState.syncingPropsEditor = true;
+                editors.props.setValue(layout.propsdefinition, -1);
+                setTimeout(function () { GLayoutBuilderState.syncingPropsEditor = false; }, 100);
+            }
+        }
+        injectPropBadgesOnPreview($w);
+        if (typeof applyMdashThemeToElement === 'function') {
+            var $scope = $w.find('[data-mdash-scope]').first();
+            if ($scope.length) applyMdashThemeToElement($scope[0]);
+        }
+        applyPreviewPropValues($w);
+    });
+    if (GLayoutBuilderState.propModeActive) injectPropModeBadges();
+}
+
+function injectPropModeHighlights() {
+    refreshPropsPreviewChrome();
+}
+
+function updatePropsFromPreview($wrapper) {
+    $wrapper = $wrapper && $wrapper.length ? $wrapper : getPropsPreviewWrapper();
+    if (!$wrapper.length) return;
+    var layout = getSelectedLayout();
+    if (!layout) return;
+    if (!Array.isArray(layout.props)) layout.props = [];
+
+    lbStripOrphanPropTargets($wrapper, layout);
+
+    layout.propsdefinition = JSON.stringify(layout.props || []);
+    var editors = GLayoutBuilderState.aceEditors;
+    if (editors.props) {
+        GLayoutBuilderState.syncingPropsEditor = true;
+        editors.props.setValue(layout.propsdefinition, -1);
+        setTimeout(function () { GLayoutBuilderState.syncingPropsEditor = false; }, 100);
     }
 }
 
@@ -573,6 +3126,12 @@ function renderLayoutProperties(layout) {
     // CDN Management
     html += renderCdnManager('JS CDNs', 'jsCdnsList', layout.jsCdnsList || []);
     html += renderCdnManager('CSS CDNs', 'cssCdnsList', layout.cssCdnsList || []);
+
+    var propCount = (layout.props || forceJSONParse(layout.propsdefinition, [])).length;
+    html += '<div class="form-group" style="margin-top:8px;">';
+    html += '  <label>Propriedades dinâmicas</label>';
+    html += '  <div class="text-muted" style="font-size:11px;">' + propCount + ' definida(s) — edite na tab <b>Props</b></div>';
+    html += '</div>';
 
     $props.html(html);
 
@@ -738,6 +3297,7 @@ function duplicateSelectedLayout() {
         csstemplate: layout.csstemplate,
         jstemplate: layout.jstemplate,
         slotsdefinition: layout.slotsdefinition,
+        propsdefinition: layout.propsdefinition,
         iconcdn: layout.iconcdn,
         jscdns: layout.jscdns,
         csscdns: layout.csscdns,
@@ -789,6 +3349,7 @@ function clearLayoutEditors() {
     if (editors.css) editors.css.setValue('', -1);
     if (editors.js) editors.js.setValue('', -1);
     if (editors.slots) editors.slots.setValue('[]', -1);
+    if (editors.props) editors.props.setValue('[]', -1);
 
     // Clear preview
     var $preview = $('.mdash-lb-preview-card-wrapper');
@@ -963,6 +3524,11 @@ function openLayoutBuilder() {
         loadLayoutsFromServer();
     }
 
+    // Load global icon libraries (aplica ao registo do picker; mantém defaults)
+    if (typeof loadIconLibrariesFromServer === 'function' && !window.__mdashIconLibsLoaded) {
+        loadIconLibrariesFromServer();
+    }
+
     var html = '';
 
     // Overlay
@@ -977,6 +3543,7 @@ function openLayoutBuilder() {
     html += '        <button type="button" class="btn btn-sm btn-runjs" id="mdash-lb-btn-run-js" title="Executar JS"><i class="glyphicon glyphicon-play"></i> Run JS</button>';
     html += '        <button type="button" class="btn btn-sm" id="mdash-lb-btn-export" title="Exportar todos os layouts" style="border-color:rgba(255,255,255,0.18);"><i class="glyphicon glyphicon-export"></i> Exportar</button>';
     html += '        <button type="button" class="btn btn-sm" id="mdash-lb-btn-import" title="Importar layouts de ficheiro JSON" style="border-color:rgba(255,255,255,0.18);"><i class="glyphicon glyphicon-import"></i> Importar</button>';
+    html += '        <button type="button" class="btn btn-sm" id="mdash-lb-btn-icons" title="Gerir bibliotecas de ícones" style="border-color:rgba(255,255,255,0.18);"><i class="glyphicon glyphicon-picture"></i> Ícones</button>';
     html += '        <input type="file" id="mdash-lb-import-file" accept=".json" style="display:none;" />';
     html += '        <button type="button" class="btn btn-sm btn-close-lb" id="mdash-lb-btn-close" title="Fechar"><i class="glyphicon glyphicon-remove"></i></button>';
     html += '      </div>';
@@ -1009,6 +3576,7 @@ function openLayoutBuilder() {
     html += '          <div class="mdash-lb-tab" data-tab="css"><i class="glyphicon glyphicon-tint"></i> CSS</div>';
     html += '          <div class="mdash-lb-tab" data-tab="js"><i class="glyphicon glyphicon-flash"></i> JavaScript</div>';
     html += '          <div class="mdash-lb-tab" data-tab="slots"><i class="glyphicon glyphicon-th"></i> Slots</div>';
+    html += '          <div class="mdash-lb-tab" data-tab="props"><i class="glyphicon glyphicon-adjust"></i> Aparência</div>';
     html += '        </div>';
 
     // ===== TAB CONTENTS =====
@@ -1041,6 +3609,7 @@ function openLayoutBuilder() {
     html += '          <div class="mdash-lb-split">';
     html += '            <div class="mdash-lb-code-panel">';
     html += '              <div class="mdash-lb-code-panel-header"><i class="glyphicon glyphicon-tint"></i> CSS Styles</div>';
+    html += '              <div class="mdash-lb-css-tokens" id="mdash-lb-css-tokens"></div>';
     html += '              <div id="mdash-lb-ace-css" class="mdash-lb-ace-editor"></div>';
     html += '            </div>';
     html += '            <div class="mdash-lb-preview-panel">';
@@ -1084,6 +3653,40 @@ function openLayoutBuilder() {
     html += '          </div>';
     html += '        </div>';
 
+    // Props tab
+    html += '        <div class="mdash-lb-tab-content" data-tab-content="props">';
+    html += '          <div class="mdash-lb-split">';
+    html += '            <div class="mdash-lb-code-panel" style="min-width:42%;">';
+    html += '              <div class="mdash-lb-code-panel-header" style="display:flex;justify-content:space-between;align-items:center;">';
+    html += '                <span><i class="glyphicon glyphicon-adjust"></i> Schema de propriedades</span>';
+    html += '                <button type="button" class="btn btn-xs btn-default" id="mdash-lb-prop-json-toggle" title="Mostrar/ocultar JSON"><i class="glyphicon glyphicon-console"></i> JSON</button>';
+    html += '              </div>';
+    html += '              <div id="mdash-lb-props-builder-host" style="flex:1;overflow:auto;padding:12px;">';
+    html += '                <div id="mdash-lb-props-builder" class="mdash-lb-props-builder"></div>';
+    html += '              </div>';
+    html += '              <div id="mdash-lb-props-json-host" style="display:none;height:220px;border-top:1px solid var(--md-border);">';
+    html += '                <div id="mdash-lb-ace-props" class="mdash-lb-ace-editor"></div>';
+    html += '              </div>';
+    html += '            </div>';
+    html += '            <div class="mdash-lb-preview-panel">';
+    html += '              <div class="mdash-lb-preview-panel-header">';
+    html += '                <span><i class="glyphicon glyphicon-eye-open" style="margin-right:4px;"></i> Pré-visualização</span>';
+    html += '                <button type="button" class="btn btn-xs mdash-lb-prop-mode-btn" id="mdash-lb-prop-mode-toggle" title="Marcar propriedades nos elementos"><i class="glyphicon glyphicon-screenshot"></i> Marcar Props</button>';
+    html += '              </div>';
+    html += '              <div class="mdash-lb-prop-mode-info" id="mdash-lb-prop-mode-info"><i class="glyphicon glyphicon-info-sign"></i> <b>Passo 1:</b> clique num elemento &nbsp;·&nbsp; <b>Passo 2:</b> adicione propriedades (cor, ícone, texto) &nbsp;·&nbsp; O mesmo elemento pode ter várias</div>';
+    html += '              <div class="mdash-lb-prop-breadcrumb" id="mdash-lb-prop-breadcrumb"></div>';
+    html += '              <div class="mdash-lb-preview-content" id="mdash-lb-props-preview-content">';
+    html += '                <div class="mdash-lb-preview-card-wrapper" id="mdash-lb-props-preview-wrapper">';
+    html += '                  <div class="mdash-lb-empty-state" style="height:200px;">';
+    html += '                    <i class="glyphicon glyphicon-th-large"></i>';
+    html += '                    <p>Pré-visualização das propriedades</p>';
+    html += '                  </div>';
+    html += '                </div>';
+    html += '              </div>';
+    html += '            </div>';
+    html += '          </div>';
+    html += '        </div>';
+
     html += '      </div>'; // editor-area
     html += '    </div>'; // body
     html += '  </div>'; // layout-builder
@@ -1109,8 +3712,12 @@ function openLayoutBuilder() {
 function closeLayoutBuilder() {
     // Cleanup slot mode
     hideSlotPopover();
+    hidePropPopover();
     GLayoutBuilderState.slotModeActive = false;
     GLayoutBuilderState.slotModeSelectedElement = null;
+    GLayoutBuilderState.propModeActive = false;
+    GLayoutBuilderState.propModeSelectedElement = null;
+    GLayoutBuilderState.propTargetPick = null;
 
     // Save current layout before closing
     saveEditorsToLayout();
@@ -1156,16 +3763,44 @@ function bindLayoutBuilderEvents() {
     $('#mdash-lb-btn-import').off('click').on('click', importLayouts);
     $('#mdash-lb-import-file').off('change').on('change', handleImportFile);
 
+    // Gestor de bibliotecas de ícones
+    $('#mdash-lb-btn-icons').off('click').on('click', lbOpenIconLibraryManager);
+
     // Slot mode toggle
     $('#mdash-lb-slot-mode-toggle').off('click').on('click', toggleSlotMode);
+
+    // Prop mode toggle (tab Props)
+    $('#mdash-lb-prop-mode-toggle').off('click').on('click', function () {
+        if (!GLayoutBuilderState.propModeActive && GLayoutBuilderState.slotModeActive) toggleSlotMode();
+        togglePropMode();
+    });
+
+    // JSON toggle na tab Props
+    $('#mdash-lb-prop-json-toggle').off('click').on('click', function () {
+        var $jsonHost = $('#mdash-lb-props-json-host');
+        var $builderHost = $('#mdash-lb-props-builder-host');
+        var showJson = $jsonHost.is(':hidden');
+        if (showJson) {
+            $jsonHost.show();
+            $builderHost.css('flex', '0 0 45%');
+            var editors = GLayoutBuilderState.aceEditors;
+            if (editors.props) setTimeout(function () { editors.props.resize(); }, 50);
+        } else {
+            $jsonHost.hide();
+            $builderHost.css('flex', '1');
+        }
+    });
 
     // Tab switching
     $('.mdash-lb-tab').off('click').on('click', function () {
         var tabId = $(this).data('tab');
 
-        // Deactivate slot mode when switching tabs
+        // Deactivate slot/prop mode when switching tabs
         if (GLayoutBuilderState.slotModeActive) {
             toggleSlotMode();
+        }
+        if (GLayoutBuilderState.propModeActive && tabId !== 'props') {
+            togglePropMode();
         }
 
         // Update tab active states
@@ -1183,6 +3818,7 @@ function bindLayoutBuilderEvents() {
             if (tabId === 'css' && editors.css) editors.css.resize();
             if (tabId === 'js' && editors.js) editors.js.resize();
             if (tabId === 'slots' && editors.slots) editors.slots.resize();
+            if (tabId === 'props' && editors.props) editors.props.resize();
         }, 50);
 
         // Mirror preview across tabs (CSS and JS tabs show same preview as HTML)
@@ -1195,13 +3831,24 @@ function bindLayoutBuilderEvents() {
         if (tabId === 'slots') {
             renderDetectedSlots();
         }
+        if (tabId === 'props') {
+            updateLayoutPropsPreview();
+            renderLayoutPropsBuilder(getSelectedLayout());
+            if (GLayoutBuilderState.propModeActive) {
+                bindPropModeEvents($('#mdash-lb-props-preview-content'));
+            }
+        }
     });
 
-    // ESC: popover → slot mode → fechar builder
+    // ESC: popover → prop mode → slot mode → fechar builder
     $(document).on('keydown.layoutBuilder', function (e) {
         if (e.keyCode === 27) {
             if ($('#mdash-lb-slot-popover').length) {
                 hideSlotPopover();
+            } else if ($('#mdash-lb-prop-popover').length) {
+                hidePropPopover();
+            } else if (GLayoutBuilderState.propModeActive) {
+                togglePropMode();
             } else if (GLayoutBuilderState.slotModeActive) {
                 toggleSlotMode();
             } else if (GLayoutBuilderState.isOpen) {
@@ -1221,6 +3868,9 @@ function bindLayoutBuilderEvents() {
  * pré-visualização para o marcar como slot (data-mdash-slot).
  */
 function toggleSlotMode() {
+    if (!GLayoutBuilderState.slotModeActive && GLayoutBuilderState.propModeActive) {
+        togglePropMode();
+    }
     GLayoutBuilderState.slotModeActive = !GLayoutBuilderState.slotModeActive;
     var active = GLayoutBuilderState.slotModeActive;
 
@@ -1666,33 +4316,44 @@ function suggestSlotName(element) {
  * Sincroniza as alterações feitas na pré-visualização (slot mode)
  * de volta para o editor HTML ACE + editor de Slots JSON.
  */
-function syncPreviewToHtmlEditor() {
-    var $wrapper = $('.mdash-lb-preview-card-wrapper').first();
+function syncPreviewToHtmlEditor(options) {
+    options = options || {};
+    var $wrapper = options.wrapper ? $(options.wrapper).first() : $('.mdash-lb-preview-card-wrapper').not('#mdash-lb-props-preview-wrapper').first();
+    if (!$wrapper.length) $wrapper = $('.mdash-lb-preview-card-wrapper').first();
     if (!$wrapper.length) return;
 
-    // Clonar para limpar artefactos do slot mode
+    // Clonar para limpar artefactos do slot/prop mode
     var $clone = $wrapper.clone();
-    $clone.find('.mdash-lb-slot-selected').removeClass('mdash-lb-slot-selected');
-    $clone.find('.mdash-lb-slot-badge').remove();
+    $clone.find('.mdash-lb-slot-selected, .mdash-lb-prop-selected').removeClass('mdash-lb-slot-selected mdash-lb-prop-selected');
+    $clone.find('.mdash-lb-slot-badge, .mdash-lb-prop-badge').remove();
     $clone.find('[data-lb-badge-host]').removeAttr('data-lb-badge-host');
     $clone.find('[data-lb-badge-empty]').removeAttr('data-lb-badge-empty');
+    $clone.find('[data-lb-has-prop]').removeAttr('data-lb-has-prop');
+
+    // Limpar TODOS os artefactos de runtime (scopes, variáveis de tema, marcadores
+    // órfãos, classes/estilos aplicados pelas props) para o template ficar neutro.
+    lbCleanPreviewClone($clone, getSelectedLayout());
+
     $clone.find('[class=""]').removeAttr('class');
 
     var newHtml = beautifyHtml($clone.html());
 
-    // Evitar loop: editor change → preview update → ...
     GLayoutBuilderState.syncingFromSlotMode = true;
+    GLayoutBuilderState.syncingFromPropMode = true;
 
     var editors = GLayoutBuilderState.aceEditors;
     if (editors.html) {
         editors.html.setValue(newHtml, -1);
     }
 
-    // Sincronizar slots detectados para o editor de Slots JSON
-    updateSlotsFromPreview();
+    if (options.updateSlots !== false) updateSlotsFromPreview($wrapper);
+    if (options.updateProps !== false) updatePropsFromPreview($wrapper);
 
     setTimeout(function () {
         GLayoutBuilderState.syncingFromSlotMode = false;
+        GLayoutBuilderState.syncingFromPropMode = false;
+        updateLayoutPreview();
+        renderLayoutPropsBuilder(getSelectedLayout());
     }, 600);
 }
 
@@ -1728,8 +4389,9 @@ function beautifyHtml(html) {
 /**
  * Actualiza o editor de Slots JSON com base nos slots presentes na pré-visualização.
  */
-function updateSlotsFromPreview() {
-    var $wrapper = $('.mdash-lb-preview-card-wrapper').first();
+function updateSlotsFromPreview($wrapper) {
+    $wrapper = $wrapper && $wrapper.length ? $wrapper : $('.mdash-lb-preview-card-wrapper').not('#mdash-lb-props-preview-wrapper').first();
+    if (!$wrapper.length) $wrapper = $('.mdash-lb-preview-card-wrapper').first();
     if (!$wrapper.length) return;
 
     var slots = [];
@@ -1740,9 +4402,10 @@ function updateSlotsFromPreview() {
         // o conteúdo — senão o defaultContent fica poluído com HTML do editor
         // (mdash-lb-slot-badge, data-lb-badge-host…) e quebra o layout no render.
         var $clone = $(this).clone();
-        $clone.find('.mdash-lb-slot-badge').remove();
+        $clone.find('.mdash-lb-slot-badge, .mdash-lb-prop-badge').remove();
         $clone.find('[data-lb-badge-host]').removeAttr('data-lb-badge-host');
         $clone.find('[data-lb-badge-empty]').removeAttr('data-lb-badge-empty');
+        $clone.find('[data-lb-has-prop]').removeAttr('data-lb-has-prop');
         $clone.find('.mdash-lb-slot-selected').removeClass('mdash-lb-slot-selected');
         var defaultContent = $clone.html();
 

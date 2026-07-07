@@ -412,11 +412,7 @@ function mdashInitFontesFromCache(fontes) {
     if (!Array.isArray(fontes) || fontes.length === 0) return;
     var loaded = 0;
     fontes.forEach(function (fonte) {
-        var rows = mdashExtractRowsFromCache(fonte.lastResultscached);
-        if (rows.length > 0) {
-            mdashLoadFonteIntoDb(fonte, rows);
-            loaded++;
-        }
+        if (mdashEnsureFonteInDb(fonte)) loaded++;
     });
     console.log('[MDash] Cache in-memory: ' + loaded + '/' + fontes.length + ' fontes carregadas.');
 }
@@ -439,6 +435,225 @@ function mdashExtractRowsFromCache(raw) {
     } catch (e) {
         return [];
     }
+}
+
+// ── Schema resolver (genérico: directquery, javascript, api, stored) ─────────
+
+function mdashNormalizeSchemaCol(col) {
+    if (!col) return null;
+    if (typeof col === 'string') return { field: col, type: 'TEXT', label: col };
+    var field = col.field || col.name || col.column || String(col);
+    if (!field) return null;
+    return {
+        field: field,
+        type: col.type || 'TEXT',
+        label: col.label || field
+    };
+}
+
+function mdashSchemaTypeToSql(type) {
+    if (!type) return 'TEXT';
+    var t = String(type).toUpperCase();
+    if (t === 'INTEGER' || t === 'INT' || t === 'BOOLEAN' || t === 'BOOL') return 'INTEGER';
+    if (t === 'REAL' || t === 'FLOAT' || t === 'DOUBLE' || t === 'NUMBER' || t === 'NUMERIC' || t === 'DECIMAL') return 'REAL';
+    if (t === 'DATE' || t === 'DATETIME' || t === 'TIMESTAMP') return 'TEXT';
+    return 'TEXT';
+}
+
+function mdashParseFonteSchemaJson(fonte) {
+    if (!fonte) return [];
+    var raw = fonte.schemajson;
+    if ((!raw || raw === '[]') && Array.isArray(fonte.schema) && fonte.schema.length) {
+        return fonte.schema.map(mdashNormalizeSchemaCol).filter(Boolean);
+    }
+    if (!raw || raw === '[]') return [];
+    try {
+        var sc = JSON.parse(raw);
+        if (!Array.isArray(sc) || !sc.length) return [];
+        return sc.map(mdashNormalizeSchemaCol).filter(Boolean);
+    } catch (e) {
+        return [];
+    }
+}
+
+function mdashParseCacheSchema(fonte) {
+    if (!fonte || !fonte.lastResultscached) return [];
+    try {
+        var cached = JSON.parse(fonte.lastResultscached);
+        if (cached && Array.isArray(cached.columns) && cached.columns.length) {
+            return cached.columns.map(function (c) {
+                return mdashNormalizeSchemaCol(typeof c === 'string' ? { field: c } : c);
+            }).filter(Boolean);
+        }
+        if (Array.isArray(cached) && cached.length && typeof cached[0] === 'object') {
+            return Object.keys(cached[0]).map(function (k) {
+                return { field: k, type: mdashInferSqlType(cached[0][k]), label: k };
+            });
+        }
+    } catch (e) { }
+    return [];
+}
+
+function mdashGetFonteRowsForDb(fonte) {
+    if (!fonte) return [];
+    if (Array.isArray(fonte.lastResults) && fonte.lastResults.length) return fonte.lastResults;
+    return mdashExtractRowsFromCache(fonte.lastResultscached);
+}
+
+function mdashLoadFonteSchemaIntoDb(fonte, schema) {
+    if (!fonte || !Array.isArray(schema) || !schema.length) return false;
+    var db = getMdashDb();
+    if (!db) return false;
+    var tableName = mdashFonteTableName(fonte);
+    try { db.run('DROP TABLE IF EXISTS "' + tableName.replace(/"/g, '""') + '"'); } catch (e) { }
+    var colDefs = schema.map(function (col) {
+        var norm = mdashNormalizeSchemaCol(col);
+        if (!norm) return null;
+        return '"' + String(norm.field).replace(/"/g, '""') + '" ' + mdashSchemaTypeToSql(norm.type);
+    }).filter(Boolean);
+    if (!colDefs.length) return false;
+    db.run('CREATE TABLE "' + tableName.replace(/"/g, '""') + '" (' + colDefs.join(', ') + ')');
+    return true;
+}
+
+/**
+ * Garante que a tabela in-memory da fonte existe (com dados OU só schema).
+ * Funciona mesmo quando a query devolve 0 linhas mas o schema é conhecido.
+ */
+function mdashEnsureFonteInDb(fonte) {
+    if (!fonte) return false;
+    var rows = mdashGetFonteRowsForDb(fonte);
+    if (rows.length > 0) {
+        mdashLoadFonteIntoDb(fonte, rows);
+        return true;
+    }
+    var schema = mdashParseFonteSchemaJson(fonte);
+    if (!schema.length) schema = mdashParseCacheSchema(fonte);
+    if (schema.length) return mdashLoadFonteSchemaIntoDb(fonte, schema);
+    return false;
+}
+
+function mdashGetTableSchemaFromDb(fonte) {
+    if (!fonte || typeof mdashFonteTableName !== 'function') return [];
+    var tbl = mdashFonteTableName(fonte);
+    if (!tbl) return [];
+    if (typeof MdashTransformBuilder !== 'undefined' && MdashTransformBuilder.getTableSchema) {
+        return MdashTransformBuilder.getTableSchema(tbl) || [];
+    }
+    return [];
+}
+
+/**
+ * Detecta schema de uma fonte sem executar (quando possível).
+ * Ordem: SQLite PRAGMA → ensure DB → schemajson → colunas do cache.
+ */
+function mdashDetectSourceSchema(fonte) {
+    if (!fonte) return [];
+
+    var fromDb = mdashGetTableSchemaFromDb(fonte);
+    if (fromDb.length) return fromDb;
+
+    mdashEnsureFonteInDb(fonte);
+    fromDb = mdashGetTableSchemaFromDb(fonte);
+    if (fromDb.length) return fromDb;
+
+    var fromJson = mdashParseFonteSchemaJson(fonte);
+    if (fromJson.length) return fromJson;
+
+    return mdashParseCacheSchema(fonte);
+}
+
+/**
+ * Garante schema disponível; executa a fonte apenas se necessário.
+ * Genérico para qualquer tipo registado em MdashExecutorRegistry.
+ */
+function mdashEnsureSourceSchema(fonte, callback) {
+    if (!fonte) {
+        if (typeof callback === 'function') callback(new Error('Fonte inválida'), []);
+        return;
+    }
+
+    var existing = mdashDetectSourceSchema(fonte);
+    if (existing.length) {
+        if (typeof callback === 'function') callback(null, existing);
+        return;
+    }
+
+    if (typeof fonte.execute !== 'function') {
+        if (typeof callback === 'function') callback(new Error('Fonte sem método execute'), []);
+        return;
+    }
+
+    fonte.execute({}, function (err, rows) {
+        if (err) {
+            if (typeof callback === 'function') callback(err, []);
+            return;
+        }
+        rows = Array.isArray(rows) ? rows : [];
+        fonte.lastResults = rows;
+        if (fonte.schemamode !== 'manual' && rows.length > 0 && typeof fonte.extractSchemaFromResults === 'function') {
+            fonte.schema = fonte.extractSchemaFromResults();
+        }
+        if (typeof fonte.stringifyJSONFields === 'function') fonte.stringifyJSONFields();
+        if (typeof mdashEnsureFonteInDb === 'function') mdashEnsureFonteInDb(fonte);
+        var schema = mdashDetectSourceSchema(fonte);
+        if (typeof mdashNotifySchemaUpdated === 'function') mdashNotifySchemaUpdated(fonte.mdashfontestamp);
+        if (typeof callback === 'function') callback(null, schema);
+    });
+}
+
+function mdashResolveTransformOutputFields(transformConfig, opts) {
+    opts = opts || {};
+    if (!transformConfig) return [];
+    var MTB = (typeof MdashTransformBuilder !== 'undefined') ? MdashTransformBuilder : null;
+    if (!MTB) return [];
+
+    if (opts.preferCache !== true && (transformConfig.sourceTable || transformConfig.mode === 'sql')) {
+        try {
+            var raw = MTB.executeRaw(transformConfig);
+            if (!raw.error && raw.columns && raw.columns.length) return raw.columns.slice();
+        } catch (e) { }
+    }
+
+    if (transformConfig.transformationSchema && transformConfig.transformationSchema.length) {
+        return transformConfig.transformationSchema.slice();
+    }
+
+    return MTB.getOutputSchema(transformConfig, { preferCache: true });
+}
+
+/**
+ * Campos disponíveis para um objecto (dropdowns de propriedades).
+ * Live-first: recalcula output da transformação; snapshot só como fallback.
+ */
+function mdashResolveObjectFields(obj, opts) {
+    opts = opts || {};
+    if (!obj) return [];
+
+    var cfg = obj.config || {};
+    var tCfg = obj.transformConfig || cfg.transformConfig || null;
+
+    if (tCfg) {
+        var live = mdashResolveTransformOutputFields(tCfg, { preferCache: opts.preferCache === true });
+        if (live.length) return live;
+    }
+
+    if (obj.fontestamp) {
+        var allFontes = (window.appState && window.appState.fontes) || (typeof GMDashFontes !== 'undefined' ? GMDashFontes : []);
+        var fonte = allFontes.filter(function (f) { return f.mdashfontestamp === obj.fontestamp; })[0];
+        if (fonte) {
+            var src = mdashDetectSourceSchema(fonte);
+            if (src.length) return src.map(function (s) { return s.field; });
+        }
+    }
+
+    return [];
+}
+
+function mdashNotifySchemaUpdated(fonteStamp) {
+    try {
+        $(document).trigger('mdash:schema:updated', [{ fonteStamp: fonteStamp }]);
+    } catch (e) { }
 }
 
 
@@ -558,10 +773,21 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
     // Prioridade: 1) transformationSchema guardado no Aplicar
     //             2) execução real (mode=sql ou tabela com dados)
     //             3) inferência estática do config (aliases, agregações)
-    function getOutputSchema(config) {
+    function getOutputSchema(config, opts) {
+        opts = opts || {};
         if (!config) return [];
 
-        // 1. Schema já calculado e guardado no último Aplicar — fonte de verdade
+        // 1. Execução live (funciona com 0 linhas — colunas via prepare)
+        if (opts.preferCache !== true && (config.sourceTable || config.mode === 'sql')) {
+            try {
+                var _live = executeRaw(config);
+                if (!_live.error && _live.columns && _live.columns.length) {
+                    return _live.columns.slice();
+                }
+            } catch (e) { }
+        }
+
+        // 2. Snapshot guardado no último Aplicar
         if (config.transformationSchema && config.transformationSchema.length) {
             return config.transformationSchema.slice();
         }
@@ -889,6 +1115,9 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         var schema = (options.schema && options.schema.length)
             ? options.schema
             : getTableSchema(cfg.sourceTable);
+        if (!schema.length && options.fonte && typeof mdashDetectSourceSchema === 'function') {
+            schema = mdashDetectSourceSchema(options.fonte);
+        }
         var allFields = schema.map(function (s) { return s.field; });
 
         function _sec(icon, title, cls, addBtn, listCls, rows) {
