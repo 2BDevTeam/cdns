@@ -1214,6 +1214,8 @@ function MdashFilter(data) {
     this.dashboardstamp = data.dashboardstamp || GMDashStamp;
     this.codigo = data.codigo || "";
     this.descricao = data.descricao || "";
+    // Filtros lógicos: label do lado direito do toggle (descricao fica à esquerda)
+    this.descricaodireita = data.descricaodireita || "";
     this.tipo = data.tipo || "text";
     this.tamanho = data.tamanho || 4;
     this.expressaolistagem = data.expressaolistagem || "";
@@ -1223,6 +1225,7 @@ function MdashFilter(data) {
     this.valordefeito = data.valordefeito || "";
     this.campooption = data.campooption || "";
     this.campovalor = data.campovalor || "";
+    this.campoagrupador = data.campoagrupador || "";
     this.escopo = data.escopo || 'global';
     this.mdashtabstamp = normalizeMdashFilterTabStampField(data.mdashtabstamp || '');
     this.ordem = data.ordem || (maxOrdem + 1);
@@ -1383,6 +1386,7 @@ function getMdashFilterUIObjectFormConfigAndSourceValues() {
     var objectsUIFormConfig = [
         new UIObjectFormConfig({ colSize: 4, campo: "codigo", tipo: "text", titulo: "Código", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "descricao", tipo: "text", titulo: "Descrição", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "descricaodireita", tipo: "text", titulo: "Descrição direita (lógico)", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({
             colSize: 12,
             campo: "tipo",
@@ -1399,7 +1403,8 @@ function getMdashFilterUIObjectFormConfigAndSourceValues() {
                 { option: "Data", value: "date" },
                 { option: "Número", value: "number" },
                 { option: "Lista", value: "list" },
-                { option: "Multipla escolha", value: "multiselect" }
+                { option: "Multipla escolha", value: "multiselect" },
+                { option: "Árvore de checkboxes", value: "checkboxtree" }
             ]
         }),
         new UIObjectFormConfig({
@@ -1429,6 +1434,7 @@ function getMdashFilterUIObjectFormConfigAndSourceValues() {
         }),
         new UIObjectFormConfig({ colSize: 6, campo: "campooption", tipo: "text", titulo: "Campo de Opção", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 6, campo: "campovalor", tipo: "text", titulo: "Campo de Valor", classes: "form-control input-source-form input-sm", contentType: "input" }),
+        new UIObjectFormConfig({ colSize: 6, campo: "campoagrupador", tipo: "text", titulo: "Campo Agrupador (árvore)", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 4, campo: "tamanho", tipo: "digit", titulo: "Tamanho", classes: "form-control input-source-form input-sm", contentType: "input" }),
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaolistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem", classes: "input-source-form m-editor", contentType: "div" }),
         new UIObjectFormConfig({ colSize: 12, style: "width: 100%; height: 200px;", campo: "expressaojslistagem", tipo: "div", cols: 90, rows: 90, titulo: "Expressão de Listagem JS", classes: "input-source-form m-editor", contentType: "div" }),
@@ -13979,7 +13985,8 @@ function getFilterTypeLabel(tipo) {
         'date': 'Data',
         'number': 'Número',
         'list': 'Lista',
-        'multiselect': 'Múltipla escolha'
+        'multiselect': 'Múltipla escolha',
+        'checkboxtree': 'Árvore de checkboxes'
     };
     return tipos[tipo] || tipo || 'Não definido';
 }
@@ -13995,7 +14002,8 @@ function getFilterTypeIcon(tipo) {
         'date': 'glyphicon glyphicon-calendar',
         'number': 'glyphicon glyphicon-plus',
         'list': 'glyphicon glyphicon-list',
-        'multiselect': 'glyphicon glyphicon-th-list'
+        'multiselect': 'glyphicon glyphicon-th-list',
+        'checkboxtree': 'glyphicon glyphicon-tree-deciduous'
     };
     return icons[tipo] || 'glyphicon glyphicon-filter';
 }

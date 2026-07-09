@@ -993,6 +993,23 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
     // Avalia expressões JS por linha, com acesso a `row` (objecto) e ao escopo
     // global (funções como getStampEncriptado(), minhaFuncao(), etc.).
 
+    // Compila uma expressão única OU um corpo de função multi-linha.
+    // Se o código contém `return`, é tratado como corpo (suporta if, variáveis,
+    // funções auxiliares, comentários); senão é embrulhado em `return (...)`.
+    // O `\n` final protege contra comentários // na última linha.
+    function _compileJsExprFn(code) {
+        code = String(code || '');
+        if (/\breturn\b/.test(code)) {
+            return new Function('row', 'with(row){' + code + '\n}');
+        }
+        try {
+            return new Function('row', 'with(row){return (' + code + '\n);}');
+        } catch (e) {
+            // fallback: código sem return explícito mas com statements (;) — compila como corpo
+            return new Function('row', 'with(row){' + code + '\n}');
+        }
+    }
+
     function _compileJsExprs(config) {
         var jsCols = (config && config.columns || []).filter(function (c) {
             return c.aggregate === 'JS_EXPR' && c.visible !== false && (c.jsExpr || '').trim();
@@ -1004,7 +1021,7 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
             try {
                 // `row` é o objecto com as colunas da linha actual (pós-SQL).
                 // `with(row)` permite escrever tanto `row.nome+f()` como `nome+f()`.
-                fn = new Function('row', 'with(row){return (' + c.jsExpr + ');}');
+                fn = _compileJsExprFn(c.jsExpr);
             } catch (e) {
                 console.warn('[MDash] JS_EXPR syntax error em "' + alias + '":', e.message, '| expr:', c.jsExpr);
                 fn = function () { return '#ERR'; };
@@ -1237,7 +1254,12 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         var h = '<div class="mtb-row mtb-col-row' + (isJs ? ' mtb-col-row-js' : '') + '" data-idx="' + i + '">';
         h += '<label class="mtb-vis-toggle" title="Incluir na query"><input type="checkbox" class="mtb-col-visible"' + (vis ? ' checked' : '') + '><span class="mtb-vis-dot"></span></label>';
         h += '<select class="mtb-col-field mtb-select mtb-select-field' + (isJs ? ' mtb-hidden' : '') + '">' + _fieldOpts(allFields, col.field || '') + '</select>';
-        h += '<input type="text" class="mtb-col-jsexpr mtb-input mtb-input-jsexpr' + (isJs ? '' : ' mtb-hidden') + '" value="' + _escapeHtml(col.jsExpr || '') + '" placeholder="ex: row.nome + getStampEncriptado()" spellcheck="false">';
+        var jsExprRaw = col.jsExpr || '';
+        var jsExprMulti = /[\r\n]/.test(jsExprRaw);
+        var jsExprPreview = jsExprMulti ? jsExprRaw.replace(/\s+/g, ' ').trim() : jsExprRaw;
+        h += '<input type="text" class="mtb-col-jsexpr mtb-input mtb-input-jsexpr' + (isJs ? '' : ' mtb-hidden') + '" value="' + _escapeHtml(jsExprPreview) + '"' + (jsExprMulti ? ' readonly title="Código multi-linha — edite pelo botão expandir"' : '') + ' placeholder="ex: row.nome + getStampEncriptado()" spellcheck="false">';
+        h += '<textarea class="mtb-col-jsexpr-full mtb-hidden" spellcheck="false">' + _escapeHtml(jsExprRaw) + '</textarea>';
+        h += '<button type="button" class="mtb-jsexpr-expand mtb-expand' + (isJs ? '' : ' mtb-hidden') + '" title="Editar em ecrã completo"><i class="glyphicon glyphicon-fullscreen"></i></button>';
         h += '<select class="mtb-col-agg mtb-select mtb-select-agg">' + aggOpts + '</select>';
         h += '<input type="text" class="mtb-col-alias mtb-input mtb-input-alias" value="' + _escapeHtml(col.alias || '') + '" placeholder="alias">';
         h += '<button type="button" class="mtb-remove-row mtb-del" title="Remover"><i class="glyphicon glyphicon-remove"></i></button>';
@@ -1307,7 +1329,7 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
                 aggregate: agg,
                 alias: $r.find('.mtb-col-alias').val().trim(),
                 visible: $r.find('.mtb-col-visible').is(':checked'),
-                jsExpr: agg === 'JS_EXPR' ? ($r.find('.mtb-col-jsexpr').val() || '') : ''
+                jsExpr: agg === 'JS_EXPR' ? ($r.find('.mtb-col-jsexpr-full').val() || $r.find('.mtb-col-jsexpr').val() || '') : ''
             });
         });
 
@@ -1408,6 +1430,24 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
             $row.toggleClass('mtb-col-row-js', isJs);
             $row.find('.mtb-col-field').toggleClass('mtb-hidden', isJs);
             $row.find('.mtb-col-jsexpr').toggleClass('mtb-hidden', !isJs);
+            $row.find('.mtb-jsexpr-expand').toggleClass('mtb-hidden', !isJs);
+        });
+
+        // Sincronizar edição inline (single-line) com o armazenamento multilinha.
+        // Não dispara quando o input está readonly (código multi-linha só se edita no modal).
+        $c.on('input change', '.mtb-col-jsexpr', function () {
+            if (this.readOnly) return;
+            $(this).closest('.mtb-col-row').find('.mtb-col-jsexpr-full').val($(this).val());
+        });
+
+        // Expandir editor de Expressão JS (modal com ACE para código maior)
+        $c.on('click', '.mtb-jsexpr-expand', function () {
+            _openJsExprModal($(this).closest('.mtb-col-row'));
+        });
+
+        // Código multi-linha: clicar na pré-visualização readonly também abre o modal
+        $c.on('click', '.mtb-col-jsexpr[readonly]', function () {
+            _openJsExprModal($(this).closest('.mtb-col-row'));
         });
 
         // Actualizar SQL preview em tempo real ao mudar qualquer input
@@ -1498,6 +1538,92 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
                 });
             }
         }
+    }
+
+    // ── Modal de edição expandida da Expressão JS ─────────────────────────────
+    // Abre um editor ACE em ecrã grande. Suporta multi-linha: expressão única
+    // OU corpo de função com `return` (ifs, variáveis, funções auxiliares).
+    // O código completo vive no textarea escondido .mtb-col-jsexpr-full; o
+    // input visível é apenas pré-visualização (readonly quando multi-linha).
+
+    function _openJsExprModal($row) {
+        var $inputPreview = $row.find('.mtb-col-jsexpr');
+        var $full = $row.find('.mtb-col-jsexpr-full');
+        var codigoActual = $full.val() || $inputPreview.val() || '';
+
+        var modalId = 'mtb-jsexpr-modal';
+        $('#' + modalId).remove();
+
+        var useAce = (typeof ace !== 'undefined' && ace.edit);
+        var bodyHtml = useAce
+            ? '<div id="mtb-jsexpr-ace" style="width:100%;height:calc(70vh - 120px);min-height:260px;"></div>'
+            : '<textarea id="mtb-jsexpr-ta" class="form-control" style="width:100%;height:calc(70vh - 120px);min-height:260px;font-family:monospace;font-size:12px;" spellcheck="false"></textarea>';
+
+        var modalHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1" role="dialog">'
+            + '<div class="modal-dialog" style="width:80%;max-width:1100px;margin:4% auto;" role="document">'
+            + '<div class="modal-content">'
+            + '<div class="modal-header" style="padding:8px 14px;">'
+            + '  <button type="button" class="close" data-dismiss="modal">&times;</button>'
+            + '  <h4 class="modal-title" style="font-size:14px;"><i class="glyphicon glyphicon-console"></i> Expressão JS <small style="opacity:.75;font-size:11px;">objecto <code>row</code> disponível — expressão única ou código com <code>return</code> (suporta if, variáveis e funções auxiliares)</small></h4>'
+            + '</div>'
+            + '<div class="modal-body" style="padding:0;">' + bodyHtml + '</div>'
+            + '<div class="modal-footer" style="padding:8px 14px;">'
+            + '  <button type="button" class="btn btn-primary btn-sm" id="mtb-jsexpr-apply"><i class="glyphicon glyphicon-ok"></i> Aplicar</button>'
+            + '  <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancelar</button>'
+            + '</div>'
+            + '</div></div></div>';
+
+        $('body').append(modalHtml);
+        var $modal = $('#' + modalId);
+
+        // O builder pode estar dentro de outra modal — garantir sobreposição correcta
+        $modal.css('z-index', 10600);
+
+        $modal.on('shown.bs.modal', function () {
+            $('.modal-backdrop').last().css('z-index', 10590);
+
+            var getValue;
+            if (useAce) {
+                var ed = ace.edit('mtb-jsexpr-ace');
+                ed.setTheme('ace/theme/monokai');
+                ed.session.setMode('ace/mode/javascript');
+                ed.setOptions({ fontSize: '13px', showPrintMargin: false, wrap: true });
+                ed.setValue(codigoActual, -1);
+                ed.focus();
+                getValue = function () { return ed.getValue(); };
+            } else {
+                var $ta = $('#mtb-jsexpr-ta').val(codigoActual);
+                $ta.focus();
+                getValue = function () { return $ta.val(); };
+            }
+
+            $('#mtb-jsexpr-apply').off('click').on('click', function () {
+                var valor = String(getValue() || '');
+                var isMulti = /[\r\n]/.test(valor);
+
+                // Código completo (com quebras de linha) fica no textarea escondido
+                $full.val(valor);
+
+                // Input visível: pré-visualização colapsada; readonly se multi-linha
+                $inputPreview
+                    .val(isMulti ? valor.replace(/\s+/g, ' ').trim() : valor)
+                    .prop('readOnly', isMulti)
+                    .attr('title', isMulti ? 'Código multi-linha — edite pelo botão expandir' : '');
+
+                // Disparar change no textarea para actualizar SQL preview/estado
+                $full.trigger('change');
+                $modal.modal('hide');
+            });
+        });
+
+        $modal.on('hidden.bs.modal', function () {
+            if (useAce) { try { ace.edit('mtb-jsexpr-ace').destroy(); } catch (e) { } }
+            $(this).remove();
+            // Se o builder ainda está aberto noutra modal, manter o body em modo modal
+            if ($('.modal.in').length) $('body').addClass('modal-open');
+        });
+
+        $modal.modal('show');
     }
 
     function _updateSqlPreview($c, cfg) {
@@ -1637,6 +1763,7 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         s += '.mtb-input-val{flex:1;min-width:50px;}';
         s += '.mtb-input-jsexpr{flex:1;min-width:120px;font-family:monospace;font-size:10.5px;background:#FFF7ED;border-color:rgba(234,88,12,.35);}';
         s += '.mtb-input-jsexpr:focus{border-color:#EA580C;box-shadow:0 0 0 2px rgba(234,88,12,.18);}';
+        s += '.mtb-input-jsexpr[readonly]{background:#FFF3E4;color:#9A5B22;cursor:pointer;font-style:italic;}';
         s += '.mtb-col-row-js{background:#FFFBF5;border-color:rgba(234,88,12,.25);}';
         s += '.mtb-select{height:30px;border:1px solid rgba(0,0,0,0.12);border-radius:7px;background:#fff;color:#1e293b;font-size:11px;padding:1px 6px;outline:none;cursor:pointer;transition:border-color .15s,box-shadow .15s;}';
         s += '.mtb-select:focus{border-color:' + p + ';box-shadow:0 0 0 2px rgba(' + pr + ',.15);}';
@@ -1659,6 +1786,11 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         s += '.mtb-del{width:26px;height:26px;border:1px solid rgba(239,68,68,.22);background:rgba(239,68,68,.06);color:#ef4444;border-radius:7px;cursor:pointer;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}';
         s += '.mtb-del:hover{background:rgba(239,68,68,.16);border-color:rgba(220,38,38,.4);color:#dc2626;}';
         s += '.mtb-del i{font-size:11px;}';
+
+        // ── Expand button (Expressão JS) ──────────────────────────────────────
+        s += '.mtb-expand{width:26px;height:26px;border:1px solid rgba(' + pr + ',.3);background:rgba(' + pr + ',.06);color:' + p + ';border-radius:7px;cursor:pointer;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}';
+        s += '.mtb-expand:hover{background:rgba(' + pr + ',.16);border-color:' + p + ';}';
+        s += '.mtb-expand i{font-size:10px;}';
 
         // ── SQL preview Ace ───────────────────────────────────────────────────
         s += '.mtb-sql-preview-ace{margin:0 10px 10px;border-radius:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.15);}';

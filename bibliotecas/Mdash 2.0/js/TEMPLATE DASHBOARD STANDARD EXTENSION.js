@@ -1638,7 +1638,7 @@ function _tblCSS() {
     s += '.mtbl-wrap.mtbl-no-col-resize .tabulator-col-resize-handle,.mtbl-wrap.mtbl-no-col-resize .tabulator-col-resize-handle:hover{display:none!important;pointer-events:none!important;width:0!important;opacity:0!important;}';
     s += '.mtbl-wrap .tabulator{border:none;background:#ffffff;font-size:var(--mtbl-fs,13px);font-family:"Inter","Nunito","Segoe UI",Arial,sans-serif;}';
     s += '.mtbl-wrap .tabulator .tabulator-header{background:linear-gradient(180deg,var(--mtbl-hdr-bg,#1e293b) 0%,var(--mtbl-hdr-bg-2,#16263f) 100%);border-bottom:none;border-radius:var(--mtbl-radius,16px) var(--mtbl-radius,16px) 0 0;padding-top:0;box-shadow:inset 0 -1px 0 rgba(255,255,255,.08);}';
-    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col{background:var(--mtbl-hdr-bg,#1e293b) !important;color:var(--mtbl-hdr-text,#f8fafc);border-right:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.08));padding:5px 10px;font-weight:700;font-size:11px;letter-spacing:.03em;text-transform:uppercase;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col{background:var(--mtbl-hdr-bg,#1e293b) !important;color:var(--mtbl-hdr-text,#f8fafc);border-right:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.08));padding:5px 10px;font-weight:700;font-size:var(--mtbl-hdr-fs,11px);letter-spacing:.03em;text-transform:uppercase;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col:last-child{border-right:none;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-content,'
        + '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-title-holder,'
@@ -1648,14 +1648,14 @@ function _tblCSS() {
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-title-holder{display:flex;align-items:center;justify-content:center;width:100%;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group{background:var(--mtbl-hdr-bg-2,var(--mtbl-hdr-bg,#16263f)) !important;border-bottom:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.1));padding-top:0;padding-bottom:0;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group > .tabulator-col-content{padding:0;background:var(--mtbl-hdr-bg-2,var(--mtbl-hdr-bg,#16263f)) !important;}';
-    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-title{font-size:10px;letter-spacing:.1em;opacity:.96;font-weight:800;}';
+    s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-title{font-size:var(--mtbl-hdr-fs,10px);letter-spacing:.1em;opacity:.96;font-weight:800;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-title-holder{background:var(--mtbl-hdr-bg-2,var(--mtbl-hdr-bg,#16263f)) !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols{border-top:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.1));margin-top:0;background:var(--mtbl-hdr-bg,#1e293b) !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-sorter{color:var(--mtbl-hdr-text,#f8fafc);}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-arrow{border-bottom-color:var(--mtbl-hdr-text,#f8fafc) !important;border-top-color:var(--mtbl-hdr-text,#f8fafc) !important;opacity:.8 !important;}';
-    s += '.mtbl-exec-header{display:grid;background:var(--mtbl-hdr-bg,#1e293b);color:var(--mtbl-hdr-text,#f8fafc);border-radius:var(--mtbl-radius,16px) var(--mtbl-radius,16px) 0 0;overflow:hidden;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.035em;}';
+    s += '.mtbl-exec-header{display:grid;background:var(--mtbl-hdr-bg,#1e293b);color:var(--mtbl-hdr-text,#f8fafc);border-radius:var(--mtbl-radius,16px) var(--mtbl-radius,16px) 0 0;overflow:hidden;font-size:var(--mtbl-hdr-fs,10px);font-weight:800;text-transform:uppercase;letter-spacing:.035em;}';
     s += '.mtbl-exec-header__cell{display:flex;align-items:center;justify-content:center;min-width:0;padding:3px 5px;border-right:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.1));border-bottom:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.1));line-height:1.1;background:var(--mtbl-hdr-bg,#1e293b);white-space:normal;text-align:center;}';
-    s += '.mtbl-exec-header__cell.is-group{padding:3px 5px;background:var(--mtbl-hdr-bg-2,var(--mtbl-hdr-bg,#16263f));font-size:9px;letter-spacing:.08em;}';
+    s += '.mtbl-exec-header__cell.is-group{padding:3px 5px;background:var(--mtbl-hdr-bg-2,var(--mtbl-hdr-bg,#16263f));font-size:var(--mtbl-hdr-fs,9px);letter-spacing:.08em;}';
     s += '.mtbl-exec-header__cell.is-rowspan{justify-content:flex-start;padding-left:9px;}';
     s += '.mtbl-exec-header__cell:last-child{border-right:none;}';
     s += '.mtbl-wrap.has-exec-header .tabulator{border-radius:0 0 var(--mtbl-radius,16px) var(--mtbl-radius,16px);}';
@@ -1798,6 +1798,14 @@ function renderObjectTable(dados) {
         + '--mtbl-border:' + (theme.border) + ';'
         + '--mtbl-radius:' + (stl.borderRadius || 10) + 'px;'
         + '--mtbl-fs:' + (hasConfiguredGroups ? Math.min(parseInt(stl.fontSize, 10) || 11, 11) : (stl.fontSize || 13)) + 'px;';
+
+    // Tamanho de fonte do cabeçalho configurável — aplica-se uniformemente a
+    // todo o cabeçalho (cols, grupos e executive header).
+    // 0/vazio = defaults do tema (11px cols, 10px grupos/exec, 9px grupos exec)
+    var hdrFs = parseInt(stl.headerFontSize, 10) || 0;
+    if (hdrFs > 0) {
+        cssVars += '--mtbl-hdr-fs:' + hdrFs + 'px;';
+    }
 
     var html = badgeHtml
         + '<div id="' + wrapId + '" class="mtbl-wrap' + (_tblAreColumnsResizable(cfg) ? '' : ' mtbl-no-col-resize') + '" style="' + cssVars + '" data-stamp="' + stamp + '">'
@@ -4231,6 +4239,8 @@ function renderTablePropertiesInline(obj, panel) {
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Tamanho fonte</label>'
         + '<input type="number" class="mtbl-fontsize form-control input-sm" value="' + (stl.fontSize || 13) + '" min="10" max="18" style="width:70px;"> px</div>'
+        + '<div class="mcbi-field"><label>Tam. fonte cabeçalho</label>'
+        + '<input type="number" class="mtbl-hdrfontsize form-control input-sm" value="' + (stl.headerFontSize || '') + '" min="8" max="20" placeholder="Auto (11)" style="width:70px;"> px</div>'
         + '</div>'
         + '<div class="mcbi-row2">'
         + _tblColorTokenFieldHtml('Fundo linhas pares', 'mtbl-roweven', stl.rowEven || panelTheme.rowEven)
@@ -5822,7 +5832,8 @@ function _tblReadConfig(panel, obj) {
         rowEven: _tblReadColorTokenField(panel, 'mtbl-roweven'),
         rowHover: _tblReadColorTokenField(panel, 'mtbl-rowhover'),
         borderRadius: parseInt(panel.find('.mtbl-radius').val(), 10) || 10,
-        fontSize: parseInt(panel.find('.mtbl-fontsize').val(), 10) || 13
+        fontSize: parseInt(panel.find('.mtbl-fontsize').val(), 10) || 13,
+        headerFontSize: parseInt(panel.find('.mtbl-hdrfontsize').val(), 10) || 0
     };
 
     // Filtros - Preservar definitions de obj.config (modificado pelos event handlers)
@@ -6137,17 +6148,30 @@ var MdashChartBuilder = (function () {
                     params.forEach(function (p) {
                         var col = typeof p.color === 'string' ? p.color : t.colors[0];
                         var dot = '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + col + ';margin-right:7px;flex-shrink:0;"></span>';
-                        var val = p.value != null ? _mciFormatNumber(p.value, { abbrev: (typeof cfg !== 'undefined' && cfg.yAxis && cfg.yAxis.abbrev), maxFractionDigits: 2 }) : '—';
+                        // Tooltip mostra sempre o valor completo — a abreviação (ex: 15M) aplica-se apenas às labels do eixo Y
+                        var val = p.value != null ? _mciFormatNumber(p.value, { maxFractionDigits: 2 }) : '—';
                         out += '<div style="display:flex;align-items:center;gap:3px;padding:2px 0;">' + dot + '<span style="flex:1;opacity:0.85;">' + p.seriesName + '</span><strong style="margin-left:12px;">' + val + '</strong></div>';
                     });
                     return out;
                 }
             }),
             legend: {
-                show: lPos !== 'none', data: serDefs.map(function (s) { return s.name || s.field; }),
+                // Só séries com showInLegend !== false entram na legenda; as excluídas
+                // continuam desenhadas e presentes no tooltip (trigger axis).
+                // Ícone por item: séries de linha herdam o ícone nativo do ECharts
+                // (linha + ponto); as restantes usam o rectângulo arredondado.
+                show: lPos !== 'none',
+                data: serDefs.map(function (s, i) {
+                    if (s.showInLegend === false) return null;
+                    var sType = (s.serType && s.serType !== 'default') ? s.serType : (ct === 'mixed' ? (i === 0 ? 'bar' : 'line') : ct);
+                    var isLine = sType === 'line' || sType === 'area';
+                    var item = { name: s.name || s.field };
+                    if (!isLine) item.icon = 'roundRect';
+                    return item;
+                }).filter(Boolean),
                 top: lPos === 'bottom' ? 'bottom' : 'top', bottom: lPos === 'bottom' ? 6 : 'auto',
-                left: 'center', itemWidth: 14, itemHeight: 8, borderRadius: 4,
-                textStyle: { color: t.text, fontSize: 11 }, icon: 'roundRect', itemGap: 18
+                left: 'center', itemWidth: 22, itemHeight: 8, borderRadius: 4,
+                textStyle: { color: t.text, fontSize: 11 }, itemGap: 18
             },
             grid: _gridBase(lPos),
             xAxis: {
@@ -7071,6 +7095,29 @@ function createDynamicSchemaGrafico(data) {
 }
 
 
+// ── Persistência da selecção da legenda (clique nos itens) ──────────────────
+// Guardado em localStorage por objecto de gráfico (stamp); assim a escolha do
+// utilizador sobrevive a refresh de query/filtros e a novas sessões no browser.
+var _MCHART_LEGEND_SEL_KEY = 'mdashChartLegendSel';
+
+function _mchartGetLegendSelection(stamp) {
+    try {
+        var all = JSON.parse(window.localStorage.getItem(_MCHART_LEGEND_SEL_KEY) || '{}');
+        return all[stamp] || null;
+    } catch (e) { return null; }
+}
+
+function _mchartSaveLegendSelection(stamp, selected) {
+    try {
+        var all = JSON.parse(window.localStorage.getItem(_MCHART_LEGEND_SEL_KEY) || '{}');
+        // Só vale a pena guardar se houver pelo menos uma série desligada;
+        // caso contrário limpa a entrada (estado por defeito).
+        var hasOff = Object.keys(selected || {}).some(function (k) { return selected[k] === false; });
+        if (hasOff) { all[stamp] = selected; } else { delete all[stamp]; }
+        window.localStorage.setItem(_MCHART_LEGEND_SEL_KEY, JSON.stringify(all));
+    } catch (e) { /* storage indisponível — selecção fica só em memória */ }
+}
+
 function renderObjectGrafico(dados) {
     var stamp = dados.itemObject.mdashcontaineritemobjectstamp;
     var chartId = 'mchart_' + stamp;
@@ -7137,7 +7184,16 @@ function renderObjectGrafico(dados) {
 
         if (rows.length > 0 && cfg.xField) {
             var option = MdashChartBuilder.buildEchartsOption(cfg, rows);
+            // Restaurar selecção de séries feita pelo utilizador na legenda —
+            // persiste em localStorage por objecto, sobrevive a refresh de query/filtros.
+            var savedSel = _mchartGetLegendSelection(stamp);
+            if (savedSel && option.legend && !Array.isArray(option.legend)) {
+                option.legend.selected = savedSel;
+            }
             chart.setOption(option, true);
+            chart.on('legendselectchanged', function (params) {
+                _mchartSaveLegendSelection(stamp, params.selected);
+            });
         } else {
             var t = MdashChartBuilder.THEMES[cfg.theme || 'modern'] || MdashChartBuilder.THEMES.modern;
             chart.setOption({
@@ -7712,6 +7768,7 @@ function _mciReadConfig($root, obj) {
                 gradient: $r.find('.mcbi-s-gradient').is(':checked'),
                 smooth: $r.find('.mcbi-s-smooth').is(':checked'),
                 dataLabels: $r.find('.mcbi-s-labels').is(':checked'),
+                showInLegend: $r.find('.mcbi-s-legend').is(':checked'),
                 labelColor: $r.find('.mcbi-s-labelcol').val() || '',
                 areaOpacity: (parseInt($r.find('.mcbi-s-aopacity').val()) || 32) / 100,
                 symbolSize: parseInt($r.find('.mcbi-s-ssz').val()) || 10,
@@ -7838,6 +7895,9 @@ function _mciSerieRow(s, i, fields, fontes) {
         + '<div class="mcbi-row2" style="align-items:center">'
         + '<div class="mcbi-field" style="margin-bottom:0">' + _mciChkVal('mcbi-s-labels', 'Etiquetas', s.dataLabels === true) + '</div>'
         + '<div class="mcbi-field mcbi-s-labelcol-wrap" style="margin-bottom:0"><label>Cor etiqueta</label><input type="color" class="mcbi-s-labelcol" value="' + _mciColorInputValue(s.labelColor, '#ffffff') + '"></div>'
+        + '</div>'
+        + '<div class="mcbi-row2" style="align-items:center;margin-top:6px">'
+        + '<div class="mcbi-field" style="margin-bottom:0">' + _mciChkVal('mcbi-s-legend', 'Na legenda', s.showInLegend !== false) + '</div>'
         + '</div>'
         + '</div>'
         + '<div class="mcbi-srs-bar">'

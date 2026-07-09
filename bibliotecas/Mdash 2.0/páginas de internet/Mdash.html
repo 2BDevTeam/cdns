@@ -1568,6 +1568,27 @@
   .mdash-logic-toggle input.mdash-logic-check:checked ~ .mdash-toggle-track .mdash-toggle-thumb {
     transform: translateX(18px);
   }
+  /* Filtro lógico com labels dos dois lados: "Ano [toggle] Período".
+     Selectores reforçados para vencer ".m-dash-dynamic-filters label" (display:block),
+     que anulava o flexbox e desalinhava texto/toggle. */
+  .mdash-logic-dual,
+  .m-dash-dynamic-filters label.mdash-logic-dual,
+  .m-dash-filter-item > label.mdash-logic-dual {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 0;
+  }
+  .mdash-logic-dual .mdash-toggle-track {
+    flex-shrink: 0;
+  }
+  .mdash-logic-lbl {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--md-text, #334155);
+    line-height: 22px; /* = altura do track, para centragem vertical perfeita */
+    white-space: nowrap;
+  }
 
   .mdash-radio-group {
     display: flex;
@@ -1593,6 +1614,155 @@
     cursor: pointer;
     flex-shrink: 0;
     margin: 0;
+  }
+
+  /* MDASH 2.0 — filtro checkboxtree (árvore de checkboxes) */
+  .mdash-checkbox-tree {
+    max-height: 280px;
+    overflow: auto;
+    border: 1px solid #d5dbe3;
+    border-radius: 8px;
+    padding: 2px;
+    background: #fff;
+    font-size: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .mdash-checkbox-tree::-webkit-scrollbar {
+    width: 6px;
+  }
+  .mdash-checkbox-tree::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 6px;
+  }
+  /* Visto lógico de disponibilização da árvore */
+  .mdash-cbtree-header {
+    display: flex;
+    align-items: center;
+    padding: 2px 2px 4px;
+    margin-bottom: 2px;
+    border-bottom: 1px solid #eef2f7;
+  }
+  .mdash-checkbox-tree.is-collapsed {
+    max-height: none;
+    overflow: hidden;
+  }
+  .mdash-checkbox-tree.is-collapsed .mdash-cbtree-header {
+    padding-bottom: 2px;
+    margin-bottom: 0;
+    border-bottom: none;
+  }
+  .mdash-checkbox-tree.is-collapsed .mdash-cbtree-body {
+    display: none;
+  }
+  .mdash-cbtree-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .mdash-cbtree-switch-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--md-text, #334155);
+    line-height: 1.4;
+    margin-left:4px;
+  }
+  /* Nó pai virtual "Todos" (selecciona/desselecciona a árvore inteira) */
+  .mdash-cbtree-row-root {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 2px;
+  }
+  .mdash-cbtree-row-root > .mdash-cbtree-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    color: #475569;
+  }
+  .mdash-cbtree-list {
+    list-style: none;
+    margin: 0;
+    padding-left: 0;
+  }
+  .mdash-cbtree-list:not([data-nivel='0']) {
+    margin-left: 4px;
+    padding-left: 4px;
+    border-left: 1px solid #e2e8f0;
+  }
+  .mdash-cbtree-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    padding: 2px;
+    border-radius: 4px;
+    transition: background 0.12s ease;
+  }
+  .mdash-cbtree-row:hover {
+    background: #f1f5f9;
+  }
+  /* Seta de expandir/colapsar à direita (no lugar do badge de contagem) */
+  .mdash-cbtree-toggle {
+    width: 22px;
+    height: 22px;
+    margin-left: auto;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    line-height: 1;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #64748b;
+    transition: transform 0.15s ease, background 0.12s ease, color 0.12s ease;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .mdash-cbtree-toggle:hover {
+    background: #e2e8f0;
+    color: #334155;
+  }
+  .mdash-cbtree-toggle.is-open {
+    transform: rotate(90deg);
+  }
+  .mdash-cbtree-label {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--md-text, #334155);
+    white-space: nowrap;
+  }
+  .mdash-cbtree-row-pai > .mdash-cbtree-label {
+    font-weight: 600;
+  }
+  .mdash-cbtree-label input[type='checkbox'] {
+    width: 15px;
+    height: 15px;
+    margin: 0 2px 0 0;
+    accent-color: var(--md-primary, #3b82f6);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  /* Texto sempre em frente à checkbox — nunca quebra para baixo */
+  .mdash-cbtree-label span {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mdash-cbtree-vazio {
+    color: #94a3b8;
+    font-style: italic;
+    padding: 4px 2px;
   }
 
 
@@ -1990,7 +2160,7 @@
               <div v-for="filter in getVisibleFilters()" :key="filter.mdashfilterstamp"
                 :class="[`gr-col-md-${filter.tamanho}`, `gr-col-sm-${filter.tamanho}`, `gr-col-lg-${filter.tamanho}`]">
                 <div class="m-dash-dynamic-filters">
-                  <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
+                  <label v-if="filter.tipo !== 'logic'" class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
                     <div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'">
                       <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
                         class="btn btn-xs btn-primary" @click="selectAllOptions(filter)">Todas opções</button>
@@ -2027,6 +2197,9 @@
                         opt[filter.campooption] }}</option>
                     </select>
                   </div>
+                  <!-- checkboxtree -->
+                  <div v-else-if="filter.tipo === 'checkboxtree'" class="mdash-checkbox-tree" :id="filter.codigo"
+                    @vue:mounted="initCheckboxTree($el,filter)"></div>
                   <!-- radio -->
                   <div v-else-if="filter.tipo === 'radio'" class="mdash-radio-group">
                     <label v-for="opt in getOptions(filter)" :key="opt[filter.campovalor]" class="mdash-radio-item">
@@ -2036,10 +2209,12 @@
                     </label>
                   </div>
                   <!-- logic -->
-                  <label v-else-if="filter.tipo === 'logic'" class="mdash-logic-toggle">
+                  <label v-else-if="filter.tipo === 'logic'" class="mdash-logic-toggle mdash-logic-dual">
+                    <span class="mdash-logic-lbl">{{ filter.descricao }}</span>
                     <input @change="updateFilter(filter,$event)" type="checkbox"
                       class="mdash-logic-check" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
                     <span class="mdash-toggle-track"><span class="mdash-toggle-thumb"></span></span>
+                    <span v-if="filter.descricaodireita" class="mdash-logic-lbl">{{ filter.descricaodireita }}</span>
                   </label>
                   <!-- fallback -->
                   <input data-else="elseinput" @input="scheduleFilterUpdate(filter,$event)" @change="updateFilter(filter,$event)" v-else type="text"
@@ -2083,7 +2258,7 @@
             <div class="panel-body">
               <div class="m-dash-dynamic-filters">
                 <div v-for="filter in getVisibleFilters()" :key="filter.mdashfilterstamp" class="m-dash-filter-item">
-                  <label class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
+                  <label v-if="filter.tipo !== 'logic'" class="m-dash-filter-item" :for="filter.codigo">{{ filter.descricao }}
                     <div style="display: flex;column-gap: 0.2em;" v-if="filter.tipo === 'multiselect'">
                       <button style="margin-left: 0.4em;border-radius: 4px;" type="button"
                         class="btn btn-xs btn-primary" @click="selectAllOptions(filter)">Todas opções</button>
@@ -2120,6 +2295,9 @@
                         opt[filter.campooption] }}</option>
                     </select>
                   </div>
+                  <!-- checkboxtree -->
+                  <div v-else-if="filter.tipo === 'checkboxtree'" class="mdash-checkbox-tree" :id="filter.codigo"
+                    @vue:mounted="initCheckboxTree($el,filter)"></div>
                   <!-- radio -->
                   <div v-else-if="filter.tipo === 'radio'" class="mdash-radio-group">
                     <label v-for="opt in getOptions(filter)" :key="opt[filter.campovalor]" class="mdash-radio-item">
@@ -2129,10 +2307,12 @@
                     </label>
                   </div>
                   <!-- logic -->
-                  <label v-else-if="filter.tipo === 'logic'" class="mdash-logic-toggle">
+                  <label v-else-if="filter.tipo === 'logic'" class="mdash-logic-toggle mdash-logic-dual">
+                    <span class="mdash-logic-lbl">{{ filter.descricao }}</span>
                     <input @change="updateFilter(filter,$event)" type="checkbox"
                       class="mdash-logic-check" :id="filter.codigo" v-model="mdash.filterValues[filter.codigo]" />
                     <span class="mdash-toggle-track"><span class="mdash-toggle-thumb"></span></span>
+                    <span v-if="filter.descricaodireita" class="mdash-logic-lbl">{{ filter.descricaodireita }}</span>
                   </label>
                   <!-- fallback -->
                   <input @input="scheduleFilterUpdate(filter,$event)" @change="updateFilter(filter,$event)" v-else type="text"
@@ -2700,10 +2880,13 @@
       this.dashboardstamp = data.dashboardstamp || GMDashStamp;
       this.codigo = data.codigo || "";
       this.descricao = data.descricao || "";
+      // Filtros lógicos: label do lado direito do toggle (descricao fica à esquerda)
+      this.descricaodireita = data.descricaodireita || "";
       this.tipo = data.tipo || "text";
       this.tamanho = data.tamanho || 4;
       this.campooption = data.campooption || "";
       this.campovalor = data.campovalor || "";
+      this.campoagrupador = data.campoagrupador || "";
       this.expressaojslistagem = data.expressaojslistagem || "";
       this.eventochange = data.eventochange || false;
       this.expressaochange = data.expressaochange || "";
@@ -3173,6 +3356,9 @@
       case "multiselect":
         return [];
 
+      case "checkboxtree":
+        return "";
+
       case "radio":
         return "";
 
@@ -3186,6 +3372,181 @@
 
   function runExpression(code) {
     return new Function(code)();
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     MDASH 2.0 — FILTRO 'checkboxtree' (árvore de checkboxes com tri-state)
+     Hierarquia inferida por prefixo do campo agrupador:
+       A) com hífen: "CPHC-NCA-CS" → pai = "CPHC-NCA" (corte no último hífen)
+       B) fallback: remove um caractere de cada vez à direita ("412" → "41")
+     ════════════════════════════════════════════════════════════════════════ */
+
+  function mdashObterChaveDoPai(chave, mapa) {
+    if (typeof chave !== 'string' || !chave) return null;
+    if (chave.indexOf('-') !== -1) {
+      var candidato = chave.substring(0, chave.lastIndexOf('-'));
+      if (mapa[candidato]) return candidato;
+    }
+    for (var tamanho = chave.length - 1; tamanho >= 1; tamanho--) {
+      var cand = chave.substring(0, tamanho);
+      if (mapa[cand]) return cand;
+    }
+    return null;
+  }
+
+  function mdashConstruirArvoreCheckbox(linhas, campoAgrupador, campoOption, campoValor) {
+    var mapa = {};
+
+    (linhas || []).forEach(function (linha) {
+      var chave = String(linha[campoAgrupador] != null ? linha[campoAgrupador] : '').trim();
+      if (!chave || mapa[chave]) return;
+      mapa[chave] = {
+        chave: chave,
+        label: (linha[campoOption] != null && linha[campoOption] !== '') ? linha[campoOption] : chave,
+        value: (linha[campoValor] != null && linha[campoValor] !== '') ? linha[campoValor] : chave,
+        filhos: [],
+        pai: null,
+        checked: false,
+        indeterminate: false,
+        expanded: false
+      };
+    });
+
+    var raizes = [];
+    Object.keys(mapa).forEach(function (chave) {
+      var no = mapa[chave];
+      var pai = mdashObterChaveDoPai(chave, mapa);
+      if (pai && pai !== chave) {
+        no.pai = pai;
+        mapa[pai].filhos.push(no);
+      } else {
+        raizes.push(no);
+      }
+    });
+
+    raizes.forEach(function (r) { r.expanded = true; });
+
+    // Nó pai virtual de todos os nós — selecciona/desselecciona a árvore inteira.
+    // Marcado como virtual para nunca entrar na serialização do valor do filtro.
+    var chaveRaiz = '__mdash_cbtree_root__';
+    var raiz = {
+      chave: chaveRaiz,
+      label: 'Todos',
+      value: '',
+      virtual: true,
+      filhos: raizes,
+      pai: null,
+      checked: false,
+      indeterminate: false,
+      expanded: true
+    };
+    raizes.forEach(function (r) { r.pai = chaveRaiz; });
+    mapa[chaveRaiz] = raiz;
+
+    return { raizes: [raiz], mapa: mapa, chaveRaiz: chaveRaiz };
+  }
+
+  function mdashAtualizarTriStateArvore(mapa, chave, checked) {
+    var no = mapa[chave];
+    if (!no) return;
+
+    no.checked = checked;
+    no.indeterminate = false;
+
+    (function marcarDescendentes(node) {
+      node.filhos.forEach(function (filho) {
+        filho.checked = checked;
+        filho.indeterminate = false;
+        marcarDescendentes(filho);
+      });
+    })(no);
+
+    (function atualizarPai(paiChave) {
+      if (!paiChave) return;
+      var paiNo = mapa[paiChave];
+      if (!paiNo) return;
+
+      var marcados = paiNo.filhos.filter(function (f) { return f.checked; }).length;
+      var comIndeterminados = paiNo.filhos.some(function (f) { return f.indeterminate; });
+
+      if (marcados === 0 && !comIndeterminados) {
+        paiNo.checked = false;
+        paiNo.indeterminate = false;
+      } else if (marcados === paiNo.filhos.length) {
+        paiNo.checked = true;
+        paiNo.indeterminate = false;
+      } else {
+        paiNo.checked = false;
+        paiNo.indeterminate = true;
+      }
+      atualizarPai(paiNo.pai);
+    })(no.pai);
+  }
+
+  function mdashSerializarSelecaoArvore(mapa) {
+    var selecionados = [];
+    Object.keys(mapa).forEach(function (chave) {
+      if (mapa[chave].checked && !mapa[chave].virtual) selecionados.push(mapa[chave].value);
+    });
+    return selecionados.join(',');
+  }
+
+  function mdashParseCheckboxTreeValue(valor) {
+    if (Array.isArray(valor)) return valor;
+    if (valor === null || valor === undefined || valor === '') return [];
+    return String(valor)
+      .split(',')
+      .map(function (v) { return v.trim().replace(/^'+|'+$/g, ''); })
+      .filter(function (v) { return v !== ''; });
+  }
+
+  function mdashRestaurarSelecaoArvore(mapa, valores) {
+    if (!valores || !valores.length) return;
+    Object.keys(mapa).forEach(function (chave) {
+      mapa[chave].checked = false;
+      mapa[chave].indeterminate = false;
+    });
+    valores.forEach(function (valor) {
+      Object.keys(mapa).forEach(function (chave) {
+        if (String(mapa[chave].value) === String(valor)) {
+          mdashAtualizarTriStateArvore(mapa, chave, true);
+        }
+      });
+    });
+  }
+
+  function mdashEscapeHtml(texto) {
+    return String(texto == null ? '' : texto)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function mdashRenderArvoreCheckboxHTML(nos, nivel) {
+    nivel = nivel || 0;
+    var html = '<ul class="mdash-cbtree-list" data-nivel="' + nivel + '">';
+    (nos || []).forEach(function (no) {
+      var temFilhos = no.filhos && no.filhos.length > 0;
+      html += '<li class="mdash-cbtree-node">';
+      html += '<div class="mdash-cbtree-row' + (temFilhos ? ' mdash-cbtree-row-pai' : '') + (no.virtual ? ' mdash-cbtree-row-root' : '') + '">';
+      html += '<label class="mdash-cbtree-label">';
+      html += '<input type="checkbox" data-chave="' + mdashEscapeHtml(no.chave) + '"' + (no.checked ? ' checked' : '') + ' />';
+      html += '<span>' + mdashEscapeHtml(no.label) + '</span>';
+      html += '</label>';
+      if (temFilhos) {
+        // Seta à direita (no lugar do badge de contagem); nº de nós fica no tooltip
+        html += '<span class="mdash-cbtree-toggle' + (no.expanded ? ' is-open' : '') + '" data-chave="' + mdashEscapeHtml(no.chave) + '" title="' + no.filhos.length + ' nós">&#9656;</span>';
+      }
+      html += '</div>';
+      if (temFilhos && no.expanded) {
+        html += mdashRenderArvoreCheckboxHTML(no.filhos, nivel + 1);
+      }
+      html += '</li>';
+    });
+    html += '</ul>';
+    return html;
   }
 
   async function validateMdashAccessBatch(accesses) {
@@ -3436,6 +3797,92 @@
           .join(',');
 
 
+      },
+      initCheckboxTree(el, filtro) {
+        var self = this;
+
+        var campoValor = filtro.campovalor || 'valor';
+        var campoOption = filtro.campooption || 'opcao';
+        var campoAgrupador = filtro.campoagrupador || campoValor;
+
+        var linhas = this.getOptions(filtro) || [];
+        var arvore = mdashConstruirArvoreCheckbox(linhas, campoAgrupador, campoOption, campoValor);
+        var raiz = arvore.mapa[arvore.chaveRaiz];
+
+        if (!raiz.filhos.length) {
+          el.innerHTML = '<div class="mdash-cbtree-vazio">Sem opções disponíveis</div>';
+          return;
+        }
+
+        // Restaurar seleção anterior (cache localStorage / valor por defeito)
+        var valoresIniciais = mdashParseCheckboxTreeValue(this.mdash.filterValues[filtro.codigo]);
+        mdashRestaurarSelecaoArvore(arvore.mapa, valoresIniciais);
+
+        // Visto lógico de disponibilização: árvore visível só quando activo.
+        // Arranca activo se há seleção guardada (senão o filtro esconderia valores em uso).
+        var ativo = valoresIniciais.length > 0;
+
+        el.innerHTML =
+          '<div class="mdash-cbtree-header">'
+          + '<label class="mdash-logic-toggle mdash-cbtree-switch">'
+          + '<input type="checkbox" class="mdash-logic-check mdash-cbtree-enable"' + (ativo ? ' checked' : '') + ' />'
+          + '<span class="mdash-toggle-track"><span class="mdash-toggle-thumb"></span></span>'
+          + '<span class="mdash-cbtree-switch-text">' + mdashEscapeHtml(filtro.descricao || 'Aplicar filtro') + '</span>'
+          + '</label>'
+          + '</div>'
+          + '<div class="mdash-cbtree-body"></div>';
+        var body = el.querySelector('.mdash-cbtree-body');
+        el.classList.toggle('is-collapsed', !ativo);
+
+        // O título do filtro vive junto ao visto lógico — esconder a label externa duplicada
+        var labelExterna = document.querySelector('label.m-dash-filter-item[for="' + filtro.codigo + '"]');
+        if (labelExterna) labelExterna.style.display = 'none';
+
+        function render() {
+          body.innerHTML = mdashRenderArvoreCheckboxHTML(arvore.raizes);
+          // "indeterminate" é propriedade JS, não atributo HTML
+          body.querySelectorAll('input[data-chave]').forEach(function (input) {
+            var no = arvore.mapa[input.getAttribute('data-chave')];
+            if (no) input.indeterminate = !!no.indeterminate;
+          });
+        }
+
+        el.addEventListener('change', function (event) {
+          var input = event.target;
+          if (!input || input.type !== 'checkbox') return;
+
+          // Visto lógico: OFF esconde a árvore e desselecciona todos os nós
+          if (input.classList.contains('mdash-cbtree-enable')) {
+            ativo = input.checked;
+            el.classList.toggle('is-collapsed', !ativo);
+            if (!ativo) {
+              Object.keys(arvore.mapa).forEach(function (chave) {
+                arvore.mapa[chave].checked = false;
+                arvore.mapa[chave].indeterminate = false;
+              });
+              render();
+              self.executeUpdateFilter(filtro, '');
+            }
+            return;
+          }
+
+          if (!input.hasAttribute('data-chave')) return;
+          mdashAtualizarTriStateArvore(arvore.mapa, input.getAttribute('data-chave'), input.checked);
+          render();
+          self.executeUpdateFilter(filtro, mdashSerializarSelecaoArvore(arvore.mapa));
+        });
+
+        el.addEventListener('click', function (event) {
+          var toggle = event.target.closest('.mdash-cbtree-toggle');
+          if (!toggle) return;
+          var no = arvore.mapa[toggle.getAttribute('data-chave')];
+          if (no) {
+            no.expanded = !no.expanded;
+            render();
+          }
+        });
+
+        render();
       },
       getOptions(filter) {
         try {
