@@ -6423,6 +6423,37 @@ function mdashRenderContainerItemState(containerItem, state, runtimeCtx) {
 }
 window.mdashRenderContainerItemState = mdashRenderContainerItemState;
 
+/**
+ * Slots (distintos) onde este item tem objectos renderizáveis.
+ * Usado para colocar skeleton em TODOS os slots com conteúdo — não só no body.
+ */
+function mdashGetItemObjectSlotIds(containerItem) {
+    var itemStamp = containerItem && containerItem.mdashcontaineritemstamp;
+    if (!itemStamp) return [];
+    var objects = (containerItem._mdash && Array.isArray(containerItem._mdash.containerItemObjects))
+        ? containerItem._mdash.containerItemObjects
+        : ((window.appState && window.appState.containerItemObjects) || GMDashContainerItemObjects || []);
+    var seen = {};
+    var out = [];
+    objects.forEach(function (obj) {
+        if (!obj || obj.mdashcontaineritemstamp !== itemStamp) return;
+        var category = mdashGetObjectCategory(obj);
+        if (category === 'detail' || category === 'overlay' || category === 'datasource' || category === 'filter') return;
+        var slotId = obj.slotid || getMdashContainerItemMainSlotId(containerItem);
+        if (seen[slotId]) return;
+        seen[slotId] = true;
+        out.push(slotId);
+    });
+    return out;
+}
+
+/** Skeleton compacto para slots secundários (icon, value, meta, ...). */
+function mdashBuildSlotSkeletonHtml() {
+    return '<div class="mdash-skel-shell mdash-skel-shell--compact" style="--md-skel-min-h:18px;min-height:18px;max-height:52px;padding:5px 8px;gap:4px;border-radius:8px;">'
+        + '<span class="mdash-skel-line w-70"></span>'
+        + '</div>';
+}
+
 function mdashHandleContainerItemLayoutRuntime(containerItem, runtimeCtx) {
     runtimeCtx = runtimeCtx || {};
     if (!containerItem) return false;
@@ -6479,10 +6510,21 @@ function mdashHandleContainerItemLayoutRuntime(containerItem, runtimeCtx) {
             fixedHeight: measuredBodyHeight > 40 ? measuredBodyHeight : 0
         });
 
+    var objectSlotIds = mdashGetItemObjectSlotIds(containerItem);
+
     try {
         var $slotForSkeleton = resolveMdashContainerItemSlotForContent(containerItem, mainSlotId, hostSelector);
         if ($slotForSkeleton && $slotForSkeleton.length && !mdashIsStructuralSlot($slotForSkeleton) && measuredBodyHeight > 40 && !isCompactLayout) {
             $slotForSkeleton.empty().append(skeletonHTML);
+            // Skeleton também nos restantes slots com objectos (layouts multi-slot:
+            // icon/value/meta...) — antes só o body mostrava estado de loading.
+            objectSlotIds.forEach(function (slotId) {
+                if (slotId === mainSlotId) return;
+                var $s = resolveMdashContainerItemSlotForContent(containerItem, slotId, hostSelector);
+                if ($s && $s.length && !mdashIsStructuralSlot($s)) {
+                    $s.empty().append(mdashBuildSlotSkeletonHtml());
+                }
+            });
             return true;
         }
     } catch (e) { /* continua para render completo */ }
@@ -6494,10 +6536,19 @@ function mdashHandleContainerItemLayoutRuntime(containerItem, runtimeCtx) {
     }
 
     try {
+        // slotContents: mini-skeleton em cada slot secundário com objectos, para o
+        // estado de loading cobrir o card inteiro (não só o slot principal).
+        var skeletonSlotContents = {};
+        objectSlotIds.forEach(function (slotId) {
+            if (slotId !== mainSlotId) skeletonSlotContents[slotId] = mdashBuildSlotSkeletonHtml();
+        });
         var renderedTemplate = renderMdashContainerItemLayout(
             containerItem,
             hostSelector,
-            mdashBuildContainerItemCardData(containerItem, { bodyContent: skeletonHTML })
+            mdashBuildContainerItemCardData(containerItem, {
+                bodyContent: skeletonHTML,
+                slotContents: skeletonSlotContents
+            })
         );
         if (renderedTemplate) return true;
     } catch (e) {
@@ -6559,11 +6610,13 @@ function mdashRefreshContainerItemRuntime(containerItem, runtimeCtx, options) {
         }
 
         containerItem._pendingFetchKey = requestKey;
-        containerItem._pendingFetchPromise = $.ajax({
+        // $.ajax devolve um jqXHR (Deferred jQuery) que NÃO tem .finally() —
+        // Promise.resolve() converte o thenable numa Promise nativa completa.
+        containerItem._pendingFetchPromise = Promise.resolve($.ajax({
             type: 'POST',
             url: urlfetch,
             data: { '__EVENTARGUMENT': JSON.stringify([requestData]) }
-        });
+        }));
 
         return containerItem._pendingFetchPromise.finally(function () {
             containerItem._pendingFetchPromise = null;

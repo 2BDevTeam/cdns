@@ -744,6 +744,12 @@
     min-height: var(--md-item-min-h, 0px);
     height: auto;
     align-self: start;
+    /* Item de grid do .gr-row (display:grid): sem min-width:0 herda o
+       min-width:auto implícito, dimensionado pelo min-content dos filhos
+       (ex.: largura intrínseca de uma tabela Tabulator), ignorando a track
+       minmax(0,1fr) do .gr-row e forçando o card a transbordar. */
+    min-width: 0;
+    max-width: 100%;
   }
 
   /* Por omissão todos os container items são compactos; só stretch quando marcado */
@@ -1789,6 +1795,8 @@
     flex-direction: column;
     height: auto;
     overflow: hidden;
+    min-width: 0;
+    max-width: 100%;
     transition: box-shadow 200ms ease, transform 200ms ease;
     position: relative;
   }
@@ -1862,6 +1870,7 @@
     padding: 18px 20px;
     overflow: auto;
     min-height: 0;
+    min-width: 0;
     position: relative;
   }
 
@@ -4400,39 +4409,39 @@
           try { item.handleLayout(); } catch (e) { /* ignore */ }
         }
 
-        if (globalFontes.length) {
-          scopedItems.forEach(function (item) {
-            if (!hasFonteStampFilter || scopedTargetItems[item.mdashcontaineritemstamp]) {
-              showSkeleton(item);
-            }
-          });
-        }
+        // Um único refresh por item, quando TODAS as fontes de que depende
+        // (globais + específicas) terminarem. Antes havia dois refreshes por
+        // item (um após fontes globais, outro após fontes próprias), o que
+        // fazia o skeleton desaparecer antes de todos os objectos carregarem
+        // e provocava flicker skeleton→conteúdo→conteúdo.
+        var globalFontesJob = loadAllFontes(globalFontes);
 
-        var globalJob = loadAllFontes(globalFontes).then(function () {
-          // Global fontes can affect multiple cards; when scoped by filter-change,
-          // refresh only items linked to affected fontes.
-          scopedItems.forEach(function (item) {
-            if (hasFonteStampFilter && !scopedTargetItems[item.mdashcontaineritemstamp]) return;
-            try { item.refreshContent({ skipItemFetch: true }); } catch (e) { /* ignore */ }
-          });
-        });
-
-        var itemJobs = [];
+        var refreshJobs = [];
         scopedItems.forEach(function (item) {
           var itemFontes = self._filterFontesByStampMap(
             self._getFontesForContainerItem(item.mdashcontaineritemstamp, modes),
             fonteStampMap
           );
-          if (!itemFontes.length) return;
+          // Fontes globais (não referenciadas) podem alimentar qualquer card via
+          // transformações SQLite — por isso, havendo globais, todos os itens do
+          // scope aguardam por elas (sujeito ao filtro por fonte alterada).
+          var dependsOnGlobal = globalFontes.length > 0
+            && (!hasFonteStampFilter || !!scopedTargetItems[item.mdashcontaineritemstamp]);
+          var dependsOnItem = itemFontes.length > 0;
+          if (!dependsOnGlobal && !dependsOnItem) return;
+
           showSkeleton(item);
-          itemJobs.push(
-            loadAllFontes(itemFontes).then(function () {
+          refreshJobs.push(
+            Promise.all([
+              dependsOnGlobal ? globalFontesJob : Promise.resolve(),
+              dependsOnItem ? loadAllFontes(itemFontes) : Promise.resolve()
+            ]).then(function () {
               try { item.refreshContent({ skipItemFetch: true }); } catch (e) { /* ignore */ }
             })
           );
         });
 
-        return Promise.all([globalJob].concat(itemJobs)).then(function () {
+        return Promise.all([globalFontesJob].concat(refreshJobs)).then(function () {
           scheduleMdashSidebarHeightSync();
         });
       },
@@ -4705,20 +4714,37 @@
       var filters = configData.filters || [];
       var filterValues = {};
 
-      setTimeout(function () {
-        $('[data-language]').datepicker({
+      // Datepicker dos filtros de data (inputs [data-language]).
+      // O init único com setTimeout falhava quando os inputs ainda não estavam
+      // no DOM (config/acessos lentos) e perdia-se quando o PetiteVue recriava
+      // os filtros (ex.: troca de separador) — daí o datepicker aparecer "às
+      // vezes". O init passa a ser preguiçoso e delegado no focusin: funciona
+      // sempre, independentemente de quando o input é criado/recriado.
+      function mdashInitDatepickerEl(el) {
+        var $el = $(el);
+        if (!$el.length || $el.data('mdashDpInit')) return false;
+        $el.data('mdashDpInit', true);
+        $el.datepicker({
           dateFormat: "yyyy-mm-dd",
           defaultDate: new Date(),
           onSelect: function (dateText, date, inst) {
-            var codigo = $(inst.el).attr('id');
-            $(codigo).trigger("change");
             const event = new Event('change', { bubbles: true });
             inst.el.dispatchEvent(event);
-
-
           }
         });
+        return true;
+      }
+      setTimeout(function () {
+        $('input[data-language]').each(function () { mdashInitDatepickerEl(this); });
       }, 1000);
+      $(document).off('focusin.mdashDp').on('focusin.mdashDp', 'input[data-language]', function () {
+        // Init sob procura; se acabou de ser inicializado neste focus, o evento
+        // de show do widget já passou — mostrar explicitamente.
+        if (mdashInitDatepickerEl(this)) {
+          var dp = $(this).data('datepicker');
+          if (dp && typeof dp.show === 'function') dp.show();
+        }
+      });
 
       filters.forEach(function (filter) {
         filterValues[filter.codigo] = getValorDefeito(filter);

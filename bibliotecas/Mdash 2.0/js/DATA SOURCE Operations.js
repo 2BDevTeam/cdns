@@ -1052,7 +1052,15 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
             var rowObj = {};
             for (var i = 0; i < srcCols.length; i++) rowObj[srcCols[i]] = row[i];
             var out = row.slice();
-            evals.forEach(function (e) { out.push(_evalJsExpr(e, rowObj)); });
+            // Cada JS_EXPR escreve o seu resultado em rowObj antes da seguinte
+            // ser avaliada, para que colunas JS_EXPR possam referenciar-se
+            // entre si (ex: "total" = "subtotal1" + "subtotal2"), desde que a
+            // coluna referenciada esteja definida ANTES na lista de colunas.
+            evals.forEach(function (e) {
+                var val = _evalJsExpr(e, rowObj);
+                rowObj[e.alias] = val;
+                out.push(val);
+            });
             return out;
         });
 
@@ -1066,7 +1074,9 @@ var MdashTransformBuilder = window.MdashTransformBuilder = (function () {
         return rows.map(function (r) {
             var out = {};
             for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) out[k] = r[k];
-            evals.forEach(function (e) { out[e.alias] = _evalJsExpr(e, r); });
+            // Avalia contra `out` (acumulado), não `r` original, para que uma
+            // JS_EXPR possa referenciar o alias de outra JS_EXPR anterior.
+            evals.forEach(function (e) { out[e.alias] = _evalJsExpr(e, out); });
             return out;
         });
     }

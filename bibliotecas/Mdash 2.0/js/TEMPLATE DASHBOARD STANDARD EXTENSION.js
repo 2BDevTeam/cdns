@@ -1264,20 +1264,110 @@ function _tblBuildExecutiveHeader(columns) {
     (columns || []).forEach(function (column) {
         var span = _tblCountLeafColumns(column);
         var title = _mciEsc(column.title || column.field || '');
+        var groupBg = _tblResolveColorToken(column.headerColor, '');
+        var groupStyle = groupBg ? ('background:' + groupBg + ' !important;') : '';
         if (Array.isArray(column.columns) && column.columns.length) {
-            topHtml += '<div class="mtbl-exec-header__cell is-group" style="grid-column:' + cursor + ' / span ' + span + ';grid-row:1;">' + title + '</div>';
+            topHtml += '<div class="mtbl-exec-header__cell is-group" style="grid-column:' + cursor + ' / span ' + span + ';grid-row:1;' + groupStyle + '">' + title + '</div>';
             column.columns.forEach(function (child, childIndex) {
-                childHtml += '<div class="mtbl-exec-header__cell" style="grid-column:' + (cursor + childIndex) + ';grid-row:2;">'
+                var childBg = _tblResolveColorToken(child.headerColor, '') || groupBg;
+                var childStyle = childBg ? ('background:' + childBg + ' !important;') : '';
+                childHtml += '<div class="mtbl-exec-header__cell" style="grid-column:' + (cursor + childIndex) + ';grid-row:2;' + childStyle + '">'
                     + _mciEsc(child.title || child.field || '') + '</div>';
             });
         } else {
-            topHtml += '<div class="mtbl-exec-header__cell is-rowspan" style="grid-column:' + cursor + ';grid-row:1 / span 2;">' + title + '</div>';
+            var leafStyle = groupBg ? ('background:' + groupBg + ' !important;') : '';
+            topHtml += '<div class="mtbl-exec-header__cell is-rowspan" style="grid-column:' + cursor + ';grid-row:1 / span 2;' + leafStyle + '">' + title + '</div>';
         }
         cursor += span;
     });
 
-    return '<div class="mtbl-exec-header" style="grid-template-columns:' + gridTemplate + ';">'
-        + topHtml + childHtml + '</div>';
+    return '<div class="mtbl-exec-header">'
+        + '<div class="mtbl-exec-header__inner" style="grid-template-columns:' + gridTemplate + ';">'
+        + topHtml + childHtml + '</div></div>';
+}
+
+// Alinha o cabeçalho executivo (estático) com as colunas reais do Tabulator
+// (escondidas via CSS) e sincroniza o scroll horizontal do corpo com o
+// cabeçalho, já que são dois elementos DOM independentes.
+function _tblSyncExecHeaderLayout(table, wrapId) {
+    var wrapEl = document.getElementById(wrapId);
+    if (!wrapEl) return;
+    var innerEl = wrapEl.querySelector('.mtbl-exec-header__inner');
+    var holderEl = wrapEl.querySelector('.tabulator-tableholder');
+    if (!innerEl || !holderEl) return;
+
+    try {
+        var widths = table.getColumns().map(function (col) {
+            var w = col.getWidth();
+            return (w > 0 ? w : 110) + 'px';
+        });
+        if (widths.length) innerEl.style.gridTemplateColumns = widths.join(' ');
+    } catch (e) { /* ignore */ }
+
+    if (!holderEl._mdashExecHeaderScrollBound) {
+        holderEl._mdashExecHeaderScrollBound = true;
+        holderEl.addEventListener('scroll', function () {
+            innerEl.style.transform = 'translateX(-' + holderEl.scrollLeft + 'px)';
+        }, { passive: true });
+    }
+}
+
+// Sincroniza o rodapé (paginação) com o mesmo scroll horizontal do corpo da
+// tabela — evita um 2º scrollbar independente no footer (ver nota em _tblCSS
+// junto de .tabulator-footer). Aplica-se a todas as tabelas, não só às
+// agrupadas.
+function _tblSyncFooterScroll(wrapId) {
+    var wrapEl = document.getElementById(wrapId);
+    if (!wrapEl) return;
+    var holderEl = wrapEl.querySelector('.tabulator-tableholder');
+    if (!holderEl || holderEl._mdashFooterScrollBound) return;
+    holderEl._mdashFooterScrollBound = true;
+    holderEl.addEventListener('scroll', function () {
+        var footerInner = wrapEl.querySelector('.tabulator-footer-contents');
+        if (footerInner) footerInner.style.transform = 'translateX(-' + holderEl.scrollLeft + 'px)';
+    }, { passive: true });
+}
+
+// Garante que a área de scroll do corpo é sempre larga o suficiente para
+// revelar o rodapé por completo — sem isto, quando as colunas cabem no ecrã
+// (sem overflow próprio) mas o rodapé é mais largo (paginação com muitas
+// páginas), não existe scroll nenhum e o rodapé fica cortado sem forma de o
+// alcançar. Aplica-se min-width ao .tabulator-table (o conteúdo real dentro
+// de .tabulator-tableholder) igual ao maior valor entre a largura natural das
+// colunas e a largura natural do rodapé — nunca encolhe as colunas nem
+// estica o rodapé além do necessário, só garante scroll suficiente.
+function _tblSyncFooterWidth(wrapId) {
+    var wrapEl = document.getElementById(wrapId);
+    if (!wrapEl) return;
+    var holderEl = wrapEl.querySelector('.tabulator-tableholder');
+    var tableEl = holderEl && holderEl.querySelector('.tabulator-table');
+    var footerInner = wrapEl.querySelector('.tabulator-footer-contents');
+    if (!holderEl || !tableEl || !footerInner) return;
+
+    // Reset antes de medir — senão a extensão aplicada numa passagem anterior
+    // inflaciona a largura "natural" lida nesta passagem.
+    tableEl.style.minWidth = '';
+    var tableWidth = tableEl.scrollWidth;
+    var footerWidth = footerInner.scrollWidth;
+
+    if (footerWidth > tableWidth) {
+        tableEl.style.minWidth = footerWidth + 'px';
+    }
+}
+
+// A paginação re-renderiza o rodapé ao mudar de página (nº de botões muda,
+// ex: "1 2 3" → "1 2 3 4 5"), o que altera a sua largura natural. Observa
+// essas mutações para recalcular _tblSyncFooterWidth sempre que necessário.
+function _tblObserveFooterWidth(wrapId) {
+    var wrapEl = document.getElementById(wrapId);
+    if (!wrapEl) return;
+    var footerEl = wrapEl.querySelector('.tabulator-footer');
+    if (!footerEl || footerEl._mdashFooterWidthObserved) return;
+    footerEl._mdashFooterWidthObserved = true;
+    var mo = new MutationObserver(function () {
+        _tblSyncFooterWidth(wrapId);
+    });
+    mo.observe(footerEl, { childList: true, subtree: true });
 }
 
 var _TABLE_EXECUTIVE_SAMPLE_CONFIG = JSON.parse(JSON.stringify(_TABLE_SAMPLE_CONFIG));
@@ -1634,7 +1724,14 @@ function _tblCSS() {
     if (_tblCssInjected) return;
     _tblCssInjected = true;
     var s = '<style id="mdash-table-inline-css">';
-    s += '.mtbl-wrap{position:relative;border-radius:var(--mtbl-radius,16px);overflow:hidden;background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:none;box-shadow:none;}';
+    // Contenção horizontal: filhos flex/grid têm min-width:auto por defeito e
+    // crescem até à largura intrínseca da tabela (o card transborda e o
+    // fitColumns "não faz nada" porque o elemento tem sempre a largura da
+    // tabela). min-width:0 na cadeia slot→host→wrap devolve o controlo ao
+    // contentor; overflow-x:auto no wrap dá scroll em vez de cortar colunas.
+    s += '[data-mdash-slot]{min-width:0;max-width:100%;}';
+    s += '.cont-item-object-rendered{min-width:0;max-width:100%;}';
+    s += '.mtbl-wrap{position:relative;max-width:100%;min-width:0;border-radius:var(--mtbl-radius,16px);overflow-x:auto;overflow-y:hidden;background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:none;box-shadow:none;}';
     s += '.mtbl-wrap.mtbl-no-col-resize .tabulator-col-resize-handle,.mtbl-wrap.mtbl-no-col-resize .tabulator-col-resize-handle:hover{display:none!important;pointer-events:none!important;width:0!important;opacity:0!important;}';
     s += '.mtbl-wrap .tabulator{border:none;background:#ffffff;font-size:var(--mtbl-fs,13px);font-family:"Inter","Nunito","Segoe UI",Arial,sans-serif;}';
     s += '.mtbl-wrap .tabulator .tabulator-header{background:linear-gradient(180deg,var(--mtbl-hdr-bg,#1e293b) 0%,var(--mtbl-hdr-bg-2,#16263f) 100%);border-bottom:none;border-radius:var(--mtbl-radius,16px) var(--mtbl-radius,16px) 0 0;padding-top:0;box-shadow:inset 0 -1px 0 rgba(255,255,255,.08);}';
@@ -1653,7 +1750,15 @@ function _tblCSS() {
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols{border-top:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.1));margin-top:0;background:var(--mtbl-hdr-bg,#1e293b) !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-sorter{color:var(--mtbl-hdr-text,#f8fafc);}';
     s += '.mtbl-wrap .tabulator .tabulator-header .tabulator-col .tabulator-arrow{border-bottom-color:var(--mtbl-hdr-text,#f8fafc) !important;border-top-color:var(--mtbl-hdr-text,#f8fafc) !important;opacity:.8 !important;}';
-    s += '.mtbl-exec-header{display:grid;background:var(--mtbl-hdr-bg,#1e293b);color:var(--mtbl-hdr-text,#f8fafc);border-radius:var(--mtbl-radius,16px) var(--mtbl-radius,16px) 0 0;overflow:hidden;font-size:var(--mtbl-hdr-fs,10px);font-weight:800;text-transform:uppercase;letter-spacing:.035em;}';
+    // Cabeçalho executivo (tabelas com colunas agrupadoras) é um <div> estático
+    // fora da área de scroll interna do Tabulator (que fica display:none). Sem
+    // sincronização, ao fazer scroll horizontal no corpo (.tabulator-tableholder)
+    // este cabeçalho ficava "preso" — daí parecer que fitColumns/fitData não
+    // fazem nada nestas tabelas. .mtbl-exec-header é a máscara com overflow
+    // escondido; .mtbl-exec-header__inner é deslocado via transform:translateX
+    // em sintonia com o scroll real do Tabulator (ver _tblSyncExecHeaderLayout).
+    s += '.mtbl-exec-header{position:relative;background:var(--mtbl-hdr-bg,#1e293b);border-radius:var(--mtbl-radius,16px) var(--mtbl-radius,16px) 0 0;overflow:hidden;}';
+    s += '.mtbl-exec-header__inner{display:grid;color:var(--mtbl-hdr-text,#f8fafc);font-size:var(--mtbl-hdr-fs,10px);font-weight:800;text-transform:uppercase;letter-spacing:.035em;will-change:transform;}';
     s += '.mtbl-exec-header__cell{display:flex;align-items:center;justify-content:center;min-width:0;padding:3px 5px;border-right:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.1));border-bottom:1px solid var(--mtbl-hdr-border,rgba(255,255,255,.1));line-height:1.1;background:var(--mtbl-hdr-bg,#1e293b);white-space:normal;text-align:center;}';
     s += '.mtbl-exec-header__cell.is-group{padding:3px 5px;background:var(--mtbl-hdr-bg-2,var(--mtbl-hdr-bg,#16263f));font-size:var(--mtbl-hdr-fs,9px);letter-spacing:.08em;}';
     s += '.mtbl-exec-header__cell.is-rowspan{justify-content:flex-start;padding-left:9px;}';
@@ -1676,8 +1781,18 @@ function _tblCSS() {
     s += '.mtbl-wrap .tabulator .tabulator-data-tree-control:hover{background:rgba(0,0,0,.06);}';
     s += '.mtbl-wrap .tabulator .tabulator-row.tabulator-tree-level-1{background:rgba(0,0,0,.015) !important;}';
     s += '.mtbl-wrap .tabulator .tabulator-row.tabulator-tree-level-2{background:rgba(0,0,0,.03) !important;}';
-    s += '.mtbl-wrap .tabulator .tabulator-footer{background:#f8fafc;border-top:1px solid var(--mtbl-border,rgba(0,0,0,.06));padding:8px 14px;font-size:12px;color:#64748b;}';
-    s += '.mtbl-wrap .tabulator .tabulator-footer .tabulator-page{padding:4px 10px;border-radius:5px;border:1px solid rgba(0,0,0,.1);margin:0 2px;font-size:11px;font-weight:500;background:#fff;color:#475569;transition:all .15s;}';
+    // O footer (paginação) é um irmão de .tabulator-tableholder, fora do
+    // scroll interno do Tabulator — em ecrãs estreitos os botões
+    // Seguinte/Última ficavam cortados e inacessíveis. Em vez de dar ao
+    // footer o seu PRÓPRIO scrollbar (duplica a barra e é confuso), o footer
+    // fica overflow:hidden e o seu conteúdo é deslocado via
+    // transform:translateX em sintonia com o scroll real do corpo
+    // (.tabulator-tableholder) — um único scrollbar controla tudo
+    // (ver _tblSyncFooterScroll).
+    s += '.mtbl-wrap .tabulator .tabulator-footer{background:#f8fafc;border-top:1px solid var(--mtbl-border,rgba(0,0,0,.06));padding:8px 14px;font-size:12px;color:#64748b;overflow:hidden;position:relative;}';
+    s += '.mtbl-wrap .tabulator .tabulator-footer .tabulator-footer-contents{display:inline-flex;align-items:center;flex-wrap:nowrap;white-space:nowrap;min-width:100%;will-change:transform;}';
+    s += '.mtbl-wrap .tabulator .tabulator-footer .tabulator-paginator{white-space:nowrap;flex-shrink:0;}';
+    s += '.mtbl-wrap .tabulator .tabulator-footer .tabulator-page{padding:4px 10px;border-radius:5px;border:1px solid rgba(0,0,0,.1);margin:0 2px;font-size:11px;font-weight:500;background:#fff;color:#475569;transition:all .15s;flex-shrink:0;}';
     s += '.mtbl-wrap .tabulator .tabulator-footer .tabulator-page.active{background:var(--mtbl-accent,#2563eb);color:#fff;border-color:var(--mtbl-accent,#2563eb);}';
     s += '.mtbl-wrap .tabulator .tabulator-footer .tabulator-page:hover:not(.active){background:#e2e8f0;}';
     s += '.mtbl-wrap .tabulator .tabulator-tableholder::-webkit-scrollbar{width:6px;height:6px;}';
@@ -1890,6 +2005,39 @@ function renderObjectTable(dados) {
             setTimeout(function () {
                 _tblApplyHeaderPresentation(table, wrapId, cfg, theme);
             }, 0);
+        }
+
+        // O Tabulator mede o contentor UMA vez no init; se o card ainda estava a
+        // estabilizar (skeleton/refresh de fontes/troca de tab) as larguras ficam
+        // erradas e não recalcula sozinho. Redraw ao construir + ResizeObserver
+        // no wrap garantem colunas sempre ajustadas à largura real.
+        var _tblBuiltRedraw = false;
+        table.on('tableBuilt', function () {
+            _tblBuiltRedraw = true;
+            setTimeout(function () {
+                try { table.redraw(true); } catch (e) { /* ignore */ }
+                if (hasGroupedColumns) _tblSyncExecHeaderLayout(table, wrapId);
+                _tblSyncFooterScroll(wrapId);
+                _tblSyncFooterWidth(wrapId);
+                _tblObserveFooterWidth(wrapId);
+            }, 0);
+        });
+        if (window.ResizeObserver) {
+            var _tblWrapEl = document.getElementById(wrapId);
+            if (_tblWrapEl) {
+                var _tblLastW = Math.round(_tblWrapEl.getBoundingClientRect().width);
+                var _tblRo = new ResizeObserver(function (entries) {
+                    if (!_tblBuiltRedraw) return;
+                    var w = Math.round(entries[0].contentRect.width);
+                    if (w > 0 && Math.abs(w - _tblLastW) > 2) {
+                        _tblLastW = w;
+                        try { table.redraw(true); } catch (e) { /* ignore */ }
+                        if (hasGroupedColumns) _tblSyncExecHeaderLayout(table, wrapId);
+                        _tblSyncFooterWidth(wrapId);
+                    }
+                });
+                _tblRo.observe(_tblWrapEl);
+            }
         }
 
         if (cfg.footer && cfg.footer.showRowCount) {
@@ -2146,12 +2294,14 @@ function _tblBuildColumnDefs(cols, cfg, rows, titleCtx) {
             if (Array.isArray(c.columns) && c.columns.length) {
                 var groupClasses = ['mtbl-col-group-lvl1', 'mtbl-col-group-idx-' + idx];
                 if (c.cssClass) groupClasses.unshift(c.cssClass);
-                return {
+                var groupDef = {
                     title: _tblResolveTitleBinding(_tblNormalizeTitleBinding(c), titleCtx),
                     headerHozAlign: c.headerHozAlign || 'center',
                     cssClass: groupClasses.join(' '),
                     columns: _tblBuildColumnDefs(c.columns, cfg, rows, titleCtx)
                 };
+                if (c.headerColor) groupDef.headerColor = c.headerColor;
+                return groupDef;
             }
             var leaf = _tblBuildLeafColumn(c, cfg, rows);
             leaf.title = _tblResolveTitleBinding(_tblNormalizeTitleBinding(c), titleCtx);
@@ -2175,6 +2325,7 @@ function _tblBuildLeafColumn(c, cfg, rows) {
     if (c.headerSort === false) col.headerSort = false;
     if (c.headerHozAlign) col.headerHozAlign = c.headerHozAlign;
     if (c.cssClass) col.cssClass = c.cssClass;
+    if (c.headerColor) col.headerColor = c.headerColor;
     if (c.formatter === 'conditional') {
         _tblEnsureColumnConditional(c);
         col.formatter = _tblConditionalFormatter;
@@ -2229,6 +2380,20 @@ function _tblBuildLeafColumn(c, cfg, rows) {
                            d.getFullYear();
                 };
                 col.sorter = c.sorter || 'date';
+            } else if (c.formatter === 'percentage' || c.formatter === 'number') {
+                // 'percentage' e 'number' não são formatters nativos do Tabulator
+                // (ao contrário de money/tickCross/star/...) — sem isto o Tabulator
+                // ignora o formatter e mostra o valor em bruto sem o símbolo "%".
+                var fmtType = c.formatter;
+                var fmtCfg = {
+                    precision: c.formatterParams && c.formatterParams.precision,
+                    showSign: c.formatterParams && c.formatterParams.showSign
+                };
+                col.formatter = function (cell) {
+                    return _tblRenderColumnFormat(cell, fmtType, fmtCfg, {});
+                };
+                col.sorter = c.sorter || 'number';
+                if (!c.hozAlign) col.hozAlign = 'right';
             } else {
                 col.formatter = c.formatter;
                 if (c.formatterParams) {
@@ -2587,6 +2752,7 @@ function _tblApplyHeaderPresentation(table, wrapId, cfg, theme) {
         headerEl.style.borderRadius = (stl.borderRadius || 16) + 'px ' + (stl.borderRadius || 16) + 'px 0 0';
         headerEl.style.boxShadow = 'inset 0 -1px 0 rgba(255,255,255,.08)';
 
+        var hdrFsConfigured = parseInt(stl.headerFontSize, 10) || 0;
         var topLevelDefs = Array.isArray(cfg && cfg.columns) ? cfg.columns.slice() : [];
         var topLevelGroupDefs = topLevelDefs.filter(function (def) {
             return def && Array.isArray(def.columns) && def.columns.length;
@@ -2595,7 +2761,10 @@ function _tblApplyHeaderPresentation(table, wrapId, cfg, theme) {
         var headerCols = headerEl.querySelectorAll('.tabulator-col');
         Array.prototype.forEach.call(headerCols, function (colEl) {
             var isGroup = colEl.classList.contains('tabulator-col-group');
-            colEl.style.background = colEl.classList.contains('tabulator-col-group') ? headerBg2 : headerBg;
+            var colField = colEl.getAttribute('tabulator-field');
+            var colDefMatch = colField ? topLevelDefs.filter(function (d) { return d && d.field === colField; })[0] : null;
+            var colOverrideBg = colDefMatch ? _tblResolveColorToken(colDefMatch.headerColor, '') : '';
+            colEl.style.background = colOverrideBg || (colEl.classList.contains('tabulator-col-group') ? headerBg2 : headerBg);
             colEl.style.color = headerText;
             colEl.style.opacity = '1';
             colEl.style.visibility = 'visible';
@@ -2620,7 +2789,7 @@ function _tblApplyHeaderPresentation(table, wrapId, cfg, theme) {
                 contentEl.style.minHeight = isGroup ? '18px' : '28px';
                 contentEl.style.flex = '';
                 contentEl.style.padding = isGroup ? '0 2px' : '0 2px';
-                contentEl.style.background = isGroup ? headerBg2 : headerBg;
+                contentEl.style.background = colOverrideBg || (isGroup ? headerBg2 : headerBg);
             }
 
             var holderEl = colEl.querySelector('.tabulator-col-title-holder');
@@ -2633,7 +2802,7 @@ function _tblApplyHeaderPresentation(table, wrapId, cfg, theme) {
                 holderEl.style.justifyContent = 'center';
                 holderEl.style.width = '100%';
                 holderEl.style.height = '';
-                holderEl.style.background = isGroup ? headerBg2 : headerBg;
+                holderEl.style.background = colOverrideBg || (isGroup ? headerBg2 : headerBg);
             }
 
             var titleEl = colEl.querySelector('.tabulator-col-title');
@@ -2645,8 +2814,8 @@ function _tblApplyHeaderPresentation(table, wrapId, cfg, theme) {
                 titleEl.style.whiteSpace = 'normal';
                 titleEl.style.lineHeight = '1.15';
                 titleEl.style.fontWeight = isGroup ? '800' : '700';
-                titleEl.style.fontSize = isGroup ? '10px' : '11px';
-                titleEl.style.background = isGroup ? headerBg2 : headerBg;
+                titleEl.style.fontSize = hdrFsConfigured > 0 ? (hdrFsConfigured + 'px') : (isGroup ? '10px' : '11px');
+                titleEl.style.background = colOverrideBg || (isGroup ? headerBg2 : headerBg);
                 if (isGroup) {
                     var groupIndex = Array.prototype.indexOf.call(groupHeaderEls, colEl);
                     var groupDef = topLevelGroupDefs[groupIndex];
@@ -4966,6 +5135,7 @@ function _tblColCard(col, idx, fields, fontes, filters, opts) {
         + '</select>'
         + _tblTitleBindingEditorHtml(_tblNormalizeTitleBinding(col), 'mtbl-col-title', fontes, filters)
         + '</div>'
+        + _tblColorTokenFieldHtml('Cor do cabeçalho da coluna', 'mtbl-col-headercolor', col.headerColor || '', false, true)
         + '<div class="mtbl-col-conditional-opts" style="margin-top:6px;padding:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;display:' + (isConditional ? 'block' : 'none') + ';">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;">'
         + '<div style="font-size:10px;font-weight:bold;color:#1e3a8a;">Condicional · <span class="mtbl-col-conditional-summary">' + _mciEsc(_tblConditionalSummary(conditionalCfg)) + '</span></div>'
@@ -5027,6 +5197,7 @@ function _tblGroupCard(group, idx, fields, fontes, filters, opts) {
         + '<div class="mcbi-field">'
         + _tblTitleBindingEditorHtml(_tblNormalizeTitleBinding(group), 'mtbl-group-title', fontes, filters)
         + '</div>'
+        + _tblColorTokenFieldHtml('Cor do cabeçalho do grupo', 'mtbl-group-headercolor', group.headerColor || '', false, true)
         + '<div class="mtbl-group-col-list">';
     if (columns.length) {
         columns.forEach(function (col, colIdx) {
@@ -5667,6 +5838,9 @@ function _tblReadColumnCard($card) {
         headerFilter: $card.find('.mtbl-col-filter').is(':checked'),
         sorter: 'string'
     };
+    var colHeaderColor = _tblReadColorTokenField($card, 'mtbl-col-headercolor');
+    if (colHeaderColor) colDef.headerColor = colHeaderColor;
+    else delete colDef.headerColor;
     if (fmt === 'link' || fmt === 'linkButton') {
         var ue = ($card.find('.mtbl-col-urlexpr').val() || '').trim();
         var ll = ($card.find('.mtbl-col-linklabel').val() || '').trim();
@@ -5737,12 +5911,14 @@ function _tblReadConfig(panel, obj) {
             var $item = $(this);
             if ($item.hasClass('mtbl-col-group-card')) {
                 var groupBinding = _tblReadTitleBinding($item, 'mtbl-group-title');
+                var groupHeaderColor = _tblReadColorTokenField($item, 'mtbl-group-headercolor');
                 var groupDef = {
                     title: groupBinding.mode === 'text' ? groupBinding.text : (groupBinding.text || 'Grupo'),
                     titleBinding: groupBinding,
                     headerHozAlign: 'center',
                     columns: []
                 };
+                if (groupHeaderColor) groupDef.headerColor = groupHeaderColor;
                 $item.find('.mtbl-group-col-list').first().children('.mtbl-col-card').each(function () {
                     groupDef.columns.push(_tblReadColumnCard($(this)));
                 });
@@ -5995,7 +6171,8 @@ var MdashChartBuilder = (function () {
         { type: 'pie', label: 'Pizza', svg: '<svg viewBox="0 0 24 24"><path d="M12 12L12 2A10 10 0 0 1 22 12Z" fill="currentColor"/><path d="M12 12L22 12A10 10 0 0 1 6 21Z" fill="currentColor" opacity=".55"/><path d="M12 12L6 21A10 10 0 0 1 2 6Z" fill="currentColor" opacity=".3"/><path d="M12 12L2 6A10 10 0 0 1 12 2Z" fill="currentColor" opacity=".15"/></svg>' },
         { type: 'scatter', label: 'Dispersão', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="17" r="2.2"/><circle cx="9" cy="10" r="2.2"/><circle cx="14" cy="14" r="2.2"/><circle cx="19" cy="5" r="2.2"/><circle cx="21" cy="19" r="2.2"/><circle cx="7" cy="21" r="2.2"/></svg>' },
         { type: 'mixed', label: 'Misto', svg: '<svg viewBox="0 0 24 24"><rect x="1" y="11" width="5" height="12" rx="1.5" fill="currentColor" opacity=".85"/><rect x="9.5" y="7" width="5" height="16" rx="1.5" fill="currentColor" opacity=".85"/><rect x="18" y="13" width="5" height="10" rx="1.5" fill="currentColor" opacity=".85"/><polyline points="3.5,7 12,4 20.5,9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3.5" cy="7" r="2.2" fill="currentColor"/><circle cx="12" cy="4" r="2.2" fill="currentColor"/><circle cx="20.5" cy="9" r="2.2" fill="currentColor"/></svg>' },
-        { type: 'funnel', label: 'Funil', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 3L22 3L16 10L16 21L8 21L8 10Z" rx="1"/></svg>' }
+        { type: 'funnel', label: 'Funil', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 3L22 3L16 10L16 21L8 21L8 10Z" rx="1"/></svg>' },
+        { type: 'radar', label: 'Radar', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,2 21,9 17.5,20 6.5,20 3,9"/><line x1="12" y1="2" x2="12" y2="20" opacity=".35"/><line x1="21" y1="9" x2="6.5" y2="20" opacity=".35"/><line x1="17.5" y1="20" x2="3" y2="9" opacity=".35"/><polygon points="12,6 17,10 15,16 9,16 7,10" fill="currentColor" opacity=".22" stroke-width="1.3"/></svg>' }
     ];
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -6062,6 +6239,7 @@ var MdashChartBuilder = (function () {
         if (ct === 'scatter') return _buildScatterOption(base, cfg, rows, t);
         if (ct === 'sparkline') return _buildSparklineOption(base, cfg, rows, t);
         if (ct === 'bar_h') return _buildBarHOption(base, cfg, rows, t);
+        if (ct === 'radar') return _buildRadarOption(base, cfg, rows, t);
         return _buildCartesianOption(base, cfg, rows, t, ct);
     }
 
@@ -6370,6 +6548,90 @@ var MdashChartBuilder = (function () {
                 itemStyle: { borderRadius: 4, borderWidth: 0 },
                 label: { show: true, position: 'inside', fontSize: 12, color: '#fff', fontWeight: 700, formatter: function (p) { return p.name + '\n' + p.percent + '%'; } },
                 emphasis: { label: { fontSize: 14 } }
+            }]
+        });
+    }
+
+    // Radar — xField fornece os indicadores (eixos, um por linha) e cada série
+    // do cfg.series é uma linha do polígono (ex: "Objectivo" vs "Empresa"),
+    // com um valor por indicador. Mesmo modelo de dados que os gráficos
+    // cartesianos (xField + series[]), apenas reinterpretado como eixos radiais.
+    function _buildRadarOption(base, cfg, rows, t) {
+        var xField = cfg.xField || '';
+        var maxField = cfg.radarMaxField || '';
+        var serDefs = (cfg.series || []).filter(function (s) { return s.field; });
+        var lPos = (cfg.legend && cfg.legend.show !== false) ? (cfg.legend.position || 'top') : 'none';
+
+        var indicators = rows.map(function (r) {
+            // Máximo fixo (config): usa o valor deste campo, na própria linha,
+            // como referência de 100% do eixo — evita que eixos com escalas
+            // muito diferentes (ex: percentagens vs. contagens) fiquem com
+            // valores baixos a parecerem "perto do máximo" por o auto-cálculo
+            // abaixo usar só os dados desse eixo em particular.
+            if (maxField) {
+                var fixedMax = parseFloat(r[maxField]);
+                if (!isNaN(fixedMax) && fixedMax > 0) {
+                    return { name: r[xField] || '', max: fixedMax };
+                }
+            }
+            var maxCandidate = 0;
+            serDefs.forEach(function (s) {
+                var v = parseFloat(r[s.field]) || 0;
+                if (v > maxCandidate) maxCandidate = v;
+            });
+            return { name: r[xField] || '', max: maxCandidate > 0 ? Math.ceil(maxCandidate * 1.2) : 10 };
+        });
+
+        var seriesData = serDefs.map(function (s, i) {
+            var baseCol = _resolvePHCColor(s.color) || t.colors[i % t.colors.length];
+            return {
+                name: s.name || s.field,
+                value: rows.map(function (r) { return parseFloat(r[s.field]) || 0; }),
+                lineStyle: { color: baseCol, width: 2.5 },
+                itemStyle: { color: baseCol },
+                areaStyle: { color: _alpha(baseCol, 0.16) },
+                symbol: 'circle',
+                symbolSize: 6
+            };
+        });
+
+        return Object.assign({}, base, {
+            tooltip: Object.assign(_tooltipBase(t, 'item'), {
+                formatter: function (p) {
+                    var out = '<div style="padding:1px 0 5px;font-weight:700;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:5px;">' + p.name + '</div>';
+                    (p.value || []).forEach(function (v, i) {
+                        var indName = indicators[i] ? indicators[i].name : '';
+                        out += '<div style="display:flex;justify-content:space-between;gap:14px;padding:2px 0;"><span style="opacity:.85;">' + indName + '</span><strong style="margin-left:12px;">' + _mciFormatNumber(v, { maxFractionDigits: 2 }) + '</strong></div>';
+                    });
+                    return out;
+                }
+            }),
+            legend: {
+                show: lPos !== 'none' && seriesData.length > 0,
+                data: seriesData.map(function (sd) { return sd.name; }),
+                top: lPos === 'bottom' ? 'bottom' : 'top', bottom: lPos === 'bottom' ? 6 : 'auto',
+                left: 'center', itemWidth: 22, itemHeight: 8, borderRadius: 4,
+                textStyle: { color: t.text, fontSize: 11 }, itemGap: 18, icon: 'roundRect'
+            },
+            radar: {
+                indicator: indicators,
+                shape: 'polygon',
+                splitNumber: 4,
+                radius: '62%',
+                axisName: { color: t.subtext, fontSize: 11 },
+                splitLine: { lineStyle: { color: t.grid } },
+                splitArea: { show: false },
+                axisLine: { lineStyle: { color: t.axisLine } }
+            },
+            title: {
+                show: cfg.title && cfg.title.show && !!cfg.title.text,
+                text: cfg.title && cfg.title.text || '',
+                textStyle: { color: t.text, fontSize: 14, fontWeight: 700 }, left: 'left', top: 4
+            },
+            series: [{
+                type: 'radar',
+                data: seriesData,
+                emphasis: { lineStyle: { width: 3.5 } }
             }]
         });
     }
@@ -7760,6 +8022,7 @@ function _mciReadConfig($root, obj) {
         }
     } else {
         cfg.xField = $root.find('.mcbi-xf').val() || '';
+        cfg.radarMaxField = $root.find('.mcbi-radar-maxfield').val() || '';
         cfg.series = [];
         $root.find('.mcbi-sr').each(function () {
             var $r = $(this), fld = $r.find('.mcbi-sf').val() || '';
@@ -7933,6 +8196,7 @@ function _mciRefreshFieldSelects($root, fields) {
     $root.find('.mcbi-xf').each(function () { _mciSetSelectFields($(this), fields, '-- campo --'); });
     $root.find('.mcbi-sr[data-sds="main"] .mcbi-sf, .mcbi-sr:not([data-sds]) .mcbi-sf').each(function () { _mciSetSelectFields($(this), fields, 'campo…'); });
     $root.find('.mcbi-pie-lf,.mcbi-pie-vf').each(function () { _mciSetSelectFields($(this), fields, '-- campo --'); });
+    $root.find('.mcbi-radar-maxfield').each(function () { _mciSetSelectFields($(this), fields, '-- auto (calculado dos dados) --'); });
 }
 
 // Resolve rows para um gráfico com séries de fontes distintas.
@@ -8144,6 +8408,10 @@ function renderChartPropertiesInline(obj, panel) {
         '<div class="mcbi-campos-cartesian">'
         + '<div class="mcbi-field"><label>Eixo X / Categoria</label>'
         + '<select class="mcbi-xf form-control input-sm">' + _mciFieldOpts(cfg.xField) + '</select></div>'
+        + '<div class="mcbi-field mcbi-radar-max-wrap"><label>Campo Máximo do eixo (opcional)</label>'
+        + '<select class="mcbi-radar-maxfield form-control input-sm">' + _mciFieldOpts(cfg.radarMaxField, '-- auto (calculado dos dados) --') + '</select>'
+        + '<div class="mcbi-info">Só para Radar. Se definido, cada eixo usa o valor deste campo (nessa linha) como referência de 100%, em vez do máximo calculado automaticamente a partir dos valores das séries — útil quando os eixos têm escalas muito diferentes (ex: percentagens vs. contagens).</div>'
+        + '</div>'
         + '<div class="mcbi-field"><label>Séries</label>'
         + '<div class="mcbi-series">'
         + (cfg.series || []).map(function (s, i) { return _mciSerieRow(s, i, fields, fontes); }).join('')
@@ -8729,6 +8997,9 @@ function _mciCSS() {
     s += '.mcbi-campos-cartesian{display:block;}.mcbi-campos-pie{display:none;}';
     s += '.mcbi-root[data-ct="pie"] .mcbi-campos-pie,.mcbi-root[data-ct="donut"] .mcbi-campos-pie,.mcbi-root[data-ct="funnel"] .mcbi-campos-pie{display:block !important;}';
     s += '.mcbi-root[data-ct="pie"] .mcbi-campos-cartesian,.mcbi-root[data-ct="donut"] .mcbi-campos-cartesian,.mcbi-root[data-ct="funnel"] .mcbi-campos-cartesian{display:none !important;}';
+    // Campo de máximo por eixo — só faz sentido para radar (outros tipos escondem-no)
+    s += '.mcbi-radar-max-wrap{display:none;}';
+    s += '.mcbi-root[data-ct="radar"] .mcbi-radar-max-wrap{display:block;}';
     // Toggle-switch checkboxes (immune to host-app CSS overrides)
     s += '.mcbi-checks{display:grid;grid-template-columns:1fr 1fr;gap:7px 10px;margin-bottom:8px;}';
     s += '.mcbi-chk{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#1e293b;cursor:pointer;margin:0;font-weight:500;line-height:1;user-select:none;position:relative;}';
