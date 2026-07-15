@@ -10886,16 +10886,99 @@ function updateFilterOrderFromDom($list) {
     });
 }
 
+// ============================================================================
+// FLOATING SLOT TOOLBAR — escapa overflow:hidden/auto de antepassados
+// ============================================================================
+// A toolbar normal (.mdash-slot-zone-toolbar) é position:absolute dentro do
+// slot — por mais que se mude a âncora (esquerda/direita), continua presa à
+// árvore de clipping dos antepassados (.mdash-canvas-container-body tem
+// overflow-x:auto, .mdash-canvas-body tem overflow-x:hidden). Em items
+// estreitos (ex.: 2 colunas) não há espaço de nenhum dos lados dentro dessa
+// árvore. A única forma fiável de a "pôr por cima" é sair da árvore de
+// clipping: clona-se a toolbar para <body> com position:fixed, posicionada
+// via getBoundingClientRect do bloco do objecto, e os cliques nos botões do
+// clone são reencaminhados (trigger) para os botões originais (escondidos),
+// que mantêm toda a lógica já ligada por bindSlotDropZoneEvents().
+var _mdashFloatingToolbarEl = null;
+var _mdashFloatToolbarHideTimer = null;
+
+function _mdashCancelFloatToolbarHide() {
+    clearTimeout(_mdashFloatToolbarHideTimer);
+}
+
+function _mdashRemoveFloatingToolbar() {
+    if (_mdashFloatingToolbarEl) {
+        _mdashFloatingToolbarEl.remove();
+        _mdashFloatingToolbarEl = null;
+    }
+}
+
+function _mdashScheduleFloatToolbarHide() {
+    _mdashCancelFloatToolbarHide();
+    _mdashFloatToolbarHideTimer = setTimeout(_mdashRemoveFloatingToolbar, 180);
+}
+
+function _mdashShowFloatingToolbarFor($block) {
+    var $origToolbar = $block.children('.mdash-slot-zone-toolbar').first();
+    if (!$origToolbar.length) return;
+
+    _mdashCancelFloatToolbarHide();
+    _mdashRemoveFloatingToolbar();
+
+    var $clone = $origToolbar.clone(false).addClass('mdash-slot-toolbar-floating');
+    var $origButtons = $origToolbar.find('button');
+    $clone.find('button').each(function (i) {
+        var $orig = $origButtons.eq(i);
+        $(this).on('click.mdashFloatProxy', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $orig.trigger('click');
+        });
+    });
+
+    $('body').append($clone);
+    _mdashFloatingToolbarEl = $clone;
+
+    var rect = $block.get(0).getBoundingClientRect();
+    var cloneW = $clone.outerWidth();
+    var vw = window.innerWidth || document.documentElement.clientWidth;
+    var margin = 6;
+    // Mesma preferência da versão CSS: ancorar à direita do bloco; se não
+    // couber, desliza para a esquerda o suficiente para caber no ecrã.
+    var left = rect.right - cloneW;
+    if (left < margin) left = rect.left;
+    if (left + cloneW > vw - margin) left = vw - margin - cloneW;
+    if (left < margin) left = margin;
+    var top = Math.max(margin, rect.top);
+
+    $clone.css({ top: top + 'px', left: left + 'px' });
+
+    $clone.on('mouseenter.mdashFloatKeep', _mdashCancelFloatToolbarHide);
+    $clone.on('mouseleave.mdashFloatKeep', _mdashScheduleFloatToolbarHide);
+}
+
+function _mdashInitFloatingSlotToolbars() {
+    $(document).off('.mdashFloatToolbar');
+    $(document).on('mouseenter.mdashFloatToolbar', '.mdash-slot-zone-obj-block', function () {
+        _mdashShowFloatingToolbarFor($(this));
+    });
+    $(document).on('mouseleave.mdashFloatToolbar', '.mdash-slot-zone-obj-block', function () {
+        _mdashScheduleFloatToolbarHide();
+    });
+}
+
 /**
- * Inicializa drop zones — agora apenas limpa handlers antigos delegados.
- * Os eventos reais são ligados directamente em cada drop zone via bindSlotDropZoneEvents()
- * (chamado por injectSlotDropOverlays), porque @click.stop no .mdash-canvas-item (PetiteVue)
+ * Inicializa drop zones — limpa handlers antigos delegados e liga a toolbar
+ * flutuante (ver secção acima). Os eventos de clique reais continuam ligados
+ * directamente em cada drop zone via bindSlotDropZoneEvents() (chamado por
+ * injectSlotDropOverlays), porque @click.stop no .mdash-canvas-item (PetiteVue)
  * bloqueia o bubbling necessário para delegação jQuery no canvas.
  */
 function initSlotDropZones() {
     var $canvas = $('#mdash-canvas-body');
     // Limpar handlers delegados legados (se existirem de versões anteriores)
     $canvas.off('dragover.slotdrop dragleave.slotdrop drop.slotdrop click.slotzone click.slotsettings');
+    _mdashInitFloatingSlotToolbars();
 }
 
 function syncAllContainerItemsLayout() {
@@ -14898,9 +14981,23 @@ function loadModernDashboardStyles() {
     // Hint for empty slots
     styles += ".mdash-slot-zone-hint { display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--md-muted); font-size: 10px; }";
     styles += ".mdash-slot-zone-hint i { font-size: 10px; opacity: 0.5; }";
-    // Toolbar: absolute overlay — anchored left, grows to fit content (never clipped)
-    styles += ".mdash-slot-zone-toolbar { position: absolute; top: 0; left: 0; width: max-content; min-width: 100%; z-index: 10; display: flex; align-items: center; gap: 3px; padding: 2px 4px; background: rgba(0,0,0,0.60); border-radius: 4px 4px 0 0; font-size: 11px; color: #fff; opacity: 0; pointer-events: none; transition: opacity 0.15s; box-sizing: border-box; flex-wrap: nowrap; white-space: nowrap; }";
+    // Toolbar: absolute overlay — ancorada à direita (alinhada com o bordo direito
+    // do slot); quando precisa de mais espaço do que o slot tem, cresce para a
+    // ESQUERDA em vez de para a direita. Evita que o botão "Remover" saia do
+    // limite direito do container em slots curtos/estreitos (o lado esquerdo tem
+    // normalmente mais espaço disponível no canvas do editor).
+    styles += ".mdash-slot-zone-toolbar { position: absolute; top: 0; right: 0; left: auto; width: max-content; min-width: 100%; z-index: 10; display: flex; align-items: center; gap: 3px; padding: 2px 4px; background: rgba(0,0,0,0.60); border-radius: 4px 4px 0 0; font-size: 11px; color: #fff; opacity: 0; pointer-events: none; transition: opacity 0.15s; box-sizing: border-box; flex-wrap: nowrap; white-space: nowrap; }";
     styles += ".mdash-slot-zone-drop:hover .mdash-slot-zone-toolbar { opacity: 1; pointer-events: auto; }";
+    // Slots com objecto (.mdash-slot-zone-obj-block): a toolbar in-place ainda
+    // fica limitada pela largura/overflow do card (ex.: itens de 2 colunas), e
+    // mesmo ancorada à direita pode não caber de nenhum dos lados. Nesses casos
+    // a toolbar "flutuante" (JS, ver _mdashShowFloatingToolbarFor) assume o
+    // controlo, desenhada directamente em <body> com position:fixed — escapa a
+    // QUALQUER overflow:hidden/auto de antepassados (a única forma fiável de o
+    // fazer é sair da árvore de clipping, não apenas mudar left/right). Por
+    // isso a versão in-place é desactivada aqui para não aparecerem as duas.
+    styles += ".mdash-slot-zone-obj-block .mdash-slot-zone-toolbar { opacity: 0 !important; pointer-events: none !important; }";
+    styles += ".mdash-slot-toolbar-floating { position: fixed !important; opacity: 1 !important; pointer-events: auto !important; z-index: 100000 !important; min-width: 0 !important; width: max-content !important; box-shadow: 0 10px 26px rgba(0,0,0,0.38); }";
     styles += ".mdash-slot-zone-toolbar .material-symbols-rounded { font-size: 11px; line-height: 1; color: #fff !important; }";
     styles += ".mdash-slot-zone-toolbar i { color: #fff !important; font-size: 11px; }";
     // Slot button (left): blue pill

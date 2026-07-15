@@ -2726,7 +2726,10 @@ function _tblBuildStructuredRowFormatter(columns, structuredCfg, tableCfg) {
             rowEl.style.setProperty('background', _tblResolveColorToken(data.__rowBackground, totalBg), 'important');
             resolvedTextColor = resolvedTextColor || totalText;
         } else if (rowType === 'data') {
-            rowEl.style.setProperty('background', _tblResolveColorToken(data.__rowBackground, dataRowBg), 'important');
+            var dataBg = data.__rowBackground
+                ? _tblResolveColorToken(data.__rowBackground, '')
+                : _tblResolveStripedRowBackground(tableCfg, row, dataRowBg);
+            rowEl.style.setProperty('background', dataBg, 'important');
         }
     };
 }
@@ -3806,6 +3809,39 @@ function _tblResolveDataRowStyle(cfg) {
     };
 }
 
+// Posição visual da linha (1-based) dentro dos dados actualmente filtrados/
+// ordenados — usa a API do Tabulator quando disponível, com fallback ao
+// índice DOM (para versões/casos onde getPosition não está pronto ainda).
+function _tblIsEvenRow(row) {
+    try {
+        var pos = row.getPosition(true);
+        if (typeof pos === 'number' && !isNaN(pos)) return pos % 2 === 0;
+    } catch (e) { /* ignore */ }
+    var el = row.getElement();
+    if (el && el.parentNode) {
+        var idx = Array.prototype.indexOf.call(el.parentNode.children, el);
+        if (idx >= 0) return idx % 2 === 1; // índice 0-based 1 = 2ª linha = par visualmente
+    }
+    return false;
+}
+
+// Resolve o fundo de uma linha de dados respeitando o toggle "Linhas alternadas"
+// (cfg.stripedRows). Antes, o fundo fixo de "Estilo Linhas de Dados" (baseBg) era
+// sempre aplicado com !important a TODAS as linhas, o que anulava visualmente o
+// zebra mesmo com o toggle activo — !important inline vence sempre a regra CSS
+// ".tabulator-row-even". Agora: com o toggle ligado, as linhas pares usam a cor
+// "Fundo linhas pares" (Estilo Avançado) e as ímpares mantêm o fundo fixo
+// configurado; com o toggle desligado, todas as linhas usam o fundo fixo (igual
+// ao comportamento anterior).
+function _tblResolveStripedRowBackground(cfg, row, baseBg) {
+    if (!cfg || cfg.stripedRows === false) return baseBg;
+    if (_tblIsEvenRow(row)) {
+        var stl = _tblResolveTableStyling(cfg);
+        return stl.rowEven || baseBg;
+    }
+    return baseBg;
+}
+
 function _tblNormalizeColumnCellStyle(cellStyle) {
     cellStyle = cellStyle || {};
     return {
@@ -3919,7 +3955,9 @@ function _tblApplyPlainDataRowStyles(row, cfg) {
 
     var rowStyle = _tblResolveDataRowStyle(cfg);
     var rowEl = row.getElement();
-    var rowBg = data.__rowBackground ? _tblResolveColorToken(data.__rowBackground, '') : rowStyle.background;
+    var rowBg = data.__rowBackground
+        ? _tblResolveColorToken(data.__rowBackground, '')
+        : _tblResolveStripedRowBackground(cfg, row, rowStyle.background);
     if (rowBg) rowEl.style.setProperty('background', rowBg, 'important');
 }
 
