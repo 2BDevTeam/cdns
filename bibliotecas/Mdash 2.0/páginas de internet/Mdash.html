@@ -858,7 +858,7 @@
     }
   }
 
-  @media screen and (min-width: 1024px) {
+  @media screen and (min-width: 897px) {
     .m-dash-body {
       flex-direction: row;
       align-items: stretch;
@@ -1272,7 +1272,7 @@
     background: #e9ecef;
     border-radius: 20px;
     padding: 6px 14px;
-    font-size: 12px;
+    font-size: 10px;
     color: #334155;
     white-space: nowrap;
   }
@@ -1591,9 +1591,9 @@
   }
 
   /* ======================================================================== */
-  /* SM  (576px–767px) — full-width, normal padding                            */
+  /* SM  (576px–896px) — full-width, normal padding                            */
   /* ======================================================================== */
-  @media screen and (min-width: 576px) and (max-width: 767px) {
+  @media screen and (min-width: 576px) and (max-width: 896px) {
     .mdash .mdash-sidebar {
       width: 100% !important;
       min-width: 0 !important;
@@ -1601,13 +1601,13 @@
   }
 
   /* ======================================================================== */
-  /* MOBILE (=767px) — mecanismo de collapse próprio: o pill de borda não faz  */
+  /* MOBILE (=896px) — mecanismo de collapse próprio: o pill de borda não faz  */
   /* sentido a full-width, por isso é substituído pelo botão "Filtrar" no      */
   /* próprio título. Colapsado, o header/corpo dos filtros saem do layout por */
   /* completo (não apenas invisíveis) para libertar espaço vertical; só o     */
   /* título (com o botão "Filtrar") continua visível.                        */
   /* ======================================================================== */
-  @media screen and (max-width: 767px) {
+  @media screen and (max-width: 896px) {
     .mdash .mdash-filter-collapse-toggle {
       display: none !important;
     }
@@ -1651,9 +1651,9 @@
   }
 
   /* ======================================================================== */
-  /* MD  (768px–991px) — 248px beside content                                 */
+  /* MD  (897px–991px) — 248px beside content                                 */
   /* ======================================================================== */
-  @media screen and (min-width: 768px) and (max-width: 991px) {
+  @media screen and (min-width: 897px) and (max-width: 991px) {
     .mdash-filter-card--vertical {
       width: 248px;
       min-width: 248px;
@@ -2978,7 +2978,7 @@
     var main = document.querySelector('.m-dash-main');
     if (!body || !sidebar || !main) return;
 
-    if (window.innerWidth < 768) {
+    if (window.innerWidth < 897) {
       body.style.setProperty('--md-sidebar-sync-h', 'auto');
       sidebar.style.removeProperty('height');
       var mobileBody = sidebar.querySelector('.mdash-sidebar-body');
