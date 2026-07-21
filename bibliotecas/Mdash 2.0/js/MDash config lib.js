@@ -3956,30 +3956,36 @@ function actualizarConfiguracaoMDashboard() {
     var fontesParaGravar = (window.appState && window.appState.fontes) ? window.appState.fontes : GMDashFontes;
 
     // Serializar campos JSON de todas as fontes antes de enviar para a BD
-    fontesParaGravar.forEach(function (f) {
-        if (typeof f.stringifyJSONFields === 'function') f.stringifyJSONFields();
-    });
+    if (Array.isArray(fontesParaGravar)) {
+        fontesParaGravar.forEach(function (f) {
+            if (typeof f.stringifyJSONFields === 'function') f.stringifyJSONFields();
+        });
+    }
 
     // Usar toDbRecord() para garantir que só vão campos da tabela (sem runtime props nem datas ISO)
-    var fontesDbRecords = fontesParaGravar.map(function (f) {
+    var fontesDbRecords = Array.isArray(fontesParaGravar) ? fontesParaGravar.map(function (f) {
         return (typeof f.toDbRecord === 'function') ? f.toDbRecord() : f;
-    });
+    }) : [];
 
     // CRÍTICO: Serializar campos JSON de TODOS os objetos antes de persistir
     // Garante que transformConfig/configjson estão sincronizados (invariante triplicada)
-    console.log('[actualizarConfiguracaoMDashboard] Serializando ' + GMDashContainerItemObjects.length + ' objetos...');
-    GMDashContainerItemObjects.forEach(function (obj) {
-        if (typeof obj.stringifyJSONFields === 'function') {
-            obj.stringifyJSONFields();
-        }
-    });
+    console.log('[actualizarConfiguracaoMDashboard] Serializando ' + (Array.isArray(GMDashContainerItemObjects) ? GMDashContainerItemObjects.length : 0) + ' objetos...');
+    if (Array.isArray(GMDashContainerItemObjects)) {
+        GMDashContainerItemObjects.forEach(function (obj) {
+            if (typeof obj.stringifyJSONFields === 'function') {
+                obj.stringifyJSONFields();
+            }
+        });
+    }
 
     // Serializar campos JSON dos layouts (slots/props/CDNs) antes de persistir
-    GMDashContainerItemLayouts.forEach(function (l) {
-        if (typeof l.stringifyJSONFields === 'function') {
-            l.stringifyJSONFields();
-        }
-    });
+    if (Array.isArray(GMDashContainerItemLayouts)) {
+        GMDashContainerItemLayouts.forEach(function (l) {
+            if (typeof l.stringifyJSONFields === 'function') {
+                l.stringifyJSONFields();
+            }
+        });
+    }
 
     // Garantir serialização de configjson do dashboard antes do save full
     if (window.appState && window.appState.dashboardConfig && typeof window.appState.dashboardConfig.setConfig === 'function') {
