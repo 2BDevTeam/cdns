@@ -3753,6 +3753,20 @@ function buildFonteParamsListHtml(fonte) {
 function buildMDashConfigData(options) {
     var includeHeader = options && options.includeHeader === true;
 
+    // Garantir que os campos JSON (transformConfig, slots, props, etc.) estão
+    // sincronizados com os campos *json antes de serializar — sem isto, edições
+    // recentes em memória (ex: transformConfig de uma fonte/objecto) podiam sair
+    // vazias/desactualizadas no ficheiro exportado.
+    GMDashFontes.forEach(function (f) {
+        if (typeof f.stringifyJSONFields === 'function') f.stringifyJSONFields();
+    });
+    GMDashContainerItemObjects.forEach(function (o) {
+        if (typeof o.stringifyJSONFields === 'function') o.stringifyJSONFields();
+    });
+    GMDashContainerItemLayouts.forEach(function (l) {
+        if (typeof l.stringifyJSONFields === 'function') l.stringifyJSONFields();
+    });
+
     var configData = [
         { sourceTable: "MdashAccess", sourceKey: "mdashaccessstamp", records: GMDashAccesses },
         { sourceTable: "MdashTab", sourceKey: "mdashtabstamp", records: GMDashTabs },
@@ -3760,7 +3774,8 @@ function buildMDashConfigData(options) {
         { sourceTable: "MdashContainerItem", sourceKey: "mdashcontaineritemstamp", records: GMDashContainerItems },
         { sourceTable: "MdashFilter", sourceKey: "mdashfilterstamp", records: GMDashFilters },
         { sourceTable: "MdashContainerItemObject", sourceKey: "mdashcontaineritemobjectstamp", records: GMDashContainerItemObjects },
-        { sourceTable: "MDashFonte", sourceKey: "mdashfontestamp", records: GMDashFontes }
+        { sourceTable: "MDashFonte", sourceKey: "mdashfontestamp", records: GMDashFontes },
+        { sourceTable: "MdashContainerItemLayout", sourceKey: "mdashcontaineritemlayoutstamp", records: GMDashContainerItemLayouts }
     ];
 
     configData.unshift({
@@ -3953,6 +3968,13 @@ function actualizarConfiguracaoMDashboard() {
         }
     });
 
+    // Serializar campos JSON dos layouts (slots/props/CDNs) antes de persistir
+    GMDashContainerItemLayouts.forEach(function (l) {
+        if (typeof l.stringifyJSONFields === 'function') {
+            l.stringifyJSONFields();
+        }
+    });
+
     // Garantir serialização de configjson do dashboard antes do save full
     if (window.appState && window.appState.dashboardConfig && typeof window.appState.dashboardConfig.setConfig === 'function') {
         window.appState.dashboardConfig.setConfig(window.appState.dashboardSettings || {});
@@ -3966,7 +3988,8 @@ function actualizarConfiguracaoMDashboard() {
         { sourceTable: "MdashContainerItem", sourceKey: "mdashcontaineritemstamp", records: GMDashContainerItems },
         { sourceTable: "MdashFilter", sourceKey: "mdashfilterstamp", records: GMDashFilters },
         { sourceTable: "MdashContainerItemObject", sourceKey: "mdashcontaineritemobjectstamp", records: GMDashContainerItemObjects },
-        { sourceTable: "MDashFonte", sourceKey: "mdashfontestamp", records: fontesDbRecords }
+        { sourceTable: "MDashFonte", sourceKey: "mdashfontestamp", records: fontesDbRecords },
+        { sourceTable: "MdashContainerItemLayout", sourceKey: "mdashcontaineritemlayoutstamp", records: GMDashContainerItemLayouts }
     ];
 
     console.log('[actualizarConfiguracaoMDashboard] Enviando configuração completa para backend...');
