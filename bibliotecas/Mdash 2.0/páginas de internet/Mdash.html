@@ -44,6 +44,7 @@
     background-size: cover !important;
     font-family: Nunito, sans-serif !important;
     color: #002c52 !important;
+    overflow-x: hidden !important;
   }
 
   body form>.container {
@@ -549,8 +550,6 @@
     align-items: center;
     justify-content: flex-start;
     gap: 16px;
-    margin: 0 0 5px 0;
-    /* padding: 24px; */
     margin: 0 0 0.3em 0;
     padding: 0.3em 0.3em 0px 0.3em;
   }
@@ -573,6 +572,49 @@
     padding: 10px 16px;
     margin:0px !important;
     border-bottom: 1px solid var(--md-border-soft);
+    overflow: hidden;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.18s ease 0.1s, visibility 0s linear 0s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  h1.mdash-dashboard-title .mdash-dashboard-title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  /* Botão de collapse dos filtros — mecanismo próprio para mobile, visível só
+     em ecrãs pequenos (ver .mdash-filter-mobile-toggle na secção da sidebar). */
+  .mdash-filter-mobile-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid var(--md-border, #dfe3e8);
+    background: #ffffff;
+    color: #1c252e;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 160ms ease, border-color 160ms ease;
+  }
+
+  .mdash-filter-mobile-toggle .material-symbols-rounded {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .mdash-filter-mobile-toggle:hover {
+    background: rgba(var(--md-primary-rgb, 0, 167, 111), .08);
+    border-color: rgba(var(--md-primary-rgb, 0, 167, 111), .25);
   }
 
   .mdash-titulo-item{
@@ -644,8 +686,10 @@
   .m-dash-main {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 6px;
     flex-grow: 1;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .m-dash-filter-item {
@@ -777,6 +821,30 @@
     height: 100%;
     min-height: 0;
     align-self: stretch;
+  }
+
+  /* ======================================================================== */
+  /* MDASH 2.0 — CARDS RESPONSIVOS EM ECRÃS PEQUENOS                          */
+  /* Os itens de container só têm span para md/sm/lg (baseado no "tamanho")   */
+  /* e, em layout manual, grid-column-start/grid-row fixos via inline style — */
+  /* nenhum dos dois tem variante xs, por isso cards desenhados a 100% da     */
+  /* célula ficam espremidos em ecrãs pequenos. Força-se aqui (com !important */
+  /* para vencer o inline style do layout manual) um comportamento tipo       */
+  /* Bootstrap lg-2/md-6/sm-12/xs-12: no máx. 2 por linha =767px, 1 por linha */
+  /* =575px, repondo o posicionamento manual para fluxo normal.               */
+  /* ======================================================================== */
+  @media screen and (max-width: 767px) {
+    .gr-row .m-dash-render-area {
+      grid-column-start: auto !important;
+      grid-row: auto !important;
+      grid-column-end: span 6 !important;
+    }
+  }
+
+  @media screen and (max-width: 575px) {
+    .gr-row .m-dash-render-area {
+      grid-column-end: span 12 !important;
+    }
   }
 
   @media screen and (min-width: 768px) {
@@ -1155,6 +1223,69 @@
   }
 
   /* ======================================================================== */
+  /* MDASH 2.0 — Barra informativa de filtros activos (chips, sem remover)    */
+  /* Meramente informativa: dá a conhecer ao utilizador os filtros aplicados. */
+  /* ======================================================================== */
+  .mdash-active-filters-bar {
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    background: #fafafa;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .mdash-active-filters-track {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+    padding-bottom: 2px;
+  }
+
+  .mdash-active-filters-track::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .mdash-active-filters-track::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 6px;
+  }
+
+  .mdash-active-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    background: #e9ecef;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: #334155;
+    white-space: nowrap;
+  }
+
+  .mdash-active-filter-chip-label {
+    font-weight: 600;
+  }
+
+  .mdash-active-filter-chip-value {
+    color: #475569;
+  }
+
+  /* ======================================================================== */
   /* MDASH 2.0 — CONTAINER SECTION                                            */
   /* Padrão: left-border accent strip (Atlassian / Azure / Fluent Design)      */
   /* Zero card shell — apenas borda esquerda + tipografia                      */
@@ -1294,6 +1425,7 @@
   /* MDASH 2.0 — FILTER BAR (Tailwind-style 2B card — same linguagem)          */
   /* ======================================================================== */
   .mdash {
+    max-width: 100%;
     --md-primary: #00a76f;
     --md-primary-rgb: 0, 167, 111;
     --md-surface: #ffffff;
@@ -1315,9 +1447,10 @@
 
   /* BASE — default 248px, responsive below */
   .mdash .mdash-sidebar {
+    position: relative;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
     width: 248px;
     min-width: 248px;
     flex-shrink: 0;
@@ -1326,12 +1459,23 @@
     border-radius: 14px;
     box-shadow: 0 16px 32px rgba(2, 6, 23, 0.18);
     backdrop-filter: blur(8px);
-    transition: width 0.22s ease, min-width 0.22s ease;
+    transition: width 0.32s cubic-bezier(.4, 0, .2, 1), min-width 0.32s cubic-bezier(.4, 0, .2, 1);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
 
   .mdash .mdash-sidebar:hover {
     box-shadow: var(--md-shadow-card-hover);
+  }
+
+  /* overflow passou a visible (para o botão de collapse poder "sair" da
+     borda) — arredondar explicitamente o 1º/último filho para não haver
+     cantos quadrados a espreitar fora da curva do container. */
+  .mdash .mdash-sidebar > *:first-child {
+    border-radius: 14px 14px 0 0;
+  }
+
+  .mdash .mdash-sidebar > *:last-child {
+    border-radius: 0 0 14px 14px;
   }
 
   /* ---- Header ---- */
@@ -1345,6 +1489,10 @@
     justify-content: space-between;
     gap: 12px;
     flex-shrink: 0;
+    overflow: hidden;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.18s ease 0.1s, visibility 0s linear 0s;
   }
 
   .mdash .mdash-sidebar-header h4 {
@@ -1369,9 +1517,14 @@
     background: rgba(var(--md-primary-rgb), .10);
     color: var(--md-primary);
     font-size: 13px;
+    cursor: pointer;
     animation: none !important;
-    transition: none !important;
     transform: none !important;
+    transition: background 160ms ease, color 160ms ease !important;
+  }
+
+  .mdash .mdash-sidebar-header h4 i:hover {
+    background: rgba(var(--md-primary-rgb), .18);
   }
 
   .mdash .mdash-sidebar-header .mdash-sidebar-action {
@@ -1402,6 +1555,9 @@
     padding: 16px;
     background: #ffffff;
     min-height: 0;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.18s ease 0.1s, visibility 0s linear 0s;
   }
 
   /* horizontal variant: compact body on all sizes */
@@ -1445,6 +1601,56 @@
   }
 
   /* ======================================================================== */
+  /* MOBILE (=767px) — mecanismo de collapse próprio: o pill de borda não faz  */
+  /* sentido a full-width, por isso é substituído pelo botão "Filtrar" no      */
+  /* próprio título. Colapsado, o header/corpo dos filtros saem do layout por */
+  /* completo (não apenas invisíveis) para libertar espaço vertical; só o     */
+  /* título (com o botão "Filtrar") continua visível.                        */
+  /* ======================================================================== */
+  @media screen and (max-width: 767px) {
+    .mdash .mdash-filter-collapse-toggle {
+      display: none !important;
+    }
+
+    .mdash-filter-mobile-toggle {
+      display: inline-flex;
+    }
+
+    .mdash .mdash-sidebar.is-collapsed .mdash-dashboard-title {
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+      border-bottom: none !important;
+    }
+
+    .mdash .mdash-sidebar.is-collapsed .mdash-sidebar-header,
+    .mdash .mdash-sidebar.is-collapsed .mdash-sidebar-body {
+      display: none;
+    }
+
+    .m-dash-body {
+      gap: 10px;
+    }
+
+    .m-dash-header {
+      margin: 0;
+      padding: 0;
+    }
+
+    .m-dash-header:empty {
+      display: none;
+    }
+
+    /* Ocupar toda a largura disponível: só em mobile as tabs em wrap-mode
+       crescem para preencher a linha, em vez de ficarem com largura fixa
+       (--md-tab-basis) e sobra à direita. */
+    .mdash-dashboard-tabs.is-wrap-mode .mdash-dashboard-tab {
+      flex: 1 1 var(--md-tab-basis);
+      max-width: none;
+    }
+  }
+
+  /* ======================================================================== */
   /* MD  (768px–991px) — 248px beside content                                 */
   /* ======================================================================== */
   @media screen and (min-width: 768px) and (max-width: 991px) {
@@ -1481,13 +1687,63 @@
       top: 16px;
       align-self: flex-start;
       max-height: calc(100vh - 32px);
-      overflow: hidden;
+      overflow: visible;
     }
 
     .mdash-filter-card--vertical .mdash-sidebar-body {
       overflow-y: auto;
       max-height: calc(100vh - 120px);
     }
+  }
+
+  /* ======================================================================== */
+  /* Collapse toggle — botão circular flutuante, "montado" na borda direita   */
+  /* do painel (metade dentro/metade fora), como um handle de collapse.       */
+  /* ======================================================================== */
+  .mdash .mdash-filter-collapse-toggle {
+    position: absolute !important;
+    top: 44px !important;
+    right: -13px;
+    width: 18px !important;
+    height: 44px !important;
+    padding: 0;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid var(--md-border);
+    background: #ffffff;
+    color: var(--md-muted);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, .16);
+    z-index: 5;
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease;
+  }
+
+  .mdash .mdash-filter-collapse-toggle .material-symbols-rounded {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .mdash .mdash-filter-collapse-toggle:hover {
+    background: rgba(var(--md-primary-rgb), .08);
+    color: var(--md-primary);
+    border-color: rgba(var(--md-primary-rgb), .25);
+  }
+
+  .mdash .mdash-sidebar.is-collapsed {
+    width: 0px;
+    min-width: 0px;
+  }
+
+  .mdash .mdash-sidebar.is-collapsed .mdash-sidebar-body,
+  .mdash .mdash-sidebar.is-collapsed .mdash-dashboard-title,
+  .mdash .mdash-sidebar.is-collapsed .mdash-sidebar-header {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.14s ease, visibility 0s linear 0.14s;
   }
 
   /* Strip Bootstrap panel chrome inside the filter card — body-only */
@@ -2157,8 +2413,7 @@
       {{initDomObjects()}}
       <div class="mdash-sidebar-header mdash-panel-header">
         <h4 class="mdash-panel-title"><i class="glyphicon glyphicon-filter"></i> Filtros</h4>
-        <button @click="refreshDashboard()" type="button" id="btn-refrescar-filtro" class="mdash-sidebar-action"
-          data-tooltip="true" title="Refrescar">
+        <button @click="refreshDashboard()" type="button" id="btn-refrescar-filtro" class="mdash-sidebar-action">
           <i class="glyphicon glyphicon-refresh"></i>
         </button>
       </div>
@@ -2249,20 +2504,31 @@
 
     <div v-else class="m-dash-body">
       <div v-if="hasDashboardAccess() && mdash.dashboardconfig.temfiltro && mdash.dashboardconfig.filtrohorizont==false"
-        class="mdash-sidebar mdash-panel mdash-filter-card mdash-filter-card--vertical">
+        :class="['mdash-sidebar', 'mdash-panel', 'mdash-filter-card', 'mdash-filter-card--vertical', { 'is-collapsed': isFilterSidebarCollapsed() }]">
         <!--div class="titulo-dashboard">
-             
+
         </div-->
-        <h1 class="mdash-dashboard-title">{{ mdash.dashboardconfig.descricao }}</h1>
-            
-        <div class="mdash-sidebar-header mdash-panel-header">
-          <h4 class="mdash-panel-title"><i class="glyphicon glyphicon-filter"></i> Filtros</h4>
-          <button @click="refreshDashboard()" type="button" id="btn-refrescar-filtro" class="mdash-sidebar-action"
-            data-tooltip="true" title="Refrescar">
-            <i class="glyphicon glyphicon-refresh"></i>
+        <h1 class="mdash-dashboard-title">
+          <span class="mdash-dashboard-title-text">{{ mdash.dashboardconfig.descricao }}</span>
+          <button @click="toggleFilterSidebar()" type="button" class="mdash-filter-mobile-toggle"
+            :aria-expanded="!isFilterSidebarCollapsed()">
+            <span class="material-symbols-rounded" aria-hidden="true">tune</span>
           </button>
+        </h1>
+
+        <button @click="toggleFilterSidebar()" type="button" class="mdash-filter-collapse-toggle">
+          <span class="material-symbols-rounded" aria-hidden="true">{{ isFilterSidebarCollapsed() ? 'chevron_right' : 'chevron_left' }}</span>
+        </button>
+
+        <div class="mdash-sidebar-header mdash-panel-header">
+          <h4 class="mdash-panel-title">
+            <i class="glyphicon glyphicon-refresh" role="button" tabindex="0"
+              @click="refreshDashboard()" @keydown.enter.prevent="refreshDashboard()"
+              @keydown.space.prevent="refreshDashboard()"></i>
+            Filtros
+          </h4>
         </div>
-        <div class="mdash-sidebar-body mdash-panel-content">
+        <div class="mdash-sidebar-body mdash-panel-content" v-show="!isFilterSidebarCollapsed()">
           <div class="panel panel-default">
             <div class="panel-body">
               <div class="m-dash-dynamic-filters">
@@ -2346,15 +2612,27 @@
             role="tablist">
             <div v-for="tab in getSortedTabs()" :key="tab.mdashtabstamp"
               :class="['mdash-dashboard-tab', { 'is-active': isTabActive(tab) }]" :style="getTabStyle(tab)" role="tab"
-              :aria-selected="isTabActive(tab) ? 'true' : 'false'" :title="getTabTooltipTitle(tab)"
+              :aria-selected="isTabActive(tab) ? 'true' : 'false'"
               @click="selectTab(tab.mdashtabstamp)">
               <span class="mdash-dashboard-tab-accent"></span>
               <span class="mdash-dashboard-tab-curve mdash-dashboard-tab-curve-l" aria-hidden="true"></span>
               <span class="mdash-dashboard-tab-curve mdash-dashboard-tab-curve-r" aria-hidden="true"></span>
               <i v-if="isTabIconVisible(tab)" :class="tab.icone || 'glyphicon glyphicon-list-alt'"></i>
-              <span class="mdash-dashboard-tab-label" :title="getTabTooltipTitle(tab)">{{ tab.titulo || 'Separador'
+              <span class="mdash-dashboard-tab-label">{{ tab.titulo || 'Separador'
                 }}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- MDASH 2.0 — Barra informativa de filtros activos (sem "x")    -->
+        <!-- ============================================================ -->
+        <div v-if="getActiveFilterChips().length > 0" class="mdash-active-filters-bar">
+          <div class="mdash-active-filters-track">
+            <span v-for="filtro in getActiveFilterChips()" :key="filtro.mdashfilterstamp" class="mdash-active-filter-chip">
+              <span class="mdash-active-filter-chip-label">{{ filtro.descricao }}:</span>
+              <span class="mdash-active-filter-chip-value">{{ getFilterDisplayValue(filtro) }}</span>
+            </span>
           </div>
         </div>
 
@@ -2561,7 +2839,7 @@
     var iconCls = opts.icon || 'glyphicon glyphicon-stats';
     var actions = '';
     if (opts.refreshable !== false) {
-      actions += '<button type="button" class="mdash-card__action mdash-card__refresh" data-tooltip="true" title="Refrescar">' +
+      actions += '<button type="button" class="mdash-card__action mdash-card__refresh" data-tooltip="Refrescar" data-original-title="Refrescar">' +
         '<i class="glyphicon glyphicon-refresh"></i></button>';
     }
     var html = '';
@@ -2728,6 +3006,39 @@
   function scheduleMdashSidebarHeightSync() {
     if (__mdSidebarSyncTimer) clearTimeout(__mdSidebarSyncTimer);
     __mdSidebarSyncTimer = setTimeout(syncMdashSidebarHeight, 140);
+  }
+
+  // ── Aperta o espaçamento lateral de QUALQUER ancestral do #mdash ───────────
+  // O wrapper nativo do PHC que envolve o ewp (form/.container/#maincontent/
+  // #fieldsAndOptionsZone/etc.) varia consoante o skin/instalação — não há um
+  // selector CSS único e fiável. Em vez de adivinhar o nome da classe, sobe-se
+  // o DOM a partir de #mdash até ao <body> e zera-se o padding/margin
+  // horizontal de qualquer ancestral que o tenha, deixando só um respiro
+  // mínimo (4px). Corre depois do mount e outra vez após o load das fontes,
+  // porque alguns wrappers só ganham a largura/padding definitivos nessa altura.
+  function mdashTightenAncestorHorizontalSpacing() {
+    var el = document.getElementById('mdash');
+    if (!el) return;
+    var MIN_GAP = 4; // px de respiro lateral mínimo mantido
+    var node = el.parentElement;
+    while (node && node !== document.body && node.nodeType === 1) {
+      var cs = window.getComputedStyle(node);
+      ['paddingLeft', 'paddingRight', 'marginLeft', 'marginRight'].forEach(function (prop) {
+        var current = parseFloat(cs[prop]) || 0;
+        if (current > MIN_GAP) {
+          var cssProp = prop.replace(/[A-Z]/g, function (m) { return '-' + m.toLowerCase(); });
+          node.style.setProperty(cssProp, MIN_GAP + 'px', 'important');
+        }
+      });
+      // Larguras/max-widths centradas (ex: Bootstrap .container) também
+      // introduzem "espaço vazio" lateral quando o viewport é maior que o
+      // max-width — força largura total do pai.
+      if (cs.maxWidth && cs.maxWidth !== 'none' && node.getBoundingClientRect().width < node.parentElement.getBoundingClientRect().width - 1) {
+        node.style.setProperty('max-width', 'none', 'important');
+        node.style.setProperty('width', '100%', 'important');
+      }
+      node = node.parentElement;
+    }
   }
 
   function generateStandardCard(cardData) {
@@ -3699,6 +4010,7 @@
       mdash: GMainDashInstance,
       activeTabStamp: "",
       collapsedContainers: {},
+      filterSidebarCollapsed: false,
       accessState: {
         globalAllowed: true,
         visibleTabStamps: [],
@@ -3708,6 +4020,7 @@
         deniedReason: ''
       },
       _filterInputTimers: {},
+      _filterOptionsCache: {},
       initFlatpickr,
       initDomObjects() {
         var self = this;
@@ -4161,6 +4474,17 @@
           window.localStorage.setItem('mdashCollapsed_' + codigo, JSON.stringify(this.collapsedContainers));
         } catch (e) { /* ignore */ }
       },
+      isFilterSidebarCollapsed() {
+        return !!this.filterSidebarCollapsed;
+      },
+      toggleFilterSidebar() {
+        this.filterSidebarCollapsed = !this.filterSidebarCollapsed;
+        try {
+          var codigo = (this.mdash && this.mdash.dashboardconfig && this.mdash.dashboardconfig.codigo) || '';
+          window.localStorage.setItem('mdashFilterSidebarCollapsed_' + codigo, this.filterSidebarCollapsed ? '1' : '0');
+        } catch (e) { /* ignore */ }
+        scheduleMdashSidebarHeightSync();
+      },
       getRowLayoutClass(rowGroup) {
         // Alinhar com getRowGroups: se a row contém algum item em modo manual
         // (efetivo, considerando item.layoutmode + herança do container), usa
@@ -4228,6 +4552,64 @@
         return filtered.slice().sort(function (a, b) {
           return (parseInt(a.ordem, 10) || 0) - (parseInt(b.ordem, 10) || 0);
         });
+      },
+      // ── MDASH 2.0: Barra informativa de filtros activos (chips, sem remover) ──
+      getCachedOptions(filtro) {
+        if (!filtro) return [];
+        var key = filtro.mdashfilterstamp || filtro.codigo;
+        if (!this._filterOptionsCache[key]) {
+          this._filterOptionsCache[key] = this.getOptions(filtro) || [];
+        }
+        return this._filterOptionsCache[key];
+      },
+      hasFilterValue(filtro) {
+        if (!filtro) return false;
+        var valor = this.mdash.filterValues[filtro.codigo];
+        switch (filtro.tipo) {
+          case 'multiselect':
+            return Array.isArray(valor) && valor.length > 0;
+          case 'checkboxtree':
+            return mdashParseCheckboxTreeValue(valor).length > 0;
+          case 'logic':
+            return valor === true;
+          case 'date':
+            return !!valor && valor !== '1900-01-01';
+          default:
+            return valor !== '' && valor !== null && valor !== undefined;
+        }
+      },
+      getFilterDisplayValue(filtro) {
+        var self = this;
+        var valor = this.mdash.filterValues[filtro.codigo];
+        switch (filtro.tipo) {
+          case 'list':
+          case 'radio': {
+            var opt = self.getCachedOptions(filtro).find(function (o) {
+              return String(o[filtro.campovalor]) === String(valor);
+            });
+            return opt ? opt[filtro.campooption] : String(valor);
+          }
+          case 'multiselect': {
+            var arr = Array.isArray(valor) ? valor : [];
+            var opts = self.getCachedOptions(filtro);
+            return arr.map(function (v) {
+              var opt = opts.find(function (o) { return String(o[filtro.campovalor]) === String(v); });
+              return opt ? opt[filtro.campooption] : v;
+            }).join(', ');
+          }
+          case 'checkboxtree': {
+            var vals = mdashParseCheckboxTreeValue(valor);
+            return vals.length + (vals.length === 1 ? ' seleccionado' : ' seleccionados');
+          }
+          case 'logic':
+            return filtro.descricaodireita || 'Sim';
+          default:
+            return String(valor);
+        }
+      },
+      getActiveFilterChips() {
+        var self = this;
+        return this.getVisibleFilters().filter(function (f) { return self.hasFilterValue(f); });
       },
       selectTab(tabStamp) {
         if (!tabStamp || tabStamp === this.activeTabStamp) return;
@@ -4598,10 +4980,15 @@
 
     window.mdashAppState = state;
     window.addEventListener('resize', scheduleMdashSidebarHeightSync);
+    window.addEventListener('resize', mdashTightenAncestorHorizontalSpacing);
 
     PetiteVue.createApp(state).mount("#mdash");
+    mdashTightenAncestorHorizontalSpacing();
+    setTimeout(mdashTightenAncestorHorizontalSpacing, 300);
+    setTimeout(mdashTightenAncestorHorizontalSpacing, 1200);
 
     handleMdashConfigData().then(function (data) {
+      mdashTightenAncestorHorizontalSpacing();
       if (GConfigDash) {
         var st = window.mdashAppState;
         if (st && typeof st.hasDashboardAccess === 'function' && !st.hasDashboardAccess()) {
@@ -4639,6 +5026,7 @@
   });
 
   function mdashHideLoader() {
+    mdashTightenAncestorHorizontalSpacing();
     var loader = document.getElementById('mdash-loader');
     if (!loader) return;
     loader.classList.add('is-hiding');
@@ -4856,6 +5244,14 @@
           var rawCollapsed = window.localStorage.getItem('mdashCollapsed_' + dashboardconfig.codigo);
           if (rawCollapsed) {
             window.mdashAppState.collapsedContainers = JSON.parse(rawCollapsed) || {};
+          }
+        } catch (e) { /* ignore */ }
+
+        // Restore persisted filter sidebar collapsed state
+        try {
+          var rawFilterCollapsed = window.localStorage.getItem('mdashFilterSidebarCollapsed_' + dashboardconfig.codigo);
+          if (rawFilterCollapsed !== null) {
+            window.mdashAppState.filterSidebarCollapsed = rawFilterCollapsed === '1';
           }
         } catch (e) { /* ignore */ }
       } catch (err) {

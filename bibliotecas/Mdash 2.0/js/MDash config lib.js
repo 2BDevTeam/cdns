@@ -3849,6 +3849,40 @@ function addExportImportButtons(selector) {
     container.append(buttonsHtml);
 }
 
+// Compara o estado actualmente carregado (GMDash* — o dashboard aberto no editor)
+// contra os blocos vindos do ficheiro importado e devolve os registos que existem
+// localmente mas não constam do import, para serem apagados no backend. Sem isto
+// o import fica puramente aditivo (upsert-only) e deixa "lixo" antigo (objectos,
+// tabs, acessos, etc.) por apagar quando se importa um dashboard para uma BD que
+// já tinha algo configurado sob o mesmo código.
+function computeMDashImportRecordsToDelete(importedConfig) {
+    var currentBlocks = buildMDashConfigData({ includeHeader: true });
+    var recordsToDelete = [];
+
+    currentBlocks.forEach(function (currentBlock) {
+        var importedBlock = (importedConfig || []).find(function (block) {
+            return block && block.sourceTable === currentBlock.sourceTable;
+        });
+        var importedStamps = {};
+        (importedBlock && importedBlock.records || []).forEach(function (record) {
+            var stamp = record && record[currentBlock.sourceKey];
+            if (stamp) importedStamps[stamp] = true;
+        });
+
+        (currentBlock.records || []).forEach(function (record) {
+            var stamp = record && record[currentBlock.sourceKey];
+            if (!stamp || importedStamps[stamp]) return;
+            recordsToDelete.push({
+                table: currentBlock.sourceTable,
+                tableKey: currentBlock.sourceKey,
+                stamp: stamp
+            });
+        });
+    });
+
+    return recordsToDelete;
+}
+
 function importarConfiguracaoDashboard() {
     var fileInput = document.getElementById('importDashboardConfigFileInput');
     var file = fileInput.files[0];
@@ -3856,12 +3890,16 @@ function importarConfiguracaoDashboard() {
         alertify.error("Por favor, selecione um ficheiro para importar.", 5000);
         return;
     }
+    if (!window.confirm("Importar vai substituir por completo a configuração actual deste dashboard (tudo o que não constar do ficheiro importado será apagado). Deseja continuar?")) {
+        fileInput.value = "";
+        return;
+    }
     var reader = new FileReader();
     reader.onload = function (e) {
         try {
             var content = e.target.result;
             var json = JSON.parse(content);
-            json.recordsToDelete = [];
+            json.recordsToDelete = computeMDashImportRecordsToDelete(json.config);
             $.ajax({
                 type: "POST",
                 url: "../programs/gensel.aspx?cscript=actualizaconfiguracaomrelatorio",
@@ -4922,7 +4960,7 @@ function mdashMountLegacyDetailButton(containerItem, detailObjects) {
     var $target = $footer.length ? $footer : $(hostSelector + ' .mdash-card__body, ' + hostSelector + ' .dashcard-body').first();
 
     if (!$('#' + btnId).length) {
-        var btnHtml = '<button id="' + btnId + '" type="button" class="mdash-card__detail-btn" data-tooltip="true" title="Ver detalhes">'
+        var btnHtml = '<button id="' + btnId + '" type="button" class="mdash-card__detail-btn" data-tooltip="Ver detalhes" data-original-title="Ver detalhes">'
             + '<i class="glyphicon glyphicon-search"></i>Detalhes</button>';
         $target.append(btnHtml);
     }
@@ -4964,7 +5002,7 @@ function mdashMountItemOverlayButton(containerItem, runtimeCtx, interaction) {
     var icon = interaction.buttonIcon || 'glyphicon-search';
 
     if (!$('#' + btnId).length) {
-        var btnHtml = '<button id="' + btnId + '" type="button" class="mdash-card__detail-btn mdash-item-overlay-trigger" data-tooltip="true" title="' + label + '">'
+        var btnHtml = '<button id="' + btnId + '" type="button" class="mdash-card__detail-btn mdash-item-overlay-trigger" data-tooltip="' + label + '" data-original-title="' + label + '">'
             + '<i class="glyphicon ' + icon + '"></i>' + label + '</button>';
         $target.append(btnHtml);
     }

@@ -6281,15 +6281,35 @@ var MdashChartBuilder = (function () {
         return _buildCartesianOption(base, cfg, rows, t, ct);
     }
 
+    // Mobile-only: alinhado com os breakpoints já usados no dashboard. Em desktop
+    // isto devolve false e o comportamento do tooltip fica 100% inalterado.
+    function _isMobileViewport() {
+        return typeof window !== 'undefined' && window.innerWidth <= 768;
+    }
+
     function _tooltipBase(t, trigger) {
-        return {
+        var base = {
             trigger: trigger || 'axis',
             backgroundColor: t.tooltipBg,
             borderColor: 'transparent',
             padding: [10, 14],
             textStyle: { color: t.tooltipText, fontSize: 12 },
-            extraCssText: 'border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.22);'
+            extraCssText: 'border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.22);',
+            // appendToBody: o DOM do tooltip é montado directamente em <body> (position:fixed),
+            // escapando do overflow:hidden/auto dos cards/containers do dashboard e sobrepondo-se
+            // a qualquer elemento da página — sem isto o tooltip fica cortado quando o gráfico
+            // está perto do limite do card. Comportamento de posicionamento nativo do ECharts
+            // (segue o rato/toque, sem lógica de confine/flip personalizada).
+            appendToBody: true
         };
+        // confine: aplicado APENAS em mobile — desloca o tooltip o mínimo
+        // necessário para nunca ultrapassar o ecrã no eixo X (horizontal).
+        // Em desktop este bloco nem corre, para não alterar nada do
+        // comportamento actual nesse display.
+        if (_isMobileViewport()) {
+            base.confine = true;
+        }
+        return base;
     }
 
     function _gridBase(legendPos) {
@@ -6385,9 +6405,15 @@ var MdashChartBuilder = (function () {
                     if (!isLine) item.icon = 'roundRect';
                     return item;
                 }).filter(Boolean),
+                // type:'scroll' impede que a legenda quebre em várias linhas quando há
+                // muitas séries/nomes longos — sem isto o ECharts calcula wrap
+                // automático, mas grid.top só reserva altura para 1 linha, pelo que a
+                // 2ª/3ª linha da legenda ficava desenhada por cima do gráfico.
+                type: 'scroll',
                 top: lPos === 'bottom' ? 'bottom' : 'top', bottom: lPos === 'bottom' ? 6 : 'auto',
                 left: 'center', itemWidth: 22, itemHeight: 8, borderRadius: 4,
-                textStyle: { color: t.text, fontSize: 11 }, itemGap: 18
+                textStyle: { color: t.text, fontSize: 11 }, itemGap: 18,
+                pageIconColor: t.text, pageIconInactiveColor: t.axisLine, pageTextStyle: { color: t.subtext, fontSize: 10 }
             },
             grid: _gridBase(lPos),
             xAxis: {
@@ -6479,7 +6505,7 @@ var MdashChartBuilder = (function () {
                     return '<div style="padding:2px 0;">' + dot + '<strong>' + p.name + '</strong><br/><span style="padding-left:16px;">' + (+p.value).toLocaleString('pt-PT', { maximumFractionDigits: 2 }) + ' &nbsp;<em>(' + p.percent + '%)</em></span></div>';
                 }
             }),
-            legend: { show: cfg.legend && cfg.legend.show !== false, orient: 'horizontal', bottom: 4, left: 'center', textStyle: { color: t.text, fontSize: 11 }, icon: 'circle' },
+            legend: { show: cfg.legend && cfg.legend.show !== false, type: 'scroll', orient: 'horizontal', bottom: 4, left: 'center', textStyle: { color: t.text, fontSize: 11 }, icon: 'circle', pageIconColor: t.text, pageIconInactiveColor: t.axisLine, pageTextStyle: { color: t.subtext, fontSize: 10 } },
             series: [{
                 name: vField, type: 'pie',
                 radius: isDonut ? ['42%', '70%'] : ['0%', '70%'],
@@ -6578,7 +6604,7 @@ var MdashChartBuilder = (function () {
             tooltip: Object.assign(_tooltipBase(t, 'item'), {
                 formatter: function (p) { return '<strong>' + p.name + '</strong>: ' + (+p.value).toLocaleString('pt-PT', { maximumFractionDigits: 2 }) + ' (' + p.percent + '%)'; }
             }),
-            legend: { show: cfg.legend && cfg.legend.show !== false, orient: 'horizontal', bottom: 4, left: 'center', textStyle: { color: t.text, fontSize: 11 } },
+            legend: { show: cfg.legend && cfg.legend.show !== false, type: 'scroll', orient: 'horizontal', bottom: 4, left: 'center', textStyle: { color: t.text, fontSize: 11 }, pageIconColor: t.text, pageIconInactiveColor: t.axisLine, pageTextStyle: { color: t.subtext, fontSize: 10 } },
             series: [{
                 name: vField, type: 'funnel',
                 left: '10%', top: 32, bottom: 28, width: '80%', min: 0,
@@ -6647,9 +6673,11 @@ var MdashChartBuilder = (function () {
             legend: {
                 show: lPos !== 'none' && seriesData.length > 0,
                 data: seriesData.map(function (sd) { return sd.name; }),
+                type: 'scroll',
                 top: lPos === 'bottom' ? 'bottom' : 'top', bottom: lPos === 'bottom' ? 6 : 'auto',
                 left: 'center', itemWidth: 22, itemHeight: 8, borderRadius: 4,
-                textStyle: { color: t.text, fontSize: 11 }, itemGap: 18, icon: 'roundRect'
+                textStyle: { color: t.text, fontSize: 11 }, itemGap: 18, icon: 'roundRect',
+                pageIconColor: t.text, pageIconInactiveColor: t.axisLine, pageTextStyle: { color: t.subtext, fontSize: 10 }
             },
             radar: {
                 indicator: indicators,
