@@ -131,6 +131,7 @@ CREATE TABLE MdashFilter(
     ordem INT DEFAULT 0,
     escopo VARCHAR(20) NOT NULL DEFAULT 'global',  -- 'global' = todos os tabs; 'tab' = só nos separadores indicados
     mdashtabstamp text NOT NULL DEFAULT ''   -- CSV de stamps MdashTab quando escopo = 'tab' (ex.: stamp1,stamp2)
+    descricaodireita VARCHAR(250) DEFAULT ''	
 );
 
 CREATE TABLE MdashAccess(
