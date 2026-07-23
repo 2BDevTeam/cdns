@@ -7947,7 +7947,7 @@ function _mciRefreshPanelsForFonte(fonteStamp) {
         if (!$panel.length) return;
         var fields = _mciGetFields(obj);
         _mciRefreshFieldSelects($panel, fields);
-        $panel.find('.mtxt-datafield, .mbadge-valuefield, .mprog-valuefield, .mprog-ref-field, .mprog-label-field, .mprog-list-title-field, .mprog-list-subtitle-field, .mprog-title-field, .mprog-kpi-trend-field, .mlst-labelfield, .mlst-subtitlefield, .mlst-datefield, .mlst-linkfield, .mlst-linklabel, .mlst-badgefield').each(function () {
+        $panel.find('.mtxt-datafield, .mbadge-valuefield, .mprog-valuefield, .mprog-ref-field, .mprog-label-field, .mprog-list-title-field, .mprog-list-subtitle-field, .mprog-title-field, .mprog-kpi-trend-field, .mprog-list-prevfield, .mprog-list-variationfield, .mlst-labelfield, .mlst-subtitlefield, .mlst-datefield, .mlst-linkfield, .mlst-linklabel, .mlst-badgefield').each(function () {
             _mciSetSelectFields($(this), fields, '-- campo --');
         });
         if ($panel.hasClass('mtbl-root') && typeof _tblRefreshFieldSelects === 'function') {
@@ -12714,7 +12714,7 @@ var _PROGRESS_SAMPLE_CONFIG = {
         showInLabel: true,
         format: { type: 'number', locale: 'pt-PT', minimumFractionDigits: 0, maximumFractionDigits: 0, prefix: '', suffix: '' }
     },
-    valueFormat: { type: 'money', locale: 'pt-PT', minimumFractionDigits: 0, maximumFractionDigits: 0, prefix: '', suffix: ' €' },
+    valueFormat: { type: 'number', locale: 'pt-PT', minimumFractionDigits: 2, maximumFractionDigits: 2, prefix: '', suffix: '' },
     display: {
         mode: 'single',
         title: 'Total Vendas',
@@ -12738,6 +12738,13 @@ var _PROGRESS_SAMPLE_CONFIG = {
         showItemValue: true,
         showItemPercent: true,
         uniformColor: false,
+        showRank: true,
+        previousValueField: '',
+        variationField: '',
+        colorByVariation: false,
+        currentValuePill: false,
+        currentValuePillColor: 'phc:primary',
+        currentValuePillTextColor: '',
         header: {
             show: true,
             title: 'Menu Vendido',
@@ -12914,19 +12921,71 @@ function _progSortListRows(rows, cfg) {
     return sorted;
 }
 
-function _progFormatListItemMetrics(metrics, cfg) {
+// Envolve o valor actual num "pill" colorido (cor escolhida pelo utilizador
+// em list.currentValuePillColor) quando list.currentValuePill está activo.
+function _progWrapCurrentValueHtml(text, cfg) {
+    var list = cfg.list || {};
+    var safeText = _mciEsc(text);
+    if (!list.currentValuePill) return '<span class="mprog-list-metrics-current">' + safeText + '</span>';
+    var bgToken = list.currentValuePillColor;
+    var bgColor = _progResolveColor(bgToken, 'phc:primary');
+    // Cores PHC (tokens) usam tinta suave (16% alpha), como nos outros badges.
+    // Uma cor personalizada (hex escolhido directamente pelo utilizador) é usada
+    // a 100% — caso contrário um preto ficava quase invisível (cinza muito claro).
+    var isCustomHex = typeof bgToken === 'string' && bgToken.charAt(0) === '#';
+    var bg = isCustomHex ? bgColor : _progColorWithAlpha(bgColor, 0.16);
+    var textColor = _progResolveColor(list.currentValuePillTextColor || list.currentValuePillColor, bgColor);
+    return '<span class="mprog-list-metrics-current mprog-list-value-pill" style="background:' + bg + ';color:' + textColor + ';">' + safeText + '</span>';
+}
+
+// Constrói o HTML da coluna de métricas (valor/percentagem, ou comparação
+// "valor anterior → valor actual"). Usa um pseudo-elemento CSS para a seta
+// em vez do caracter Unicode "→", que não é fiável em todos os contextos do
+// PHC (surge como "?" quando o encoding do ficheiro/transporte não é UTF-8).
+function _progFormatListItemMetrics(metrics, cfg, row) {
     var list = cfg.list || {};
     var display = cfg.display || {};
     var valueFmt = cfg.valueFormat || {};
     var pctFmt = { type: 'number', locale: valueFmt.locale || 'pt-PT', maximumFractionDigits: 1, minimumFractionDigits: 0, suffix: '%', prefix: '' };
-    var valueText = _progFormatNumber(metrics.value, valueFmt);
-    var percentText = _progFormatNumber(metrics.percent, pctFmt);
     var showV = display.showValue !== false && list.showItemValue !== false;
     var showP = display.showPercent !== false && list.showItemPercent !== false;
-    if (showV && showP) return valueText + ' (' + percentText + ')';
-    if (showV) return valueText;
-    if (showP) return percentText;
+
+    // Valor anterior → valor actual (ex: "145 600 → 198 700 MZN") — o sufixo
+    // só é aplicado no valor actual, não repetido no valor anterior.
+    if (showV && list.previousValueField && row && row[list.previousValueField] != null && row[list.previousValueField] !== '') {
+        var prevFmt = Object.assign({}, valueFmt, { suffix: '' });
+        var prevText = _progFormatNumber(_progSafeNumber(row[list.previousValueField], 0), prevFmt);
+        var currText = _progFormatNumber(metrics.value, valueFmt);
+        return '<span class="mprog-list-metrics-prev">' + _mciEsc(prevText) + '</span>'
+            + '<span class="mprog-list-arrow" aria-hidden="true"></span>'
+            + _progWrapCurrentValueHtml(currText, cfg);
+    }
+
+    var valueText = _progFormatNumber(metrics.value, valueFmt);
+    var percentText = _progFormatNumber(metrics.percent, pctFmt);
+    if (showV && showP) return _progWrapCurrentValueHtml(valueText, cfg) + ' <span class="mprog-list-metrics-pct">(' + _mciEsc(percentText) + ')</span>';
+    if (showV) return _progWrapCurrentValueHtml(valueText, cfg);
+    if (showP) return _mciEsc(percentText);
     return '';
+}
+
+// Badge de variação (ex: "+36,5%" / "-21,1%") — o valor já vem pré-calculado
+// da fonte (list.variationField); o sinal do número define o prefixo (+/-) e
+// a cor (verde/vermelho). Cor fixa em hex (não passa pela resolução de token
+// PHC) para garantir vermelho/verde sempre visível, independentemente do
+// tema activo no PHC. Usa texto "+"/"-" em vez de setas Unicode, que não
+// renderizam de forma fiável em todos os contextos do PHC.
+function _progBuildVariationBadgeHtml(row, cfg) {
+    var list = cfg.list || {};
+    if (!list.variationField || !row || row[list.variationField] == null || row[list.variationField] === '') return '';
+    var v = _progSafeNumber(row[list.variationField], 0);
+    var isNeg = v < 0;
+    var color = isNeg ? '#dc2626' : '#16a34a';
+    var bg = isNeg ? 'rgba(220,38,38,.14)' : 'rgba(22,163,74,.14)';
+    var sign = v > 0 ? '+' : (v < 0 ? '-' : '');
+    var pctFmt = { type: 'number', locale: (cfg.valueFormat && cfg.valueFormat.locale) || 'pt-PT', maximumFractionDigits: 1, minimumFractionDigits: 1, suffix: '%', prefix: '' };
+    var text = sign + _progFormatNumber(Math.abs(v), pctFmt);
+    return '<span class="mprog-list-badge" style="background:' + bg + ';color:' + color + ';">' + _mciEsc(text) + '</span>';
 }
 
 function _progResolveListSubtitle(rows, cfg, scaleCtx) {
@@ -13221,8 +13280,15 @@ function _progInjectCss() {
     s += '.m-dash-progress-root.mode-list .mprog-list-subtitle{font-size:11px;font-weight:500;color:var(--mprog-muted,#64748b);line-height:1.35;}';
     s += '.m-dash-progress-root.mode-list .mprog-list-item{display:flex;flex-direction:column;}';
     s += '.m-dash-progress-root.mode-list .mprog-list-row-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px;}';
+    s += '.m-dash-progress-root.mode-list .mprog-list-label-wrap{display:flex;align-items:baseline;gap:8px;min-width:0;}';
+    s += '.m-dash-progress-root.mode-list .mprog-list-rank{font-size:11px;font-weight:700;color:var(--mprog-muted,#64748b);flex-shrink:0;min-width:14px;}';
     s += '.m-dash-progress-root.mode-list .mprog-list-label{font-size:12px;font-weight:600;color:var(--mprog-text,#334155);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}';
-    s += '.m-dash-progress-root.mode-list .mprog-list-metrics{font-size:11.5px;font-weight:600;color:var(--mprog-muted,#64748b);white-space:nowrap;flex-shrink:0;}';
+    s += '.m-dash-progress-root.mode-list .mprog-list-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}';
+    s += '.m-dash-progress-root.mode-list .mprog-list-metrics{font-size:11.5px;font-weight:600;color:var(--mprog-muted,#64748b);white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;}';
+    s += '.m-dash-progress-root.mode-list .mprog-list-arrow{display:inline-block;width:0;height:0;border-top:3.5px solid transparent;border-bottom:3.5px solid transparent;border-left:5px solid var(--mprog-muted,#94a3b8);flex-shrink:0;}';
+    s += '.m-dash-progress-root.mode-list .mprog-list-value-pill{display:inline-flex;align-items:center;justify-content:flex-end;padding:2px 8px;border-radius:999px;font-weight:700;min-width:92px;box-sizing:border-box;text-align:right;}';
+    s += '.m-dash-progress-root.mode-list .mprog-list-badge{display:inline-flex;align-items:center;justify-content:center;gap:2px;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0;min-width:62px;box-sizing:border-box;text-align:center;}';
+    s += '.m-dash-progress-root.mode-list .mprog-list-badge-arrow{font-size:10px;line-height:1;}';
     s += '.m-dash-progress-root.mode-list .mprog-list-item .mprog-track-wrap{margin-bottom:0;}';
     s += '.m-dash-progress-root.variant-kpi{position:relative;overflow:hidden;background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(15,23,42,.06);}';
     s += '.m-dash-progress-root.variant-kpi .mprog-kpi-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px;}';
@@ -13349,12 +13415,16 @@ function _progRenderProgressList(dados, cfg, fetched) {
     }
 
     html += '<div class="mprog-list" style="gap:' + gap + 'px;">';
-    rows.forEach(function (row) {
+    rows.forEach(function (row, idx) {
         var metrics = _progResolveMetrics(row, cfg, scaleCtx);
         var threshold = _progResolveThreshold(metrics.percent, cfg.thresholds) || metrics.threshold || {};
         metrics.threshold = threshold;
         var barColor = _progResolveColor(threshold.barColor || design.defaultBarColor, 'phc:primary');
         var trackColor = _progResolveColor(threshold.trackColor || design.trackColor, '#e8edf5');
+        if (list.colorByVariation && list.variationField && row[list.variationField] != null && row[list.variationField] !== '') {
+            var vSign = _progSafeNumber(row[list.variationField], 0);
+            barColor = vSign < 0 ? '#dc2626' : '#16a34a';
+        }
         var label = list.labelField ? (row[list.labelField] != null ? String(row[list.labelField]) : '') : '';
         if (!label) {
             Object.keys(row).some(function (k) {
@@ -13363,12 +13433,17 @@ function _progRenderProgressList(dados, cfg, fetched) {
                 return true;
             });
         }
-        var metricsText = _progFormatListItemMetrics(metrics, cfg);
+        var metricsHtml = _progFormatListItemMetrics(metrics, cfg, row);
+        var badgeHtml = _progBuildVariationBadgeHtml(row, cfg);
+        var rankHtml = list.showRank !== false ? '<span class="mprog-list-rank">' + (idx + 1) + '</span>' : '';
         html += '<div class="mprog-list-item">';
-        if (label || metricsText) {
+        if (label || metricsHtml || badgeHtml) {
             html += '<div class="mprog-list-row-hd">';
-            if (label) html += '<span class="mprog-list-label">' + _mciEsc(label) + '</span>';
-            if (metricsText) html += '<span class="mprog-list-metrics">' + _mciEsc(metricsText) + '</span>';
+            html += '<span class="mprog-list-label-wrap">' + rankHtml + (label ? '<span class="mprog-list-label">' + _mciEsc(label) + '</span>' : '') + '</span>';
+            html += '<span class="mprog-list-right">';
+            if (metricsHtml) html += '<span class="mprog-list-metrics">' + metricsHtml + '</span>';
+            if (badgeHtml) html += badgeHtml;
+            html += '</span>';
             html += '</div>';
         }
         html += _progBuildTrackHtml(metrics, barColor, trackColor, design, {
@@ -13706,8 +13781,24 @@ function renderProgressPropertiesInline(obj, panel) {
         + '<div class="mcbi-checks">'
         + _mciChk('mprog-list-show-value', 'Valor por linha', list.showItemValue !== false)
         + _mciChk('mprog-list-show-percent', 'Percentagem por linha', list.showItemPercent !== false)
+        + _mciChk('mprog-list-show-rank', 'Número de ranking (1, 2, 3…)', list.showRank !== false)
         + _mciChk('mprog-list-show-header', 'Cabeçalho da lista', listHdr.show !== false)
         + _mciChk('mprog-list-show-legend', 'Legenda de limiares', !!display.showLegend)
+        + '</div>'
+        + '<div class="mcbi-info" style="margin:8px 0;">Comparação com ano anterior e badge de variação — ambos os campos já vêm calculados da fonte de dados.</div>'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Campo valor ano anterior</label><select class="mprog-list-prevfield form-control input-sm">' + _fieldOpts(list.previousValueField) + '</select></div>'
+        + '<div class="mcbi-field"><label>Campo variação (%)</label><select class="mprog-list-variationfield form-control input-sm">' + _fieldOpts(list.variationField) + '</select></div>'
+        + '</div>'
+        + '<div class="mcbi-checks">'
+        + _mciChk('mprog-list-color-variation', 'Cor da barra segue a variação (verde/vermelho)', !!list.colorByVariation)
+        + _mciChk('mprog-list-current-pill', 'Valor actual com fundo em pill', !!list.currentValuePill)
+        + '</div>'
+        + '<div class="mprog-list-current-pill-wrap"' + (list.currentValuePill ? '' : ' style="display:none;"') + '>'
+        + '<div class="mcbi-row2">'
+        + _tblColorTokenFieldHtml('Cor de fundo do valor actual', 'mprog-list-current-pill-color', list.currentValuePillColor || 'phc:primary', true)
+        + _tblColorTokenFieldHtml('Cor do texto do valor actual', 'mprog-list-current-pill-text-color', list.currentValuePillTextColor || '', true, true)
+        + '</div>'
         + '</div>'
         + '<div class="mprog-list-header-props"' + (listHdr.show === false ? ' style="display:none;"' : '') + '>'
         + '<div class="mcbi-row2">'
@@ -13739,6 +13830,22 @@ function renderProgressPropertiesInline(obj, panel) {
         + '<div class="mcbi-field"><label>Rótulo do máximo</label><input type="text" class="mprog-ref-label form-control input-sm" value="' + _mciEsc(ref.label || 'Meta') + '" placeholder="ex: Meta, Objectivo, Orçamento"></div>'
         + '<div class="mcbi-field"><label>Sufixo do máximo</label><input type="text" class="mprog-ref-suffix form-control input-sm" value="' + _mciEsc((ref.format && ref.format.suffix) || '') + '" placeholder="ex: €, un."></div>'
         + '</div></div>';
+
+    var vf = cfg.valueFormat || {};
+    var vfDecimals = vf.maximumFractionDigits != null ? vf.maximumFractionDigits : 2;
+    var sValueFormat = '<div class="mcbi-info" style="margin-bottom:8px;">Formatação do valor actual — usada na barra e nas linhas da lista.</div>'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Tipo</label><select class="mprog-vf-type form-control input-sm">'
+        + [['number', 'Número'], ['percentage', 'Percentagem'], ['money', 'Moeda (formato nativo)']].map(function (o) {
+            return '<option value="' + o[0] + '"' + ((vf.type || 'number') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+        }).join('') + '</select></div>'
+        + '<div class="mcbi-field"><label>Casas decimais</label><input type="number" class="mprog-vf-decimals form-control input-sm" min="0" max="6" value="' + vfDecimals + '"></div>'
+        + '</div>'
+        + '<div class="mcbi-row2">'
+        + '<div class="mcbi-field"><label>Prefixo</label><input type="text" class="mprog-vf-prefix form-control input-sm" value="' + _mciEsc(vf.prefix || '') + '" placeholder="ex: € "></div>'
+        + '<div class="mcbi-field"><label>Sufixo</label><input type="text" class="mprog-vf-suffix form-control input-sm" value="' + _mciEsc(vf.suffix || '') + '" placeholder="ex:  €,  un.,  kg"></div>'
+        + '</div>'
+        + '<div class="mcbi-info">"Moeda (formato nativo)" usa sempre o símbolo € do Intl — para outro sufixo (kg, un., MT…) use o tipo "Número" com o campo Sufixo acima.</div>';
 
     var sLimiares = '<div class="mprog-thresholds-wrap">'
         + '<div class="mcbi-info" style="margin-bottom:8px;">Limiares por ordem crescente — a primeira faixa que contém a percentagem define cor e estilo'
@@ -13835,6 +13942,7 @@ function renderProgressPropertiesInline(obj, panel) {
         + _sec('fa fa-database', 'Dados & Fonte', sDados, true)
         + _sec('fa fa-list', 'Lista de Barras', sLista, true)
         + _sec('fa fa-bullseye', 'Referência de 100%', sReferencia, !isList)
+        + _sec('fa fa-hashtag', 'Formato do Valor', sValueFormat, false)
         + _sec('fa fa-sliders', 'Limiares & Cores', sLimiares, true)
         + _sec('fa fa-eye', 'Apresentação', sDisplay, false)
         + _sec('fa fa-paint-brush', 'Design', sDesign, false)
@@ -13892,6 +14000,10 @@ function renderProgressPropertiesInline(obj, panel) {
     });
     panel.on('change.mproginline', '.mprog-list-subtitle-mode', function () { _syncListSubtitleUi(); fire(); });
     panel.on('change.mproginline', 'input.mprog-list-show-header', function () { _syncListSubtitleUi(); fire(0); });
+    panel.on('change.mproginline', 'input.mprog-list-current-pill', function () {
+        panel.find('.mprog-list-current-pill-wrap').toggle(this.checked);
+        fire(0);
+    });
     panel.on('input.mproginline', '.mprog-list-gap', function () {
         panel.find('.mprog-list-gap-lbl').text($(this).val());
         fire();
@@ -13940,7 +14052,7 @@ function renderProgressPropertiesInline(obj, panel) {
         if (fs) {
             _mciOnFonteSelected(fs, obj, panel, function () {
                 fields = _mciGetFields(obj);
-                panel.find('.mprog-valuefield, .mprog-ref-field, .mprog-label-field, .mprog-list-title-field, .mprog-list-subtitle-field, .mprog-title-field, .mprog-kpi-trend-field').each(function () {
+                panel.find('.mprog-valuefield, .mprog-ref-field, .mprog-label-field, .mprog-list-title-field, .mprog-list-subtitle-field, .mprog-title-field, .mprog-kpi-trend-field, .mprog-list-prevfield, .mprog-list-variationfield').each(function () {
                     var cur = $(this).val();
                     _mciSetSelectFields($(this), fields, '-- campo --');
                     if (fields.indexOf(cur) >= 0) $(this).val(cur);
@@ -13955,7 +14067,7 @@ function renderProgressPropertiesInline(obj, panel) {
             obj.transformconfigjson = null;
             if (obj.config) obj.config.transformConfig = null;
             fields = _mciGetFields(obj);
-            panel.find('.mprog-valuefield, .mprog-ref-field, .mprog-label-field, .mprog-list-title-field, .mprog-list-subtitle-field, .mprog-title-field, .mprog-kpi-trend-field').each(function () {
+            panel.find('.mprog-valuefield, .mprog-ref-field, .mprog-label-field, .mprog-list-title-field, .mprog-list-subtitle-field, .mprog-title-field, .mprog-kpi-trend-field, .mprog-list-prevfield, .mprog-list-variationfield').each(function () {
                 var cur = $(this).val();
                 _mciSetSelectFields($(this), fields, '-- campo --');
                 if (fields.indexOf(cur) >= 0) $(this).val(cur);
@@ -14012,6 +14124,16 @@ function _progReadConfig(panel, obj) {
     cfg.reference.format.type = 'number';
     cfg.reference.format.locale = 'pt-PT';
     cfg.reference.format.suffix = panel.find('.mprog-ref-suffix').val() || '';
+    var vfDecimalsRead = parseInt(panel.find('.mprog-vf-decimals').val(), 10);
+    if (isNaN(vfDecimalsRead) || vfDecimalsRead < 0) vfDecimalsRead = 2;
+    cfg.valueFormat = {
+        type: panel.find('.mprog-vf-type').val() || 'number',
+        locale: 'pt-PT',
+        minimumFractionDigits: vfDecimalsRead,
+        maximumFractionDigits: vfDecimalsRead,
+        prefix: panel.find('.mprog-vf-prefix').val() || '',
+        suffix: panel.find('.mprog-vf-suffix').val() || ''
+    };
     var isKpiPanel = panel.find('input.mprog-kpi-show-title').length > 0;
     cfg.display = {
         mode: panel.find('.mprog-display-mode').val() || 'single',
@@ -14038,6 +14160,13 @@ function _progReadConfig(panel, obj) {
         showItemValue: panel.find('input.mprog-list-show-value').is(':checked'),
         showItemPercent: panel.find('input.mprog-list-show-percent').is(':checked'),
         uniformColor: false,
+        showRank: panel.find('input.mprog-list-show-rank').is(':checked'),
+        previousValueField: panel.find('.mprog-list-prevfield').val() || '',
+        variationField: panel.find('.mprog-list-variationfield').val() || '',
+        colorByVariation: panel.find('input.mprog-list-color-variation').is(':checked'),
+        currentValuePill: panel.find('input.mprog-list-current-pill').is(':checked'),
+        currentValuePillColor: _tblReadColorTokenField(panel, 'mprog-list-current-pill-color') || 'phc:primary',
+        currentValuePillTextColor: _tblReadColorTokenField(panel, 'mprog-list-current-pill-text-color') || '',
         header: {
             show: panel.find('input.mprog-list-show-header').is(':checked'),
             title: panel.find('.mprog-list-title').val() || '',
