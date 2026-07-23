@@ -1033,6 +1033,71 @@ function _mccOpenEditorModal(mode, aceRef, onApply) {
     $modal.on('hidden.bs.modal', function () { $(this).remove(); });
 }
 
+// ── Editor genérico de expressão JS multilinha (standalone — não precisa de ACE já criado) ──
+// Usado por campos que aceitam texto simples OU expressão/código JS (ex: Nome da série).
+function _mciOpenExprEditorModal(currentVal, onApply, opts) {
+    opts = opts || {};
+    var modalId = 'mci-exprjs-modal';
+    $('#' + modalId).remove();
+
+    var useAce = (typeof ace !== 'undefined' && ace.edit);
+    var bodyHtml = useAce
+        ? '<div id="mci-exprjs-ace" style="width:100%;height:calc(70vh - 120px);min-height:220px;"></div>'
+        : '<textarea id="mci-exprjs-ta" class="form-control" style="width:100%;height:calc(70vh - 120px);min-height:220px;font-family:monospace;font-size:12px;" spellcheck="false"></textarea>';
+
+    var title = opts.title || 'Expressão JS';
+    var help = opts.help || 'Texto simples ou expressão/código JS.';
+
+    var mHtml = '<div class="modal fade" id="' + modalId + '" tabindex="-1" role="dialog">'
+        + '<div class="modal-dialog" style="width:80%;max-width:1000px;margin:4% auto;" role="document">'
+        + '<div class="modal-content">'
+        + '<div class="modal-header" style="padding:8px 14px;">'
+        + '  <button type="button" class="close" data-dismiss="modal">&times;</button>'
+        + '  <h4 class="modal-title" style="font-size:14px;"><i class="glyphicon glyphicon-console"></i> ' + _mciEsc(title)
+        + ' <small style="opacity:.75;font-size:11px;">' + help + '</small></h4>'
+        + '</div>'
+        + '<div class="modal-body" style="padding:0;">' + bodyHtml + '</div>'
+        + '<div class="modal-footer" style="padding:8px 14px;">'
+        + '  <button type="button" class="btn btn-primary btn-sm" id="mci-exprjs-apply"><i class="glyphicon glyphicon-ok"></i> Aplicar</button>'
+        + '  <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancelar</button>'
+        + '</div>'
+        + '</div></div></div>';
+
+    $('body').append(mHtml);
+    var $modal = $('#' + modalId);
+    $modal.css('z-index', 10600);
+    $modal.modal('show');
+
+    $modal.on('shown.bs.modal', function () {
+        $('.modal-backdrop').last().css('z-index', 10590);
+        var getValue;
+        if (useAce) {
+            var ed = ace.edit('mci-exprjs-ace');
+            ed.setTheme(typeof getMDashEditorTheme === 'function' ? getMDashEditorTheme('dark') : 'ace/theme/monokai');
+            ed.session.setMode('ace/mode/javascript');
+            ed.setOptions({ fontSize: '13px', showPrintMargin: false, wrap: true });
+            ed.setValue(currentVal || '', -1);
+            ed.focus();
+            getValue = function () { return ed.getValue(); };
+        } else {
+            var $ta = $('#mci-exprjs-ta').val(currentVal || '');
+            $ta.focus();
+            getValue = function () { return $ta.val(); };
+        }
+
+        $('#mci-exprjs-apply').off('click').on('click', function () {
+            var val = String(getValue() || '');
+            if (onApply) onApply(val);
+            $modal.modal('hide');
+        });
+    });
+    $modal.on('hidden.bs.modal', function () {
+        if (useAce) { try { ace.edit('mci-exprjs-ace').destroy(); } catch (e) { } }
+        $(this).remove();
+        if ($('.modal.in').length) $('body').addClass('modal-open');
+    });
+}
+
 // ── Read config from panel ──────────────────────────────────────────────────
 function _ccReadConfig(panel, obj) {
     var cfg = obj.config || {};
@@ -6241,6 +6306,47 @@ var MdashChartBuilder = (function () {
         return c || null;
     }
 
+    // Nome da série como expressão/código JS (multilinha) — tem acesso a `data`
+    // (todos os registos da fonte da série) e helpers básicos (Math/Number/
+    // String/Date). Compilação em duas fases, igual ao JS_EXPR do Transform
+    // Builder (DATA SOURCE Operations.js):
+    //   1) tenta como expressão única: with(helpers){return (CÓDIGO);}
+    //   2) se isso falhar a compilar (SyntaxError — ex: CÓDIGO tem ifs/statements
+    //      soltos com o seu próprio return), tenta como CORPO de função:
+    //      with(helpers){CÓDIGO}
+    // Se nenhuma das duas compilar, ou se falhar em runtime, usa-se o próprio
+    // texto tal como escrito como nome literal — assim o campo continua a
+    // funcionar como um simples input de nome para quem não precisar de JS.
+    function _evalSeriesName(s, rows) {
+        var raw = (s && s.name != null) ? String(s.name) : '';
+        var trimmed = raw.trim();
+        if (!trimmed) return '';
+        var helpers = { Math: Math, Number: Number, String: String, Date: Date, parseFloat: parseFloat, parseInt: parseInt };
+        var fn;
+        try {
+            fn = new Function('data', 'helpers', 'with(helpers){return (' + trimmed + ');}');
+        } catch (e) {
+            try {
+                fn = new Function('data', 'helpers', 'with(helpers){' + trimmed + '}');
+            } catch (e2) {
+                return raw;
+            }
+        }
+        try {
+            var result = fn(rows || [], helpers);
+            if (result === null || result === undefined) return raw;
+            // Resultado não-primitivo (ex: elementos DOM globais que colidem com o
+            // nome da expressão — campos <select>/<input> do PHC tornam-se
+            // propriedades globais de window) não é um nome de série válido;
+            // usar o texto literal em vez de "[object ...]" .
+            var rType = typeof result;
+            if (rType === 'object' || rType === 'function') return raw;
+            return String(result);
+        } catch (e3) {
+            return raw;
+        }
+    }
+
     function _defaultConfig() {
         return {
             theme: 'phclegacy', chartType: 'bar', height: 320,
@@ -6332,7 +6438,7 @@ var MdashChartBuilder = (function () {
             if (sType === 'area') sType = 'line';
             var baseCol = _resolvePHCColor(s.color) || t.colors[i % t.colors.length];
             var obj = {
-                name: s.name || s.field,
+                name: _evalSeriesName(s, rows) || s.field,
                 type: sType,
                 data: rows.map(function (r) { return r[s.field]; }),
                 emphasis: { focus: 'series' },
@@ -6401,7 +6507,7 @@ var MdashChartBuilder = (function () {
                     if (s.showInLegend === false) return null;
                     var sType = (s.serType && s.serType !== 'default') ? s.serType : (ct === 'mixed' ? (i === 0 ? 'bar' : 'line') : ct);
                     var isLine = sType === 'line' || sType === 'area';
-                    var item = { name: s.name || s.field };
+                    var item = { name: _evalSeriesName(s, rows) || s.field };
                     if (!isLine) item.icon = 'roundRect';
                     return item;
                 }).filter(Boolean),
@@ -6457,7 +6563,7 @@ var MdashChartBuilder = (function () {
             var useGrad = s.gradient !== undefined ? s.gradient !== false : cfg.gradient !== false;
             var br = s.borderRadius !== undefined ? s.borderRadius : (cfg.borderRadius !== undefined ? cfg.borderRadius : 6);
             var obj = {
-                name: s.name || s.field, type: 'bar',
+                name: _evalSeriesName(s, rows) || s.field, type: 'bar',
                 data: rows.map(function (r) { return r[s.field]; }).reverse(),
                 itemStyle: {
                     borderRadius: [0, br, br, 0],
@@ -6526,7 +6632,7 @@ var MdashChartBuilder = (function () {
         var series = serDefs.map(function (s, i) {
             var baseCol = _resolvePHCColor(s.color) || t.colors[i % t.colors.length];
             return {
-                name: s.name || s.field, type: 'scatter', symbolSize: s.symbolSize || 10,
+                name: _evalSeriesName(s, rows) || s.field, type: 'scatter', symbolSize: s.symbolSize || 10,
                 symbol: s.scatterSymbol || 'circle',
                 data: rows.map(function (r) { return [r[xField], r[s.field]]; }),
                 itemStyle: { color: _alpha(baseCol, 0.8), borderColor: baseCol, borderWidth: 1 },
@@ -6551,7 +6657,7 @@ var MdashChartBuilder = (function () {
         var series = serDefs.map(function (s, i) {
             var baseCol = _resolvePHCColor(s.color) || '#2E7D32'; // Default green color for sparkline
             return {
-                name: s.name || s.field,
+                name: _evalSeriesName(s, rows) || s.field,
                 type: 'line',
                 data: rows.map(function (r) { return r[s.field]; }),
                 smooth: true,
@@ -6649,7 +6755,7 @@ var MdashChartBuilder = (function () {
         var seriesData = serDefs.map(function (s, i) {
             var baseCol = _resolvePHCColor(s.color) || t.colors[i % t.colors.length];
             return {
-                name: s.name || s.field,
+                name: _evalSeriesName(s, rows) || s.field,
                 value: rows.map(function (r) { return parseFloat(r[s.field]) || 0; }),
                 lineStyle: { color: baseCol, width: 2.5 },
                 itemStyle: { color: baseCol },
@@ -8207,7 +8313,14 @@ function _mciSerieRow(s, i, fields, fontes) {
         + dsSection
         + '<div class="mcbi-row2">'
         + '<div class="mcbi-field"><label>Campo</label><select class="mcbi-sf form-control input-sm">' + fOpts + '</select></div>'
-        + '<div class="mcbi-field"><label>Nome</label><input type="text" class="mcbi-sn form-control input-sm" value="' + _mciEsc(s.name || '') + '" placeholder="Nome da série"></div>'
+        + '<div class="mcbi-field">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+        + '<label style="margin:0;">Nome da série <small style="font-weight:400;color:#94a3b8;">(JS)</small></label>'
+        + '<button type="button" class="btn btn-xs btn-default mcbi-sn-expand" title="Editar em ecrã completo"><i class="glyphicon glyphicon-fullscreen"></i></button>'
+        + '</div>'
+        + '<textarea class="mcbi-sn mcbi-sn-expr form-control input-sm" rows="2" placeholder="ex: Vendas&#10;ou: &quot;Vendas &quot; + data[0].ano">' + _mciEsc(s.name || '') + '</textarea>'
+        + '<div class="mcbi-sn-hint">Texto simples ou expressão JS — acesso a <code>data</code> (registos da série) e <code>Math</code>.</div>'
+        + '</div>'
         + '</div>'
         + '<div class="mcbi-sr-adv mcbi-row2">'
         + '<div class="mcbi-field"><label>Tipo</label><select class="mcbi-st form-control input-sm">' + stOpts + '</select></div>'
@@ -8896,6 +9009,20 @@ function renderChartPropertiesInline(obj, panel) {
         var fl = $sr.find('.mcbi-sf').val();
         var idx = $sr.closest('.mcbi-series').find('.mcbi-sr').index($sr) + 1;
         $sr.find('.mcbi-sr-title').text(nm || fl || ('Série ' + idx));
+        fire();
+    });
+
+    panel.on('click.mcbi', '.mcbi-sn-expand', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $sr = $(this).closest('.mcbi-sr');
+        var $ta = $sr.find('.mcbi-sn');
+        _mciOpenExprEditorModal($ta.val(), function (newVal) {
+            $ta.val(newVal).trigger('input').trigger('change');
+        }, {
+            title: 'Nome da série',
+            help: 'objecto <code>data</code> (registos da série) disponível — texto simples ou expressão JS'
+        });
     });
 
     panel.on('input.mcbi', 'input[type=color]', function () {
@@ -9023,6 +9150,9 @@ function _mciCSS() {
     // Inputs inside series body
     s += '.mcbi-sf,.mcbi-sn,.mcbi-st,.mcbi-sstack{width:100%;background:#fff !important;border:1px solid rgba(0,0,0,.12) !important;color:#1e293b !important;border-radius:6px;font-size:11.5px;}';
     s += '.mcbi-sf:focus,.mcbi-sn:focus,.mcbi-st:focus,.mcbi-sstack:focus{border-color:var(--md-primary,#5b8dee) !important;box-shadow:0 0 0 2px rgba(var(--md-primary-rgb,91,141,238),.15) !important;outline:none;}';
+    s += 'textarea.mcbi-sn{font-family:ui-monospace,Consolas,monospace;line-height:1.45;resize:vertical;padding:6px 8px;}';
+    s += '.mcbi-sn-hint{font-size:9.5px;color:#94a3b8;line-height:1.5;margin-top:4px;}';
+    s += '.mcbi-sn-hint code{background:rgba(0,0,0,.05);padding:0 3px;border-radius:3px;}';
     // Color row inside series
     s += '.mcbi-sr-color-row{display:flex;align-items:center;gap:10px;margin-bottom:0 !important;}';
     s += '.mcbi-sr-color-row>label{margin-bottom:0 !important;flex-shrink:0;}';
