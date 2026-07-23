@@ -1,3 +1,5 @@
+
+
 function Mrend(options) {
 
     var mrendThis = this;
@@ -363,9 +365,9 @@ function Mrend(options) {
         this.sourceBind = data.sourceBind || "";
     }
 
-    // ----------------------------------------------------------------------------
+    // ────────────────────────────────────────────────────────────────────────────
     // BLACKLIST UTILITIES - Senior Level Centralized Logic
-    // ----------------------------------------------------------------------------
+    // ────────────────────────────────────────────────────────────────────────────
 
     /**
      * Parse blacklist from multiple formats: array, JSON string, CSV string
@@ -443,7 +445,7 @@ function Mrend(options) {
      * - Applies parent's blacklistheranca to strip inherited group/title flags
      *
      * USE THIS in every place that materialises a filha (add manual, refresh, recursive).
-     * Single source of truth ? no risk of divergent behaviour between code paths.
+     * Single source of truth → no risk of divergent behaviour between code paths.
      *
      * @param {Object} parentConfig - The parent Linha config (has linhastamp + blacklistheranca)
      * @param {Object} [filhaRecord] - Optional record (with codigolinha) to disambiguate siblings
@@ -505,7 +507,7 @@ function Mrend(options) {
         return UIObject;
     }
 
-    // -- Totais por linha (Tabulator dataTree) --------------------------------
+    // ── Totais por linha (Tabulator dataTree) ────────────────────────────────
     function parseColunasTotais(colunastotais) {
         if (!colunastotais || !colunastotais.toString().trim()) {
             return [];
@@ -1319,7 +1321,7 @@ function Mrend(options) {
 
 
 
-    // -- Pending edits: localStorage para sobreviver a overwrite do Dexie por re-fetch --
+    // ── Pending edits: localStorage para sobreviver a overwrite do Dexie por re-fetch ──
     function _pendingEditsKey() {
         return "mrend_pedits_" + (mrendThis.dbTableToMrendObject.dbName || "") + "_" + mrendThis.tableSourceName;
     }
@@ -1353,7 +1355,7 @@ function Mrend(options) {
     function _clearPendingEdits() {
         try { localStorage.removeItem(_pendingEditsKey()); } catch (e) { }
     }
-    // -----------------------------------------------------------------------------
+    // ─────────────────────────────────────────────────────────────────────────────
 
     function syncChangesToDB(cellObject, valor) {
 
@@ -1906,7 +1908,7 @@ function Mrend(options) {
         // Initialize UIObject with all column fields using centralized utility
         renderedLinha.UIObject = createUIObjectWithColumns(rowid);
 
-        // renderCelula=true: cria uma célula vazia por coluna com linkid=pai ? salva no Dexie.
+        // renderCelula=true: cria uma célula vazia por coluna com linkid=pai → salva no Dexie.
         // Sem isto, a linha filha não tem registos e desaparece no refresh.
         renderedLinha.addToLocalRenderedLinhasList([], { rowid: rowid }, true, false);
 
@@ -2483,15 +2485,15 @@ function Mrend(options) {
             });
             var distinctColunas = getDistinctWithKeys(recordsColuna, "coluna");
             distinctColunas.sort(function (a, b) {
-                return a.ordemcoluna - b.ordemcoluna;
+                return resolveOrdemColunaValue(a) - resolveOrdemColunaValue(b);
             });
 
             distinctColunas.forEach(function (distinctColuna) {
                 claimedDynamicCodes[String(distinctColuna.coluna || "").trim()] = true;
                 var renderedColuna = new RenderedColuna({
                     codigocoluna: distinctColuna.coluna,
-                    desccoluna: distinctColuna.descColuna,
-                    ordem: distinctColuna.ordemColuna || 0,
+                    desccoluna: distinctColuna.descColuna || distinctColuna.desccoluna || "",
+                    ordem: resolveOrdemColunaValue(distinctColuna),
                     config: coluna
                 });
 
@@ -2560,6 +2562,43 @@ function Mrend(options) {
 
     function getDistinctWithKeys(records, key) {
         return _.uniqBy(records, key);
+    }
+
+    // Lê ordem da coluna independentemente de camelCase/lowercase (Dexie/EAV).
+    function resolveOrdemColunaValue(obj) {
+        if (!obj) {
+            return 0;
+        }
+        var raw = obj.ordemColuna;
+        if (raw === undefined || raw === null || raw === "") {
+            raw = obj.ordemcoluna;
+        }
+        if (raw === undefined || raw === null || raw === "") {
+            raw = obj.ordem;
+        }
+        var n = Number(raw);
+        return isNaN(n) ? 0 : n;
+    }
+
+    // Próxima ordem de coluna = max(GRenderedColunas, células, new records) + 1.
+    function generateColunaOrdem() {
+        var maxOrdem = 0;
+        function consider(v) {
+            var n = Number(v);
+            if (!isNaN(n) && n > maxOrdem) {
+                maxOrdem = n;
+            }
+        }
+        (mrendThis.GRenderedColunas || []).forEach(function (col) {
+            consider(col.ordem);
+        });
+        (mrendThis.GCellObjectsConfig || []).forEach(function (cell) {
+            consider(resolveOrdemColunaValue(cell));
+        });
+        (mrendThis.GNewRecords || []).forEach(function (rec) {
+            consider(resolveOrdemColunaValue(rec));
+        });
+        return maxOrdem + 1;
     }
 
     function generateUUID() {
@@ -3074,7 +3113,9 @@ function Mrend(options) {
             descColunaField: extras.descColunaField || "",
             descColuna: record[extras.descColunaField] || "",
             ordemColunaField: extras.ordemColunaField || "",
-            ordemcoluna: record[extras.ordemColunaField] || 0,
+            // camelCase (MrendObject) — NÃO usar só "ordemcoluna" aqui: o construtor ignora lowercase.
+            ordemColuna: record[extras.ordemColunaField] || record.ordemColuna || record.ordemcoluna || 0,
+            ordemcoluna: record[extras.ordemColunaField] || record.ordemcoluna || record.ordemColuna || 0,
             descColuna: record[extras.descColunaField] || "",
             tipocolField: extras.tipocolField || "",
             tipocol: record[extras.tipocolField] || "",
@@ -3088,6 +3129,10 @@ function Mrend(options) {
         applyExtraField(mrendObject, record, extras, "cellIdField", "cellId");
         applyExtraField(mrendObject, record, extras, "colunaField", "coluna");
         applyExtraField(mrendObject, record, extras, "ordemColunaField", "ordemcoluna");
+        // Mantém alias camelCase alinhado com o campo físico.
+        if (extras.ordemColunaField && record[extras.ordemColunaField] != null && record[extras.ordemColunaField] !== "") {
+            mrendObject.ordemColuna = record[extras.ordemColunaField];
+        }
         applyExtraField(mrendObject, record, extras, "rowIdField", "rowid");
         applyExtraField(mrendObject, record, extras, "linhaField", "codigolinha");
         applyExtraField(mrendObject, record, extras, "tipocolField", "tipocol");
@@ -3712,7 +3757,7 @@ function Mrend(options) {
      * Determina se uma coluna é a "coluna título" do grupo para uma linha com comportamentogrupo.
      * Prioridade:
      *   1. linha.colunatitulo (se definido)
-     *   2. linha.levadesclinha ? primeira coluna fixa ou primeira coluna do grid
+     *   2. linha.levadesclinha → primeira coluna fixa ou primeira coluna do grid
      *   3. coluna.fixacoluna (fallback legado)
      */
     function isColunaTituloGrupo(linhaConfig, codigocoluna, colunaConfig) {
@@ -3874,7 +3919,7 @@ function Mrend(options) {
             novoRegisto = true;
         }
 
-        // -- Se coluna OU linha tem levadesclinha, usa descricao da linha como valor --
+        // ── Se coluna OU linha tem levadesclinha, usa descricao da linha como valor ──
         // FIX: O dado real está no campo específico (ex: cvalor), NÃO em 'valor'.
         // 'valor' é apenas um alias/metadata. Sempre priorizar o campo real da coluna.
         var valorCampoEspecifico = linhaRecord[coluna.config.campo];
@@ -3995,7 +4040,16 @@ function Mrend(options) {
             linhaRecord.tipocolField = mrendThis.dbTableToMrendObject.extras.tipocolField;
             linhaRecord.tipocol = coluna.config.tipo || "text";
             linhaRecord.rowIdField = mrendThis.dbTableToMrendObject.extras.rowIdField;
-            linhaRecord.ordemColuna = coluna.ordem || 0;
+            var ordemColunaVal = resolveOrdemColunaValue(coluna);
+            if (!ordemColunaVal) {
+                ordemColunaVal = generateColunaOrdem();
+                coluna.ordem = ordemColunaVal;
+            }
+            linhaRecord.ordemColuna = ordemColunaVal;
+            linhaRecord.ordemcoluna = ordemColunaVal;
+            if (linhaRecord.ordemColunaField) {
+                linhaRecord[linhaRecord.ordemColunaField] = ordemColunaVal;
+            }
             linhaRecord.descColuna = coluna.desccoluna;
             linhaRecord.descLinha = linha.config.descricao;
 
@@ -4581,7 +4635,7 @@ function Mrend(options) {
 
         var rowData = cell.getRow().getData();
 
-        // -- Se for linha de total, retornar objeto dummy --
+        // ── Se for linha de total, retornar objeto dummy ──
         if (rowData._isTotalRow) {
             return {
                 rowid: rowData.rowid,
@@ -4610,7 +4664,7 @@ function Mrend(options) {
             throw new Error("Linha com rowid " + rowData.rowid + " não encontrada.");
         }
 
-        // -- Se for linha de total, retornar objeto dummy --
+        // ── Se for linha de total, retornar objeto dummy ──
         if (renderedLinha.config && renderedLinha.config.tipo === "TotalLinha") {
             return {
                 inactivo: false,
@@ -4684,12 +4738,12 @@ function Mrend(options) {
 
     function isInactivo(cell, renderedColuna, colunaUIConfig, rowData) {
 
-        // -- Se a coluna tem levadesclinha, deve ser readonly --
+        // ── Se a coluna tem levadesclinha, deve ser readonly ──
         if (renderedColuna.levadesclinha) {
             return true;
         }
 
-        // -- Se a linha tem comportamentogrupo + levadesclinha + esta é a coluna título, deve ser readonly --
+        // ── Se a linha tem comportamentogrupo + levadesclinha + esta é a coluna título, deve ser readonly ──
         try {
             var renderedLinha = mrendThis.GRenderedLinhas.find(function (linha) {
                 return linha.rowid == rowData.rowid;
@@ -4747,7 +4801,7 @@ function Mrend(options) {
         var renderedColuna = colunaConfig;
         var rowData = cell.getRow().getData();
 
-        // -- Linha de total (filha dataTree, não editável) --
+        // ── Linha de total (filha dataTree, não editável) ──
         if (rowData._isTotalRow) {
             var parentLinha = mrendThis.GRenderedLinhas.find(function (l) {
                 return l.rowid === rowData._parentRowId;
@@ -4771,7 +4825,7 @@ function Mrend(options) {
             return "<div style='background:" + corTotal + ";font-weight:bold;" + corTextoCss + "' class='mrend-input-cell'>&nbsp;</div>";
         }
 
-        // -- Se a coluna tem levadesclinha, usa descLinha como valor --
+        // ── Se a coluna tem levadesclinha, usa descLinha como valor ──
         /*if (renderedColuna.levadesclinha) {
             var valorDescLinha = rowData.descLinha || "";
             console.log("levadesclinha formatter", valorDescLinha)
@@ -4779,7 +4833,7 @@ function Mrend(options) {
             return generateMrendCellContainer(cell, renderedColuna, colunaUIConfig, content);
         }*/
 
-        // -- comportamentogrupo: não-título ? fundo colorido vazio; título ? valor directo --
+        // ── comportamentogrupo: não-título → fundo colorido vazio; título → valor directo ──
         // (feito antes de getCelulaConfigFromTabulator porque a célula pode ter inactivo=true
         //  na config — herança da linha de grupo — o que esconderia o valor do título)
         var renderedLinhaGrupo = mrendThis.GRenderedLinhas.find(function (l) {
@@ -4808,7 +4862,7 @@ function Mrend(options) {
             var content = val ? val.toString() : "&nbsp;";
             return generateMrendCellContainer(cell, colunaConfig, colunaUIConfig, content);
         }
-        // -----------------------------------------------------------------------------
+        // ─────────────────────────────────────────────────────────────────────────────
 
         var celula = getCelulaConfigFromTabulator(cell, colunaConfig, colunaUIConfig);
 
@@ -5119,7 +5173,7 @@ function Mrend(options) {
         return {
             mutator: function (value, rowData, type, params, component) {
 
-                // -- Linha de total: valor já vem de buildLineTotalRowData / refreshLineTotalColumns --
+                // ── Linha de total: valor já vem de buildLineTotalRowData / refreshLineTotalColumns ──
                 if (rowData._isTotalRow) {
                     return value;
                 }
@@ -5347,7 +5401,7 @@ function Mrend(options) {
 
             // Lata de lixo no cabeçalho só em colunas dinâmicas (modelo + "___")
             // quando "Botão para adicionar a coluna visível" (addBtn) está true.
-            // Sem botão de adicionar coluna ? sem lata (ex.: anos do Plano de negócio).
+            // Sem botão de adicionar coluna → sem lata (ex.: anos do Plano de negócio).
             if (coluna.config && coluna.config.modelo === true
                 && String(coluna.codigocoluna || "").indexOf("___") > -1
                 && !!coluna.config.addBtn) {
@@ -5442,7 +5496,7 @@ function Mrend(options) {
 
                 var rowData = cell.getRow().getData()
 
-                // -- Linhas de total não são editáveis --
+                // ── Linhas de total não são editáveis ──
                 if (rowData._isTotalRow) {
                     return false;
                 }
@@ -5525,7 +5579,7 @@ function Mrend(options) {
     function handleRowEvent(row, operation) {
         var rowData = row.getData();
 
-        // -- Linhas de total não têm eventos --
+        // ── Linhas de total não têm eventos ──
         if (rowData._isTotalRow) {
             return;
         }
@@ -5697,7 +5751,7 @@ function Mrend(options) {
 
                     var rowData = cell.getRow().getData()
 
-                    // -- Linhas de total não têm ações --
+                    // ── Linhas de total não têm ações ──
                     if (rowData._isTotalRow) {
                         return "";
                     }
@@ -5914,8 +5968,8 @@ function Mrend(options) {
             columnsDefinition.push(entry.def);
         });
 
-        // -- Distribuição de largura estilo Bootstrap --------------------------
-        // Com = 5 colunas de dados: mede o container (já a zoom=1), subtrai as
+        // ── Distribuição de largura estilo Bootstrap ──────────────────────────
+        // Com ≤ 5 colunas de dados: mede o container (já a zoom=1), subtrai as
         // colunas frozen e os tamanhos definidos, e distribui o espaço restante
         // igualmente pelas colunas de dados — preenchendo a largura total.
         // Com > 5 colunas: usa fitDataFill com os tamanhos definidos e scroll-x.
@@ -5981,7 +6035,7 @@ function Mrend(options) {
 
                 var data = row.getData();
 
-                // -- Formatação especial para linhas de total --
+                // ── Formatação especial para linhas de total ──
                 if (data._isTotalRow) {
                     var parentConfigTotal = getParentLinhaConfigForTotalRow(data);
                     row.getElement().style.backgroundColor = getTotalRowColor(parentConfigTotal);
@@ -6017,12 +6071,12 @@ function Mrend(options) {
                     row.getElement().style[key] = customStyles[key];
                 });
 
-                // -- comportamentogrupo: fundo da linha — apenas linhas pai (sem linkid) --
+                // ── comportamentogrupo: fundo da linha — apenas linhas pai (sem linkid) ──
                 if (renderedLinha.config.comportamentogrupo && !renderedLinha.linkid) {
                     var cor = renderedLinha.config.corcomportgrupo || "#e8edf2";
                     row.getElement().style.backgroundColor = cor;
                 }
-                // ------------------------------------------------------------------------
+                // ────────────────────────────────────────────────────────────────────────
 
             },
             movableColumns: true, // Permite arrastar colunas para reordenar
@@ -7050,11 +7104,7 @@ function Mrend(options) {
 
         var colConfig = new Coluna(dadosColunaConfig);
 
-        var maxOrdemColuna = mrendThis.GRenderedColunas.reduce(function (max, col) {
-            return Math.max(max, col.ordem || 0);
-        }, 0);
-
-        var ordemColuna = maxOrdemColuna + 1;
+        var ordemColuna = generateColunaOrdem();
         var colunaToRender = new RenderedColuna({
             codigocoluna: (colConfig.codigocoluna || "").trim() + "___" + generateTimestampNumber(10),
             ordem: ordemColuna,
@@ -7078,6 +7128,8 @@ function Mrend(options) {
             }
 
             var newColuna = mrendThis.colunaTmpSetup;
+            // Recalcular no clique: cada "Adicionar" incrementa face às colunas já existentes.
+            newColuna.ordem = generateColunaOrdem();
 
             var colunas = [newColuna]
 
@@ -7125,6 +7177,11 @@ function Mrend(options) {
             var lastRendered = ""
 
             colunas.forEach(function (coluna) {
+
+                // Garantir ordem incremental em cada coluna adicionada no lote.
+                if (!resolveOrdemColunaValue(coluna)) {
+                    coluna.ordem = generateColunaOrdem();
+                }
 
                 // "config.modelo" indica que o TIPO de linha suporta "Adicionar Linha" (propriedade
                 // do tipo, não da instância) — a generalidade das linhas reais tem config.modelo=true,
@@ -7677,7 +7734,7 @@ function Mrend(options) {
             "min-height": "38px",
         });
 
-        // -- Column GROUPS — injectado via <style> para sobrepor height inline do Tabulator --
+        // ── Column GROUPS — injectado via <style> para sobrepor height inline do Tabulator ──
         var existingGroupStyle = document.getElementById("mrend-colgroup-styles");
         if (existingGroupStyle) existingGroupStyle.remove();
         var groupStyle = document.createElement("style");
@@ -7692,7 +7749,7 @@ function Mrend(options) {
             ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col .tabulator-col-title { font-size: 12px !important; font-weight: 500 !important; white-space: nowrap !important; color: rgba(255,255,255,0.95) !important; line-height: 1.4 !important; align-self: center !important; }",
         ].join("\n");
         document.head.appendChild(groupStyle);
-        // -------------------------------------------------------------
+        // ─────────────────────────────────────────────────────────────
 
         $(".tabulator .tabulator-header .tabulator-col:first-child").css("border-top-left-radius", "10px");
         $(".tabulator .tabulator-header .tabulator-col:last-child").css({
@@ -8202,7 +8259,7 @@ function applyTabulatorStylesWithJquery() {
         "min-height": "38px",
     });
 
-    // -- Column GROUPS --------------------------------------------
+    // ── Column GROUPS ────────────────────────────────────────────
     // Título do grupo (linha de cima)
     $(".tabulator .tabulator-header .tabulator-col-group > .tabulator-col-content").css({
         "padding": "7px 10px 5px",
@@ -8222,7 +8279,7 @@ function applyTabulatorStylesWithJquery() {
         "color": "white",
     });
 
-    // -- Column GROUPS — injectado via <style> para sobrepor height inline do Tabulator --
+    // ── Column GROUPS — injectado via <style> para sobrepor height inline do Tabulator ──
     var existingGroupStyle2 = document.getElementById("mrend-colgroup-styles");
     if (existingGroupStyle2) existingGroupStyle2.remove();
     var groupStyle2 = document.createElement("style");
@@ -8237,7 +8294,7 @@ function applyTabulatorStylesWithJquery() {
         ".tabulator .tabulator-header .tabulator-col-group-cols .tabulator-col .tabulator-col-title { font-size: 12px !important; font-weight: 500 !important; white-space: nowrap !important; color: rgba(255,255,255,0.95) !important; line-height: 1.4 !important; align-self: center !important; }",
     ].join("\n");
     document.head.appendChild(groupStyle2);
-    // -------------------------------------------------------------
+    // ─────────────────────────────────────────────────────────────
 
     $(".tabulator .tabulator-header .tabulator-col:first-child").css("border-top-left-radius", "10px");
     $(".tabulator .tabulator-header .tabulator-col:last-child").css({
@@ -8416,7 +8473,13 @@ function MrendObject(data) {
     this.descLinha = data.descLinha || "";
     this.descColunaField = data.descColunaField || "";
     this.ordemColunaField = data.ordemColunaField || "";
-    this.ordemColuna = data.ordemColuna || 0;
+    // Aceita ordemColuna (API) e ordemcoluna (campo físico / Dexie).
+    this.ordemColuna = (data.ordemColuna != null && data.ordemColuna !== "")
+        ? data.ordemColuna
+        : (data.ordemcoluna || 0);
+    this.ordemcoluna = (data.ordemcoluna != null && data.ordemcoluna !== "")
+        ? data.ordemcoluna
+        : this.ordemColuna;
     this.descColuna = data.descColuna || "";
     this.ordem = data.ordem || 0;
 
