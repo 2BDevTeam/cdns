@@ -6579,10 +6579,11 @@ var MdashChartBuilder = (function () {
             if (s.barWidth !== undefined) { obj.barWidth = s.barWidth + '%'; } else { obj.barMaxWidth = 30; }
             return obj;
         });
+        var xAxisShow = cfg.xAxis ? cfg.xAxis.show !== false : true;
         return Object.assign({}, base, {
             tooltip: _tooltipBase(t, 'axis'),
             grid: { top: 10, left: '2%', right: '7%', bottom: 10, containLabel: true },
-            xAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: t.subtext, fontSize: 11 }, splitLine: { lineStyle: { color: t.grid, type: [6, 4] } } },
+            xAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: xAxisShow, color: t.subtext, fontSize: 11 }, splitLine: { show: xAxisShow, lineStyle: { color: t.grid, type: [6, 4] } } },
             yAxis: { type: 'category', data: yData, axisTick: { show: false }, axisLine: { lineStyle: { color: t.axisLine } }, axisLabel: { color: t.text, fontSize: 11 } },
             series: series
         });
@@ -8230,7 +8231,7 @@ function _mciReadConfig($root, obj) {
     cfg.dataLabels = $root.find('.mcbi-labels').is(':checked');
     cfg.animation = $root.find('.mcbi-anim').is(':checked');
     cfg.borderRadius = parseInt($root.find('.mcbi-br').val()) || 6;
-    cfg.xAxis = { rotate: parseInt($root.find('.mcbi-xrot').val()) || 0, name: $root.find('.mcbi-xname').val() || '', interval: $root.find('.mcbi-xinterval').val() || 'auto' };
+    cfg.xAxis = { rotate: parseInt($root.find('.mcbi-xrot').val()) || 0, name: $root.find('.mcbi-xname').val() || '', interval: $root.find('.mcbi-xinterval').val() || 'auto', show: $root.find('.mcbi-xshow').is(':checked') };
     cfg.yAxis = { show: $root.find('.mcbi-yshow').is(':checked'), name: $root.find('.mcbi-yname').val() || '', abbrev: $root.find('.mcbi-yabbrev').is(':checked') };
     cfg.legend = { show: $root.find('.mcbi-legend').is(':checked'), position: $root.find('.mcbi-legend-pos').val() || 'top' };
     cfg.title = { show: $root.find('.mcbi-title-show').is(':checked'), text: $root.find('.mcbi-title-text').val() || '' };
@@ -8684,6 +8685,10 @@ function renderChartPropertiesInline(obj, panel) {
         + '<div class="mcbi-field" style="margin-top:2px;">'
         + _mciChk('mcbi-yshow', 'Mostrar eixo Y', !cfg.yAxis || cfg.yAxis.show !== false)
         + '<div style="margin-top:6px">' + _mciChk('mcbi-yabbrev', 'Abreviar valores (ex: 15M)', !!(cfg.yAxis && cfg.yAxis.abbrev)) + '</div>'
+        + '</div>'
+        + '<div class="mcbi-field mcbi-xshow-wrap" style="margin-top:2px;">'
+        + _mciChk('mcbi-xshow', 'Mostrar eixo X (valores)', !cfg.xAxis || cfg.xAxis.show !== false)
+        + '<div class="mcbi-info" style="margin-top:4px;">Só para Barras Horizontais — oculta os números do eixo de valores (0, 2, 4, 6…).</div>'
         + '</div>';
 
     // ── Assemble HTML ───────────────────────────────────────────────────────
@@ -9196,6 +9201,9 @@ function _mciCSS() {
     // Campo de máximo por eixo — só faz sentido para radar (outros tipos escondem-no)
     s += '.mcbi-radar-max-wrap{display:none;}';
     s += '.mcbi-root[data-ct="radar"] .mcbi-radar-max-wrap{display:block;}';
+    // Ocultar eixo X (valores) — só faz sentido para barras horizontais
+    s += '.mcbi-xshow-wrap{display:none;}';
+    s += '.mcbi-root[data-ct="bar_h"] .mcbi-xshow-wrap{display:block;}';
     // Toggle-switch checkboxes (immune to host-app CSS overrides)
     s += '.mcbi-checks{display:grid;grid-template-columns:1fr 1fr;gap:7px 10px;margin-bottom:8px;}';
     s += '.mcbi-chk{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#1e293b;cursor:pointer;margin:0;font-weight:500;line-height:1;user-select:none;position:relative;}';
