@@ -4257,7 +4257,7 @@ function addFilterMDashConfig(filter, mdashFilterUIObjectFormConfigResult) {
         style: "",
         buttonId: "removeItemFilterBtn_" + filter.mdashfilterstamp,
         classes: "btn btn-xs btn-default  remover-item-filter-btn",
-        customData: " type='button' data-tooltip='true' data-original-title='Remover filtro' ",
+        customData: " type='button' data-tooltip='Remover filtro' data-original-title='Remover filtro' ",
         label: "<span class='glyphicon glyphicon glyphicon-trash' ></span>",
         onClick: "",
     };
@@ -4269,7 +4269,7 @@ function addFilterMDashConfig(filter, mdashFilterUIObjectFormConfigResult) {
         style: "",
         buttonId: "openConfigItemFilterBtn_" + filter.mdashfilterstamp,
         classes: "btn btn-xs btn-default open-config-item-filter",
-        customData: " type='button' data-tooltip='true' data-original-title='Abrir configurações do filtro' ",
+        customData: " type='button' data-tooltip='Abrir configurações do filtro' data-original-title='Abrir configurações do filtro' ",
         label: "<span class='glyphicon glyphicon-cog'></span>",
         onClick: "",
     };
@@ -4318,7 +4318,7 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
         style: "",
         buttonId: "openConfigItemContainerBtn_" + containerItem.mdashcontaineritemstamp,
         classes: "btn btn-xs btn-default open-config-item-container",
-        customData: " type='button' data-tooltip='true' data-original-title='Abrir configurações do item do container' ",
+        customData: " type='button' data-tooltip='Abrir configurações do item do container' data-original-title='Abrir configurações do item do container' ",
         label: "<span class='glyphicon glyphicon-cog'></span>",
         onClick: "",
     };
@@ -4330,7 +4330,7 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
         style: "",
         buttonId: "addContainerItemObjectBtn_" + containerItem.mdashcontaineritemstamp,
         classes: "btn btn-xs btn-default add-container-item-object-btn",
-        customData: " containeritemId='" + containerItem.mdashcontaineritemstamp + "' type='button' data-tooltip='true' data-original-title='Adicionar objeto ao item do container' ",
+        customData: " containeritemId='" + containerItem.mdashcontaineritemstamp + "' type='button' data-tooltip='Adicionar objeto ao item do container' data-original-title='Adicionar objeto ao item do container' ",
         label: "<span class='glyphicon glyphicon-stats'></span>",
         onClick: "",
     };
@@ -4339,7 +4339,7 @@ function addContainerItemMDashConfig(containerItem, containerUIObjectFormConfigR
         style: "",
         buttonId: "copyContainerItemBtn_" + containerItem.mdashcontaineritemstamp,
         classes: "btn btn-xs btn-default copy-container-item-btn",
-        customData: " data-mdashcontaineritemstamp='" + containerItem.mdashcontaineritemstamp + "' type='button' data-tooltip='true' data-original-title='Copiar item do container' ",
+        customData: " data-mdashcontaineritemstamp='" + containerItem.mdashcontaineritemstamp + "' type='button' data-tooltip='Copiar item do container' data-original-title='Copiar item do container' ",
         label: "<span class='glyphicon glyphicon-duplicate'></span>",
         onClick: "",
     };
@@ -4402,7 +4402,7 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
         style: "",
         buttonId: "addItemContainerBtn_" + container.mdashcontainerstamp,
         classes: "btn btn-xs btn-default add-item-container-btn",
-        customData: " type='button' data-tooltip='true' data-original-title='Adicionar item ao container' ",
+        customData: " type='button' data-tooltip='Adicionar item ao container' data-original-title='Adicionar item ao container' ",
         label: "<span class='glyphicon glyphicon glyphicon-plus' ></span>",
         onClick: "",
     };
@@ -4412,7 +4412,7 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
         style: "",
         buttonId: "",
         classes: "btn btn-xs btn-default  remover-container-btn",
-        customData: " type='button' data-tooltip='true' data-original-title='Remover container' ",
+        customData: " type='button' data-tooltip='Remover container' data-original-title='Remover container' ",
         label: "<span class='glyphicon glyphicon glyphicon-trash' ></span>",
         onClick: "",
     };
@@ -4422,7 +4422,7 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
         style: "",
         buttonId: "openConfigContainerBtn_" + container.mdashcontainerstamp,
         classes: "btn btn-xs btn-default open-config-container-btn",
-        customData: " type='button' data-tooltip='true' data-original-title='Abrir configurações do container' ",
+        customData: " type='button' data-tooltip='Abrir configurações do container' data-original-title='Abrir configurações do container' ",
         label: "<span class='glyphicon glyphicon-cog'></span>",
         onClick: "",
     };
@@ -4432,7 +4432,7 @@ function addContainerMDashConfig(container, containerUIObjectFormConfigResult) {
         style: "",
         buttonId: "copyContainerBtn_" + container.mdashcontainerstamp,
         classes: "btn btn-xs btn-default copy-container-btn",
-        customData: " data-mdashcontainerstamp='" + container.mdashcontainerstamp + "' type='button' data-tooltip='true' data-original-title='Copiar container' ",
+        customData: " data-mdashcontainerstamp='" + container.mdashcontainerstamp + "' type='button' data-tooltip='Copiar container' data-original-title='Copiar container' ",
         label: "<span class='glyphicon glyphicon-duplicate'></span>",
         onClick: "",
     };
@@ -4747,7 +4747,7 @@ function initConfiguracaoDashboard(config) {
         style: "margin-left:0.5em",
         buttonId: "importDashboardConfigBtn",
         classes: "btn btn-sm btn-default",
-        customData: " type='button' data-tooltip='true' data-original-title='Importar configuração' ",
+        customData: " type='button' data-tooltip='Importar configuração' data-original-title='Importar configuração' ",
         label: "Importar configuração",
         onClick: "abrirModalImportacaoDashboard()"
     });
@@ -4771,7 +4771,7 @@ function initConfiguracaoDashboard(config) {
         style: "",
         buttonId: "addFilterMDashBtn",
         classes: "btn btn-sm btn-default add-m-dash-filter-btn",
-        customData: " type='button' data-tooltip='true' data-original-title='Adicionar filtro' ",
+        customData: " type='button' data-tooltip='Adicionar filtro' data-original-title='Adicionar filtro' ",
         label: "Adicionar filtro <span class='glyphicon glyphicon glyphicon-plus' ></span>",
         onClick: "",
     };
@@ -4817,7 +4817,7 @@ function initConfiguracaoDashboard(config) {
         style: "",
         buttonId: "addContainerMDashBtn",
         classes: "btn btn-sm btn-primary add-m-dash-container-btn",
-        customData: " type='button' data-tooltip='true' data-original-title='Adicionar container' ",
+        customData: " type='button' data-tooltip='Adicionar container' data-original-title='Adicionar container' ",
         label: "Adicionar container <span class='glyphicon glyphicon glyphicon-plus' ></span>",
         onClick: "",
     };
@@ -4828,7 +4828,7 @@ function initConfiguracaoDashboard(config) {
         style: "margin-left:0.5em;display:none;",
         buttonId: "pasteContainerMDashBtn",
         classes: "heartbeat-effect is-beating btn btn-sm btn-default paste-m-dash-container-btn",
-        customData: " type='button' data-tooltip='true' data-original-title='Colar container' ",
+        customData: " type='button' data-tooltip='Colar container' data-original-title='Colar container' ",
         label: "Colar container <span class='glyphicon glyphicon glyphicon-paste' ></span>",
         onClick: "",
     };
@@ -4838,7 +4838,7 @@ function initConfiguracaoDashboard(config) {
         style: "margin-left:0.5em",
         buttonId: "exportDashboardConfigBtn",
         classes: "btn btn-sm btn-default",
-        customData: " type='button' data-tooltip='true' data-original-title='Exportar configuração' ",
+        customData: " type='button' data-tooltip='Exportar configuração' data-original-title='Exportar configuração' ",
         label: "Exportar configuração",
         onClick: "exportarConfiguracaoMDashboard()"
     });
@@ -4859,7 +4859,7 @@ function initConfiguracaoDashboard(config) {
         style: "",
         buttonId: "updateDashboardConfigBtn",
         classes: "btn btn-sm btn-primary",
-        customData: " type='button' data-tooltip='true' data-original-title='Actualizar configuração' ",
+        customData: " type='button' data-tooltip='Actualizar configuração' data-original-title='Actualizar configuração' ",
         label: "Actualizar configuração",
         onClick: "actualizarConfiguracaoMDashboard()"
     });

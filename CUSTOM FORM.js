@@ -2021,3 +2021,132 @@ function generateModalHTML(modalData) {
     modalHTML += '</div></div></div>';
     return modalHTML.trim();
 }
+
+/* --- Progress overlay scoped ao modal-content (não ocupa a página inteira) --- */
+
+var GCustomFormModalStylesInjected = false;
+
+function injectCustomFormModalStyles() {
+    if (GCustomFormModalStylesInjected || $("#custom-form-modal-styles-v4").length) {
+        GCustomFormModalStylesInjected = true;
+        return;
+    }
+    $("#custom-form-modal-styles-v3").remove();
+    var css = ""
+        + ".custom-form-modal-content{position:relative!important;max-height:calc(100vh - 3rem)!important;"
+        + "display:flex!important;flex-direction:column!important;overflow:hidden!important;}"
+        + ".custom-form-modal .modal-dialog{max-height:calc(100vh - 3rem)!important;}"
+        + ".custom-form-modal .modal-header,.custom-form-modal .modal-footer{flex-shrink:0!important;}"
+        + ".custom-form-modal .modal-body{flex:1 1 auto!important;min-height:0!important;"
+        + "overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;}"
+        + ".custom-form-progress-overlay{position:absolute;top:0;left:0;right:0;bottom:0;z-index:20;"
+        + "background:rgba(255,255,255,.92);display:none;align-items:center;justify-content:center;"
+        + "flex-direction:column;padding:24px;border-radius:inherit;}"
+        + ".custom-form-progress-overlay.is-visible{display:flex;}"
+        + ".custom-form-progress-panel{width:72%;max-width:440px;}"
+        + ".custom-form-progress-overlay .progress{height:22px;margin-bottom:0;border-radius:6px;background:#e9ecef;overflow:hidden;}"
+        + ".custom-form-progress-overlay .custom-form-progress-bar{height:100%;background:#033076;"
+        + "transition:width .2s ease;display:flex;align-items:center;justify-content:center;min-width:2em;}"
+        + ".custom-form-progress-label{color:#fff;font-weight:700;font-size:12px;white-space:nowrap;padding:0 8px;}"
+        + ".custom-form-progress-message{margin-top:10px;font-size:13px;color:#626e78;text-align:center;font-weight:600;}"
+        + ".custom-form-progress-spinner{margin-top:16px;}"
+        + ".custom-form-progress-overlay.mode-spinner .progress{display:none;}"
+        + ".custom-form-progress-overlay.mode-progress .custom-form-progress-spinner{display:none;}";
+    $("head").append("<style id='custom-form-modal-styles-v4'>" + css + "</style>");
+    GCustomFormModalStylesInjected = true;
+}
+
+function generateProgressOverlay(options) {
+    options = options || {};
+    injectCustomFormModalStyles();
+    var id = options.id || "modalProgressOverlay";
+    var message = options.message || "A processar...";
+    var html = "<div id='" + id + "' class='custom-form-progress-overlay mode-spinner' aria-hidden='true'>";
+    html += "<div class='custom-form-progress-panel'><div class='progress'>";
+    html += "<div class='progress-bar custom-form-progress-bar' role='progressbar' style='width:0%' aria-valuenow='0' aria-valuemin='0' aria-valuemax='100'>";
+    html += "<span class='custom-form-progress-label'>0%</span></div></div>";
+    html += "<div class='custom-form-progress-message'>" + message + "</div>";
+    html += "<div class='custom-form-progress-spinner'><div class='spinner'></div></div>";
+    html += "</div></div>";
+    return html;
+}
+
+function setModalProgressMode(overlayId, mode) {
+    var $overlay = $("#" + overlayId);
+    if (!$overlay.length) { return; }
+    $overlay.removeClass("mode-spinner mode-progress").addClass("mode-" + (mode || "spinner"));
+}
+
+function updateModalProgress(overlayId, totalRegistos, totalProcessados, descricao, message) {
+    setModalProgressMode(overlayId, "progress");
+    var total = totalRegistos === 0 ? 1 : totalRegistos;
+    var percentagem = parseInt((totalProcessados / total) * 100);
+    if (isNaN(percentagem)) { percentagem = 0; }
+    if (percentagem > 100) { percentagem = 100; }
+    var $overlay = $("#" + overlayId);
+    $overlay.find(".custom-form-progress-bar").css("width", percentagem + "%").attr("aria-valuenow", percentagem);
+    $overlay.find(".custom-form-progress-label").text((descricao || "") + " " + percentagem + "%");
+    if (message !== undefined) {
+        $overlay.find(".custom-form-progress-message").text(message);
+    }
+}
+
+function showModalProgress(overlayId, options) {
+    options = options || {};
+    var mode = options.mode || "spinner";
+    var $overlay = $("#" + overlayId);
+    if (!$overlay.length) { return; }
+    setModalProgressMode(overlayId, mode);
+    if (options.message) {
+        $overlay.find(".custom-form-progress-message").text(options.message);
+    }
+    if (mode === "progress" && options.reset !== false) {
+        updateModalProgress(overlayId, 1, 0, options.description || "", options.message);
+    }
+    $overlay.addClass("is-visible").attr("aria-hidden", "false");
+}
+
+function hideModalProgress(overlayId) {
+    var $overlay = $("#" + overlayId);
+    if (!$overlay.length) { return; }
+    $overlay.removeClass("is-visible").attr("aria-hidden", "true");
+    setModalProgressMode(overlayId, "spinner");
+    $overlay.find(".custom-form-progress-bar").css("width", "0%").attr("aria-valuenow", 0);
+    $overlay.find(".custom-form-progress-label").text("0%");
+}
+
+/**
+ * Gera HTML da modal (não faz append). Usa generateModalHTML deste ficheiro.
+ */
+function generateModal(config) {
+    injectCustomFormModalStyles();
+    config = config || {};
+    if (!config.id) {
+        throw new Error("generateModal: id é obrigatório");
+    }
+
+    var progressHtml = "";
+    if (config.progress !== false) {
+        var progressConfig = config.progress || {};
+        progressHtml = generateProgressOverlay({
+            id: progressConfig.id || (config.id + "Progress"),
+            showSpinner: progressConfig.showSpinner,
+            message: progressConfig.message || "A processar..."
+        });
+    }
+
+    var modalData = {
+        title: config.title || "",
+        id: config.id,
+        customData: config.customData || "",
+        otherclassess: (config.otherclassess || "") + " custom-form-modal",
+        dialogStyle: config.dialogWidth
+            ? "width:" + config.dialogWidth + " !important;max-width:" + config.dialogWidth + " !important;"
+            : (config.dialogStyle || ""),
+        dialogClass: config.dialogClass || "",
+        body: progressHtml + (config.body || ""),
+        footerContent: config.footerContent || ""
+    };
+
+    return generateModalHTML(modalData);
+}

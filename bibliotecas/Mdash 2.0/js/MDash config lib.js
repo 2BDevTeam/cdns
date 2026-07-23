@@ -4104,6 +4104,23 @@ function realTimeComponentSync(recordData, table, idfield) {
 
 var GMDashboardConfig = null;
 
+/**
+ * PHC usa data-tooltip como TEXTO do tip. Código antigo (e chrome PHC) põe
+ * data-tooltip="true" + data-original-title="Nome" → o tip mostra "true".
+ * Normaliza para data-tooltip = data-original-title quando o valor é "true".
+ */
+function mdashNormalizePhcTooltips(root) {
+    var $root = root ? $(root) : $(document);
+    $root.find('[data-tooltip="true"]').addBack('[data-tooltip="true"]').each(function () {
+        var $el = $(this);
+        if (!$el.is('[data-tooltip="true"]')) return;
+        var text = ($el.attr('data-original-title') || $el.attr('title') || '').trim();
+        if (text && text !== 'true') {
+            $el.attr('data-tooltip', text);
+        }
+    });
+}
+
 function initConfiguracaoDashboard(config) {
     console.log("Inicializando MDash 2.0 REFATORADO com configuração:", config);
     GMDashStamp = config.u_mdashstamp;
@@ -4138,6 +4155,11 @@ function initConfiguracaoDashboard(config) {
     if (config.exportBtnSelector && $(config.exportBtnSelector).length > 0) {
         addExportImportButtons(config.exportBtnSelector);
     }
+
+    // Corrige tooltips PHC/MDash com data-tooltip="true" (chrome + UI dinâmica)
+    mdashNormalizePhcTooltips();
+    setTimeout(function () { mdashNormalizePhcTooltips(); }, 400);
+    setTimeout(function () { mdashNormalizePhcTooltips(); }, 1500);
 }
 
 /**
