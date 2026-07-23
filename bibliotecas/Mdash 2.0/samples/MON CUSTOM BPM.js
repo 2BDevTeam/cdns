@@ -164,7 +164,7 @@ function buildBPMHtml() {
     bpmUI += "                                            :class='getStatusBadge(action)'>";
     bpmUI += "                                            {{ getStatusText(action) }}";
     bpmUI += "                                        </span>";
-    bpmUI += "                                        <button v-if='action.fechado' type='button' class='btn btn-xs btn-default btn-reabrir-accao' @click.prevent.stop='reabrirAccao(action)' style='margin-left: 0.5em; padding: 2px 8px;' data-tooltip='true' data-original-title='Reabrir'>";
+    bpmUI += "                                        <button v-if='action.fechado' type='button' class='btn btn-xs btn-default btn-reabrir-accao' @click.prevent.stop='reabrirAccao(action)' style='margin-left: 0.5em; padding: 2px 8px;' data-tooltip='Reabrir' data-original-title='Reabrir'>";
     bpmUI += "                                            <i class='fa fa-unlock'></i>";
     bpmUI += "                                        </button>";
     bpmUI += "                                    </div>";

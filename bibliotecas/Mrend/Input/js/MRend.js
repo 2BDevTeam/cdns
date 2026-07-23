@@ -5347,6 +5347,57 @@ function Mrend(options) {
 
             }
 
+            // Lata de lixo no cabeçalho só em colunas dinâmicas (modelo + "___")
+            // quando "Botão para adicionar a coluna visível" (addBtn) está true.
+            // Sem botão de adicionar coluna → sem lata (ex.: anos do Plano de negócio).
+            if (coluna.config && coluna.config.modelo === true
+                && String(coluna.codigocoluna || "").indexOf("___") > -1
+                && !!coluna.config.addBtn) {
+                var fieldRemovivel = coluna.codigocoluna;
+                var tituloRemovivel = colunaTitle;
+                colunaUIConfig.titleFormatter = function (cell, formatterParams, onRendered) {
+                    var wrap = document.createElement("span");
+                    wrap.className = "mrend-col-title-removable";
+                    wrap.style.cssText = "display:inline-flex;align-items:center;gap:0.45em;max-width:100%;";
+
+                    var label = document.createElement("span");
+                    label.textContent = tituloRemovivel;
+                    label.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+
+                    var trash = document.createElement("span");
+                    trash.className = "glyphicon glyphicon-trash mrend-col-trash";
+                    trash.setAttribute("title", "Remover coluna");
+                    trash.setAttribute("role", "button");
+                    trash.setAttribute("aria-label", "Remover coluna " + tituloRemovivel);
+                    trash.style.cssText = "flex:0 0 auto;font-size:11px;opacity:0.55;cursor:pointer;padding:2px 3px;border-radius:3px;transition:opacity .15s,background-color .15s;";
+
+                    trash.addEventListener("mouseenter", function () {
+                        trash.style.opacity = "1";
+                        trash.style.backgroundColor = "rgba(255,255,255,0.18)";
+                    });
+                    trash.addEventListener("mouseleave", function () {
+                        trash.style.opacity = "0.55";
+                        trash.style.backgroundColor = "transparent";
+                    });
+                    trash.addEventListener("click", function (ev) {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        if (confirm("Remover esta coluna? Os dados desta coluna serão apagados.")) {
+                            mrendThis.deleteColuna(fieldRemovivel);
+                        }
+                    });
+                    trash.addEventListener("mousedown", function (ev) {
+                        // Evita disparar sort do cabeçalho Tabulator
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                    });
+
+                    wrap.appendChild(label);
+                    wrap.appendChild(trash);
+                    return wrap;
+                };
+            }
+
             var editorConfig = handleEditor(coluna, colunaUIConfig);
             Object.assign(colunaUIConfig, editorConfig);
 
@@ -6879,6 +6930,29 @@ function Mrend(options) {
 
             }
         })
+        // Limpa chips legados (se existirem); a remoção passa a ser só no cabeçalho.
+        mrendThis.renderRemovableColunaButtons();
+    }
+
+    // Remoção de colunas dinâmicas (modelo + "___"):
+    // - NUNCA cria chips por cima da grelha
+    // - lata de lixo no titleFormatter do cabeçalho (ver addTabulatorColumns)
+    // Esta função só remove wraps/chips antigos do DOM.
+    this.renderRemovableColunaButtons = function () {
+        $("#tableButtonsColRemovable" + mrendThis.table).remove();
+        $(".tableButtonsColRemovable").remove();
+        $(mrendThis.containerToRender).siblings(".tableButtonsColRemovable").remove();
+        $("[data-remove-coluna]").closest(".tableButtonsColRemovable, .btn-default.btn-sm").each(function () {
+            var $el = $(this);
+            if ($el.hasClass("tableButtonsColRemovable") || $el.parent().hasClass("tableButtonsColRemovable")) {
+                $el.remove();
+            }
+        });
+        // Remover chips avulsos (legado) imediatamente antes do container da grelha
+        $(mrendThis.containerToRender).prevAll().filter(function () {
+            return $(this).hasClass("tableButtonsColRemovable")
+                || ($(this).find && $(this).find("[data-remove-coluna]").length > 0);
+        }).remove();
     }
 
 
@@ -7042,6 +7116,8 @@ function Mrend(options) {
 
         mrendThis.db[mrendThis.table].where("coluna").equals(codigocoluna).delete().then(function () {
             //console.log(("Coluna deletada com sucesso:", codigocoluna);
+            mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+            mrendThis.renderRemovableColunaButtons();
         });
     }
     this.addColunasByModelo = function (colunas) {
@@ -7052,9 +7128,14 @@ function Mrend(options) {
 
             colunas.forEach(function (coluna) {
 
+                // "config.modelo" indica que o TIPO de linha suporta "Adicionar Linha" (propriedade
+                // do tipo, não da instância) — a generalidade das linhas reais tem config.modelo=true,
+                // pelo que filtrar por esse campo excluía (por engano) todas as linhas e nenhuma célula
+                // era criada para a nova coluna. O único registo a excluir é o stub inicial vazio
+                // (this.GRenderedLinhas = [new RenderedLinha({})]), que não tem rowid.
                 var renderedLinhas = mrendThis.GRenderedLinhas.filter(function (linha) {
 
-                    return linha.config.modelo != true;
+                    return !!linha.rowid;
                 });
 
                 renderedLinhas.forEach(function (linha) {
@@ -7361,6 +7442,7 @@ function Mrend(options) {
 
 
             mrendThis.applyTabulatorStylesWithJquery(mrendThis);
+            mrendThis.renderRemovableColunaButtons();
 
         }; // end doAdd
 
